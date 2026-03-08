@@ -77,7 +77,7 @@ mp.add_periodic_timer(check_interval, check_sub)
 local function do_toggle_autopause()
     auto_pause_enabled = not auto_pause_enabled
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 0.5)
 end
 
 -- Karaoke Mode Toggle Logic
@@ -85,9 +85,9 @@ local function do_toggle_karaoke()
     pause_every_word = not pause_every_word
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE EVERY WORD", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: EVERY WORD (Requires Karaoke)", 0.5)
     else
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: END OF PHRASE", 0.5)
     end
 end
 -- Register functions to be bound in input.conf

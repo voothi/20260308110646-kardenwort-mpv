@@ -286,7 +286,7 @@ local function toggle_sub_visibility()
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Subtitles: " .. (next_vis and "ON" or "OFF"), 2)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Subtitles: " .. (next_vis and "ON" or "OFF"), 0.5)
 end
 
 local function toggle_context()
@@ -302,7 +302,7 @@ local function toggle_context()
         
         update_timer = mp.add_periodic_timer(0.05, update_osd)
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: ON", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: ON", 0.5)
     else
         -- Restore native subs (fallback to true to fix watch-later bugs)
         mp.set_property_bool("sub-visibility", was_sub_vis ~= nil and was_sub_vis or true)
@@ -314,7 +314,7 @@ local function toggle_context()
         end
         osd:remove()
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: OFF", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: OFF", 0.5)
     end
 end
 
@@ -334,7 +334,7 @@ local function cycle_secondary_sid()
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", 2.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", 0.5)
         return
     end
     
@@ -363,7 +363,7 @@ local function cycle_secondary_sid()
                     end
                 end
                 local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: " .. label, 2.5)
+                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: " .. label, 0.5)
                 break
             end
         end
