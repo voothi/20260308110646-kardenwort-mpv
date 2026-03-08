@@ -1,4 +1,4 @@
-# mpv Language Learning Suite - Optimized Subtitle Workflow
+# Kardenwort Mpv Configuration - Language Learning Suite
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv-conf/releases/tag/v1.0.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
