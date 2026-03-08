@@ -35,8 +35,15 @@ local check_interval = 0.05
 
 local last_paused_sub_end = nil
 
+local is_holding_space = false
+local space_down_time = 0
+local space_tap_delay = 0 -- Threshold to distinguish tap vs hold (seconds)
+
 local function check_sub()
     if not auto_pause_enabled then return end
+    
+    -- If user is holding Space, bypass all pausing completely
+    if is_holding_space then return end
 
     -- Request texts from both primary and secondary tracks
     local raw_text_primary = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
@@ -90,6 +97,27 @@ local function do_toggle_karaoke()
         mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: END OF PHRASE", 0.5)
     end
 end
+
+-- Smart Spacebar Logic
+local function handle_smart_space(table)
+    if table.event == "down" then
+        is_holding_space = true
+        space_down_time = mp.get_time()
+        -- Immediately ensure player is playing while held
+        mp.set_property_bool("pause", false)
+    elseif table.event == "up" then
+        is_holding_space = false
+        local hold_duration = mp.get_time() - space_down_time
+        
+        -- If it was a quick tap, toggle the pause state normally
+        if hold_duration < space_tap_delay then
+            local is_paused = mp.get_property_bool("pause")
+            mp.set_property_bool("pause", not is_paused)
+        end
+    end
+end
+
 -- Register functions to be bound in input.conf
 mp.add_key_binding(nil, "toggle-autopause", do_toggle_autopause)
 mp.add_key_binding(nil, "toggle-karaoke-mode", do_toggle_karaoke)
+mp.add_key_binding(nil, "smart-space", handle_smart_space, {complex=true})
