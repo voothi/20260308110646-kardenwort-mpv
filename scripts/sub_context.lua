@@ -274,8 +274,7 @@ local function toggle_context()
         load_tracks()
         
         update_timer = mp.add_periodic_timer(0.05, update_osd)
-        local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: ON", 2)
+        mp.osd_message("Drum: ON", 1.5)
     else
         -- Restore native subs (fallback to true to fix watch-later bugs)
         mp.set_property_bool("sub-visibility", was_sub_vis ~= nil and was_sub_vis or true)
@@ -286,8 +285,7 @@ local function toggle_context()
             update_timer = nil
         end
         osd:remove()
-        local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: OFF", 2)
+        mp.osd_message("Drum: OFF", 1.5)
     end
 end
 
@@ -295,15 +293,18 @@ mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
 
 -- Custom cycler for secondary subtitles to fix visibility and provide cleaner OSD
 local function cycle_secondary_sid()
-    -- Always ensure natively visibility is forcibly turned back on when cycling tracks
-    mp.set_property_bool("secondary-sub-visibility", true)
+    -- Ensure natively visibility is forcibly turned back on, EXCEPT if drum mode is hiding it
+    if enabled then
+        was_sec_sub_vis = true
+    else
+        mp.set_property_bool("secondary-sub-visibility", true)
+    end
     
     mp.command("no-osd cycle secondary-sid")
     
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
-        local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", 2.5)
+        mp.osd_message("Top: OFF", 2)
         return
     end
     
@@ -331,8 +332,7 @@ local function cycle_secondary_sid()
                         label = string.sub(fname, 1, 30)
                     end
                 end
-                local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: " .. label, 2.5)
+                mp.osd_message("Top: " .. label, 2)
                 break
             end
         end
