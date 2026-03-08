@@ -291,6 +291,53 @@ end
 
 mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
 
+-- Custom cycler for secondary subtitles to fix visibility and provide cleaner OSD
+local function cycle_secondary_sid()
+    -- Always ensure natively visibility is forcibly turned back on when cycling tracks
+    mp.set_property_bool("secondary-sub-visibility", true)
+    
+    mp.command("no-osd cycle secondary-sid")
+    
+    local ssid = mp.get_property_number("secondary-sid", 0)
+    if ssid == 0 then
+        mp.osd_message("Secondary subtitles: OFF", 2.5)
+        return
+    end
+    
+    -- Wait a tiny moment for properties to update before getting track details
+    mp.add_timeout(0.05, function()
+        local tracks = mp.get_property_native("track-list")
+        if not tracks then return end
+        
+        for _, t in ipairs(tracks) do
+            if t.type == "sub" and t.id == ssid then
+                local label = "ON"
+                if t.lang then
+                    label = t.lang:upper()
+                elseif t.title then
+                    label = t.title
+                elseif t["external-filename"] then
+                    local fname = t["external-filename"]:match("([^/\\]+)$") or t["external-filename"]
+                    
+                    -- Extract typical language codes like '.ru.srt' or '_en.ass'
+                    local ext_lang = fname:match("%.([A-Za-z0-9_]+)%.srt$") or fname:match("%.([A-Za-z0-9_]+)%.ass$")
+                    if ext_lang then
+                        label = ext_lang:upper()
+                    else
+                        -- Fallback to the truncated filename
+                        label = string.sub(fname, 1, 30)
+                    end
+                end
+                
+                mp.osd_message("Secondary subtitles: " .. label, 2.5)
+                break
+            end
+        end
+    end)
+end
+
+mp.add_key_binding(nil, "cycle-sec-sid", cycle_secondary_sid)
+
 -- Re-parse if track changes while drum mode is active
 mp.observe_property("sid", "number", function() if enabled then load_tracks() end end)
 mp.observe_property("secondary-sid", "number", function() if enabled then load_tracks() end end)
