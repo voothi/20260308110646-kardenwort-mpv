@@ -293,6 +293,30 @@ local function toggle_sub_visibility()
 end
 
 local function toggle_context()
+    if not enabled then
+        local tracks = mp.get_property_native("track-list")
+        local sid = mp.get_property_number("sid", 0)
+        local ssid = mp.get_property_number("secondary-sid", 0)
+        
+        local is_ass = false
+        if tracks then
+            for _, t in ipairs(tracks) do
+                if t.type == "sub" and (t.id == sid or (ssid > 0 and t.id == ssid)) and t.selected then
+                    if t.codec == "ass" or t.codec == "ssa" then
+                        is_ass = true
+                        break
+                    end
+                end
+            end
+        end
+        
+        if is_ass then
+            local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+            mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: NOT SUPPORTED (ASS Track)", osd_msg_duration + 1.0)
+            return
+        end
+    end
+
     enabled = not enabled
     if enabled then
         -- Hide native subs to prevent overlapping
