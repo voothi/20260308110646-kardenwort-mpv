@@ -44,6 +44,8 @@ local active_size_multiplier = 1.0
 -- (Negative values pull the context lines closer to the active line, 
 -- compensating for invisible padding inside the font itself). Try -0.1 to -0.2.
 local spacing_gap = -0.1
+-- Extra padding (in percentage of screen height) between the two drums when both are at the bottom.
+local auto_bottom_padding = 2
 -- *********************************************************
 
 local primary_subs = {}
@@ -230,14 +232,26 @@ local function update_osd()
     -- Use the native mpv subtitle size if explicit manual user size is not specified
     local font_size = drum_font_size > 0 and drum_font_size or mp.get_property_number("sub-font-size", 44)
     
+    local pri_pos = mp.get_property_number("sub-pos", 95)
+    local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
+    
+    if sec_pos > 50 then
+        -- Prevent collision by automatically stacking the secondary drum safely above the primary drum.
+        -- We calculate the maximum possible height the primary drum can take in pixels.
+        -- 1 active line + (2 * context_lines * size_multiplier) context lines.
+        -- We multiply by 1.3 to account for standard ASS line-height spacing (descenders).
+        local max_lines = active_size_multiplier + (2 * context_lines * context_size_multiplier)
+        local max_pixels = max_lines * font_size * 1.3
+        local max_percent = (max_pixels / 1080) * 100
+        sec_pos = pri_pos - max_percent - auto_bottom_padding
+    end
+    
     if #secondary_subs > 0 then
-        local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
         local idx = get_center_index(secondary_subs, time_pos)
         ass_text = ass_text .. draw_drum(secondary_subs, idx, sec_pos, time_pos, font_size)
     end
     
     if #primary_subs > 0 then
-        local pri_pos = mp.get_property_number("sub-pos", 95)
         local idx = get_center_index(primary_subs, time_pos)
         ass_text = ass_text .. draw_drum(primary_subs, idx, pri_pos, time_pos, font_size)
     end
