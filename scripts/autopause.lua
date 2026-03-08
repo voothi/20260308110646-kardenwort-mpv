@@ -68,25 +68,31 @@ end
 -- Start periodic timer check
 mp.add_periodic_timer(check_interval, check_sub)
 
--- Register hotkey (toggle autopause itself)
-mp.add_key_binding(toggle_key, "toggle-autopause", function()
+-- AutoPause Toggle Logic
+local function do_toggle_autopause()
     auto_pause_enabled = not auto_pause_enabled
-    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2)
-end)
+    mp.commandv("show-text", "${osd-ass-cc/0}{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2000)
+end
 
--- Register hotkey (toggle karaoke mode)
-mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", function()
+-- Karaoke Mode Toggle Logic
+local function do_toggle_karaoke()
     pause_every_word = not pause_every_word
-    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE EVERY WORD", 2)
+        mp.commandv("show-text", "${osd-ass-cc/0}{\\an4}{\\fs20}Mode: PAUSE EVERY WORD", 2000)
     else
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2)
+        mp.commandv("show-text", "${osd-ass-cc/0}{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2000)
     end
-end)
+end
 
--- mp.add_key_binding("з", "toggle-autopause", function() mp.commandv("script-binding", "toggle-autopause") end)
-mp.add_key_binding("З", "toggle-autopause", function() mp.commandv("script-binding", "toggle-autopause") end)
--- mp.add_key_binding("л", "toggle-karaoke-mode", function() mp.commandv("script-binding", "toggle-karaoke-mode") end)
-mp.add_key_binding("Л", "toggle-karaoke-mode", function() mp.commandv("script-binding", "toggle-karaoke-mode") end)
+-- English keys (Uppercase & Lowercase)
+mp.add_key_binding(toggle_key, "toggle-autopause", do_toggle_autopause)
+mp.add_key_binding(string.lower(toggle_key), "toggle-autopause-lower", do_toggle_autopause)
+
+mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", do_toggle_karaoke)
+mp.add_key_binding(string.lower(toggle_mode_key), "toggle-karaoke-mode-lower", do_toggle_karaoke)
+
+-- Russian keys (Uppercase & Lowercase)
+mp.add_key_binding("з", "toggle-autopause-ru-lower", do_toggle_autopause)
+mp.add_key_binding("З", "toggle-autopause-ru-upper", do_toggle_autopause)
+mp.add_key_binding("л", "toggle-karaoke-ru-lower", do_toggle_karaoke)
+mp.add_key_binding("Л", "toggle-karaoke-ru-upper", do_toggle_karaoke)
