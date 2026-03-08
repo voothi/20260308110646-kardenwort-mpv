@@ -5,7 +5,7 @@ local mp = require 'mp'
 -- ==========================================
 -- Base window height (e.g. 720p). 
 -- When the window is smaller than this, subtitles will stop shrinking.
-local base_height = 720 
+local base_height = 1080 
 
 -- Your preferred size multiplier
 local base_scale = 1.0  
