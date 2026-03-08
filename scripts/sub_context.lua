@@ -14,16 +14,16 @@ local enabled = false
 -- === Global Sizing ===
 -- Overall font size of the drum text (active line). Set to 0 to dynamically match your normal mpv sub-font-size.
 -- Try values like 55 or 60 to make both drums larger overall!
-local drum_font_size = 55
+local drum_font_size = 34
 
 -- Number of previous and next subtitles to show around the active line
 local context_lines = 2
 
 -- === Context Line Styling (The "Dimmed" lines) ===
 -- Opacity of the context lines (Hex format: 00 is solid, FF is invisible. 88 is ~50% transparent)
-local context_opacity = "88"
+local context_opacity = "00"
 -- Color of the context lines (Hex format BGR: CCCCCC is light gray)
-local context_color = "EFEFEF"
+local context_color = "FFFFFF"
 -- Size of context lines relative to the main active line (0.85 = 85% of normal size)
 local context_size_multiplier = 0.85
 
