@@ -276,9 +276,9 @@ local function toggle_context()
         update_timer = mp.add_periodic_timer(0.05, update_osd)
         mp.osd_message("Drum Mode: ON", 2)
     else
-        -- Restore native subs
-        mp.set_property_bool("sub-visibility", was_sub_vis)
-        mp.set_property_bool("secondary-sub-visibility", was_sec_sub_vis)
+        -- Restore native subs (fallback to true to fix watch-later bugs)
+        mp.set_property_bool("sub-visibility", was_sub_vis ~= nil and was_sub_vis or true)
+        mp.set_property_bool("secondary-sub-visibility", was_sec_sub_vis ~= nil and was_sec_sub_vis or true)
         
         if update_timer then
             update_timer:kill()
@@ -294,3 +294,11 @@ mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
 -- Re-parse if track changes while drum mode is active
 mp.observe_property("sid", "number", function() if enabled then load_tracks() end end)
 mp.observe_property("secondary-sid", "number", function() if enabled then load_tracks() end end)
+
+-- Prevent permanent subtitle breakage by restoring native subs if user quits player during Drum Mode
+mp.register_event("shutdown", function()
+    if enabled then
+        mp.set_property_bool("sub-visibility", was_sub_vis ~= nil and was_sub_vis or true)
+        mp.set_property_bool("secondary-sub-visibility", was_sec_sub_vis ~= nil and was_sec_sub_vis or true)
+    end
+end)
