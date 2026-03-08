@@ -227,6 +227,13 @@ local update_timer = nil
 local function update_osd()
     if not enabled then return end
     
+    -- If the user has hidden subtitles via 's', clear the drum OSD and stop.
+    if not was_sub_vis then
+        osd.data = ""
+        osd:update()
+        return
+    end
+    
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
@@ -260,6 +267,24 @@ local function update_osd()
     
     osd.data = ass_text
     osd:update()
+end
+
+local function toggle_sub_visibility()
+    -- If Drum Mode is enabled, the native sub-visibility is already false.
+    -- We use our tracked 'was_sub_vis' as the source of truth.
+    local current_vis = enabled and was_sub_vis or mp.get_property_bool("sub-visibility", true)
+    local next_vis = not current_vis
+    
+    if enabled then
+        was_sub_vis = next_vis
+        -- Force an immediate OSD update to hide/show the drum
+        update_osd()
+    else
+        mp.set_property_bool("sub-visibility", next_vis)
+    end
+    
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Subtitles: " .. (next_vis and "ON" or "OFF"), 2)
 end
 
 local function toggle_context()
@@ -344,6 +369,7 @@ local function cycle_secondary_sid()
 end
 
 mp.add_key_binding(nil, "cycle-sec-sid", cycle_secondary_sid)
+mp.add_key_binding(nil, "toggle-sub-visibility", toggle_sub_visibility)
 
 -- Re-parse if track changes while drum mode is active
 mp.observe_property("sid", "number", function() if enabled then load_tracks() end end)
