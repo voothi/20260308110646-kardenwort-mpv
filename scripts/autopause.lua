@@ -13,7 +13,7 @@ local auto_pause_enabled = true
 local pause_every_word = false
 
 -- Hotkey to quickly toggle autopause on/off
-local toggle_key = "P"
+local toggle_key = "Q"
 
 -- Hotkey to toggle the "Pause every word" mode
 local toggle_mode_key = "K"
