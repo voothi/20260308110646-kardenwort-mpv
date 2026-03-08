@@ -1,62 +1,40 @@
 local mp = require 'mp'
 
 local auto_pause_enabled = true
-local current_phrase = ""
-local is_auto_paused = false
-local original_sub_delay = 0
+local last_paused_sub_end = nil
 
--- Очистка текста от тегов (чтобы Караоке воспринималось как одна фраза)
-local function clean_sub_text(text)
-    if not text then return "" end
-    local s = text:gsub("{.-}", "")
-    s = s:gsub("\\N", " "):gsub("\\n", " ")
-    s = s:match("^%s*(.-)%s*$") or ""
-    return s
+local function check_sub()
+    if not auto_pause_enabled then return end
+
+    local raw_text = mp.get_property("sub-text")
+    if not raw_text or raw_text == "" then return end
+
+    -- Ищем точное совпадение с закрывающим тегом {\c} (plain=true отключает регулярки)
+    -- Если тег есть — фраза еще произносится (караоке в процессе). Ждем.
+    if string.find(raw_text, "{\\c}", 1, true) then
+        return
+    end
+
+    -- Если тега нет, значит это финальный кадр фразы (или обычный субтитр).
+    -- Включаем классическую автопаузу перед самым концом субтитра.
+    local sub_end = mp.get_property_number("sub-end")
+    local time_pos = mp.get_property_number("time-pos")
+
+    if sub_end ~= nil and time_pos ~= nil then
+        -- Пауза за 0.15 сек до того, как текст пропадет с экрана
+        if (sub_end - time_pos) < 0.15 and (sub_end - time_pos) > 0 then
+            if last_paused_sub_end ~= sub_end then
+                mp.set_property_bool("pause", true)
+                last_paused_sub_end = sub_end
+            end
+        end
+    end
 end
 
--- Отслеживаем изменение текста на экране в реальном времени
-mp.observe_property("sub-text", "string", function(name, raw_text)
-    if not auto_pause_enabled then return end
-    if is_auto_paused then return end -- Не реагируем, пока сами держим паузу
+-- Проверять таймер каждые 0.05 сек
+mp.add_periodic_timer(0.05, check_sub)
 
-    local stripped = clean_sub_text(raw_text)
-    
-    -- Игнорируем промежуточные шаги Караоке, где базовый текст тот же
-    if stripped == current_phrase then return end
-    
-    -- Фраза полностью сменилась или исчезла (появился пустой промежуток)
-    if current_phrase ~= "" then
-        mp.set_property_bool("pause", true)
-        is_auto_paused = true
-        
-        -- Запоминаем текущую синхронизацию и делаем искусственную задержку 0.1 сек,
-        -- чтобы предыдущая фраза "вернулась" на экран во время паузы
-        original_sub_delay = mp.get_property_number("sub-delay", 0)
-        mp.set_property_number("sub-delay", original_sub_delay + 0.1)
-    end
-    
-    current_phrase = stripped
-end)
-
--- Отслеживаем ручное снятие с паузы (нажатие Пробела)
-mp.observe_property("pause", "bool", function(name, paused)
-    if not paused and is_auto_paused then
-        -- Возвращаем нормальную синхронизацию субтитров
-        mp.set_property_number("sub-delay", original_sub_delay)
-        is_auto_paused = false
-    end
-end)
-
--- Защита от багов при ручной перемотке видео мышкой/стрелками
-mp.register_event("seek", function()
-    current_phrase = ""
-    if is_auto_paused then
-        mp.set_property_number("sub-delay", original_sub_delay)
-        is_auto_paused = false
-    end
-end)
-
--- Горячая клавиша для быстрого включения/выключения
+-- Горячая клавиша (Shift + p) для быстрого включения/выключения
 mp.add_key_binding("P", "toggle-autopause", function()
     auto_pause_enabled = not auto_pause_enabled
     mp.osd_message("Автопауза: " .. (auto_pause_enabled and "ВКЛ" or "ВЫКЛ"), 2)
