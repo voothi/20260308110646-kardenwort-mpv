@@ -45,11 +45,10 @@ local function check_sub()
     if raw_text_primary == "" and raw_text_secondary == "" then return end
 
     -- If "pause every word" mode is OFF, we look for the token to skip intermediate words.
-    -- We check primary ASS tags for {\c}, and BOTH texts for ★ in case the karaoke track is secondary.
+    -- We check BOTH primary and secondary texts for the karaoke token.
     if not pause_every_word then
         local has_karaoke = string.find(raw_text_primary, karaoke_token, 1, true)
-        if not has_karaoke then has_karaoke = string.find(raw_text_primary, "★", 1, true) end
-        if not has_karaoke then has_karaoke = string.find(raw_text_secondary, "★", 1, true) end
+        if not has_karaoke then has_karaoke = string.find(raw_text_secondary, karaoke_token, 1, true) end
         
         if has_karaoke then
             return
