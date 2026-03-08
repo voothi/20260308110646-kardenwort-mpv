@@ -78,6 +78,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `S` | `Ы` | Toggle Primary Subtitle Visibility |
 | `J` | `О` | Toggle **Secondary Subtitle** On/Off |
 | `Y` | `Н` | Toggle Secondary Subtitle **Layout** (Top ↔ Bottom) |
+| `C` | `С` | Toggle **Drum Mode** (Multi-line Context) |
 | `TAB` | `TAB` | Hold to show OSC (hidden by default) |
 | `P` | `З` | Toggle **Karaoke-Safe Autopause** |
 | `L` | `Л` | Toggle **Karaoke Mode** |
