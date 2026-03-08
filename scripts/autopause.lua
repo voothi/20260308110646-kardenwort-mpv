@@ -85,16 +85,6 @@ local function do_toggle_karaoke()
         mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2)
     end
 end
-
--- English keys (Uppercase & Lowercase)
-mp.add_key_binding(toggle_key, "toggle-autopause", do_toggle_autopause)
-mp.add_key_binding(string.lower(toggle_key), "toggle-autopause-lower", do_toggle_autopause)
-
-mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", do_toggle_karaoke)
-mp.add_key_binding(string.lower(toggle_mode_key), "toggle-karaoke-mode-lower", do_toggle_karaoke)
-
--- Russian keys (Uppercase & Lowercase)
-mp.add_key_binding("з", "toggle-autopause-ru-lower", do_toggle_autopause)
-mp.add_key_binding("З", "toggle-autopause-ru-upper", do_toggle_autopause)
-mp.add_key_binding("л", "toggle-karaoke-ru-lower", do_toggle_karaoke)
-mp.add_key_binding("Л", "toggle-karaoke-ru-upper", do_toggle_karaoke)
+-- Register functions to be bound in input.conf
+mp.add_key_binding(nil, "toggle-autopause", do_toggle_autopause)
+mp.add_key_binding(nil, "toggle-karaoke-mode", do_toggle_karaoke)

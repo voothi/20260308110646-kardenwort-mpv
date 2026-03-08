@@ -6,3 +6,6 @@ mpv_docs.txt
 mpv_options2.txt
 help.txt
 scripts/test_osd.lua
+mpv_log.txt
+scripts_autopause_old_utf8.lua
+scripts_autopause_old.lua
