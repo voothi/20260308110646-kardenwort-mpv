@@ -1,6 +1,6 @@
-# Kardenwort Mpv Configuration - Language Learning Suite
+# Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv-conf/releases/tag/v1.0.0) 
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.0.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. This suite resolves common friction points in subtitle management, navigation, and focus.
@@ -9,7 +9,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 >
 > Developed and maintained by **Denis Novikov (voothi)** as part of the Kardenwort ecosystem.
 >
-> *   **Repository**: [Source Code](https://github.com/voothi/20260308110646-kardenwort-mpv-conf)
+> *   **Repository**: [Source Code](https://github.com/voothi/20260308110646-kardenwort-mpv)
 
 > [!IMPORTANT]
 > **Optimized Study Environment**
