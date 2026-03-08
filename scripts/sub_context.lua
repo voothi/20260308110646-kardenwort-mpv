@@ -1,7 +1,40 @@
 local mp = require 'mp'
 
+-- =========================================================================
+-- DRUM CONTEXT MODE SETTINGS
+-- =========================================================================
+-- This script provides a "Drum" subtitle context mode (toggled via 'c').
+-- It displays previous and future subtitles around the current active one, 
+-- giving you complete context for fragmented or short sentences.
+-- =========================================================================
+
 local enabled = false
-local context_lines = 2 -- Number of previous and next subtitles to show
+
+-- ***************** CONFIGURATION OPTIONS *****************
+-- Number of previous and next subtitles to show around the active line
+local context_lines = 2
+
+-- === Context Line Styling (The "Dimmed" lines) ===
+-- Opacity of the context lines (Hex format: 00 is solid, FF is invisible. 88 is ~50% transparent)
+local context_opacity = "88"
+-- Color of the context lines (Hex format BGR: CCCCCC is light gray)
+local context_color = "CCCCCC"
+-- Size of context lines relative to the main active line (0.85 = 85% of normal size)
+local context_size_multiplier = 0.85
+
+-- === Active Line Styling ===
+-- Opacity of the active line (00 is solid/fully visible)
+local active_opacity = "00"
+-- Color of the active line (Hex format BGR: FFFFFF is pure white)
+local active_color = "FFFFFF"
+-- Should the active line be bold? (1 = yes, 0 = no)
+local active_bold = "1"
+
+-- === Spacing ===
+-- Gap between the active line and the context lines (relative to font size)
+local spacing_gap = 0.2
+-- *********************************************************
+
 local primary_subs = {}
 local secondary_subs = {}
 
@@ -127,14 +160,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
-    local gap = font_size * 0.2
+    local gap = font_size * spacing_gap
     
     local function format_sub(sub, is_center)
         local is_active = (is_center and time_pos >= sub.start_time and time_pos <= sub.end_time)
         if is_active then
-            return string.format("{\\alpha&H00&}{\\b1}{\\c&HFFFFFF&}%s{\\b0}", sub.text)
+            return string.format("{\\alpha&H%s&}{\\b%s}{\\c&H%s&}%s{\\b0}", active_opacity, active_bold, active_color, sub.text)
         else
-            return string.format("{\\alpha&H88&}{\\c&HCCCCCC&}{\\fs%d}%s{\\fs%d}", font_size * 0.85, sub.text, font_size)
+            return string.format("{\\alpha&H%s&}{\\c&H%s&}{\\fs%d}%s{\\fs%d}", context_opacity, context_color, font_size * context_size_multiplier, sub.text, font_size)
         end
     end
 
