@@ -29,6 +29,9 @@ local pause_padding = 0.15
 -- 0.05 is the optimal balance between pause accuracy and player load.
 local check_interval = 0.05
 
+-- Duration for OSD status messages (in seconds)
+local osd_msg_duration = 0.5
+
 -- =========================================================================
 -- MAIN CODE (NO NEED TO CHANGE BELOW)
 -- =========================================================================
@@ -84,7 +87,7 @@ mp.add_periodic_timer(check_interval, check_sub)
 local function do_toggle_autopause()
     auto_pause_enabled = not auto_pause_enabled
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 0.5)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), osd_msg_duration)
 end
 
 -- Karaoke Mode Toggle Logic
@@ -92,9 +95,9 @@ local function do_toggle_karaoke()
     pause_every_word = not pause_every_word
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: EVERY WORD (Requires Karaoke)", 0.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: EVERY WORD (Requires Karaoke)", osd_msg_duration)
     else
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: END OF PHRASE", 0.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: END OF PHRASE", osd_msg_duration)
     end
 end
 

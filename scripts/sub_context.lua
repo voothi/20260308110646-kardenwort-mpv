@@ -44,6 +44,9 @@ local active_size_multiplier = 1.0
 -- (Negative values pull the context lines closer to the active line, 
 -- compensating for invisible padding inside the font itself). Try -0.1 to -0.2.
 local spacing_gap = -0.1
+-- === OSD Configuration ===
+-- Duration for OSD status messages (in seconds)
+local osd_msg_duration = 0.5
 -- === Stacking Options (when both subtitles are at the bottom via 'y') ===
 -- Multiplier to calculate the vertical distance between stacked drums. 
 -- Reduce this (e.g. to 1.0 or 0.9) to bring the stacked drums closer together!
@@ -286,7 +289,7 @@ local function toggle_sub_visibility()
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Subtitles: " .. (next_vis and "ON" or "OFF"), 0.5)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Subtitles: " .. (next_vis and "ON" or "OFF"), osd_msg_duration)
 end
 
 local function toggle_context()
@@ -302,7 +305,7 @@ local function toggle_context()
         
         update_timer = mp.add_periodic_timer(0.05, update_osd)
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: ON", 0.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: ON", osd_msg_duration)
     else
         -- Restore native subs (fallback to true to fix watch-later bugs)
         mp.set_property_bool("sub-visibility", was_sub_vis ~= nil and was_sub_vis or true)
@@ -314,7 +317,7 @@ local function toggle_context()
         end
         osd:remove()
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: OFF", 0.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: OFF", osd_msg_duration)
     end
 end
 
@@ -334,7 +337,7 @@ local function cycle_secondary_sid()
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", 0.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", osd_msg_duration)
         return
     end
     
@@ -363,7 +366,7 @@ local function cycle_secondary_sid()
                     end
                 end
                 local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: " .. label, 0.5)
+                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: " .. label, osd_msg_duration)
                 break
             end
         end
