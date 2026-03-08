@@ -125,26 +125,52 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local start_idx = math.max(1, center_idx - context_lines)
     local end_idx = math.min(#subs, center_idx + context_lines)
     
-    -- Dynamically align based on position (top=an8, bottom=an2)
-    local align = 2
-    if y_pos_percent < 50 then align = 8 end
+    local is_top = (y_pos_percent < 50)
+    local y_pixel = y_pos_percent * 1080 / 100
+    local gap = font_size * 0.2
     
-    ass = ass .. string.format("{\\pos(960, %d)}{\\an%d}{\\fs%d}", y_pos_percent * 1080 / 100, align, font_size)
-    
-    for i = start_idx, end_idx do
-        local sub = subs[i]
-        local is_active = (i == center_idx and time_pos >= sub.start_time and time_pos <= sub.end_time)
-        
-        if i > start_idx then ass = ass .. "\\N" end
-        
+    local function format_sub(sub, is_center)
+        local is_active = (is_center and time_pos >= sub.start_time and time_pos <= sub.end_time)
         if is_active then
-            -- Highlight current line (Bright white, solid)
-            ass = ass .. string.format("{\\alpha&H00&}{\\b1}{\\c&HFFFFFF&}%s{\\b0}", sub.text)
+            return string.format("{\\alpha&H00&}{\\b1}{\\c&HFFFFFF&}%s{\\b0}", sub.text)
         else
-            -- Dim context lines (Transparent gray, smaller)
-            ass = ass .. string.format("{\\alpha&H88&}{\\c&HCCCCCC&}{\\fs%d}%s{\\fs%d}", font_size * 0.85, sub.text, font_size)
+            return string.format("{\\alpha&H88&}{\\c&HCCCCCC&}{\\fs%d}%s{\\fs%d}", font_size * 0.85, sub.text, font_size)
         end
     end
+
+    local prev_text = ""
+    for i = start_idx, center_idx - 1 do
+        if prev_text ~= "" then prev_text = prev_text .. "\\N" end
+        prev_text = prev_text .. format_sub(subs[i], false)
+    end
+    
+    local active_text = format_sub(subs[center_idx], true)
+    
+    local next_text = ""
+    for i = center_idx + 1, end_idx do
+        if next_text ~= "" then next_text = next_text .. "\\N" end
+        next_text = next_text .. format_sub(subs[i], false)
+    end
+    
+    if is_top then
+        -- Top Subtitle: Anchor active line at the very top (Y), Prev lines above it
+        if prev_text ~= "" then
+            ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel - gap, font_size, prev_text)
+        end
+        local main_text = active_text
+        if next_text ~= "" then main_text = main_text .. "\\N" .. next_text end
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, main_text)
+    else
+        -- Bottom Subtitle: Anchor active line at the bottom (Y), Next lines below it
+        local main_text = prev_text
+        if main_text ~= "" then main_text = main_text .. "\\N" .. active_text else main_text = active_text end
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, main_text)
+        
+        if next_text ~= "" then
+            ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel + gap, font_size, next_text)
+        end
+    end
+    
     return ass
 end
 
@@ -168,7 +194,6 @@ local function update_osd()
     if #primary_subs > 0 then
         local pri_pos = mp.get_property_number("sub-pos", 95)
         local idx = get_center_index(primary_subs, time_pos)
-        if ass_text ~= "" then ass_text = ass_text .. "\n" end
         ass_text = ass_text .. draw_drum(primary_subs, idx, pri_pos, time_pos, font_size)
     end
     
