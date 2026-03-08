@@ -330,7 +330,7 @@ local function cycle_secondary_pos()
     
     local label = (next_pos == 10) and "TOP" or "BOTTOM"
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Second Sub: " .. label, osd_msg_duration)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}SSP: " .. label, osd_msg_duration)
 end
 
 mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
