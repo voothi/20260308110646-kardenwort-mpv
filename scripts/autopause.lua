@@ -95,7 +95,7 @@ local function do_toggle_karaoke()
     pause_every_word = not pause_every_word
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: EVERY WORD (Requires Karaoke)", osd_msg_duration)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: EVERY WORD (Requires Karaoke)", osd_msg_duration + 1.0)
     else
         mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Pause Mode: END OF PHRASE", osd_msg_duration)
     end
