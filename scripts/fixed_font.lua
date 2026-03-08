@@ -35,16 +35,9 @@ local function update_scale()
         -- We reset the scale property so we don't destroy the layout.
         mp.set_property_number("sub-scale", 1.0)
     else
-        -- For standard text subtitles (like .srt), apply dynamic scaling.
-        local new_scale = base_scale
-        
-        -- If the window is smaller than the base height, we increase the scale 
-        -- to prevent the text from becoming tiny and unreadable.
-        if dim.h < base_height then
-            new_scale = base_scale * (base_height / dim.h)
-        end
-        
-        mp.set_property_number("sub-scale", new_scale)
+        -- For standard text subtitles (like .srt), we simply rely on mpv's native scaling.
+        -- We reset the scale to 1.0 to respect your chosen sub-font-size.
+        mp.set_property_number("sub-scale", 1.0)
     end
 end
 
