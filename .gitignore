@@ -5,3 +5,4 @@ mpv_options.txt
 mpv_docs.txt
 mpv_options2.txt
 help.txt
+scripts/test_osd.lua

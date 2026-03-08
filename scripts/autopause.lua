@@ -71,16 +71,18 @@ mp.add_periodic_timer(check_interval, check_sub)
 -- Register hotkey (toggle autopause itself)
 mp.add_key_binding(toggle_key, "toggle-autopause", function()
     auto_pause_enabled = not auto_pause_enabled
-    mp.osd_message("Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2)
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2)
 end)
 
 -- Register hotkey (toggle karaoke mode)
 mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", function()
     pause_every_word = not pause_every_word
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.osd_message("Mode: PAUSE EVERY WORD", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: EVERY WORD", 2)
     else
-        mp.osd_message("Mode: PAUSE AT END OF PHRASE", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: END OF PHRASE", 2)
     end
 end)
 

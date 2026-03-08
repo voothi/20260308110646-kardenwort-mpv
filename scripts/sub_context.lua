@@ -274,7 +274,8 @@ local function toggle_context()
         load_tracks()
         
         update_timer = mp.add_periodic_timer(0.05, update_osd)
-        mp.osd_message("Drum Mode: ON", 2)
+        local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum: ON", 2)
     else
         -- Restore native subs (fallback to true to fix watch-later bugs)
         mp.set_property_bool("sub-visibility", was_sub_vis ~= nil and was_sub_vis or true)
@@ -285,7 +286,8 @@ local function toggle_context()
             update_timer = nil
         end
         osd:remove()
-        mp.osd_message("Drum Mode: OFF", 2)
+        local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum: OFF", 2)
     end
 end
 
@@ -300,7 +302,8 @@ local function cycle_secondary_sid()
     
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
-        mp.osd_message("Secondary subtitles: OFF", 2.5)
+        local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Sec Subs: OFF", 2.5)
         return
     end
     
@@ -328,8 +331,8 @@ local function cycle_secondary_sid()
                         label = string.sub(fname, 1, 30)
                     end
                 end
-                
-                mp.osd_message("Secondary subtitles: " .. label, 2.5)
+                local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Sec Subs: " .. label, 2.5)
                 break
             end
         end
