@@ -47,7 +47,7 @@ local spacing_gap = -0.1
 -- === Stacking Options (when both subtitles are at the bottom via 'y') ===
 -- Multiplier to calculate the vertical distance between stacked drums. 
 -- Reduce this (e.g. to 1.0 or 0.9) to bring the stacked drums closer together!
-local stack_height_multiplier = 1.0
+local stack_height_multiplier = 1.15
 -- *********************************************************
 
 local primary_subs = {}
