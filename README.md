@@ -75,7 +75,9 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `LEFT` | `LEFT` | Exact **2-second** seek backward |
 | `Ctrl + C` | `Ctrl + С` | **Copy** current subtitle text to clipboard |
 | `A` / `D` | `Ф` / `В` | Jump to **Previous / Next** phrase |
-| `S` | `Ы` | Toggle Subtitle Visibility |
+| `S` | `Ы` | Toggle Primary Subtitle Visibility |
+| `J` | `О` | Toggle **Secondary Subtitle** On/Off |
+| `Y` | `Н` | Toggle Secondary Subtitle **Layout** (Top ↔ Bottom) |
 | `TAB` | `TAB` | Hold to show OSC (hidden by default) |
 | `P` | `З` | Toggle **Karaoke-Safe Autopause** |
 | `L` | `Л` | Toggle **Karaoke Mode** |
