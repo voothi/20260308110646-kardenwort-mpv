@@ -1,36 +1,36 @@
 local mp = require 'mp'
 
 -- =========================================================================
--- НАСТРОЙКИ СКРИПТА
+-- SCRIPT SETTINGS
 -- =========================================================================
 
--- Включена ли автопауза сразу при запуске плеера (true - да, false - нет)
+-- Is autopause enabled immediately upon player startup (true - yes, false - no)
 local auto_pause_enabled = true
 
--- Останавливаться ли на КАЖДОМ слове в режиме караоке?
--- false = проигрывать фразу целиком и делать паузу только в конце.
--- true = ставить на паузу после каждого произнесенного слова.
+-- Pause on EVERY word in karaoke mode?
+-- false = play the whole phrase and pause only at the end.
+-- true = pause after every spoken word.
 local pause_every_word = false
 
--- Горячая клавиша для быстрого включения/выключения автопаузы
+-- Hotkey to quickly toggle autopause on/off
 local toggle_key = "P"
 
--- Горячая клавиша для переключения режима "Пауза на каждом слове"
+-- Hotkey to toggle the "Pause every word" mode
 local toggle_mode_key = "K"
 
--- Тег, по которому скрипт понимает, что караоке-фраза еще произносится.
+-- Token used by the script to determine if the karaoke phrase is still being spoken.
 local karaoke_token = "{\\c}"
 
--- За сколько секунд до исчезновения текста ставить видео на паузу
--- (0.15 обычно идеально, чтобы текст оставался на экране)
+-- How many seconds before the text disappears to pause the video
+-- (0.15 is usually perfect to keep the text on the screen)
 local pause_padding = 0.15
 
--- Как часто скрипт проверяет время (в секундах). 
--- 0.05 - оптимальный баланс между точностью паузы и нагрузкой на плеер.
+-- How often the script checks the time (in seconds). 
+-- 0.05 is the optimal balance between pause accuracy and player load.
 local check_interval = 0.05
 
 -- =========================================================================
--- ОСНОВНОЙ КОД (НИЖЕ МОЖНО НЕ МЕНЯТЬ)
+-- MAIN CODE (NO NEED TO CHANGE BELOW)
 -- =========================================================================
 
 local last_paused_sub_end = nil
@@ -38,24 +38,24 @@ local last_paused_sub_end = nil
 local function check_sub()
     if not auto_pause_enabled then return end
 
-    -- Запрашиваем сырой текст со всеми ASS-тегами
+    -- Request raw text with all ASS tags
     local raw_text = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass")
     if not raw_text or raw_text == "" then return end
 
-    -- Если режим "пауза на каждом слове" ВЫКЛЮЧЕН, мы ищем токен, чтобы пропустить промежуточные слова.
-    -- Если ВКЛЮЧЕН — мы просто игнорируем этот блок и всегда переходим к паузе.
+    -- If "pause every word" mode is OFF, we look for the token to skip intermediate words.
+    -- If ON, we simply ignore this block and always proceed to pause.
     if not pause_every_word then
         if string.find(raw_text, karaoke_token, 1, true) then
             return
         end
     end
 
-    -- Включаем таймер для автопаузы
+    -- Start the timer for autopause
     local sub_end = mp.get_property_number("sub-end")
     local time_pos = mp.get_property_number("time-pos")
 
     if sub_end ~= nil and time_pos ~= nil then
-        -- Ставим видео на паузу за заданное время до того, как текст пропадет с экрана
+        -- Pause the video the specified amount of time before the text disappears from the screen
         if (sub_end - time_pos) < pause_padding and (sub_end - time_pos) > 0 then
             if last_paused_sub_end ~= sub_end then
                 mp.set_property_bool("pause", true)
@@ -65,21 +65,21 @@ local function check_sub()
     end
 end
 
--- Запуск периодической проверки таймера
+-- Start periodic timer check
 mp.add_periodic_timer(check_interval, check_sub)
 
--- Регистрация горячей клавиши (вкл/выкл самой автопаузы)
+-- Register hotkey (toggle autopause itself)
 mp.add_key_binding(toggle_key, "toggle-autopause", function()
     auto_pause_enabled = not auto_pause_enabled
-    mp.osd_message("Автопауза: " .. (auto_pause_enabled and "ВКЛ" or "ВЫКЛ"), 2)
+    mp.osd_message("Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2)
 end)
 
--- Регистрация горячей клавиши (переключение режима караоке)
+-- Register hotkey (toggle karaoke mode)
 mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", function()
     pause_every_word = not pause_every_word
     if pause_every_word then
-        mp.osd_message("Режим: ПАУЗА НА КАЖДОМ СЛОВЕ", 2)
+        mp.osd_message("Mode: PAUSE EVERY WORD", 2)
     else
-        mp.osd_message("Режим: ПАУЗА В КОНЦЕ ФРАЗЫ", 2)
+        mp.osd_message("Mode: PAUSE AT END OF PHRASE", 2)
     end
 end)
