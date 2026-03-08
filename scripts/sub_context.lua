@@ -34,6 +34,8 @@ local active_opacity = "00"
 local active_color = "FFFFFF"
 -- Should the active line be bold? (1 = yes, 0 = no)
 local active_bold = "0"
+-- Size multiplier for the active line (1.0 = normal size, 1.2 = 20% larger, etc.)
+local active_size_multiplier = 1.0
 
 -- === Spacing ===
 -- Gap between the active line and the context lines for the top subtitle.
@@ -172,7 +174,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local function format_sub(sub, is_center)
         local is_active = (is_center and time_pos >= sub.start_time and time_pos <= sub.end_time)
         if is_active then
-            return string.format("{\\alpha&H%s&}{\\b%s}{\\c&H%s&}%s{\\b0}", active_opacity, active_bold, active_color, sub.text)
+            return string.format("{\\alpha&H%s&}{\\b%s}{\\c&H%s&}{\\fs%d}%s{\\fs%d}", active_opacity, active_bold, active_color, font_size * active_size_multiplier, sub.text, font_size)
         else
             return string.format("{\\alpha&H%s&}{\\c&H%s&}{\\fs%d}%s{\\fs%d}", context_opacity, context_color, font_size * context_size_multiplier, sub.text, font_size)
         end
