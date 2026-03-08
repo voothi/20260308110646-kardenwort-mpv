@@ -23,6 +23,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 ## Table of Contents
 
 - [Core Philosophy](#core-philosophy)
+- [Distinctive Advantages](#distinctive-advantages)
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
 - [Intelligent Scripts](#intelligent-scripts)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
@@ -38,6 +39,15 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 ## Core Philosophy
 
 Traditional video players treat subtitles as a side-effect. This suite treats them as the **primary data source** for learning. Every setting—from pixel-perfect scaling to phrase-based pausing—is designed to help you focus on the language, not the player.
+
+## Distinctive Advantages
+
+This suite solves problems that standard video players and generic scripts ignore:
+1.  **Dual-Layout Keybindings**: Native support for both English and Cyrillic keyboard layouts. Your hotkeys work flawlessly without needing to constantly switch your system input language.
+2.  **Karaoke-Ready Autopause**: Unlike standard autopause scripts that stutter on `.ass` word-by-word highlights, this suite precisely scans for formatting tags to stop *only* when a phrase is complete.
+3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visilibity) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
+4.  **Ass Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
+5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense study sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
 
 ## Advanced Subtitle Workflow
 
