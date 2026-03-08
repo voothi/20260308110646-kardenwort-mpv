@@ -161,14 +161,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         if next_text ~= "" then main_text = main_text .. "\\N" .. next_text end
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, main_text)
     else
-        -- Bottom Subtitle: Anchor active line at the bottom (Y), Next lines below it
-        local main_text = prev_text
-        if main_text ~= "" then main_text = main_text .. "\\N" .. active_text else main_text = active_text end
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, main_text)
+        -- Bottom Subtitle: Build the whole block and anchor at the bottom (Y)
+        -- so it naturally grows upwards and never goes below y_pixel (which is near the edge).
+        local all_text = ""
+        if prev_text ~= "" then all_text = prev_text .. "\\N" end
+        all_text = all_text .. active_text
+        if next_text ~= "" then all_text = all_text .. "\\N" .. next_text end
         
-        if next_text ~= "" then
-            ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel + gap, font_size, next_text)
-        end
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, all_text)
     end
     
     return ass
