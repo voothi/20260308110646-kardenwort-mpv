@@ -1,107 +1,103 @@
-# Modern mpv Configuration - Optimized Playback Suite
+# mpv Language Learning Suite - Optimized Subtitle Workflow
 
-[![Version](https://img.shields.io/badge/version-v0.39.0-blue)](https://github.com/voothi/mpv-config/releases) 
+[![Version](https://img.shields.io/badge/version-v0.39.0-blue)](https://github.com/voothi/20260308110646-mpv-config/releases) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
-This is a curated and optimized configuration for [mpv](https://mpv.io/), a free, open-source, and cross-platform media player. This suite enhances the playback experience with refined subtitle handling, UI tweaks, and automated scripts.
+A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. This suite resolves common friction points in subtitle management, navigation, and focus.
 
 > **Attribution & Source**
 >
-> This configuration is maintained by **Denis Novikov (voothi)**.
+> Developed and maintained by **Denis Novikov (voothi)** as part of the Kardenwort ecosystem.
 >
 > *   **Repository**: [Source Code](https://github.com/voothi/20260308110646-mpv-config)
 
-> [!NOTE]
-> **Windows Optimized Environment**
+> [!IMPORTANT]
+> **Optimized Study Environment**
 >
-> **Developed & Validated Environment:**
-> *   **OS**: Windows 11
-> *   **mpv**: Version 0.39.0-x86_64
-> *   **Components**: Lua scripts, custom keybindings, and optimized rendering settings.
+> **Validated Setup:**
+> *   **Platform**: Windows 11 (Supports Android via configuration port).
+> *   **Workflow**: Optimized for merged `.ass` subtitle files and karaoke-style immersion.
+> *   **Interface**: distraction-free OSC (hidden by default).
 
 
 ## Table of Contents
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
+- [Core Philosophy](#core-philosophy)
+- [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
+- [Intelligent Scripts](#intelligent-scripts)
+  - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
+  - [Fixed Font Scaling](#fixed-font-scaling)
+- [Study-Centric Keybindings](#study-centric-keybindings)
+- [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Installation](#installation)
-- [Scripts & Automation](#scripts--automation)
-- [Key Configuration Files](#key-configuration-files)
-- [Usage](#usage)
 - [License](#license)
 
 ---
 
-## Features
+## Core Philosophy
 
-* **Advanced Subtitle Rendering**:
-    *   Subtitles aligned to the **top** for better visibility during certain types of content.
-    *   Full support for **ASS/SSA** tags and complex styles.
-    *   Independent scaling: Subtitles do not bloat or shrink with window resizing, maintaining consistency.
-* **Streamlined UI**:
-    *   **Minimalist Interface**: OSC (On-Screen Controller) is hidden by default and configured to remain invisible even on hover for a truly distraction-free experience.
-    *   **Smart Geometry**: Automatically fits the window to **1920x1080** while respecting screen boundaries.
-* **Persistent Playback**: Automatically saves the last playback position, allowing you to resume exactly where you left off.
-* **Integrated Scripts**: Includes custom Lua scripts for enhanced functionality like auto-pausing and font management.
+Traditional video players treat subtitles as a side-effect. This suite treats them as the **primary data source** for learning. Every setting—from pixel-perfect scaling to phrase-based pausing—is designed to help you focus on the language, not the player.
+
+## Advanced Subtitle Workflow
+
+Instead of relying on mpv's native dual-subtitle loading (which often strips formatting), this configuration advocates for a **Merged .ass Workflow**:
+
+1.  **Multiple Tracks**: Use **Subtitle Edit** to merge target and native language tracks.
+2.  **Custom Positioning**: Bake positioning (Top/Center/Bottom) and colors directly into a single `.ass` file.
+3.  **Visual Protection**: Our `mpv.conf` respects the internal mathematics of the `.ass` file, ensuring margins and styles are never overridden by the player.
 
 [Return to Top](#table-of-contents)
 
-## Prerequisites
+## Intelligent Scripts
 
-* **mpv Media Player**: Ensure you have mpv installed. You can download it from the [official website](https://mpv.io/installation/).
-* **Windows OS**: While mpv is cross-platform, this specific configuration is validated on Windows.
+### Karaoke-Safe Autopause
+Standard autopause scripts break on "Karaoke" subtitles (per-word highlighting), causing stuttering at every word. 
+
+*   **Logic**: Our `autopause.lua` scans for the `{\c}` color tag. It only triggers a pause when the tag is *absent*, signifying the **final frame of a complete phrase**.
+*   **Buffer**: Includes a `0.15s` padding to ensure a smooth transition before the text disappears.
+*   **Toggle**: Use `Shift + P` to enable/disable during playback.
+
+### Fixed Font Scaling
+Ensures that your study material remains readable regardless of window size. `fixed_font.lua` dynamically adjusts subtile scaling to maintain visual consistency when moving between monitor resolutions or resizing the player.
+
+[Return to Top](#table-of-contents)
+
+## Study-Centric Keybindings
+
+Optimized `input.conf` for rapid review and vocabulary extraction:
+
+| Key | Action |
+|---|---|
+| `RIGHT` | Exact **2-second** seek forward |
+| `LEFT` | Exact **2-second** seek backward |
+| `Ctrl + C` | **Copy** current subtitle text to clipboard |
+| `A` / `D` | Jump to **Previous / Next** phrase |
+| `S` | Toggle Subtitle Visibility |
+| `TAB` | Hold to show OSC (hidden by default) |
+| `P` | Toggle Auto-pause Mode |
+
+[Return to Top](#table-of-contents)
+
+## Configuration Guide (mpv.conf)
+
+Key settings to protect your learning environment:
+
+- **`sub-ass=yes`**: Enables high-quality subtitle rendering.
+- **`osc=no`**: Removes visual clutter from the screen.
+- **`sub-scale-with-window=no`**: Critical for maintaining the layout of complex `.ass` files.
+- **`save-position-on-quit=yes`**: Pick up your study session exactly where you left off.
 
 [Return to Top](#table-of-contents)
 
 ## Installation
 
-### Manual Installation
-
-1.  Navigate to your mpv configuration directory.
-    *   **Windows**: `%APPDATA%\mpv\`
-2.  Clone or copy the contents of this repository into that directory.
-3.  Ensure the following structure is maintained:
-    ```text
-    mpv/
-    ├── scripts/
-    │   ├── autopause.lua
-    │   └── fixed_font.lua
-    ├── fonts.conf
-    ├── input.conf
-    └── mpv.conf
-    ```
-4.  Restart mpv.
-
-[Return to Top](#table-of-contents)
-
-## Scripts & Automation
-
-This configuration includes powerful Lua scripts to automate your workflow:
-
-* **autopause.lua**: Intelligently manages playback state (e.g., pausing when the window is minimized or loses focus).
-* **fixed_font.lua**: Ensures consistent font rendering across different media types and subtitle files.
-
-[Return to Top](#table-of-contents)
-
-## Key Configuration Files
-
-- **mpv.conf**: The primary configuration file containing rendering, subtitle, and UI settings.
-- **input.conf**: Custom keybindings for refined control.
-- **fonts.conf**: Font configuration for proper subtitle and OSD display.
-
-[Return to Top](#table-of-contents)
-
-## Usage
-
-1.  **Launch mpv**: Open any video file with mpv.
-2.  **Subtitles**: Observe the top-aligned subtitles and consistent scaling.
-3.  **UI**: Move your mouse; the OSC will remain hidden as per the `osc-visibility=never` policy.
-4.  **Resume**: Close the player and reopen the same file to confirm the position is saved.
+1.  **Locate Config**: Open `%APPDATA%\mpv\` (Windows).
+2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
+3.  **Scripts**: Ensure `autopause.lua` is saved with **UTF-8** encoding.
+4.  **Restart**: Relaunch mpv to apply the study-optimized settings.
 
 [Return to Top](#table-of-contents)
 
 ## License
 
-This project is licensed under the **MIT License**.
-
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
