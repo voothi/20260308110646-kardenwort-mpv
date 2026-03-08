@@ -71,16 +71,18 @@ mp.add_periodic_timer(check_interval, check_sub)
 -- AutoPause Toggle Logic
 local function do_toggle_autopause()
     auto_pause_enabled = not auto_pause_enabled
-    mp.commandv("show-text", "${osd-ass-cc/0}{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2000)
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Autopause: " .. (auto_pause_enabled and "ON" or "OFF"), 2)
 end
 
 -- Karaoke Mode Toggle Logic
 local function do_toggle_karaoke()
     pause_every_word = not pause_every_word
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.commandv("show-text", "${osd-ass-cc/0}{\\an4}{\\fs20}Mode: PAUSE EVERY WORD", 2000)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE EVERY WORD", 2)
     else
-        mp.commandv("show-text", "${osd-ass-cc/0}{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2000)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2)
     end
 end
 
