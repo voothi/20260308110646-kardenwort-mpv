@@ -83,3 +83,8 @@ mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", function()
         mp.osd_message("Mode: PAUSE AT END OF PHRASE", 2)
     end
 end)
+
+-- mp.add_key_binding("з", "toggle-autopause", function() mp.commandv("script-binding", "toggle-autopause") end)
+mp.add_key_binding("З", "toggle-autopause", function() mp.commandv("script-binding", "toggle-autopause") end)
+-- mp.add_key_binding("л", "toggle-karaoke-mode", function() mp.commandv("script-binding", "toggle-karaoke-mode") end)
+mp.add_key_binding("Л", "toggle-karaoke-mode", function() mp.commandv("script-binding", "toggle-karaoke-mode") end)
