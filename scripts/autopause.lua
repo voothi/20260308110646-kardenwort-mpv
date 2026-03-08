@@ -40,7 +40,7 @@ local last_paused_sub_end = nil
 
 local is_holding_space = false
 local space_down_time = 0
-local space_tap_delay = 0 -- Threshold to distinguish tap vs hold (seconds)
+local space_tap_delay = 0.2 -- Threshold to distinguish tap vs hold (seconds)
 
 local function check_sub()
     if not auto_pause_enabled then return end
@@ -101,21 +101,28 @@ local function do_toggle_karaoke()
     end
 end
 
+local initial_pause_state = true
+
 -- Smart Spacebar Logic
 local function handle_smart_space(table)
     if table.event == "down" then
-        is_holding_space = true
-        space_down_time = mp.get_time()
-        -- Immediately ensure player is playing while held
-        mp.set_property_bool("pause", false)
+        if not is_holding_space then
+            is_holding_space = true
+            space_down_time = mp.get_time()
+            initial_pause_state = mp.get_property_bool("pause", true)
+            
+            -- If we were paused, holding immediately starts playback
+            if initial_pause_state then
+                mp.set_property_bool("pause", false)
+            end
+        end
     elseif table.event == "up" then
         is_holding_space = false
         local hold_duration = mp.get_time() - space_down_time
         
-        -- If it was a quick tap, toggle the pause state normally
-        if hold_duration < space_tap_delay then
-            local is_paused = mp.get_property_bool("pause")
-            mp.set_property_bool("pause", not is_paused)
+        -- If it was a quick tap, toggle the original pause state
+        if hold_duration <= space_tap_delay then
+            mp.set_property_bool("pause", not initial_pause_state)
         end
     end
 end
