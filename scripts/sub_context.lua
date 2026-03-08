@@ -330,7 +330,7 @@ local function cycle_secondary_pos()
     
     local label = (next_pos == 10) and "TOP" or "BOTTOM"
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}SSP: " .. label, osd_msg_duration)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary Sub Pos: " .. label, osd_msg_duration)
 end
 
 mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
@@ -349,7 +349,7 @@ local function cycle_secondary_sid()
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", osd_msg_duration)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary Subtitles: OFF", osd_msg_duration)
         return
     end
     
@@ -378,7 +378,7 @@ local function cycle_secondary_sid()
                     end
                 end
                 local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: " .. label, osd_msg_duration)
+                mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary Subtitles: " .. label, osd_msg_duration)
                 break
             end
         end
