@@ -11,6 +11,11 @@ local mp = require 'mp'
 local enabled = false
 
 -- ***************** CONFIGURATION OPTIONS *****************
+-- === Global Sizing ===
+-- Overall font size of the drum text (active line). Set to 0 to dynamically match your normal mpv sub-font-size.
+-- Try values like 55 or 60 to make both drums larger overall!
+local drum_font_size = 55
+
 -- Number of previous and next subtitles to show around the active line
 local context_lines = 2
 
@@ -18,7 +23,7 @@ local context_lines = 2
 -- Opacity of the context lines (Hex format: 00 is solid, FF is invisible. 88 is ~50% transparent)
 local context_opacity = "88"
 -- Color of the context lines (Hex format BGR: CCCCCC is light gray)
-local context_color = "CCCCCC"
+local context_color = "EFEFEF"
 -- Size of context lines relative to the main active line (0.85 = 85% of normal size)
 local context_size_multiplier = 0.85
 
@@ -216,7 +221,8 @@ local function update_osd()
     if not time_pos then return end
     
     local ass_text = ""
-    local font_size = mp.get_property_number("sub-font-size", 44)
+    -- Use the native mpv subtitle size if explicit manual user size is not specified
+    local font_size = drum_font_size > 0 and drum_font_size or mp.get_property_number("sub-font-size", 44)
     
     if #secondary_subs > 0 then
         local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
