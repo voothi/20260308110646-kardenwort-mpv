@@ -42,7 +42,7 @@ Traditional video players treat subtitles as a side-effect. This suite treats th
 
 Instead of relying on mpv's native dual-subtitle loading (which often strips formatting), this configuration advocates for a **Merged .ass Workflow**:
 
-1.  **Multiple Tracks**: Use **Subtitle Edit** to merge target and native language tracks.
+1.  **Multiple Tracks**: Use [Subtitle Edit](https://github.com/SubtitleEdit) to merge target and native language tracks.
 2.  **Custom Positioning**: Bake positioning (Top/Center/Bottom) and colors directly into a single `.ass` file.
 3.  **Visual Protection**: Our `mpv.conf` respects the internal mathematics of the `.ass` file, ensuring margins and styles are never overridden by the player.
 
@@ -53,7 +53,8 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 ### Karaoke-Safe Autopause
 Standard autopause scripts break on "Karaoke" subtitles (per-word highlighting), causing stuttering at every word. 
 
-*   **Logic**: Our `autopause.lua` scans for the `{\c}` color tag. It only triggers a pause when the tag is *absent*, signifying the **final frame of a complete phrase**.
+*   **Logic**: Our `autopause.lua` (implemented as **Karaoke-Safe Autopause**) scans for the `{\c}` color tag. It only triggers a pause when the tag is *absent*, signifying the **final frame of a complete phrase**.
+
 *   **Buffer**: Includes a `0.15s` padding to ensure a smooth transition before the text disappears.
 *   **Toggle**: Use `Shift + P` to enable/disable during playback.
 
@@ -64,17 +65,18 @@ Ensures that your study material remains readable regardless of window size. `fi
 
 ## Study-Centric Keybindings
 
-Optimized `input.conf` for rapid review and vocabulary extraction:
+Optimized `input.conf` for rapid review, featuring **dual-layout support** (English/Cyrillic) to ensure your workflow is never interrupted by your keyboard language.
 
-| Key | Action |
-|---|---|
-| `RIGHT` | Exact **2-second** seek forward |
-| `LEFT` | Exact **2-second** seek backward |
-| `Ctrl + C` | **Copy** current subtitle text to clipboard |
-| `A` / `D` | Jump to **Previous / Next** phrase |
-| `S` | Toggle Subtitle Visibility |
-| `TAB` | Hold to show OSC (hidden by default) |
-| `P` | Toggle Auto-pause Mode |
+| Key (EN) | Key (RU) | Action |
+|---|---|---|
+| `RIGHT` | `RIGHT` | Exact **2-second** seek forward |
+| `LEFT` | `LEFT` | Exact **2-second** seek backward |
+| `Ctrl + C` | `Ctrl + С` | **Copy** current subtitle text to clipboard |
+| `A` / `D` | `Ф` / `В` | Jump to **Previous / Next** phrase |
+| `S` | `Ы` | Toggle Subtitle Visibility |
+| `TAB` | `TAB` | Hold to show OSC (hidden by default) |
+| `P` | `З` | Toggle **Karaoke-Safe Autopause** |
+| `L` | `Л` | Toggle **Karaoke Mode** |
 
 [Return to Top](#table-of-contents)
 
