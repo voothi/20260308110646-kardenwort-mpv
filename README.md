@@ -58,8 +58,10 @@ Standard autopause scripts break on "Karaoke" subtitles (per-word highlighting),
 *   **Buffer**: Includes a `0.15s` padding to ensure a smooth transition before the text disappears.
 *   **Toggle**: Use `Shift + P` to enable/disable during playback.
 
-### Fixed Font Scaling
-Ensures that your study material remains readable regardless of window size. `fixed_font.lua` dynamically adjusts subtile scaling to maintain visual consistency when moving between monitor resolutions or resizing the player.
+### Smart Font Scaling (fixed_font.lua)
+Ensures that your study material remains perfectly readable regardless of window size, while protecting complex layouts.
+*   **For `.srt` Files**: Dynamically adjusts subtitle scaling so text doesn't become tiny on large monitors or giant in small windows.
+*   **For `.ass` Files**: Intelligently detects the Advanced SubStation format and bypasses scaling, allowing the file's internal positioning mathematics to render flawlessly.
 
 [Return to Top](#table-of-contents)
 
