@@ -287,7 +287,7 @@ local function toggle_context()
         end
         osd:remove()
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum: OFF", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Drum Mode: OFF", 2)
     end
 end
 
@@ -303,7 +303,7 @@ local function cycle_secondary_sid()
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Sec Subs: OFF", 2.5)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary subtitles: OFF", 2.5)
         return
     end
     

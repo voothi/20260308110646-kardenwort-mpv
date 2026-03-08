@@ -80,9 +80,9 @@ mp.add_key_binding(toggle_mode_key, "toggle-karaoke-mode", function()
     pause_every_word = not pause_every_word
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     if pause_every_word then
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: EVERY WORD", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE EVERY WORD", 2)
     else
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: END OF PHRASE", 2)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Mode: PAUSE AT END OF PHRASE", 2)
     end
 end)
 
