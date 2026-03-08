@@ -55,26 +55,19 @@ local function check_sub()
         end
     end
 
-    -- Check both timing ends
-    local sub_end_primary = mp.get_property_number("sub-end")
-    local sub_end_secondary = mp.get_property_number("secondary-sub-end")
+    -- Start the timer for autopause based ONLY on the primary subtitle
+    local sub_end = mp.get_property_number("sub-end")
     local time_pos = mp.get_property_number("time-pos")
 
-    if time_pos == nil then return end
-
-    local function check_trigger_pause(s_end)
-        if s_end ~= nil and (s_end - time_pos) < pause_padding and (s_end - time_pos) > 0 then
-            if last_paused_sub_end ~= s_end then
+    if sub_end ~= nil and time_pos ~= nil then
+        -- Pause the video the specified amount of time before the text disappears from the screen
+        if (sub_end - time_pos) < pause_padding and (sub_end - time_pos) > 0 then
+            if last_paused_sub_end ~= sub_end then
                 mp.set_property_bool("pause", true)
-                last_paused_sub_end = s_end
-                return true
+                last_paused_sub_end = sub_end
             end
         end
-        return false
     end
-
-    if check_trigger_pause(sub_end_primary) then return end
-    if check_trigger_pause(sub_end_secondary) then return end
 end
 
 -- Start periodic timer check
