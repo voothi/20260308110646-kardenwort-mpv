@@ -44,8 +44,10 @@ local active_size_multiplier = 1.0
 -- (Negative values pull the context lines closer to the active line, 
 -- compensating for invisible padding inside the font itself). Try -0.1 to -0.2.
 local spacing_gap = -0.1
--- Extra padding (in percentage of screen height) between the two drums when both are at the bottom.
-local auto_bottom_padding = 2
+-- === Stacking Options (when both subtitles are at the bottom via 'y') ===
+-- Multiplier to calculate the vertical distance between stacked drums. 
+-- Reduce this (e.g. to 1.0 or 0.9) to bring the stacked drums closer together!
+local stack_height_multiplier = 1.0
 -- *********************************************************
 
 local primary_subs = {}
@@ -237,13 +239,13 @@ local function update_osd()
     
     if sec_pos > 50 then
         -- Prevent collision by automatically stacking the secondary drum safely above the primary drum.
-        -- We calculate the maximum possible height the primary drum can take in pixels.
-        -- 1 active line + (2 * context_lines * size_multiplier) context lines.
-        -- We multiply by 1.3 to account for standard ASS line-height spacing (descenders).
+        -- We mathematically estimate the maximum possible height the primary drum can take in pixels.
         local max_lines = active_size_multiplier + (2 * context_lines * context_size_multiplier)
-        local max_pixels = max_lines * font_size * 1.3
+        local max_pixels = max_lines * font_size * stack_height_multiplier
         local max_percent = (max_pixels / 1080) * 100
-        sec_pos = pri_pos - max_percent - auto_bottom_padding
+        
+        -- Position the top drum exactly above the calculated height of the bottom drum
+        sec_pos = pri_pos - max_percent
     end
     
     if #secondary_subs > 0 then
