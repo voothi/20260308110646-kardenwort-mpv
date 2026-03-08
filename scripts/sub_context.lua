@@ -277,10 +277,12 @@ local function toggle_sub_visibility()
     
     if enabled then
         was_sub_vis = next_vis
+        was_sec_sub_vis = next_vis
         -- Force an immediate OSD update to hide/show the drum
         update_osd()
     else
         mp.set_property_bool("sub-visibility", next_vis)
+        mp.set_property_bool("secondary-sub-visibility", next_vis)
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
