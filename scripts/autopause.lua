@@ -38,31 +38,44 @@ local last_paused_sub_end = nil
 local function check_sub()
     if not auto_pause_enabled then return end
 
-    -- Request raw text with all ASS tags
-    local raw_text = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass")
-    if not raw_text or raw_text == "" then return end
+    -- Request texts from both primary and secondary tracks
+    local raw_text_primary = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
+    local raw_text_secondary = mp.get_property("secondary-sub-text") or ""
+    
+    if raw_text_primary == "" and raw_text_secondary == "" then return end
 
     -- If "pause every word" mode is OFF, we look for the token to skip intermediate words.
-    -- If ON, we simply ignore this block and always proceed to pause.
+    -- We check primary ASS tags for {\c}, and BOTH texts for ★ in case the karaoke track is secondary.
     if not pause_every_word then
-        if string.find(raw_text, karaoke_token, 1, true) then
+        local has_karaoke = string.find(raw_text_primary, karaoke_token, 1, true)
+        if not has_karaoke then has_karaoke = string.find(raw_text_primary, "★", 1, true) end
+        if not has_karaoke then has_karaoke = string.find(raw_text_secondary, "★", 1, true) end
+        
+        if has_karaoke then
             return
         end
     end
 
-    -- Start the timer for autopause
-    local sub_end = mp.get_property_number("sub-end")
+    -- Check both timing ends
+    local sub_end_primary = mp.get_property_number("sub-end")
+    local sub_end_secondary = mp.get_property_number("secondary-sub-end")
     local time_pos = mp.get_property_number("time-pos")
 
-    if sub_end ~= nil and time_pos ~= nil then
-        -- Pause the video the specified amount of time before the text disappears from the screen
-        if (sub_end - time_pos) < pause_padding and (sub_end - time_pos) > 0 then
-            if last_paused_sub_end ~= sub_end then
+    if time_pos == nil then return end
+
+    local function check_trigger_pause(s_end)
+        if s_end ~= nil and (s_end - time_pos) < pause_padding and (s_end - time_pos) > 0 then
+            if last_paused_sub_end ~= s_end then
                 mp.set_property_bool("pause", true)
-                last_paused_sub_end = sub_end
+                last_paused_sub_end = s_end
+                return true
             end
         end
+        return false
     end
+
+    if check_trigger_pause(sub_end_primary) then return end
+    if check_trigger_pause(sub_end_secondary) then return end
 end
 
 -- Start periodic timer check
