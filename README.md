@@ -29,6 +29,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
   - [Drum Context Mode](#drum-context-mode)
   - [Smart Spacebar](#smart-spacebar)
+  - [Smart Font Scaling](#smart-font-scaling-fixed_fontlua)
 - [Study-Centric Keybindings](#study-centric-keybindings)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Installation](#installation)
@@ -40,6 +41,8 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 Traditional video players treat subtitles as a side-effect. This suite treats them as the **primary data source** for learning. Every setting—from pixel-perfect scaling to phrase-based pausing—is designed to help you focus on the language, not the player.
 
+[Return to Top](#table-of-contents)
+
 ## Distinctive Advantages
 
 This suite solves problems that standard video players and generic scripts ignore:
@@ -48,6 +51,8 @@ This suite solves problems that standard video players and generic scripts ignor
 3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visilibity) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
 4.  **Ass Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
 5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense study sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
+
+[Return to Top](#table-of-contents)
 
 ## Advanced Subtitle Workflow
 
@@ -105,6 +110,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `P` | `З` | Toggle **Autopause** (ON/OFF) |
 | `K` | `Л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
 
+[Return to Top](#table-of-contents)
+
 ---
 
 ## Configuration Guide (mpv.conf)
@@ -133,3 +140,5 @@ Key settings to protect your learning environment:
 ## License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+[Return to Top](#table-of-contents)
