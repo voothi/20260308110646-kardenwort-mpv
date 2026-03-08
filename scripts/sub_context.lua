@@ -321,6 +321,18 @@ local function toggle_context()
     end
 end
 
+-- Custom cycler for secondary subtitle position with styled OSD
+local function cycle_secondary_pos()
+    local current_pos = mp.get_property_number("secondary-sub-pos", 10)
+    local next_pos = (current_pos == 10) and 90 or 10
+    
+    mp.set_property_number("secondary-sub-pos", next_pos)
+    
+    local label = (next_pos == 10) and "TOP" or "BOTTOM"
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Second Sub: " .. label, osd_msg_duration)
+end
+
 mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
 
 -- Custom cycler for secondary subtitles to fix visibility and provide cleaner OSD
@@ -375,6 +387,7 @@ end
 
 mp.add_key_binding(nil, "cycle-sec-sid", cycle_secondary_sid)
 mp.add_key_binding(nil, "toggle-sub-visibility", toggle_sub_visibility)
+mp.add_key_binding(nil, "cycle-secondary-pos", cycle_secondary_pos)
 
 -- Re-parse if track changes while drum mode is active
 mp.observe_property("sid", "number", function() if enabled then load_tracks() end end)
