@@ -357,7 +357,30 @@ local function cycle_secondary_pos()
     mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Secondary Sub Pos: " .. label, osd_msg_duration)
 end
 
+-- Custom cycler for OSC visibility with styled OSD
+local osc_vis_state = 0 -- 0=auto, 1=always, 2=never
+local function toggle_osc_visibility()
+    osc_vis_state = (osc_vis_state + 1) % 3
+    local label = "AUTO"
+    local osc_cmd = "auto"
+    
+    if osc_vis_state == 1 then 
+        label = "ALWAYS"
+        osc_cmd = "always"
+    elseif osc_vis_state == 2 then 
+        label = "NEVER"
+        osc_cmd = "never"
+    end
+    
+    -- Tell the OSC script to change mode (doesn't trigger OSD)
+    mp.commandv("script-message", "osc-visibility", osc_cmd, "no-osd")
+    
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}OSC Visibility: " .. label, osd_msg_duration)
+end
+
 mp.add_key_binding("c", "toggle-drum-mode", toggle_context)
+mp.add_key_binding(nil, "toggle-osc-visibility", toggle_osc_visibility)
 
 -- Custom cycler for secondary subtitles to fix visibility and provide cleaner OSD
 local function cycle_secondary_sid()
