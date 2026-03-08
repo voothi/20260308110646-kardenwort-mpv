@@ -21,7 +21,7 @@ local context_lines = 2
 
 -- === Context Line Styling (The "Dimmed" lines) ===
 -- Opacity of the context lines (Hex format: 00 is solid, FF is invisible. 88 is ~50% transparent)
-local context_opacity = "00"
+local context_opacity = "50"
 -- Color of the context lines (Hex format BGR: CCCCCC is light gray)
 local context_color = "FFFFFF"
 -- Size of context lines relative to the main active line (0.85 = 85% of normal size)
@@ -33,11 +33,13 @@ local active_opacity = "00"
 -- Color of the active line (Hex format BGR: FFFFFF is pure white)
 local active_color = "FFFFFF"
 -- Should the active line be bold? (1 = yes, 0 = no)
-local active_bold = "1"
+local active_bold = "0"
 
 -- === Spacing ===
--- Gap between the active line and the context lines (relative to font size)
-local spacing_gap = 0.2
+-- Gap between the active line and the context lines for the top subtitle.
+-- (Negative values pull the context lines closer to the active line, 
+-- compensating for invisible padding inside the font itself). Try -0.1 to -0.2.
+local spacing_gap = -0.1
 -- *********************************************************
 
 local primary_subs = {}
