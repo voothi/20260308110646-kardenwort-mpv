@@ -4,8 +4,8 @@ local mp = require 'mp'
 -- SCRIPT SETTINGS
 -- ==========================================
 -- Base window height at which the font size is 1.0 (original size)
--- local base_height = 720 
-local base_height = 1920 
+local base_height = 720 
+-- local base_height = 1920 
 
 -- Your preferred size multiplier
 local base_scale = 1.0  
