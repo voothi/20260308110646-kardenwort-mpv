@@ -1,9 +1,9 @@
 # Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.1.0) 
+[![Version](https://img.shields.io/badge/version-v1.2.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
-A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. This suite resolves common friction points in subtitle management, navigation, and focus.
+A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. powered by a unified **Finite State Machine** architecture.
 
 > **Attribution & Source**
 >
@@ -66,14 +66,14 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 
 ## Intelligent Scripts
 
-### Karaoke-Safe Autopause (`autopause.lua`)
+### Karaoke-Safe Autopause
 Advanced pause logic designed specifically for immersion students using `.ass` karaoke-formatted subtitles.
 - **End of Phrase**: By default, it pauses only when the sentence is finished (detecting the end of the `{\c}` tag sequence).
 - **Word by Word**: Toggle with `K` to pause after every word highlighted in your karaoke tracks.
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
 - **Toggle**: `P` (English) or `З` (Russian).
 
-### Drum Context Mode (`sub_context.lua`)
+### Drum Context Mode
 Displays previous and future subtitles around the active line, providing crucial context for fragmented sentences.
 - **Rolling Context**: Shows historical and upcoming dialogue lines simultaneously.
 - **Styled OSD**: Status messages appear in the **Left-Center** (`{\an4}`) using a small, non-intrusive 20pt font.
@@ -132,8 +132,8 @@ Key settings to protect your learning environment:
 
 1.  **Locate Config**: Open `%APPDATA%\mpv\` (Windows).
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
-3.  **Scripts**: Ensure all scripts are saved with **UTF-8** encoding.
-4.  **Restart**: Relaunch mpv to apply the optimized v1.1.0 settings.
+3.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
+4.  **Restart**: Relaunch mpv to apply the optimized v1.2.0 settings.
 
 [Return to Top](#table-of-contents)
 

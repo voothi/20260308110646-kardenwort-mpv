@@ -1,3 +1,18 @@
+# Release Notes - v1.2.0 (FSM Architecture Overhaul)
+
+**Date**: 2026-03-10
+**Version**: v1.2.0
+**Request ZID**: 20260310002147
+
+## Highlights
+
+### ⚙️ **Unified State Machine Architecture**
+- **Harmonized Operating Modes**: Replaced the ad-hoc, boolean-driven script collection (`autopause.lua`, `sub_context.lua`, `copy_sub.lua`) with a single, highly-performant Finite State Machine (`scripts/lls_core.lua`).
+- **Context Awareness**: Features like Drum Mode and Context Copy are now natively aware of the exact loaded subtitle configuration (SRT vs ASS, Single vs Dual). This guarantees features activate only when mathematically supported.
+- **Optimized Performance**: Consolidated all internal script timers into a single master tick loop, completely removing race conditions and lowering overall CPU overhead.
+
+---
+
 # Release Notes - v1.1.0 (ASS Context Copy Enhancements)
 
 **Date**: 2026-03-09
