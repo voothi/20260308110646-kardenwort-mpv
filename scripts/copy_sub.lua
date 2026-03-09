@@ -239,33 +239,15 @@ local function get_context_text(time_pos)
             if idx ~= -1 then
                 local center_text = trim(subs[idx].text)
                 
-                local before = {}
-                local b_curr = idx - 1
-                local last_text = center_text
-                while b_curr >= 1 and #before < context_copy_lines do
-                    local t = trim(subs[b_curr].text)
-                    if t ~= last_text then
-                        table.insert(before, 1, t)
-                        last_text = t
-                    end
-                    b_curr = b_curr - 1
-                end
+                local start_idx = math.max(1, idx - context_copy_lines)
+                local end_idx = math.min(#subs, idx + context_copy_lines)
                 
-                local after = {}
-                local a_curr = idx + 1
-                last_text = center_text
-                while a_curr <= #subs and #after < context_copy_lines do
-                    local t = trim(subs[a_curr].text)
-                    if t ~= last_text then
-                        table.insert(after, t)
-                        last_text = t
-                    end
-                    a_curr = a_curr + 1
+                for i = start_idx, end_idx do
+                    table.insert(combined_texts, trim(subs[i].text))
                 end
+            end
                 
-                for _, text in ipairs(before) do table.insert(combined_texts, text) end
-                table.insert(combined_texts, center_text)
-                for _, text in ipairs(after) do table.insert(combined_texts, text) end
+                -- The `for` loop above handled all contexts.
             end
         end
     end
