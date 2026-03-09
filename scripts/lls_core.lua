@@ -480,6 +480,10 @@ local function cmd_smart_space(table)
 end
 
 local function cmd_toggle_drum()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Drum Mode: No subtitles loaded")
+        return
+    end
     if FSM.MEDIA_STATE:match("ASS") then
         show_osd("Drum Mode: NOT SUPPORTED (ASS Track)", Options.osd_duration + 1.0)
         return
@@ -523,6 +527,14 @@ local function cmd_toggle_sub_vis()
 end
 
 local function cmd_cycle_sec_pos()
+    if Tracks.sec.id == 0 then
+        show_osd("Secondary Sub Pos: No secondary subtitle loaded")
+        return
+    end
+    if Tracks.sec.is_ass then
+        show_osd("Secondary Sub Pos: Not available (ASS controls positioning)")
+        return
+    end
     if FSM.DRUM == "ON" then
         FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos == 10) and 90 or 10
         show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos == 10) and "TOP" or "BOTTOM"))
@@ -578,11 +590,27 @@ end
 -- =========================================================================
 
 local function cmd_cycle_copy_mode()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Copy Mode: No subtitles loaded")
+        return
+    end
+    if FSM.MEDIA_STATE == "SINGLE_SRT" then
+        show_osd("Copy Mode: Only available with ASS or dual subtitles")
+        return
+    end
     FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
     show_osd("Copy Subtitle Mode: " .. FSM.COPY_MODE)
 end
 
 local function cmd_toggle_copy_ctx()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Context Copy: No subtitles loaded")
+        return
+    end
+    if not Tracks.pri.path and not Tracks.sec.path then
+        show_osd("Context Copy: Requires external subtitle files")
+        return
+    end
     FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
     show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
 end
