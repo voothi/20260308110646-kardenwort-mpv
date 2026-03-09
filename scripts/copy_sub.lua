@@ -78,7 +78,7 @@ local function copy_subtitle()
         end
         
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied [" .. config.copy_mode:upper() .. "]: " .. osd_text, 2.0)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied " .. config.copy_mode:upper() .. ": " .. osd_text, 2.0)
     else
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
         mp.osd_message(ass_enable .. "{\\an4}{\\fs20}No subtitle to copy", 2.0)
