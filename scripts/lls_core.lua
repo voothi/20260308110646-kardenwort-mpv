@@ -596,6 +596,14 @@ local function get_copy_context_text(time_pos)
         if subs and #subs > 0 then
             local idx = get_center_index(subs, time_pos)
             if idx ~= -1 then
+                if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
+                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
+                        idx = idx - 1
+                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
+                        idx = idx + 1
+                    end
+                end
+                
                 local pre, i = {}, idx - 1
                 while i >= 1 and #pre < Options.copy_context_lines do
                     local t = trim(subs[i].text)
