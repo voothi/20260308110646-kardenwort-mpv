@@ -11,6 +11,10 @@
 - **Consolidated Authority**: Removed the last hardcoded key (`"c"` for Drum Mode) from `lls_core.lua`. All 11 script bindings now use `nil` defaults, making `input.conf` the exclusive keybinding authority.
 - **Zero Script Keys**: To change any hotkey, edit only `input.conf`. No script files need modification.
 
+### 🧹 **Repository & Cache Cleanup**
+- **Git Cache Optimization**: Removed `scripts/old_copy_sub.lua` from git tracking to prevent confusion with the new unified FSM core.
+- **Ignore Patterns**: Added `__pycache__/` to `.gitignore` to maintain a clean workspace across Python-based developer tools.
+
 ---
 
 # Release Notes - v1.2.4 (Drum Sync & Compatibility Guards)
