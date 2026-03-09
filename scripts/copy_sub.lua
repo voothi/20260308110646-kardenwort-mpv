@@ -21,6 +21,12 @@ local osd_msg_duration = 1.0
 -- Number of words to show in the OSD confirmation message
 local osd_word_limit = 3
 
+-- Number of context lines to copy (before and after) when Context Copy is ON
+local context_copy_lines = 2
+
+-- State variable for Context Copy (toggled via Ctrl+X)
+local context_copy_enabled = false
+
 -- OSD Style and Position tags (ASS format)
 -- \an4 = Middle Left, \fs20 = Font Size 20
 local osd_style = "{\\an4}{\\fs20}"
@@ -51,6 +57,138 @@ local function cycle_copy_mode()
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
     mp.osd_message(ass_enable .. osd_style .. msg_mode_prefix .. copy_mode, osd_msg_duration)
 end
+
+local function toggle_copy_context()
+    context_copy_enabled = not context_copy_enabled
+    local ass_enable = mp.get_property("osd-ass-cc/0") or ""
+    local state = context_copy_enabled and ("ON (" .. context_copy_lines .. " lines)") or "OFF"
+    mp.osd_message(ass_enable .. osd_style .. "Context Copy: " .. state, osd_msg_duration)
+end
+
+local function parse_time(time_str)
+    local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
+    if h and m and s and ms then
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
+    end
+    h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
+    if h and m and s and ms then
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
+    end
+    return 0
+end
+
+local function load_srt(path)
+    if not path or path == "" then return {} end
+    local f = io.open(path, "r")
+    if not f then return {} end
+    
+    local subs = {}
+    local current_sub = nil
+    local state = "ID"
+    
+    for line in f:lines() do
+        line = line:gsub("\r", ""):gsub("<[^>]+>", "")
+        if line == "" then
+            if current_sub and current_sub.text ~= "" then
+                table.insert(subs, current_sub)
+            end
+            current_sub = nil
+            state = "ID"
+        elseif state == "ID" then
+            if line:match("^%d+$") then
+                current_sub = {text = ""}
+                state = "TIME"
+            end
+        elseif state == "TIME" then
+            local start_str, end_str = string.match(line, "(%S+)%s+%-%->%s+(%S+)")
+            if start_str and end_str then
+                current_sub.start_time = parse_time(start_str)
+                current_sub.end_time = parse_time(end_str)
+                state = "TEXT"
+            end
+        elseif state == "TEXT" then
+            if current_sub.text == "" then
+                current_sub.text = line
+            else
+                current_sub.text = current_sub.text .. "\n" .. line
+            end
+        end
+    end
+    if current_sub and current_sub.text ~= "" then
+        table.insert(subs, current_sub)
+    end
+    f:close()
+    return subs
+end
+
+local function get_center_index(subs, time_pos)
+    if not subs or #subs == 0 then return -1 end
+    for i = 1, #subs do
+        local sub = subs[i]
+        if time_pos >= sub.start_time and time_pos <= sub.end_time then
+            return i
+        end
+        if time_pos < sub.start_time then
+            if i > 1 then
+                local prev = subs[i-1]
+                if (time_pos - prev.end_time) < (sub.start_time - time_pos) then
+                    return i - 1
+                else
+                    return i
+                end
+            else
+                return 1
+            end
+        end
+    end
+    return #subs
+end
+
+local function get_track_path(type)
+    local id = type == "primary" and mp.get_property_number("sid", 0) or mp.get_property_number("secondary-sid", 0)
+    if id == 0 then return nil end
+    local tracks = mp.get_property_native("track-list")
+    if not tracks then return nil end
+    for _, t in ipairs(tracks) do
+        if t.type == "sub" and t.id == id and t.external and t["external-filename"] then
+            if t["external-filename"]:match("%.srt$") then
+                return t["external-filename"]
+            end
+        end
+    end
+    return nil
+end
+
+local function get_context_text(time_pos)
+    local p_path = get_track_path("primary")
+    local s_path = get_track_path("secondary")
+    
+    local combined_texts = {}
+    
+    local function append_subs(path)
+        if not path then return end
+        local subs = load_srt(path)
+        if #subs > 0 then
+            local idx = get_center_index(subs, time_pos)
+            if idx ~= -1 then
+                local start_idx = math.max(1, idx - context_copy_lines)
+                local end_idx = math.min(#subs, idx + context_copy_lines)
+                for i = start_idx, end_idx do
+                    table.insert(combined_texts, subs[i].text)
+                end
+            end
+        end
+    end
+    
+    append_subs(p_path)
+    append_subs(s_path)
+    
+    if #combined_texts > 0 then
+        return table.concat(combined_texts, "\n")
+    end
+    return nil
+end
+
 
 -- Function to clean up ASS tags and extract the requested lines
 local function clean_subtitle(text)
@@ -111,11 +249,25 @@ local function clean_subtitle(text)
 end
 
 local function copy_subtitle()
-    local p_text = mp.get_property("sub-text") or ""
-    local s_text = mp.get_property("secondary-sub-text") or ""
+    local combined_text = ""
     
-    -- Combine primary and secondary tracks with a newline so clean_subtitle sees them as separate blocks
-    local combined_text = p_text .. "\n" .. s_text
+    if context_copy_enabled then
+        local time_pos = mp.get_property_number("time-pos")
+        if time_pos then
+            local ctx_text = get_context_text(time_pos)
+            if ctx_text and ctx_text ~= "" then
+                combined_text = ctx_text
+            end
+        end
+    end
+    
+    if combined_text == "" then
+        local p_text = mp.get_property("sub-text") or ""
+        local s_text = mp.get_property("secondary-sub-text") or ""
+        -- Combine primary and secondary tracks with a newline so clean_subtitle sees them as separate blocks
+        combined_text = p_text .. "\n" .. s_text
+    end
+    
     local cleaned_text = clean_subtitle(combined_text)
     
     if cleaned_text and cleaned_text ~= "" then
@@ -154,3 +306,4 @@ end
 -- Register the script-bindings for use in input.conf
 mp.add_key_binding(nil, "copy-subtitle", copy_subtitle)
 mp.add_key_binding(nil, "cycle-copy-mode", cycle_copy_mode)
+mp.add_key_binding(nil, "toggle-copy-context", toggle_copy_context)
