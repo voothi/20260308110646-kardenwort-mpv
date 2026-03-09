@@ -77,10 +77,17 @@ local function copy_subtitle()
             cancellable = false,
         })
         
-        -- Create a truncated version for the OSD message
-        local osd_text = cleaned_text
-        if string.len(osd_text) > 50 then
-            osd_text = string.sub(osd_text, 1, 50) .. "..."
+        -- Create a truncated version for the OSD message (first 3 words only)
+        local words = {}
+        for word in cleaned_text:gmatch("%S+") do
+            table.insert(words, word)
+            if #words == 3 then break end
+        end
+        
+        local osd_text = table.concat(words, " ")
+        local _, word_count = cleaned_text:gsub("%S+", "")
+        if word_count > 3 then
+            osd_text = osd_text .. "..."
         end
         
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
