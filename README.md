@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.0) 
+[![Version](https://img.shields.io/badge/version-v1.2.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. powered by a unified **Finite State Machine** architecture.

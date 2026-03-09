@@ -1,3 +1,19 @@
+# Release Notes - v1.2.2 (Ass Context Copy Fix)
+
+**Date**: 2026-03-10
+**Version**: v1.2.2
+**Request ZID**: 20260310014540
+**RFC**: [docs/rfcs/20260310014540-release-v1.2.2.md](docs/rfcs/20260310014540-release-v1.2.2.md)
+
+## Highlights
+
+### 📋 **Intelligent ASS Context Copy Precision**
+- **Symmetrical Dynamic Traversal**: Re-implemented the dynamic leaping extraction loop to completely bypass interleaved foreign-language blocks, fulfilling identical pure-English chronology sentences.
+- **Center-Index Snapping**: Fixed a mathematical anomaly where randomly targeting a dual-track Russian baseline as the index center effectively skipped the exact middle string, turning 5-sentence extractions into 4-sentence extractions.
+- **Clipboard Output Optimization**: Restored the `is_context` substring compilation shortcut from commit `45e8ae320` to reduce processor parsing overhead when explicitly loading filtered Context chunks.
+
+---
+
 # Release Notes - v1.2.0 (FSM Architecture Overhaul)
 
 **Date**: 2026-03-10
