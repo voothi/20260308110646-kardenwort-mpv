@@ -17,3 +17,6 @@ test_parse_ass.py
 test_parse_ass.lua
 parsed_subs.txt
 parsed_subs_utf8.txt
+copy_sub_v1.1.0.lua
+copy_sub_v1.1.0_utf8.lua
+v1_vs_fsm_analysis.txt
