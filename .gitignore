@@ -13,3 +13,7 @@ scripts_autopause_old.lua
 temp-ass-check-utf8.txt
 temp-ass-check.txt
 temp-ass2.txt
+test_parse_ass.py
+test_parse_ass.lua
+parsed_subs.txt
+parsed_subs_utf8.txt

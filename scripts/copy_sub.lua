@@ -114,12 +114,19 @@ local function load_sub(path)
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
                                 
-                                -- If this line's raw text matches the previous inserted line completely,
-                                -- it's an ASS karaoke overlap. We just merge its timestamp interval into the previous
-                                -- block entirely, collapsing the karaoke timeline into normal subtitles.
-                                if #subs > 0 and subs[#subs].raw_text == raw_text then
-                                    subs[#subs].end_time = math.max(subs[#subs].end_time, parsed_end)
-                                else
+                                -- Search backwards up to 10 entries to merge identical raw text
+                                -- (This bypasses interleaved dual-track Russian translation lines)
+                                local merged = false
+                                local search_limit = math.max(1, #subs - 10)
+                                for i = #subs, search_limit, -1 do
+                                    if subs[i].raw_text == raw_text then
+                                        subs[i].end_time = math.max(subs[i].end_time, parsed_end)
+                                        merged = true
+                                        break
+                                    end
+                                end
+                                
+                                if not merged then
                                     table.insert(subs, {
                                         start_time = parsed_start,
                                         end_time = parsed_end,
@@ -231,17 +238,66 @@ local function get_context_text(time_pos)
         return s:match("^%s*(.-)%s*$") or ""
     end
     
+    local function is_target_lang(s)
+        if not s then return false end
+        local has_cyr = has_cyrillic(s)
+        if copy_mode == "A" then
+            return not has_cyr
+        else
+            return has_cyr
+        end
+    end
+    
     local function append_subs(path)
         if not path then return end
         local subs = load_sub(path)
         if #subs > 0 then
             local idx = get_center_index(subs, time_pos)
             if idx ~= -1 then
-                local start_idx = math.max(1, idx - context_copy_lines)
-                local end_idx = math.min(#subs, idx + context_copy_lines)
                 
-                for i = start_idx, end_idx do
-                    table.insert(combined_texts, trim(subs[i].text))
+                -- Determine the target language filter from the center sub if standard detect applies
+                -- Or, if filter_russian is on, enforce the appropriate track explicitly
+                local target_func = function(t) return true end
+                if filter_russian then
+                    target_func = is_target_lang
+                end
+
+                -- Gather previous context lines
+                local pre_lines = {}
+                local i = idx - 1
+                while i >= 1 and #pre_lines < context_copy_lines do
+                    local t = trim(subs[i].text)
+                    if t ~= "" and target_func(t) then
+                        table.insert(pre_lines, 1, t) 
+                    end
+                    i = i - 1
+                end
+                
+                -- Add pre-context
+                for _, ln in ipairs(pre_lines) do
+                    table.insert(combined_texts, ln)
+                end
+                
+                -- Always gather the targeted center if it matches, otherwise try to use the pure center regardless
+                local center_text = trim(subs[idx].text)
+                if center_text ~= "" and (not filter_russian or target_func(center_text)) then
+                    table.insert(combined_texts, center_text)
+                end
+                
+                -- Gather next context lines
+                local post_lines = {}
+                i = idx + 1
+                while i <= #subs and #post_lines < context_copy_lines do
+                    local t = trim(subs[i].text)
+                    if t ~= "" and target_func(t) then
+                        table.insert(post_lines, t)
+                    end
+                    i = i + 1
+                end
+                
+                -- Add post-context
+                for _, ln in ipairs(post_lines) do
+                    table.insert(combined_texts, ln)
                 end
             end
         end
