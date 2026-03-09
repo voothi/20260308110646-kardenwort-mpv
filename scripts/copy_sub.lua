@@ -237,17 +237,12 @@ local function get_context_text(time_pos)
         if #subs > 0 then
             local idx = get_center_index(subs, time_pos)
             if idx ~= -1 then
-                local center_text = trim(subs[idx].text)
-                
                 local start_idx = math.max(1, idx - context_copy_lines)
                 local end_idx = math.min(#subs, idx + context_copy_lines)
                 
                 for i = start_idx, end_idx do
                     table.insert(combined_texts, trim(subs[i].text))
                 end
-            end
-                
-                -- The `for` loop above handled all contexts.
             end
         end
     end
