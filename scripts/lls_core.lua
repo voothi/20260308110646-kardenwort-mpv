@@ -231,6 +231,9 @@ local function update_media_state()
     Tracks.pri.id = mp.get_property_number("sid", 0)
     Tracks.sec.id = mp.get_property_number("secondary-sid", 0)
     
+    local old_pri_path = Tracks.pri.path
+    local old_sec_path = Tracks.sec.path
+
     Tracks.pri.is_ass = false
     Tracks.sec.is_ass = false
     Tracks.pri.path = nil
@@ -264,6 +267,10 @@ local function update_media_state()
             end
         end
     end
+
+    -- Flush stale drum subs when track path changed or track was disabled
+    if Tracks.pri.path ~= old_pri_path then Tracks.pri.subs = {} end
+    if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
 
     -- Determine State
     if Tracks.pri.id == 0 and Tracks.sec.id == 0 then
@@ -494,6 +501,7 @@ local function cmd_toggle_drum()
         FSM.DRUM = "OFF"
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
+        mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         drum_osd.data = ""
         drum_osd:update()
         show_osd("Drum Mode: OFF")
