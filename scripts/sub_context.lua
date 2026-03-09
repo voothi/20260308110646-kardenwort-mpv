@@ -21,13 +21,13 @@ local context_lines = 2
 
 -- === Context Line Styling (The "Dimmed" lines) ===
 -- Opacity of the context lines (Hex format: 00 is solid, FF is invisible. 88 is ~50% transparent)
-local context_opacity = "80"
+local context_opacity = "50"
 -- Color of the context lines (Hex format BGR: CCCCCC is light gray)
 local context_color = "FFFFFF"
 -- Should the context lines be bold? (1 = yes, 0 = no)
 local context_bold = "0"
 -- Size of context lines relative to the main active line (0.85 = 85% of normal size)
-local context_size_multiplier = 0.85
+local context_size_multiplier = 1.0
 
 -- === Active Line Styling ===
 -- Opacity of the active line (00 is solid/fully visible)
