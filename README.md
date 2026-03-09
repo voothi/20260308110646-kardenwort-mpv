@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.0.0) 
+[![Version](https://img.shields.io/badge/version-v1.1.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.1.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. This suite resolves common friction points in subtitle management, navigation, and focus.
@@ -133,7 +133,7 @@ Key settings to protect your learning environment:
 1.  **Locate Config**: Open `%APPDATA%\mpv\` (Windows).
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Scripts**: Ensure all scripts are saved with **UTF-8** encoding.
-4.  **Restart**: Relaunch mpv to apply the optimized v1.0.0 settings.
+4.  **Restart**: Relaunch mpv to apply the optimized v1.1.0 settings.
 
 [Return to Top](#table-of-contents)
 

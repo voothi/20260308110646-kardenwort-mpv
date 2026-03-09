@@ -1,3 +1,19 @@
+# Release Notes - v1.1.0 (ASS Context Copy Enhancements)
+
+**Date**: 2026-03-09
+**Version**: v1.1.0
+**Request ZID**: 20260310000706
+**RFC**: [docs/rfcs/20260310000706-release-v1.1.0.md](docs/rfcs/20260310000706-release-v1.1.0.md)
+
+## Highlights
+
+### 📋 **Intelligent ASS Context Copy**
+- **Dual-Track Stability**: Context Copy (`Ctrl X`) robustly bridges interleaved language tracks (e.g., Russian translation chunks mixed between English subtitle lines) to fetch unified dialogue.
+- **Karaoke Sentence Reconstruction**: Fragments of word-by-word karaoke highlights are now intelligently rebuilt into complete, coherent chronological sentences for clipboard exportation.
+- **Targeted Context Range**: Requesting previous and next lines now specifically respects target language (filtering out translation noise) to provide pure context chunks.
+
+---
+
 # Release Notes - v1.0.0 (Subtitle Context & Autopause Suite)
 
 **Date**: 2026-03-09
