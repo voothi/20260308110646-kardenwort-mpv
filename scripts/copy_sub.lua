@@ -107,8 +107,8 @@ local function load_sub(path)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
-                            local raw_text = text:gsub("\\N", "\n"):gsub("{[^}]+}", "")
-                            raw_text = raw_text:match("^%s*(.-)%s*$")
+                            local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
+                            raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
                             -- Discard purely empty subs
                             if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
