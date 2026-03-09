@@ -75,19 +75,17 @@ local function clean_subtitle(text)
     if filter_russian then
         -- Robust Language Detection Mode
         if copy_mode == "A" then
-            -- Find first line WITHOUT Cyrillic
+            -- Collect all lines WITHOUT Cyrillic (Foreign)
             for i = 1, #lines do
                 if not has_cyrillic(lines[i]) then
                     table.insert(final_lines, lines[i])
-                    break
                 end
             end
         else
-            -- Find first line WITH Cyrillic
+            -- Collect all lines WITH Cyrillic (Russian)
             for i = 1, #lines do
                 if has_cyrillic(lines[i]) then
                     table.insert(final_lines, lines[i])
-                    break
                 end
             end
         end
@@ -112,10 +110,13 @@ local function clean_subtitle(text)
     return table.concat(final_lines, " ")
 end
 
-
 local function copy_subtitle()
-    local text = mp.get_property("sub-text")
-    local cleaned_text = clean_subtitle(text)
+    local p_text = mp.get_property("sub-text") or ""
+    local s_text = mp.get_property("secondary-sub-text") or ""
+    
+    -- Combine primary and secondary tracks with a newline so clean_subtitle sees them as separate blocks
+    local combined_text = p_text .. "\n" .. s_text
+    local cleaned_text = clean_subtitle(combined_text)
     
     if cleaned_text and cleaned_text ~= "" then
         -- Escape single quotes for PowerShell by doubling them
