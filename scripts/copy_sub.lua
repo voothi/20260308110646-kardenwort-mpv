@@ -12,6 +12,9 @@ local copy_mode = "A"
 -- Duration for OSD status messages (in seconds)
 local osd_msg_duration = 1.0
 
+-- Number of words to show in the OSD confirmation message
+local osd_word_limit = 3
+
 -- =========================================================================
 -- MAIN CODE
 -- =========================================================================
@@ -77,16 +80,16 @@ local function copy_subtitle()
             cancellable = false,
         })
         
-        -- Create a truncated version for the OSD message (first 3 words only)
+        -- Create a truncated version for the OSD message (first N words only)
         local words = {}
         for word in cleaned_text:gmatch("%S+") do
             table.insert(words, word)
-            if #words == 3 then break end
+            if #words == osd_word_limit then break end
         end
         
         local osd_text = table.concat(words, " ")
         local _, word_count = cleaned_text:gsub("%S+", "")
-        if word_count > 3 then
+        if word_count > osd_word_limit then
             osd_text = osd_text .. "..."
         end
         
