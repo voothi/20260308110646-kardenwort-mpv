@@ -10,7 +10,7 @@ local utils = require 'mp.utils'
 local copy_mode = "A"
 
 -- Duration for OSD status messages (in seconds)
-local osd_msg_duration = 2.0
+local osd_msg_duration = 1.0
 
 -- =========================================================================
 -- MAIN CODE
@@ -49,12 +49,12 @@ local function clean_subtitle(text)
     local final_lines = {}
     
     if copy_mode == "A" then
-        -- Grab the first logical chunk of lines
-        table.insert(final_lines, lines[1])
+        -- Grab the last logical block of lines
+        table.insert(final_lines, lines[#lines])
         
     elseif copy_mode == "B" then
-        -- Grab the very last logical chunk of lines
-        table.insert(final_lines, lines[#lines])
+        -- Grab the very first logical block of lines
+        table.insert(final_lines, lines[1])
     end
     
     -- Join the valid lines into a single string with spaces for the clipboard
