@@ -239,14 +239,27 @@ local function update_media_state()
     
     for _, t in ipairs(track_list) do
         if t.type == "sub" then
-            local is_ass = (t.codec == "ass" or t.codec == "ssa")
+            local is_ass = false
+            local path = nil
+            
+            if t.external and t["external-filename"] then
+                path = t["external-filename"]
+                if path:lower():match("%.ass$") or path:lower():match("%.ssa$") then
+                    is_ass = true
+                else
+                    is_ass = (t.codec == "ass" or t.codec == "ssa")
+                end
+            else
+                is_ass = (t.codec == "ass" or t.codec == "ssa")
+            end
+            
             if t.id == Tracks.pri.id then
                 Tracks.pri.is_ass = is_ass
-                if t.external and t["external-filename"] then Tracks.pri.path = t["external-filename"] end
+                Tracks.pri.path = path
             end
             if t.id == Tracks.sec.id then
                 Tracks.sec.is_ass = is_ass
-                if t.external and t["external-filename"] then Tracks.sec.path = t["external-filename"] end
+                Tracks.sec.path = path
             end
         end
     end
@@ -278,9 +291,9 @@ local function update_media_state()
             drum_osd:update()
             show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
         else
-            -- Reload subtitles for Drum memory
-            if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
-            if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
+            -- Reload subtitles for Drum memory only if necessary
+            if Tracks.pri.path and #Tracks.pri.subs == 0 then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
+            if Tracks.sec.path and #Tracks.sec.subs == 0 then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
         end
     end
 end
@@ -669,6 +682,7 @@ end
 
 mp.observe_property("sid", "number", update_media_state)
 mp.observe_property("secondary-sid", "number", update_media_state)
+mp.observe_property("track-list", "native", update_media_state)
 
 mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" then
