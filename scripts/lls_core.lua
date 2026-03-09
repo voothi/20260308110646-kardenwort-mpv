@@ -60,7 +60,8 @@ local FSM = {
     space_down_time = 0,
     initial_pause_state = true,
     native_sub_vis = true,
-    native_sec_sub_vis = true
+    native_sec_sub_vis = true,
+    native_sec_sub_pos = 10
 }
 
 local Tracks = {
@@ -365,7 +366,7 @@ local function tick_drum(time_pos)
     local ass_text = ""
     local font_size = Options.drum_font_size > 0 and Options.drum_font_size or mp.get_property_number("sub-font-size", 44)
     local pri_pos = mp.get_property_number("sub-pos", 95)
-    local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
+    local sec_pos = FSM.native_sec_sub_pos
     
     if sec_pos > 50 then
         local max_lines = Options.drum_active_size_mul + (2 * Options.drum_context_lines * Options.drum_context_size_mul)
@@ -480,6 +481,7 @@ local function cmd_toggle_drum()
         FSM.DRUM = "ON"
         FSM.native_sub_vis = mp.get_property_bool("sub-visibility", true)
         FSM.native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true)
+        FSM.native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10)
         mp.set_property_bool("sub-visibility", false)
         mp.set_property_bool("secondary-sub-visibility", false)
         
@@ -512,10 +514,15 @@ local function cmd_toggle_sub_vis()
 end
 
 local function cmd_cycle_sec_pos()
-    local p = mp.get_property_number("secondary-sub-pos", 10)
-    local n = (p == 10) and 90 or 10
-    mp.set_property_number("secondary-sub-pos", n)
-    show_osd("Secondary Sub Pos: " .. ((n == 10) and "TOP" or "BOTTOM"))
+    if FSM.DRUM == "ON" then
+        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos == 10) and 90 or 10
+        show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos == 10) and "TOP" or "BOTTOM"))
+    else
+        local p = mp.get_property_number("secondary-sub-pos", 10)
+        local n = (p == 10) and 90 or 10
+        mp.set_property_number("secondary-sub-pos", n)
+        show_osd("Secondary Sub Pos: " .. ((n == 10) and "TOP" or "BOTTOM"))
+    end
 end
 
 local function cmd_cycle_sec_sid()
