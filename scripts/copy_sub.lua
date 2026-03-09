@@ -107,25 +107,27 @@ local function load_sub(path)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
-                            local raw_text = text:gsub("\\N", "\n"):gsub("{[^}]+}", "")
-                            raw_text = raw_text:match("^%s*(.-)%s*$")
-                            -- Discard purely empty subs
-                            if raw_text ~= "" then
-                                local parsed_start = parse_time(start_str)
-                                local parsed_end = parse_time(end_str)
-                                
-                                -- If this line's raw text matches the previous inserted line completely,
-                                -- it's an ASS karaoke overlap. We just merge its timestamp interval into the previous
-                                -- block entirely, collapsing the karaoke timeline into normal subtitles.
-                                if #subs > 0 and subs[#subs].raw_text == raw_text then
-                                    subs[#subs].end_time = math.max(subs[#subs].end_time, parsed_end)
-                                else
-                                    table.insert(subs, {
-                                        start_time = parsed_start,
-                                        end_time = parsed_end,
-                                        text = raw_text,
-                                        raw_text = raw_text
-                                    })
+                            -- Filter out intermediate karaoke sequence lines.
+                            -- The final, complete sentence line typically lacks highlighting tags like \c or \k.
+                            if not text:match("{\\[ck][^}]*}") and not text:match("{\\alpha[^}]*}") then
+                                local raw_text = text:gsub("\\N", "\n"):gsub("{[^}]+}", "")
+                                raw_text = raw_text:match("^%s*(.-)%s*$")
+                                -- Discard purely empty subs
+                                if raw_text ~= "" then
+                                    local parsed_start = parse_time(start_str)
+                                    local parsed_end = parse_time(end_str)
+                                    
+                                    -- Merge identical adjacent text blocks just in case
+                                    if #subs > 0 and subs[#subs].raw_text == raw_text then
+                                        subs[#subs].end_time = math.max(subs[#subs].end_time, parsed_end)
+                                    else
+                                        table.insert(subs, {
+                                            start_time = parsed_start,
+                                            end_time = parsed_end,
+                                            text = raw_text,
+                                            raw_text = raw_text
+                                        })
+                                    end
                                 end
                             end
                         end
