@@ -1,18 +1,32 @@
 local mp = require 'mp'
 local utils = require 'mp.utils'
 
--- Function to clean up ASS tags and newlines from the subtitle text
+local function has_cyrillic(str)
+    -- In UTF-8, Cyrillic characters fall in the range D0 80 to D3 bf
+    -- Checking for D0 (\208) and D1 (\209) covers standard Russian characters
+    return str:find("[\208\209]") ~= nil
+end
+
+-- Function to clean up ASS tags, newlines, and filter out Russian text
 local function clean_subtitle(text)
     if not text then return "" end
     -- Remove ASS override tags like {\an8} or {\b1}
     text = text:gsub("{[^}]+}", "")
-    -- Replace explicit \N newlines with spaces
-    text = text:gsub("\\N", " ")
-    -- Replace actual newlines with spaces
-    text = text:gsub("\n", " ")
-    -- Remove any leading/trailing whitespace
-    text = text:match("^%s*(.-)%s*$")
-    return text
+    -- Normalize explicit \N to standard newlines
+    text = text:gsub("\\N", "\n")
+    
+    local clean_lines = {}
+    for line in text:gmatch("[^\n]+") do
+        -- Strip leading/trailing whitespace
+        line = line:match("^%s*(.-)%s*$")
+        -- If line is not empty and DOES NOT contain Russian characters, keep it
+        if line and line ~= "" and not has_cyrillic(line) then
+            table.insert(clean_lines, line)
+        end
+    end
+    
+    -- Join the valid lines into a single string with spaces
+    return table.concat(clean_lines, " ")
 end
 
 local function copy_subtitle()
