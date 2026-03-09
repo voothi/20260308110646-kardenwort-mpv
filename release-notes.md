@@ -82,5 +82,6 @@
 
 ## How to Update
 1.  Overwrite your `input.conf` with the latest version.
-2.  Replace the `scripts/` folder with the updated `sub_context.lua` and `autopause.lua`.
-3.  Refresh your `mpv.conf` to include the standard subtitle position defaults (10/90).
+2.  Delete obsolete standalone scripts (`autopause.lua`, `copy_sub.lua`, `sub_context.lua`) from your `scripts/` folder.
+3.  Place the new unified `lls_core.lua` inside your `scripts/` folder.
+4.  Refresh your `mpv.conf` to include the standard subtitle position defaults (10/90).

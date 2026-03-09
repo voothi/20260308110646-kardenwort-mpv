@@ -80,6 +80,13 @@ Displays previous and future subtitles around the active line, providing crucial
 - **ASS Protection**: Automatically blocks itself on complex `.ass` tracks to prevent rendering visual artifacts or breaking karaoke animations.
 - **Toggle**: `C` (English) or `С` (Russian).
 
+### Intelligent Context Copy
+A powerful clipboard extraction tool that automatically strips complex `.ass` formatting and bypasses heavily interleaved foreign-language translation tracks.
+- **Context Expansion**: Request surrounding sentences to export perfectly chronological paragraphs instead of just the active phrase.
+- **Symmetrical Traversal**: Intelligently leaps across dual-track layouts to retrieve pure target-language lines.
+- **Copy Modes**: Easily toggle between extracting Foreign text or Native translation chunks.
+- **Copy**: `Ctrl+C`. **Toggle Context**: `Ctrl+X`. **Cycle Mode**: `Ctrl+Z`.
+
 ### Smart Spacebar (Hold-to-Play)
 A custom key handler that distinguishes between quick taps and long holds.
 - **Play While Held**: Pressing and holding `SPACE` bypasses ALL autopause rule sets (Word-by-word and End-of-phrase). The video plays smoothly as long as the key is down.
@@ -106,6 +113,9 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `J` | `О` | Cycle Secondary Subtitle Track |
 | `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**) |
 | `C` | `С` | Toggle **Drum Mode** (Multi-line Context) |
+| `Ctrl+C` | `Ctrl+С` | **Copy Subtitle** (Export clean text to clipboard) |
+| `Ctrl+X` | `Ctrl+Ч` | Toggle **Context Copy** (Include surrounding lines) |
+| `Ctrl+Z` | `Ctrl+Я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
 | `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
 | `P` | `З` | Toggle **Autopause** (ON/OFF) |
 | `K` | `Л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
