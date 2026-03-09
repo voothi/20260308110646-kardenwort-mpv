@@ -5,36 +5,55 @@ local utils = require 'mp.utils'
 -- CONFIGURATION OPTIONS
 -- =========================================================================
 -- copy_mode determines which part of a multi-line subtitle gets copied.
--- Options: "all" (default), "top" (first block of lines), "bottom" (last block of lines)
--- For ASS subtitles that stack languages, "top" usually grabs the primary language,
--- and "bottom" grabs the secondary language.
+-- Options: "A" (first block of lines), "B" (last block of lines)
 local config = {
-    copy_mode = "all",
-    -- Fallback compatibility: if set to true, filters out any line with Cyrillic characters 
-    -- (Only applies if copy_mode = "all")
-    filter_russian = false
+    copy_mode = "A"
 }
-
-local function has_cyrillic(str)
-    return str:find("[\208\209]") ~= nil
-end
 
 -- Cycle through the copy modes
 local function cycle_copy_mode()
-    if config.copy_mode == "all" then
-        config.copy_mode = "top"
-    elseif config.copy_mode == "top" then
-        config.copy_mode = "bottom"
+    if config.copy_mode == "A" then
+        config.copy_mode = "B"
     else
-        config.copy_mode = "all"
+        config.copy_mode = "A"
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. config.copy_mode:upper(), 2.0)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. config.copy_mode, 2.0)
 end
 
 -- Function to clean up ASS tags and extract the requested lines
 local function clean_subtitle(text)
+    if not text then return "" end
+    -- Remove ASS override tags like {\an8} or {\b1}
+    text = text:gsub("{[^}]+}", "")
+    -- Normalize explicit \N to standard newlines
+    text = text:gsub("\\N", "\n")
+    
+    local lines = {}
+    for line in text:gmatch("[^\n]+") do
+        line = line:match("^%s*(.-)%s*$")
+        if line and line ~= "" then
+            table.insert(lines, line)
+        end
+    end
+    
+    if #lines == 0 then return "" end
+
+    local final_lines = {}
+    
+    if config.copy_mode == "A" then
+        -- Grab the first logical chunk of lines
+        table.insert(final_lines, lines[1])
+        
+    elseif config.copy_mode == "B" then
+        -- Grab the very last logical chunk of lines
+        table.insert(final_lines, lines[#lines])
+    end
+    
+    -- Join the valid lines into a single string with spaces for the clipboard
+    return table.concat(final_lines, " ")
+end
     if not text then return "" end
     -- Remove ASS override tags like {\an8} or {\b1}
     text = text:gsub("{[^}]+}", "")
