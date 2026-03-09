@@ -295,6 +295,7 @@ local function update_media_state()
             FSM.DRUM = "OFF"
             mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
             mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
+            mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
             drum_osd.data = ""
             drum_osd:update()
             show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
@@ -728,6 +729,7 @@ mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" then
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
+        mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
     end
 end)
 
