@@ -19,6 +19,7 @@
 **Date**: 2026-03-10
 **Version**: v1.2.0
 **Request ZID**: 20260310002147
+**RFC**: [docs/rfcs/20260310002147-release-v1.2.0.md](docs/rfcs/20260310002147-release-v1.2.0.md)
 
 ## Highlights
 
