@@ -1,3 +1,23 @@
+# Release Notes - v1.2.4 (Drum Sync & Compatibility Guards)
+
+**Date**: 2026-03-10
+**Version**: v1.2.4
+**Request ZID**: 20260310020401
+**RFC**: [docs/rfcs/20260310020401-release-v1.2.4.md](docs/rfcs/20260310020401-release-v1.2.4.md)
+
+## Highlights
+
+### 🥁 **Synchronized Drum Keybindings**
+- **FSM-State Prioritization**: Fixed a critical race condition where `master_tick` loop (50ms) was overwriting manual `y` (Secondary Position) toggles. Commands now write to FSM state first.
+- **Stale Array Flushing**: Resolved "ghost" subtitles in Drum Mode. Cycling `j` (Secondary SID) to OFF now immediately flushes internal memory arrays upon detecting path changes.
+- **Symmetrical Position Restore**: Secondary position is now perfectly restored from FSM memory when Drum Mode is turned OFF or the player shuts down.
+
+### 🛡️ **Smart Feature Compatibility Guards**
+- **Positional Integrity**: `y` (Secondary Position) now auto-blocks if the track is `.ass` or if no secondary sub is loaded, preventing layout collisions.
+- **Context-Aware Copying**: `Ctrl+Z` (Copy Mode) and `Ctrl+X` (Context Copy) now detect if they are musically/mathematically supported before activating, with clear OSD feedback for SINGLE_SRT or internal-only tracks.
+
+---
+
 # Release Notes - v1.2.2 (Ass Context Copy Fix)
 
 **Date**: 2026-03-10
