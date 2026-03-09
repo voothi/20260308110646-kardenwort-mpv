@@ -1,3 +1,22 @@
+# Release Notes - v1.2.8 (Hotkeys & Documentation)
+
+**Date**: 2026-03-10
+**Version**: v1.2.8
+**Request ZID**: 20260310025029
+**RFC**: [docs/rfcs/20260310025029-release-v1.2.8.md](docs/rfcs/20260310025029-release-v1.2.8.md)
+
+## Highlights
+
+### ⌨️ **Simplified Hotkeys**
+- **Modifier Removal**: Context Copy (`x`) and Copy Mode Cycle (`z`) no longer require `Ctrl`. Single-key triggers significantly speed up the immersion workflow.
+- **Layout Robustness**: Hotkeys are now case-insensitive and fully mapped for both **English** and **Russian** layouts.
+
+### 📖 **Comprehensive Documentation**
+- **Inline Manual**: `input.conf` has been fully reorganized and commented. Every shortcut now includes an explanation of its purpose, helping users master the "Smart Spacebar," "Drum Mode," and "Autopause" features.
+- **Grouped Structure**: Keys are now logically categorized into Navigation, Language-Specific, and Feature Toggle sections.
+
+---
+
 # Release Notes - v1.2.6 (Keybinding Source of Truth)
 
 **Date**: 2026-03-10
