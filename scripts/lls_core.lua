@@ -629,11 +629,13 @@ end
 local function cmd_copy_sub()
     local ctext = ""
     local time_pos = mp.get_property_number("time-pos")
+    local is_context = false
 
     if FSM.COPY_CONTEXT == "ON" and time_pos then
         local ctx = get_copy_context_text(time_pos)
         if ctx and ctx ~= "" then 
             ctext = ctx 
+            is_context = true
         end
     end
     
@@ -646,31 +648,32 @@ local function cmd_copy_sub()
     -- Clean text (remove ASS tags)
     ctext = ctext:gsub("{[^}]+}", ""):gsub("\\N", "\n")
     
-    local lines = {}
-    for line in ctext:gmatch("[^\n]+") do
-        line = line:match("^%s*(.-)%s*$")
-        if line and line ~= "" then table.insert(lines, line) end
-    end
-    
     local final_text = ""
-    if #lines > 0 then
-        local valid = {}
-        if Options.copy_filter_russian then
-            for _, ln in ipairs(lines) do
-                local cyr = has_cyrillic(ln)
-                if (FSM.COPY_MODE == "A" and not cyr) or (FSM.COPY_MODE == "B" and cyr) then table.insert(valid, ln) end
-            end
-            
-            if #valid == 0 then table.insert(valid, (FSM.COPY_MODE == "A") and lines[#lines] or lines[1]) end
-        else
-            if FSM.COPY_CONTEXT == "ON" then
-                -- Context copy just takes everything safely if we aren't filtering languages
-                for _, ln in ipairs(lines) do table.insert(valid, ln) end
+    
+    if is_context then
+        -- Context Copy already filtered lines internally, just join whatever it gave us
+        final_text = ctext:gsub("\n", " ")
+    else
+        local lines = {}
+        for line in ctext:gmatch("[^\n]+") do
+            line = line:match("^%s*(.-)%s*$")
+            if line and line ~= "" then table.insert(lines, line) end
+        end
+        
+        if #lines > 0 then
+            local valid = {}
+            if Options.copy_filter_russian then
+                for _, ln in ipairs(lines) do
+                    local cyr = has_cyrillic(ln)
+                    if (FSM.COPY_MODE == "A" and not cyr) or (FSM.COPY_MODE == "B" and cyr) then table.insert(valid, ln) end
+                end
+                
+                if #valid == 0 then table.insert(valid, (FSM.COPY_MODE == "A") and lines[#lines] or lines[1]) end
             else
                 table.insert(valid, (FSM.COPY_MODE == "A") and lines[#lines] or lines[1])
             end
+            final_text = table.concat(valid, " ")
         end
-        final_text = table.concat(valid, " ")
     end
     
     if final_text ~= "" then
