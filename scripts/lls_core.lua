@@ -576,6 +576,16 @@ local function get_copy_context_text(time_pos)
     
     local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
     
+    local function is_target(s)
+        if not s then return false end
+        local cyr = has_cyrillic(s)
+        if FSM.COPY_MODE == "A" then
+            return not cyr
+        else
+            return cyr
+        end
+    end
+    
     local function append(path, is_ass)
         if not path then return end
         local subs = nil
@@ -586,12 +596,24 @@ local function get_copy_context_text(time_pos)
         if subs and #subs > 0 then
             local idx = get_center_index(subs, time_pos)
             if idx ~= -1 then
-                local start_idx = math.max(1, idx - Options.copy_context_lines)
-                local end_idx = math.min(#subs, idx + Options.copy_context_lines)
-                
-                for i = start_idx, end_idx do
-                    table.insert(combined, trim(subs[i].text))
+                local pre, i = {}, idx - 1
+                while i >= 1 and #pre < Options.copy_context_lines do
+                    local t = trim(subs[i].text)
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
+                    i = i - 1
                 end
+                for _, ln in ipairs(pre) do table.insert(combined, ln) end
+                
+                local ctext = trim(subs[idx].text)
+                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
+                
+                local post, i2 = {}, idx + 1
+                while i2 <= #subs and #post < Options.copy_context_lines do
+                    local t = trim(subs[i2].text)
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
+                    i2 = i2 + 1
+                end
+                for _, ln in ipairs(post) do table.insert(combined, ln) end
             end
         end
     end
