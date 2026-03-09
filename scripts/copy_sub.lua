@@ -77,46 +77,82 @@ local function parse_time(time_str)
     return 0
 end
 
-local function load_srt(path)
+local function load_sub(path)
     if not path or path == "" then return {} end
     local f = io.open(path, "r")
     if not f then return {} end
     
     local subs = {}
     local current_sub = nil
-    local state = "ID"
     
-    for line in f:lines() do
-        line = line:gsub("\r", ""):gsub("<[^>]+>", "")
-        if line == "" then
-            if current_sub and current_sub.text ~= "" then
-                table.insert(subs, current_sub)
-            end
-            current_sub = nil
-            state = "ID"
-        elseif state == "ID" then
-            if line:match("^%d+$") then
-                current_sub = {text = ""}
-                state = "TIME"
-            end
-        elseif state == "TIME" then
-            local start_str, end_str = string.match(line, "(%S+)%s+%-%->%s+(%S+)")
-            if start_str and end_str then
-                current_sub.start_time = parse_time(start_str)
-                current_sub.end_time = parse_time(end_str)
-                state = "TEXT"
-            end
-        elseif state == "TEXT" then
-            if current_sub.text == "" then
-                current_sub.text = line
-            else
-                current_sub.text = current_sub.text .. "\n" .. line
+    local is_ass = path:match("%.ass$") or path:match("%.ssa$")
+    
+    if is_ass then
+        for line in f:lines() do
+            if line:match("^Dialogue:") then
+                local first_colon = line:find(":")
+                if first_colon then
+                    local content = line:sub(first_colon + 1)
+                    content = content:gsub("^%s+", "")
+                    local parts = {}
+                    local last_pos = 1
+                    for i = 1, 9 do
+                        local comma_pos = content:find(",", last_pos)
+                        if not comma_pos then break end
+                        table.insert(parts, content:sub(last_pos, comma_pos - 1))
+                        last_pos = comma_pos + 1
+                    end
+                    if #parts == 9 then
+                        local text = content:sub(last_pos)
+                        local start_str = parts[2]:match("^%s*(.-)%s*$")
+                        local end_str = parts[3]:match("^%s*(.-)%s*$")
+                        if start_str and end_str and text then
+                            table.insert(subs, {
+                                start_time = parse_time(start_str),
+                                end_time = parse_time(end_str),
+                                text = text:gsub("\\N", "\n"):gsub("{[^}]+}", "")
+                            })
+                        end
+                    end
+                end
             end
         end
+        table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+    else
+        local state = "ID"
+        for line in f:lines() do
+            line = line:gsub("\r", ""):gsub("<[^>]+>", "")
+            if line == "" then
+                if current_sub and current_sub.text ~= "" then
+                    table.insert(subs, current_sub)
+                end
+                current_sub = nil
+                state = "ID"
+            elseif state == "ID" then
+                if line:match("^%d+$") then
+                    current_sub = {text = ""}
+                    state = "TIME"
+                end
+            elseif state == "TIME" then
+                local start_str, end_str = string.match(line, "(%S+)%s+%-%->%s+(%S+)")
+                if start_str and end_str then
+                    current_sub.start_time = parse_time(start_str)
+                    current_sub.end_time = parse_time(end_str)
+                    state = "TEXT"
+                end
+            elseif state == "TEXT" then
+                if current_sub.text == "" then
+                    current_sub.text = line
+                else
+                    current_sub.text = current_sub.text .. "\n" .. line
+                end
+            end
+        end
+        if current_sub and current_sub.text ~= "" then
+            table.insert(subs, current_sub)
+        end
     end
-    if current_sub and current_sub.text ~= "" then
-        table.insert(subs, current_sub)
-    end
+    
     f:close()
     return subs
 end
@@ -151,7 +187,7 @@ local function get_track_path(type)
     if not tracks then return nil end
     for _, t in ipairs(tracks) do
         if t.type == "sub" and t.id == id and t.external and t["external-filename"] then
-            if t["external-filename"]:match("%.srt$") then
+            if t["external-filename"]:match("%.srt$") or t["external-filename"]:match("%.ass$") or t["external-filename"]:match("%.ssa$") then
                 return t["external-filename"]
             end
         end
@@ -167,7 +203,7 @@ local function get_context_text(time_pos)
     
     local function append_subs(path)
         if not path then return end
-        local subs = load_srt(path)
+        local subs = load_sub(path)
         if #subs > 0 then
             local idx = get_center_index(subs, time_pos)
             if idx ~= -1 then
