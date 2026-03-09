@@ -579,7 +579,11 @@ local function get_copy_context_text(time_pos)
     local function is_target(s)
         if not s then return false end
         local cyr = has_cyrillic(s)
-        return (FSM.COPY_MODE == "A") and not cyr or cyr
+        if FSM.COPY_MODE == "A" then
+            return not cyr
+        else
+            return cyr
+        end
     end
     
     local function append(path, is_ass)
@@ -616,7 +620,9 @@ local function get_copy_context_text(time_pos)
     end
     
     append(Tracks.pri.path, Tracks.pri.is_ass)
-    append(Tracks.sec.path, Tracks.sec.is_ass)
+    if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path then
+        append(Tracks.sec.path, Tracks.sec.is_ass)
+    end
     
     return #combined > 0 and table.concat(combined, "\n") or nil
 end
