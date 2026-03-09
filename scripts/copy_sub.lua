@@ -10,6 +10,10 @@ local config = {
     copy_mode = "A"
 }
 
+-- Duration for OSD status messages (in seconds)
+local osd_msg_duration = 2.0
+
+
 -- Cycle through the copy modes
 local function cycle_copy_mode()
     if config.copy_mode == "A" then
@@ -19,7 +23,7 @@ local function cycle_copy_mode()
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. config.copy_mode, 2.0)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. config.copy_mode, osd_msg_duration)
 end
 
 -- Function to clean up ASS tags and extract the requested lines
@@ -78,10 +82,10 @@ local function copy_subtitle()
         end
         
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied " .. config.copy_mode:upper() .. ": " .. osd_text, 2.0)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied " .. config.copy_mode:upper() .. ": " .. osd_text, osd_msg_duration)
     else
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}No subtitle to copy", 2.0)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}No subtitle to copy", osd_msg_duration)
     end
 end
 
