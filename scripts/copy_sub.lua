@@ -6,7 +6,7 @@ local utils = require 'mp.utils'
 -- =========================================================================
 
 -- Which part of a multi-line subtitle gets copied for ASS stacking?
--- Options: "A" (first logical block), "B" (last logical block)
+-- Options: "A" (last logical block), "B" (first logical block)
 local copy_mode = "A"
 
 -- Duration for OSD status messages (in seconds)
@@ -14,6 +14,15 @@ local osd_msg_duration = 1.0
 
 -- Number of words to show in the OSD confirmation message
 local osd_word_limit = 3
+
+-- OSD Style and Position tags (ASS format)
+-- \an4 = Middle Left, \fs20 = Font Size 20
+local osd_style = "{\\an4}{\\fs20}"
+
+-- Message Strings
+local msg_copied_prefix = "Copied "
+local msg_mode_prefix = "Copy Subtitle Mode: "
+local msg_no_sub = "No subtitle to copy"
 
 -- =========================================================================
 -- MAIN CODE
@@ -28,7 +37,7 @@ local function cycle_copy_mode()
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. copy_mode, osd_msg_duration)
+    mp.osd_message(ass_enable .. osd_style .. msg_mode_prefix .. copy_mode, osd_msg_duration)
 end
 
 -- Function to clean up ASS tags and extract the requested lines
@@ -94,10 +103,10 @@ local function copy_subtitle()
         end
         
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied " .. copy_mode:upper() .. ": " .. osd_text, osd_msg_duration)
+        mp.osd_message(ass_enable .. osd_style .. msg_copied_prefix .. copy_mode:upper() .. ": " .. osd_text, osd_msg_duration)
     else
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}No subtitle to copy", osd_msg_duration)
+        mp.osd_message(ass_enable .. osd_style .. msg_no_sub, osd_msg_duration)
     end
 end
 
