@@ -2,28 +2,30 @@ local mp = require 'mp'
 local utils = require 'mp.utils'
 
 -- =========================================================================
--- CONFIGURATION OPTIONS
+-- SCRIPT SETTINGS
 -- =========================================================================
--- copy_mode determines which part of a multi-line subtitle gets copied.
--- Options: "A" (first block of lines), "B" (last block of lines)
-local config = {
-    copy_mode = "A"
-}
+
+-- Which part of a multi-line subtitle gets copied for ASS stacking?
+-- Options: "A" (first logical block), "B" (last logical block)
+local copy_mode = "A"
 
 -- Duration for OSD status messages (in seconds)
 local osd_msg_duration = 2.0
 
+-- =========================================================================
+-- MAIN CODE
+-- =========================================================================
 
 -- Cycle through the copy modes
 local function cycle_copy_mode()
-    if config.copy_mode == "A" then
-        config.copy_mode = "B"
+    if copy_mode == "A" then
+        copy_mode = "B"
     else
-        config.copy_mode = "A"
+        copy_mode = "A"
     end
     
     local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. config.copy_mode, osd_msg_duration)
+    mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copy Subtitle Mode: " .. copy_mode, osd_msg_duration)
 end
 
 -- Function to clean up ASS tags and extract the requested lines
@@ -46,11 +48,11 @@ local function clean_subtitle(text)
 
     local final_lines = {}
     
-    if config.copy_mode == "A" then
+    if copy_mode == "A" then
         -- Grab the first logical chunk of lines
         table.insert(final_lines, lines[1])
         
-    elseif config.copy_mode == "B" then
+    elseif copy_mode == "B" then
         -- Grab the very last logical chunk of lines
         table.insert(final_lines, lines[#lines])
     end
@@ -82,7 +84,7 @@ local function copy_subtitle()
         end
         
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
-        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied " .. config.copy_mode:upper() .. ": " .. osd_text, osd_msg_duration)
+        mp.osd_message(ass_enable .. "{\\an4}{\\fs20}Copied " .. copy_mode:upper() .. ": " .. osd_text, osd_msg_duration)
     else
         local ass_enable = mp.get_property("osd-ass-cc/0") or ""
         mp.osd_message(ass_enable .. "{\\an4}{\\fs20}No subtitle to copy", osd_msg_duration)
