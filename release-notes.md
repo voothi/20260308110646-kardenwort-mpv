@@ -1,3 +1,18 @@
+# Release Notes - v1.2.6 (Keybinding Source of Truth)
+
+**Date**: 2026-03-10
+**Version**: v1.2.6
+**Request ZID**: 20260310024112
+**RFC**: [docs/rfcs/20260310024112-release-v1.2.6.md](docs/rfcs/20260310024112-release-v1.2.6.md)
+
+## Highlights
+
+### 📋 **Single Source of Truth for Keybindings**
+- **Consolidated Authority**: Removed the last hardcoded key (`"c"` for Drum Mode) from `lls_core.lua`. All 11 script bindings now use `nil` defaults, making `input.conf` the exclusive keybinding authority.
+- **Zero Script Keys**: To change any hotkey, edit only `input.conf`. No script files need modification.
+
+---
+
 # Release Notes - v1.2.4 (Drum Sync & Compatibility Guards)
 
 **Date**: 2026-03-10
