@@ -421,18 +421,15 @@ local function draw_dw(subs, center_idx, time_pos)
     local bg_color = Options.dw_bg_color   -- e.g. "A9C5D4"
     ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\alpha&H%s&}{\\c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
-    local line_height = math.floor(Options.dw_font_size * 2.2)
-    local total_height = win_lines * line_height
-    local y_start = math.floor((1080 - total_height) / 2)
-    
+    -- Text Block
+    local lines_ass = {}
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
         local is_nav = (i == FSM.DW_CURSOR_LINE)
-        local y_pos = y_start + (i - start_idx) * line_height
         
         local text = subs[i].text:gsub("\n", " ")
-        -- Styling: force no border, no shadow, no blur, opaque text
-        local line_ass = "{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q2}"
+        local color = is_active and Options.dw_active_color or Options.dw_text_color
+        local line_prefix = string.format("{\\c&H%s&}", color)
         
         if is_nav and FSM.DW_CURSOR_WORD > 0 then
             local words = build_word_list(text)
@@ -443,19 +440,21 @@ local function draw_dw(subs, center_idx, time_pos)
             
             for j, w in ipairs(words) do
                 if j >= sel_start and j <= sel_end then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, Options.dw_text_color))
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 else
                     table.insert(formatted_words, w)
                 end
             end
-            line_ass = line_ass .. table.concat(formatted_words, " ")
+            table.insert(lines_ass, line_prefix .. table.concat(formatted_words, " "))
         else
-            local color = is_active and Options.dw_active_color or Options.dw_text_color
-            line_ass = line_ass .. string.format("{\\c&H%s&}%s", color, text)
+            table.insert(lines_ass, line_prefix .. text)
         end
-        
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pos, Options.dw_font_size, line_ass)
     end
+    
+    -- Render the whole block centered
+    local block_text = table.concat(lines_ass, "\\N\\N") -- Double \N for extra spacing
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q0}{\\fs%d}%s", 
+        Options.dw_font_size, block_text)
     
     return ass
 end
@@ -466,6 +465,12 @@ local function tick_dw(time_pos)
     
     local idx = get_center_index(subs, time_pos)
     if idx == -1 then return end
+    
+    -- Sync navigation cursor to active line if it hasn't been manually moved away
+    -- or if the user is seeking (A/D)
+    if FSM.DW_CURSOR_LINE == -1 then
+        FSM.DW_CURSOR_LINE = idx
+    end
     
     dw_osd.data = draw_dw(subs, idx, time_pos)
     dw_osd:update()
@@ -630,6 +635,16 @@ local function manage_dw_bindings(enable)
     local keys = {
         {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "RIGHT", name = "dw-word-right", fn = function() cmd_dw_word_move(1, false) end},
+        {key = "UP", name = "dw-line-up", fn = function() cmd_dw_line_move(-1) end},
+        {key = "DOWN", name = "dw-line-down", fn = function() cmd_dw_line_move(1) end},
+        {key = "a", name = "dw-seek-back", fn = function() 
+            mp.command("sub-seek -1") 
+            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+        end},
+        {key = "d", name = "dw-seek-fwd", fn = function() 
+            mp.command("sub-seek 1") 
+            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+        end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
         {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
@@ -639,6 +654,14 @@ local function manage_dw_bindings(enable)
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
+        {key = "ф", name = "dw-seek-back-ru", fn = function() 
+            mp.command("sub-seek -1") 
+            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+        end},
+        {key = "в", name = "dw-seek-fwd-ru", fn = function() 
+            mp.command("sub-seek 1") 
+            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+        end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end}
     }
     
@@ -687,6 +710,14 @@ function cmd_dw_scroll(dir)
     FSM.DW_RETURN_TIMER = mp.add_timeout(Options.dw_scroll_return_sec, function()
         FSM.DW_SCROLL_OFFSET = 0
     end)
+end
+
+function cmd_dw_line_move(dir)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
+    FSM.DW_CURSOR_WORD = 1 -- Highlight first word
+    FSM.DW_ANCHOR_WORD = -1
 end
 
 function cmd_dw_word_move(dir, shift)
