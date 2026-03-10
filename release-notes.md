@@ -13,7 +13,7 @@
 - **Velocity Insights**: 134 commits to 16 files shows a highly granular, test-driven approach to feature development.
 
 ### 🛠️ **Analytics Automation**
-- **New Tool**: Added `docs/analyze_repo.py` to the repository. This script allows for repeatable, session-based analysis of developer effort using clustered git timestamps. 
+- **New Tool**: Added `docs/scripts/analyze_repo.py` to the repository. This script allows for repeatable, session-based analysis of developer effort using clustered git timestamps. 
 - **Usage**: Simply pipe `git log` into the script to get an updated view of project growth.
 
 ---
