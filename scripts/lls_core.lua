@@ -88,6 +88,7 @@ local FSM = {
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
     DW_SCROLL_OFFSET = 0,      -- Manual scroll offset (lines)
+    DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_RETURN_TIMER = nil,     -- Timer to return scroll to zero
     DW_KEY_OVERRIDE = false    -- Are we overriding arrow keys?
 }
@@ -486,10 +487,10 @@ local function tick_dw(time_pos)
     local idx = get_center_index(subs, time_pos)
     if idx == -1 then return end
     
-    -- Sync navigation cursor to active line if it hasn't been manually moved away
-    -- or if the user is seeking (A/D)
-    if FSM.DW_CURSOR_LINE == -1 then
+    -- When following playback, keep cursor and viewport synced to active line
+    if FSM.DW_FOLLOW_PLAYER then
         FSM.DW_CURSOR_LINE = idx
+        FSM.DW_SCROLL_OFFSET = 0
     end
     
     dw_osd.data = draw_dw(subs, idx, time_pos)
@@ -660,12 +661,12 @@ local function manage_dw_bindings(enable)
         {key = "Shift+UP", name = "dw-line-up-shift", fn = function() cmd_dw_line_move(-1, true) end},
         {key = "Shift+DOWN", name = "dw-line-down-shift", fn = function() cmd_dw_line_move(1, true) end},
         {key = "a", name = "dw-seek-back", fn = function() 
-            mp.command("sub-seek -1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            mp.command("sub-seek -1")
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "d", name = "dw-seek-fwd", fn = function() 
-            mp.command("sub-seek 1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            mp.command("sub-seek 1")
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
         {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
@@ -683,12 +684,12 @@ local function manage_dw_bindings(enable)
         {key = "Shift+ВВЕРХ", name = "dw-line-up-shift-ru", fn = function() cmd_dw_line_move(-1, true) end},
         {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
         {key = "ф", name = "dw-seek-back-ru", fn = function() 
-            mp.command("sub-seek -1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            mp.command("sub-seek -1")
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "в", name = "dw-seek-fwd-ru", fn = function() 
-            mp.command("sub-seek 1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            mp.command("sub-seek 1")
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end}
     }
@@ -727,6 +728,7 @@ function cmd_toggle_drum_window()
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_SCROLL_OFFSET = 0
+        FSM.DW_FOLLOW_PLAYER = true
         
         manage_dw_bindings(true)
         show_osd("Drum Window: OPEN")
@@ -759,13 +761,28 @@ function cmd_dw_line_move(dir, shift)
     
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
     
+    -- Disable auto-follow on any manual line navigation
+    FSM.DW_FOLLOW_PLAYER = false
+    
+    -- Edge-scroll: keep cursor visible in the viewport
+    local half = math.floor(Options.dw_lines_visible / 2)
+    -- The viewport currently shows lines around (active_idx + SCROLL_OFFSET)
+    -- We need to figure out if CURSOR_LINE is outside that range
+    -- Since we don't know active_idx here, adjust SCROLL_OFFSET to ensure cursor is visible
+    -- by nudging it when cursor would go off-screen
+    FSM.DW_SCROLL_OFFSET = FSM.DW_SCROLL_OFFSET + dir
+    
+    -- Kill any auto-return timer since we're navigating manually
+    if FSM.DW_RETURN_TIMER then
+        FSM.DW_RETURN_TIMER:kill()
+        FSM.DW_RETURN_TIMER = nil
+    end
+    
     if not shift then
         FSM.DW_CURSOR_WORD = 1 -- Highlight first word
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
-        -- When moving lines with shift, we typically want to stay at word 1 
-        -- or similar to capture the whole line start/end.
         if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
     end
 end
