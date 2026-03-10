@@ -1,3 +1,23 @@
+# Release Notes - v1.2.9 (Project Analytics & Automation)
+
+**Date**: 2026-03-10
+**Version**: v1.2.9
+**Request ZID**: 20260310094822
+**RFC**: [docs/rfcs/20260310094822-release-v1.2.9.md](docs/rfcs/20260310094822-release-v1.2.9.md)
+
+## Highlights
+
+### 📊 **New Repository Analytics**
+- **Lifecycle Tracking**: Formally calculated the total development time (~24 hours intensive) and velocity (~5.6 commits/hour).
+- **Inception Timestamp**: March 8, 2026 (11:06 AM).
+- **Velocity Insights**: 134 commits to 16 files shows a highly granular, test-driven approach to feature development.
+
+### 🛠️ **Analytics Automation**
+- **New Tool**: Added `docs/analyze_repo.py` to the repository. This script allows for repeatable, session-based analysis of developer effort using clustered git timestamps. 
+- **Usage**: Simply pipe `git log` into the script to get an updated view of project growth.
+
+---
+
 # Release Notes - v1.2.8 (Hotkeys & Documentation)
 
 **Date**: 2026-03-10

@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.8) 
+[![Version](https://img.shields.io/badge/version-v1.2.9-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.9) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. powered by a unified **Finite State Machine** architecture.
@@ -33,6 +33,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Study-Centric Keybindings](#study-centric-keybindings)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Installation](#installation)
+- [Development Analytics](#development-analytics)
 - [License](#license)
 
 ---
@@ -145,6 +146,21 @@ Key settings to protect your learning environment:
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
 5.  **Restart**: Relaunch mpv to apply the optimized v1.2.8 settings.
+
+[Return to Top](#table-of-contents)
+
+## Development Analytics
+
+This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
+
+- **Project Inception**: March 8, 2026
+- **Current Maturity**: ~134 Commits (v1.2.9)
+- **Intensity Profile**: 5.6 Commits/Hour 
+
+To repeat the analysis on your local machine, use the provided Python tool:
+```powershell
+git log --pretty=format:"%ad" --date=iso-strict | python docs/analyze_repo.py
+```
 
 [Return to Top](#table-of-contents)
 
