@@ -723,7 +723,7 @@ function cmd_toggle_drum_window()
         
         local time_pos = mp.get_property_number("time-pos")
         FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
-        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_CURSOR_WORD = 1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_SCROLL_OFFSET = 0
