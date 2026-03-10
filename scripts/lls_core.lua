@@ -624,9 +624,6 @@ local function cmd_toggle_drum()
     end
 end
 
-        show_osd("Drum Mode: OFF")
-    end
-end
 
 local function manage_dw_bindings(enable)
     local keys = {
