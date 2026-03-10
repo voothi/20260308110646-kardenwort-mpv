@@ -89,13 +89,13 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
 - **Toggle**: `P` (English) or `З` (Russian).
 
-### <span id="static-reading-mode"></span>Static Reading Mode (Drum Context)
+### <span id="static-reading-mode"></span>Static Reading Mode (Drum Window)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
 - **Static Viewport**: Once you begin navigating via arrows, the viewport "freezes" synchronously, providing a stable, flicker-free environment for reading and selection.
 - **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, similar to a modern text editor.
 - **Follow Mode**: Automatically centers on the active playback line when the window is opened or when seeking with `a`/`d`.
 - **Styled OSD**: Status messages and text are rendered in a clean, non-intrusive **Left-Center** style (`{\an4}`).
-- **Toggle**: `C` (English) or `С` (Russian).
+- **Toggle**: `W` (English) or `Ц` (Russian).
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
 A sophisticated extraction tool that supports substring and multi-line range selection.
@@ -132,7 +132,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `S` | `Ы` | Toggle Subtitle Visibility (Styled OSD) |
 | `J` | `О` | Cycle Secondary Subtitle Track |
 | `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
-| `C` | `С` | Toggle **Static Reading Mode** (Drum Context) |
+| `C` | `С` | Toggle **Drum Mode** (Legacy Multi-line Context) |
+| `W` | `Ц` | Toggle **Static Reading Mode** (Drum Window) |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection |
 | `Ctrl+C` | `Ctrl+С` | **Copy Range** (Exact highlighted words to clipboard) |
 | `X` | `Ч` | Toggle **Context Copy** (Include surrounding lines) |
