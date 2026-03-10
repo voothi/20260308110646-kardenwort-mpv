@@ -51,8 +51,7 @@ local Options = {
     dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
     dw_text_color = "1A1A1A",     -- dark text
     dw_active_color = "800000",   -- navy in BGR
-    dw_highlight_color = "0000FF", -- red highlight in BGR
-    dw_scroll_return_sec = 3.0    -- seconds before auto-returning to center
+    dw_highlight_color = "0000FF" -- red highlight in BGR
 }
 options.read_options(Options, "lls")
 
@@ -87,8 +86,8 @@ local FSM = {
     DW_CURSOR_WORD = -1,       -- Word index in the current line
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
-    DW_SCROLL_OFFSET = 0,      -- Manual scroll offset (lines)
-    DW_RETURN_TIMER = nil,     -- Timer to return scroll to zero
+    DW_VIEW_CENTER = -1,       -- Center of the current viewport
+    DW_FOLLOW_PLAYER = true,   -- Should we snap to active playback?
     DW_KEY_OVERRIDE = false    -- Are we overriding arrow keys?
 }
 
@@ -404,17 +403,15 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     return ass
 end
 
-local function draw_dw(subs, center_idx, time_pos)
+local function draw_dw(subs, active_idx, time_pos)
     if not subs or #subs == 0 then return "" end
     
     local ass = ""
     local win_lines = Options.dw_lines_visible
     local half_win = math.floor(win_lines / 2)
     
-    local effective_center = center_idx + FSM.DW_SCROLL_OFFSET
-    effective_center = math.max(1, math.min(#subs, effective_center))
-    
-    local start_idx = math.max(1, effective_center - half_win)
+    local view_center = FSM.DW_VIEW_CENTER
+    local start_idx = math.max(1, view_center - half_win)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
     
     -- Background: Opaque beige panel
@@ -438,8 +435,9 @@ local function draw_dw(subs, center_idx, time_pos)
     -- Text Block
     local lines_ass = {}
     for i = start_idx, end_idx do
-        local is_active = (i == center_idx)
-        local text = subs[i].text:gsub("\n", " ")
+        -- active_idx is the current playback line (Blue)
+        local is_active = (i == active_idx)
+        local text = subs[i].text:gsub("\n", " "):gsub("{[^}]+}", "")
         local color = is_active and Options.dw_active_color or Options.dw_text_color
         local line_prefix = string.format("{\\c&H%s&}", color)
         
@@ -472,7 +470,7 @@ local function draw_dw(subs, center_idx, time_pos)
     end
     
     -- Render the whole block centered
-    local block_text = table.concat(lines_ass, "\\N\\N") -- Double \N for extra spacing
+    local block_text = table.concat(lines_ass, "\\N") 
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q0}{\\fs%d}%s", 
         Options.dw_font_size, block_text)
     
@@ -486,9 +484,8 @@ local function tick_dw(time_pos)
     local idx = get_center_index(subs, time_pos)
     if idx == -1 then return end
     
-    -- Sync navigation cursor to active line if it hasn't been manually moved away
-    -- or if the user is seeking (A/D)
-    if FSM.DW_CURSOR_LINE == -1 then
+    if FSM.DW_FOLLOW_PLAYER then
+        FSM.DW_VIEW_CENTER = idx
         FSM.DW_CURSOR_LINE = idx
     end
     
@@ -661,11 +658,11 @@ local function manage_dw_bindings(enable)
         {key = "Shift+DOWN", name = "dw-line-down-shift", fn = function() cmd_dw_line_move(1, true) end},
         {key = "a", name = "dw-seek-back", fn = function() 
             mp.command("sub-seek -1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "d", name = "dw-seek-fwd", fn = function() 
             mp.command("sub-seek 1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
         {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
@@ -684,11 +681,11 @@ local function manage_dw_bindings(enable)
         {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
         {key = "ф", name = "dw-seek-back-ru", fn = function() 
             mp.command("sub-seek -1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "в", name = "dw-seek-fwd-ru", fn = function() 
             mp.command("sub-seek 1") 
-            mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
+            FSM.DW_FOLLOW_PLAYER = true
         end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end}
     }
@@ -723,11 +720,11 @@ function cmd_toggle_drum_window()
         
         local time_pos = mp.get_property_number("time-pos")
         FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
+        FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+        FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-        FSM.DW_SCROLL_OFFSET = 0
-        
         manage_dw_bindings(true)
         show_osd("Drum Window: OPEN")
     else
@@ -740,12 +737,8 @@ function cmd_toggle_drum_window()
 end
 
 function cmd_dw_scroll(dir)
-    FSM.DW_SCROLL_OFFSET = FSM.DW_SCROLL_OFFSET + dir
-    
-    if FSM.DW_RETURN_TIMER then FSM.DW_RETURN_TIMER:kill() end
-    FSM.DW_RETURN_TIMER = mp.add_timeout(Options.dw_scroll_return_sec, function()
-        FSM.DW_SCROLL_OFFSET = 0
-    end)
+    FSM.DW_FOLLOW_PLAYER = false
+    FSM.DW_VIEW_CENTER = math.max(1, math.min(#Tracks.pri.subs, FSM.DW_VIEW_CENTER + dir))
 end
 
 function cmd_dw_line_move(dir, shift)
@@ -757,15 +750,24 @@ function cmd_dw_line_move(dir, shift)
         FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or 1
     end
     
+    local old_line = FSM.DW_CURSOR_LINE
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
     
+    -- Check if we hit the viewport boundary
+    local half = math.floor(Options.dw_lines_visible / 2)
+    local view_min = FSM.DW_VIEW_CENTER - half
+    local view_max = FSM.DW_VIEW_CENTER + half
+    
+    if FSM.DW_CURSOR_LINE < view_min or FSM.DW_CURSOR_LINE > view_max then
+        FSM.DW_FOLLOW_PLAYER = false
+        FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+    end
+
     if not shift then
         FSM.DW_CURSOR_WORD = 1 -- Highlight first word
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
-        -- When moving lines with shift, we typically want to stay at word 1 
-        -- or similar to capture the whole line start/end.
         if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
     end
 end
