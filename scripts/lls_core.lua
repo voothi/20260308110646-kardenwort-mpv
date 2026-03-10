@@ -33,10 +33,6 @@ local Options = {
     copy_context_lines = 2,
     copy_word_limit = 3,
 
-    -- Toggle Positions
-    sec_pos_top = 10,
-    sec_pos_bottom = 95,
-
     -- System
     tick_rate = 0.05,
     osd_duration = 1.0
@@ -539,12 +535,15 @@ local function cmd_cycle_sec_pos()
         show_osd("Secondary Sub Pos: Not available (ASS controls positioning)")
         return
     end
+    local p_top = FSM.native_sec_sub_pos
+    local p_bottom = mp.get_property_number("sub-pos", 95)
+    
     if FSM.DRUM == "ON" then
-        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom or Options.sec_pos_top
+        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and p_bottom or p_top
         show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
     else
-        local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
-        local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
+        local p = mp.get_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
+        local n = (p < 50) and p_bottom or p_top
         mp.set_property_number("secondary-sub-pos", n)
         show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
     end
