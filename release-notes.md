@@ -1,3 +1,23 @@
+# Release Notes - v1.2.12 (Dual Subtitle Positional Control)
+
+**Date**: 2026-03-10
+**Version**: v1.2.12
+**Request ZID**: 20260310141127
+**RFC**: [docs/rfcs/20260310141127-release-v1.2.12.md](docs/rfcs/20260310141127-release-v1.2.12.md)
+
+## Highlights
+
+### ↔️ **Dual Subtitle Positional Control**
+- **Independent Shifting**: Introduced keybindings to move the secondary subtitle track vertically, independent of the primary track. This is essential for preventing overlaps in multi-line phrasal subtitles.
+- **Manual Override**: Users can now tune the exact visual balance between target and translation tracks on-the-fly without editing configuration files.
+- **Drum Sync**: Manual positioning persists and synergizes with "Drum Mode," allowing users to set a custom vertical baseline before activating the cascading context view.
+
+### ⌨️ **Layout-Agnostic Positioning**
+- **Primary Sub-Pos**: Explicitly mapped `r` / `t` (and Russian `к` / `е`) to ensure subtitle "nudging" works natively in both English and Cyrillic keyboard layouts.
+- **Secondary Sub-Pos**: Added `Shift+R` / `Shift+T` (and Russian `К` / `Е`) for secondary track control.
+
+---
+
 # Release Notes - v1.2.10 (Centralized Config & Safety Gap)
 
 **Date**: 2026-03-10

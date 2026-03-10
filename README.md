@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.10-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.10) 
+[![Version](https://img.shields.io/badge/version-v1.2.12-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.12) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. powered by a unified **Finite State Machine** architecture.
@@ -52,6 +52,7 @@ This suite solves problems that standard video players and generic scripts ignor
 3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visilibity) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
 4.  **Ass Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
 5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense study sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
+6.  **Positional Flexibility**: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
 
 [Return to Top](#table-of-contents)
 
@@ -110,7 +111,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `LEFT` | `LEFT` | Exact **2-second** seek backward |
 | `Q` | `Й` | **Quit** (and save position) |
 | `SPACE` | `SPACE` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
-| `A` / `D` | `Ф` / `В` | Jump to **Previous / Next** phrase |
+| `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
+| `Shift+R` / `Shift+T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
 | `S` | `Ы` | Toggle Subtitle Visibility (Styled OSD) |
 | `J` | `О` | Cycle Secondary Subtitle Track |
 | `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
@@ -156,8 +158,8 @@ Key settings to protect your learning environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~144 Commits (v1.2.10)
-- **Intensity Profile**: 5.6 Commits/Hour 
+- **Current Maturity**: ~150 Commits (v1.2.12)
+- **Intensity Profile**: 5.8 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
