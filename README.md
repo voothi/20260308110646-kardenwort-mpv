@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/badge/version-v1.2.14-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.14) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
-A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition. powered by a unified **Finite State Machine** architecture.
+A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
 
 > **Attribution & Source**
 >
