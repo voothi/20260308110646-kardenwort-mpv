@@ -123,24 +123,29 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 
 | Key (EN) | Key (RU) | Action |
 |---|---|---|
-| `RIGHT` | `RIGHT` | Exact **2-second** seek forward |
-| `LEFT` | `LEFT` | Exact **2-second** seek backward |
-| `Q` | `Й` | **Quit** (and save position) |
+| `RIGHT` / `LEFT` | `RIGHT` / `LEFT` | Exact **2-second** seek forward / backward |
+| `a` / `d` | `ф` / `в` | **Seek** to previous / next subtitle line |
+| `q` / `Q` | `й` / `Й` | **Quit** / Quit and save position |
 | `SPACE` | `SPACE` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
+| `m` | `ь` | Toggle **Mute** |
+| `[` / `]` | `х` / `ъ` | Decrease / Increase **Playback Speed** (10%) |
+| `{` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
+| `.` / `,` | `ю` / `б` | Frame Step Forward / Backward |
 | `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
 | `Shift+R` / `Shift+T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
-| `S` | `Ы` | Toggle Subtitle Visibility (Styled OSD) |
-| `J` | `О` | Cycle Secondary Subtitle Track |
-| `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
-| `C` | `С` | Toggle **Drum Mode** (Legacy Multi-line Context) |
-| `W` | `Ц` | Toggle **Static Reading Mode** (Drum Window) |
-| `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection |
-| `Ctrl+C` | `Ctrl+С` | **Copy Range** (Exact highlighted words to clipboard) |
-| `X` | `Ч` | Toggle **Context Copy** (Include surrounding lines) |
-| `Z` | `Я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
+| `s` | `ы` | Toggle Subtitle Visibility (Styled OSD) |
+| `j` | `о` | Cycle Secondary Subtitle Track |
+| `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
+| `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
+| `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
+| `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (in Reading Mode) |
+| `Ctrl+c` | `Ctrl+с` | **Copy Range** (Exact highlighted words to clipboard) |
+| `x` | `ч` | Toggle **Context Copy** (Include surrounding lines) |
+| `z` | `я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
 | `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
-| `P` | `З` | Toggle **Autopause** (ON/OFF) |
-| `K` | `Л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
+| `p` | `з` | Toggle **Autopause** (ON/OFF) |
+| `k` | `л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
+| `S` | `Ы` | Take a **Screenshot** |
 
 [Return to Top](#table-of-contents)
 
