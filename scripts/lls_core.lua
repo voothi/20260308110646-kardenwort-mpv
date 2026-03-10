@@ -1,5 +1,6 @@
 local mp = require 'mp'
 local utils = require 'mp.utils'
+local options = require 'mp.options'
 
 -- =========================================================================
 -- LLS CORE CONFIGURATION
@@ -34,6 +35,8 @@ local Options = {
     copy_word_limit = 3,
 
     -- Toggle Positions
+    -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
+    -- to prevent primary and secondary subtitles from overlapping at the bottom.
     sec_pos_top = 10,
     sec_pos_bottom = 90,
 
@@ -41,6 +44,7 @@ local Options = {
     tick_rate = 0.05,
     osd_duration = 1.0
 }
+options.read_options(Options, "lls")
 
 -- =========================================================================
 -- STATE MACHINE
