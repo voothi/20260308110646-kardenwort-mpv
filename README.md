@@ -40,17 +40,20 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 ## Project Goals
 
-This suite is engineered to be the ultimate environment for **Extensive Language Learning** and high-intensity immersion. While highly flexible for general media consumption, its primary mission is to transform video content into structured learning material.
+The primary objective of this suite is to provide a highly optimized environment for the **Extensive Acquisition** of languages through the convenient consumption of video content. 
+
+This project is specifically designed for learners who work with **Dual Subtitles** (DualSubs)—where original target-language captions are paired with a secondary translation track.
 
 ### Core Objectives:
-1.  **Dual-Track Mastery**: Native, high-performance support for dual subtitles in both `.srt` and `.ass` formats, allowing for simultaneous target and native language display without performance degradation.
-2.  **YouTube Auto-Subtitle Refinement**: Specifically optimized to handle the challenges of low-quality, unsynchronized auto-captions. The suite's [Drum Context Mode](#drum-context-mode) and [Smart Spacebar](#smart-spacebar) help recover the linguistic context often lost in poorly timed YouTube transcripts.
-3.  **Local Offline Workflow**: Designed for a "Download & Study" methodology. By working with local media and subtitle files, you maintain 100% control over your learning data and playback stability.
-4.  **Extensive Immersion**: Built to support the "Extensive" reading/listening approach, where the goal is to consume vast amounts of comprehensible input with minimal friction.
+1.  **Dual-Subtitle Optimization**: Engineered to handle the visual and technical challenges of displaying two subtitle tracks (Original & Translated) in `.srt` or `.ass` formats simultaneously. 
+2.  **Convenient Content Consumption**: Focuses on the *playback phase* of learning. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar)—is built to remove friction during long, high-volume immersion sessions.
+3.  **YouTube Auto-Subtitle Handling**: Provides specialized tools like [Drum Context Mode](#drum-context-mode) to maintain linguistic context when dealing with poorly synchronized or lower-quality YouTube-extracted captions.
+4.  **Local Offline Focus**: Aimed at a robust local-first workflow. Learners can download media and subtitles, prepare them using external tools, and then consume them offline with maximum stability and control.
 
-### Ecosystem Integration
-For a complete offline workflow, we recommend using these companion tools to download, extract, and translate your study material:
-*   **Subtitle Processing**: [voothi/subtitles](https://github.com/voothi/20251228104300-subtitles/) — Tools for downloading media, captions, and generating high-quality translations.
+### Workflow Integration
+While this project focuses on the **consumption** of material, it is designed to be the final step in a broader study workflow:
+- **Preparation**: For downloading and translating your material, we recommend companion tools like [voothi/subtitles](https://github.com/voothi/20251228104300-subtitles/).
+- **Consumption**: Use this suite to engage with the prepared Dual-Subtitle content for extensive immersion.
 
 [Return to Top](#table-of-contents)
 
