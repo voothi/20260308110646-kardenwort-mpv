@@ -85,7 +85,8 @@ local FSM = {
     DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
     DW_CURSOR_LINE = -1,       -- Current line focused by word nav
     DW_CURSOR_WORD = -1,       -- Word index in the current line
-    DW_ANCHOR_WORD = -1,       -- Shift-anchor for word selection
+    DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
+    DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
     DW_SCROLL_OFFSET = 0,      -- Manual scroll offset (lines)
     DW_RETURN_TIMER = nil,     -- Timer to return scroll to zero
     DW_KEY_OVERRIDE = false    -- Are we overriding arrow keys?
@@ -421,34 +422,53 @@ local function draw_dw(subs, center_idx, time_pos)
     local bg_color = Options.dw_bg_color   -- e.g. "A9C5D4"
     ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\alpha&H%s&}{\\c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
+    -- Selection points
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    local has_selection = (al ~= -1 and cl ~= -1)
+    local p1_l, p1_w, p2_l, p2_w
+    if has_selection then
+        if al < cl or (al == cl and aw <= cw) then
+            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+        else
+            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+        end
+    end
+
     -- Text Block
     local lines_ass = {}
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
-        local is_nav = (i == FSM.DW_CURSOR_LINE)
-        
         local text = subs[i].text:gsub("\n", " ")
         local color = is_active and Options.dw_active_color or Options.dw_text_color
         local line_prefix = string.format("{\\c&H%s&}", color)
         
-        if is_nav and FSM.DW_CURSOR_WORD > 0 then
-            local words = build_word_list(text)
-            local formatted_words = {}
-            local anchor = FSM.DW_ANCHOR_WORD > 0 and FSM.DW_ANCHOR_WORD or FSM.DW_CURSOR_WORD
-            local sel_start = math.min(anchor, FSM.DW_CURSOR_WORD)
-            local sel_end = math.max(anchor, FSM.DW_CURSOR_WORD)
-            
-            for j, w in ipairs(words) do
-                if j >= sel_start and j <= sel_end then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                else
-                    table.insert(formatted_words, w)
-                end
+        local words = build_word_list(text)
+        local formatted_words = {}
+        
+        for j, w in ipairs(words) do
+            local selected = false
+            if has_selection then
+                if i > p1_l and i < p2_l then selected = true
+                elseif i == p1_l and i == p2_l then selected = (j >= p1_w and j <= p2_w)
+                elseif i == p1_l then selected = (j >= p1_w)
+                elseif i == p2_l then selected = (j <= p2_w) end
+            elseif i == cl and j == cw then
+                -- Single cursor highlight (red)
+                table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+                goto next_word
             end
-            table.insert(lines_ass, line_prefix .. table.concat(formatted_words, " "))
-        else
-            table.insert(lines_ass, line_prefix .. text)
+            
+            if selected then
+                table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+            else
+                table.insert(formatted_words, w)
+            end
+            ::next_word::
         end
+        
+        local line_content = #formatted_words > 0 and table.concat(formatted_words, " ") or text
+        table.insert(lines_ass, line_prefix .. line_content)
     end
     
     -- Render the whole block centered
@@ -635,8 +655,10 @@ local function manage_dw_bindings(enable)
     local keys = {
         {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "RIGHT", name = "dw-word-right", fn = function() cmd_dw_word_move(1, false) end},
-        {key = "UP", name = "dw-line-up", fn = function() cmd_dw_line_move(-1) end},
-        {key = "DOWN", name = "dw-line-down", fn = function() cmd_dw_line_move(1) end},
+        {key = "UP", name = "dw-line-up", fn = function() cmd_dw_line_move(-1, false) end},
+        {key = "DOWN", name = "dw-line-down", fn = function() cmd_dw_line_move(1, false) end},
+        {key = "Shift+UP", name = "dw-line-up-shift", fn = function() cmd_dw_line_move(-1, true) end},
+        {key = "Shift+DOWN", name = "dw-line-down-shift", fn = function() cmd_dw_line_move(1, true) end},
         {key = "a", name = "dw-seek-back", fn = function() 
             mp.command("sub-seek -1") 
             mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
@@ -654,6 +676,12 @@ local function manage_dw_bindings(enable)
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
+        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
+        {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
+        {key = "Shift+ЛЕВЫЙ", name = "dw-word-left-shift-ru", fn = function() cmd_dw_word_move(-1, true) end},
+        {key = "Shift+ПРАВЫЙ", name = "dw-word-right-shift-ru", fn = function() cmd_dw_word_move(1, true) end},
+        {key = "Shift+ВВЕРХ", name = "dw-line-up-shift-ru", fn = function() cmd_dw_line_move(-1, true) end},
+        {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
         {key = "ф", name = "dw-seek-back-ru", fn = function() 
             mp.command("sub-seek -1") 
             mp.add_timeout(0.05, function() FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, mp.get_property_number("time-pos")) end)
@@ -669,6 +697,7 @@ local function manage_dw_bindings(enable)
         if enable then 
             local settings = nil
             if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
+               or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
                or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
                 settings = "repeatable"
             end
@@ -695,6 +724,7 @@ function cmd_toggle_drum_window()
         local time_pos = mp.get_property_number("time-pos")
         FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
         FSM.DW_CURSOR_WORD = -1
+        FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_SCROLL_OFFSET = 0
         
@@ -718,12 +748,26 @@ function cmd_dw_scroll(dir)
     end)
 end
 
-function cmd_dw_line_move(dir)
+function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+    
+    if shift and FSM.DW_ANCHOR_LINE == -1 then
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or 1
+    end
+    
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
-    FSM.DW_CURSOR_WORD = 1 -- Highlight first word
-    FSM.DW_ANCHOR_WORD = -1
+    
+    if not shift then
+        FSM.DW_CURSOR_WORD = 1 -- Highlight first word
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+    else
+        -- When moving lines with shift, we typically want to stay at word 1 
+        -- or similar to capture the whole line start/end.
+        if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
+    end
 end
 
 function cmd_dw_word_move(dir, shift)
@@ -759,8 +803,10 @@ function cmd_dw_word_move(dir, shift)
     end
     
     if not shift then
+        FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     elseif FSM.DW_ANCHOR_WORD == -1 then
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD - dir -- anchor where we started
     end
 end
@@ -769,19 +815,45 @@ function cmd_dw_copy()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
-    local line_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    
     local final_text = ""
     
-    if FSM.DW_CURSOR_WORD > 0 then
-        local words = build_word_list(line_text)
-        local anchor = FSM.DW_ANCHOR_WORD > 0 and FSM.DW_ANCHOR_WORD or FSM.DW_CURSOR_WORD
-        local s = math.min(anchor, FSM.DW_CURSOR_WORD)
-        local e = math.max(anchor, FSM.DW_CURSOR_WORD)
-        local selected = {}
-        for i = s, e do table.insert(selected, words[i]) end
-        final_text = table.concat(selected, " ")
+    if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+        -- Range selection
+        local p1_l, p1_w, p2_l, p2_w
+        if al < cl or (al == cl and aw <= cw) then
+            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+        else
+            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+        end
+        
+        local parts = {}
+        for i = p1_l, p2_l do
+            local text = subs[i].text:gsub("\n", " ")
+            local words = build_word_list(text)
+            local line_words = {}
+            local s_w = (i == p1_l) and p1_w or 1
+            local e_w = (i == p2_l) and p2_w or #words
+            
+            for j = s_w, e_w do
+                table.insert(line_words, words[j])
+            end
+            if #line_words > 0 then
+                table.insert(parts, table.concat(line_words, " "))
+            end
+        end
+        final_text = table.concat(parts, " ")
     else
-        final_text = line_text
+        -- Single point or line fallback
+        local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+        if FSM.DW_CURSOR_WORD > 0 then
+            local words = build_word_list(text)
+            final_text = words[FSM.DW_CURSOR_WORD] or text
+        else
+            final_text = text
+        end
     end
     
     if final_text ~= "" then
