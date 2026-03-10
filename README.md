@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Learning Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.9-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.9) 
+[![Version](https://img.shields.io/badge/version-v1.2.10-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.10) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. powered by a unified **Finite State Machine** architecture.
@@ -136,6 +136,7 @@ Key settings to protect your learning environment:
 - **`osc=no`**: Removes visual clutter from the screen.
 - **`sub-scale-with-window=no`**: Critical for maintaining the layout of complex `.ass` files.
 - **`save-position-on-quit=yes`**: Pick up your study session exactly where you left off.
+- **`script-opts-append=lls-sec_pos_bottom=90`**: Configures the script's toggle position directly from `mpv.conf`.
 
 [Return to Top](#table-of-contents)
 
@@ -145,7 +146,7 @@ Key settings to protect your learning environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.2.8 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.2.10 settings.
 
 [Return to Top](#table-of-contents)
 

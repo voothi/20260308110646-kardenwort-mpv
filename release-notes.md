@@ -1,3 +1,22 @@
+# Release Notes - v1.2.10 (Centralized Config & Safety Gap)
+
+**Date**: 2026-03-10
+**Version**: v1.2.10
+**Request ZID**: 20260310120822
+**RFC**: [docs/rfcs/20260310120822-release-v1.2.10.md](docs/rfcs/20260310120822-release-v1.2.10.md)
+
+## Highlights
+
+### ⚙️ **Centralized Script Configuration**
+- **External Overrides**: Enabled `script-opts` support in `lls_core.lua`. You can now manage script-specific toggle positions directly from `mpv.conf` without touching Lua files.
+- **Dynamic Config Authority**: The script now treats `mpv.conf` as the single source of truth for all operational parameters.
+
+### 🛡️ **Positioning Safety Guards**
+- **Overlap Prevention**: Implemented a mandatory 5% "Safety Gap" between primary and secondary subtitles at the bottom of the screen. This resolves the regression where subtitles would "stick together."
+- **Threshold-Based Toggling**: Replaced strict coordinate checks with robust threshold logic. The toggle now intelligently adapts to custom positions (e.g., if you set your 'Top' to 15% instead of 10%).
+
+---
+
 # Release Notes - v1.2.9 (Project Analytics & Automation)
 
 **Date**: 2026-03-10
