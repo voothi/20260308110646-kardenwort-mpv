@@ -28,9 +28,9 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Intelligent Scripts](#intelligent-scripts)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
   - [Drum Context Mode](#drum-context-mode)
-  - [Smart Spacebar](#smart-spacebar-hold-to-play)
+  - [Smart Spacebar](#smart-spacebar)
   - [Intelligent Context Copy](#intelligent-context-copy)
-  - [Smart Font Scaling](#smart-font-scaling-fixed_fontlua)
+  - [Smart Font Scaling](#smart-font-scaling)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Installation](#installation)
@@ -47,7 +47,7 @@ This project is specifically designed for learners who work with **Dual Subtitle
 
 ### Core Objectives:
 1.  **Dual-Subtitle Optimization**: Engineered to handle the visual and technical challenges of displaying two subtitle tracks (Original & Translated) in `.srt` or `.ass` formats simultaneously. 
-2.  **Convenient Content Consumption**: Focuses on the *playback phase* of intensive acquisition. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar-hold-to-play)—is built to remove friction during long, high-volume immersion sessions.
+2.  **Convenient Content Consumption**: Focuses on the *playback phase* of intensive acquisition. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar)—is built to remove friction during long, high-volume immersion sessions.
 3.  **YouTube Auto-Subtitle Handling**: Provides specialized tools like [Drum Context Mode](#drum-context-mode) to maintain linguistic context when dealing with poorly synchronized or lower-quality YouTube-extracted captions.
 4.  **Local Offline Focus**: Aimed at a robust local-first workflow. Learners can download media and subtitles, prepare them using external tools, and then consume them offline with maximum stability and control.
 
@@ -66,7 +66,7 @@ This suite solves problems that standard video players and generic scripts ignor
 3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visilibity) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
 4.  **Ass Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
 5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense immersion sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
-6.  <a name="positional-flexibility"></a>**Positional Flexibility**: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
+6.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
 
 [Return to Top](#table-of-contents)
 
@@ -103,12 +103,12 @@ A powerful clipboard extraction tool that automatically strips complex `.ass` fo
 - **Copy Modes**: Toggle between Target text and Translation chunks. Available for ASS or Dual tracks (Toggle: `Z` / `Я`).
 - **Standard Copy**: `Ctrl+C` (English/Russian layouts supported).
 
-### Smart Spacebar (Hold-to-Play)
+### Smart Spacebar
 A custom key handler that distinguishes between quick taps and long holds.
 - **Play While Held**: Pressing and holding `SPACE` bypasses ALL autopause rule sets (Word-by-word and End-of-phrase). The video plays smoothly as long as the key is down.
 - **Tap to Toggle**: Quickly tapping `SPACE` (< 200ms) functions as a standard Play/Pause toggle.
 
-### Smart Font Scaling (`fixed_font.lua`)
+### Smart Font Scaling
 Ensures that your immersion material remains perfectly readable regardless of window size, while protecting complex layouts.
 *   **For `.srt` Files**: Dynamically adjusts subtitle scaling so text doesn't become tiny on large monitors or giant in small windows.
 *   **For `.ass` Files**: Intelligently detects the Advanced SubStation format and bypasses scaling, allowing the file's internal positioning mathematics to render flawlessly.
