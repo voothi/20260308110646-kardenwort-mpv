@@ -47,11 +47,11 @@ local Options = {
     -- Drum Window
     dw_font_size = 30,
     dw_lines_visible = 11,        -- how many lines visible in the window
-    dw_bg_color = "D4C5A9",       -- BGR hex (beige)
-    dw_bg_opacity = "DD",         -- background opacity (00-FF)
+    dw_bg_color = "A9C5D4",       -- beige in BGR hex for ASS
+    dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
     dw_text_color = "1A1A1A",     -- dark text
-    dw_active_color = "000080",   -- navy for current line
-    dw_highlight_color = "FF0000", -- blue highlight for selection
+    dw_active_color = "800000",   -- navy in BGR
+    dw_highlight_color = "0000FF", -- red highlight in BGR
     dw_scroll_return_sec = 3.0    -- seconds before auto-returning to center
 }
 options.read_options(Options, "lls")
@@ -417,13 +417,13 @@ local function draw_dw(subs, center_idx, time_pos)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
     
     -- Background: Opaque beige panel
-    -- Adjust rectangle to cover most of the screen or a central strip
-    local bg_alpha = Options.dw_bg_opacity
-    local bg_color = Options.dw_bg_color
-    ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\alpha&H%s&}{\\c&H%s&}{\\p1}m 300 100 l 1620 100 1620 980 300 980{\\p0}\n", bg_alpha, bg_color)
+    local bg_alpha = Options.dw_bg_opacity -- e.g. "10"
+    local bg_color = Options.dw_bg_color   -- e.g. "A9C5D4"
+    ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\alpha&H%s&}{\\c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
-    local y_start = 200
-    local line_height = Options.dw_font_size * 1.5
+    local line_height = math.floor(Options.dw_font_size * 2.2)
+    local total_height = win_lines * line_height
+    local y_start = math.floor((1080 - total_height) / 2)
     
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
@@ -431,7 +431,8 @@ local function draw_dw(subs, center_idx, time_pos)
         local y_pos = y_start + (i - start_idx) * line_height
         
         local text = subs[i].text:gsub("\n", " ")
-        local line_ass = ""
+        -- Styling: force no border, no shadow, no blur, opaque text
+        local line_ass = "{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q2}"
         
         if is_nav and FSM.DW_CURSOR_WORD > 0 then
             local words = build_word_list(text)
@@ -447,13 +448,13 @@ local function draw_dw(subs, center_idx, time_pos)
                     table.insert(formatted_words, w)
                 end
             end
-            line_ass = table.concat(formatted_words, " ")
+            line_ass = line_ass .. table.concat(formatted_words, " ")
         else
             local color = is_active and Options.dw_active_color or Options.dw_text_color
-            line_ass = string.format("{\\c&H%s&}%s", color, text)
+            line_ass = line_ass .. string.format("{\\c&H%s&}%s", color, text)
         end
         
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an5}{\\fs%d}%s\n", y_pos, Options.dw_font_size, line_ass)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pos, Options.dw_font_size, line_ass)
     end
     
     return ass
