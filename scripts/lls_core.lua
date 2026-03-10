@@ -88,7 +88,9 @@ local FSM = {
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
     DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
-    DW_KEY_OVERRIDE = false    -- Are we overriding arrow keys?
+    DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
+    DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_MOUSE_SCROLL_TIMER = nil -- Timer for auto-scroll while dragging at edges
 }
 
 local Tracks = {
@@ -477,6 +479,162 @@ local function draw_dw(subs, view_center, active_idx)
     return ass
 end
 
+-- =========================================================================
+-- DRUM WINDOW MOUSE SELECTION
+-- =========================================================================
+
+local function dw_get_mouse_osd()
+    local mx = mp.get_property_number("mouse-pos/x", 0)
+    local my = mp.get_property_number("mouse-pos/y", 0)
+    local ow = mp.get_property_number("osd-width", 1920)
+    local oh = mp.get_property_number("osd-height", 1080)
+    -- Scale from actual window pixels to OSD resolution (1920x1080)
+    local osd_x = (mx / ow) * 1920
+    local osd_y = (my / oh) * 1080
+    return osd_x, osd_y
+end
+
+local function dw_hit_test(osd_x, osd_y)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return nil, nil end
+
+    local win_lines = Options.dw_lines_visible
+    local half_win = math.floor(win_lines / 2)
+    local view_center = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER))
+    local start_idx = math.max(1, view_center - half_win)
+    local end_idx = math.min(#subs, start_idx + win_lines - 1)
+    local num_visible = end_idx - start_idx + 1
+
+    local fs = Options.dw_font_size
+    -- Each subtitle line takes ~font_size pixels for text.
+    -- Between lines we have \N\N which adds roughly 0.6*font_size gap.
+    local line_height = fs * 1.6
+    local total_block_height = num_visible * line_height
+
+    -- The text block is anchored at (960, 540) with \an5 (center)
+    local block_top = 540 - total_block_height / 2
+    local block_bottom = 540 + total_block_height / 2
+
+    if osd_y < block_top or osd_y > block_bottom then return nil, nil end
+
+    -- Which visible line?
+    local visible_line = math.floor((osd_y - block_top) / line_height) + 1
+    visible_line = math.max(1, math.min(num_visible, visible_line))
+    local line_idx = start_idx + visible_line - 1
+
+    if line_idx < 1 or line_idx > #subs then return nil, nil end
+
+    -- Now find which word the X coordinate falls on
+    local text = subs[line_idx].text:gsub("\n", " ")
+    local words = build_word_list(text)
+    if #words == 0 then return line_idx, 1 end
+
+    -- Estimate average character width (proportional font approximation)
+    local char_w = fs * 0.52
+    -- Build cumulative character positions for each word
+    -- Total text length in characters (including single spaces between words)
+    local total_chars = 0
+    for i, w in ipairs(words) do
+        total_chars = total_chars + #w
+        if i < #words then total_chars = total_chars + 1 end -- space
+    end
+    local total_text_width = total_chars * char_w
+    -- Line is center-aligned at x=960
+    local line_left = 960 - total_text_width / 2
+
+    local cursor_x = osd_x - line_left
+    if cursor_x < 0 then return line_idx, 1 end
+    if cursor_x >= total_text_width then return line_idx, #words end
+
+    -- Walk through words to find which one the cursor is on
+    local pos = 0
+    for i, w in ipairs(words) do
+        local word_end = pos + #w * char_w
+        if cursor_x < word_end then
+            return line_idx, i
+        end
+        pos = word_end + char_w -- add space
+    end
+    return line_idx, #words
+end
+
+local function dw_mouse_update_selection()
+    if not FSM.DW_MOUSE_DRAGGING then return end
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+
+    if line_idx and word_idx then
+        FSM.DW_CURSOR_LINE = line_idx
+        FSM.DW_CURSOR_WORD = word_idx
+    end
+
+    -- Auto-scroll when near edges (top/bottom ~15% of viewport)
+    local edge_zone = 1080 * 0.15
+    if osd_y < edge_zone then
+        -- Scroll up
+        if FSM.DW_VIEW_CENTER > 1 then
+            FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER - 1
+            if FSM.DW_CURSOR_LINE > 1 then
+                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
+                local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+                local words = build_word_list(text)
+                FSM.DW_CURSOR_WORD = math.min(FSM.DW_CURSOR_WORD, #words)
+                if FSM.DW_CURSOR_WORD < 1 then FSM.DW_CURSOR_WORD = 1 end
+            end
+        end
+    elseif osd_y > 1080 - edge_zone then
+        -- Scroll down
+        if FSM.DW_VIEW_CENTER < #subs then
+            FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
+            if FSM.DW_CURSOR_LINE < #subs then
+                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
+                local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+                local words = build_word_list(text)
+                FSM.DW_CURSOR_WORD = math.min(FSM.DW_CURSOR_WORD, #words)
+                if FSM.DW_CURSOR_WORD < 1 then FSM.DW_CURSOR_WORD = 1 end
+            end
+        end
+    end
+end
+
+local function cmd_dw_mouse_handler(tbl)
+    if tbl.event == "down" then
+        FSM.DW_FOLLOW_PLAYER = false
+
+        local osd_x, osd_y = dw_get_mouse_osd()
+        local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+
+        if line_idx and word_idx then
+            FSM.DW_CURSOR_LINE = line_idx
+            FSM.DW_CURSOR_WORD = word_idx
+            FSM.DW_ANCHOR_LINE = line_idx
+            FSM.DW_ANCHOR_WORD = word_idx
+            FSM.DW_MOUSE_DRAGGING = true
+
+            -- Start a repeating timer for auto-scroll + selection update during drag
+            if FSM.DW_MOUSE_SCROLL_TIMER then
+                FSM.DW_MOUSE_SCROLL_TIMER:kill()
+            end
+            FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_update_selection)
+        end
+    elseif tbl.event == "up" then
+        FSM.DW_MOUSE_DRAGGING = false
+        if FSM.DW_MOUSE_SCROLL_TIMER then
+            FSM.DW_MOUSE_SCROLL_TIMER:kill()
+            FSM.DW_MOUSE_SCROLL_TIMER = nil
+        end
+
+        -- If anchor equals cursor, clear selection (single click = just cursor)
+        if FSM.DW_ANCHOR_LINE == FSM.DW_CURSOR_LINE and FSM.DW_ANCHOR_WORD == FSM.DW_CURSOR_WORD then
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+        end
+    end
+end
+
 local function tick_dw(time_pos)
     local subs = Tracks.pri.subs
     if #subs == 0 then return end
@@ -679,6 +837,8 @@ local function manage_dw_bindings(enable)
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
         {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
+        -- Mouse selection
+        {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_handler, complex = true},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
@@ -707,14 +867,26 @@ local function manage_dw_bindings(enable)
     
     for _, k in ipairs(keys) do
         if enable then 
-            local settings = nil
-            if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
-               or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-               or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
-                settings = "repeatable"
+            if k.complex then
+                mp.add_forced_key_binding(k.key, k.name, k.fn, {complex = true})
+            else
+                local settings = nil
+                if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
+                   or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
+                   or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
+                    settings = "repeatable"
+                end
+                mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
             end
-            mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
         else mp.remove_key_binding(k.name) end
+    end
+    -- Clean up mouse state when disabling
+    if not enable then
+        FSM.DW_MOUSE_DRAGGING = false
+        if FSM.DW_MOUSE_SCROLL_TIMER then
+            FSM.DW_MOUSE_SCROLL_TIMER:kill()
+            FSM.DW_MOUSE_SCROLL_TIMER = nil
+        end
     end
     FSM.DW_KEY_OVERRIDE = enable
 end
