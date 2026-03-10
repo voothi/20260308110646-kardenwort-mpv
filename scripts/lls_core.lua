@@ -33,6 +33,10 @@ local Options = {
     copy_context_lines = 2,
     copy_word_limit = 3,
 
+    -- Toggle Positions
+    sec_pos_top = 10,
+    sec_pos_bottom = 90,
+
     -- System
     tick_rate = 0.05,
     osd_duration = 1.0
@@ -61,7 +65,7 @@ local FSM = {
     initial_pause_state = true,
     native_sub_vis = true,
     native_sec_sub_vis = true,
-    native_sec_sub_pos = 10
+    native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10)
 }
 
 local Tracks = {
@@ -536,13 +540,13 @@ local function cmd_cycle_sec_pos()
         return
     end
     if FSM.DRUM == "ON" then
-        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos == 10) and 90 or 10
-        show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos == 10) and "TOP" or "BOTTOM"))
+        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom or Options.sec_pos_top
+        show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
     else
-        local p = mp.get_property_number("secondary-sub-pos", 10)
-        local n = (p == 10) and 90 or 10
+        local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
+        local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", n)
-        show_osd("Secondary Sub Pos: " .. ((n == 10) and "TOP" or "BOTTOM"))
+        show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
     end
 end
 
