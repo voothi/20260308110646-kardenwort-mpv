@@ -22,7 +22,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 ## Table of Contents
 
-- [Core Philosophy](#core-philosophy)
+- [Project Goals](#project-goals)
 - [Distinctive Advantages](#distinctive-advantages)
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
 - [Intelligent Scripts](#intelligent-scripts)
@@ -38,9 +38,19 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 ---
 
-## Core Philosophy
+## Project Goals
 
-Traditional video players treat subtitles as a side-effect. This suite treats them as the **primary data source** for learning. Every setting—from pixel-perfect scaling to phrase-based pausing—is designed to help you focus on the language, not the player.
+This suite is engineered to be the ultimate environment for **Extensive Language Learning** and high-intensity immersion. While highly flexible for general media consumption, its primary mission is to transform video content into structured learning material.
+
+### Core Objectives:
+1.  **Dual-Track Mastery**: Native, high-performance support for dual subtitles in both `.srt` and `.ass` formats, allowing for simultaneous target and native language display without performance degradation.
+2.  **YouTube Auto-Subtitle Refinement**: Specifically optimized to handle the challenges of low-quality, unsynchronized auto-captions. The suite's [Drum Context Mode](#drum-context-mode) and [Smart Spacebar](#smart-spacebar) help recover the linguistic context often lost in poorly timed YouTube transcripts.
+3.  **Local Offline Workflow**: Designed for a "Download & Study" methodology. By working with local media and subtitle files, you maintain 100% control over your learning data and playback stability.
+4.  **Extensive Immersion**: Built to support the "Extensive" reading/listening approach, where the goal is to consume vast amounts of comprehensible input with minimal friction.
+
+### Ecosystem Integration
+For a complete offline workflow, we recommend using these companion tools to download, extract, and translate your study material:
+*   **Subtitle Processing**: [voothi/subtitles](https://github.com/voothi/20251228104300-subtitles/) — Tools for downloading media, captions, and generating high-quality translations.
 
 [Return to Top](#table-of-contents)
 
