@@ -51,8 +51,7 @@ local Options = {
     dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
     dw_text_color = "1A1A1A",     -- dark text
     dw_active_color = "800000",   -- navy in BGR
-    dw_highlight_color = "0000FF", -- red highlight in BGR
-    dw_scroll_return_sec = 3.0    -- seconds before auto-returning to center
+    dw_highlight_color = "0000FF" -- red highlight in BGR
 }
 options.read_options(Options, "lls")
 
@@ -87,9 +86,8 @@ local FSM = {
     DW_CURSOR_WORD = -1,       -- Word index in the current line
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
-    DW_SCROLL_OFFSET = 0,      -- Manual scroll offset (lines)
+    DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
-    DW_RETURN_TIMER = nil,     -- Timer to return scroll to zero
     DW_KEY_OVERRIDE = false    -- Are we overriding arrow keys?
 }
 
@@ -405,28 +403,29 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     return ass
 end
 
-local function draw_dw(subs, center_idx, time_pos)
+-- draw_dw: view_center = which line is in the center of the viewport
+--          active_idx = which line is currently playing (colored blue, may be off-screen)
+local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
     local ass = ""
     local win_lines = Options.dw_lines_visible
     local half_win = math.floor(win_lines / 2)
     
-    local effective_center = center_idx + FSM.DW_SCROLL_OFFSET
-    effective_center = math.max(1, math.min(#subs, effective_center))
+    view_center = math.max(1, math.min(#subs, view_center))
     
-    local start_idx = math.max(1, effective_center - half_win)
+    local start_idx = math.max(1, view_center - half_win)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
     
     -- Background: Opaque beige panel
-    local bg_alpha = Options.dw_bg_opacity -- e.g. "10"
-    local bg_color = Options.dw_bg_color   -- e.g. "A9C5D4"
+    local bg_alpha = Options.dw_bg_opacity
+    local bg_color = Options.dw_bg_color
     ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\alpha&H%s&}{\\c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
-    -- Selection points
+    -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    local has_selection = (al ~= -1 and cl ~= -1)
+    local has_selection = (al ~= -1 and aw ~= -1)
     local p1_l, p1_w, p2_l, p2_w
     if has_selection then
         if al < cl or (al == cl and aw <= cw) then
@@ -439,7 +438,7 @@ local function draw_dw(subs, center_idx, time_pos)
     -- Text Block
     local lines_ass = {}
     for i = start_idx, end_idx do
-        local is_active = (i == center_idx)
+        local is_active = (i == active_idx)
         local text = subs[i].text:gsub("\n", " ")
         local color = is_active and Options.dw_active_color or Options.dw_text_color
         local line_prefix = string.format("{\\c&H%s&}", color)
@@ -455,7 +454,6 @@ local function draw_dw(subs, center_idx, time_pos)
                 elseif i == p1_l then selected = (j >= p1_w)
                 elseif i == p2_l then selected = (j <= p2_w) end
             elseif i == cl and j == cw then
-                -- Single cursor highlight (red)
                 table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 goto next_word
             end
@@ -472,8 +470,7 @@ local function draw_dw(subs, center_idx, time_pos)
         table.insert(lines_ass, line_prefix .. line_content)
     end
     
-    -- Render the whole block centered
-    local block_text = table.concat(lines_ass, "\\N\\N") -- Double \N for extra spacing
+    local block_text = table.concat(lines_ass, "\\N\\N")
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q0}{\\fs%d}%s", 
         Options.dw_font_size, block_text)
     
@@ -484,16 +481,18 @@ local function tick_dw(time_pos)
     local subs = Tracks.pri.subs
     if #subs == 0 then return end
     
-    local idx = get_center_index(subs, time_pos)
-    if idx == -1 then return end
+    local active_idx = get_center_index(subs, time_pos)
+    if active_idx == -1 then return end
     
-    -- When following playback, keep cursor and viewport synced to active line
+    -- In follow mode: viewport and cursor track the active playback line
     if FSM.DW_FOLLOW_PLAYER then
-        FSM.DW_CURSOR_LINE = idx
-        FSM.DW_SCROLL_OFFSET = 0
+        FSM.DW_VIEW_CENTER = active_idx
+        FSM.DW_CURSOR_LINE = active_idx
     end
+    -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
+    -- active_idx just controls the blue highlight color (may be off-screen)
     
-    dw_osd.data = draw_dw(subs, idx, time_pos)
+    dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
     dw_osd:update()
 end
 
@@ -739,7 +738,7 @@ function cmd_toggle_drum_window()
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-        FSM.DW_SCROLL_OFFSET = 0
+        FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
         FSM.DW_FOLLOW_PLAYER = true
         
         manage_dw_bindings(true)
@@ -754,17 +753,18 @@ function cmd_toggle_drum_window()
 end
 
 function cmd_dw_scroll(dir)
-    FSM.DW_SCROLL_OFFSET = FSM.DW_SCROLL_OFFSET + dir
-    
-    if FSM.DW_RETURN_TIMER then FSM.DW_RETURN_TIMER:kill() end
-    FSM.DW_RETURN_TIMER = mp.add_timeout(Options.dw_scroll_return_sec, function()
-        FSM.DW_SCROLL_OFFSET = 0
-    end)
+    FSM.DW_FOLLOW_PLAYER = false
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
 end
 
 function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+    
+    -- Switch to manual/static mode
+    FSM.DW_FOLLOW_PLAYER = false
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
@@ -773,25 +773,17 @@ function cmd_dw_line_move(dir, shift)
     
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
     
-    -- Disable auto-follow on any manual line navigation
-    FSM.DW_FOLLOW_PLAYER = false
-    
-    -- Edge-scroll: keep cursor visible in the viewport
+    -- Edge-scroll: if cursor went outside the visible area, scroll the viewport
     local half = math.floor(Options.dw_lines_visible / 2)
-    -- The viewport currently shows lines around (active_idx + SCROLL_OFFSET)
-    -- We need to figure out if CURSOR_LINE is outside that range
-    -- Since we don't know active_idx here, adjust SCROLL_OFFSET to ensure cursor is visible
-    -- by nudging it when cursor would go off-screen
-    FSM.DW_SCROLL_OFFSET = FSM.DW_SCROLL_OFFSET + dir
+    local view_min = FSM.DW_VIEW_CENTER - half
+    local view_max = view_min + Options.dw_lines_visible - 1
     
-    -- Kill any auto-return timer since we're navigating manually
-    if FSM.DW_RETURN_TIMER then
-        FSM.DW_RETURN_TIMER:kill()
-        FSM.DW_RETURN_TIMER = nil
+    if FSM.DW_CURSOR_LINE < view_min or FSM.DW_CURSOR_LINE > view_max then
+        FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
     end
     
     if not shift then
-        FSM.DW_CURSOR_WORD = 1 -- Highlight first word
+        FSM.DW_CURSOR_WORD = 1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
@@ -802,6 +794,9 @@ end
 function cmd_dw_word_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+    
+    -- Switch to manual/static mode
+    FSM.DW_FOLLOW_PLAYER = false
     
     local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
     local words = build_word_list(text)
