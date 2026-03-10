@@ -1,3 +1,23 @@
+# Release Notes - v1.2.14 (Terminology & Goals Refinement)
+
+**Date**: 2026-03-10
+**Version**: v1.2.14
+**Request ZID**: 20260310145832
+**RFC**: [docs/rfcs/20260310145832-release-v1.2.14.md](docs/rfcs/20260310145832-release-v1.2.14.md)
+
+## Highlights
+
+### 🎯 **Language Acquisition Pivot**
+- **Terminology Standardization**: System-wide update to standardize on **"Language Acquisition"** and **"Immersion"** terminologies. This aligns the suite's identity with the philosophy of extensive, high-volume input.
+- **Refined Philosophy**: Updated the core mission statement to focus on the **convenient consumption** of Dual-Subtitle (DualSubs) material for learners, emphasizing the use of the player for immersion sessions.
+
+### 🧩 **Extensive Acquisition Goals**
+- **Dual-Subtitle Synergy**: Formalized the project's goal of mastering the display of original and translated tracks simultaneously.
+- **YouTube Context Protection**: Documented how the suite's unique features protect learners against context loss when consuming YouTube's auto-generated subtitle streams.
+- **Local Workflow Authority**: Clarified the suite's role as the final destination for offline immersion following material preparation with companion tools.
+
+---
+
 # Release Notes - v1.2.12 (Dual Subtitle Positional Control)
 
 **Date**: 2026-03-10
