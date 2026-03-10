@@ -35,7 +35,7 @@ local Options = {
 
     -- Toggle Positions
     sec_pos_top = 10,
-    sec_pos_bottom = 90,
+    sec_pos_bottom = 95,
 
     -- System
     tick_rate = 0.05,
