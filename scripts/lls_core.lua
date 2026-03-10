@@ -42,7 +42,17 @@ local Options = {
 
     -- System
     tick_rate = 0.05,
-    osd_duration = 1.0
+    osd_duration = 1.0,
+
+    -- Drum Window
+    dw_font_size = 30,
+    dw_lines_visible = 11,        -- how many lines visible in the window
+    dw_bg_color = "D4C5A9",       -- BGR hex (beige)
+    dw_bg_opacity = "DD",         -- background opacity (00-FF)
+    dw_text_color = "1A1A1A",     -- dark text
+    dw_active_color = "000080",   -- navy for current line
+    dw_highlight_color = "FF0000", -- blue highlight for selection
+    dw_scroll_return_sec = 3.0    -- seconds before auto-returning to center
 }
 options.read_options(Options, "lls")
 
@@ -69,7 +79,16 @@ local FSM = {
     initial_pause_state = true,
     native_sub_vis = true,
     native_sec_sub_vis = true,
-    native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10)
+    native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
+
+    -- Drum Window State
+    DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
+    DW_CURSOR_LINE = -1,       -- Current line focused by word nav
+    DW_CURSOR_WORD = -1,       -- Word index in the current line
+    DW_ANCHOR_WORD = -1,       -- Shift-anchor for word selection
+    DW_SCROLL_OFFSET = 0,      -- Manual scroll offset (lines)
+    DW_RETURN_TIMER = nil,     -- Timer to return scroll to zero
+    DW_KEY_OVERRIDE = false    -- Are we overriding arrow keys?
 }
 
 local Tracks = {
@@ -81,6 +100,10 @@ local Tracks = {
 local drum_osd = mp.create_osd_overlay("ass-events")
 drum_osd.res_x = 1920
 drum_osd.res_y = 1080
+
+local dw_osd = mp.create_osd_overlay("ass-events")
+dw_osd.res_x = 1920
+dw_osd.res_y = 1080
 
 -- =========================================================================
 -- PARSERS & UTILS
@@ -231,6 +254,14 @@ local function get_center_index(subs, time_pos)
     return #subs
 end
 
+local function build_word_list(text)
+    local words = {}
+    for w in text:gmatch("%S+") do
+        table.insert(words, w)
+    end
+    return words
+end
+
 -- =========================================================================
 -- FSM INTERNAL LOGIC
 -- =========================================================================
@@ -372,6 +403,73 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     return ass
 end
 
+local function draw_dw(subs, center_idx, time_pos)
+    if not subs or #subs == 0 then return "" end
+    
+    local ass = ""
+    local win_lines = Options.dw_lines_visible
+    local half_win = math.floor(win_lines / 2)
+    
+    local effective_center = center_idx + FSM.DW_SCROLL_OFFSET
+    effective_center = math.max(1, math.min(#subs, effective_center))
+    
+    local start_idx = math.max(1, effective_center - half_win)
+    local end_idx = math.min(#subs, start_idx + win_lines - 1)
+    
+    -- Background: Opaque beige panel
+    -- Adjust rectangle to cover most of the screen or a central strip
+    local bg_alpha = Options.dw_bg_opacity
+    local bg_color = Options.dw_bg_color
+    ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\alpha&H%s&}{\\c&H%s&}{\\p1}m 300 100 l 1620 100 1620 980 300 980{\\p0}\n", bg_alpha, bg_color)
+    
+    local y_start = 200
+    local line_height = Options.dw_font_size * 1.5
+    
+    for i = start_idx, end_idx do
+        local is_active = (i == center_idx)
+        local is_nav = (i == FSM.DW_CURSOR_LINE)
+        local y_pos = y_start + (i - start_idx) * line_height
+        
+        local text = subs[i].text:gsub("\n", " ")
+        local line_ass = ""
+        
+        if is_nav and FSM.DW_CURSOR_WORD > 0 then
+            local words = build_word_list(text)
+            local formatted_words = {}
+            local anchor = FSM.DW_ANCHOR_WORD > 0 and FSM.DW_ANCHOR_WORD or FSM.DW_CURSOR_WORD
+            local sel_start = math.min(anchor, FSM.DW_CURSOR_WORD)
+            local sel_end = math.max(anchor, FSM.DW_CURSOR_WORD)
+            
+            for j, w in ipairs(words) do
+                if j >= sel_start and j <= sel_end then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, Options.dw_text_color))
+                else
+                    table.insert(formatted_words, w)
+                end
+            end
+            line_ass = table.concat(formatted_words, " ")
+        else
+            local color = is_active and Options.dw_active_color or Options.dw_text_color
+            line_ass = string.format("{\\c&H%s&}%s", color, text)
+        end
+        
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an5}{\\fs%d}%s\n", y_pos, Options.dw_font_size, line_ass)
+    end
+    
+    return ass
+end
+
+local function tick_dw(time_pos)
+    local subs = Tracks.pri.subs
+    if #subs == 0 then return end
+    
+    local idx = get_center_index(subs, time_pos)
+    if idx == -1 then return end
+    
+    dw_osd.data = draw_dw(subs, idx, time_pos)
+    dw_osd:update()
+end
+
 local function tick_drum(time_pos)
     if not FSM.native_sub_vis then
         drum_osd.data = ""
@@ -450,6 +548,11 @@ local function master_tick()
     if FSM.DRUM == "ON" then
         tick_drum(time_pos)
     end
+
+    -- Execute Drum Window
+    if FSM.DRUM_WINDOW == "DOCKED" then
+        tick_dw(time_pos)
+    end
 end
 mp.add_periodic_timer(Options.tick_rate, master_tick)
 
@@ -518,6 +621,140 @@ local function cmd_toggle_drum()
         drum_osd.data = ""
         drum_osd:update()
         show_osd("Drum Mode: OFF")
+    end
+end
+
+        show_osd("Drum Mode: OFF")
+    end
+end
+
+local function manage_dw_bindings(enable)
+    local keys = {
+        {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
+        {key = "RIGHT", name = "dw-word-right", fn = function() cmd_dw_word_move(1, false) end},
+        {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
+        {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
+        {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
+        {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
+        {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
+        {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
+         -- RU Layout
+        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
+        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
+        {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end}
+    }
+    
+    for _, k in ipairs(keys) do
+        if enable then mp.add_forced_key_binding(k.key, k.name, k.fn)
+        else mp.remove_key_binding(k.name) end
+    end
+    FSM.DW_KEY_OVERRIDE = enable
+end
+
+function cmd_toggle_drum_window()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Drum Window: No subtitles loaded")
+        return
+    end
+
+    if FSM.DRUM_WINDOW == "OFF" then
+        FSM.DRUM_WINDOW = "DOCKED"
+        
+        -- Boot subs for memory if haven't already
+        if Tracks.pri.path and #Tracks.pri.subs == 0 then
+            Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+        end
+        
+        local time_pos = mp.get_property_number("time-pos")
+        FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
+        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_ANCHOR_WORD = -1
+        FSM.DW_SCROLL_OFFSET = 0
+        
+        manage_dw_bindings(true)
+        show_osd("Drum Window: OPEN")
+    else
+        FSM.DRUM_WINDOW = "OFF"
+        manage_dw_bindings(false)
+        dw_osd.data = ""
+        dw_osd:update()
+        show_osd("Drum Window: CLOSED")
+    end
+end
+
+function cmd_dw_scroll(dir)
+    FSM.DW_SCROLL_OFFSET = FSM.DW_SCROLL_OFFSET + dir
+    
+    if FSM.DW_RETURN_TIMER then FSM.DW_RETURN_TIMER:kill() end
+    FSM.DW_RETURN_TIMER = mp.add_timeout(Options.dw_scroll_return_sec, function()
+        FSM.DW_SCROLL_OFFSET = 0
+    end)
+end
+
+function cmd_dw_word_move(dir, shift)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+    local words = build_word_list(text)
+    
+    if FSM.DW_CURSOR_WORD == -1 then
+        FSM.DW_CURSOR_WORD = (dir > 0) and 1 or #words
+    else
+        FSM.DW_CURSOR_WORD = FSM.DW_CURSOR_WORD + dir
+    end
+    
+    -- Handle wrap-around lines
+    if FSM.DW_CURSOR_WORD < 1 then
+        if FSM.DW_CURSOR_LINE > 1 then
+            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
+            local next_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+            local next_words = build_word_list(next_text)
+            FSM.DW_CURSOR_WORD = #next_words
+        else
+            FSM.DW_CURSOR_WORD = 1
+        end
+    elseif FSM.DW_CURSOR_WORD > #words then
+        if FSM.DW_CURSOR_LINE < #subs then
+            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
+            FSM.DW_CURSOR_WORD = 1
+        else
+            FSM.DW_CURSOR_WORD = #words
+        end
+    end
+    
+    if not shift then
+        FSM.DW_ANCHOR_WORD = -1
+    elseif FSM.DW_ANCHOR_WORD == -1 then
+        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD - dir -- anchor where we started
+    end
+end
+
+function cmd_dw_copy()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local line_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+    local final_text = ""
+    
+    if FSM.DW_CURSOR_WORD > 0 then
+        local words = build_word_list(line_text)
+        local anchor = FSM.DW_ANCHOR_WORD > 0 and FSM.DW_ANCHOR_WORD or FSM.DW_CURSOR_WORD
+        local s = math.min(anchor, FSM.DW_CURSOR_WORD)
+        local e = math.max(anchor, FSM.DW_CURSOR_WORD)
+        local selected = {}
+        for i = s, e do table.insert(selected, words[i]) end
+        final_text = table.concat(selected, " ")
+    else
+        final_text = line_text
+    end
+    
+    if final_text ~= "" then
+        final_text = final_text:gsub("{[^}]+}", "")
+        local safe_txt = final_text:gsub("'", "''")
+        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value '%s'", safe_txt)
+        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
+        show_osd("DW Copied: " .. final_text:sub(1, 30) .. (#final_text > 30 and "..." or ""))
     end
 end
 
@@ -762,10 +999,11 @@ mp.observe_property("secondary-sid", "number", update_media_state)
 mp.observe_property("track-list", "native", update_media_state)
 
 mp.register_event("shutdown", function()
-    if FSM.DRUM == "ON" then
+    if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
+        manage_dw_bindings(false)
     end
 end)
 
@@ -781,3 +1019,4 @@ mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
 mp.add_key_binding(nil, "copy-subtitle", cmd_copy_sub)
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
+mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
