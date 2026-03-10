@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.14-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.14) 
+[![Version](https://img.shields.io/badge/version-v1.2.16-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.16) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -89,19 +89,19 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
 - **Toggle**: `P` (English) or `З` (Russian).
 
-### Drum Context Mode
-Displays previous and future subtitles around the active line, providing crucial context for fragmented sentences.
-- **Rolling Context**: Shows historical and upcoming dialogue lines simultaneously.
-- **Styled OSD**: Status messages appear in the **Left-Center** (`{\an4}`) using a small, non-intrusive 20pt font.
-- **ASS Protection**: Automatically blocks itself on complex `.ass` tracks to prevent rendering visual artifacts or breaking karaoke animations.
+### Static Reading Mode (Drum Context)
+A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
+- **Static Viewport**: Once you begin navigating via arrows, the viewport "freezes" synchronously, providing a stable, flicker-free environment for reading and selection.
+- **Edge-Aware Edge-Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, similar to a modern text editor.
+- **Follow Mode**: Automatically centers on the active playback line when the window is opened or when seeking with `a`/`d`.
 - **Toggle**: `C` (English) or `С` (Russian).
 
-### Intelligent Context Copy
-A powerful clipboard extraction tool that automatically strips complex `.ass` formatting and bypasses heavily interleaved foreign-language translation tracks.
-- **Context Expansion**: Request surrounding sentences to export perfectly chronological paragraphs. Requires external subtitle files (Toggle: `X` / `Ч`).
+### Intelligent Range Selection & Copy
+A sophisticated extraction tool that supports substring and multi-line range selection.
+- **Range Selection**: Hold **`Shift`** with navigation keys to select exact word ranges or multiple consecutive subtitle lines.
+- **Substring Copy**: `Ctrl+C` aggregates only the highlighted words into a clean, format-free clipboard export.
 - **Symmetrical Traversal**: Intelligently leaps across dual-track layouts to retrieve pure target-language lines.
-- **Copy Modes**: Toggle between Target text and Translation chunks. Available for ASS or Dual tracks (Toggle: `Z` / `Я`).
-- **Standard Copy**: `Ctrl+C` (English/Russian layouts supported).
+- **Context expansion**: Request surrounding sentences to export chronological paragraphs (Toggle: `X` / `Ч`). Requires separate subtitle files.
 
 ### Smart Spacebar
 A custom key handler that distinguishes between quick taps and long holds.
@@ -130,8 +130,9 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `S` | `Ы` | Toggle Subtitle Visibility (Styled OSD) |
 | `J` | `О` | Cycle Secondary Subtitle Track |
 | `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
-| `C` | `С` | Toggle **Drum Mode** (Multi-line Context) |
-| `Ctrl+C` | `Ctrl+С` | **Copy Subtitle** (Export clean text to clipboard) |
+| `C` | `С` | Toggle **Static Reading Mode** (Drum Context) |
+| `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection |
+| `Ctrl+C` | `Ctrl+С` | **Copy Range** (Exact highlighted words to clipboard) |
 | `X` | `Ч` | Toggle **Context Copy** (Include surrounding lines) |
 | `Z` | `Я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
 | `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
@@ -172,8 +173,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~155 Commits (v1.2.14)
-- **Intensity Profile**: 6.1 Commits/Hour 
+- **Current Maturity**: ~200 Commits (v1.2.16)
+- **Intensity Profile**: 7.2 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

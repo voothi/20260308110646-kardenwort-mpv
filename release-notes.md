@@ -1,3 +1,29 @@
+# Release Notes - v1.2.16 (Drum Window Evolution & Static Reading Mode)
+
+**Date**: 2026-03-11
+**Version**: v1.2.16
+**Request ZIDs**: 20260311014935
+**RFC**: [docs/rfcs/20260311014935-release-v1.2.16.md](docs/rfcs/20260311014935-release-v1.2.16.md)
+
+## Highlights
+
+### 🥁 **Drum Window Evolution**
+- **Static Reading Mode**: Transformed the Drum Window into a robust "Static Reading Mode". The viewport now freezes when you navigate or scroll, providing a flicker-free environment for intensive reading during immersion.
+- **Viewport Decoupling**: Completely decoupled playback tracking from manual navigation. The player's active position continues to be highlighted in Navy, but it won't move the window's view under your cursor.
+- **Edge-Aware Scrolling**: Implemented text-editor style viewport control. The window only scrolls when you move the cursor to the top or bottom edges of the visible area.
+
+### 📋 **Advanced Multi-line Selection**
+- **Range Selection**: Hold **`Shift`** plus navigation keys to select and highlight text across multiple subtitle rows.
+- **Substring Copy**: Refined the `Ctrl+C` behavior to support multi-line and substring extraction. Copying now aggregates all highlighted words into a clean, format-free clipboard export.
+- **Word-Level Navigation**: Improved the red word-pointer's precision. It now automatically resets to the first word of the active subtitle line when navigating between lines or opening the window.
+
+### ⌨️ **Enhanced Control Symmetrics**
+- **Independent Seek/Highlight**: Seeking (`a`/`d`) now clears selection and re-centers the viewport, ensuring that highlighting and browsing do not interfere with playback navigation.
+- **Dual-Layout Selection**: Full hotkey mapping for both English and Russian keyboards (`Shift + Arrows`).
+- **Layout Cleanup**: Integrated `\q0` wrapping for long subtitles and tightened line spacing to maximize context without visual overlap.
+
+---
+
 # Release Notes - v1.2.14 (Terminology & Goals Refinement)
 
 **Date**: 2026-03-10
