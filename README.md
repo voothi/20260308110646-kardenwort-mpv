@@ -1,9 +1,9 @@
-# Kardenwort MPV - Language Learning Suite
+# Kardenwort MPV - Language Acquisition Suite
 
 [![Version](https://img.shields.io/badge/version-v1.2.12-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.12) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
-A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language learning. powered by a unified **Finite State Machine** architecture.
+A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition. powered by a unified **Finite State Machine** architecture.
 
 > **Attribution & Source**
 >
@@ -12,7 +12,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 > *   **Repository**: [Source Code](https://github.com/voothi/20260308110646-kardenwort-mpv)
 
 > [!IMPORTANT]
-> **Optimized Study Environment**
+> **Optimized Acquisition Environment**
 >
 > **Validated Setup:**
 > *   **Platform**: Windows 11 (Supports Android via configuration port).
@@ -30,7 +30,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Drum Context Mode](#drum-context-mode)
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling-fixed_fontlua)
-- [Study-Centric Keybindings](#study-centric-keybindings)
+- [Immersion-Centric Keybindings](#immersion-centric-keybindings)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Installation](#installation)
 - [Development Analytics](#development-analytics)
@@ -46,14 +46,14 @@ This project is specifically designed for learners who work with **Dual Subtitle
 
 ### Core Objectives:
 1.  **Dual-Subtitle Optimization**: Engineered to handle the visual and technical challenges of displaying two subtitle tracks (Original & Translated) in `.srt` or `.ass` formats simultaneously. 
-2.  **Convenient Content Consumption**: Focuses on the *playback phase* of learning. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar)—is built to remove friction during long, high-volume immersion sessions.
+2.  **Convenient Content Consumption**: Focuses on the *playback phase* of intensive acquisition. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar)—is built to remove friction during long, high-volume immersion sessions.
 3.  **YouTube Auto-Subtitle Handling**: Provides specialized tools like [Drum Context Mode](#drum-context-mode) to maintain linguistic context when dealing with poorly synchronized or lower-quality YouTube-extracted captions.
 4.  **Local Offline Focus**: Aimed at a robust local-first workflow. Learners can download media and subtitles, prepare them using external tools, and then consume them offline with maximum stability and control.
 
 ### Workflow Integration
-While this project focuses on the **consumption** of material, it is designed to be the final step in a broader study workflow:
+While this project focuses on the **consumption** of material, it is designed to be the final step in a broader acquisition workflow:
 - **Preparation**: For downloading and translating your material, we recommend companion tools like [voothi/subtitles](https://github.com/voothi/20251228104300-subtitles/).
-- **Consumption**: Use this suite to engage with the prepared Dual-Subtitle content for extensive immersion.
+- **Consumption**: Use this suite to engage with the prepared Dual-Subtitle content for extensive acquisition.
 
 [Return to Top](#table-of-contents)
 
@@ -64,7 +64,7 @@ This suite solves problems that standard video players and generic scripts ignor
 2.  **Karaoke-Ready Autopause**: Unlike standard autopause scripts that stutter on `.ass` word-by-word highlights, this suite precisely scans for formatting tags to stop *only* when a phrase is complete.
 3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visilibity) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
 4.  **Ass Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
-5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense study sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
+5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense immersion sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
 6.  **Positional Flexibility**: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
 
 [Return to Top](#table-of-contents)
@@ -108,13 +108,13 @@ A custom key handler that distinguishes between quick taps and long holds.
 - **Tap to Toggle**: Quickly tapping `SPACE` (< 200ms) functions as a standard Play/Pause toggle.
 
 ### Smart Font Scaling (`fixed_font.lua`)
-Ensures that your study material remains perfectly readable regardless of window size, while protecting complex layouts.
+Ensures that your immersion material remains perfectly readable regardless of window size, while protecting complex layouts.
 *   **For `.srt` Files**: Dynamically adjusts subtitle scaling so text doesn't become tiny on large monitors or giant in small windows.
 *   **For `.ass` Files**: Intelligently detects the Advanced SubStation format and bypasses scaling, allowing the file's internal positioning mathematics to render flawlessly.
 
 [Return to Top](#table-of-contents)
 
-## Study-Centric Keybindings
+## Immersion-Centric Keybindings
 
 Optimized `input.conf` for rapid review, featuring **dual-layout support** (English/Cyrillic).
 
@@ -143,7 +143,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 
 ## Configuration Guide (mpv.conf)
 
-Key settings to protect your learning environment:
+Key settings to protect your acquisition environment:
 
 - **`sub-align-y=bottom`**: Standardizes the layout for drum mode.
 - **`secondary-sub-pos=10`**: Places the secondary tracks at the top of the frame.
@@ -151,7 +151,7 @@ Key settings to protect your learning environment:
 - **`sub-ass=yes`**: Enables high-quality subtitle rendering for native karaoke support.
 - **`osc=no`**: Removes visual clutter from the screen.
 - **`sub-scale-with-window=no`**: Critical for maintaining the layout of complex `.ass` files.
-- **`save-position-on-quit=yes`**: Pick up your study session exactly where you left off.
+- **`save-position-on-quit=yes`**: Pick up your immersion session exactly where you left off.
 - **`script-opts-append=lls-sec_pos_bottom=90`**: Configures the script's toggle position directly from `mpv.conf`.
 
 [Return to Top](#table-of-contents)

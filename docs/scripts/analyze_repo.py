@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Repository Analytics Script for mpv Language Learning Suite.
+Repository Analytics Script for mpv Language Acquisition Suite.
 Usage: git log --pretty=format:"%ad" --date=iso-strict | python docs/analyze_repo.py
 """
 

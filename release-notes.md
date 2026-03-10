@@ -188,12 +188,12 @@
 
 ### ⏸️ **Dual-Track Aware Autopause ('P' / 'K')**
 - Redesigned `autopause.lua` to intelligently scan both primary and secondary tracks.
-- Word-by-word pausing now works even if your "learning" track is set to the secondary position.
+- Word-by-word pausing now works even if your "acquisition" track is set to the secondary position.
 - Refined skip-logic to prevent "double-pausing" between languages.
 
 ### 🎨 **Minimalist Styled OSD**
 - All status messages (Drum, Autopause, Position, Visibility) now use a unified **Left-Center** style.
-- Reduced font size to **20pt** and duration to **500ms** to eliminate study distractions.
+- Reduced font size to **20pt** and duration to **500ms** to eliminate immersion distractions.
 - Added custom OSD for **OSC Visibility (TAB)** and **Subtitle Positions (y)**.
 
 ## Key Fixes & Improvements
