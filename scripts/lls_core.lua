@@ -663,10 +663,16 @@ local function manage_dw_bindings(enable)
         {key = "a", name = "dw-seek-back", fn = function() 
             mp.command("sub-seek -1")
             FSM.DW_FOLLOW_PLAYER = true
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_WORD = 1
         end},
         {key = "d", name = "dw-seek-fwd", fn = function() 
             mp.command("sub-seek 1")
             FSM.DW_FOLLOW_PLAYER = true
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_WORD = 1
         end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
         {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
@@ -686,10 +692,16 @@ local function manage_dw_bindings(enable)
         {key = "ф", name = "dw-seek-back-ru", fn = function() 
             mp.command("sub-seek -1")
             FSM.DW_FOLLOW_PLAYER = true
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_WORD = 1
         end},
         {key = "в", name = "dw-seek-fwd-ru", fn = function() 
             mp.command("sub-seek 1")
             FSM.DW_FOLLOW_PLAYER = true
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_WORD = 1
         end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end}
     }
