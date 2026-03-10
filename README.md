@@ -27,9 +27,9 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
 - [Intelligent Scripts](#intelligent-scripts)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
-  - [Drum Context Mode](#drum-context-mode)
+  - [Static Reading Mode](#static-reading-mode)
+  - [Intelligent Range Selection & Copy](#intelligent-range-selection)
   - [Smart Spacebar](#smart-spacebar)
-  - [Intelligent Context Copy](#intelligent-context-copy)
   - [Smart Font Scaling](#smart-font-scaling)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
@@ -89,18 +89,20 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
 - **Toggle**: `P` (English) or `З` (Russian).
 
-### Static Reading Mode (Drum Context)
+### <span id="static-reading-mode"></span>Static Reading Mode (Drum Context)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
 - **Static Viewport**: Once you begin navigating via arrows, the viewport "freezes" synchronously, providing a stable, flicker-free environment for reading and selection.
-- **Edge-Aware Edge-Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, similar to a modern text editor.
+- **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, similar to a modern text editor.
 - **Follow Mode**: Automatically centers on the active playback line when the window is opened or when seeking with `a`/`d`.
+- **Styled OSD**: Status messages and text are rendered in a clean, non-intrusive **Left-Center** style (`{\an4}`).
 - **Toggle**: `C` (English) or `С` (Russian).
 
-### Intelligent Range Selection & Copy
+### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
 A sophisticated extraction tool that supports substring and multi-line range selection.
 - **Range Selection**: Hold **`Shift`** with navigation keys to select exact word ranges or multiple consecutive subtitle lines.
 - **Substring Copy**: `Ctrl+C` aggregates only the highlighted words into a clean, format-free clipboard export.
 - **Symmetrical Traversal**: Intelligently leaps across dual-track layouts to retrieve pure target-language lines.
+- **Copy Modes**: Toggle between Target text and Translation chunks (Toggle: `Z` / `Я`).
 - **Context expansion**: Request surrounding sentences to export chronological paragraphs (Toggle: `X` / `Ч`). Requires separate subtitle files.
 
 ### Smart Spacebar
