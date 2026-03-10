@@ -82,10 +82,10 @@ Displays previous and future subtitles around the active line, providing crucial
 
 ### Intelligent Context Copy
 A powerful clipboard extraction tool that automatically strips complex `.ass` formatting and bypasses heavily interleaved foreign-language translation tracks.
-- **Context Expansion**: Request surrounding sentences to export perfectly chronological paragraphs instead of just the active phrase.
+- **Context Expansion**: Request surrounding sentences to export perfectly chronological paragraphs. Requires external subtitle files (Toggle: `X` / `Ч`).
 - **Symmetrical Traversal**: Intelligently leaps across dual-track layouts to retrieve pure target-language lines.
-- **Copy Modes**: Easily toggle between extracting Foreign text or Native translation chunks.
-- **Copy**: `Ctrl+C`. **Toggle Context**: `Ctrl+X`. **Cycle Mode**: `Ctrl+Z`.
+- **Copy Modes**: Toggle between Target text and Translation chunks. Available for ASS or Dual tracks (Toggle: `Z` / `Я`).
+- **Standard Copy**: `Ctrl+C` (English/Russian layouts supported).
 
 ### Smart Spacebar (Hold-to-Play)
 A custom key handler that distinguishes between quick taps and long holds.
@@ -111,11 +111,11 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `A` / `D` | `Ф` / `В` | Jump to **Previous / Next** phrase |
 | `S` | `Ы` | Toggle Subtitle Visibility (Styled OSD) |
 | `J` | `О` | Cycle Secondary Subtitle Track |
-| `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**) |
+| `Y` | `Н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
 | `C` | `С` | Toggle **Drum Mode** (Multi-line Context) |
 | `Ctrl+C` | `Ctrl+С` | **Copy Subtitle** (Export clean text to clipboard) |
-| `Ctrl+X` | `Ctrl+Ч` | Toggle **Context Copy** (Include surrounding lines) |
-| `Ctrl+Z` | `Ctrl+Я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
+| `X` | `Ч` | Toggle **Context Copy** (Include surrounding lines) |
+| `Z` | `Я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
 | `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
 | `P` | `З` | Toggle **Autopause** (ON/OFF) |
 | `K` | `Л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
@@ -142,8 +142,9 @@ Key settings to protect your learning environment:
 
 1.  **Locate Config**: Open `%APPDATA%\mpv\` (Windows).
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
-3.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-4.  **Restart**: Relaunch mpv to apply the optimized v1.2.0 settings.
+3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
+4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.2.8 settings.
 
 [Return to Top](#table-of-contents)
 
