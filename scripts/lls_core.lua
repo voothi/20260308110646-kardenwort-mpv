@@ -666,7 +666,13 @@ local function manage_dw_bindings(enable)
     }
     
     for _, k in ipairs(keys) do
-        if enable then mp.add_forced_key_binding(k.key, k.name, k.fn)
+        if enable then 
+            local settings = nil
+            if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
+               or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
+                settings = "repeatable"
+            end
+            mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
         else mp.remove_key_binding(k.name) end
     end
     FSM.DW_KEY_OVERRIDE = enable
