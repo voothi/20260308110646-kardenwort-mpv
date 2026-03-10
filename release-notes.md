@@ -15,6 +15,10 @@
 - **Overlap Prevention**: Implemented a mandatory 5% "Safety Gap" between primary and secondary subtitles at the bottom of the screen. This resolves the regression where subtitles would "stick together."
 - **Threshold-Based Toggling**: Replaced strict coordinate checks with robust threshold logic. The toggle now intelligently adapts to custom positions (e.g., if you set your 'Top' to 15% instead of 10%).
 
+### ⌨️ **System Key Robustness**
+- **Dual-Layout Quit**: Key `q` (and `Q` for save-position) now works in both English and Russian (`й`/`Й`) layouts.
+- **Essential Controls**: Added native Russian layout mapping for Mute (`ь`), Playback Speed (`х`/`ъ`), and Frame Stepping (`ю`/`б`).
+
 ---
 
 # Release Notes - v1.2.9 (Project Analytics & Automation)

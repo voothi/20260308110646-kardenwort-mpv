@@ -108,6 +108,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 |---|---|---|
 | `RIGHT` | `RIGHT` | Exact **2-second** seek forward |
 | `LEFT` | `LEFT` | Exact **2-second** seek backward |
+| `Q` | `Й` | **Quit** (and save position) |
 | `SPACE` | `SPACE` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
 | `A` / `D` | `Ф` / `В` | Jump to **Previous / Next** phrase |
 | `S` | `Ы` | Toggle Subtitle Visibility (Styled OSD) |
@@ -155,7 +156,7 @@ Key settings to protect your learning environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~134 Commits (v1.2.9)
+- **Current Maturity**: ~144 Commits (v1.2.10)
 - **Intensity Profile**: 5.6 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
