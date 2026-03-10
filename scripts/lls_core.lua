@@ -721,6 +721,8 @@ function cmd_toggle_drum_window()
         local time_pos = mp.get_property_number("time-pos")
         FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
         FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+        local half = math.floor(Options.dw_lines_visible / 2)
+        FSM.DW_VIEW_CENTER = math.max(1 + half, math.min(#Tracks.pri.subs - half, FSM.DW_CURSOR_LINE))
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_ANCHOR_LINE = -1
@@ -760,7 +762,7 @@ function cmd_dw_line_move(dir, shift)
     
     if FSM.DW_CURSOR_LINE < view_min or FSM.DW_CURSOR_LINE > view_max then
         FSM.DW_FOLLOW_PLAYER = false
-        FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+        FSM.DW_VIEW_CENTER = math.max(1 + half, math.min(#subs - half, FSM.DW_VIEW_CENTER + dir))
     end
 
     if not shift then
