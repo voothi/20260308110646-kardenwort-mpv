@@ -48,7 +48,7 @@ This project is specifically designed for learners who work with **Dual Subtitle
 ### Core Objectives:
 1.  **Dual-Subtitle Optimization**: Engineered to handle the visual and technical challenges of displaying two subtitle tracks (Original & Translated) in `.srt` or `.ass` formats simultaneously. 
 2.  **Convenient Content Consumption**: Focuses on the *playback phase* of intensive acquisition. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar)—is built to remove friction during long, high-volume immersion sessions.
-3.  **YouTube Auto-Subtitle Handling**: Provides specialized tools like [Drum Context Mode](#drum-context-mode) to maintain linguistic context when dealing with poorly synchronized or lower-quality YouTube-extracted captions.
+3.  **YouTube Auto-Subtitle Handling**: Provides specialized tools like [Static Reading Mode](#static-reading-mode) to maintain linguistic context when dealing with poorly synchronized or lower-quality YouTube-extracted captions.
 4.  **Local Offline Focus**: Aimed at a robust local-first workflow. Learners can download media and subtitles, prepare them using external tools, and then consume them offline with maximum stability and control.
 
 ### Workflow Integration
@@ -63,11 +63,12 @@ While this project focuses on the **consumption** of material, it is designed to
 This suite solves problems that standard video players and generic scripts ignore:
 1.  **Dual-Layout Keybindings**: Native support for both English and Cyrillic keyboard layouts. Your hotkeys work flawlessly without needing to constantly switch your system input language.
 2.  **Karaoke-Ready Autopause**: Unlike standard autopause scripts that stutter on `.ass` word-by-word highlights, this suite precisely scans for formatting tags to stop *only* when a phrase is complete.
-3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visilibity) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
-4.  **Ass Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
+3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visibility) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
+4.  **ASS Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
 5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense immersion sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
-6.  **Static Reading Mode**: Converts the standard scrolling subtitle "drum" into a frozen, text-editor style viewport. You can navigate, select multiple lines, and edge-scroll without the text flickering or moving out from under you.
+6.  **[Static Reading Mode](#static-reading-mode)**: Converts the standard scrolling subtitle "drum" into a frozen, text-editor style viewport. Navigate, mouse-select, double-click to seek, and edge-scroll without the text flickering or moving under your cursor.
 7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
+8.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
 
 [Return to Top](#table-of-contents)
 
@@ -177,7 +178,7 @@ Key settings to protect your acquisition environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.2.10 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.2.20 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -186,7 +187,7 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~200 Commits (v1.2.16)
+- **Current Maturity**: ~220 Commits (v1.2.20)
 - **Intensity Profile**: 7.2 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
