@@ -529,16 +529,18 @@ local function dw_hit_test(osd_x, osd_y)
         -- Proportional estimation
         local w = 0
         for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-            if c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then
+            if c == " " then
+                w = w + (fs * 0.35) -- Space is usually quite thin
+            elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then
                 w = w + (fs * 0.25) -- narrow
             elseif c:match("[mwMW%@]") then
-                w = w + (fs * 0.75) -- extra wide
+                w = w + (fs * 0.70) -- extra wide
             elseif c:match("[a-zA-Z0-9]") then
-                w = w + (fs * 0.5)  -- normal english
+                w = w + (fs * 0.45)  -- normal english (slightly thinner than 0.5)
             elseif #c > 1 then
-                w = w + (fs * 0.55) -- cyrillic/unicode tends to be slightly wider
+                w = w + (fs * 0.50) -- cyrillic/unicode
             else
-                w = w + (fs * 0.5)  -- default
+                w = w + (fs * 0.45)  -- default
             end
         end
         return w
