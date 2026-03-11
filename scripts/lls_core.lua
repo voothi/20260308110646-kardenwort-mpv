@@ -635,34 +635,37 @@ local function dw_mouse_update_selection()
     if line_idx and word_idx then
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = word_idx
+        dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, get_center_index(subs, mp.get_property_number("time-pos") or 0))
+        dw_osd:update()
     end
+end
 
-    -- Auto-scroll when near edges (top/bottom ~15% of viewport)
+local function dw_mouse_auto_scroll()
+    if not FSM.DW_MOUSE_DRAGGING then return end
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local _, osd_y = dw_get_mouse_osd()
+
     local edge_zone = 1080 * 0.15
+    local scrolled = false
     if osd_y < edge_zone then
-        -- Scroll up
         if FSM.DW_VIEW_CENTER > 1 then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER - 1
-            if FSM.DW_CURSOR_LINE > 1 then
-                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
-                local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-                local words = build_word_list(text)
-                FSM.DW_CURSOR_WORD = math.min(FSM.DW_CURSOR_WORD, #words)
-                if FSM.DW_CURSOR_WORD < 1 then FSM.DW_CURSOR_WORD = 1 end
-            end
+            if FSM.DW_CURSOR_LINE > 1 then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1 end
+            scrolled = true
         end
     elseif osd_y > 1080 - edge_zone then
-        -- Scroll down
         if FSM.DW_VIEW_CENTER < #subs then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
-            if FSM.DW_CURSOR_LINE < #subs then
-                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
-                local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-                local words = build_word_list(text)
-                FSM.DW_CURSOR_WORD = math.min(FSM.DW_CURSOR_WORD, #words)
-                if FSM.DW_CURSOR_WORD < 1 then FSM.DW_CURSOR_WORD = 1 end
-            end
+            if FSM.DW_CURSOR_LINE < #subs then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1 end
+            scrolled = true
         end
+    end
+    
+    if scrolled then
+        -- Force re-evaluate mouse position on new scroll anchor
+        dw_mouse_update_selection()
     end
 end
 
@@ -693,15 +696,19 @@ local function make_mouse_handler(is_shift)
                 end
                 
                 FSM.DW_MOUSE_DRAGGING = true
+                
+                -- Fast-tracking on mouse move
+                mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
 
-                -- Start a repeating timer for auto-scroll + selection update during drag
+                -- Start a repeating timer for auto-scroll near edges
                 if FSM.DW_MOUSE_SCROLL_TIMER then
                     FSM.DW_MOUSE_SCROLL_TIMER:kill()
                 end
-                FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_update_selection)
+                FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
+            mp.remove_key_binding("dw-mouse-drag")
             if FSM.DW_MOUSE_SCROLL_TIMER then
                 FSM.DW_MOUSE_SCROLL_TIMER:kill()
                 FSM.DW_MOUSE_SCROLL_TIMER = nil
@@ -968,6 +975,7 @@ local function manage_dw_bindings(enable)
     -- Clean up mouse state when disabling
     if not enable then
         FSM.DW_MOUSE_DRAGGING = false
+        mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
