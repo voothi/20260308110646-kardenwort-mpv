@@ -508,59 +508,104 @@ local function dw_hit_test(osd_x, osd_y)
     local view_center = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER))
     local start_idx = math.max(1, view_center - half_win)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
-    local num_visible = end_idx - start_idx + 1
 
     local fs = Options.dw_font_size
-    -- Each subtitle line takes ~font_size pixels for text.
-    -- Between lines we have \N\N which adds roughly 0.6*font_size gap.
-    local line_height = fs * 1.6
-    local total_block_height = num_visible * line_height
+    local char_w = fs * 0.5
+    local max_text_w = 1860       -- approx max width before ASS \q0 wraps
+    local vline_h = fs * 1.0      -- height per visual text line
+    local sub_gap = fs * 0.6      -- extra gap from \N\N between subtitles
+    -- NOTE: total per single-line subtitle = vline_h + sub_gap = fs * 1.6
 
-    -- The text block is anchored at (960, 540) with \an5 (center)
-    local block_top = 540 - total_block_height / 2
-    local block_bottom = 540 + total_block_height / 2
+    -- Build layout: wrap each visible subtitle into visual lines
+    local layout = {}
+    local total_height = 0
 
-    if osd_y < block_top or osd_y > block_bottom then return nil, nil end
+    for i = start_idx, end_idx do
+        local text = subs[i].text:gsub("\n", " ")
+        local words = build_word_list(text)
+        if #words == 0 then words = {""} end
 
-    -- Which visible line?
-    local visible_line = math.floor((osd_y - block_top) / line_height) + 1
-    visible_line = math.max(1, math.min(num_visible, visible_line))
-    local line_idx = start_idx + visible_line - 1
+        -- Greedy word wrapping (approximates ASS \q0)
+        local vlines = {}
+        local cur_indices = {}
+        local cur_w = 0
 
-    if line_idx < 1 or line_idx > #subs then return nil, nil end
-
-    -- Now find which word the X coordinate falls on
-    local text = subs[line_idx].text:gsub("\n", " ")
-    local words = build_word_list(text)
-    if #words == 0 then return line_idx, 1 end
-
-    -- Estimate average character width (proportional font approximation)
-    local char_w = fs * 0.52
-    -- Build cumulative character positions for each word
-    -- Total text length in characters (including single spaces between words)
-    local total_chars = 0
-    for i, w in ipairs(words) do
-        total_chars = total_chars + #w
-        if i < #words then total_chars = total_chars + 1 end -- space
-    end
-    local total_text_width = total_chars * char_w
-    -- Line is center-aligned at x=960
-    local line_left = 960 - total_text_width / 2
-
-    local cursor_x = osd_x - line_left
-    if cursor_x < 0 then return line_idx, 1 end
-    if cursor_x >= total_text_width then return line_idx, #words end
-
-    -- Walk through words to find which one the cursor is on
-    local pos = 0
-    for i, w in ipairs(words) do
-        local word_end = pos + #w * char_w
-        if cursor_x < word_end then
-            return line_idx, i
+        for j, w in ipairs(words) do
+            local ww = #w * char_w
+            local space = (#cur_indices > 0) and char_w or 0
+            if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+                table.insert(vlines, cur_indices)
+                cur_indices = {j}
+                cur_w = ww
+            else
+                table.insert(cur_indices, j)
+                cur_w = cur_w + space + ww
+            end
         end
-        pos = word_end + char_w -- add space
+        if #cur_indices > 0 then
+            table.insert(vlines, cur_indices)
+        end
+        if #vlines == 0 then vlines = {{1}} end
+
+        local entry_h = #vlines * vline_h
+        table.insert(layout, {
+            sub_idx = i,
+            words = words,
+            vlines = vlines,
+            height = entry_h
+        })
+        total_height = total_height + entry_h
+        if i < end_idx then
+            total_height = total_height + sub_gap
+        end
     end
-    return line_idx, #words
+
+    -- Block is centered at (960, 540) with \an5
+    local block_top = 540 - total_height / 2
+    if osd_y < block_top or osd_y > block_top + total_height then
+        return nil, nil
+    end
+
+    -- Walk layout to find which subtitle and visual sub-line
+    local y_pos = block_top
+    for _, entry in ipairs(layout) do
+        local entry_bottom = y_pos + entry.height
+        if osd_y < entry_bottom then
+            -- Mouse is within this subtitle entry
+            local rel_y = osd_y - y_pos
+            local vl_num = math.floor(rel_y / vline_h) + 1
+            vl_num = math.max(1, math.min(#entry.vlines, vl_num))
+
+            local vl_indices = entry.vlines[vl_num]
+
+            -- Calculate width of this visual line
+            local vl_chars = 0
+            for k, wi in ipairs(vl_indices) do
+                vl_chars = vl_chars + #entry.words[wi]
+                if k < #vl_indices then vl_chars = vl_chars + 1 end
+            end
+            local vl_width = vl_chars * char_w
+            local vl_left = 960 - vl_width / 2  -- each visual line is centered
+
+            local cx = osd_x - vl_left
+            if cx < 0 then return entry.sub_idx, vl_indices[1] end
+            if cx >= vl_width then return entry.sub_idx, vl_indices[#vl_indices] end
+
+            -- Walk words on this visual line to find the target
+            local pos = 0
+            for k, wi in ipairs(vl_indices) do
+                local ww = #entry.words[wi] * char_w
+                if cx < pos + ww then
+                    return entry.sub_idx, wi
+                end
+                pos = pos + ww + char_w
+            end
+            return entry.sub_idx, vl_indices[#vl_indices]
+        end
+        y_pos = entry_bottom + sub_gap
+    end
+
+    return nil, nil
 end
 
 local function dw_mouse_update_selection()
