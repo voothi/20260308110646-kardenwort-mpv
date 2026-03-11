@@ -752,6 +752,26 @@ end
 local cmd_dw_mouse_handler = make_mouse_handler(false)
 local cmd_dw_mouse_shift_handler = make_mouse_handler(true)
 
+local function cmd_dw_double_click()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+    if not line_idx then return end
+
+    local sub = subs[line_idx]
+    if sub and sub.start_time then
+        mp.set_property_number("time-pos", sub.start_time)
+        FSM.DW_CURSOR_LINE = line_idx
+        FSM.DW_CURSOR_WORD = word_idx or 1
+        FSM.DW_VIEW_CENTER = line_idx
+        FSM.DW_FOLLOW_PLAYER = true
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+    end
+end
+
 local function tick_dw(time_pos)
     local subs = Tracks.pri.subs
     if #subs == 0 then return end
@@ -961,6 +981,7 @@ local function manage_dw_bindings(enable)
         -- Mouse selection
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_handler, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
+        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
