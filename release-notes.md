@@ -1,3 +1,26 @@
+# Release Notes - v1.2.18 (Advanced Mouse Selection)
+
+**Date**: 2026-03-11
+**Version**: v1.2.18
+**Request ZID**: 20260311023622
+**RFC**: [docs/rfcs/20260311023622-release-v1.2.18.md](docs/rfcs/20260311023622-release-v1.2.18.md)
+
+## Highlights
+
+### 🖱️ **Advanced Mouse Selection (Drum Window)**
+- **Hardware-Accelerated Dragging**: Selecting text now tracks your cursor perfectly at your screen's refresh rate (+60fps) using native `mouse_move` bindings, instead of stuttering on a background timer.
+- **Double-Click to Seek**: Double-clicking on any word inside the Drum Window will instantly seek video playback to that exact subtitle line, re-center your viewport, and re-engage "Follow" mode.
+- **Point-to-Point Extension**: First click a word to set your anchor, then move your mouse to the end of your desired sentence and `Shift+Click`. The entire block will be cleanly highlighted.
+
+### 🛡️ **UI & Native Conflict Resolution**
+- **Window Dragging Fix**: Mpv's native "drag video to move window" functionality previously intercepted selection attempts. The script now temporarily disables OS window dragging while the Drum Window is open, ensuring your first click-and-drag always registers instantly.
+- **Subtitle Overlap Shield**: Opening the Drum Window now aggressively snapshots and hides all underlying native subtitle tracks (and Drum Mode overlays), guaranteeing you'll never see garbled overlapping text again. Everything is restored perfectly when the window closes.
+
+### ⌨️ **Synchronized Scrolling**
+- **VSCode-Style Edge Snap**: By popular demand, `Ctrl+UP` and `Ctrl+DOWN` now scroll the viewport (just like the mouse wheel). If you scroll the cursor completely off-screen, pressing a standard arrow key will instantly snap the viewport to bring the cursor back onto the edge of your screen.
+
+---
+
 # Release Notes - v1.2.16 (Drum Window Evolution & Static Reading Mode)
 
 **Date**: 2026-03-11

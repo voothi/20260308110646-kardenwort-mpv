@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.16-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.16) 
+[![Version](https://img.shields.io/badge/version-v1.2.18-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.18) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -92,10 +92,11 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 
 ### <span id="static-reading-mode"></span>Static Reading Mode (Drum Window)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
+- **Advanced Mouse Selection**: Experience text-editor smooth interactions. Click and drag (`LMB`) to instantly highlight ranges, or `Shift+Click` to extend. Hardware-accelerated for 60fps tracking.
+- **Actionable Text**: Double-Click any subtitle word to instantly seek video playback to that exact phrase and re-center the viewport.
 - **Static Viewport**: Once you begin navigating via arrows, the viewport "freezes" synchronously, providing a stable, flicker-free environment for reading and selection.
-- **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, similar to a modern text editor.
-- **Follow Mode**: Automatically centers on the active playback line when the window is opened or when seeking with `a`/`d`.
-- **Styled OSD**: Status messages and text are rendered in a clean, non-intrusive **Left-Center** style (`{\an4}`).
+- **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, or via standard `Mouse Wheel`/`Ctrl+Arrows`.
+- **Conflict Free**: Opening the window auto-hides overlapping subtitle tracks and native OS window-drag behaviors to guarantee distraction-free reading.
 - **Toggle**: `W` (English) or `Ц` (Russian).
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
@@ -139,7 +140,10 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
 | `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
-| `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (in Reading Mode) |
+| `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
+| `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
+| `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
+| `Ctrl + UP/DN` | `Ctrl + В/Н` | Viewport Scroll (Matches Mouse Wheel) |
 | `Ctrl+c` | `Ctrl+с` | **Copy Range** (Exact highlighted words to clipboard) |
 | `x` | `ч` | Toggle **Context Copy** (Include surrounding lines) |
 | `z` | `я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
