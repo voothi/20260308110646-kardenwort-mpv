@@ -1,3 +1,23 @@
+# Release Notes - v1.2.20 (Regression Audit & Documentation)
+
+**Date**: 2026-03-11
+**Version**: v1.2.20
+**Request ZID**: 20260311044229
+**RFC**: [docs/rfcs/20260311044229-release-v1.2.20.md](docs/rfcs/20260311044229-release-v1.2.20.md)
+
+## Highlights
+
+### ✅ **Comprehensive Regression Audit**
+- **Hunk-by-Hunk Verification**: Full review of the +398/-46 line diff (10 hunks, 18 commits) between the pre-feature baseline and the final Mouse Selection commit confirmed zero regressions.
+- **All Existing Functions Verified Intact**: `cmd_dw_copy`, `cmd_dw_word_move`, `cmd_dw_line_move`, `cmd_dw_scroll`, `cmd_toggle_drum`, `draw_drum`, `tick_dw`, `tick_autopause`, `master_tick`, `cmd_smart_space`, `cmd_toggle_sub_vis`, `cmd_cycle_sec_pos` — all untouched.
+- **Selection Logic Preserved**: The `draw_dw` refactoring was verified to maintain functionally identical selection highlighting logic.
+
+### 📝 **Release Documentation**
+- **RFC Packaged**: Full technical write-up of the layout engine, hit-testing math, OS conflict resolution, and hardware-accelerated dragging decisions.
+- **README Updated**: Version badge bumped, Static Reading Mode section expanded with Mouse Selection and Double-Click Seek features, keybindings table updated with `LMB` and `Ctrl+Arrows`.
+
+---
+
 # Release Notes - v1.2.18 (Advanced Mouse Selection)
 
 **Date**: 2026-03-11
