@@ -480,7 +480,7 @@ local function dw_build_layout(subs, view_center)
         if i < end_idx then total_height = total_height + sub_gap end
     end
 
-    return layout, total_height, block_top
+    return layout, total_height
 end
 
 -- draw_dw: view_center = which line is in the center of the viewport
