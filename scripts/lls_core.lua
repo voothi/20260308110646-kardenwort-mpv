@@ -675,8 +675,13 @@ local function make_mouse_handler(is_shift)
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
 
             if line_idx and word_idx then
-                if is_shift and FSM.DW_ANCHOR_LINE ~= -1 then
-                    -- Extending selection: keep anchor, just move cursor
+                if is_shift then
+                    if FSM.DW_ANCHOR_LINE == -1 then
+                        -- Start shift selection from the current cursor position
+                        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+                        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
+                    end
+                    -- Extend selection to the clicked word
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
                 else
