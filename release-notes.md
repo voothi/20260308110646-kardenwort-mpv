@@ -11,6 +11,7 @@
 - **Hunk-by-Hunk Verification**: Full review of the +398/-46 line diff (10 hunks, 18 commits) between the pre-feature baseline and the final Mouse Selection commit confirmed zero regressions.
 - **All Existing Functions Verified Intact**: `cmd_dw_copy`, `cmd_dw_word_move`, `cmd_dw_line_move`, `cmd_dw_scroll`, `cmd_toggle_drum`, `draw_drum`, `tick_dw`, `tick_autopause`, `master_tick`, `cmd_smart_space`, `cmd_toggle_sub_vis`, `cmd_cycle_sec_pos` — all untouched.
 - **Selection Logic Preserved**: The `draw_dw` refactoring was verified to maintain functionally identical selection highlighting logic.
+- 📋 **Full audit table**: [Hunk-by-Hunk Verdict](docs/rfcs/20260311044229-release-v1.2.20.md#hunk-by-hunk-verdict)
 
 ### 📝 **Release Documentation**
 - **RFC Packaged**: Full technical write-up of the layout engine, hit-testing math, OS conflict resolution, and hardware-accelerated dragging decisions.
