@@ -484,10 +484,15 @@ end
 -- =========================================================================
 
 local function dw_get_mouse_osd()
-    local mx = mp.get_property_number("mouse-pos/x", 0)
-    local my = mp.get_property_number("mouse-pos/y", 0)
-    local ow = mp.get_property_number("osd-width", 1920)
-    local oh = mp.get_property_number("osd-height", 1080)
+    local mouse = mp.get_property_native("mouse-pos")
+    if not mouse then return 960, 540 end
+    local mx = mouse.x or 0
+    local my = mouse.y or 0
+    local osd = mp.get_property_native("osd-dimensions")
+    local ow = osd and osd.w or 1920
+    local oh = osd and osd.h or 1080
+    if ow == 0 then ow = 1920 end
+    if oh == 0 then oh = 1080 end
     -- Scale from actual window pixels to OSD resolution (1920x1080)
     local osd_x = (mx / ow) * 1920
     local osd_y = (my / oh) * 1080
