@@ -1,3 +1,19 @@
+# Release Notes - v1.2.22 (Track Scrolling Shortcuts)
+
+**Date**: 2026-03-11
+**Version**: v1.2.22
+**Request ZID**: 20260311101023
+**RFC**: [docs/rfcs/20260311101023-release-v1.2.22.md](docs/rfcs/20260311101023-release-v1.2.22.md)
+
+## Highlights
+
+### ⌨️ **Universal Track Scrolling Shortcuts**
+- **Symmetrical 2-Second Seeks**: Added `Shift + A` / `A` and `Shift + D` / `D` to precisely mimic the default 2-second forward and backward track scroll natively mapped to `LEFT` and `RIGHT` arrow keys.
+- **Mode-Agnostic Access**: In Drum Window `w` (Static Reading Mode), arrow keys are hijacked to handle text viewport scrolling. Because `A`/`D` maps correctly via Shift, you can now freely scrub back and forth through video tracks by 2-second intervals without hiding the window or relying on standard arrow keys.
+- **Native Dual Layout Support**: These keys are intrinsically mapped to both English (`A`/`D`) and Russian (`Ф`/`В`) layouts, enabling swift usage without manually toggling language keyboards. 
+
+---
+
 # Release Notes - v1.2.20 (Regression Audit & Documentation)
 
 **Date**: 2026-03-11

@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.20-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.20) 
+[![Version](https://img.shields.io/badge/version-v1.2.22-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.22) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -127,6 +127,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | Key (EN) | Key (RU) | Action |
 |---|---|---|
 | `RIGHT` / `LEFT` | `RIGHT` / `LEFT` | Exact **2-second** seek forward / backward |
+| `A` / `D` | `Ф` / `В` | Exact **2-second** seek forward / backward (Window Mode / Global) |
 | `a` / `d` | `ф` / `в` | **Seek** to previous / next subtitle line |
 | `q` / `Q` | `й` / `Й` | **Quit** / Quit and save position |
 | `SPACE` | `SPACE` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
@@ -178,7 +179,7 @@ Key settings to protect your acquisition environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.2.20 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.2.22 settings.
 
 [Return to Top](#table-of-contents)
 
