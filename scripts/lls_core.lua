@@ -586,13 +586,24 @@ local function dw_hit_test(osd_x, osd_y)
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
-    if osd_y < block_top or osd_y > block_top + total_height then return nil, nil end
+
+    -- Clamp vertically to the first/last word if outside the entire block
+    if osd_y <= block_top then
+        local first = layout[1]
+        return first.sub_idx, first.vlines[1][1]
+    end
+    if osd_y >= block_top + total_height then
+        local last = layout[#layout]
+        local last_vl = last.vlines[#last.vlines]
+        return last.sub_idx, last_vl[#last_vl]
+    end
 
     local y_pos = block_top
     for _, entry in ipairs(layout) do
         local entry_bottom = y_pos + entry.height
-        if osd_y < entry_bottom then
-            local rel_y = osd_y - y_pos
+        -- If osd_y is within the entry OR in the gap immediately below it, snap it to this entry
+        if osd_y < entry_bottom + sub_gap then
+            local rel_y = math.max(0, math.min(osd_y - y_pos, entry.height - 0.001))
             local vl_num = math.floor(rel_y / vline_h) + 1
             vl_num = math.max(1, math.min(#entry.vlines, vl_num))
 
@@ -610,18 +621,33 @@ local function dw_hit_test(osd_x, osd_y)
             if cx < 0 then return entry.sub_idx, vl_indices[1] end
             if cx >= vl_width then return entry.sub_idx, vl_indices[#vl_indices] end
 
+            -- Build word center positions for snap-to-nearest logic
+            local centers = {}
             local pos = 0
             for k, wi in ipairs(vl_indices) do
                 local ww = dw_get_str_width(entry.words[wi])
-                if cx < pos + ww then return entry.sub_idx, wi end
+                centers[k] = { idx = wi, center = pos + ww / 2 }
                 pos = pos + ww + space_w
             end
-            return entry.sub_idx, vl_indices[#vl_indices]
+            -- Find the word whose center is closest to the cursor
+            local best_k = 1
+            local best_dist = math.abs(cx - centers[1].center)
+            for k = 2, #centers do
+                local dist = math.abs(cx - centers[k].center)
+                if dist < best_dist then
+                    best_dist = dist
+                    best_k = k
+                end
+            end
+            return entry.sub_idx, centers[best_k].idx
         end
         y_pos = entry_bottom + sub_gap
     end
 
-    return nil, nil
+    -- Fallback safety, should never be reached due to the >= check at the top
+    local last = layout[#layout]
+    local last_vl = last.vlines[#last.vlines]
+    return last.sub_idx, last_vl[#last_vl]
 end
 
 local function dw_mouse_update_selection()
