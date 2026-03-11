@@ -666,40 +666,53 @@ local function dw_mouse_update_selection()
     end
 end
 
-local function cmd_dw_mouse_handler(tbl)
-    if tbl.event == "down" then
-        FSM.DW_FOLLOW_PLAYER = false
+local function make_mouse_handler(is_shift)
+    return function(tbl)
+        if tbl.event == "down" then
+            FSM.DW_FOLLOW_PLAYER = false
 
-        local osd_x, osd_y = dw_get_mouse_osd()
-        local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
 
-        if line_idx and word_idx then
-            FSM.DW_CURSOR_LINE = line_idx
-            FSM.DW_CURSOR_WORD = word_idx
-            FSM.DW_ANCHOR_LINE = line_idx
-            FSM.DW_ANCHOR_WORD = word_idx
-            FSM.DW_MOUSE_DRAGGING = true
+            if line_idx and word_idx then
+                if is_shift and FSM.DW_ANCHOR_LINE ~= -1 then
+                    -- Extending selection: keep anchor, just move cursor
+                    FSM.DW_CURSOR_LINE = line_idx
+                    FSM.DW_CURSOR_WORD = word_idx
+                else
+                    -- Normal click: set both anchor and cursor
+                    FSM.DW_CURSOR_LINE = line_idx
+                    FSM.DW_CURSOR_WORD = word_idx
+                    FSM.DW_ANCHOR_LINE = line_idx
+                    FSM.DW_ANCHOR_WORD = word_idx
+                end
+                
+                FSM.DW_MOUSE_DRAGGING = true
 
-            -- Start a repeating timer for auto-scroll + selection update during drag
+                -- Start a repeating timer for auto-scroll + selection update during drag
+                if FSM.DW_MOUSE_SCROLL_TIMER then
+                    FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                end
+                FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_update_selection)
+            end
+        elseif tbl.event == "up" then
+            FSM.DW_MOUSE_DRAGGING = false
             if FSM.DW_MOUSE_SCROLL_TIMER then
                 FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                FSM.DW_MOUSE_SCROLL_TIMER = nil
             end
-            FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_update_selection)
-        end
-    elseif tbl.event == "up" then
-        FSM.DW_MOUSE_DRAGGING = false
-        if FSM.DW_MOUSE_SCROLL_TIMER then
-            FSM.DW_MOUSE_SCROLL_TIMER:kill()
-            FSM.DW_MOUSE_SCROLL_TIMER = nil
-        end
 
-        -- If anchor equals cursor, clear selection (single click = just cursor)
-        if FSM.DW_ANCHOR_LINE == FSM.DW_CURSOR_LINE and FSM.DW_ANCHOR_WORD == FSM.DW_CURSOR_WORD then
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
+            -- If anchor equals cursor and we weren't shift-clicking, clear selection (single click = just cursor)
+            if not is_shift and FSM.DW_ANCHOR_LINE == FSM.DW_CURSOR_LINE and FSM.DW_ANCHOR_WORD == FSM.DW_CURSOR_WORD then
+                FSM.DW_ANCHOR_LINE = -1
+                FSM.DW_ANCHOR_WORD = -1
+            end
         end
     end
 end
+
+local cmd_dw_mouse_handler = make_mouse_handler(false)
+local cmd_dw_mouse_shift_handler = make_mouse_handler(true)
 
 local function tick_dw(time_pos)
     local subs = Tracks.pri.subs
@@ -905,6 +918,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_handler, complex = true},
+        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
