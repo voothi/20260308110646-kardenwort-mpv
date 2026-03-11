@@ -998,7 +998,7 @@ local function manage_dw_bindings(enable)
             end
         else mp.remove_key_binding(k.name) end
     end
-    -- Clean up mouse state when disabling
+    -- Clean up mouse and window state
     if not enable then
         FSM.DW_MOUSE_DRAGGING = false
         mp.remove_key_binding("dw-mouse-drag")
@@ -1006,6 +1006,12 @@ local function manage_dw_bindings(enable)
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
         end
+        if FSM.DW_NATIVE_WINDOW_DRAGGING ~= nil then
+            mp.set_property_bool("window-dragging", FSM.DW_NATIVE_WINDOW_DRAGGING)
+        end
+    else
+        FSM.DW_NATIVE_WINDOW_DRAGGING = mp.get_property_bool("window-dragging", true)
+        mp.set_property_bool("window-dragging", false)
     end
     FSM.DW_KEY_OVERRIDE = enable
 end
