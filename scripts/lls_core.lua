@@ -488,15 +488,48 @@ local function dw_get_mouse_osd()
     if not mouse then return 960, 540 end
     local mx = mouse.x or 0
     local my = mouse.y or 0
-    local osd = mp.get_property_native("osd-dimensions")
-    local ow = osd and osd.w or 1920
-    local oh = osd and osd.h or 1080
-    if ow == 0 then ow = 1920 end
-    if oh == 0 then oh = 1080 end
-    -- Scale from actual window pixels to OSD resolution (1920x1080)
-    local osd_x = (mx / ow) * 1920
-    local osd_y = (my / oh) * 1080
+    -- mp.get_osd_size() returns actual screen pixel dimensions
+    local ow, oh = mp.get_osd_size()
+    if not ow or ow == 0 then ow = 1920 end
+    if not oh or oh == 0 then oh = 1080 end
+    -- Scale from window pixels to overlay coordinates
+    local osd_x = mx * (dw_osd.res_x / ow)
+    local osd_y = my * (dw_osd.res_y / oh)
     return osd_x, osd_y
+end
+
+-- Per-character width estimation for proportional fonts (Arial-like)
+local function dw_char_width(byte, fs)
+    -- Narrow: i l 1 ! | . , : ; ' "
+    if byte == 105 or byte == 108 or byte == 49 or byte == 33 or byte == 124
+       or byte == 46 or byte == 44 or byte == 58 or byte == 59
+       or byte == 39 or byte == 34 then return fs * 0.30
+    -- Semi-narrow: f j t r ( )
+    elseif byte == 102 or byte == 106 or byte == 116 or byte == 114
+       or byte == 40 or byte == 41 then return fs * 0.38
+    -- Wide lowercase: m w
+    elseif byte == 109 or byte == 119 then return fs * 0.85
+    -- Wide uppercase: M W
+    elseif byte == 77 or byte == 87 then return fs * 0.90
+    -- Space
+    elseif byte == 32 then return fs * 0.28
+    -- Other uppercase A-Z
+    elseif byte >= 65 and byte <= 90 then return fs * 0.68
+    -- Other lowercase a-z
+    elseif byte >= 97 and byte <= 122 then return fs * 0.55
+    -- Digits 0-9
+    elseif byte >= 48 and byte <= 57 then return fs * 0.55
+    -- Multibyte / other
+    else return fs * 0.55
+    end
+end
+
+local function dw_text_width(text, fs)
+    local w = 0
+    for i = 1, #text do
+        w = w + dw_char_width(string.byte(text, i), fs)
+    end
+    return w
 end
 
 local function dw_hit_test(osd_x, osd_y)
@@ -511,54 +544,43 @@ local function dw_hit_test(osd_x, osd_y)
     local num_visible = end_idx - start_idx + 1
 
     local fs = Options.dw_font_size
-    -- Each subtitle line takes ~font_size pixels for text.
-    -- Between lines we have \N\N which adds roughly 0.6*font_size gap.
     local line_height = fs * 1.6
     local total_block_height = num_visible * line_height
 
-    -- The text block is anchored at (960, 540) with \an5 (center)
     local block_top = 540 - total_block_height / 2
     local block_bottom = 540 + total_block_height / 2
 
     if osd_y < block_top or osd_y > block_bottom then return nil, nil end
 
-    -- Which visible line?
     local visible_line = math.floor((osd_y - block_top) / line_height) + 1
     visible_line = math.max(1, math.min(num_visible, visible_line))
     local line_idx = start_idx + visible_line - 1
 
     if line_idx < 1 or line_idx > #subs then return nil, nil end
 
-    -- Now find which word the X coordinate falls on
     local text = subs[line_idx].text:gsub("\n", " ")
     local words = build_word_list(text)
     if #words == 0 then return line_idx, 1 end
 
-    -- Estimate average character width (proportional font approximation)
-    local char_w = fs * 0.52
-    -- Build cumulative character positions for each word
-    -- Total text length in characters (including single spaces between words)
-    local total_chars = 0
-    for i, w in ipairs(words) do
-        total_chars = total_chars + #w
-        if i < #words then total_chars = total_chars + 1 end -- space
-    end
-    local total_text_width = total_chars * char_w
-    -- Line is center-aligned at x=960
-    local line_left = 960 - total_text_width / 2
+    -- Compute total line width using per-character estimation
+    local full_line = table.concat(words, " ")
+    local total_text_width = dw_text_width(full_line, fs)
+    local cx = dw_osd.res_x / 2  -- center X (960)
+    local line_left = cx - total_text_width / 2
 
     local cursor_x = osd_x - line_left
     if cursor_x < 0 then return line_idx, 1 end
     if cursor_x >= total_text_width then return line_idx, #words end
 
-    -- Walk through words to find which one the cursor is on
+    -- Walk through words with per-word estimated width
     local pos = 0
+    local space_w = dw_char_width(32, fs)
     for i, w in ipairs(words) do
-        local word_end = pos + #w * char_w
-        if cursor_x < word_end then
+        local word_w = dw_text_width(w, fs)
+        if cursor_x < pos + word_w then
             return line_idx, i
         end
-        pos = word_end + char_w -- add space
+        pos = pos + word_w + space_w
     end
     return line_idx, #words
 end
