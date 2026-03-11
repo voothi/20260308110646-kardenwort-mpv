@@ -407,19 +407,89 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     return ass
 end
 
+-- Helper to estimate the width of a proportional string
+local function dw_get_str_width(str)
+    local char_w = Options.dw_font_size * Options.dw_char_width
+    if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
+        local len = 0
+        for _ in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do len = len + 1 end
+        return len * char_w
+    end
+    
+    local fs = Options.dw_font_size
+    local w = 0
+    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        if c == " " then w = w + (fs * 0.35)
+        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.25)
+        elseif c:match("[mwMW%@]") then w = w + (fs * 0.70)
+        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.45)
+        elseif #c > 1 then w = w + (fs * 0.50)
+        else w = w + (fs * 0.45) end
+    end
+    return w
+end
+
+-- Unified layout engine: wraps subtitle words into visual lines
+local function dw_build_layout(subs, view_center)
+    local win_lines = Options.dw_lines_visible
+    local half_win = math.floor(win_lines / 2)
+    view_center = math.max(1, math.min(#subs, view_center))
+    local start_idx = math.max(1, view_center - half_win)
+    local end_idx = math.min(#subs, start_idx + win_lines - 1)
+
+    local vline_h = Options.dw_font_size * 1.0
+    local sub_gap = Options.dw_font_size * 0.6
+    local max_text_w = 1860
+    local space_w = dw_get_str_width(" ")
+
+    local layout = {}
+    local total_height = 0
+
+    for i = start_idx, end_idx do
+        local text = subs[i].text:gsub("\n", " ")
+        local words = build_word_list(text)
+        if #words == 0 then words = {""} end
+
+        local vlines = {}
+        local cur_indices = {}
+        local cur_w = 0
+
+        for j, w in ipairs(words) do
+            local ww = dw_get_str_width(w)
+            local space = (#cur_indices > 0) and space_w or 0
+            if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+                table.insert(vlines, cur_indices)
+                cur_indices = {j}
+                cur_w = ww
+            else
+                table.insert(cur_indices, j)
+                cur_w = cur_w + space + ww
+            end
+        end
+        if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+        if #vlines == 0 then vlines = {{1}} end
+
+        local entry_h = #vlines * vline_h
+        table.insert(layout, {
+            sub_idx = i,
+            words = words,
+            vlines = vlines,
+            height = entry_h
+        })
+        total_height = total_height + entry_h
+        if i < end_idx then total_height = total_height + sub_gap end
+    end
+
+    return layout, total_height, block_top
+end
+
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
     local ass = ""
-    local win_lines = Options.dw_lines_visible
-    local half_win = math.floor(win_lines / 2)
-    
-    view_center = math.max(1, math.min(#subs, view_center))
-    
-    local start_idx = math.max(1, view_center - half_win)
-    local end_idx = math.min(#subs, start_idx + win_lines - 1)
+    local layout, _ = dw_build_layout(subs, view_center)
     
     -- Background: Opaque beige panel
     local bg_alpha = Options.dw_bg_opacity
@@ -439,43 +509,47 @@ local function draw_dw(subs, view_center, active_idx)
         end
     end
 
-    -- Text Block
+    -- Text Block mapping
     local lines_ass = {}
-    for i = start_idx, end_idx do
+    for _, entry in ipairs(layout) do
+        local i = entry.sub_idx
         local is_active = (i == active_idx)
-        local text = subs[i].text:gsub("\n", " ")
         local color = is_active and Options.dw_active_color or Options.dw_text_color
         local line_prefix = string.format("{\\fn%s}{\\c&H%s&}", Options.dw_font_name, color)
         
-        local words = build_word_list(text)
-        local formatted_words = {}
-        
-        for j, w in ipairs(words) do
-            local selected = false
-            if has_selection then
-                if i > p1_l and i < p2_l then selected = true
-                elseif i == p1_l and i == p2_l then selected = (j >= p1_w and j <= p2_w)
-                elseif i == p1_l then selected = (j >= p1_w)
-                elseif i == p2_l then selected = (j <= p2_w) end
-            elseif i == cl and j == cw then
-                table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                goto next_word
+        local entry_ass_vlines = {}
+        for _, vl_indices in ipairs(entry.vlines) do
+            local formatted_words = {}
+            for _, j in ipairs(vl_indices) do
+                local w = entry.words[j]
+                local selected = false
+                if has_selection then
+                    if i > p1_l and i < p2_l then selected = true
+                    elseif i == p1_l and i == p2_l then selected = (j >= p1_w and j <= p2_w)
+                    elseif i == p1_l then selected = (j >= p1_w)
+                    elseif i == p2_l then selected = (j <= p2_w) end
+                elseif i == cl and j == cw then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+                    goto next_word
+                end
+                
+                if selected then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+                else
+                    table.insert(formatted_words, w)
+                end
+                ::next_word::
             end
-            
-            if selected then
-                table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-            else
-                table.insert(formatted_words, w)
-            end
-            ::next_word::
+            table.insert(entry_ass_vlines, table.concat(formatted_words, " "))
         end
-        
-        local line_content = #formatted_words > 0 and table.concat(formatted_words, " ") or text
-        table.insert(lines_ass, line_prefix .. line_content)
+        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
+        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
+    -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q0}{\\fs%d}%s", 
+    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\alpha&H00&}{\\q2}{\\fs%d}%s", 
         Options.dw_font_size, block_text)
     
     return ass
@@ -505,86 +579,11 @@ local function dw_hit_test(osd_x, osd_y)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return nil, nil end
 
-    local win_lines = Options.dw_lines_visible
-    local half_win = math.floor(win_lines / 2)
-    local view_center = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER))
-    local start_idx = math.max(1, view_center - half_win)
-    local end_idx = math.min(#subs, start_idx + win_lines - 1)
+    local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local fs = Options.dw_font_size
-    local char_w = fs * Options.dw_char_width
-    local max_text_w = 1860
-    local vline_h = fs * 1.0
-    local sub_gap = fs * 0.6
-
-    -- Helper to estimate the width of a proportional string
-    local function get_str_width(str)
-        if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
-            -- For monospace, fallback to exact char counting (UTF-8 aware)
-            local len = 0
-            for _ in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do len = len + 1 end
-            return len * char_w
-        end
-        
-        -- Proportional estimation
-        local w = 0
-        for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-            if c == " " then
-                w = w + (fs * 0.35) -- Space is usually quite thin
-            elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then
-                w = w + (fs * 0.25) -- narrow
-            elseif c:match("[mwMW%@]") then
-                w = w + (fs * 0.70) -- extra wide
-            elseif c:match("[a-zA-Z0-9]") then
-                w = w + (fs * 0.45)  -- normal english (slightly thinner than 0.5)
-            elseif #c > 1 then
-                w = w + (fs * 0.50) -- cyrillic/unicode
-            else
-                w = w + (fs * 0.45)  -- default
-            end
-        end
-        return w
-    end
-    
-    local space_w = get_str_width(" ")
-
-    local layout = {}
-    local total_height = 0
-
-    for i = start_idx, end_idx do
-        local text = subs[i].text:gsub("\n", " ")
-        local words = build_word_list(text)
-        if #words == 0 then words = {""} end
-
-        local vlines = {}
-        local cur_indices = {}
-        local cur_w = 0
-
-        for j, w in ipairs(words) do
-            local ww = get_str_width(w)
-            local space = (#cur_indices > 0) and space_w or 0
-            if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-                table.insert(vlines, cur_indices)
-                cur_indices = {j}
-                cur_w = ww
-            else
-                table.insert(cur_indices, j)
-                cur_w = cur_w + space + ww
-            end
-        end
-        if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-        if #vlines == 0 then vlines = {{1}} end
-
-        local entry_h = #vlines * vline_h
-        table.insert(layout, {
-            sub_idx = i,
-            words = words,
-            vlines = vlines,
-            height = entry_h
-        })
-        total_height = total_height + entry_h
-        if i < end_idx then total_height = total_height + sub_gap end
-    end
+    local vline_h = Options.dw_font_size * 1.0
+    local sub_gap = Options.dw_font_size * 0.6
+    local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
     if osd_y < block_top or osd_y > block_top + total_height then return nil, nil end
@@ -601,7 +600,7 @@ local function dw_hit_test(osd_x, osd_y)
 
             local vl_width = 0
             for k, wi in ipairs(vl_indices) do
-                vl_width = vl_width + get_str_width(entry.words[wi])
+                vl_width = vl_width + dw_get_str_width(entry.words[wi])
                 if k < #vl_indices then vl_width = vl_width + space_w end
             end
             
@@ -613,7 +612,7 @@ local function dw_hit_test(osd_x, osd_y)
 
             local pos = 0
             for k, wi in ipairs(vl_indices) do
-                local ww = get_str_width(entry.words[wi])
+                local ww = dw_get_str_width(entry.words[wi])
                 if cx < pos + ww then return entry.sub_idx, wi end
                 pos = pos + ww + space_w
             end
