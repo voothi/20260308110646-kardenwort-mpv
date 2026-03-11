@@ -1100,13 +1100,17 @@ function cmd_dw_line_move(dir, shift)
     
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
     
-    -- Edge-scroll: if cursor went outside the visible area, scroll the viewport
+    -- Edge-scroll: if cursor is outside the visible area, snap viewport to show it
     local half = math.floor(Options.dw_lines_visible / 2)
     local view_min = FSM.DW_VIEW_CENTER - half
     local view_max = view_min + Options.dw_lines_visible - 1
     
-    if FSM.DW_CURSOR_LINE < view_min or FSM.DW_CURSOR_LINE > view_max then
-        FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+    if FSM.DW_CURSOR_LINE < view_min then
+        -- Cursor is above viewport: snap so cursor is at the top
+        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_CURSOR_LINE + half)
+    elseif FSM.DW_CURSOR_LINE > view_max then
+        -- Cursor is below viewport: snap so cursor is at the bottom
+        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_CURSOR_LINE - half)
     end
     
     if not shift then
