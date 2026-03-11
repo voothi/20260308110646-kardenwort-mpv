@@ -772,6 +772,8 @@ local function tick_dw(time_pos)
 end
 
 local function tick_drum(time_pos)
+    -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
+    if FSM.DRUM_WINDOW ~= "OFF" then return end
     if not FSM.native_sub_vis then
         drum_osd.data = ""
         drum_osd:update()
@@ -1030,6 +1032,18 @@ function cmd_toggle_drum_window()
             Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
         end
         
+        -- Snapshot and hide all subtitle overlays to prevent overlap
+        FSM.DW_SAVED_SUB_VIS = mp.get_property_bool("sub-visibility", true)
+        FSM.DW_SAVED_SEC_SUB_VIS = mp.get_property_bool("secondary-sub-visibility", true)
+        FSM.DW_SAVED_DRUM_STATE = FSM.DRUM  -- "ON" or "OFF"
+        mp.set_property_bool("sub-visibility", false)
+        mp.set_property_bool("secondary-sub-visibility", false)
+        -- If Drum Mode is rendering its own OSD subtitles, hide them too
+        if FSM.DRUM == "ON" then
+            drum_osd.data = ""
+            drum_osd:update()
+        end
+
         local time_pos = mp.get_property_number("time-pos")
         FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
         FSM.DW_CURSOR_WORD = 1
@@ -1045,6 +1059,18 @@ function cmd_toggle_drum_window()
         manage_dw_bindings(false)
         dw_osd.data = ""
         dw_osd:update()
+
+        -- Restore subtitle visibility to pre-DW state
+        if FSM.DW_SAVED_DRUM_STATE == "ON" then
+            -- Drum Mode was active: it had already hidden native subs.
+            -- Don't touch native sub-visibility (drum manages that).
+            -- Drum OSD will resume on the next tick_drum cycle automatically.
+        else
+            -- Drum Mode was NOT active: restore native sub visibility
+            mp.set_property_bool("sub-visibility", FSM.DW_SAVED_SUB_VIS or true)
+            mp.set_property_bool("secondary-sub-visibility", FSM.DW_SAVED_SEC_SUB_VIS or false)
+        end
+
         show_osd("Drum Window: CLOSED")
     end
 end
