@@ -410,7 +410,8 @@ end
 -- Helper to estimate the width of a proportional string
 local function dw_get_str_width(str)
     local char_w = Options.dw_font_size * Options.dw_char_width
-    if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
+    local fn = Options.dw_font_name:lower()
+    if fn:match("consolas") or fn:match("mono") or fn:match("courier") then
         local len = 0
         for _ in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do len = len + 1 end
         return len * char_w
@@ -419,12 +420,18 @@ local function dw_get_str_width(str)
     local fs = Options.dw_font_size
     local w = 0
     for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if c == " " then w = w + (fs * 0.35)
-        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.25)
-        elseif c:match("[mwMW%@]") then w = w + (fs * 0.70)
-        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.45)
-        elseif #c > 1 then w = w + (fs * 0.50)
-        else w = w + (fs * 0.45) end
+        if     c == " "                              then w = w + fs * 0.30  -- space
+        elseif c:match("[il|!.,;:'\"/]")              then w = w + fs * 0.22  -- extra-narrow
+        elseif c:match("[fjrt%(%)%[%]{}%-]")           then w = w + fs * 0.32  -- narrow
+        elseif c:match("[acegosvxyz]")                then w = w + fs * 0.42  -- medium-narrow lowercase
+        elseif c:match("[bdhnkpqu0-9]")               then w = w + fs * 0.48  -- normal lowercase/digits
+        elseif c:match("[IJLT]")                      then w = w + fs * 0.38  -- narrow uppercase
+        elseif c:match("[ABCDEFGHKNOPQRSUVXYZ]")      then w = w + fs * 0.55  -- normal uppercase
+        elseif c:match("[mw]")                        then w = w + fs * 0.62  -- wide lowercase
+        elseif c:match("[MW@]")                       then w = w + fs * 0.72  -- extra-wide uppercase
+        elseif #c > 1                                 then w = w + fs * 0.50  -- cyrillic/unicode
+        else                                               w = w + fs * 0.42  -- default
+        end
     end
     return w
 end
@@ -610,13 +617,25 @@ local function dw_hit_test(osd_x, osd_y)
             if cx < 0 then return entry.sub_idx, vl_indices[1] end
             if cx >= vl_width then return entry.sub_idx, vl_indices[#vl_indices] end
 
+            -- Build word center positions for snap-to-nearest logic
+            local centers = {}
             local pos = 0
             for k, wi in ipairs(vl_indices) do
                 local ww = dw_get_str_width(entry.words[wi])
-                if cx < pos + ww then return entry.sub_idx, wi end
+                centers[k] = { idx = wi, center = pos + ww / 2 }
                 pos = pos + ww + space_w
             end
-            return entry.sub_idx, vl_indices[#vl_indices]
+            -- Find the word whose center is closest to the cursor
+            local best_k = 1
+            local best_dist = math.abs(cx - centers[1].center)
+            for k = 2, #centers do
+                local dist = math.abs(cx - centers[k].center)
+                if dist < best_dist then
+                    best_dist = dist
+                    best_k = k
+                end
+            end
+            return entry.sub_idx, centers[best_k].idx
         end
         y_pos = entry_bottom + sub_gap
     end
