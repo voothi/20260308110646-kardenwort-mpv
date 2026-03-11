@@ -51,7 +51,9 @@ local Options = {
     dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
     dw_text_color = "1A1A1A",     -- dark text
     dw_active_color = "800000",   -- navy in BGR
-    dw_highlight_color = "0000FF" -- red highlight in BGR
+    dw_highlight_color = "0000FF",-- red highlight in BGR
+    dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
+    dw_char_width = 0.55          -- char width multiplier (0.55 is exact for Consolas)
 }
 options.read_options(Options, "lls")
 
@@ -443,7 +445,7 @@ local function draw_dw(subs, view_center, active_idx)
         local is_active = (i == active_idx)
         local text = subs[i].text:gsub("\n", " ")
         local color = is_active and Options.dw_active_color or Options.dw_text_color
-        local line_prefix = string.format("{\\c&H%s&}", color)
+        local line_prefix = string.format("{\\fn%s}{\\c&H%s&}", Options.dw_font_name, color)
         
         local words = build_word_list(text)
         local formatted_words = {}
@@ -510,7 +512,7 @@ local function dw_hit_test(osd_x, osd_y)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
 
     local fs = Options.dw_font_size
-    local char_w = fs * 0.5
+    local char_w = fs * Options.dw_char_width
     local max_text_w = 1860       -- approx max width before ASS \q0 wraps
     local vline_h = fs * 1.0      -- height per visual text line
     local sub_gap = fs * 0.6      -- extra gap from \N\N between subtitles
