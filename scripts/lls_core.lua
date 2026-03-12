@@ -92,7 +92,13 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
-    DW_MOUSE_SCROLL_TIMER = nil -- Timer for auto-scroll while dragging at edges
+    DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
+
+    -- Drum Window Search State
+    DW_SEARCH_MODE = false,
+    DW_SEARCH_QUERY = "",
+    DW_SEARCH_RESULTS = {},
+    DW_SEARCH_SEL_IDX = 1
 }
 
 local Tracks = {
@@ -787,7 +793,13 @@ local function tick_dw(time_pos)
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
     -- active_idx just controls the blue highlight color (may be off-screen)
     
-    dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
+    local ass_content = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
+    
+    if FSM.DW_SEARCH_MODE then
+        ass_content = ass_content .. draw_dw_search_ui()
+    end
+    
+    dw_osd.data = ass_content
     dw_osd:update()
 end
 
@@ -1007,7 +1019,11 @@ local function manage_dw_bindings(enable)
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_WORD = 1
         end},
-        {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end}
+        {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
+        
+        -- Search Toggle
+        {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_dw_toggle_search() end},
+        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_dw_toggle_search() end}
     }
     
     for _, k in ipairs(keys) do
@@ -1041,6 +1057,236 @@ local function manage_dw_bindings(enable)
         mp.set_property_bool("window-dragging", false)
     end
     FSM.DW_KEY_OVERRIDE = enable
+end
+
+-- =========================================================================
+-- DRUM WINDOW SEARCH FEATURE
+-- =========================================================================
+
+local function update_dw_search_results()
+    FSM.DW_SEARCH_RESULTS = {}
+    FSM.DW_SEARCH_SEL_IDX = 1
+    
+    if FSM.DW_SEARCH_QUERY == "" then return end
+    
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local query_lower = FSM.DW_SEARCH_QUERY:lower()
+    
+    for i, sub in ipairs(subs) do
+        -- Basic substring match
+        if sub.text:lower():find(query_lower, 1, true) then
+            table.insert(FSM.DW_SEARCH_RESULTS, i)
+        end
+    end
+end
+
+local function draw_dw_search_ui()
+    if not FSM.DW_SEARCH_MODE then return "" end
+    
+    local ass = ""
+    local padding_x = 20
+    local padding_y = 10
+    local font_size = Options.dw_font_size
+    local line_height = font_size * 1.2
+    
+    -- Positioning Constants
+    local box_w = 1200
+    local box_x = 960 - (box_w / 2)
+    local box_y = 50
+    
+    local bg_color = "181818"
+    local border_color = "666666"
+    local text_color = "FFFFFF"
+    if Options.dw_bg_color then
+        -- Inherit theme a bit if we want, or go dark mode for search
+        bg_color = Options.dw_bg_color
+        text_color = Options.dw_text_color
+    end
+    
+    -- Draw Input Field Backing
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H11&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        box_x, box_y, border_color, bg_color, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
+    
+    -- Draw Input Text
+    local display_query = FSM.DW_SEARCH_QUERY
+    if display_query == "" then display_query = "Search..." else display_query = display_query .. " |" end
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
+        box_x + padding_x, box_y + padding_y, font_size, text_color, display_query)
+        
+    -- Draw Results Dropdown
+    if #FSM.DW_SEARCH_RESULTS > 0 then
+        local max_results_display = 8
+        local display_count = math.min(#FSM.DW_SEARCH_RESULTS, max_results_display)
+        local results_h = display_count * line_height + padding_y * 2
+        local results_y = box_y + line_height + padding_y * 2 + 5
+        
+        -- Dropdown Backing
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
+            
+        -- Scroll window mapping
+        local start_idx = math.max(1, FSM.DW_SEARCH_SEL_IDX - math.floor(max_results_display / 2))
+        if start_idx + max_results_display - 1 > #FSM.DW_SEARCH_RESULTS then
+            start_idx = math.max(1, #FSM.DW_SEARCH_RESULTS - max_results_display + 1)
+        end
+        
+        for k = 1, display_count do
+            local result_idx = start_idx + k - 1
+            if result_idx > #FSM.DW_SEARCH_RESULTS then break end
+            
+            local sub_line_idx = FSM.DW_SEARCH_RESULTS[result_idx]
+            local sub_text = Tracks.pri.subs[sub_line_idx].text:gsub("\n", " ")
+            
+            -- Truncate for display
+            if sub_text:len() > 80 then sub_text = sub_text:sub(1, 80) .. "..." end
+            
+            local item_y = results_y + padding_y + (k - 1) * line_height
+            local hl_col = text_color
+            if result_idx == FSM.DW_SEARCH_SEL_IDX then hl_col = Options.dw_highlight_color end
+            
+            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
+                box_x + padding_x, item_y, font_size * 0.8, hl_col, sub_text)
+        end
+    elseif FSM.DW_SEARCH_QUERY ~= "" then
+        -- "No results"
+        local results_h = line_height + padding_y * 2
+        local results_y = box_y + line_height + padding_y * 2 + 5
+        
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} No results found.\n",
+            box_x + padding_x, results_y + padding_y, font_size * 0.8, "999999")
+    end
+    
+    return ass
+end
+
+local function manage_dw_search_bindings(enable)
+    if enable then
+        FSM.DW_SEARCH_MODE = true
+        FSM.DW_SEARCH_QUERY = ""
+        FSM.DW_SEARCH_RESULTS = {}
+        FSM.DW_SEARCH_SEL_IDX = 1
+        
+        -- Temporarily clear some main Drum bindings that conflict with typing
+        manage_dw_bindings(false)
+        -- Keep the esc key to close DW if they mash it, but we override ESC immediately below to close search
+        
+        -- Char bindings
+        local chars = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ "
+        for i = 1, chars:len() do
+            -- To handle utf8 easily, grab one byte at a time in lua? 
+            -- Actually, string.sub works fine for single-byte, but cyrillic needs 2 bytes.
+        end
+        
+        -- Let's extract utf8 chars properly
+        local function utf8_iter(str)
+            return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
+        end
+        
+        for ch in utf8_iter(chars) do
+            local key_name = ch
+            if ch == " " then key_name = "SPACE" end
+            -- Uppercase needs to be mapped to raw keys in mpv
+            if not (ch == "SPACE") and ch:match("%u") then
+                 if ch:match("[A-Z]") then
+                     -- English uppercase relies on Shift+a, etc., mpv handles 'A' fine if caps lock or shift
+                 end
+            end
+            
+            mp.add_forced_key_binding(key_name, "dws-char-" .. key_name, function()
+                FSM.DW_SEARCH_QUERY = FSM.DW_SEARCH_QUERY .. ch
+                update_dw_search_results()
+            end, "repeatable")
+        end
+        
+        -- Special Keys
+        mp.add_forced_key_binding("BS", "dws-bs", function()
+            -- Hacky utf8 delete-last-char
+            if FSM.DW_SEARCH_QUERY:len() > 0 then
+                local chars = {}
+                for ch in string.gmatch(FSM.DW_SEARCH_QUERY, "[%z\1-\127\194-\244][\128-\191]*") do 
+                    table.insert(chars, ch) 
+                end
+                table.remove(chars)
+                FSM.DW_SEARCH_QUERY = table.concat(chars)
+                update_dw_search_results()
+            end
+        end, "repeatable")
+        
+        mp.add_forced_key_binding("UP", "dws-up", function()
+            if #FSM.DW_SEARCH_RESULTS > 0 then
+                FSM.DW_SEARCH_SEL_IDX = math.max(1, FSM.DW_SEARCH_SEL_IDX - 1)
+            end
+        end, "repeatable")
+        mp.add_forced_key_binding("DOWN", "dws-down", function()
+            if #FSM.DW_SEARCH_RESULTS > 0 then
+                FSM.DW_SEARCH_SEL_IDX = math.min(#FSM.DW_SEARCH_RESULTS, FSM.DW_SEARCH_SEL_IDX + 1)
+            end
+        end, "repeatable")
+        
+        mp.add_forced_key_binding("ENTER", "dws-enter", function()
+            if #FSM.DW_SEARCH_RESULTS > 0 then
+                local selected_line = FSM.DW_SEARCH_RESULTS[FSM.DW_SEARCH_SEL_IDX]
+                local sub = Tracks.pri.subs[selected_line]
+                
+                -- Jump player
+                if sub.start_time then
+                    mp.set_property_number("time-pos", sub.start_time)
+                end
+                
+                -- Update DW state
+                FSM.DW_CURSOR_LINE = selected_line
+                FSM.DW_CURSOR_WORD = 1
+                FSM.DW_VIEW_CENTER = selected_line
+                FSM.DW_FOLLOW_PLAYER = true
+                FSM.DW_ANCHOR_LINE = -1
+                FSM.DW_ANCHOR_WORD = -1
+                
+                -- Exit Search mode
+                cmd_dw_toggle_search()
+            end
+        end)
+        
+        mp.add_forced_key_binding("ESC", "dws-esc", function()
+            cmd_dw_toggle_search()
+        end)
+        
+    else
+        FSM.DW_SEARCH_MODE = false
+        
+        -- Clean up char bindings
+        local chars = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ "
+        local function utf8_iter(str)
+            return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
+        end
+        for ch in utf8_iter(chars) do
+            local key_name = ch
+            if ch == " " then key_name = "SPACE" end
+            mp.remove_key_binding("dws-char-" .. key_name)
+        end
+        
+        mp.remove_key_binding("dws-bs")
+        mp.remove_key_binding("dws-up")
+        mp.remove_key_binding("dws-down")
+        mp.remove_key_binding("dws-enter")
+        mp.remove_key_binding("dws-esc")
+        
+        -- Restore main DW bindings
+        if FSM.DRUM_WINDOW == "DOCKED" then
+            manage_dw_bindings(true)
+        end
+    end
+end
+
+function cmd_dw_toggle_search()
+    if not FSM.DW_SEARCH_MODE then
+        manage_dw_search_bindings(true)
+    else
+        manage_dw_search_bindings(false)
+    end
 end
 
 function cmd_toggle_drum_window()
@@ -1081,6 +1327,9 @@ function cmd_toggle_drum_window()
         show_osd("Drum Window: OPEN")
     else
         FSM.DRUM_WINDOW = "OFF"
+        if FSM.DW_SEARCH_MODE then
+            manage_dw_search_bindings(false)
+        end
         manage_dw_bindings(false)
         dw_osd.data = ""
         dw_osd:update()
