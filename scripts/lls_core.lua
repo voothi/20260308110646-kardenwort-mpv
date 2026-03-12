@@ -1237,7 +1237,7 @@ local function manage_search_bindings(enable)
                 local sub = Tracks.pri.subs[selected_line]
                 
                 if sub.start_time then
-                    mp.set_property_number("time-pos", sub.start_time)
+                    mp.commandv("seek", sub.start_time, "absolute", "exact")
                 end
                 
                 -- Update DW state so if it opens, or is open, it jumps to this line
