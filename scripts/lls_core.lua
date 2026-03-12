@@ -150,14 +150,34 @@ local function utf8_to_table(str)
     return t
 end
 
-local function is_fuzzy_match(str, query)
-    if query == "" then return true end
-    str = str:lower()
-    query = query:lower()
+local function utf8_to_lower(str)
+    local res = str:lower()
+    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+    local u_table = utf8_to_table(upper)
+    local l_table = utf8_to_table(lower)
+    for i = 1, #u_table do
+        res = res:gsub(u_table[i], l_table[i])
+    end
+    return res
+end
+
+local function calculate_match_score(str, query)
+    if query == "" then return 0 end
+    str = utf8_to_lower(str)
+    query = utf8_to_lower(query)
     
+    if str == query then return 1000 end
+    
+    local start_pos, end_pos = str:find(query, 1, true)
+    if start_pos then
+        -- Substring match. Higher score if it starts with the query
+        if start_pos == 1 then return 800 else return 500 end
+    end
+    
+    -- Subsequence fuzzy match
     local str_t = utf8_to_table(str)
     local query_t = utf8_to_table(query)
-    
     local i, j = 1, 1
     while i <= #str_t and j <= #query_t do
         if str_t[i] == query_t[j] then
@@ -165,7 +185,11 @@ local function is_fuzzy_match(str, query)
         end
         i = i + 1
     end
-    return j > #query_t
+    
+    if j > #query_t then
+        return 100 -- Fuzzy match
+    end
+    return 0
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -1251,11 +1275,25 @@ local function update_search_results()
     if not subs or #subs == 0 then return end
     
     local query = FSM.SEARCH_QUERY
+    local scored_results = {}
     
     for i, sub in ipairs(subs) do
-        if is_fuzzy_match(sub.text, query) then
-            table.insert(FSM.SEARCH_RESULTS, i)
+        local score = calculate_match_score(sub.text, query)
+        if score > 0 then
+            table.insert(scored_results, {idx = i, score = score})
         end
+    end
+    
+    -- Sort by score (descending) and then index (ascending)
+    table.sort(scored_results, function(a, b)
+        if a.score ~= b.score then
+            return a.score > b.score
+        end
+        return a.idx < b.idx
+    end)
+    
+    for _, item in ipairs(scored_results) do
+        table.insert(FSM.SEARCH_RESULTS, item.idx)
     end
 end
 

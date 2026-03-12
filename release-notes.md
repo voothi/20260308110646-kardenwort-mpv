@@ -1,3 +1,18 @@
+# Release Notes - v1.24.10 (Search Relevance & Cyrillic Parity)
+
+**Date**: 2026-03-12
+**Version**: v1.24.10
+**Request ZID**: 20260312185300
+**RFC**: [docs/rfcs/20260312185338-release-v1.24.10.md](docs/rfcs/20260312185338-release-v1.24.10.md)
+
+## Highlights
+
+### 🎯 **Relevance-Based Search Sorting**
+- **Scoring Engine**: Results are now sorted by "Relevance" rather than chronological order. Exact matches and prefix-substring matches now always appear at the very top of the list.
+- **Cyrillic Case Parity**: Implemented a custom UTF-8 lowercase helper. Search is now fully case-insensitive for Russian characters, ensuring consistent discovery of Cyrillic phrases regardless of input case.
+
+---
+
 # Release Notes - v1.24.9 (Search HUD UX Enhancements)
 
 **Date**: 2026-03-12

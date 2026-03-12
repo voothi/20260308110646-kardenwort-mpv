@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.24.9-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.9) 
+[![Version](https://img.shields.io/badge/version-v1.24.10-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.10) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -88,8 +88,9 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 
 ### <span id="universal-subtitle-search"></span>Universal Subtitle Search
 A high-performance navigation overlay that decouples content lookup from playback.
-- **"Really" Fuzzy Search**: Filter the entire subtitle track using non-contiguous character matching (e.g., "hl wrd" -> "hello world").
-- **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word) for high-efficiency query refinement.
+- **Relevance Ranking**: Results are sorted by match quality (Exact > Substring > Fuzzy).
+- **Cyrillic Parity**: Fully case-insensitive Russian search support.
+- **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word).
 - **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
 - **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek.
 - **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
@@ -202,8 +203,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~275 Commits (v1.24.9)
-- **Intensity Profile**: 7.9 Commits/Hour 
+- **Current Maturity**: ~285 Commits (v1.24.10)
+- **Intensity Profile**: 8.2 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
