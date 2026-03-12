@@ -1,3 +1,20 @@
+# Release Notes - v1.24.3 (Advanced Selection & Word Navigation)
+
+**Date**: 2026-03-12
+**Version**: v1.24.3
+**Request ZID**: 20260312140529
+**RFC**: [docs/rfcs/20260312140529-release-v1.24.3.md](docs/rfcs/20260312140529-release-v1.24.3.md)
+
+## Highlights
+
+### 📝 **VSCode-Style Selection Engine**
+- **Word-by-Word Selection**: Use `Ctrl+Shift+LEFT/RIGHT` to select entire words at once. Perfect for quickly grabbing specific terms from a complex query.
+- **Visual Highlights**: Selected text is now clearly highlighted in the search HUD with a customizable highlight color, giving you instant feedback on your selection range.
+- **Smart Replacement**: Any text you type or paste while a selection is active will automatically replace the selected text, just like a modern code editor.
+- **Intelligent Word Jumps**: Use `Ctrl+LEFT/RIGHT` to snap your cursor to the start or end of words, significantly speeding up navigation in long search queries.
+
+---
+
 # Release Notes - v1.24.2 (Hotfix: Search Window Recovery)
 
 **Date**: 2026-03-12
