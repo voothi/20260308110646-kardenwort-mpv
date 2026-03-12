@@ -142,6 +142,14 @@ local function parse_time(time_str)
     return 0
 end
 
+local function utf8_to_table(str)
+    local t = {}
+    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(t, ch)
+    end
+    return t
+end
+
 local function is_fuzzy_match(str, query)
     if query == "" then return true end
     str = str:lower()
@@ -158,14 +166,6 @@ local function is_fuzzy_match(str, query)
         i = i + 1
     end
     return j > #query_t
-end
-
-local function utf8_to_table(str)
-    local t = {}
-    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
-        table.insert(t, ch)
-    end
-    return t
 end
 
 local function get_word_boundary(q_table, pos, direction)
