@@ -1029,8 +1029,16 @@ local function manage_dw_bindings(enable)
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_WORD = 1
         end},
+        {key = "ENTER", name = "dw-enter", fn = function() cmd_dw_seek_selected() end},
+        {key = "KP_ENTER", name = "dw-enter-kp", fn = function() cmd_dw_seek_selected() end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
         {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
+        {key = "Ctrl+LEFT", name = "dw-word-left-ctrl", fn = function() cmd_dw_word_move(-5, false) end},
+        {key = "Ctrl+RIGHT", name = "dw-word-right-ctrl", fn = function() cmd_dw_word_move(5, false) end},
+        {key = "Ctrl+Shift+LEFT", name = "dw-word-left-ctrl-shift", fn = function() cmd_dw_word_move(-5, true) end},
+        {key = "Ctrl+Shift+RIGHT", name = "dw-word-right-ctrl-shift", fn = function() cmd_dw_word_move(5, true) end},
+        {key = "Ctrl+Shift+UP", name = "dw-line-up-ctrl-shift", fn = function() cmd_dw_line_move(-5, true) end},
+        {key = "Ctrl+Shift+DOWN", name = "dw-line-down-ctrl-shift", fn = function() cmd_dw_line_move(5, true) end},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
         {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = function() cmd_dw_scroll(-1) end},
@@ -1066,6 +1074,13 @@ local function manage_dw_bindings(enable)
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_WORD = 1
         end},
+        {key = "ENTER", name = "dw-enter-ru", fn = function() cmd_dw_seek_selected() end},
+        {key = "Ctrl+ЛЕВЫЙ", name = "dw-word-left-ctrl-ru", fn = function() cmd_dw_word_move(-5, false) end},
+        {key = "Ctrl+ПРАВЫЙ", name = "dw-word-right-ctrl-ru", fn = function() cmd_dw_word_move(5, false) end},
+        {key = "Ctrl+Shift+ЛЕВЫЙ", name = "dw-word-left-ctrl-shift-ru", fn = function() cmd_dw_word_move(-5, true) end},
+        {key = "Ctrl+Shift+ПРАВЫЙ", name = "dw-word-right-ctrl-shift-ru", fn = function() cmd_dw_word_move(5, true) end},
+        {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
+        {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
         
         -- Search Toggle
@@ -1081,7 +1096,8 @@ local function manage_dw_bindings(enable)
                 local settings = nil
                 if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
                    or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-                   or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
+                   or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" 
+                   or k.key == "ENTER" or k.key == "KP_ENTER" then
                     settings = "repeatable"
                 end
                 mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
@@ -1647,6 +1663,17 @@ function cmd_dw_scroll(dir)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+end
+
+local function cmd_dw_seek_selected()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
+        local sub = subs[FSM.DW_CURSOR_LINE]
+        mp.set_property_number("time-pos", sub.start_time)
+        FSM.DW_FOLLOW_PLAYER = true
+        show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
+    end
 end
 
 function cmd_dw_line_move(dir, shift)
