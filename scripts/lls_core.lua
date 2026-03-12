@@ -1216,7 +1216,7 @@ local function manage_search_bindings(enable)
             return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
         end
         
-        for ch in utf8_to_table(chars) do
+        for ch in utf8_iter(chars) do
             local key_name = ch
             if ch == " " then key_name = "SPACE" end
             

@@ -1,3 +1,15 @@
+# Release Notes - v1.24.2 (Hotfix: Search Window Recovery)
+
+**Date**: 2026-03-12
+**Version**: v1.24.2
+
+## Highlights
+
+### 🛡️ **Critical Hotfix**
+- **Search Window Recovery**: Fixed a critical Lua syntax error introduced in v1.24.1 that caused the search overlay to crash on initialization. The Universal Search window is now fully functional again.
+
+---
+
 # Release Notes - v1.24.1 (Search Navigation & Cursor Control)
 
 **Date**: 2026-03-12
