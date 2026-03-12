@@ -368,12 +368,35 @@ local function load_sub(path, is_ass)
                         local text = content:sub(last_pos)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
+                        local style = parts[4]:match("^%s*(.-)%s*$")
+                        local name = parts[5]:match("^%s*(.-)%s*$")
+
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
                             if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
+                                
+                                -- Heuristic for primary/secondary
+                                local is_sec = false
+                                local style_lower = style:lower()
+                                local name_lower = name:lower()
+                                
+                                -- PRIMARY IF: contains "1", "s1", "sub1", "sub 1" etc
+                                local is_pri = style_lower:match("[^%d]1$") or style_lower:match("[^%d]1[^%d]") or style_lower == "1"
+                                    or name_lower:match("[^%d]1$") or name_lower:match("[^%d]1[^%d]") or name_lower == "1"
+                                
+                                if not is_pri then
+                                    -- SECONDARY IF: translation keywords
+                                    if style_lower:match("sec") or style_lower:match("trans") or style_lower:match("rus") or style_lower:match("ru_")
+                                        or name_lower:match("sec") or name_lower:match("trans") or name_lower:match("rus") or name_lower:match("ru_") then
+                                        is_sec = true
+                                    elseif Options.copy_filter_russian and has_cyrillic(raw_text) then
+                                        is_sec = true
+                                    end
+                                end
+
                                 local merged = false
                                 local search_limit = math.max(1, #subs - 10)
                                 for i = #subs, search_limit, -1 do
@@ -388,7 +411,9 @@ local function load_sub(path, is_ass)
                                         start_time = parsed_start,
                                         end_time = parsed_end,
                                         text = raw_text,
-                                        raw_text = raw_text
+                                        raw_text = raw_text,
+                                        is_secondary = is_sec,
+                                        style = style
                                     })
                                 end
                             end
@@ -405,6 +430,7 @@ local function load_sub(path, is_ass)
             if line == "" then
                 if current_sub and current_sub.text ~= "" then
                     current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
+                    current_sub.is_secondary = (Options.copy_filter_russian and has_cyrillic(current_sub.raw_text))
                     if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
                         subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
                     else
@@ -435,6 +461,7 @@ local function load_sub(path, is_ass)
         end
         if current_sub and current_sub.text ~= "" then
             current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
+            current_sub.is_secondary = (Options.copy_filter_russian and has_cyrillic(current_sub.raw_text))
             if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
                 subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
             else
@@ -658,7 +685,15 @@ local function dw_build_layout(subs, view_center)
     local total_height = 0
 
     for i = start_idx, end_idx do
-        local text = subs[i].text:gsub("\n", " ")
+        local sub = subs[i]
+        
+        -- Filtering: Match sub to current mode (A=Primary, B=Secondary)
+        local sub_is_sec = sub.is_secondary or false
+        if (FSM.COPY_MODE == "A" and sub_is_sec) or (FSM.COPY_MODE == "B" and not sub_is_sec) then
+            goto next_sub
+        end
+
+        local text = sub.text:gsub("\n", " ")
         local words = build_word_list(text)
         if #words == 0 then words = {""} end
 
@@ -690,6 +725,7 @@ local function dw_build_layout(subs, view_center)
         })
         total_height = total_height + entry_h
         if i < end_idx then total_height = total_height + sub_gap end
+        ::next_sub::
     end
 
     return layout, total_height
@@ -1389,10 +1425,17 @@ local function update_search_results()
     local scored_results = {}
     
     for i, sub in ipairs(subs) do
+        -- Filtering: Match sub to current mode (A=Primary, B=Secondary)
+        local sub_is_sec = sub.is_secondary or false
+        if (FSM.COPY_MODE == "A" and sub_is_sec) or (FSM.COPY_MODE == "B" and not sub_is_sec) then
+            goto next_sub
+        end
+
         local score, indices = calculate_match_score(sub.text, query)
         if score > 0 then
             table.insert(scored_results, {idx = i, score = score, hl = indices})
         end
+        ::next_sub::
     end
     
     -- Sort by score (descending) and then index (ascending)
@@ -2132,7 +2175,17 @@ local function cmd_cycle_copy_mode()
         return
     end
     FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
-    show_osd("Copy Subtitle Mode: " .. FSM.COPY_MODE)
+    local mode_label = (FSM.COPY_MODE == "A") and "TARGET" or "TRANSLATION"
+    show_osd("Sub Mode: " .. mode_label)
+    
+    -- Refresh UI if open
+    if FSM.DRUM_WINDOW == "DOCKED" then
+        tick_dw(mp.get_property_number("time-pos") or 0)
+    end
+    if FSM.SEARCH_MODE then
+        update_search_results()
+        render_search()
+    end
 end
 
 local function cmd_toggle_copy_ctx()
@@ -2153,7 +2206,11 @@ local function get_copy_context_text(time_pos)
     
     local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
     
-    local function is_target(s)
+    local function is_target(s, sub_obj)
+        if sub_obj and sub_obj.is_secondary ~= nil then
+            if FSM.COPY_MODE == "A" then return not sub_obj.is_secondary
+            else return sub_obj.is_secondary end
+        end
         if not s then return false end
         local cyr = has_cyrillic(s)
         if FSM.COPY_MODE == "A" then
@@ -2173,10 +2230,10 @@ local function get_copy_context_text(time_pos)
         if subs and #subs > 0 then
             local idx = get_center_index(subs, time_pos)
             if idx ~= -1 then
-                if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
-                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
+                if Options.copy_filter_russian and not is_target(trim(subs[idx].text), subs[idx]) then
+                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text), subs[idx-1]) then
                         idx = idx - 1
-                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
+                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text), subs[idx+1]) then
                         idx = idx + 1
                     end
                 end
@@ -2184,18 +2241,18 @@ local function get_copy_context_text(time_pos)
                 local pre, i = {}, idx - 1
                 while i >= 1 and #pre < Options.copy_context_lines do
                     local t = trim(subs[i].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t, subs[i])) then table.insert(pre, 1, t) end
                     i = i - 1
                 end
                 for _, ln in ipairs(pre) do table.insert(combined, ln) end
                 
                 local ctext = trim(subs[idx].text)
-                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
+                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext, subs[idx])) then table.insert(combined, ctext) end
                 
                 local post, i2 = {}, idx + 1
                 while i2 <= #subs and #post < Options.copy_context_lines do
                     local t = trim(subs[i2].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t, subs[i2])) then table.insert(post, t) end
                     i2 = i2 + 1
                 end
                 for _, ln in ipairs(post) do table.insert(combined, ln) end
@@ -2248,9 +2305,25 @@ local function cmd_copy_sub()
         if #lines > 0 then
             local valid = {}
             if Options.copy_filter_russian then
+                local current_subs = Tracks.pri.subs
+                local time_pos = mp.get_property_number("time-pos")
+                local sub_obj = nil
+                if #current_subs > 0 and time_pos then
+                    local idx = get_center_index(current_subs, time_pos)
+                    if idx ~= -1 then sub_obj = current_subs[idx] end
+                end
+
                 for _, ln in ipairs(lines) do
-                    local cyr = has_cyrillic(ln)
-                    if (FSM.COPY_MODE == "A" and not cyr) or (FSM.COPY_MODE == "B" and cyr) then table.insert(valid, ln) end
+                    local is_sec = false
+                    if sub_obj and sub_obj.text:find(ln, 1, true) then
+                        is_sec = sub_obj.is_secondary or false
+                    else
+                        is_sec = has_cyrillic(ln)
+                    end
+                    
+                    if (FSM.COPY_MODE == "A" and not is_sec) or (FSM.COPY_MODE == "B" and is_sec) then 
+                        table.insert(valid, ln) 
+                    end
                 end
                 
                 if #valid == 0 then table.insert(valid, (FSM.COPY_MODE == "A") and lines[#lines] or lines[1]) end
