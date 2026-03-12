@@ -1,3 +1,19 @@
+# Release Notes - v1.26.0 (Visual Search Feedback)
+
+**Date**: 2026-03-12
+**Version**: v1.26.0
+**Request ZID**: 20260312202316
+**RFC**: [docs/rfcs/20260312202316-release-v1.26.0.md](docs/rfcs/20260312202316-release-v1.26.0.md)
+
+## Highlights
+
+### 🔦 **Hit-Highlighting in Search**
+- **Elegant Visual Cues**: The search results list now elegantly highlights matching characters using **Bold High-Contrast** colors.
+- **Intelligent Contrast**: Highlights adapt to the selection state—turning **White** when a line is selected to ensure maximum readability against the red selection bar.
+- **Fuzzy Accuracy**: Even non-contiguous matches (e.g., `mne` matching **m**a**n**ag**e**) are precisely highlighted.
+
+---
+
 # Release Notes - v1.25.2 (UI Visibility Enhancement)
 
 **Date**: 2026-03-12

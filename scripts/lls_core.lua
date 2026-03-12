@@ -162,26 +162,24 @@ local function utf8_to_lower(str)
     return res
 end
 
-local function find_fuzzy_span(str_lower, query_lower)
-    if query_lower == "" then return 0, 0 end
+local function find_fuzzy_indices(str_lower, query_lower)
+    if query_lower == "" then return {} end
     local str_t = utf8_to_table(str_lower)
     local query_t = utf8_to_table(query_lower)
     
-    local first_idx = -1
-    local last_idx = -1
+    local indices = {}
     local j = 1
     
     for i = 1, #str_t do
         if str_t[i] == query_t[j] then
-            if j == 1 then first_idx = i end
+            table.insert(indices, i)
             if j == #query_t then 
-                last_idx = i
-                return first_idx, last_idx
+                return indices
             end
             j = j + 1
         end
     end
-    return nil, nil
+    return nil
 end
 
 local function calculate_match_score(str, query)
@@ -205,14 +203,41 @@ local function calculate_match_score(str, query)
         -- Check for literal substring first (higher signal)
         local start_pos, end_pos = str_lower:find(token, 1, true)
         if start_pos then
-            table.insert(matches, {start = start_pos, stop = end_pos, literal = true, span = end_pos - start_pos + 1})
+            -- Convert character positions to indices for highlighting
+            -- (Literal matches are contiguous, so we generate the indices)
+            local indices = {}
+            local s_table = utf8_to_table(str_lower)
+            -- Note: find returns byte positions. We need to find the character-index equivalent.
+            -- However, utf8_to_lower might change byte length but not character count for cyrillic.
+            -- Actually, simpler to just use find_fuzzy_indices on the token since it's a literal match
+            local n_indices = find_fuzzy_indices(str_lower, token)
+            -- But find_fuzzy_indices might skip characters if not contiguous? 
+            -- No, literal search is better. Let's find the start character index.
+            local char_start = 0
+            local cur_byte = 1
+            while cur_byte < start_pos do
+                local b = str_lower:byte(cur_byte)
+                if b < 128 then cur_byte = cur_byte + 1
+                elseif b < 224 then cur_byte = cur_byte + 2
+                elseif b < 240 then cur_byte = cur_byte + 3
+                else cur_byte = cur_byte + 4 end
+                char_start = char_start + 1
+            end
+            
+            local token_char_len = #utf8_to_table(token)
+            for k = 1, token_char_len do
+                table.insert(indices, char_start + k)
+            end
+            
+            table.insert(matches, {indices = indices, literal = true, span = token_char_len})
         else
             -- Fallback to fuzzy subsequence for this specific word/token
-            local s_start, s_end = find_fuzzy_span(str_lower, token)
-            if not s_start then
+            local indices = find_fuzzy_indices(str_lower, token)
+            if not indices then
                 return 0 -- Every keyword must match at least fuzzily
             end
-            table.insert(matches, {start = s_start, stop = s_end, literal = false, span = s_end - s_start + 1})
+            local span = indices[#indices] - indices[1] + 1
+            table.insert(matches, {indices = indices, literal = false, span = span})
         end
     end
 
@@ -230,7 +255,7 @@ local function calculate_match_score(str, query)
             if m.span <= token_len + 1 then
                 score = score + 150 -- Very compact
             elseif m.span <= token_len + 5 then
-                score = score + 50 -- Reasonably compact
+                score = score + 5 -- Reasonably compact
             end
         end
     end
@@ -239,18 +264,18 @@ local function calculate_match_score(str, query)
     local last_pos = 0
     local in_order = true
     for _, m in ipairs(matches) do
-        if m.start < last_pos then
+        if m.indices[1] < last_pos then
             in_order = false
             break
         end
-        last_pos = m.stop
+        last_pos = m.indices[#m.indices]
     end
     if in_order and #matches > 0 then
         score = score + 300
     end
 
     -- Bonus: Start of sentence match
-    if matches[1].start == 1 then
+    if matches[1].indices[1] == 1 then
         score = score + 300
     end
 
@@ -259,7 +284,15 @@ local function calculate_match_score(str, query)
         score = score + 400
     end
 
-    return score
+    -- Aggregate all indices for highlighting
+    local all_indices = {}
+    for _, m in ipairs(matches) do
+        for _, idx in ipairs(m.indices) do
+            all_indices[idx] = true
+        end
+    end
+
+    return score, all_indices
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -1348,9 +1381,9 @@ local function update_search_results()
     local scored_results = {}
     
     for i, sub in ipairs(subs) do
-        local score = calculate_match_score(sub.text, query)
+        local score, indices = calculate_match_score(sub.text, query)
         if score > 0 then
-            table.insert(scored_results, {idx = i, score = score})
+            table.insert(scored_results, {idx = i, score = score, hl = indices})
         end
     end
     
@@ -1363,7 +1396,7 @@ local function update_search_results()
     end)
     
     for _, item in ipairs(scored_results) do
-        table.insert(FSM.SEARCH_RESULTS, item.idx)
+        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, hl = item.hl})
     end
 end
 
@@ -1452,18 +1485,37 @@ local function draw_search_ui()
             local result_idx = start_idx + k - 1
             if result_idx > #FSM.SEARCH_RESULTS then break end
             
-            local sub_line_idx = FSM.SEARCH_RESULTS[result_idx]
+            local result_data = FSM.SEARCH_RESULTS[result_idx]
+            local sub_line_idx = result_data.idx
             local sub_text = Tracks.pri.subs[sub_line_idx].text:gsub("\n", " ")
+            local raw_t_table = utf8_to_table(sub_text)
             
             -- Truncate for display
-            if sub_text:len() > 80 then sub_text = sub_text:sub(1, 80) .. "..." end
+            if #raw_t_table > 120 then 
+                local new_t = {}
+                for i = 1, 120 do table.insert(new_t, raw_t_table[i]) end
+                sub_text = table.concat(new_t) .. "..."
+                raw_t_table = utf8_to_table(sub_text)
+            end
             
             local item_y = results_y + padding_y + (k - 1) * line_height
-            local hl_col = text_color
-            if result_idx == FSM.SEARCH_SEL_IDX then hl_col = Options.dw_highlight_color end
+            local base_color = (result_idx == FSM.SEARCH_SEL_IDX) and Options.dw_highlight_color or text_color
+            
+            -- Construct highlighted string
+            local display_text = ""
+            local hit_color = (result_idx == FSM.SEARCH_SEL_IDX) and "FFFFFF" or Options.dw_highlight_color
+            
+            for i = 1, #raw_t_table do
+                local is_hit = result_data.hl and result_data.hl[i]
+                if is_hit then
+                    display_text = display_text .. string.format("{\\b1}{\\c&H%s&}%s{\\b0}{\\c&H%s&}", hit_color, raw_t_table[i], base_color)
+                else
+                    display_text = display_text .. raw_t_table[i]
+                end
+            end
             
             ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
-                box_x + padding_x, item_y, font_size * 0.8, hl_col, sub_text)
+                box_x + padding_x, item_y, font_size * 0.8, base_color, display_text)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
         -- "No results"
@@ -1641,7 +1693,7 @@ local function manage_search_bindings(enable)
         
         mp.add_forced_key_binding("ENTER", "search-enter", function()
             if #FSM.SEARCH_RESULTS > 0 then
-                local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX]
+                local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX].idx
                 local sub = Tracks.pri.subs[selected_line]
                 
                 if sub.start_time then
@@ -1773,7 +1825,7 @@ local function manage_search_bindings(enable)
                                 FSM.SEARCH_SEL_IDX = result_idx
                                 
                                 -- Jump immediately as if Enter was pressed
-                                local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX]
+                                local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX].idx
                                 local sub = Tracks.pri.subs[selected_line]
                                 
                                 if sub.start_time then

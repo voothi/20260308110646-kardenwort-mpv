@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.25.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.25.2) 
+[![Version](https://img.shields.io/badge/version-v1.26.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -91,6 +91,7 @@ A high-performance navigation overlay that decouples content lookup from playbac
 - **Cyrillic Parity**: Fully case-insensitive Russian search support.
 - **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word).
 - **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
+- **Hit Highlighting**: Elegant visual feedback highlighting exact matching letters (Subsequence-aware).
 - **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek.
 - **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
 - **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
@@ -215,8 +216,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~305 Commits (v1.25.2)
-- **Intensity Profile**: 8.8 Commits/Hour 
+- **Current Maturity**: ~315 Commits (v1.26.0)
+- **Intensity Profile**: 9.1 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
