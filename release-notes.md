@@ -1,3 +1,18 @@
+# Release Notes - v1.24.9 (Search HUD UX Enhancements)
+
+**Date**: 2026-03-12
+**Version**: v1.24.9
+**Request ZID**: 20260312175031
+**RFC**: [docs/rfcs/20260312175031-release-v1.24.9.md](docs/rfcs/20260312175031-release-v1.24.9.md)
+
+## Highlights
+
+### 📋 **Bash-Style Word Deletion**
+- **Action**: Added `Ctrl + W` (and `Ctrl + Ц`) to the Search HUD.
+- **Behavior**: Instantly deletes the word before the cursor, matching the behavior of terminal environments like Bash. This significantly improves editing efficiency when refining search queries.
+
+---
+
 # Release Notes - v1.24.8 (Stability & Search Selection)
 
 **Date**: 2026-03-12

@@ -1598,6 +1598,36 @@ local function manage_search_bindings(enable)
         mp.add_forced_key_binding("Ctrl+a", "search-select-all", select_all)
         mp.add_forced_key_binding("Ctrl+ф", "search-select-all-ru", select_all)
         
+        local function delete_word_before_cursor()
+            if FSM.SEARCH_QUERY == "" or FSM.SEARCH_CURSOR == 0 then return end
+            
+            local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+            local target_pos = get_word_boundary(q_table, FSM.SEARCH_CURSOR, -1)
+            
+            -- If we have a selection, delete it first (standard behavior)
+            if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
+                local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
+                local s_end = math.max(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
+                for i = s_end, s_start + 1, -1 do
+                    table.remove(q_table, i)
+                end
+                FSM.SEARCH_CURSOR = s_start
+                FSM.SEARCH_ANCHOR = -1
+            else
+                -- Delete range from target_pos up to SEARCH_CURSOR
+                for i = FSM.SEARCH_CURSOR, target_pos + 1, -1 do
+                    table.remove(q_table, i)
+                end
+                FSM.SEARCH_CURSOR = target_pos
+            end
+            
+            FSM.SEARCH_QUERY = table.concat(q_table)
+            update_search_results()
+            render_search()
+        end
+        mp.add_forced_key_binding("Ctrl+w", "search-delete-word", delete_word_before_cursor, "repeatable")
+        mp.add_forced_key_binding("Ctrl+ц", "search-delete-word-ru", delete_word_before_cursor, "repeatable")
+        
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
                 if #FSM.SEARCH_RESULTS == 0 then return end
@@ -1692,6 +1722,8 @@ local function manage_search_bindings(enable)
         mp.remove_key_binding("search-paste-ru")
         mp.remove_key_binding("search-select-all")
         mp.remove_key_binding("search-select-all-ru")
+        mp.remove_key_binding("search-delete-word")
+        mp.remove_key_binding("search-delete-word-ru")
         mp.remove_key_binding("search-mouse-click")
         
         render_search()

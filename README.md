@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.24.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.8) 
+[![Version](https://img.shields.io/badge/version-v1.24.9-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.9) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -89,7 +89,7 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 ### <span id="universal-subtitle-search"></span>Universal Subtitle Search
 A high-performance navigation overlay that decouples content lookup from playback.
 - **"Really" Fuzzy Search**: Filter the entire subtitle track using non-contiguous character matching (e.g., "hl wrd" -> "hello world").
-- **Select All**: Quickly highlight your entire query with `Ctrl+A` (EN) or `Ctrl+Ф` (RU).
+- **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word) for high-efficiency query refinement.
 - **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
 - **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek.
 - **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
@@ -155,6 +155,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+a` | `Ctrl+ф` | **Select All** (Inside Search HUD) |
+| `Ctrl+w` | `Ctrl+ц` | **Delete Word** (Bash-style, Search HUD) |
 | `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
 | `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
@@ -201,8 +202,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~270 Commits (v1.24.8)
-- **Intensity Profile**: 7.8 Commits/Hour 
+- **Current Maturity**: ~275 Commits (v1.24.9)
+- **Intensity Profile**: 7.9 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
