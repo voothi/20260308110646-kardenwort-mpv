@@ -1,4 +1,4 @@
-local mp = require 'mp'
+﻿local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 
@@ -99,8 +99,7 @@ local FSM = {
     SEARCH_QUERY = "",
     SEARCH_RESULTS = {},
     SEARCH_SEL_IDX = 1,
-    SEARCH_CURSOR = 0,
-    SEARCH_ANCHOR = -1
+    SEARCH_CURSOR = 0
 }
 
 local Tracks = {
@@ -121,11 +120,6 @@ local search_osd = mp.create_osd_overlay("ass-events")
 search_osd.res_x = 1920
 search_osd.res_y = 1080
 
--- Explicit z-index stacking: Search > Drum Window > Main Drum/Subtitles
-drum_osd.z = 10
-dw_osd.z = 20
-search_osd.z = 30
-
 -- =========================================================================
 -- PARSERS & UTILS
 -- =========================================================================
@@ -137,11 +131,7 @@ local function parse_time(time_str)
     end
     h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
     if h and m and s and ms then
-        -- Decimal fraction handling: scale based on digit count
-        -- .cc (centiseconds) = divide by 100, .mmm (milliseconds) = divide by 1000
-        local fractional_value = tonumber(ms)
-        local scale = 10 ^ #ms
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + fractional_value / scale
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
     end
     return 0
 end
@@ -156,40 +146,6 @@ local function utf8_to_table(str)
         table.insert(t, ch)
     end
     return t
-end
-
-local function get_word_boundary(q_table, pos, direction)
-    -- direction: -1 (left), 1 (right)
-    if #q_table == 0 then return 0 end
-    
-    local new_pos = pos
-    local function is_word_char(ch)
-        if not ch then return false end
-        -- Basic alphanumeric + Cyrillic
-        return ch:match("[%w\128-\255]") ~= nil
-    end
-
-    if direction == -1 then
-        -- Skip spaces to the left
-        while new_pos > 0 and not is_word_char(q_table[new_pos]) do
-            new_pos = new_pos - 1
-        end
-        -- Skip word chars to the left
-        while new_pos > 0 and is_word_char(q_table[new_pos]) do
-            new_pos = new_pos - 1
-        end
-    else
-        -- Skip spaces to the right
-        while new_pos < #q_table and not is_word_char(q_table[new_pos + 1]) do
-            new_pos = new_pos + 1
-        end
-        -- Skip word chars to the right
-        while new_pos < #q_table and is_word_char(q_table[new_pos + 1]) do
-            new_pos = new_pos + 1
-        end
-    end
-    
-    return new_pos
 end
 
 local function load_sub(path, is_ass)
@@ -1165,56 +1121,16 @@ local function draw_search_ui()
         display_query = "{\\alpha&HAA&}Search...{\\alpha&H00&|}" 
     else
         local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-        local cur = FSM.SEARCH_CURSOR
-        local anc = FSM.SEARCH_ANCHOR
-        
-        local s_start, s_end = -1, -1
-        if anc ~= -1 and anc ~= cur then
-            s_start = math.min(anc, cur)
-            s_end = math.max(anc, cur)
-        end
-        
-        local parts = {}
+        local pre = {}
+        local post = {}
         for i = 1, #q_table do
-            if i == s_start + 1 then
-                table.insert(parts, "{\\1c&H" .. (Options.dw_highlight_color or "00FFFF") .. "&}")
-            end
-            
-            if i == cur and anc == -1 then
-                table.insert(parts, q_table[i] .. "|")
-            elseif i == cur and anc ~= -1 then
-                table.insert(parts, q_table[i] .. "|") -- Cursor still visible
+            if i <= FSM.SEARCH_CURSOR then
+                table.insert(pre, q_table[i])
             else
-                table.insert(parts, q_table[i])
-            end
-            
-            if i == s_end then
-                table.insert(parts, "{\\1c&H" .. text_color .. "&}")
+                table.insert(post, q_table[i])
             end
         end
-        
-        -- Special case: cursor at start
-        if cur == 0 and anc == -1 then
-            display_query = "|" .. table.concat(parts)
-        elseif cur == 0 and anc ~= -1 then
-            -- If anchor is > 0, we need the highlight tag before anything else
-            if s_start == 0 then
-                display_query = "|{\\1c&H" .. (Options.dw_highlight_color or "00FFFF") .. "&}" .. table.concat(parts)
-                -- If s_end was 0 (not possible here), we'd need a closing tag, but s_end >= 1 if anc != cur
-            else
-                display_query = "|" .. table.concat(parts)
-            end
-        else
-            display_query = table.concat(parts)
-            -- Handle case where cursor is after the last character
-            if cur == #q_table and anc == -1 then
-                display_query = display_query .. "|"
-            elseif cur == #q_table and anc ~= -1 then
-                -- if anchor is less than cur, the cursor is at the end of selection
-                -- highlighted text already ended at s_end
-                display_query = display_query .. "|"
-            end
-        end
+        display_query = table.concat(pre) .. "|" .. table.concat(post)
     end
     ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
         box_x + padding_x, box_y + padding_y, font_size, text_color, display_query)
@@ -1284,7 +1200,6 @@ local function manage_search_bindings(enable)
         FSM.SEARCH_RESULTS = {}
         FSM.SEARCH_SEL_IDX = 1
         FSM.SEARCH_CURSOR = 0
-        FSM.SEARCH_ANCHOR = -1
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -1307,18 +1222,6 @@ local function manage_search_bindings(enable)
             
             mp.add_forced_key_binding(key_name, "search-char-" .. key_name, function()
                 local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-                
-                -- Handle selection delete
-                if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
-                    local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                    local s_end = math.max(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                    for i = s_end, s_start + 1, -1 do
-                        table.remove(q_table, i)
-                    end
-                    FSM.SEARCH_CURSOR = s_start
-                    FSM.SEARCH_ANCHOR = -1
-                end
-                
                 table.insert(q_table, FSM.SEARCH_CURSOR + 1, ch)
                 FSM.SEARCH_QUERY = table.concat(q_table)
                 FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + 1
@@ -1330,20 +1233,8 @@ local function manage_search_bindings(enable)
         
         -- Special Keys
         mp.add_forced_key_binding("BS", "search-bs", function()
-            local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-            if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
-                local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                local s_end = math.max(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                for i = s_end, s_start + 1, -1 do
-                    table.remove(q_table, i)
-                end
-                FSM.SEARCH_QUERY = table.concat(q_table)
-                FSM.SEARCH_CURSOR = s_start
-                FSM.SEARCH_ANCHOR = -1
-                
-                update_search_results()
-                render_search()
-            elseif FSM.SEARCH_CURSOR > 0 then
+            if FSM.SEARCH_CURSOR > 0 then
+                local q_table = utf8_to_table(FSM.SEARCH_QUERY)
                 table.remove(q_table, FSM.SEARCH_CURSOR)
                 FSM.SEARCH_QUERY = table.concat(q_table)
                 FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR - 1
@@ -1355,19 +1246,7 @@ local function manage_search_bindings(enable)
         
         mp.add_forced_key_binding("DEL", "search-del", function()
             local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-            if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
-                local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                local s_end = math.max(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                for i = s_end, s_start + 1, -1 do
-                    table.remove(q_table, i)
-                end
-                FSM.SEARCH_QUERY = table.concat(q_table)
-                FSM.SEARCH_CURSOR = s_start
-                FSM.SEARCH_ANCHOR = -1
-                
-                update_search_results()
-                render_search()
-            elseif FSM.SEARCH_CURSOR < #q_table then
+            if FSM.SEARCH_CURSOR < #q_table then
                 table.remove(q_table, FSM.SEARCH_CURSOR + 1)
                 FSM.SEARCH_QUERY = table.concat(q_table)
                 
@@ -1376,37 +1255,16 @@ local function manage_search_bindings(enable)
             end
         end, "repeatable")
         
-        local function move_search_cursor(direction, ctrl, shift)
-            local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-            local old_cursor = FSM.SEARCH_CURSOR
-            
-            if shift and FSM.SEARCH_ANCHOR == -1 then
-                FSM.SEARCH_ANCHOR = old_cursor
-            elseif not shift then
-                FSM.SEARCH_ANCHOR = -1
-            end
-            
-            if ctrl then
-                FSM.SEARCH_CURSOR = get_word_boundary(q_table, FSM.SEARCH_CURSOR, direction)
-            else
-                if direction == -1 then
-                    FSM.SEARCH_CURSOR = math.max(0, FSM.SEARCH_CURSOR - 1)
-                else
-                    FSM.SEARCH_CURSOR = math.min(#q_table, FSM.SEARCH_CURSOR + 1)
-                end
-            end
-            
+        mp.add_forced_key_binding("LEFT", "search-left", function()
+            FSM.SEARCH_CURSOR = math.max(0, FSM.SEARCH_CURSOR - 1)
             render_search()
-        end
+        end, "repeatable")
         
-        mp.add_forced_key_binding("LEFT", "search-left", function() move_search_cursor(-1, false, false) end, "repeatable")
-        mp.add_forced_key_binding("RIGHT", "search-right", function() move_search_cursor(1, false, false) end, "repeatable")
-        mp.add_forced_key_binding("Shift+LEFT", "search-s-left", function() move_search_cursor(-1, false, true) end, "repeatable")
-        mp.add_forced_key_binding("Shift+RIGHT", "search-s-right", function() move_search_cursor(1, false, true) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+LEFT", "search-c-left", function() move_search_cursor(-1, true, false) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+RIGHT", "search-c-right", function() move_search_cursor(1, true, false) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+Shift+LEFT", "search-cs-left", function() move_search_cursor(-1, true, true) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+Shift+RIGHT", "search-cs-right", function() move_search_cursor(1, true, true) end, "repeatable")
+        mp.add_forced_key_binding("RIGHT", "search-right", function()
+            local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+            FSM.SEARCH_CURSOR = math.min(#q_table, FSM.SEARCH_CURSOR + 1)
+            render_search()
+        end, "repeatable")
         
         mp.add_forced_key_binding("UP", "search-up", function()
             if #FSM.SEARCH_RESULTS > 0 then
@@ -1453,18 +1311,6 @@ local function manage_search_bindings(enable)
                 local txt = res.stdout:gsub("\r", ""):gsub("\n", " ")
                 if txt ~= "" then
                     local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-                    
-                    -- Handle selection delete
-                    if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
-                        local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                        local s_end = math.max(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
-                        for i = s_end, s_start + 1, -1 do
-                            table.remove(q_table, i)
-                        end
-                        FSM.SEARCH_CURSOR = s_start
-                        FSM.SEARCH_ANCHOR = -1
-                    end
-
                     local p_table = utf8_to_table(txt)
                     for i = 1, #p_table do
                         table.insert(q_table, FSM.SEARCH_CURSOR + i, p_table[i])
@@ -1558,12 +1404,6 @@ local function manage_search_bindings(enable)
         mp.remove_key_binding("search-del")
         mp.remove_key_binding("search-left")
         mp.remove_key_binding("search-right")
-        mp.remove_key_binding("search-s-left")
-        mp.remove_key_binding("search-s-right")
-        mp.remove_key_binding("search-c-left")
-        mp.remove_key_binding("search-c-right")
-        mp.remove_key_binding("search-cs-left")
-        mp.remove_key_binding("search-cs-right")
         mp.remove_key_binding("search-up")
         mp.remove_key_binding("search-down")
         mp.remove_key_binding("search-enter")

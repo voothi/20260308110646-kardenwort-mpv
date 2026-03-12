@@ -48,3 +48,8 @@ scripts/diff_report.patch
 scripts/input_diff.patch
 diff_since_working.patch
 scripts/diff_since_working.patch
+scripts/lls_core_backup.lua
+scripts/lls_core_good_utf8.lua
+scripts/lls_core_good.lua
+scripts/regression_diff_utf8.patch
+scripts/regression_diff.patch
