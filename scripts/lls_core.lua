@@ -1289,6 +1289,19 @@ function cmd_dw_toggle_search()
     end
 end
 
+local function cmd_toggle_drum_search_global()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Drum Search: No subtitles loaded")
+        return
+    end
+    if FSM.DRUM_WINDOW == "OFF" then
+        cmd_toggle_drum_window()
+    end
+    if not FSM.DW_SEARCH_MODE then
+        cmd_dw_toggle_search()
+    end
+end
+
 function cmd_toggle_drum_window()
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Window: No subtitles loaded")
@@ -1752,3 +1765,4 @@ mp.add_key_binding(nil, "copy-subtitle", cmd_copy_sub)
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
+mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_drum_search_global)
