@@ -57,11 +57,11 @@ local Options = {
 
     -- Search HUD Styling
     search_hit_color = "0000FF",       -- Match highlighting (BGR)
-    search_hit_bold = true,            -- Bold matches?
-    search_sel_color = "0000FF",       -- Selected line color (BGR)
+    search_hit_bold = false,            -- Bold matches?
+    search_sel_color = "FF0000",       -- Selected line color (BGR)
     search_sel_bold = false,           -- Bold selected line?
-    search_query_hit_color = "FFFFFF", -- Search bar text hits (Select All/Selection)
-    search_query_hit_bold = true       -- Bold search bar hits?
+    search_query_hit_color = "0000FF", -- Search bar text hits (Select All/Selection)
+    search_query_hit_bold = false       -- Bold search bar hits?
 }
 options.read_options(Options, "lls")
 
