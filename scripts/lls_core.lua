@@ -53,7 +53,15 @@ local Options = {
     dw_active_color = "D02020",   -- brighter bright blue in BGR
     dw_highlight_color = "0000FF",-- red highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
-    dw_char_width = 0.55          -- char width multiplier (0.55 is exact for Consolas)
+    dw_char_width = 0.55,         -- char width multiplier (0.55 is exact for Consolas)
+
+    -- Search HUD Styling
+    search_hit_color = "0000FF",       -- Match highlighting (BGR)
+    search_hit_bold = true,            -- Bold matches?
+    search_sel_color = "0000FF",       -- Selected line color (BGR)
+    search_sel_bold = false,           -- Bold selected line?
+    search_query_hit_color = "FFFFFF", -- Search bar text hits (Select All/Selection)
+    search_query_hit_bold = true       -- Bold search bar hits?
 }
 options.read_options(Options, "lls")
 
@@ -1441,7 +1449,8 @@ local function draw_search_ui()
         
         for i = 1, #q_table do
             if i == s_start + 1 then
-                display_query = display_query .. string.format("{\\1c&H%s&}", Options.dw_highlight_color)
+                local q_b = Options.search_query_hit_bold and "{\\b1}" or ""
+                display_query = display_query .. string.format("%s{\\1c&H%s&}", q_b, Options.search_query_hit_color)
             end
             
             if i == cur + 1 and not has_sel then
@@ -1451,7 +1460,8 @@ local function draw_search_ui()
             display_query = display_query .. q_table[i]
             
             if i == s_end then
-                display_query = display_query .. string.format("{\\1c&H%s&}", text_color)
+                local q_b_end = Options.search_query_hit_bold and "{\\b0}" or ""
+                display_query = display_query .. string.format("%s{\\1c&H%s&}", q_b_end, text_color)
             end
         end
         
@@ -1499,23 +1509,28 @@ local function draw_search_ui()
             end
             
             local item_y = results_y + padding_y + (k - 1) * line_height
-            local base_color = (result_idx == FSM.SEARCH_SEL_IDX) and Options.dw_highlight_color or text_color
+            local is_selected = (result_idx == FSM.SEARCH_SEL_IDX)
+            local base_color = is_selected and Options.search_sel_color or text_color
+            local sel_bold = (is_selected and Options.search_sel_bold) and "{\\b1}" or ""
+            local sel_bold_end = (is_selected and Options.search_sel_bold) and "{\\b0}" or ""
             
             -- Construct highlighted string
             local display_text = ""
-            local hit_color = (result_idx == FSM.SEARCH_SEL_IDX) and "FFFFFF" or Options.dw_highlight_color
+            local hit_color = is_selected and (Options.search_query_hit_color or "FFFFFF") or Options.search_hit_color
+            local hit_bold = Options.search_hit_bold and "{\\b1}" or ""
+            local hit_bold_end = Options.search_hit_bold and "{\\b0}" or ""
             
             for i = 1, #raw_t_table do
                 local is_hit = result_data.hl and result_data.hl[i]
                 if is_hit then
-                    display_text = display_text .. string.format("{\\b1}{\\c&H%s&}%s{\\b0}{\\c&H%s&}", hit_color, raw_t_table[i], base_color)
+                    display_text = display_text .. string.format("%s{\\c&H%s&}%s%s{\\c&H%s&}", hit_bold, hit_color, raw_t_table[i], hit_bold_end, base_color)
                 else
                     display_text = display_text .. raw_t_table[i]
                 end
             end
             
-            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
-                box_x + padding_x, item_y, font_size * 0.8, base_color, display_text)
+            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+                box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
         -- "No results"
