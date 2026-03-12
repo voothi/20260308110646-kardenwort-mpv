@@ -78,8 +78,8 @@ local FSM = {
     last_paused_sub_end = nil,
     space_down_time = 0,
     initial_pause_state = true,
-    native_sub_vis = true,
-    native_sec_sub_vis = true,
+    native_sub_vis = mp.get_property_bool("sub-visibility", true),
+    native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true),
     native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
 
     -- Drum Window State
@@ -112,14 +112,17 @@ local Tracks = {
 local drum_osd = mp.create_osd_overlay("ass-events")
 drum_osd.res_x = 1920
 drum_osd.res_y = 1080
+drum_osd.z = 10
 
 local dw_osd = mp.create_osd_overlay("ass-events")
 dw_osd.res_x = 1920
 dw_osd.res_y = 1080
+dw_osd.z = 20
 
 local search_osd = mp.create_osd_overlay("ass-events")
 search_osd.res_x = 1920
 search_osd.res_y = 1080
+search_osd.z = 30
 
 -- =========================================================================
 -- PARSERS & UTILS
@@ -888,6 +891,13 @@ end
 local function tick_autopause(time_pos)
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
+    local sub_end = mp.get_property_number("sub-end")
+    if sub_end == nil or (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
+        return
+    end
+
+    if FSM.last_paused_sub_end == sub_end then return end
+
     local raw_text_primary = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
     local raw_text_secondary = mp.get_property("secondary-sub-text") or ""
     
@@ -899,15 +909,8 @@ local function tick_autopause(time_pos)
         if has_karaoke then return end
     end
 
-    local sub_end = mp.get_property_number("sub-end")
-    if sub_end ~= nil then
-        if (sub_end - time_pos) < Options.pause_padding and (sub_end - time_pos) > 0 then
-            if FSM.last_paused_sub_end ~= sub_end then
-                mp.set_property_bool("pause", true)
-                FSM.last_paused_sub_end = sub_end
-            end
-        end
-    end
+    mp.set_property_bool("pause", true)
+    FSM.last_paused_sub_end = sub_end
 end
 
 -- =========================================================================
