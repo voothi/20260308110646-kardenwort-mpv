@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.25.1-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.25.1) 
+[![Version](https://img.shields.io/badge/version-v1.25.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.25.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -111,6 +111,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Static Viewport**: Once you begin navigating via arrows, the viewport "freezes" synchronously, providing a stable, flicker-free environment for reading and selection.
 - **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, or via standard `Mouse Wheel`/`Ctrl+Arrows`.
 - **Conflict Free**: Opening the window auto-hides overlapping subtitle tracks and native OS window-drag behaviors to guarantee distraction-free reading.
+- **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's parchment background.
 - **Toggle**: `W` (English) or `Ц` (Russian).
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
@@ -204,8 +205,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~295 Commits (v1.25.1)
-- **Intensity Profile**: 8.5 Commits/Hour 
+- **Current Maturity**: ~305 Commits (v1.25.2)
+- **Intensity Profile**: 8.8 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
