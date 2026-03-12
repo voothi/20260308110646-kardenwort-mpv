@@ -1270,6 +1270,66 @@ local function manage_search_bindings(enable)
         mp.add_forced_key_binding("Ctrl+v", "search-paste", paste_from_clipboard, "repeatable")
         mp.add_forced_key_binding("Ctrl+м", "search-paste-ru", paste_from_clipboard, "repeatable")
         
+        local function search_mouse_click(tbl)
+            if tbl.event == "down" then
+                if #FSM.SEARCH_RESULTS == 0 then return end
+                
+                local osd_x, osd_y = dw_get_mouse_osd()
+                
+                -- Check if inside the dropdown Box
+                local font_size = Options.dw_font_size
+                local line_height = font_size * 1.2
+                local padding_y = 10
+                local box_w = 1200
+                local box_x = 960 - (box_w / 2)
+                local box_y = 50
+                local results_y = box_y + line_height + padding_y * 2 + 5
+                
+                local max_results_display = 8
+                local display_count = math.min(#FSM.SEARCH_RESULTS, max_results_display)
+                local results_h = display_count * line_height + padding_y * 2
+                
+                if osd_x >= box_x and osd_x <= box_x + box_w then
+                    if osd_y >= results_y and osd_y <= results_y + results_h then
+                        -- Calculate which item was clicked
+                        local rel_y = osd_y - (results_y + padding_y)
+                        if rel_y >= 0 and rel_y <= display_count * line_height then
+                            local item_idx = math.floor(rel_y / line_height) + 1
+                            item_idx = math.max(1, math.min(display_count, item_idx))
+                            
+                            local start_idx = math.max(1, FSM.SEARCH_SEL_IDX - math.floor(max_results_display / 2))
+                            if start_idx + max_results_display - 1 > #FSM.SEARCH_RESULTS then
+                                start_idx = math.max(1, #FSM.SEARCH_RESULTS - max_results_display + 1)
+                            end
+                            
+                            local result_idx = start_idx + item_idx - 1
+                            if result_idx <= #FSM.SEARCH_RESULTS then
+                                FSM.SEARCH_SEL_IDX = result_idx
+                                
+                                -- Jump immediately as if Enter was pressed
+                                local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX]
+                                local sub = Tracks.pri.subs[selected_line]
+                                
+                                if sub.start_time then
+                                    mp.commandv("seek", sub.start_time, "absolute+exact")
+                                end
+                                
+                                FSM.DW_CURSOR_LINE = selected_line
+                                FSM.DW_CURSOR_WORD = 1
+                                FSM.DW_VIEW_CENTER = selected_line
+                                FSM.DW_FOLLOW_PLAYER = true
+                                FSM.DW_ANCHOR_LINE = -1
+                                FSM.DW_ANCHOR_WORD = -1
+                                
+                                cmd_toggle_search()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        mp.add_forced_key_binding("MBTN_LEFT", "search-mouse-click", search_mouse_click, {complex = true})
+        
         render_search()
     else
         FSM.SEARCH_MODE = false
@@ -1291,6 +1351,7 @@ local function manage_search_bindings(enable)
         mp.remove_key_binding("search-esc")
         mp.remove_key_binding("search-paste")
         mp.remove_key_binding("search-paste-ru")
+        mp.remove_key_binding("search-mouse-click")
         
         render_search()
         
