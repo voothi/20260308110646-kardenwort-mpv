@@ -1,3 +1,31 @@
+# Release Notes - v1.24.0 (Universal Subtitle Search)
+
+**Date**: 2026-03-12
+**Version**: v1.24.0
+**Request ZID**: 20260312115025
+**RFC**: [docs/rfcs/20260312115025-release-v1.24.0.md](docs/rfcs/20260312115025-release-v1.24.0.md)
+
+## Highlights
+
+### 🔍 **Universal Subtitle Search**
+- **Standalone Lookup Overlay**: Subtitle search is no longer tied to the Drum Window. Press `Ctrl + F` (or `Ctrl + А`) at any time to summon a transparent search overlay directly over your video.
+- **Fuzzy Text Navigation**: Type keywords to immediately filter the entire primary subtitle track. Navigation is synchronized; selecting a result instantly jumps the video and updates the Drum Window's context in the background.
+- **Dual Layout First-Class Support**: Full native support for Russian Cyrillic input without keyboard switching.
+
+### 📋 **Advanced Input & Clipboard**
+- **Clipboard Paste**: Press `Ctrl + V` (or `Ctrl + М`) within the search bar to paste text from your system clipboard. Line breaks are automatically stripped to ensure query cohesion.
+- **UTF-8 Precision**: Enhanced the input buffer to handle multi-byte characters. Deleting Cyrillic letters with Backspace now works with perfect byte-alignment.
+
+### 🖱️ **Interactive Search Results**
+- **Mouse Selection**: The search dropdown is now fully interactive. Use your mouse to click directly on any search result to jump to that timestamp instantly.
+- **Dynamic Scrolling**: The result list intelligently scrolls and center-aligns as you navigate via keyboard or mouse.
+
+### 🛡️ **Technical Robustness & Sync**
+- **Hard-Sync Playback**: Upgraded jumping logic to use `seek absolute+exact`. This eliminates the "desync" bug where secondary subtitles would occasionally fail to load or align after a rapid jump.
+- **Visibility Restoration**: Fixed a core engine bug where exiting the Drum Window would force subtitles 'ON' regardless of their previous state. Your manual visibility settings are now rigorously preserved.
+
+---
+
 # Release Notes - v1.2.22 (Track Scrolling Shortcuts)
 
 **Date**: 2026-03-11

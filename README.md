@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.2.22-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.2.22) 
+[![Version](https://img.shields.io/badge/version-v1.24.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -26,6 +26,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Distinctive Advantages](#distinctive-advantages)
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
 - [Intelligent Scripts](#intelligent-scripts)
+  - [Universal Subtitle Search](#universal-subtitle-search)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
   - [Static Reading Mode](#static-reading-mode)
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
@@ -68,7 +69,8 @@ This suite solves problems that standard video players and generic scripts ignor
 5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense immersion sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
 6.  **[Static Reading Mode](#static-reading-mode)**: Converts the standard scrolling subtitle "drum" into a frozen, text-editor style viewport. Navigate, mouse-select, double-click to seek, and edge-scroll without the text flickering or moving under your cursor.
 7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
-8.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
+8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
+9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
 
 [Return to Top](#table-of-contents)
 
@@ -83,6 +85,14 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 [Return to Top](#table-of-contents)
 
 ## Intelligent Scripts
+
+### <span id="universal-subtitle-search"></span>Universal Subtitle Search
+A high-performance navigation overlay that decouples content lookup from playback.
+- **Fuzzy Search**: Filter the entire subtitle track in real-time. Jump to any line instantly.
+- **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
+- **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek.
+- **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
+- **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
 
 ### Karaoke-Safe Autopause
 Advanced pause logic designed specifically for immersion students using `.ass` karaoke-formatted subtitles.
@@ -142,6 +152,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
 | `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
+| `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
 | `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
@@ -179,7 +190,7 @@ Key settings to protect your acquisition environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.2.22 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.24.0 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -188,8 +199,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~220 Commits (v1.2.20)
-- **Intensity Profile**: 7.2 Commits/Hour 
+- **Current Maturity**: ~250 Commits (v1.24.0)
+- **Intensity Profile**: 7.5 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

@@ -43,3 +43,6 @@ scripts/old_copy_sub.lua
 diff.txt
 diff2.txt
 log.txt
+scripts/diff_report_utf8.patch
+scripts/diff_report.patch
+scripts/input_diff.patch
