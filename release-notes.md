@@ -1,3 +1,19 @@
+# Release Notes - v1.25.0 (True Fuzzy Keyword Search)
+
+**Date**: 2026-03-12
+**Version**: v1.25.0
+**Request ZID**: 20260312192633
+**RFC**: [docs/rfcs/20260312192633-release-v1.25.0.md](docs/rfcs/20260312192633-release-v1.25.0.md)
+
+## Highlights
+
+### 🔍 **True Fuzzy Keyword Search (Bash-Style)**
+- **Order-Independent Matching**: You can now type keywords in any order (e.g., `fox quick` finds `The Quick Brown Fox`).
+- **Approximate Keywords**: Each word in your search can be fuzzy (e.g., `tst ths` finds `tested this`).
+- **Intelligent Ranking**: While order is independent, the engine explicitly rewards correct sequences and literal matches, keeping the most "natural" results at the top.
+
+---
+
 # Release Notes - v1.24.10 (Search Relevance & Cyrillic Parity)
 
 **Date**: 2026-03-12

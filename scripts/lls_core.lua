@@ -162,6 +162,20 @@ local function utf8_to_lower(str)
     return res
 end
 
+local function is_fuzzy_subsequence(str_lower, query_lower)
+    if query_lower == "" then return true end
+    local str_t = utf8_to_table(str_lower)
+    local query_t = utf8_to_table(query_lower)
+    local i, j = 1, 1
+    while i <= #str_t and j <= #query_t do
+        if str_t[i] == query_t[j] then
+            j = j + 1
+        end
+        i = i + 1
+    end
+    return j > #query_t
+end
+
 local function calculate_match_score(str, query)
     if query == "" then return 0 end
     local str_lower = utf8_to_lower(str)
@@ -177,39 +191,54 @@ local function calculate_match_score(str, query)
     end
     if #tokens == 0 then return 0 end
 
-    -- Check if ALL tokens are present anywhere in the string
+    -- Check if ALL tokens are present as FUZZY SUBSEQUENCES in the string
     local matches = {}
     for i, token in ipairs(tokens) do
+        -- Check for literal substring first (higher signal)
         local start_pos, end_pos = str_lower:find(token, 1, true)
-        if not start_pos then return 0 end -- All tokens must match
-        table.insert(matches, {start = start_pos, stop = end_pos})
+        if start_pos then
+            table.insert(matches, {start = start_pos, stop = end_pos, literal = true})
+        else
+            -- Fallback to fuzzy subsequence for this specific word/token
+            if not is_fuzzy_subsequence(str_lower, token) then
+                return 0 -- Every keyword must match at least fuzzily
+            end
+            table.insert(matches, {start = -1, stop = -1, literal = false})
+        end
     end
 
     -- Base score for finding all keywords
     local score = 500
 
-    -- Bonus: Start of sentence match
-    if str_lower:find(tokens[1], 1, true) == 1 then
+    -- Bonus: Count how many keywords are literal substrings
+    for _, m in ipairs(matches) do
+        if m.literal then score = score + 100 end
+    end
+
+    -- Bonus: All words in correct sequential order (for literal tokens)
+    local last_pos = 0
+    local in_order = true
+    for _, m in ipairs(matches) do
+        if m.literal then
+            if m.start < last_pos then
+                in_order = false
+                break
+            end
+            last_pos = m.stop
+        end
+    end
+    if in_order and #matches > 0 then
         score = score + 300
     end
 
-    -- Bonus: Correct sequential order
-    local last_pos = 0
-    local in_order = true
-    for _, match in ipairs(matches) do
-        if match.start < last_pos then
-            in_order = false
-            break
-        end
-        last_pos = match.stop
-    end
-    if in_order then
-        score = score + 500
+    -- Bonus: Start of sentence match
+    if matches[1].literal and str_lower:find(tokens[1], 1, true) == 1 then
+        score = score + 300
     end
 
-    -- Bonus: Substring match (contiguous search query)
+    -- Bonus: Contiguous whole query string match
     if str_lower:find(query_lower, 1, true) then
-        score = score + 200
+        score = score + 400
     end
 
     return score
