@@ -1499,23 +1499,27 @@ local function draw_search_ui()
             end
             
             local item_y = results_y + padding_y + (k - 1) * line_height
-            local base_color = (result_idx == FSM.SEARCH_SEL_IDX) and Options.dw_highlight_color or text_color
+            local is_selected = (result_idx == FSM.SEARCH_SEL_IDX)
             
             -- Construct highlighted string
             local display_text = ""
-            local hit_color = (result_idx == FSM.SEARCH_SEL_IDX) and "FFFFFF" or Options.dw_highlight_color
+            if is_selected then
+                display_text = "> " -- Selection marker
+            else
+                display_text = "  "
+            end
             
             for i = 1, #raw_t_table do
                 local is_hit = result_data.hl and result_data.hl[i]
                 if is_hit then
-                    display_text = display_text .. string.format("{\\b1}{\\c&H%s&}%s{\\b0}{\\c&H%s&}", hit_color, raw_t_table[i], base_color)
+                    display_text = display_text .. string.format("{\\b1}%s{\\b0}", raw_t_table[i])
                 else
                     display_text = display_text .. raw_t_table[i]
                 end
             end
             
             ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
-                box_x + padding_x, item_y, font_size * 0.8, base_color, display_text)
+                box_x + padding_x, item_y, font_size * 0.8, text_color, display_text)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
         -- "No results"

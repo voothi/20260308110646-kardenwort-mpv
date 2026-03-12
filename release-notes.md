@@ -1,3 +1,18 @@
+# Release Notes - v1.26.1 (High-Contrast Search)
+
+**Date**: 2026-03-12
+**Version**: v1.26.1
+**Request ZID**: 20260312202316
+**RFC**: [docs/rfcs/20260312202316-release-v1.26.1.md](docs/rfcs/20260312202316-release-v1.26.1.md)
+
+## Highlights
+
+### 🔦 **Black & Bold Aesthetic**
+- **High-Contrast Design**: Search highlights now use **purely bold** text, removing the red color for a cleaner, professional look.
+- **Minimalist Feedback**: The selected result is now indicated by a subtle marker instead of a color shift, ensuring the text is always black and perfectly legible.
+
+---
+
 # Release Notes - v1.26.0 (Visual Search Feedback)
 
 **Date**: 2026-03-12
