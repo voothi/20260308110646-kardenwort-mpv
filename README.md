@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.26.1-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.1) 
+[![Version](https://img.shields.io/badge/version-v1.26.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -216,8 +216,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~320 Commits (v1.26.1)
-- **Intensity Profile**: 9.4 Commits/Hour 
+- **Current Maturity**: ~325 Commits (v1.26.2)
+- **Intensity Profile**: 9.6 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

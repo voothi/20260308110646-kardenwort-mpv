@@ -1503,11 +1503,6 @@ local function draw_search_ui()
             
             -- Construct highlighted string
             local display_text = ""
-            if is_selected then
-                display_text = "> " -- Selection marker
-            else
-                display_text = "  "
-            end
             
             for i = 1, #raw_t_table do
                 local is_hit = result_data.hl and result_data.hl[i]

@@ -1,31 +1,15 @@
-# Release Notes - v1.26.1 (High-Contrast Search)
+# Release Notes - v1.26.2 (Minimalist Bold Search)
 
 **Date**: 2026-03-12
-**Version**: v1.26.1
-**Request ZID**: 20260312202316
-**RFC**: [docs/rfcs/20260312202316-release-v1.26.1.md](docs/rfcs/20260312202316-release-v1.26.1.md)
+**Version**: v1.26.2
+**Request ZID**: 20260312204411
+**RFC**: [docs/rfcs/20260312204411-release-v1.26.2.md](docs/rfcs/20260312204411-release-v1.26.2.md)
 
 ## Highlights
 
-### 🔦 **Black & Bold Aesthetic**
-- **High-Contrast Design**: Search highlights now use **purely bold** text, removing the red color for a cleaner, professional look.
-- **Minimalist Feedback**: The selected result is now indicated by a subtle marker instead of a color shift, ensuring the text is always black and perfectly legible.
-
----
-
-# Release Notes - v1.26.0 (Visual Search Feedback)
-
-**Date**: 2026-03-12
-**Version**: v1.26.0
-**Request ZID**: 20260312202316
-**RFC**: [docs/rfcs/20260312202316-release-v1.26.0.md](docs/rfcs/20260312202316-release-v1.26.0.md)
-
-## Highlights
-
-### 🔦 **Hit-Highlighting in Search**
-- **Elegant Visual Cues**: The search results list now elegantly highlights matching characters using **Bold High-Contrast** colors.
-- **Intelligent Contrast**: Highlights adapt to the selection state—turning **White** when a line is selected to ensure maximum readability against the red selection bar.
-- **Fuzzy Accuracy**: Even non-contiguous matches (e.g., `mne` matching **m**a**n**ag**e**) are precisely highlighted.
+### 🔦 **Ultra-Minimalist Search**
+- **Bold Hits Only**: Removed all colors and markers from search results. Matches are now indicated purely by **Bold** text for a clean, professional aesthetic.
+- **Distraction-Free Selection**: Removed selection symbols (`> `) to keep subtitle text as the sole focus.
 
 ---
 
