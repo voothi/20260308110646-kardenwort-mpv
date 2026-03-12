@@ -772,7 +772,7 @@ local function cmd_dw_double_click()
 
     local sub = subs[line_idx]
     if sub and sub.start_time then
-        mp.set_property_number("time-pos", sub.start_time)
+        mp.commandv("seek", sub.start_time, "absolute", "exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = word_idx or 1
         FSM.DW_VIEW_CENTER = line_idx
