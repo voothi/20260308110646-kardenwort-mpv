@@ -121,6 +121,11 @@ local search_osd = mp.create_osd_overlay("ass-events")
 search_osd.res_x = 1920
 search_osd.res_y = 1080
 
+-- Explicit z-index stacking: Search > Drum Window > Main Drum/Subtitles
+drum_osd.z = 10
+dw_osd.z = 20
+search_osd.z = 30
+
 -- =========================================================================
 -- PARSERS & UTILS
 -- =========================================================================
@@ -132,7 +137,11 @@ local function parse_time(time_str)
     end
     h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
     if h and m and s and ms then
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
+        -- Decimal fraction handling: scale based on digit count
+        -- .cc (centiseconds) = divide by 100, .mmm (milliseconds) = divide by 1000
+        local fractional_value = tonumber(ms)
+        local scale = 10 ^ #ms
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + fractional_value / scale
     end
     return 0
 end

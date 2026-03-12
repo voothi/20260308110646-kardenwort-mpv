@@ -46,3 +46,5 @@ log.txt
 scripts/diff_report_utf8.patch
 scripts/diff_report.patch
 scripts/input_diff.patch
+diff_since_working.patch
+scripts/diff_since_working.patch
