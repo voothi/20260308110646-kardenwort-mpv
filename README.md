@@ -162,6 +162,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
 | `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
+| `Ctrl + Shift + LEFT/RIGHT` | `Ctrl+Shift+Л/П` | Block-word Selection (Navigation) |
+| `Ctrl + Shift + UP/DOWN` | `Ctrl+Shift+В/Н` | Multi-line Jump Selection |
 | `Ctrl + UP/DN` | `Ctrl + В/Н` | Viewport Scroll (Matches Mouse Wheel) |
 | `Ctrl+c` | `Ctrl+с` | **Copy Range** (Exact highlighted words to clipboard) |
 | `x` | `ч` | Toggle **Context Copy** (Include surrounding lines) |
