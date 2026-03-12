@@ -132,7 +132,9 @@ local function parse_time(time_str)
     end
     h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
     if h and m and s and ms then
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
+        local ms_val = tonumber(ms)
+        if #ms == 2 then ms_val = ms_val * 10 end -- Centiseconds to milliseconds
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + ms_val / 1000
     end
     return 0
 end
@@ -1530,6 +1532,17 @@ local function manage_search_bindings(enable)
         end
         
         mp.remove_key_binding("search-bs")
+        mp.remove_key_binding("search-del")
+        mp.remove_key_binding("search-left")
+        mp.remove_key_binding("search-right")
+        mp.remove_key_binding("search-left-shift")
+        mp.remove_key_binding("search-right-shift")
+        mp.remove_key_binding("search-left-ctrl")
+        mp.remove_key_binding("search-right-ctrl")
+        mp.remove_key_binding("search-left-ctrl-shift")
+        mp.remove_key_binding("search-right-ctrl-shift")
+        mp.remove_key_binding("search-home")
+        mp.remove_key_binding("search-end")
         mp.remove_key_binding("search-up")
         mp.remove_key_binding("search-down")
         mp.remove_key_binding("search-enter")
