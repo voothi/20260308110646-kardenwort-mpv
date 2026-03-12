@@ -772,7 +772,7 @@ local function cmd_dw_double_click()
 
     local sub = subs[line_idx]
     if sub and sub.start_time then
-        mp.commandv("seek", sub.start_time, "absolute", "exact")
+        mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = word_idx or 1
         FSM.DW_VIEW_CENTER = line_idx
@@ -1237,7 +1237,7 @@ local function manage_search_bindings(enable)
                 local sub = Tracks.pri.subs[selected_line]
                 
                 if sub.start_time then
-                    mp.commandv("seek", sub.start_time, "absolute", "exact")
+                    mp.commandv("seek", sub.start_time, "absolute+exact")
                 end
                 
                 -- Update DW state so if it opens, or is open, it jumps to this line
@@ -1367,8 +1367,13 @@ function cmd_toggle_drum_window()
             -- Drum OSD will resume on the next tick_drum cycle automatically.
         else
             -- Drum Mode was NOT active: restore native sub visibility
-            mp.set_property_bool("sub-visibility", FSM.DW_SAVED_SUB_VIS or true)
-            mp.set_property_bool("secondary-sub-visibility", FSM.DW_SAVED_SEC_SUB_VIS or false)
+            local r_pri = FSM.DW_SAVED_SUB_VIS
+            if r_pri == nil then r_pri = true end
+            local r_sec = FSM.DW_SAVED_SEC_SUB_VIS
+            if r_sec == nil then r_sec = false end
+            
+            mp.set_property_bool("sub-visibility", r_pri)
+            mp.set_property_bool("secondary-sub-visibility", r_sec)
         end
 
         show_osd("Drum Window: CLOSED")
