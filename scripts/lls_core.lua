@@ -689,43 +689,42 @@ local function dw_build_layout(subs, view_center)
         
         -- Filtering: Match sub to current mode (A=Primary, B=Secondary)
         local sub_is_sec = sub.is_secondary or false
-        if (FSM.COPY_MODE == "A" and sub_is_sec) or (FSM.COPY_MODE == "B" and not sub_is_sec) then
-            goto next_sub
-        end
+        local matches_mode = (FSM.COPY_MODE == "A" and not sub_is_sec) or (FSM.COPY_MODE == "B" and sub_is_sec)
+        
+        if matches_mode then
+            local text = sub.text:gsub("\n", " ")
+            local words = build_word_list(text)
+            if #words == 0 then words = {""} end
 
-        local text = sub.text:gsub("\n", " ")
-        local words = build_word_list(text)
-        if #words == 0 then words = {""} end
+            local vlines = {}
+            local cur_indices = {}
+            local cur_w = 0
 
-        local vlines = {}
-        local cur_indices = {}
-        local cur_w = 0
-
-        for j, w in ipairs(words) do
-            local ww = dw_get_str_width(w)
-            local space = (#cur_indices > 0) and space_w or 0
-            if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-                table.insert(vlines, cur_indices)
-                cur_indices = {j}
-                cur_w = ww
-            else
-                table.insert(cur_indices, j)
-                cur_w = cur_w + space + ww
+            for j, w in ipairs(words) do
+                local ww = dw_get_str_width(w)
+                local space = (#cur_indices > 0) and space_w or 0
+                if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+                    table.insert(vlines, cur_indices)
+                    cur_indices = {j}
+                    cur_w = ww
+                else
+                    table.insert(cur_indices, j)
+                    cur_w = cur_w + space + ww
+                end
             end
-        end
-        if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-        if #vlines == 0 then vlines = {{1}} end
+            if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+            if #vlines == 0 then vlines = {{1}} end
 
-        local entry_h = #vlines * vline_h
-        table.insert(layout, {
-            sub_idx = i,
-            words = words,
-            vlines = vlines,
-            height = entry_h
-        })
-        total_height = total_height + entry_h
-        if i < end_idx then total_height = total_height + sub_gap end
-        ::next_sub::
+            local entry_h = #vlines * vline_h
+            table.insert(layout, {
+                sub_idx = i,
+                words = words,
+                vlines = vlines,
+                height = entry_h
+            })
+            total_height = total_height + entry_h
+            if i < end_idx then total_height = total_height + sub_gap end
+        end
     end
 
     return layout, total_height
@@ -1427,15 +1426,14 @@ local function update_search_results()
     for i, sub in ipairs(subs) do
         -- Filtering: Match sub to current mode (A=Primary, B=Secondary)
         local sub_is_sec = sub.is_secondary or false
-        if (FSM.COPY_MODE == "A" and sub_is_sec) or (FSM.COPY_MODE == "B" and not sub_is_sec) then
-            goto next_sub
+        local matches_mode = (FSM.COPY_MODE == "A" and not sub_is_sec) or (FSM.COPY_MODE == "B" and sub_is_sec)
+        
+        if matches_mode then
+            local score, indices = calculate_match_score(sub.text, query)
+            if score > 0 then
+                table.insert(scored_results, {idx = i, score = score, hl = indices})
+            end
         end
-
-        local score, indices = calculate_match_score(sub.text, query)
-        if score > 0 then
-            table.insert(scored_results, {idx = i, score = score, hl = indices})
-        end
-        ::next_sub::
     end
     
     -- Sort by score (descending) and then index (ascending)
