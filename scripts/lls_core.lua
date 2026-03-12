@@ -50,7 +50,7 @@ local Options = {
     dw_bg_color = "A9C5D4",       -- beige in BGR hex for ASS
     dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
     dw_text_color = "1A1A1A",     -- dark text
-    dw_active_color = "bf5f00",   -- brighter bright blue in BGR
+    dw_active_color = "bf0000",   -- brighter bright blue in BGR
     dw_highlight_color = "0000bf",-- red highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.55,         -- char width multiplier (0.55 is exact for Consolas)
@@ -58,7 +58,7 @@ local Options = {
     -- Search HUD Styling
     search_hit_color = "0000bf",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
-    search_sel_color = "bf5f00",       -- Selected line color (BGR)
+    search_sel_color = "bf0000",       -- Selected line color (BGR)
     search_sel_bold = false,           -- Bold selected line?
     search_query_hit_color = "0000bf", -- Search bar text hits (Select All/Selection)
     search_query_hit_bold = false       -- Bold search bar hits?
