@@ -1256,6 +1256,20 @@ local function manage_search_bindings(enable)
             cmd_toggle_search()
         end)
         
+        local function paste_from_clipboard()
+            local res = utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Clipboard -Raw"}, cancellable = false })
+            if res and res.status == 0 and res.stdout then
+                local txt = res.stdout:gsub("\r", ""):gsub("\n", " ")
+                if txt ~= "" then
+                    FSM.SEARCH_QUERY = FSM.SEARCH_QUERY .. txt
+                    update_search_results()
+                    render_search()
+                end
+            end
+        end
+        mp.add_forced_key_binding("Ctrl+v", "search-paste", paste_from_clipboard, "repeatable")
+        mp.add_forced_key_binding("Ctrl+м", "search-paste-ru", paste_from_clipboard, "repeatable")
+        
         render_search()
     else
         FSM.SEARCH_MODE = false
@@ -1275,6 +1289,8 @@ local function manage_search_bindings(enable)
         mp.remove_key_binding("search-down")
         mp.remove_key_binding("search-enter")
         mp.remove_key_binding("search-esc")
+        mp.remove_key_binding("search-paste")
+        mp.remove_key_binding("search-paste-ru")
         
         render_search()
         
