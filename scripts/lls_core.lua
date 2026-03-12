@@ -162,18 +162,26 @@ local function utf8_to_lower(str)
     return res
 end
 
-local function is_fuzzy_subsequence(str_lower, query_lower)
-    if query_lower == "" then return true end
+local function find_fuzzy_span(str_lower, query_lower)
+    if query_lower == "" then return 0, 0 end
     local str_t = utf8_to_table(str_lower)
     local query_t = utf8_to_table(query_lower)
-    local i, j = 1, 1
-    while i <= #str_t and j <= #query_t do
+    
+    local first_idx = -1
+    local last_idx = -1
+    local j = 1
+    
+    for i = 1, #str_t do
         if str_t[i] == query_t[j] then
+            if j == 1 then first_idx = i end
+            if j == #query_t then 
+                last_idx = i
+                return first_idx, last_idx
+            end
             j = j + 1
         end
-        i = i + 1
     end
-    return j > #query_t
+    return nil, nil
 end
 
 local function calculate_match_score(str, query)
@@ -197,42 +205,52 @@ local function calculate_match_score(str, query)
         -- Check for literal substring first (higher signal)
         local start_pos, end_pos = str_lower:find(token, 1, true)
         if start_pos then
-            table.insert(matches, {start = start_pos, stop = end_pos, literal = true})
+            table.insert(matches, {start = start_pos, stop = end_pos, literal = true, span = end_pos - start_pos + 1})
         else
             -- Fallback to fuzzy subsequence for this specific word/token
-            if not is_fuzzy_subsequence(str_lower, token) then
+            local s_start, s_end = find_fuzzy_span(str_lower, token)
+            if not s_start then
                 return 0 -- Every keyword must match at least fuzzily
             end
-            table.insert(matches, {start = -1, stop = -1, literal = false})
+            table.insert(matches, {start = s_start, stop = s_end, literal = false, span = s_end - s_start + 1})
         end
     end
 
     -- Base score for finding all keywords
     local score = 500
 
-    -- Bonus: Count how many keywords are literal substrings
-    for _, m in ipairs(matches) do
-        if m.literal then score = score + 100 end
+    -- Bonus: Compactness & Literal Signal
+    for i, m in ipairs(matches) do
+        if m.literal then 
+            score = score + 200 
+        else
+            -- Fuzzy match compactness bonus
+            -- If span is short (e.g. <= token length + 2), it's likely within a word or two
+            local token_len = #utf8_to_table(tokens[i])
+            if m.span <= token_len + 1 then
+                score = score + 150 -- Very compact
+            elseif m.span <= token_len + 5 then
+                score = score + 50 -- Reasonably compact
+            end
+        end
     end
 
-    -- Bonus: All words in correct sequential order (for literal tokens)
+    -- Bonus: All words in correct sequential order
     local last_pos = 0
     local in_order = true
     for _, m in ipairs(matches) do
-        if m.literal then
-            if m.start < last_pos then
-                in_order = false
-                break
-            end
-            last_pos = m.stop
+        if m.start < last_pos then
+            in_order = false
+            break
         end
+        last_pos = m.stop
     end
     if in_order and #matches > 0 then
         score = score + 300
     end
 
     -- Bonus: Start of sentence match
-    if matches[1].literal and str_lower:find(tokens[1], 1, true) == 1 then
+    if matches[1].start == 1 then
         score = score + 300
     end
 

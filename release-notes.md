@@ -1,3 +1,18 @@
+# Release Notes - v1.25.1 (Compact Proximity Search)
+
+**Date**: 2026-03-12
+**Version**: v1.25.1
+**Request ZID**: 20260312194600
+**RFC**: [docs/rfcs/20260312194622-release-v1.25.1.md](docs/rfcs/20260312194622-release-v1.25.1.md)
+
+## Highlights
+
+### 🎯 **Compact Proximity Ranking**
+- **Intelligent Density**: The search engine now evaluates how "compact" a fuzzy match is. If you type `mne`, results where these letters are found within a single word (like "**m**a**n**ag**e**") are ranked significantly higher than results where they are scattered across the entire sentence.
+- **UX Refinement**: This drastically reduces "noise" in the search results when using short fuzzy queries while maintaining the flexibility of order-independent keyword matching.
+
+---
+
 # Release Notes - v1.25.0 (True Fuzzy Keyword Search)
 
 **Date**: 2026-03-12
