@@ -86,16 +86,17 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 
 ## Intelligent Scripts
 
-### <span id="universal-subtitle-search"></span>Universal Subtitle Search
-A high-performance navigation overlay that decouples content lookup from playback.
-- **Relevance Ranking**: Results are sorted by match quality (Exact > Substring > Fuzzy).
-- **Proximity Awareness**: Prioritizes "compact" fuzzy matches within the same word.
-- **Cyrillic Parity**: Fully case-insensitive Russian search support.
-- **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word).
-- **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
-- **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek.
-- **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
 - **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
+
+#### **How the Search Engine Works**
+The search bar uses a multi-stage **Keyword-Based Fuzzy Matching** engine:
+1.  **Tokenization**: Your query is split into individual keywords (separated by spaces).
+2.  **Order-Independent Matching**: The engine finds results containing all keywords, regardless of the sequence you typed them in.
+3.  **"Really Fuzzy" Subsequence**: Each keyword matches if its letters appear in the correct order within a word, even if other letters are in between (e.g., `mne` matches **m**a**n**ag**e**).
+4.  **Relevance Ranking**:
+    -   **Exact Match**: Literal matches are prioritized first.
+    -   **Compactness Bonus**: Higher priority is given to "dense" matches where letters are clustered within a single word rather than scattered across the whole line.
+    -   **Structural Bonus**: Matches at the start of a subtitle line receive a specific weight.
 
 ### Karaoke-Safe Autopause
 Advanced pause logic designed specifically for immersion students using `.ass` karaoke-formatted subtitles.
