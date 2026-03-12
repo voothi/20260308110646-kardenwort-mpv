@@ -86,6 +86,13 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 
 ## Intelligent Scripts
 
+### <span id="universal-subtitle-search"></span>Universal Subtitle Search
+A high-performance navigation overlay that decouples content lookup from playback.
+- **Cyrillic Parity**: Fully case-insensitive Russian search support.
+- **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word).
+- **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
+- **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek.
+- **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
 - **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
 
 #### **How the Search Engine Works**
@@ -199,7 +206,7 @@ Key settings to protect your acquisition environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.24.0 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.25.2 settings.
 
 [Return to Top](#table-of-contents)
 
