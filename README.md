@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.24.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.0) 
+[![Version](https://img.shields.io/badge/version-v1.24.1-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.24.1) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -153,6 +153,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
+| `LEFT` / `RIGHT`| `LEFT` / `RIGHT`| **Navigate Query** (Search Mode only) |
+| `DEL` | `DEL` | **Forward Delete** (Search Mode only) |
 | `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
 | `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
@@ -190,7 +192,7 @@ Key settings to protect your acquisition environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.24.0 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.24.1 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -199,8 +201,8 @@ Key settings to protect your acquisition environment:
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~250 Commits (v1.24.0)
-- **Intensity Profile**: 7.5 Commits/Hour 
+- **Current Maturity**: ~255 Commits (v1.24.1)
+- **Intensity Profile**: 7.6 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

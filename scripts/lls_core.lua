@@ -98,7 +98,8 @@ local FSM = {
     SEARCH_MODE = false,
     SEARCH_QUERY = "",
     SEARCH_RESULTS = {},
-    SEARCH_SEL_IDX = 1
+    SEARCH_SEL_IDX = 1,
+    SEARCH_CURSOR = 0
 }
 
 local Tracks = {
@@ -137,6 +138,14 @@ end
 
 local function clean_text_srt(line)
     return line:gsub("\r", ""):gsub("<[^>]+>", "")
+end
+
+local function utf8_to_table(str)
+    local t = {}
+    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(t, ch)
+    end
+    return t
 end
 
 local function load_sub(path, is_ass)
@@ -1108,7 +1117,21 @@ local function draw_search_ui()
     
     -- Draw Input Text
     local display_query = FSM.SEARCH_QUERY
-    if display_query == "" then display_query = "Search..." else display_query = display_query .. " |" end
+    if display_query == "" and FSM.SEARCH_CURSOR == 0 then 
+        display_query = "{\\alpha&HAA&}Search...{\\alpha&H00&|}" 
+    else
+        local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+        local pre = {}
+        local post = {}
+        for i = 1, #q_table do
+            if i <= FSM.SEARCH_CURSOR then
+                table.insert(pre, q_table[i])
+            else
+                table.insert(post, q_table[i])
+            end
+        end
+        display_query = table.concat(pre) .. "|" .. table.concat(post)
+    end
     ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
         box_x + padding_x, box_y + padding_y, font_size, text_color, display_query)
         
@@ -1176,6 +1199,7 @@ local function manage_search_bindings(enable)
         FSM.SEARCH_QUERY = ""
         FSM.SEARCH_RESULTS = {}
         FSM.SEARCH_SEL_IDX = 1
+        FSM.SEARCH_CURSOR = 0
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -1192,12 +1216,16 @@ local function manage_search_bindings(enable)
             return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
         end
         
-        for ch in utf8_iter(chars) do
+        for ch in utf8_to_table(chars) do
             local key_name = ch
             if ch == " " then key_name = "SPACE" end
             
             mp.add_forced_key_binding(key_name, "search-char-" .. key_name, function()
-                FSM.SEARCH_QUERY = FSM.SEARCH_QUERY .. ch
+                local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+                table.insert(q_table, FSM.SEARCH_CURSOR + 1, ch)
+                FSM.SEARCH_QUERY = table.concat(q_table)
+                FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + 1
+                
                 update_search_results()
                 render_search()
             end, "repeatable")
@@ -1205,16 +1233,37 @@ local function manage_search_bindings(enable)
         
         -- Special Keys
         mp.add_forced_key_binding("BS", "search-bs", function()
-            if FSM.SEARCH_QUERY:len() > 0 then
-                local chars = {}
-                for ch in string.gmatch(FSM.SEARCH_QUERY, "[%z\1-\127\194-\244][\128-\191]*") do 
-                    table.insert(chars, ch) 
-                end
-                table.remove(chars)
-                FSM.SEARCH_QUERY = table.concat(chars)
+            if FSM.SEARCH_CURSOR > 0 then
+                local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+                table.remove(q_table, FSM.SEARCH_CURSOR)
+                FSM.SEARCH_QUERY = table.concat(q_table)
+                FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR - 1
+                
                 update_search_results()
                 render_search()
             end
+        end, "repeatable")
+        
+        mp.add_forced_key_binding("DEL", "search-del", function()
+            local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+            if FSM.SEARCH_CURSOR < #q_table then
+                table.remove(q_table, FSM.SEARCH_CURSOR + 1)
+                FSM.SEARCH_QUERY = table.concat(q_table)
+                
+                update_search_results()
+                render_search()
+            end
+        end, "repeatable")
+        
+        mp.add_forced_key_binding("LEFT", "search-left", function()
+            FSM.SEARCH_CURSOR = math.max(0, FSM.SEARCH_CURSOR - 1)
+            render_search()
+        end, "repeatable")
+        
+        mp.add_forced_key_binding("RIGHT", "search-right", function()
+            local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+            FSM.SEARCH_CURSOR = math.min(#q_table, FSM.SEARCH_CURSOR + 1)
+            render_search()
         end, "repeatable")
         
         mp.add_forced_key_binding("UP", "search-up", function()
@@ -1261,7 +1310,14 @@ local function manage_search_bindings(enable)
             if res and res.status == 0 and res.stdout then
                 local txt = res.stdout:gsub("\r", ""):gsub("\n", " ")
                 if txt ~= "" then
-                    FSM.SEARCH_QUERY = FSM.SEARCH_QUERY .. txt
+                    local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+                    local p_table = utf8_to_table(txt)
+                    for i = 1, #p_table do
+                        table.insert(q_table, FSM.SEARCH_CURSOR + i, p_table[i])
+                    end
+                    FSM.SEARCH_QUERY = table.concat(q_table)
+                    FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + #p_table
+                    
                     update_search_results()
                     render_search()
                 end
@@ -1345,6 +1401,9 @@ local function manage_search_bindings(enable)
         end
         
         mp.remove_key_binding("search-bs")
+        mp.remove_key_binding("search-del")
+        mp.remove_key_binding("search-left")
+        mp.remove_key_binding("search-right")
         mp.remove_key_binding("search-up")
         mp.remove_key_binding("search-down")
         mp.remove_key_binding("search-enter")

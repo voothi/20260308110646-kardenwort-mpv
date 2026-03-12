@@ -1,3 +1,20 @@
+# Release Notes - v1.24.1 (Search Navigation & Cursor Control)
+
+**Date**: 2026-03-12
+**Version**: v1.24.1
+**Request ZID**: 20260312133948
+**RFC**: [docs/rfcs/20260312133948-release-v1.24.1.md](docs/rfcs/20260312133948-release-v1.24.1.md)
+
+## Highlights
+
+### ⌨️ **VSCode-Style Search Editing**
+- **Full Navigation**: Use the `LEFT` and `RIGHT` arrow keys to move through your search query. You no longer need to erase the entire string to fix a typo.
+- **Position-Aware Deletion**: Added support for the `DEL` key (Forward Delete). `BACKSPACE` now correctly removes the character before the cursor, regardless of where you are in the string.
+- **Smart Insertion**: Typing or pasting text with `Ctrl+V` now inserts content exactly at the cursor's location.
+- **Visual Cursor HUD**: A vertical cursor bar (`|`) now accurately represents your insertion point within the OSD search box.
+
+---
+
 # Release Notes - v1.24.0 (Universal Subtitle Search)
 
 **Date**: 2026-03-12
