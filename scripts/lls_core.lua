@@ -164,32 +164,55 @@ end
 
 local function calculate_match_score(str, query)
     if query == "" then return 0 end
-    str = utf8_to_lower(str)
-    query = utf8_to_lower(query)
+    local str_lower = utf8_to_lower(str)
+    local query_lower = utf8_to_lower(query)
     
-    if str == query then return 1000 end
-    
-    local start_pos, end_pos = str:find(query, 1, true)
-    if start_pos then
-        -- Substring match. Higher score if it starts with the query
-        if start_pos == 1 then return 800 else return 500 end
+    -- Exact match is highest priority
+    if str_lower == query_lower then return 2000 end
+
+    -- Tokenize query by spaces
+    local tokens = {}
+    for token in query_lower:gmatch("%S+") do
+        table.insert(tokens, token)
     end
-    
-    -- Subsequence fuzzy match
-    local str_t = utf8_to_table(str)
-    local query_t = utf8_to_table(query)
-    local i, j = 1, 1
-    while i <= #str_t and j <= #query_t do
-        if str_t[i] == query_t[j] then
-            j = j + 1
+    if #tokens == 0 then return 0 end
+
+    -- Check if ALL tokens are present anywhere in the string
+    local matches = {}
+    for i, token in ipairs(tokens) do
+        local start_pos, end_pos = str_lower:find(token, 1, true)
+        if not start_pos then return 0 end -- All tokens must match
+        table.insert(matches, {start = start_pos, stop = end_pos})
+    end
+
+    -- Base score for finding all keywords
+    local score = 500
+
+    -- Bonus: Start of sentence match
+    if str_lower:find(tokens[1], 1, true) == 1 then
+        score = score + 300
+    end
+
+    -- Bonus: Correct sequential order
+    local last_pos = 0
+    local in_order = true
+    for _, match in ipairs(matches) do
+        if match.start < last_pos then
+            in_order = false
+            break
         end
-        i = i + 1
+        last_pos = match.stop
     end
-    
-    if j > #query_t then
-        return 100 -- Fuzzy match
+    if in_order then
+        score = score + 500
     end
-    return 0
+
+    -- Bonus: Substring match (contiguous search query)
+    if str_lower:find(query_lower, 1, true) then
+        score = score + 200
+    end
+
+    return score
 end
 
 local function get_word_boundary(q_table, pos, direction)
