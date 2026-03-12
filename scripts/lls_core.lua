@@ -1007,6 +1007,103 @@ local function cmd_toggle_drum()
 end
 
 
+local function cmd_dw_scroll(dir)
+    FSM.DW_FOLLOW_PLAYER = false
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+end
+
+local function cmd_dw_line_move(dir, shift)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    FSM.DW_FOLLOW_PLAYER = false
+    
+    if shift and FSM.DW_ANCHOR_LINE == -1 then
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or 1
+    end
+    
+    FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
+    
+    local half = math.floor(Options.dw_lines_visible / 2)
+    local view_min = FSM.DW_VIEW_CENTER - half
+    local view_max = view_min + Options.dw_lines_visible - 1
+    
+    if FSM.DW_CURSOR_LINE < view_min then
+        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_CURSOR_LINE + half)
+    elseif FSM.DW_CURSOR_LINE > view_max then
+        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_CURSOR_LINE - half)
+    end
+    
+    if not shift then
+        FSM.DW_CURSOR_WORD = 1
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+    else
+        if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
+    end
+end
+
+local function cmd_dw_word_move(dir, shift)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    FSM.DW_FOLLOW_PLAYER = false
+    
+    local raw_sub = subs[FSM.DW_CURSOR_LINE]
+    if not raw_sub then return end
+    local text = raw_sub.text:gsub("\n", " ")
+    local words = build_word_list(text)
+    
+    if FSM.DW_CURSOR_WORD == -1 then
+        FSM.DW_CURSOR_WORD = (dir > 0) and 1 or #words
+    else
+        FSM.DW_CURSOR_WORD = FSM.DW_CURSOR_WORD + dir
+    end
+    
+    if FSM.DW_CURSOR_WORD < 1 then
+        if FSM.DW_CURSOR_LINE > 1 then
+            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
+            local next_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+            local next_words = build_word_list(next_text)
+            FSM.DW_CURSOR_WORD = #next_words
+        else
+            FSM.DW_CURSOR_WORD = 1
+        end
+    elseif FSM.DW_CURSOR_WORD > #words then
+        if FSM.DW_CURSOR_LINE < #subs then
+            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
+            FSM.DW_CURSOR_WORD = 1
+        else
+            FSM.DW_CURSOR_WORD = #words
+        end
+    end
+    
+    if not shift then
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+    elseif FSM.DW_ANCHOR_WORD == -1 then
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD - dir 
+    end
+end
+
+local function cmd_dw_seek_selected()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
+        local sub = subs[FSM.DW_CURSOR_LINE]
+        if sub and sub.start_time then
+            mp.commandv("seek", sub.start_time, "absolute+exact")
+            FSM.DW_FOLLOW_PLAYER = true
+            FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+            show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
+        end
+    end
+end
+
 local function manage_dw_bindings(enable)
     local keys = {
         {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
@@ -1658,103 +1755,8 @@ function cmd_toggle_drum_window()
     end
 end
 
-function cmd_dw_scroll(dir)
-    FSM.DW_FOLLOW_PLAYER = false
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-    FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
-end
 
-local function cmd_dw_seek_selected()
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-    if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
-        local sub = subs[FSM.DW_CURSOR_LINE]
-        mp.set_property_number("time-pos", sub.start_time)
-        FSM.DW_FOLLOW_PLAYER = true
-        show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
-    end
-end
 
-function cmd_dw_line_move(dir, shift)
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-    
-    -- Switch to manual/static mode
-    FSM.DW_FOLLOW_PLAYER = false
-    
-    if shift and FSM.DW_ANCHOR_LINE == -1 then
-        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or 1
-    end
-    
-    FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
-    
-    -- Edge-scroll: if cursor is outside the visible area, snap viewport to show it
-    local half = math.floor(Options.dw_lines_visible / 2)
-    local view_min = FSM.DW_VIEW_CENTER - half
-    local view_max = view_min + Options.dw_lines_visible - 1
-    
-    if FSM.DW_CURSOR_LINE < view_min then
-        -- Cursor is above viewport: snap so cursor is at the top
-        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_CURSOR_LINE + half)
-    elseif FSM.DW_CURSOR_LINE > view_max then
-        -- Cursor is below viewport: snap so cursor is at the bottom
-        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_CURSOR_LINE - half)
-    end
-    
-    if not shift then
-        FSM.DW_CURSOR_WORD = 1
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
-    else
-        if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
-    end
-end
-
-function cmd_dw_word_move(dir, shift)
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-    
-    -- Switch to manual/static mode
-    FSM.DW_FOLLOW_PLAYER = false
-    
-    local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-    local words = build_word_list(text)
-    
-    if FSM.DW_CURSOR_WORD == -1 then
-        FSM.DW_CURSOR_WORD = (dir > 0) and 1 or #words
-    else
-        FSM.DW_CURSOR_WORD = FSM.DW_CURSOR_WORD + dir
-    end
-    
-    -- Handle wrap-around lines
-    if FSM.DW_CURSOR_WORD < 1 then
-        if FSM.DW_CURSOR_LINE > 1 then
-            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
-            local next_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-            local next_words = build_word_list(next_text)
-            FSM.DW_CURSOR_WORD = #next_words
-        else
-            FSM.DW_CURSOR_WORD = 1
-        end
-    elseif FSM.DW_CURSOR_WORD > #words then
-        if FSM.DW_CURSOR_LINE < #subs then
-            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
-            FSM.DW_CURSOR_WORD = 1
-        else
-            FSM.DW_CURSOR_WORD = #words
-        end
-    end
-    
-    if not shift then
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
-    elseif FSM.DW_ANCHOR_WORD == -1 then
-        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD - dir -- anchor where we started
-    end
-end
 
 function cmd_dw_copy()
     local subs = Tracks.pri.subs
