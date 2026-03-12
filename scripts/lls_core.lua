@@ -1573,6 +1573,14 @@ local function manage_search_bindings(enable)
         mp.add_forced_key_binding("Ctrl+v", "search-paste", paste_from_clipboard, "repeatable")
         mp.add_forced_key_binding("Ctrl+м", "search-paste-ru", paste_from_clipboard, "repeatable")
         
+        local function select_all()
+            FSM.SEARCH_ANCHOR = 0
+            FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
+            render_search()
+        end
+        mp.add_forced_key_binding("Ctrl+a", "search-select-all", select_all)
+        mp.add_forced_key_binding("Ctrl+ф", "search-select-all-ru", select_all)
+        
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
                 if #FSM.SEARCH_RESULTS == 0 then return end
