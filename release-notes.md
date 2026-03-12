@@ -1,3 +1,18 @@
+# Release Notes - v1.25.2 (UI Visibility Enhancement)
+
+**Date**: 2026-03-12
+**Version**: v1.25.2
+**Request ZID**: 20260312195256
+**RFC**: [docs/rfcs/20260312195256-release-v1.25.2.md](docs/rfcs/20260312195256-release-v1.25.2.md)
+
+## Highlights
+
+### 🎨 **Brighter Active Subtitles**
+- **Enhanced Contrast**: The active subtitle line in the Drum Window (Static Reading Mode) is now colored in a **Brighter Blue** for significantly better visibility against the window's beige background.
+- **Improved Focus**: This makes it much easier to track the current playback position when reading through a long subtitle track.
+
+---
+
 # Release Notes - v1.25.1 (Compact Proximity Search)
 
 **Date**: 2026-03-12
