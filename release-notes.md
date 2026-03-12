@@ -1,3 +1,19 @@
+# Release Notes - v1.26.2 (Externalized Search Styles)
+
+**Date**: 2026-03-12
+**Version**: v1.26.2
+**Request ZID**: 20260312212143
+**RFC**: [docs/rfcs/20260312212143-release-v1.26.2.md](docs/rfcs/20260312212143-release-v1.26.2.md)
+
+## Highlights
+
+### 🔦 **Externalized Search Styling**
+- **Precision Configuration**: Added new parameters for hit colors, selection colors, and bolding toggles.
+- **Ultra-Minimalist Defaults**: The project now defaults to a high-contrast "Black & Bold" look while allowing full user customization via the `Options` table.
+- **Selection Marker Legacy**: The selection marker (`> `) and colored highlights are now optional architectural components controllable via logic or config.
+
+---
+
 # Release Notes - v1.26.0 (Visual Search Feedback)
 
 **Date**: 2026-03-12
