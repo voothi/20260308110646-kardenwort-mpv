@@ -142,6 +142,24 @@ local function parse_time(time_str)
     return 0
 end
 
+local function is_fuzzy_match(str, query)
+    if query == "" then return true end
+    str = str:lower()
+    query = query:lower()
+    
+    local str_t = utf8_to_table(str)
+    local query_t = utf8_to_table(query)
+    
+    local i, j = 1, 1
+    while i <= #str_t and j <= #query_t do
+        if str_t[i] == query_t[j] then
+            j = j + 1
+        end
+        i = i + 1
+    end
+    return j > #query_t
+end
+
 local function utf8_to_table(str)
     local t = {}
     for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
@@ -1232,11 +1250,10 @@ local function update_search_results()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
-    local query_lower = FSM.SEARCH_QUERY:lower()
+    local query = FSM.SEARCH_QUERY
     
     for i, sub in ipairs(subs) do
-        -- Basic substring match
-        if sub.text:lower():find(query_lower, 1, true) then
+        if is_fuzzy_match(sub.text, query) then
             table.insert(FSM.SEARCH_RESULTS, i)
         end
     end
@@ -1673,6 +1690,8 @@ local function manage_search_bindings(enable)
         mp.remove_key_binding("search-esc")
         mp.remove_key_binding("search-paste")
         mp.remove_key_binding("search-paste-ru")
+        mp.remove_key_binding("search-select-all")
+        mp.remove_key_binding("search-select-all-ru")
         mp.remove_key_binding("search-mouse-click")
         
         render_search()
