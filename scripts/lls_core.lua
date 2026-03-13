@@ -133,6 +133,20 @@ search_osd.res_y = 1080
 search_osd.z = 30
 
 -- =========================================================================
+-- DIAGNOSTICS & LOGGING
+-- =========================================================================
+
+local function lls_trace(msg)
+    local txt = "[LLS] " .. tostring(msg)
+    print(txt)
+    local f = io.open("u:\\voothi\\20260308110646-kardenwort-mpv\\lls_trace.log", "a+")
+    if f then
+        f:write(os.date("[%H:%M:%S] ") .. txt .. "\n")
+        f:close()
+    end
+end
+
+-- =========================================================================
 -- PARSERS & UTILS
 -- =========================================================================
 
@@ -345,7 +359,7 @@ local function clean_text_srt(line)
     return line:gsub("\r", ""):gsub("<[^>]+>", "")
 end
 
-local function load_sub(path, is_ass)
+local function load_sub_actual(path, is_ass)
     if not path or path == "" then return {} end
     local f = io.open(path, "r")
     if not f then return {} end
@@ -544,7 +558,7 @@ end
 -- FSM INTERNAL LOGIC
 -- =========================================================================
 
-local function update_media_state()
+local function update_media_state_actual()
     Tracks.pri.id = mp.get_property_number("sid", 0)
     Tracks.sec.id = mp.get_property_number("secondary-sid", 0)
     
@@ -1139,7 +1153,7 @@ end
 -- MASTER TICK LOOP
 -- =========================================================================
 
-local function master_tick()
+local function master_tick_actual()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
@@ -1158,6 +1172,16 @@ local function master_tick()
         tick_dw(time_pos)
     end
 end
+
+local function master_tick()
+    local status, err = pcall(master_tick_actual)
+    if not status then
+        local msg = "CRASH in master_tick: " .. tostring(err)
+        lls_trace(msg)
+        mp.osd_message(msg, 2)
+    end
+end
+
 mp.add_periodic_timer(Options.tick_rate, master_tick)
 
 -- =========================================================================
@@ -1192,6 +1216,28 @@ local function cmd_smart_space(table)
             mp.set_property_bool("pause", not FSM.initial_pause_state)
         end
     end
+end
+
+local function update_media_state()
+    local status, err = pcall(update_media_state_actual)
+    if not status then
+        local msg = "CRASH in update_media_state: " .. tostring(err)
+        lls_trace(msg)
+        mp.osd_message(msg, 20)
+    end
+end
+
+local function load_sub(path, is_ass)
+    lls_trace("load_sub called for: " .. tostring(path))
+    local status, p, s = pcall(load_sub_actual, path, is_ass)
+    if not status then
+        local msg = "CRASH in load_sub: " .. tostring(p)
+        lls_trace(msg)
+        mp.osd_message(msg, 20)
+        return {}, {}
+    end
+    lls_trace("load_sub success")
+    return p, s
 end
 
 local function cmd_toggle_drum()
