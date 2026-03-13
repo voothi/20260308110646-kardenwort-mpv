@@ -2100,7 +2100,28 @@ local function cmd_cycle_sec_sid()
     mp.command("no-osd cycle secondary-sid")
     local ssid = mp.get_property_number("secondary-sid", 0)
     if ssid == 0 then
-        show_osd("Secondary Subtitles: OFF")
+        -- Before just saying "OFF", check if there's actually anything to cycle to
+        local tracks = mp.get_property_native("track-list") or {}
+        local sub_count = 0
+        local is_ass = false
+        for _, t in ipairs(tracks) do
+            if t.type == "sub" then
+                sub_count = sub_count + 1
+                if t.codec == "ass" or t.codec == "ssa" or (t["external-filename"] and (t["external-filename"]:lower():match("%.ass$") or t["external-filename"]:lower():match("%.ssa$"))) then
+                    is_ass = true
+                end
+            end
+        end
+
+        if sub_count <= 1 then
+            if is_ass then
+                show_osd("Secondary Subtitles: Managed internally by ASS styling")
+            else
+                show_osd("Secondary Subtitles: Only 1 track available")
+            end
+        else
+            show_osd("Secondary Subtitles: OFF")
+        end
         return
     end
 
