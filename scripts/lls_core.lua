@@ -308,11 +308,6 @@ local function get_word_boundary(q_table, pos, direction)
     if #q_table == 0 then return 0 end
     
     local new_pos = pos
-    local function is_word_char(ch)
-        if not ch then return false end
-        -- Basic alphanumeric + Cyrillic
-        return ch:match("[%w\128-\255]") ~= nil
-    end
 
     if direction == -1 then
         -- Skip spaces to the left
@@ -339,6 +334,25 @@ end
 
 local function clean_text_srt(line)
     return line:gsub("\r", ""):gsub("<[^>]+>", "")
+end
+
+local function has_cyrillic(str)
+    if not str then return false end
+    return str:find("[\208\209]") ~= nil
+end
+
+local function is_word_char(ch)
+    if not ch then return false end
+    return ch:match("[%w\128-\255]") ~= nil
+end
+
+local function build_word_list(text)
+    local words = {}
+    if not text then return words end
+    for w in text:gmatch("%S+") do
+        table.insert(words, w)
+    end
+    return words
 end
 
 local function load_sub(path, is_ass)
@@ -371,7 +385,7 @@ local function load_sub(path, is_ass)
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
-                            if raw_text ~= "" then
+                            if raw_text ~= "" and not has_cyrillic(raw_text) then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
                                 local merged = false
@@ -446,10 +460,6 @@ local function load_sub(path, is_ass)
     return subs
 end
 
-local function has_cyrillic(str)
-    return str:find("[\208\209]") ~= nil
-end
-
 local function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
@@ -468,14 +478,6 @@ local function get_center_index(subs, time_pos)
         end
     end
     return #subs
-end
-
-local function build_word_list(text)
-    local words = {}
-    for w in text:gmatch("%S+") do
-        table.insert(words, w)
-    end
-    return words
 end
 
 -- =========================================================================
