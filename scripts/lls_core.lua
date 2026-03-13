@@ -1962,7 +1962,7 @@ function cmd_toggle_drum_window()
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(true)
         end
-        show_osd("Drum Window: OPEN")
+        -- show_osd("Drum Window: OPEN")
     else
         FSM.DRUM_WINDOW = "OFF"
         if not FSM.SEARCH_MODE then
@@ -1987,7 +1987,7 @@ function cmd_toggle_drum_window()
             mp.set_property_bool("secondary-sub-visibility", r_sec)
         end
 
-        show_osd("Drum Window: CLOSED")
+        -- show_osd("Drum Window: CLOSED")
     end
 end
 
