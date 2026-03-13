@@ -1136,6 +1136,10 @@ local function cmd_toggle_drum()
         show_osd("Drum Mode: NOT SUPPORTED (ASS Track)", Options.osd_duration + 1.0)
         return
     end
+    if not Tracks.pri.path then
+        show_osd("Drum Mode: Requires external subtitle files (.srt)")
+        return
+    end
 
     if FSM.DRUM == "OFF" then
         FSM.DRUM = "ON"
@@ -1917,6 +1921,10 @@ function cmd_toggle_search()
             show_osd("Search: No subtitles loaded")
             return
         end
+        if not Tracks.pri.path and not Tracks.sec.path then
+            show_osd("Search: Requires external subtitle files")
+            return
+        end
         manage_search_bindings(true)
     else
         manage_search_bindings(false)
@@ -1926,6 +1934,10 @@ end
 function cmd_toggle_drum_window()
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Window: No subtitles loaded")
+        return
+    end
+    if not Tracks.pri.path then
+        show_osd("Drum Window: Requires external subtitle files")
         return
     end
 
@@ -2130,11 +2142,13 @@ local function cmd_cycle_copy_mode()
         return
     end
     if FSM.MEDIA_STATE == "SINGLE_SRT" then
-        show_osd("Copy Mode: Only available with ASS or dual subtitles")
+        show_osd("Copy Mode: Fixed to Primary (Single Track)")
         return
     end
     FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
-    show_osd("Copy Subtitle Mode: " .. FSM.COPY_MODE)
+    
+    local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
+    show_osd("Copy Subtitle Mode: " .. label)
 end
 
 local function cmd_toggle_copy_ctx()
