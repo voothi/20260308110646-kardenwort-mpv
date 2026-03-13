@@ -368,6 +368,7 @@ local function load_sub(path, is_ass)
                         local text = content:sub(last_pos)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
+                        local style = parts[4]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
@@ -377,7 +378,7 @@ local function load_sub(path, is_ass)
                                 local merged = false
                                 local search_limit = math.max(1, #subs - 10)
                                 for i = #subs, search_limit, -1 do
-                                    if subs[i].raw_text == raw_text then
+                                    if subs[i].raw_text == raw_text and subs[i].style == style then
                                         subs[i].end_time = math.max(subs[i].end_time, parsed_end)
                                         merged = true
                                         break
@@ -388,7 +389,8 @@ local function load_sub(path, is_ass)
                                         start_time = parsed_start,
                                         end_time = parsed_end,
                                         text = raw_text,
-                                        raw_text = raw_text
+                                        raw_text = raw_text,
+                                        style = style
                                     })
                                 end
                             end
@@ -398,6 +400,62 @@ local function load_sub(path, is_ass)
             end
         end
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+        
+        local style_cyr_counts = {}
+        local style_total_counts = {}
+        for _, sub in ipairs(subs) do
+            if not style_total_counts[sub.style] then
+                style_total_counts[sub.style] = 0
+                style_cyr_counts[sub.style] = 0
+            end
+            style_total_counts[sub.style] = style_total_counts[sub.style] + 1
+            if has_cyrillic(sub.raw_text) then
+                style_cyr_counts[sub.style] = style_cyr_counts[sub.style] + 1
+            end
+        end
+        
+        local is_secondary_style = {}
+        local num_styles = 0
+        for s, t in pairs(style_total_counts) do
+            num_styles = num_styles + 1
+            if Options.copy_filter_russian and (style_cyr_counts[s] / t) > 0.05 then
+                is_secondary_style[s] = true
+            end
+        end
+        
+        local has_any_secondary = false
+        for s, v in pairs(is_secondary_style) do has_any_secondary = true break end
+        
+        if not has_any_secondary and num_styles >= 2 then
+            local overlap_count = 0
+            for i = 1, #subs - 1 do
+                 if subs[i].start_time == subs[i+1].start_time and subs[i].style ~= subs[i+1].style then
+                     overlap_count = overlap_count + 1
+                 end
+            end
+            if overlap_count > #subs * 0.1 then
+                 for i = 1, #subs - 1 do
+                     if subs[i].start_time == subs[i+1].start_time and subs[i].style ~= subs[i+1].style then
+                         is_secondary_style[subs[i+1].style] = true
+                         break
+                     end
+                 end
+            end
+        end
+        
+        local pri_subs = {}
+        local sec_subs = {}
+        for _, sub in ipairs(subs) do
+            if is_secondary_style[sub.style] then
+                table.insert(sec_subs, sub)
+            else
+                table.insert(pri_subs, sub)
+            end
+        end
+        
+        f:close()
+        if #sec_subs > 0 then return pri_subs, sec_subs end
+        return pri_subs
     else
         local state = "ID"
         for line in f:lines() do
@@ -556,8 +614,15 @@ local function update_media_state()
             show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
         else
             -- Reload subtitles for Drum memory only if necessary
-            if Tracks.pri.path and #Tracks.pri.subs == 0 then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
-            if Tracks.sec.path and #Tracks.sec.subs == 0 then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
+            if Tracks.pri.path and #Tracks.pri.subs == 0 then 
+                local p, s = load_sub(Tracks.pri.path, false)
+                Tracks.pri.subs = p
+                if s and Tracks.sec.id == 0 then Tracks.sec.subs = s end
+            end
+            if Tracks.sec.path and #Tracks.sec.subs == 0 then 
+                local p, _ = load_sub(Tracks.sec.path, false)
+                Tracks.sec.subs = p
+            end
         end
     end
 end
@@ -1144,8 +1209,15 @@ local function cmd_toggle_drum()
         mp.set_property_bool("secondary-sub-visibility", false)
         
         -- Boot subs for drum memory
-        if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
-        if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
+        if Tracks.pri.path then 
+            local p, s = load_sub(Tracks.pri.path, false)
+            Tracks.pri.subs = p
+            if s and Tracks.sec.id == 0 then Tracks.sec.subs = s end
+        end
+        if Tracks.sec.path then 
+            local p, _ = load_sub(Tracks.sec.path, false)
+            Tracks.sec.subs = p
+        end
 
         show_osd("Drum Mode: ON")
     else
@@ -1584,7 +1656,9 @@ local function manage_search_bindings(enable)
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
-            Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+            local p, s = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+            Tracks.pri.subs = p
+            if s and Tracks.sec.id == 0 then Tracks.sec.subs = s end
         end
         
         -- Temporarily clear main DW bindings that conflict with typing if Drum Window is open
@@ -1932,7 +2006,9 @@ function cmd_toggle_drum_window()
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
-            Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+            local p, s = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+            Tracks.pri.subs = p
+            if s and Tracks.sec.id == 0 then Tracks.sec.subs = s end
         end
         
         -- Snapshot and hide all subtitle overlays to prevent overlap
@@ -2163,49 +2239,54 @@ local function get_copy_context_text(time_pos)
         end
     end
     
-    local function append(path, is_ass)
-        if not path then return end
-        local subs = nil
-        if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
-        elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.sec.subs
-        else subs = load_sub(path, is_ass) end
-
-        if subs and #subs > 0 then
-            local idx = get_center_index(subs, time_pos)
-            if idx ~= -1 then
-                if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
-                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
-                        idx = idx - 1
-                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
-                        idx = idx + 1
-                    end
+    local function append(subs)
+        if not subs or #subs == 0 then return end
+        local idx = get_center_index(subs, time_pos)
+        if idx ~= -1 then
+            if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
+                if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
+                    idx = idx - 1
+                elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
+                    idx = idx + 1
                 end
-                
-                local pre, i = {}, idx - 1
-                while i >= 1 and #pre < Options.copy_context_lines do
-                    local t = trim(subs[i].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
-                    i = i - 1
-                end
-                for _, ln in ipairs(pre) do table.insert(combined, ln) end
-                
-                local ctext = trim(subs[idx].text)
-                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
-                
-                local post, i2 = {}, idx + 1
-                while i2 <= #subs and #post < Options.copy_context_lines do
-                    local t = trim(subs[i2].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
-                    i2 = i2 + 1
-                end
-                for _, ln in ipairs(post) do table.insert(combined, ln) end
             end
+            
+            local pre, i = {}, idx - 1
+            while i >= 1 and #pre < Options.copy_context_lines do
+                local t = trim(subs[i].text)
+                if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
+                i = i - 1
+            end
+            for _, ln in ipairs(pre) do table.insert(combined, ln) end
+            
+            local ctext = trim(subs[idx].text)
+            if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
+            
+            local post, i2 = {}, idx + 1
+            while i2 <= #subs and #post < Options.copy_context_lines do
+                local t = trim(subs[i2].text)
+                if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
+                i2 = i2 + 1
+            end
+            for _, ln in ipairs(post) do table.insert(combined, ln) end
         end
     end
     
-    append(Tracks.pri.path, Tracks.pri.is_ass)
+    if Tracks.pri.path and #Tracks.pri.subs == 0 then
+        local p, s = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+        Tracks.pri.subs = p
+        if s and Tracks.sec.id == 0 then Tracks.sec.subs = s end
+    end
+    if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path and #Tracks.sec.subs == 0 then
+        local p, _ = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
+        Tracks.sec.subs = p
+    end
+    
+    append(Tracks.pri.subs)
     if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path then
-        append(Tracks.sec.path, Tracks.sec.is_ass)
+        append(Tracks.sec.subs)
+    elseif #Tracks.sec.subs > 0 then
+        append(Tracks.sec.subs)
     end
     
     return #combined > 0 and table.concat(combined, "\n") or nil
