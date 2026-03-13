@@ -1,3 +1,26 @@
+# Release Notes - v1.26.4 (Cyrillic Import Fix & UI Silence)
+
+**Date**: 2026-03-13
+**Version**: v1.26.4
+**Request ZID**: 20260313225638
+**RFC**: [rfcs/20260313225638-release-v1.26.4.md](rfcs/20260313225638-release-v1.26.4.md)
+
+## Highlights
+
+### 🥁 **Cyrillic-Free .ass Import**
+- **Targeted Filtering**: Subtitle parsing now proactively filters out Cyrillic lines when importing `.ass` files for the Drum Window.
+- **Pure Environment**: This ensures your primary reading track remains a focused, target-language only environment, even if the source file contains interleaved translations.
+
+### 🤫 **Silent UI transitions**
+- **Cleaner UX**: Removed the "OPEN/CLOSED" OSD messages when toggling the Drum Window.
+- **Contextual Feedback**: The visual emergence of the window provides sufficient feedback, resulting in a more professional and cinematic feel during immersion.
+
+### 🛠️ **Hoisted Core Utilities**
+- **Architectural Cleanup**: Hoisted all text-processing helpers (`has_cyrillic`, `is_word_char`, etc.) to the top of `lls_core.lua` for global reliability.
+- **Nil-Safety Hardening**: Added defensive guards to all core string functions to prevent runtime crashes on malformed subtitle inputs.
+
+---
+
 # Release Notes - v1.26.2 (Externalized Search Styles)
 
 **Date**: 2026-03-12
