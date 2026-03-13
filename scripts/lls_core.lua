@@ -150,6 +150,25 @@ local function parse_time(time_str)
     return 0
 end
 
+local function has_cyrillic(str)
+    if not str then return false end
+    return str:find("[\208\209]") ~= nil
+end
+
+local function is_word_char(ch)
+    if not ch then return false end
+    return ch:match("[%w\128-\255]") ~= nil
+end
+
+local function build_word_list(text)
+    local words = {}
+    if not text then return words end
+    for w in text:gmatch("%S+") do
+        table.insert(words, w)
+    end
+    return words
+end
+
 local function utf8_to_table(str)
     local t = {}
     for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
@@ -308,11 +327,7 @@ local function get_word_boundary(q_table, pos, direction)
     if #q_table == 0 then return 0 end
     
     local new_pos = pos
-    local function is_word_char(ch)
-        if not ch then return false end
-        -- Basic alphanumeric + Cyrillic
-        return ch:match("[%w\128-\255]") ~= nil
-    end
+    
 
     if direction == -1 then
         -- Skip spaces to the left
@@ -446,9 +461,7 @@ local function load_sub(path, is_ass)
     return subs
 end
 
-local function has_cyrillic(str)
-    return str:find("[\208\209]") ~= nil
-end
+
 
 local function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
@@ -470,13 +483,7 @@ local function get_center_index(subs, time_pos)
     return #subs
 end
 
-local function build_word_list(text)
-    local words = {}
-    for w in text:gmatch("%S+") do
-        table.insert(words, w)
-    end
-    return words
-end
+
 
 -- =========================================================================
 -- FSM INTERNAL LOGIC

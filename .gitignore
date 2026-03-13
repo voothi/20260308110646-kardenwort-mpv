@@ -48,3 +48,6 @@ scripts/diff_report.patch
 scripts/input_diff.patch
 scripts/lls_core_good_utf8.lua
 scripts/lls_core_good.lua
+lls_trace.log
+test.lua
+commit_diff_utf8.txt
