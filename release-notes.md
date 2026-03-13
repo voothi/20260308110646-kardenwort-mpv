@@ -11,9 +11,9 @@
 - **External Track Detection**: The advanced feature suite (Drum Mode, Drum Window, and Search HUD) now intelligently verifies whether the currently active subtitles are external files before activating.
 - **Explicit Feedback**: If you are using embedded subtitles (e.g., inside an `.mkv`), these features will now gracefully inform you that they "Require external subtitle files" instead of silently failing or getting stuck in an "ON" state.
 
-### 📋 **Descriptive Copy Mode Cycling**
-- **Meaningful Labels**: Pressing `z` to cycle the subtitle copying mode now presents clear, descriptive OSD labels: `A (Primary/Target)` and `B (Secondary/Translation)`.
-- **Single Track Awareness**: When only a single `.srt` track is loaded, the engine directly reports "Fixed to Primary (Single Track)", removing ambiguity.
+### 📋 **Descriptive Mode Cycling**
+- **Copy Mode (`z`)**: Pressing `z` to cycle the subtitle copying mode now presents clear, descriptive OSD labels: `A (Primary/Target)` and `B (Secondary/Translation)`. When only a single `.srt` track is loaded, the engine reports "Fixed to Primary (Single Track)".
+- **Secondary Subtitles (`j`)**: When attempting to cycle translation tracks with only one file loaded, the engine now provides format-aware context. Instead of just asserting "OFF", the status will explain if translations are "Managed internally by ASS styling" or if there is simply "Only 1 track available."
 
 ---
 
