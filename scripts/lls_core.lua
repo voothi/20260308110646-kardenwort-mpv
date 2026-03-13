@@ -40,10 +40,6 @@ local Options = {
     sec_pos_top = 10,
     sec_pos_bottom = 90,
 
-    -- Subtitle Loading & Filtering (for Drum Window/Search)
-    sub_filter_russian = true,
-    sub_exclude_styles = "translation,secondary,rus,rum,track2",
-
     -- System
     tick_rate = 0.05,
     osd_duration = 1.0,
@@ -369,31 +365,13 @@ local function load_sub(path, is_ass)
                         last_pos = comma_pos + 1
                     end
                     if #parts == 9 then
-                        local style = parts[4]
                         local text = content:sub(last_pos)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
-                        
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
-                            
                             if raw_text ~= "" then
-                                -- Filtering Logic
-                                if Options.sub_filter_russian and has_cyrillic(raw_text) then
-                                    goto next_ass_line
-                                end
-                                
-                                if Options.sub_exclude_styles ~= "" then
-                                    local s_lower = style:lower()
-                                    for pattern in Options.sub_exclude_styles:gmatch("[^,]+") do
-                                        pattern = pattern:match("^%s*(.-)%s*$"):lower()
-                                        if pattern ~= "" and s_lower:find(pattern, 1, true) then
-                                            goto next_ass_line
-                                        end
-                                    end
-                                end
-
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
                                 local merged = false
@@ -410,8 +388,7 @@ local function load_sub(path, is_ass)
                                         start_time = parsed_start,
                                         end_time = parsed_end,
                                         text = raw_text,
-                                        raw_text = raw_text,
-                                        style = style
+                                        raw_text = raw_text
                                     })
                                 end
                             end
@@ -419,7 +396,6 @@ local function load_sub(path, is_ass)
                     end
                 end
             end
-            ::next_ass_line::
         end
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
     else
@@ -429,14 +405,6 @@ local function load_sub(path, is_ass)
             if line == "" then
                 if current_sub and current_sub.text ~= "" then
                     current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-                    
-                    -- Filter SRT
-                    if Options.sub_filter_russian and has_cyrillic(current_sub.raw_text) then
-                        current_sub = nil
-                        state = "ID"
-                        goto next_srt_loop
-                    end
-
                     if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
                         subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
                     else
@@ -464,20 +432,13 @@ local function load_sub(path, is_ass)
                     current_sub.text = current_sub.text .. "\n" .. line
                 end
             end
-            ::next_srt_loop::
         end
         if current_sub and current_sub.text ~= "" then
             current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-            
-            -- Filter SRT EOF
-            if Options.sub_filter_russian and has_cyrillic(current_sub.raw_text) then
-                current_sub = nil
+            if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
+                subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
             else
-                if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
-                    subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
-                else
-                    table.insert(subs, current_sub)
-                end
+                table.insert(subs, current_sub)
             end
         end
     end
