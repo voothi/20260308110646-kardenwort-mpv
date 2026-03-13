@@ -136,6 +136,10 @@ search_osd.z = 30
 -- PARSERS & UTILS
 -- =========================================================================
 
+local function clean_text_srt(str)
+    return str:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
 local function parse_time(time_str)
     local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
     if h and m and s and ms then
@@ -615,12 +619,12 @@ local function update_media_state()
         else
             -- Reload subtitles for Drum memory only if necessary
             if Tracks.pri.path and #Tracks.pri.subs == 0 then 
-                local p, s = load_sub(Tracks.pri.path, false)
+                local p, s = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
                 Tracks.pri.subs = p
                 if s and Tracks.sec.id == 0 then Tracks.sec.subs = s end
             end
             if Tracks.sec.path and #Tracks.sec.subs == 0 then 
-                local p, _ = load_sub(Tracks.sec.path, false)
+                local p, _ = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
                 Tracks.sec.subs = p
             end
         end
@@ -2000,6 +2004,7 @@ function cmd_toggle_drum_window()
         show_osd("Drum Window: No subtitles loaded")
         return
     end
+
 
     if FSM.DRUM_WINDOW == "OFF" then
         FSM.DRUM_WINDOW = "DOCKED"
