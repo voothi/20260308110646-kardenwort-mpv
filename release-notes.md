@@ -1,3 +1,22 @@
+# Release Notes - v1.26.8 (Subtitle Feature Consistency & Feedback)
+
+**Date**: 2026-03-14
+**Version**: v1.26.8
+**Request ZID**: 20260313235721
+**RFC**: [rfcs/20260314000819-release-v1.26.8.md](rfcs/20260314000819-release-v1.26.8.md)
+
+## Highlights
+
+### 🛡️ **Robust Feature Guarding**
+- **External Track Detection**: The advanced feature suite (Drum Mode, Drum Window, and Search HUD) now intelligently verifies whether the currently active subtitles are external files before activating.
+- **Explicit Feedback**: If you are using embedded subtitles (e.g., inside an `.mkv`), these features will now gracefully inform you that they "Require external subtitle files" instead of silently failing or getting stuck in an "ON" state.
+
+### 📋 **Descriptive Copy Mode Cycling**
+- **Meaningful Labels**: Pressing `z` to cycle the subtitle copying mode now presents clear, descriptive OSD labels: `A (Primary/Target)` and `B (Secondary/Translation)`.
+- **Single Track Awareness**: When only a single `.srt` track is loaded, the engine directly reports "Fixed to Primary (Single Track)", removing ambiguity.
+
+---
+
 # Release Notes - v1.26.4 (Cyrillic Import Fix & UI Silence)
 
 **Date**: 2026-03-13
