@@ -1176,7 +1176,7 @@ local function master_tick_actual()
     end
 end
 
-local function master_tick()
+function master_tick()
     local status, err = pcall(master_tick_actual)
     if not status then
         local msg = "CRASH in master_tick: " .. tostring(err)
@@ -1221,7 +1221,7 @@ local function cmd_smart_space(table)
     end
 end
 
-local function update_media_state()
+function update_media_state()
     local status, err = pcall(update_media_state_actual)
     if not status then
         local msg = "CRASH in update_media_state: " .. tostring(err)
@@ -1230,7 +1230,7 @@ local function update_media_state()
     end
 end
 
-local function load_sub(path, is_ass)
+function load_sub(path, is_ass)
     lls_trace("load_sub called for: " .. tostring(path))
     local status, p, s = pcall(load_sub_actual, path, is_ass)
     if not status then
@@ -2090,7 +2090,7 @@ function cmd_toggle_drum_window()
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(true)
         end
-        show_osd("Drum Window: OPEN")
+        -- show_osd("Drum Window: OPEN")
     else
         FSM.DRUM_WINDOW = "OFF"
         if not FSM.SEARCH_MODE then
