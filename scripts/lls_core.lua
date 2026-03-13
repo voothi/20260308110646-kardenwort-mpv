@@ -1,4 +1,4 @@
-local mp = require 'mp'
+﻿local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 
@@ -437,6 +437,25 @@ local function load_sub_actual(path, is_ass)
             end
         end
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+    else
+        -- SRT parsing logic here...
+    end
+    f:close()
+    return subs
+end
+
+function load_sub(path, is_ass)
+    lls_trace("load_sub called for: " .. tostring(path))
+    local status, p, s = pcall(load_sub_actual, path, is_ass)
+    if not status then
+        local msg = "CRASH in load_sub: " .. tostring(p)
+        lls_trace(msg)
+        mp.osd_message(msg, 20)
+        return {}, {}
+    end
+    lls_trace("load_sub success")
+    return p, s
+end
         
         local style_cyr_counts = {}
         local style_total_counts = {}
@@ -653,6 +672,14 @@ local function update_media_state_actual()
     end
 end
 
+function update_media_state()
+    local status, err = pcall(update_media_state_actual)
+    if not status then
+        local msg = "CRASH in update_media_state: " .. tostring(err)
+        lls_trace(msg)
+        mp.osd_message(msg, 20)
+    end
+end
 -- =========================================================================
 -- DRUM RENDERER
 -- =========================================================================
@@ -1225,28 +1252,7 @@ local function cmd_smart_space(table)
     end
 end
 
-function update_media_state()
-    local status, err = pcall(update_media_state_actual)
-    if not status then
-        local msg = "CRASH in update_media_state: " .. tostring(err)
-        lls_trace(msg)
-        mp.osd_message(msg, 20)
-    end
-end
 
-
-local function load_sub(path, is_ass)
-    lls_trace("load_sub called for: " .. tostring(path))
-    local status, p, s = pcall(load_sub_actual, path, is_ass)
-    if not status then
-        local msg = "CRASH in load_sub: " .. tostring(p)
-        lls_trace(msg)
-        mp.osd_message(msg, 20)
-        return {}, {}
-    end
-    lls_trace("load_sub success")
-    return p, s
-end
 
 local function cmd_toggle_drum()
     if FSM.MEDIA_STATE == "NO_SUBS" then
