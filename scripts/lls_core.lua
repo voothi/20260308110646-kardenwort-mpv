@@ -17,7 +17,7 @@ local Options = {
     -- Drum Mode
     drum_font_size = 34,
     drum_context_lines = 2,
-    drum_context_opacity = "50",
+    drum_context_opacity = "30",
     drum_context_color = "FFFFFF",
     drum_context_bold = "0",
     drum_context_size_mul = 1.0,
