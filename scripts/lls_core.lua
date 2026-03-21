@@ -574,48 +574,53 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local ass = ""
     local start_idx = math.max(1, center_idx - Options.drum_context_lines)
     local end_idx = math.min(#subs, center_idx + Options.drum_context_lines)
-    
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
-    local gap = font_size * Options.drum_spacing_gap
     
-    local function format_sub(sub, is_center)
-        local is_active = (is_center and time_pos >= sub.start_time and time_pos <= sub.end_time)
+    local function format_sub(text, is_active)
+        if text == "" then return "" end
         if is_active then
             return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
                 Options.drum_active_opacity, Options.drum_active_bold, Options.drum_active_color, 
-                font_size * Options.drum_active_size_mul, sub.text)
+                font_size * Options.drum_active_size_mul, text)
         else
             return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
                 Options.drum_context_opacity, Options.drum_context_bold, Options.drum_context_color, 
-                font_size * Options.drum_context_size_mul, sub.text)
+                font_size * Options.drum_context_size_mul, text)
         end
     end
 
-    local prev_text = ""
+    local raw_prev = ""
     for i = start_idx, center_idx - 1 do
-        if prev_text ~= "" then prev_text = prev_text .. "\\N" end
-        prev_text = prev_text .. format_sub(subs[i], false)
+        if raw_prev ~= "" then raw_prev = raw_prev .. "\\N" end
+        raw_prev = raw_prev .. subs[i].text
+    end
+    local prev_text = format_sub(raw_prev, false)
+    
+    local active_text = ""
+    if center_idx > 0 and center_idx <= #subs then
+        local sub = subs[center_idx]
+        local is_active = (time_pos >= sub.start_time and time_pos <= sub.end_time)
+        active_text = format_sub(sub.text, is_active)
     end
     
-    local active_text = format_sub(subs[center_idx], true)
-    
-    local next_text = ""
+    local raw_next = ""
     for i = center_idx + 1, end_idx do
-        if next_text ~= "" then next_text = next_text .. "\\N" end
-        next_text = next_text .. format_sub(subs[i], false)
+        if raw_next ~= "" then raw_next = raw_next .. "\\N" end
+        raw_next = raw_next .. subs[i].text
     end
+    local next_text = format_sub(raw_next, false)
     
+    local all_text = ""
+    if prev_text ~= "" then all_text = prev_text .. "\\N" end
+    if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
+    all_text = all_text .. active_text
+    if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
+    all_text = all_text .. next_text
+
     if is_top then
-        if prev_text ~= "" then ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel - gap, font_size, prev_text) end
-        local main_text = active_text
-        if next_text ~= "" then main_text = main_text .. "\\N" .. next_text end
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, main_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, all_text)
     else
-        local all_text = ""
-        if prev_text ~= "" then all_text = prev_text .. "\\N" end
-        all_text = all_text .. active_text
-        if next_text ~= "" then all_text = all_text .. "\\N" .. next_text end
         ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, all_text)
     end
     return ass
@@ -1017,7 +1022,7 @@ local function tick_drum(time_pos)
     local ass_text = ""
     local font_size = Options.drum_font_size > 0 and Options.drum_font_size or mp.get_property_number("sub-font-size", 44)
     local pri_pos = mp.get_property_number("sub-pos", 95)
-    local sec_pos = FSM.native_sec_sub_pos
+    local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
     
     if sec_pos > 50 then
         local max_lines = Options.drum_active_size_mul + (2 * Options.drum_context_lines * Options.drum_context_size_mul)
