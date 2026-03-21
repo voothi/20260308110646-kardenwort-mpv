@@ -25,4 +25,4 @@ Use these commands in chat to trigger specific agent behaviors:
 | `/opsx:propose` | Quickly turn an idea into a structured plan ready for implementation. |
 
 ---
-*Note: These capabilities are powered by OpenSpec and the specialized `.agent/` configurations.*
+*Note: These capabilities are powered by OpenSpec and the specialized `.agents/` configurations.*
