@@ -53,3 +53,5 @@ full_patch.txt
 old.lua
 temp_commit.patch
 temp_old_core.lua
+revert_target.conf
+revert_temp.conf

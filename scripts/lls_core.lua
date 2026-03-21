@@ -582,13 +582,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local function format_sub(sub, is_center)
         local is_active = (is_center and time_pos >= sub.start_time and time_pos <= sub.end_time)
         if is_active then
-            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}", 
+            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
                 Options.drum_active_opacity, Options.drum_active_bold, Options.drum_active_color, 
-                font_size * Options.drum_active_size_mul, sub.text, font_size)
+                font_size * Options.drum_active_size_mul, sub.text)
         else
-            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}", 
+            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
                 Options.drum_context_opacity, Options.drum_context_bold, Options.drum_context_color, 
-                font_size * Options.drum_context_size_mul, sub.text, font_size)
+                font_size * Options.drum_context_size_mul, sub.text)
         end
     end
 
