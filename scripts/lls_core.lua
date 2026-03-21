@@ -2088,6 +2088,7 @@ local function cmd_cycle_sec_pos()
     end
     if FSM.DRUM == "ON" then
         FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom or Options.sec_pos_top
+        mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
     else
         local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
