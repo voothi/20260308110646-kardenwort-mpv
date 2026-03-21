@@ -1,3 +1,23 @@
+# Release Notes - v1.26.10 (OpenSpec Integration)
+
+**Date**: 2026-03-21
+**Version**: v1.26.10
+**Request ZID**: 20260321182207
+**RFC**: [rfcs/20260321182207-release-v1.26.10.md](rfcs/20260321182207-release-v1.26.10.md)
+
+## Highlights
+
+### 🚄 **OpenSpec Workflow Integration**
+- **Spec-Driven Development**: The project now supports a formal OpenSpec workflow, enabling precise alignment between human intent and AI implementation.
+- **Structured Changes**: New features and fixes are now managed through a unified **Propose → Apply → Archive** lifecycle, ensuring every change is documented, designed, and verified.
+
+### 🤖 **Enhanced Agent Capabilities**
+- **Specialized Slash Commands**: Added native support for `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, and `/opsx-explore` directly within the Antigravity chat.
+- **Discovery Document**: Created `AGENTS.md` to provide a central reference for all specialized agent skills and workflows available in the repository.
+- **Informed Assistance**: Configured `openspec/config.yaml` with deep project context (Tech stack, Design philosophy) to ensure more relevant and "premium" AI assistance.
+
+---
+
 # Release Notes - v1.26.8 (Subtitle Feature Consistency & Feedback)
 
 **Date**: 2026-03-14
