@@ -46,7 +46,7 @@ local Options = {
 
     -- Drum Window
     dw_font_size = 30,
-    dw_lines_visible = 11,        -- how many lines visible in the window
+    dw_lines_visible = 15,        -- how many lines visible in the window
     dw_bg_color = "A9C5D4",       -- beige in BGR hex for ASS
     dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
     dw_text_color = "1A1A1A",     -- dark text
