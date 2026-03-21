@@ -611,8 +611,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     end
     local next_text = format_sub(raw_next, false)
     
-    local all_text = ""
-    if prev_text ~= "" then all_text = prev_text .. "\\N" end
+    local all_text = prev_text
     if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
     all_text = all_text .. active_text
     if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
