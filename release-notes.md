@@ -3,7 +3,7 @@
 **Date**: 2026-03-21
 **Version**: v1.26.12
 **Request ZID**: 20260321213543
-**RFC**: [rfcs/20260321213543-v1.26.12.md](rfcs/20260321213543-v1.26.12.md)
+**RFC**: [docs/rfcs/20260321213543-release-v1.26.12.md](docs/rfcs/20260321213543-release-v1.26.12.md)
 
 ## Highlights
 
@@ -25,7 +25,7 @@
 **Date**: 2026-03-21
 **Version**: v1.26.10
 **Request ZID**: 20260321182207
-**RFC**: [rfcs/20260321182207-release-v1.26.10.md](rfcs/20260321182207-release-v1.26.10.md)
+**RFC**: [docs/rfcs/20260321182207-release-v1.26.10.md](docs/rfcs/20260321182207-release-v1.26.10.md)
 
 ## Highlights
 
@@ -45,7 +45,7 @@
 **Date**: 2026-03-14
 **Version**: v1.26.8
 **Request ZID**: 20260313235721
-**RFC**: [rfcs/20260314000819-release-v1.26.8.md](rfcs/20260314000819-release-v1.26.8.md)
+**RFC**: [docs/rfcs/20260314000819-release-v1.26.8.md](docs/rfcs/20260314000819-release-v1.26.8.md)
 
 ## Highlights
 
@@ -64,7 +64,7 @@
 **Date**: 2026-03-13
 **Version**: v1.26.4
 **Request ZID**: 20260313225638
-**RFC**: [rfcs/20260313225638-release-v1.26.4.md](rfcs/20260313225638-release-v1.26.4.md)
+**RFC**: [docs/rfcs/20260313225638-release-v1.26.4.md](docs/rfcs/20260313225638-release-v1.26.4.md)
 
 ## Highlights
 
