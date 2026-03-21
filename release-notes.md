@@ -1,3 +1,25 @@
+# Release Notes - v1.26.12 (Drum Formatting & Sync Fidelity)
+
+**Date**: 2026-03-21
+**Version**: v1.26.12
+**Request ZID**: 20260321213543
+**RFC**: [rfcs/20260321213543-v1.26.12.md](rfcs/20260321213543-v1.26.12.md)
+
+## Highlights
+
+### 🥁 **Seamless Drum Mode Layout**
+- **Unified Block Rendering**: Drum Mode now mathematically glues all historical, active, and future text lines into a single, cohesive ASS rendering block. This totally eliminates all visual gaps, padded box overlaps, and the previous split "bifurcation" between top/bottom lines.
+- **Strict OSD Styling**: Standard Subtitles and Drum Mode now have physically decoupled style commands. Drum Mode strictly forces an ultra-clean `outline-and-shadow` appearance, while regular subtitles can still natively enjoy the PotPlayer "Black Frame" aesthetic without polluting Drum readability.
+
+### 🛡️ **Position Sync Fidelity**
+- **Dynamic Live Tracking**: Drum Mode's vertical position explicitly reads the native `secondary-sub-pos` directly from mpv in real-time. Manually moving the secondary track with `Shift+R`/`Shift+T` (or `К`/`Е`) now yields immediate, pixel-perfect position tracking within the Drum UI itself.
+- **Position Toggle Repaired**: Fixed a state-desync bug where tapping `y` to jump between Top/Bottom would update internal script variables without successfully notifying mpv's actual property renderer.
+
+### 🤫 **UI Interference Cleanup**
+- **Sleek Navigating**: Forcibly disabled the native, low-res mpv `osd-bar` (timeline scale) globally. Frantically skipping through subtitle lines with `a` or `d` will no longer trigger ugly timeline artifacts. The visual timeline remains cleanly sequestered within the elegant OSC invoked via your `TAB` key.
+
+---
+
 # Release Notes - v1.26.10 (OpenSpec Integration)
 
 **Date**: 2026-03-21
