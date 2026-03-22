@@ -116,7 +116,10 @@ local FSM = {
     SEARCH_RESULTS = {},
     SEARCH_SEL_IDX = 1,
     SEARCH_CURSOR = 0,
-    SEARCH_ANCHOR = -1
+    SEARCH_ANCHOR = -1,
+
+    -- Transient UI State
+    saved_osd_border_style = nil
 }
 
 local Tracks = {
@@ -1694,6 +1697,22 @@ local function move_search_cursor(direction, ctrl, shift)
     render_search()
 end
 
+local function manage_ui_border_override(enable)
+    if enable then
+        if not FSM.saved_osd_border_style then
+            FSM.saved_osd_border_style = mp.get_property("osd-border-style")
+            mp.set_property("osd-border-style", "outline-and-shadow")
+        end
+    else
+        if FSM.DRUM_WINDOW == "OFF" and not FSM.SEARCH_MODE then
+            if FSM.saved_osd_border_style then
+                mp.set_property("osd-border-style", FSM.saved_osd_border_style)
+                FSM.saved_osd_border_style = nil
+            end
+        end
+    end
+end
+
 local function manage_search_bindings(enable)
     if enable then
         FSM.SEARCH_MODE = true
@@ -1702,6 +1721,8 @@ local function manage_search_bindings(enable)
         FSM.SEARCH_SEL_IDX = 1
         FSM.SEARCH_CURSOR = 0
         FSM.SEARCH_ANCHOR = -1
+        
+        manage_ui_border_override(true)
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -1987,6 +2008,7 @@ local function manage_search_bindings(enable)
         render_search()
     else
         FSM.SEARCH_MODE = false
+        manage_ui_border_override(false)
         
         local chars = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ "
         local function utf8_iter(str)
@@ -2058,6 +2080,7 @@ function cmd_toggle_drum_window()
 
     if FSM.DRUM_WINDOW == "OFF" then
         FSM.DRUM_WINDOW = "DOCKED"
+        manage_ui_border_override(true)
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -2092,6 +2115,7 @@ function cmd_toggle_drum_window()
         -- show_osd("Drum Window: OPEN")
     else
         FSM.DRUM_WINDOW = "OFF"
+        manage_ui_border_override(false)
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(false)
         end
