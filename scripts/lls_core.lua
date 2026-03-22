@@ -333,6 +333,7 @@ local function get_word_boundary(q_table, pos, direction)
 end
 
 local function clean_text_srt(line)
+    line = line:gsub("^\xEF\xBB\xBF", "")
     return line:gsub("\r", ""):gsub("<[^>]+>", "")
 end
 
