@@ -314,6 +314,11 @@ local function calculate_match_score(str, query)
     return score, all_indices
 end
 
+local function is_word_char(ch)
+    if not ch then return false end
+    return ch:match("[%w\128-\255]") ~= nil
+end
+
 local function get_word_boundary(q_table, pos, direction)
     -- direction: -1 (left), 1 (right)
     if #q_table == 0 then return 0 end
@@ -351,11 +356,6 @@ end
 local function has_cyrillic(str)
     if not str then return false end
     return str:find("[\208\209]") ~= nil
-end
-
-local function is_word_char(ch)
-    if not ch then return false end
-    return ch:match("[%w\128-\255]") ~= nil
 end
 
 local function build_word_list(text)
