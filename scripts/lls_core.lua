@@ -1222,6 +1222,7 @@ local function cmd_dw_scroll(dir)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+    FSM.DW_CURSOR_WORD = -1
 end
 
 local function cmd_dw_line_move(dir, shift)
@@ -1327,14 +1328,14 @@ local function manage_dw_bindings(enable)
             FSM.DW_FOLLOW_PLAYER = true
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = 1
+            FSM.DW_CURSOR_WORD = -1
         end},
         {key = "d", name = "dw-seek-fwd", fn = function() 
             mp.command("sub-seek 1")
             FSM.DW_FOLLOW_PLAYER = true
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = 1
+            FSM.DW_CURSOR_WORD = -1
         end},
         {key = "ENTER", name = "dw-enter", fn = function() cmd_dw_seek_selected() end},
         {key = "KP_ENTER", name = "dw-enter-kp", fn = function() cmd_dw_seek_selected() end},
@@ -1372,14 +1373,14 @@ local function manage_dw_bindings(enable)
             FSM.DW_FOLLOW_PLAYER = true
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = 1
+            FSM.DW_CURSOR_WORD = -1
         end},
         {key = "в", name = "dw-seek-fwd-ru", fn = function() 
             mp.command("sub-seek 1")
             FSM.DW_FOLLOW_PLAYER = true
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = 1
+            FSM.DW_CURSOR_WORD = -1
         end},
         {key = "ENTER", name = "dw-enter-ru", fn = function() cmd_dw_seek_selected() end},
         {key = "Ctrl+ЛЕВЫЙ", name = "dw-word-left-ctrl-ru", fn = function() cmd_dw_word_move(-5, false) end},
@@ -2104,7 +2105,7 @@ function cmd_toggle_drum_window()
             FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
             FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
         end
-        FSM.DW_CURSOR_WORD = 1
+        FSM.DW_CURSOR_WORD = -1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_FOLLOW_PLAYER = true
