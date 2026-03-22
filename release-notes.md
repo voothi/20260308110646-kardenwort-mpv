@@ -1,3 +1,18 @@
+# Release Notes - v1.26.34 (Universal Navigation Reliability)
+
+**Date**: 2026-03-22
+**Version**: v1.26.34
+**Request ZID**: 20260322202226
+**RFC**: [docs/rfcs/20260322202226-v1.26.34.md](docs/rfcs/20260322202226-v1.26.34.md)
+
+## Highlights
+
+### 🚄 **Universal Navigation Reliability**
+- **Seamless Logic**: Exported the reliable, table-based seeking engine as global script-bindings (`lls-seek_prev` and `lls-seek_next`).
+- **Global Smoothness**: Subtitle navigation (`a`/`d`) now behaves with identical high-precision reliability whether the Drum Window is open or closed. No more "double-tapping" after an autopause in any mode.
+
+---
+
 # Release Notes - v1.26.32 (Navigation & Pointer Fixes)
 
 **Date**: 2026-03-22
