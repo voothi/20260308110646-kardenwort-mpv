@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.26.26-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.26) 
+[![Version](https://img.shields.io/badge/version-v1.26.28-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.28) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -93,6 +93,7 @@ A high-performance navigation overlay that decouples content lookup from playbac
 - **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
 - **Hit Highlighting**: Elegant visual feedback highlighting matching characters (Subsequence-aware). **Fully configurable** via the `Options` table.
 - **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek. **Styling (colors/bolding)** is now user-adjustable.
+- **Dynamic OSD Support**: Automatically overrides the global `osd-border-style` (e.g., from `background-box`) while active to ensure a clean, readable interface on top of the custom search panels.
 - **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
 - **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
 
@@ -229,8 +230,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~285 Commits (v1.26.26)
-- **Intensity Profile**: 4.8 Commits/Hour 
+- **Current Maturity**: ~295 Commits (v1.26.28)
+- **Intensity Profile**: 4.9 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

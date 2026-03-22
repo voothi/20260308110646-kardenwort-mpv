@@ -1,3 +1,19 @@
+# Release Notes - v1.26.28 (Search Box Visibility Fix)
+
+**Date**: 2026-03-22
+**Version**: v1.26.28
+**Request ZID**: 20260322163803
+**RFC**: [docs/rfcs/20260322163803-release-v1.26.28.md](docs/rfcs/20260322163803-release-v1.26.28.md)
+
+## Highlights
+
+### 🔦 **Search HUD & Drum Window Visibility Fix**
+- **Clean Interface**: Fixed a severe visual bug where enabling the "Black Frame" aesthetic (`osd-border-style=background-box`) rendered the Search and Drum Window UI unreadable.
+- **Intelligent Style Override**: The script now dynamically detects when these custom UI panels are active and temporarily forces the OSD to a clean `outline-and-shadow` style. This prevents overlapping black boxes from obscuring your search results and reading context.
+- **Preserved Aesthetics**: Your global `mpv` styling preferences are automatically restored the moment you close the Search or Drum Window, ensuring your immersive experience remains exactly how you like it.
+
+---
+
 # Release Notes - v1.26.26 (Cross-Platform Clipboard Support)
 
 **Date**: 2026-03-22
