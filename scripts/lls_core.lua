@@ -1315,6 +1315,27 @@ local function cmd_dw_seek_selected()
     end
 end
 
+local function cmd_dw_seek_delta(dir)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local time_pos = mp.get_property_number("time-pos")
+    if not time_pos then return end
+    
+    local current_idx = get_center_index(subs, time_pos)
+    if current_idx == -1 then return end
+    
+    local target_idx = math.max(1, math.min(#subs, current_idx + dir))
+    local sub = subs[target_idx]
+    if sub and sub.start_time then
+        mp.commandv("seek", sub.start_time, "absolute+exact")
+        FSM.DW_FOLLOW_PLAYER = true
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+        FSM.DW_CURSOR_WORD = -1
+    end
+end
+
 local function manage_dw_bindings(enable)
     local keys = {
         {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
@@ -1323,20 +1344,8 @@ local function manage_dw_bindings(enable)
         {key = "DOWN", name = "dw-line-down", fn = function() cmd_dw_line_move(1, false) end},
         {key = "Shift+UP", name = "dw-line-up-shift", fn = function() cmd_dw_line_move(-1, true) end},
         {key = "Shift+DOWN", name = "dw-line-down-shift", fn = function() cmd_dw_line_move(1, true) end},
-        {key = "a", name = "dw-seek-back", fn = function() 
-            mp.command("sub-seek -1")
-            FSM.DW_FOLLOW_PLAYER = true
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = -1
-        end},
-        {key = "d", name = "dw-seek-fwd", fn = function() 
-            mp.command("sub-seek 1")
-            FSM.DW_FOLLOW_PLAYER = true
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = -1
-        end},
+        {key = "a", name = "dw-seek-back", fn = function() cmd_dw_seek_delta(-1) end},
+        {key = "d", name = "dw-seek-fwd", fn = function() cmd_dw_seek_delta(1) end},
         {key = "ENTER", name = "dw-enter", fn = function() cmd_dw_seek_selected() end},
         {key = "KP_ENTER", name = "dw-enter-kp", fn = function() cmd_dw_seek_selected() end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
@@ -1368,20 +1377,8 @@ local function manage_dw_bindings(enable)
         {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
         {key = "Ctrl+ВВЕРХ", name = "dw-scroll-up-ctrl-ru", fn = function() cmd_dw_scroll(-1) end},
         {key = "Ctrl+ВНИЗ", name = "dw-scroll-down-ctrl-ru", fn = function() cmd_dw_scroll(1) end},
-        {key = "ф", name = "dw-seek-back-ru", fn = function() 
-            mp.command("sub-seek -1")
-            FSM.DW_FOLLOW_PLAYER = true
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = -1
-        end},
-        {key = "в", name = "dw-seek-fwd-ru", fn = function() 
-            mp.command("sub-seek 1")
-            FSM.DW_FOLLOW_PLAYER = true
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = -1
-        end},
+        {key = "ф", name = "dw-seek-back-ru", fn = function() cmd_dw_seek_delta(-1) end},
+        {key = "в", name = "dw-seek-fwd-ru", fn = function() cmd_dw_seek_delta(1) end},
         {key = "ENTER", name = "dw-enter-ru", fn = function() cmd_dw_seek_selected() end},
         {key = "Ctrl+ЛЕВЫЙ", name = "dw-word-left-ctrl-ru", fn = function() cmd_dw_word_move(-5, false) end},
         {key = "Ctrl+ПРАВЫЙ", name = "dw-word-right-ctrl-ru", fn = function() cmd_dw_word_move(5, false) end},
