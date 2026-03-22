@@ -5,5 +5,5 @@
 - [x] **Update Bindings**: Update `a`, `d`, `ф`, `в` bindings in `manage_dw_bindings`. <!-- id: 1 -->
 
 ## Verification
-- [ ] **Manual Test: Autopause Navigation**: Trigger autopause, verify `d` jumps to next sub on first press. <!-- id: 2 -->
-- [ ] **Manual Test: Reverse Navigation**: Verify `a` jumps to previous sub correctly. <!-- id: 3 -->
+- [x] **Manual Test: Autopause Navigation**: Trigger autopause, verify `d` jumps to next sub on first press. <!-- id: 2 -->
+- [x] **Manual Test: Reverse Navigation**: Verify `a` jumps to previous sub correctly. <!-- id: 3 -->
