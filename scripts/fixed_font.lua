@@ -9,6 +9,13 @@ local base_height = 1080
 
 -- Your preferred size multiplier
 local base_scale = 1.0  
+
+-- Scaling strength (0.0 to 1.0)
+-- 0.0 = Normal mpv behavior (shrinks perfectly with window)
+-- 0.5 = Halfway (softer scaling, very readable, less wrapping)
+-- 1.0 = Strict fixed size (stays exactly 1080p size, wraps heavily)
+local scale_strength = 0.5
+-- ==========================================
 -- ==========================================
 
 local function update_scale()
@@ -36,9 +43,12 @@ local function update_scale()
         mp.set_property_number("sub-scale", 1.0)
     else
         -- Counteract native shrinking when window height is below base_height
+        -- using the softer scaling formula
         local comp_scale = 1.0
         if dim.h < base_height then
-            comp_scale = base_height / dim.h
+            local perfect_comp = base_height / dim.h
+            -- Interpolate between 1.0 (no compensation) and perfect_comp (full fixed size)
+            comp_scale = 1.0 + (perfect_comp - 1.0) * scale_strength
         end
         mp.set_property_number("sub-scale", comp_scale * base_scale)
     end
