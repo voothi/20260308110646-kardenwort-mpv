@@ -54,6 +54,8 @@ local Options = {
     dw_highlight_color = "0000bf",-- red highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.55,         -- char width multiplier (0.55 is exact for Consolas)
+    dw_vline_h_mul = 1.0,         -- visual line height = dw_font_size * this (tune for click accuracy)
+    dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this
 
     -- Search HUD Styling
     search_hit_color = "0000bf",       -- Match highlighting (BGR)
@@ -692,8 +694,8 @@ local function dw_build_layout(subs, view_center)
     local start_idx = math.max(1, view_center - half_win)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
 
-    local vline_h = Options.dw_font_size * 1.2
-    local sub_gap = Options.dw_font_size * 1.2
+    local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
+    local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -836,8 +838,8 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = Options.dw_font_size * 1.2
-    local sub_gap = Options.dw_font_size * 1.2
+    local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
+    local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
