@@ -1430,6 +1430,73 @@ end
 -- GLOBAL SEARCH FEATURE
 -- =========================================================================
 
+local function get_clipboard()
+    local platform = package.config:sub(1,1)
+    if platform == "\\" then
+        local res = utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Clipboard -Raw"}, cancellable = false })
+        if res and res.status == 0 and res.stdout then return res.stdout end
+    else
+        local un = io.popen("uname -a")
+        local uname_str = un and un:read("*a") or ""
+        if un then un:close() end
+        uname_str = uname_str:lower()
+        
+        local cmd = ""
+        if uname_str:find("darwin") then
+            cmd = "pbpaste"
+        elseif uname_str:find("android") or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux")) then
+            cmd = "termux-clipboard-get"
+        elseif os.getenv("WAYLAND_DISPLAY") then
+            cmd = "wl-paste"
+        else
+            cmd = "xclip -selection clipboard -o 2>/dev/null || xsel --clipboard --output 2>/dev/null"
+        end
+        
+        if cmd ~= "" then
+            local f = io.popen(cmd, "r")
+            if f then
+                local res = f:read("*a")
+                f:close()
+                return res
+            end
+        end
+    end
+    return ""
+end
+
+local function set_clipboard(text)
+    local platform = package.config:sub(1,1)
+    if platform == "\\" then
+        local safe_txt = text:gsub("'", "''")
+        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value '%s'", safe_txt)
+        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
+    else
+        local un = io.popen("uname -a")
+        local uname_str = un and un:read("*a") or ""
+        if un then un:close() end
+        uname_str = uname_str:lower()
+        
+        local cmd = ""
+        if uname_str:find("darwin") then
+            cmd = "pbcopy"
+        elseif uname_str:find("android") or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux")) then
+            cmd = "termux-clipboard-set"
+        elseif os.getenv("WAYLAND_DISPLAY") then
+            cmd = "wl-copy"
+        else
+            cmd = "xclip -selection clipboard -i 2>/dev/null || xsel --clipboard --input 2>/dev/null"
+        end
+        
+        if cmd ~= "" then
+            local f = io.popen(cmd, "w")
+            if f then
+                f:write(text)
+                f:close()
+            end
+        end
+    end
+end
+
 local function update_search_results()
     FSM.SEARCH_RESULTS = {}
     FSM.SEARCH_SEL_IDX = 1
@@ -1786,9 +1853,9 @@ local function manage_search_bindings(enable)
         end)
         
         local function paste_from_clipboard()
-            local res = utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Clipboard -Raw"}, cancellable = false })
-            if res and res.status == 0 and res.stdout then
-                local txt = res.stdout:gsub("\r", ""):gsub("\n", " ")
+            local clipboard_txt = get_clipboard()
+            if clipboard_txt and clipboard_txt ~= "" then
+                local txt = clipboard_txt:gsub("\r", ""):gsub("\n", " ")
                 if txt ~= "" then
                     local q_table = utf8_to_table(FSM.SEARCH_QUERY)
                     
@@ -2101,9 +2168,7 @@ function cmd_dw_copy()
     
     if final_text ~= "" then
         final_text = final_text:gsub("{[^}]+}", "")
-        local safe_txt = final_text:gsub("'", "''")
-        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value '%s'", safe_txt)
-        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
+        set_clipboard(final_text)
         show_osd("DW Copied: " .. final_text:sub(1, 30) .. (#final_text > 30 and "..." or ""))
     end
 end
@@ -2348,9 +2413,7 @@ local function cmd_copy_sub()
     end
     
     if final_text ~= "" then
-        local safe_txt = final_text:gsub("'", "''")
-        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value '%s'", safe_txt)
-        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
+        set_clipboard(final_text)
         
         local words, wcount = {}, 0
         for w in final_text:gmatch("%S+") do
