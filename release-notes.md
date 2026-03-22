@@ -1,3 +1,23 @@
+# Release Notes - v1.26.16 (Smart Font Scaling Integration)
+
+**Date**: 2026-03-22
+**Version**: v1.26.16
+**Request ZID**: 20260322132514
+**RFC**: [docs/rfcs/20260322132514-release-v1.26.16.md](docs/rfcs/20260322132514-release-v1.26.16.md)
+
+## Highlights
+
+### 📏 **Smart Font Scaling Core integration**
+- **Native Logic**: Ported the experimental font scaling logic from `fixed_font.lua` directly into the core `lls_core.lua` engine for a more robust and unified architecture.
+- **Softer Scaling Formula**: Implemented a mathematically weighted "Softer Scaling" algorithm. This ensures subtitles remain legible on small windows without causing aggressive multi-line text wrapping that obscures the video.
+- **Centralized Config**: Added formal `script-opts` to `mpv.conf`. You can now enable/disable scaling and tune its "strength" (e.g., `lls-font_scale_strength=0.5`) directly from your main configuration file.
+- **Architectural Cleanup**: Deleted the standalone `scripts/fixed_font.lua` script, simplifying the installation and reducing file clutter.
+
+### 🛡️ **Drum Mode Consistency Fix**
+- **Sync Fidelity**: Internal improvements to how Drum Mode and OSD overlays interact with the new scaling engine to prevent layout desync during rapid window resizing or track switching.
+
+---
+
 # Release Notes - v1.26.14 (Subtitle Parsing Fix)
 
 **Date**: 2026-03-22
