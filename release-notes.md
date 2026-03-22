@@ -1,3 +1,19 @@
+# Release Notes - v1.26.26 (Cross-Platform Clipboard Support)
+
+**Date**: 2026-03-22
+**Version**: v1.26.26
+**Request ZID**: 20260322161222
+**RFC**: [docs/rfcs/20260322161222-release-v1.26.26.md](docs/rfcs/20260322161222-release-v1.26.26.md)
+
+## Highlights
+
+### 📋 **Universal Clipboard Integration**
+- **Native OS Support**: Removed the hard dependency on Windows PowerShell. The suite now natively detects and supports the system clipboard on **Windows**, **macOS**, **Linux** (Wayland/X11), and **Android** (Termux).
+- **Zero-Config Logic**: Automatically uses `pbcopy/pbpaste` (macOS), `wl-copy/wl-paste` (Wayland), `xclip/xsel` (Linux), or `termux-clipboard-*` (Android) as appropriate.
+- **Improved Reliability**: Centralized clipboard handling into unified helper functions ensures that future features will automatically benefit from cross-platform compatibility.
+
+---
+
 # Release Notes - v1.26.24 (Isotropic Mouse Hit-Testing)
 
 **Date**: 2026-03-22
