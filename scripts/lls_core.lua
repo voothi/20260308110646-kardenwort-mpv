@@ -692,8 +692,8 @@ local function dw_build_layout(subs, view_center)
     local start_idx = math.max(1, view_center - half_win)
     local end_idx = math.min(#subs, start_idx + win_lines - 1)
 
-    local vline_h = Options.dw_font_size * 1.0
-    local sub_gap = Options.dw_font_size * 0.6
+    local vline_h = Options.dw_font_size * 1.2
+    local sub_gap = Options.dw_font_size * 1.2
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -836,8 +836,8 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = Options.dw_font_size * 1.0
-    local sub_gap = Options.dw_font_size * 0.6
+    local vline_h = Options.dw_font_size * 1.2
+    local sub_gap = Options.dw_font_size * 1.2
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
