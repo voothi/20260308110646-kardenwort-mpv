@@ -1,3 +1,22 @@
+# Release Notes - v1.26.32 (Navigation & Pointer Fixes)
+
+**Date**: 2026-03-22
+**Version**: v1.26.32
+**Request ZID**: 20260322191027
+**RFC**: [docs/rfcs/20260322191027-release-v1.26.32.md](docs/rfcs/20260322191027-release-v1.26.32.md)
+
+## Highlights
+
+### 🚄 **Immediate Navigation Response**
+- **Double-Tap Fix**: Resolved a persistent issue where jumping to the next subtitle (`d`) required two presses when the video was paused after an autopause.
+- **Custom Seeking Logic**: Replaced the native `sub-seek` command with robust internal logic that calculates the exact subtitle start time from the loaded track, ensuring snappier and more reliable navigation in the Drum Window.
+
+### 🥁 **Predictable Pointer Behavior**
+- **Smart Deactivation**: The Drum Window now consistently opens with the word pointer deactivated (`-1`). This also applies after selecting search results or scrolling, preventing visual clutter and accidental word copying.
+- **Focused Interaction**: Red Highlights now only appear when you explicitly engage with them via the arrow keys or mouse selection.
+
+---
+
 # Release Notes - v1.26.30 (Search Selection Fix)
 
 **Date**: 2026-03-22
