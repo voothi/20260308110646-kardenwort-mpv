@@ -1,9 +1,23 @@
-# Release Notes - v1.26.28 (Search Box Visibility Fix)
+# Release Notes - v1.26.30 (Search Selection Fix)
 
 **Date**: 2026-03-22
-**Version**: v1.26.28
-**Request ZID**: 20260322163803
-**RFC**: [docs/rfcs/20260322163803-release-v1.26.28.md](docs/rfcs/20260322163803-release-v1.26.28.md)
+**Version**: v1.26.30
+**Request ZID**: 20260322171238
+**RFC**: [docs/rfcs/20260322171238-release-v1.26.30.md](docs/rfcs/20260322171238-release-v1.26.30.md)
+
+## Highlights
+
+### 🛡️ **Critical Search Selection Fix**
+- **Scoping Resolution**: Fixed a Lua execution error where the script would crash when performing word-based selection in the Search HUD (`Ctrl+Shift+Arrows`). 
+- **Definition Reordering**: Corrected the internal variable scope by reordering utility functions, ensuring all components are properly initialized before usage.
+- **Enhanced Reliability**: The Search HUD and Drum Window are now more robust against rapid navigation and selection actions, preventing session-ending script failures.
+
+### 🥁 **Selection State Consistency**
+- **State Logic Refinement**: Fixed a naming discrepancy in the Drum Window's selection memory, ensuring that shift-selection highlights track correctly across multi-word ranges.
+
+---
+
+# Release Notes - v1.26.28 (Search Box Visibility Fix)
 
 ## Highlights
 
