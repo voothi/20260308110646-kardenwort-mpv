@@ -1860,7 +1860,7 @@ local function manage_search_bindings(enable)
                 
                 -- Update DW state so if it opens, or is open, it jumps to this line
                 FSM.DW_CURSOR_LINE = selected_line
-                FSM.DW_CURSOR_WORD = 1
+                FSM.DW_CURSOR_WORD = -1
                 FSM.DW_VIEW_CENTER = selected_line
                 FSM.DW_FOLLOW_PLAYER = true
                 FSM.DW_ANCHOR_LINE = -1
@@ -1991,7 +1991,7 @@ local function manage_search_bindings(enable)
                                 end
                                 
                                 FSM.DW_CURSOR_LINE = selected_line
-                                FSM.DW_CURSOR_WORD = 1
+                                FSM.DW_CURSOR_WORD = -1
                                 FSM.DW_VIEW_CENTER = selected_line
                                 FSM.DW_FOLLOW_PLAYER = true
                                 FSM.DW_ANCHOR_LINE = -1
