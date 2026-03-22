@@ -1,3 +1,18 @@
+# Release Notes - v1.26.14 (Subtitle Parsing Fix)
+
+**Date**: 2026-03-22
+**Version**: v1.26.14
+**Request ZID**: 20260322123553
+**RFC**: [docs/rfcs/20260322123553-release-v1.26.14.md](docs/rfcs/20260322123553-release-v1.26.14.md)
+
+## Highlights
+
+### 🥁 **Subtitle Parsing Robustness**
+- **BOM Handling**: Improved the custom `.srt` parser to correctly handle files starting with a UTF-8 Byte Order Mark (BOM). This fixes a bug where the very first subtitle of a BOM-encoded file was consistently skipped in Drum Mode.
+- **Invisible Character Removal**: The parser now proactively strips invisible architectural markers at the file's start, ensuring the first subtitle ID is correctly identified as a numeric sequence.
+
+---
+
 # Release Notes - v1.26.12 (Drum Formatting & Sync Fidelity)
 
 **Date**: 2026-03-21
