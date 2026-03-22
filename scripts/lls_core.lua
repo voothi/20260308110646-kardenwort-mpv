@@ -54,8 +54,8 @@ local Options = {
     dw_highlight_color = "0000bf",-- red highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.55,         -- char width multiplier (0.55 is exact for Consolas)
-    dw_vline_h_mul = 1.0,         -- visual line height = dw_font_size * this (tune for click accuracy)
-    dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this
+    dw_vline_h_mul = 0.87,        -- visual line height = dw_font_size * this (calibrated for font 34, use 1.0 for font 30)
+    dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
 
     -- Search HUD Styling
     search_hit_color = "0000bf",       -- Match highlighting (BGR)
