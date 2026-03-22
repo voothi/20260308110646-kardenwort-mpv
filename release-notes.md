@@ -1,3 +1,19 @@
+# Release Notes - v1.26.24 (Isotropic Mouse Hit-Testing)
+
+**Date**: 2026-03-22
+**Version**: v1.26.24
+**Request ZID**: 20260322154532
+**RFC**: [docs/rfcs/20260322154532-release-v1.26.24.md](docs/rfcs/20260322154532-release-v1.26.24.md)
+
+## Highlights
+
+### 🎯 **Isotropic Mouse Hit-Testing**
+- **Window Snap Immunity**: Fixed a severe selection bug where hit-test alignment completely drifted when the mpv window was resized or snapped to half the screen (non-16:9 aspect ratios).
+- **Mathematical Overhaul**: The X-coordinate mapping now strictly anchors to the physical center of the screen and calculates horizontal offsets using the height-derived scaling factor (`scale_isotropic = oh / 1080`). 
+- **Pixel-Perfect Tracking**: This mathematically guarantees that the invisible hit-test grid precisely tracks the physical pixels of the ASS-rendered text, completely irrespective of window stretching, letterboxing, or snapping.
+
+---
+
 # Release Notes - v1.26.22 (Drum Window Hit-Test Calibration)
 
 **Date**: 2026-03-22
