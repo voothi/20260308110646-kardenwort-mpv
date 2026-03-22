@@ -826,9 +826,14 @@ local function dw_get_mouse_osd()
     local oh = osd and osd.h or 1080
     if ow == 0 then ow = 1920 end
     if oh == 0 then oh = 1080 end
-    -- Scale from actual window pixels to OSD resolution (1920x1080)
-    local osd_x = (mx / ow) * 1920
-    local osd_y = (my / oh) * 1080
+    
+    -- ASS text preserves its aspect ratio by scaling isotropically based on window height.
+    -- X coordinate scaling must match the Y scaling (oh / 1080) rather than the window width (ow / 1920),
+    -- otherwise horizontal click targets drift outwards when the window aspect ratio != 16:9.
+    local scale_isotropic = oh / 1080
+    local osd_y = my / scale_isotropic
+    local osd_x = 960 + ((mx - (ow / 2)) / scale_isotropic)
+    
     return osd_x, osd_y
 end
 
