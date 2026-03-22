@@ -1,3 +1,18 @@
+# Release Notes - v1.26.20 (Agent Config Standardization)
+
+**Date**: 2026-03-22
+**Version**: v1.26.20
+**Request ZID**: 20260322135917
+**RFC**: [docs/rfcs/20260322135917-release-v1.26.20.md](docs/rfcs/20260322135917-release-v1.26.20.md)
+
+## Highlights
+
+### 🚄 **Agent Configuration Standardization**
+- **Documentation Parity**: Corrected a discrepancy in `AGENTS.md` where the specialized configuration folder was incorrectly referenced as `.agents/`. It is now correctly documented as **`.agent/`**, matching the actual filesystem structure.
+- **Improved Clarity**: Standardized the terminology used to describe agent capabilities and OpenSpec workflows to ensure a more cohesive developer experience.
+
+---
+
 # Release Notes - v1.26.18 (Centralized Config & Styling)
 
 **Date**: 2026-03-22
