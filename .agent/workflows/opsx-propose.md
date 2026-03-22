@@ -22,7 +22,7 @@ When ready to implement, run /opsx:apply
    Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
 
-   From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
+   From their description, derive a namespaced name: `<ZID>-<kebab-case-name>`, where ZID is the current timestamp in `YYYYMMDDHHMMSS` format (e.g., "add user authentication" → `20240322174550-add-user-auth`).
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
