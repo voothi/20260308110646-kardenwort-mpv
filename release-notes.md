@@ -1,3 +1,23 @@
+# Release Notes - v1.26.18 (Centralized Config & Styling)
+
+**Date**: 2026-03-22
+**Version**: v1.26.18
+**Request ZID**: 20260322135347
+**RFC**: [docs/rfcs/20260322135347-release-v1.26.18.md](docs/rfcs/20260322135347-release-v1.26.18.md)
+
+## Highlights
+
+### ⚙️ **Centralized Configuration Management**
+- **Unified Control**: All adjustable script parameters from the core engine have been migrated into your main `mpv.conf`. You can now fine-tune AutoPause, Drum Mode, and Search HUD behavior directly without touching a single Lua file.
+- **Improved Discoverability**: Added clear, in-line documentation for each parameter, explaining its use cases and default value.
+- **Functional Templates**: Restored common configuration templates (e.g. `alang`, `slang`, `sub-visibility`) as easy-to-use commented-out examples in `mpv.conf`.
+
+### 🎨 **Stylized & Uniform Configuration**
+- **Cohesive Design Language**: Standardized both `mpv.conf` and `input.conf` with a uniform visual style. Every section now features a 75-character wide header for maximum clarity and professionalism.
+- **Sectioned Documentation**: Reorganized parameters and keybindings into logical blocks, making the configuration files self-documenting and easier to navigate.
+
+---
+
 # Release Notes - v1.26.16 (Smart Font Scaling Integration)
 
 **Date**: 2026-03-22

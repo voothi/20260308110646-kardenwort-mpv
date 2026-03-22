@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.26.16-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.16) 
+[![Version](https://img.shields.io/badge/version-v1.26.18-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.18) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -189,16 +189,23 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 
 ## Configuration Guide (mpv.conf)
 
-Key settings to protect your acquisition environment:
+The project now uses a centralized configuration model. All core script behaviors (AutoPause, Drum Mode, Search HUD) are controlled directly from `mpv.conf` using the `lls-` prefix.
 
+### Key Operational Settings:
 - **`sub-align-y=bottom`**: Standardizes the layout for drum mode.
-- **`secondary-sub-pos=10`**: Places the secondary tracks at the top of the frame.
-- **`sub-pos=95`**: Places the primary tracks safely near the bottom.
+- **`secondary-sub-pos=10`**: Places secondary tracks at the top of the frame.
+- **`sub-pos=95`**: Places primary subtitle tracks near the bottom.
 - **`sub-ass=yes`**: Enables high-quality subtitle rendering for native karaoke support.
 - **`osc=no`**: Removes visual clutter from the screen.
-- **`sub-scale-with-window=no`**: Critical for maintaining the layout of complex `.ass` files.
 - **`save-position-on-quit=yes`**: Pick up your immersion session exactly where you left off.
-- **`script-opts-append=lls-sec_pos_bottom=90`**: Configures the script's toggle position directly from `mpv.conf`.
+
+### Centralized Script Controls:
+- **`script-opts-append=lls-autopause_default=yes`**: Toggle autopause at session start.
+- **`script-opts-append=lls-drum_font_size=34`**: Global font size for Drum Mode context.
+- **`script-opts-append=lls-sec_pos_bottom=90`**: Configure the script's toggle position.
+- **`script-opts-append=lls-copy_default_mode=A`**: Set the default clipboard target.
+
+(Refer to the heavily commented `mpv.conf` file in the repository for a complete list of all 30+ adjustable parameters and functional templates.)
 
 [Return to Top](#table-of-contents)
 
@@ -208,7 +215,7 @@ Key settings to protect your acquisition environment:
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.26.16 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.26.18 settings.
 
 [Return to Top](#table-of-contents)
 
