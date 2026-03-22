@@ -61,7 +61,13 @@ local Options = {
     search_sel_color = "ff0000",       -- Selected line color (BGR)
     search_sel_bold = false,           -- Bold selected line?
     search_query_hit_color = "0000bf", -- Search bar text hits (Select All/Selection)
-    search_query_hit_bold = false       -- Bold search bar hits?
+    search_query_hit_bold = false,      -- Bold search bar hits?
+
+    -- Font Scaling (Ported from fixed_font.lua)
+    font_scaling_enabled = true,
+    font_base_height = 1080,
+    font_base_scale = 1.0,
+    font_scale_strength = 0.5
 }
 options.read_options(Options, "lls")
 
@@ -484,6 +490,36 @@ end
 -- =========================================================================
 -- FSM INTERNAL LOGIC
 -- =========================================================================
+
+local function update_font_scale()
+    local dim = mp.get_property_native("osd-dimensions")
+    if not dim or dim.h == 0 then return end
+    
+    local is_ass = false
+    local track_list = mp.get_property_native("track-list")
+    
+    if track_list then
+        for _, track in ipairs(track_list) do
+            if track.type == "sub" and track.selected then
+                if track.codec == "ass" or track.codec == "ssa" then
+                    is_ass = true
+                end
+                break
+            end
+        end
+    end
+
+    if is_ass then
+        mp.set_property_number("sub-scale", 1.0)
+    else
+        local comp_scale = 1.0
+        if dim.h < Options.font_base_height then
+            local perfect_comp = Options.font_base_height / dim.h
+            comp_scale = 1.0 + (perfect_comp - 1.0) * Options.font_scale_strength
+        end
+        mp.set_property_number("sub-scale", comp_scale * Options.font_base_scale)
+    end
+end
 
 local function update_media_state()
     Tracks.pri.id = mp.get_property_number("sid", 0)
@@ -2327,7 +2363,17 @@ end
 
 mp.observe_property("sid", "number", update_media_state)
 mp.observe_property("secondary-sid", "number", update_media_state)
-mp.observe_property("track-list", "native", update_media_state)
+mp.observe_property("track-list", "native", function()
+    update_media_state()
+    if Options.font_scaling_enabled then
+        update_font_scale()
+    end
+end)
+mp.observe_property("osd-dimensions", "native", function()
+    if Options.font_scaling_enabled then
+        update_font_scale()
+    end
+end)
 
 mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
