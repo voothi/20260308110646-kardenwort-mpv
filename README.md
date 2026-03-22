@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.26.20-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.20) 
+[![Version](https://img.shields.io/badge/version-v1.26.22-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.22) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -201,11 +201,16 @@ The project now uses a centralized configuration model. All core script behavior
 
 ### Centralized Script Controls:
 - **`script-opts-append=lls-autopause_default=yes`**: Toggle autopause at session start.
-- **`script-opts-append=lls-drum_font_size=34`**: Global font size for Drum Mode context.
+- **`script-opts-append=lls-dw_font_size=34`**: Global font size for Drum Window context.
+- **`script-opts-append=lls-dw_vline_h_mul=0.87`**: Tunable vertical hit-test multiplier (Prevents click-drift).
+- **`script-opts-append=lls-dw_sub_gap_mul=0.6`**: Tunable gap multiplier between distinct subtitle blocks.
 - **`script-opts-append=lls-sec_pos_bottom=90`**: Configure the script's toggle position.
 - **`script-opts-append=lls-copy_default_mode=A`**: Set the default clipboard target.
 
-(Refer to the heavily commented `mpv.conf` file in the repository for a complete list of all 30+ adjustable parameters and functional templates.)
+### Switchable Layout Modes:
+The configuration supports a **Mode-based architecture**. You can define and switch between different font size calibrations (e.g., MODE 1 for size 30, MODE 2 for size 34) directly in `mpv.conf` to ensure hit-testing remains pixel-perfect regardless of your chosen font scale.
+
+(Refer to the heavily commented `mpv.conf` file in the repository for a complete list of all 35+ adjustable parameters and functional templates.)
 
 [Return to Top](#table-of-contents)
 
@@ -215,7 +220,7 @@ The project now uses a centralized configuration model. All core script behavior
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.26.20 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.26.22 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -224,7 +229,7 @@ The project now uses a centralized configuration model. All core script behavior
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~270 Commits (v1.26.20)
+- **Current Maturity**: ~275 Commits (v1.26.22)
 - **Intensity Profile**: 4.8 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

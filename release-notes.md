@@ -1,3 +1,19 @@
+# Release Notes - v1.26.22 (Drum Window Hit-Test Calibration)
+
+**Date**: 2026-03-22
+**Version**: v1.26.22
+**Request ZID**: 20260322153215
+**RFC**: [docs/rfcs/20260322153215-release-v1.26.22.md](docs/rfcs/20260322153215-release-v1.26.22.md)
+
+## Highlights
+
+### 🥁 **Precise Drum Window Hit-Testing**
+- **Configurable Calibration**: Introduced `dw_vline_h_mul`, `dw_sub_gap_mul`, and `dw_char_width` as tunable options. This eliminates "click-drift" where selecting a word would hit the line above or below at large font sizes.
+- **Consolas Optimization**: Calibrated the default multipliers specifically for the Consolas monospace font family, ensuring that highlights (red) align exactly with character boundaries regardless of text length.
+- **Multi-Size Modes**: Reorganized `mpv.conf` into switchable "Modes" (e.g., MODE 1 for size 30, MODE 2 for size 34), allowing for instant calibration swapping when changing font sizes.
+
+---
+
 # Release Notes - v1.26.20 (Agent Config Standardization)
 
 **Date**: 2026-03-22
