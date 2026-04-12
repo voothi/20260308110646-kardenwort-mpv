@@ -367,26 +367,35 @@ local function is_word_char(ch)
 end
 
 local function calculate_highlight_stack(target_word, time_pos)
-    if not target_word or target_word == "" then return 0 end
-    local stack = 0
+    if not next(FSM.ANKI_HIGHLIGHTS) then return 0 end
     local target_lower = utf8_to_lower(target_word:gsub("[%p%s]", ""))
     if target_lower == "" then return 0 end
-
-    for term, data in pairs(FSM.ANKI_HIGHLIGHTS) do
-        local term_lower = utf8_to_lower(term:gsub("[%p%s]", ""))
+    
+    local stack = 0
+    for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
         local match = false
-        if Options.anki_global_highlight then
-            if term_lower:find(target_lower, 1, true) or target_lower:find(term_lower, 1, true) then
-                match = true
-            end
-        else
-            if math.abs(time_pos - data.time) < 2.0 then
-                if term_lower:find(target_lower, 1, true) or target_lower:find(term_lower, 1, true) then
+        local term_lower = utf8_to_lower(term_key)
+        
+        -- Improved matching: Check if target_lower is exactly one of the words in the term
+        if term_lower:find(target_lower, 1, true) then
+            local term_words = build_word_list(term_lower)
+            for _, tw in ipairs(term_words) do
+                if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
                     match = true
+                    break
                 end
             end
         end
-        if match then stack = stack + 1 end
+        
+        if match then
+            if Options.anki_global_highlight then
+                stack = stack + 1
+            else
+                if math.abs(time_pos - data.time) < 2.5 then
+                    stack = stack + 1
+                end
+            end
+        end
     end
     return stack
 end
