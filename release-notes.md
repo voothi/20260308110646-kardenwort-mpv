@@ -1,8 +1,23 @@
-# Release Notes - v1.28.8 (High-Recall & Adaptive Highlighting)
+# Release Notes - v1.28.10 (Sanitized Anki Export)
 
 **Date**: 2026-04-13
-**Version**: v1.28.8
-**Request ZID**: 20260413003200
+**Version**: v1.28.10
+**Request ZID**: 20260413004318
+
+## Highlights
+
+### 📋 **Universal Sanitized Capture**
+- **Hardened Export Engine**: The Middle-Click (`MBTN_MID`) Anki export engine has been unified with the surgical stripping logic.
+- **Boundary Sanitization**: Exporting words like `Umbruch.` or `ehrlich,` now automatically strips trailing punctuation before saving to the TSV. This ensures your Anki database remains pristine and optimized for dictionary matching.
+- **Phrasal Integrity**: Internal punctuation within multi-word selections (e.g., `im Umbruch. Während`) is accurately preserved to maintain grammatical context.
+
+### 🎨 **Bitwise-OR Highlight Aggregation**
+- **Overlapping Match Fidelity**: Resolved a visual bug where commas would lose their color if a word was covered by both a single-word card and a phrase.
+- **Logical Priority**: The engine now aggregates all active matches for a word. If **any** of the overlapping highlights is a multi-word phrase, the system prioritized **Continuity Mode**, ensuring commas and periods stay green for a perfect visual flow.
+
+---
+
+# Release Notes - v1.28.8 (High-Recall & Adaptive Highlighting)
 
 ## Highlights
 
