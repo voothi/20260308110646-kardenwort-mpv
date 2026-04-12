@@ -991,12 +991,17 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
-            local pre, mid, suf = w:match("^([^%w\128-\255]*)(.-)([^%w\128-\255]*)$")
+            local pre = w:match("^[^%w\128-\255]*")
+            local suf = w:match("[^%w\128-\255]*$")
+            local mid = ""
+            if #pre < #w then
+                mid = w:sub(#pre + 1, #w - #suf)
+            end
 
             if h_color ~= base_color then
                 local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
                 local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state) or ""
-                if mid and mid ~= "" then
+                if mid ~= "" then
                     table.insert(formatted_parts, string.format("%s%s{\\1c&H%s&}%s%s{\\1c&H%s&}%s", pre, b_on, h_color, mid, b_off, base_color, suf))
                 else
                     table.insert(formatted_parts, w)
@@ -1161,8 +1166,13 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
                     if h_color ~= color then
-                        local pre, mid, suf = w:match("^([^%w\128-\255]*)(.-)([^%w\128-\255]*)$")
-                        if mid and mid ~= "" then
+                        local pre = w:match("^[^%w\128-\255]*")
+                        local suf = w:match("[^%w\128-\255]*$")
+                        local mid = ""
+                        if #pre < #w then
+                            mid = w:sub(#pre + 1, #w - #suf)
+                        end
+                        if mid ~= "" then
                             table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", pre, h_color, mid, color, suf))
                         else
                             table.insert(formatted_words, w)
@@ -2820,8 +2830,11 @@ function cmd_dw_copy()
     if final_text ~= "" then
         final_text = final_text:gsub("{[^}]+}", "")
         -- Clean capture: Remove trailing/leading punctuation
-        local pre, mid, suf = final_text:match("^([^%w\128-\255]*)(.-)([^%w\128-\255]*)$")
-        if mid and mid ~= "" then final_text = mid end
+        local pre = final_text:match("^[^%w\128-\255]*")
+        local suf = final_text:match("[^%w\128-\255]*$")
+        if #pre < #final_text then
+            final_text = final_text:sub(#pre + 1, #final_text - #suf)
+        end
         
         set_clipboard(final_text)
         show_osd("DW Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
