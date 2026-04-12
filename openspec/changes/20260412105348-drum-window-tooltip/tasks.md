@@ -27,3 +27,6 @@
 - [x] 4.5 In `cmd_toggle_drum_window()`, ensure `Tracks.sec.subs` is loaded alongside `Tracks.pri.subs` on bootstrap.
 - [x] 4.6 Synchronize tooltip visual properties (`Options`) to match Drum Mode C (Size 34, Opacity 30).
 - [x] 4.7 Refactor `draw_dw_tooltip` to use native OSD background boxes instead of manual `\p1` shapes.
+- [x] 4.8 Expose all internal tooltip and navigation keys to `mpv.conf` (script-opts) to allow user customization while maintaining programmatic "Temporary Overlay" logic.
+- [x] 4.9 Add "Ghost" shortcut documentation to `input.conf` to ensure all player capabilities are discoverable in one file.
+- [x] 4.10 Ensure Russian layout support (`т`) is provided for new toggles.
