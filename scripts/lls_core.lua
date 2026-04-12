@@ -98,7 +98,8 @@ local Options = {
     anki_highlight_depth_3 = "003A70",
     anki_global_highlight = false,
     anki_sync_period = 30,
-    anki_context_lines = 3
+    anki_context_lines = 3,
+    anki_local_fuzzy_window = 10.0
 }
 options.read_options(Options, "lls")
 
@@ -410,7 +411,7 @@ local function calculate_highlight_stack(target_word, time_pos)
             if Options.anki_global_highlight then
                 stack = stack + 1
             else
-                if math.abs(time_pos - data.time) < 2.5 then
+                if math.abs(time_pos - data.time) < Options.anki_local_fuzzy_window then
                     stack = stack + 1
                 end
             end
