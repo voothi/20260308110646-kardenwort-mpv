@@ -7,7 +7,7 @@ In Drum Window Mode (`w`), there's currently no way to view the second subtitles
 - Add a new "Tooltip" OSD layer specifically for translations in Drum Window mode.
 - Introduce an RMB (Right Mouse Button) trigger to show a contextual translation balloon for the hovered primary subtitle line.
 - The tooltip will close automatically when the mouse is moved to a different subtitle line.
-- Implement a Phase 2 "Hover Mode" config option (`mpv.conf`) to auto-display the tooltip without requiring a click.
+- Implement a Phase 2 config option (`mpv.conf`) to allow a configurable hotkey (e.g., `n`) that enables "Hover Mode", showing the tooltip dynamically as you mouse over lines without needing to click RMB.
 - Enforce the tooltip to appear on the right side with a fixed width, employing a translucent background to naturally blend gracefully over wide English text.
 - Introduce configuration options for tooltip styling and context depth (`dw_tooltip_font_size`, `dw_tooltip_context_lines`, `dw_tooltip_bg_opacity`, etc).
 

@@ -15,3 +15,12 @@ The system SHALL bind `MBTN_RIGHT` dynamically when Drum Window mode activates.
 - **WHEN** in Drum Window Mode
 - **THEN** `MBTN_RIGHT` SHALL dispatch drawing instructions to pin the tooltip 
 - **AND** this explicit binding SHALL automatically deactivate when Window mode drops
+
+### Requirement: Hover Mode Toggle
+The system SHALL support a configurable hotkey to toggle Phase 2 "Hover Mode".
+
+#### Scenario: User toggles Hover Mode using configured key
+- **WHEN** the user is in Drum Window Mode
+- **AND** the user presses the `dw_tooltip_hover_key` (e.g. `n`) mapped in configuration
+- **THEN** the system SHALL swap `FSM.DW_TOOLTIP_MODE` between "CLICK" and "HOVER"
+- **AND** while in "HOVER" mode, mouse motion hit-tests automatically pin the tooltip without requiring `MBTN_RIGHT`
