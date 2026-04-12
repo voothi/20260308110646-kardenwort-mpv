@@ -1,3 +1,22 @@
+# Release Notes - v1.28.4 (Selection-Aware Tooltip Suppression)
+
+**Date**: 2026-04-12
+**Version**: v1.28.4
+**Request ZID**: 20260412162936
+
+## Highlights
+
+### 🛡️ **Analytical Immersion: Selection-Aware Suppression**
+- **Symmetrical Action Suppression**: Tooltips now intelligently hide whenever you click or drag the mouse. This suppression is "sticky," remaining active on the exact line where you released the mouse until you move the focus to a different subtitle.
+- **Persistent Selection Guard**: Any line within an active red-selection range is now automatically shielded from auto-hover tooltips. These lines enter a "Manual Only" mode to prevent visual clutter while reading, ensuring clues only appear when you explicitly Right-Click (RMB).
+- **Manual Hint Priority**: Explicitly pressing **MBTN_RIGHT** (RMB) now resets all suppression locks for that line, allowing you to instantly peek at a hint even if the area was previously suppressed or part of a selection.
+
+### ⚙️ **Refined Interaction Logic**
+- **LMB Dismissal**: Manual tooltip pins can now be instantly dismissed with a standard Left-Click anywhere in the window, providing a much faster "peek and return" workflow.
+- **Improved Focus Stability**: The suppression engine is aware of mult-line selection drags, ensuring the UI remains professionally clean throughout complex text study operations.
+
+---
+
 # Release Notes - v1.28.3 (Startup Fix)
 
 **Date**: 2026-04-12
