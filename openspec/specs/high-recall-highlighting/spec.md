@@ -37,3 +37,14 @@ The engine SHALL cache word lists and cleaned text for all highlight terms on fi
 ### Requirement: Self-Contextualization
 The engine SHALL verify word neighbors against both the original `SentenceSource` (context) and the `WordSource` (term) itself.
 - This allows long, multi-sentence captures to remain active even if only one sentence was saved as the primary context.
+
+### Requirement: Adaptive Punctuation Rendering
+The engine SHALL surgically isolate word bodies from their surrounding punctuation marks during rendering, based on match context.
+- **Single-Word Mode**: If a highlight corresponds to a single vocabulary word, punctuation marks SHALL remain uncolored (base subtitle color) to provide a clean study interface.
+- **Phrase Continuity Mode**: If a highlight corresponds to a multi-word phrase or paragraph, internal punctuation marks SHALL be colored to maintain visual flow and prevent "holes" in the highlight blocks.
+- **Multi-Match Priority**: If a word is covered by both a single-word card and a phrase highlight, **Phrase Continuity Mode** SHALL take precedence.
+
+### Requirement: Clean Boundary Capture
+The capture engine SHALL automatically strip leading and trailing punctuation/whitespace from any text copied to the clipboard for Anki cards.
+- This ensures that word-boundaries do not pollute the flashcard database, maintaining high dictionary matching rates.
+- Internal punctuation (within phrases) SHALL be preserved.
