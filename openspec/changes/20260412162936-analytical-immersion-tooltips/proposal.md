@@ -1,12 +1,13 @@
 ## Why
 
-Current translation tooltips in the Drum Window do not respect active selection gestures, causing visual overlap and distraction when a user is trying to select, copy, or analyze text. Implementing "Selection-Aware Suppression" ensures the tooltip gracefully steps aside during intensive text interaction.
+Current translation tooltips in the Drum Window do not respect active selection gestures, causing visual overlap and distraction in the **Analytical Immersion** environment. Implementing "Selection-Aware Suppression" ensures the tooltip gracefully steps aside during intensive text study, selection, and copying.
 
 ## What Changes
 
 - **Manual Hint Dismissal**: In CLICK mode (manual peeking), clicking the Left Mouse Button (LMB) instantly hides any pinned tooltip.
-- **Selection Suppression**: In HOVER mode (auto-peeking), holding down the LMB (e.g., for dragging) suppresses all tooltips across all lines.
-- **Sticky Linger Guard**: After LMB release, the tooltip stays suppressed for the current focused line until the user moves the mouse focus to a different subtitle line.
+- **Selection-Aware Suppression**: In HOVER mode (auto-peeking), holding down the LMB (dragging) suppresses all tooltips across all lines.
+- **Symmetrical Linger Guard**: Suppression applies to both the start and end focus lines of an interaction. After LMB release, the tooltip stays suppressed for the line where the drag ended (or where the click occurred) until focus moves to a different subtitle line.
+- **Interaction Recovery**: Manual activation (RMB) resets the suppression lock, allowing for immediate re-peeking if desired.
 
 ## Capabilities
 

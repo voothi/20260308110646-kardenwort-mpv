@@ -18,7 +18,7 @@ The system SHALL dismiss the tooltip instantly when the context changes or the u
 - **THEN** all tooltips SHALL remain suppressed and hidden throughout the duration of the drag
 
 #### Scenario: Sticky suppression on focused line
-- **WHEN** the user has suppressed a tooltip on line X using the Left Mouse Button (LMB)
+- **WHEN** the user has suppressed a tooltip using the Left Mouse Button (LMB)
 - **AND** the user releases the LMB
-- **THEN** the tooltip SHALL remain suppressed for line X
+- **THEN** the tooltip SHALL remain suppressed for the line where the interaction ended (Focus X)
 - **AND** the tooltip SHALL only resume display once the user moves the pointer focus to a different line Y

@@ -5,12 +5,13 @@
 ## 2. Implement Mouse Suppression Logic
 
 - [x] 2.1 Update the `make_mouse_handler` factory in `scripts/lls_core.lua` to dismiss any active tooltip and set the `DW_TOOLTIP_LOCKED_LINE` lock during the `down` event.
-- [x] 2.2 Ensure the lock is preserved during `up` events to support the "sticky" suppression behavior.
+- [x] 2.2 Re-set the suppression lock on the `up` event to ensure the line where a drag ends is also guarded.
 
 ## 3. Implement Tooltip Guard Logic
 
 - [x] 3.1 Modify `dw_tooltip_mouse_update` in `scripts/lls_core.lua` to skip tooltip rendering if `DW_MOUSE_DRAGGING` is active or if the mouse focus matches the `DW_TOOLTIP_LOCKED_LINE`.
-- [x] 3.2 Add logic in `dw_tooltip_mouse_update` to release the lock (`DW_TOOLTIP_LOCKED_LINE = -1`) once the focus changes to a new line or is lost, provided the mouse is not currently dragging.
+- [x] 3.2 Add logic in `dw_tooltip_mouse_update` to release the lock once focus moves to a different line.
+- [x] 3.3 Ensure `cmd_dw_tooltip_pin` (RMB) clears the suppression lock to allow manual re-activation.
 
 ## 4. Verification
 
