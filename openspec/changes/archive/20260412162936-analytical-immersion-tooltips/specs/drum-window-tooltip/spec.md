@@ -13,6 +13,11 @@ The system SHALL dismiss the tooltip instantly when the context changes or the u
 - **AND** the user presses the Left Mouse Button (LMB)
 - **THEN** the tooltip SHALL be immediately suppressed and hidden from the screen
 
+#### Scenario: User clicks middle mouse button
+- **WHEN** a translation tooltip is currently visible (either pinned or hovered)
+- **AND** the user presses the Middle Mouse Button (MMB / Wheel Click)
+- **THEN** the tooltip SHALL be immediately suppressed and hidden from the screen
+
 #### Scenario: Multi-line selection drag
 - **WHEN** the user is holding down the Left Mouse Button (LMB) and dragging the pointer across multiple lines
 - **THEN** all tooltips SHALL remain suppressed and hidden throughout the duration of the drag
