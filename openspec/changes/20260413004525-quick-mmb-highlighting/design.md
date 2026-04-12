@@ -23,6 +23,7 @@ Current mouse interaction in the Drum Window uses `MBTN_LEFT` for selection (via
 - **Selection Persistence (SCM Protection)**: To preserve the "SCM" commitment behavior, `make_mouse_handler` will include an "Inside Selection" check using a new helper function `is_inside_dw_selection`. If MMB `down` occurs inside an existing selection, the cursor/anchor will NOT be moved, allowing the existing range to be exported upon release.
 - **Immediate Visual Feedback**: `make_mouse_handler` will trigger `drum_osd:update()` on the `down` event to ensure the Red selection highlight appears immediately upon button press, matching the LMB behavior.
 - **Single-click clearing**: Maintain the logic where a single click (Anchor == Cursor) clears the anchor for LMB selection. For MMB, since the callback happens after this clearing, the export logic will correctly handle the single-word case (Anchor is -1) or the Commit case (Anchor matches previous state).
+- **Visual Commitment Feedback**: To ensure the exported phrase immediately reflects its "saved" status (e.g., green/purple highlights), `dw_anki_export_selection` will clear both the `DW_ANCHOR` and the `DW_CURSOR_WORD` focus. This prevents the active red cursor highlight from overriding the underlying database-driven highlight upon button release.
 
 ## Risks / Trade-offs
 
