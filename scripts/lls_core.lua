@@ -853,36 +853,13 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     local text = table.concat(lines, "\\N")
     
-    -- Styling
     local fs = Options.dw_tooltip_font_size
     local bg_alpha = Options.dw_tooltip_bg_opacity
     local bg_color = Options.dw_tooltip_bg_color
     local text_color = Options.dw_tooltip_text_color
-    
-    -- Approximate width for background box
-    local max_w = 500
-    local char_w = fs * 0.5
-    local longest_line_len = 0
-    for _, l in ipairs(lines) do
-        local _, count = l:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
-        longest_line_len = math.max(longest_line_len, count)
-    end
-    local box_w = math.min(max_w, longest_line_len * char_w + 40)
-    local box_h = #lines * fs * 1.3 + 20
-    
-    local ass = ""
-    local x2 = 1860
-    local x1 = x2 - box_w
-    local y1 = osd_y - box_h / 2
-    local y2 = osd_y + box_h / 2
-    
-    -- Background Box
-    ass = ass .. string.format("{\\pos(0,0)}{\\an7}{\\bord0}{\\shad0}{\\1a&H%s&}{\\1c&H%s&}{\\p1}m %d %d l %d %d %d %d %d %d{\\p0}\n",
-        bg_alpha, bg_color, x1, y1, x2, y1, x2, y2, x1, y2)
-        
-    -- Text
-    ass = ass .. string.format("{\\pos(1800, %d)}{\\an6}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&}{\\q1}%s",
-        osd_y, fs, text_color, text)
+
+    local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\c&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        osd_y, fs, text_color, bg_color, bg_alpha, text)
         
     return ass
 end
