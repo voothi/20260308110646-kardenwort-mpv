@@ -1483,103 +1483,87 @@ local function dw_tooltip_mouse_update()
     end
 end
 
-local function cmd_dw_export_anki(tbl)
-    local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _ = dw_hit_test(osd_x, osd_y)
-    FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
-    
-    if tbl.event == "down" then
-        FSM.DW_MOUSE_DRAGGING = true
-        if FSM.DW_TOOLTIP_LINE ~= -1 then
-            FSM.DW_TOOLTIP_LINE = -1
-            dw_tooltip_osd.data = ""
-            dw_tooltip_osd:update()
-        end
-    elseif tbl.event == "up" then
-        FSM.DW_MOUSE_DRAGGING = false
-
-        local ok, err = pcall(function()
-            local subs = Tracks.pri.subs
-            if not subs or #subs == 0 then return end
-            
-            local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-            local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-            local term = ""
-            local context_line = ""
-            local time_pos = 0
-
-            if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-                local p1_l, p1_w, p2_l, p2_w
-                if al < cl or (al == cl and aw <= cw) then
-                    p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-                else
-                    p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
-                end
-                
-                if not subs[p1_l] or not subs[p2_l] then return end
-
-                local parts = {}
-                for i = p1_l, p2_l do
-                    local text = (subs[i].text:gsub("\n", " "))
-                    local words = build_word_list(text)
-                    local s_w = (i == p1_l) and p1_w or 1
-                    local e_w = (i == p2_l) and p2_w or #words
-                    for j = s_w, e_w do 
-                        if words[j] then table.insert(parts, words[j]) end
-                    end
-                end
-                term = table.concat(parts, " ")
-                
-                local ctx_parts = {}
-                for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
-                    if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
-                end
-                context_line = table.concat(ctx_parts, " ")
-                time_pos = subs[p1_l].start_time
-            elseif cl ~= -1 and subs[cl] then
-                local sub = subs[cl]
-                local ctx_parts = {}
-                for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
-                    if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
-                end
-                context_line = table.concat(ctx_parts, " ")
-                time_pos = sub.start_time
-                if cw ~= -1 then
-                    local line_words = build_word_list(sub.text:gsub("\n", " "))
-                    term = line_words[cw] or (sub.text:gsub("\n", " "))
-                else
-                    term = sub.text:gsub("\n", " ")
-                end
-            end
-
-            if term and term ~= "" then
-                term = term:gsub("{[^}]+}", "")
-                -- Clean capture: Remove leading/trailing punctuation and spaces
-                local pre = term:match("^[%p%s]*")
-                local suf = term:match("[%p%s]*$")
-                if #pre < #term then
-                    term = term:sub(#pre + 1, #term - #suf)
-                end
-                
-                context_line = context_line:gsub("{[^}]+}", "")
-                local extracted_context = extract_anki_context(context_line, term)
-                save_anki_tsv_row(term, extracted_context, time_pos)
-                show_osd("Anki Highlight Saved: " .. term)
-                drum_osd:update()
-                if dw_osd then dw_osd:update() end
-                if dw_tooltip_osd then dw_tooltip_osd:update() end
-            else
-                -- show_osd("Anki Highlight: No selection")
-            end
-        end)
+local function dw_anki_export_selection()
+    local ok, err = pcall(function()
+        local subs = Tracks.pri.subs
+        if not subs or #subs == 0 then return end
         
-        if not ok then
-            show_osd("Anki Export Error: " .. tostring(err), 5)
+        local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+        local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+        local term = ""
+        local context_line = ""
+        local time_pos = 0
+
+        if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+            local p1_l, p1_w, p2_l, p2_w
+            if al < cl or (al == cl and aw <= cw) then
+                p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+            else
+                p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+            end
+            
+            if not subs[p1_l] or not subs[p2_l] then return end
+
+            local parts = {}
+            for i = p1_l, p2_l do
+                local text = (subs[i].text:gsub("\n", " "))
+                local words = build_word_list(text)
+                local s_w = (i == p1_l) and p1_w or 1
+                local e_w = (i == p2_l) and p2_w or #words
+                for j = s_w, e_w do 
+                    if words[j] then table.insert(parts, words[j]) end
+                end
+            end
+            term = table.concat(parts, " ")
+            
+            local ctx_parts = {}
+            for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
+                if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
+            end
+            context_line = table.concat(ctx_parts, " ")
+            time_pos = subs[p1_l].start_time
+        elseif cl ~= -1 and subs[cl] then
+            local sub = subs[cl]
+            local ctx_parts = {}
+            for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
+                if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
+            end
+            context_line = table.concat(ctx_parts, " ")
+            time_pos = sub.start_time
+            if cw ~= -1 then
+                local line_words = build_word_list(sub.text:gsub("\n", " "))
+                term = line_words[cw] or (sub.text:gsub("\n", " "))
+            else
+                term = sub.text:gsub("\n", " ")
+            end
         end
+
+        if term and term ~= "" then
+            term = term:gsub("{[^}]+}", "")
+            -- Clean capture: Remove leading/trailing punctuation and spaces
+            local pre = term:match("^[%p%s]*")
+            local suf = term:match("[%p%s]*$")
+            if #pre < #term then
+                term = term:sub(#pre + 1, #term - #suf)
+            end
+            
+            context_line = context_line:gsub("{[^}]+}", "")
+            local extracted_context = extract_anki_context(context_line, term)
+            save_anki_tsv_row(term, extracted_context, time_pos)
+            show_osd("Anki Highlight Saved: " .. term)
+            drum_osd:update()
+            if dw_osd then dw_osd:update() end
+            if dw_tooltip_osd then dw_tooltip_osd:update() end
+        end
+    end)
+    
+    if not ok then
+        show_osd("Anki Export Error: " .. tostring(err), 5)
     end
 end
 
-local function make_mouse_handler(is_shift)
+
+local function make_mouse_handler(is_shift, on_up_callback)
     return function(tbl)
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
@@ -1643,12 +1627,14 @@ local function make_mouse_handler(is_shift)
                 FSM.DW_ANCHOR_LINE = -1
                 FSM.DW_ANCHOR_WORD = -1
             end
+            if on_up_callback then on_up_callback(tbl) end
         end
     end
 end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
+local cmd_dw_export_anki = make_mouse_handler(false, dw_anki_export_selection)
 
 local function cmd_dw_double_click()
     local subs = Tracks.pri.subs
