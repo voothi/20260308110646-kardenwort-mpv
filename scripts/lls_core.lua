@@ -19,11 +19,11 @@ local Options = {
     drum_context_lines = 2,
     drum_context_opacity = "30",
     drum_context_color = "FFFFFF",
-    drum_context_bold = "0",
+    drum_context_bold = false,
     drum_context_size_mul = 1.0,
     drum_active_opacity = "00",
     drum_active_color = "FFFFFF",
-    drum_active_bold = "0",
+    drum_active_bold = false,
     drum_active_size_mul = 1.0,
     drum_spacing_gap = -0.1,
     drum_stack_multiplier = 1.15,
@@ -78,7 +78,7 @@ local Options = {
     dw_tooltip_bg_color = "000000",
     dw_tooltip_text_color = "FFFFFF",
     dw_tooltip_text_opacity = "00",
-    dw_tooltip_bold = "0",
+    dw_tooltip_bold = false,
     dw_tooltip_border_size = 1.5,
     dw_tooltip_shadow_offset = 1.0,
     dw_tooltip_pin_key = "MBTN_RIGHT",
@@ -99,7 +99,8 @@ local Options = {
     anki_global_highlight = false,
     anki_sync_period = 30,
     anki_context_lines = 3,
-    anki_local_fuzzy_window = 10.0
+    anki_local_fuzzy_window = 10.0,
+    anki_highlight_bold = false
 }
 options.read_options(Options, "lls")
 
@@ -861,7 +862,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         if text == "" then return "" end
         local base_color = is_active and Options.drum_active_color or Options.drum_context_color
         local opacity = is_active and Options.drum_active_opacity or Options.drum_context_opacity
-        local bold = is_active and Options.drum_active_bold or Options.drum_context_bold
+        local bold_state = (is_active and Options.drum_active_bold or Options.drum_context_bold) and "1" or "0"
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         
         local words = build_word_list(text)
@@ -874,7 +875,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
             if h_color ~= base_color then
-                table.insert(formatted_parts, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", h_color, w, base_color))
+                local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
+                local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state) or ""
+                table.insert(formatted_parts, string.format("%s{\\1c&H%s&}%s{\\1c&H%s&}%s", b_on, h_color, w, base_color, b_off))
             else
                 table.insert(formatted_parts, w)
             end
@@ -882,7 +885,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local result_text = table.concat(formatted_parts, " ")
 
         return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-            opacity, bold, base_color, size, result_text)
+            opacity, bold_state, base_color, size, result_text)
     end
 
     local raw_prev = ""
@@ -1037,7 +1040,9 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
                     if h_color ~= color then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", h_color, w, color))
+                        local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
+                        local b_off = Options.anki_highlight_bold and "{\\b0}" or ""
+                        table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", b_on, h_color, w, color, b_off))
                     else
                         table.insert(formatted_words, w)
                     end
@@ -1083,7 +1088,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bg_color = Options.dw_tooltip_bg_color
     local text_color = Options.dw_tooltip_text_color
     local text_alpha = Options.dw_tooltip_text_opacity or "00"
-    local bold = Options.dw_tooltip_bold or "0"
+    local bold = Options.dw_tooltip_bold and "1" or "0"
     local bord = Options.dw_tooltip_border_size or 1.5
     local shad = Options.dw_tooltip_shadow_offset or 1.0
 
