@@ -1346,6 +1346,24 @@ local function dw_hit_test(osd_x, osd_y)
     return last.sub_idx, last_vl[#last_vl]
 end
 
+local function is_inside_dw_selection(l, w)
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return false end
+    
+    local p1_l, p1_w, p2_l, p2_w
+    if al < cl or (al == cl and aw <= cw) then
+        p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+    else
+        p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+    end
+    
+    if l < p1_l or l > p2_l then return false end
+    if l == p1_l and w < p1_w then return false end
+    if l == p2_l and w > p2_w then return false end
+    return true
+end
+
 local function dw_mouse_update_selection()
     if not FSM.DW_MOUSE_DRAGGING then return end
     local subs = Tracks.pri.subs
@@ -1589,8 +1607,10 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     -- Extend selection to the clicked word
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
+                elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
+                    -- Preserve existing selection for 'SCM' commit (Middle-click committed existing range)
                 else
-                    -- Normal click: set both anchor and cursor
+                    -- Normal click: set both anchor and cursor (starts new selection)
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
                     FSM.DW_ANCHOR_LINE = line_idx
