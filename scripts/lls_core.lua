@@ -387,35 +387,51 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
-local function calculate_highlight_stack(target_word, time_pos)
+local function calculate_highlight_stack(words, word_idx, time_pos)
     if not next(FSM.ANKI_HIGHLIGHTS) then return 0 end
+    local target_word = words[word_idx]
+    if not target_word then return 0 end
     local target_lower = utf8_to_lower(target_word:gsub("[%p%s]", ""))
     if target_lower == "" then return 0 end
     
     local stack = 0
     for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
-        local match = false
+        local match_found = false
         local term_lower = utf8_to_lower(term_key)
         
-        -- Improved matching: Check if target_lower is exactly one of the words in the term
-        if term_lower:find(target_lower, 1, true) then
+        if Options.anki_global_highlight or math.abs(time_pos - data.time) < Options.anki_local_fuzzy_window then
             local term_words = build_word_list(term_lower)
-            for _, tw in ipairs(term_words) do
-                if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
-                    match = true
-                    break
+            if #term_words > 0 then
+                -- For each term, find all occurrences of its first word that matches target_lower
+                for start_offset, tw in ipairs(term_words) do
+                    if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
+                        -- Potential phrase match at this offset. Verify whole sequence.
+                        local sequence_match = true
+                        -- Check start boundary
+                        if word_idx - start_offset + 1 < 1 or word_idx - start_offset + #term_words > #words then
+                            sequence_match = false
+                        else
+                            for k = 1, #term_words do
+                                local line_idx = word_idx - start_offset + k
+                                local tw_clean = utf8_to_lower(term_words[k]:gsub("[%p%s]", ""))
+                                local lw_clean = utf8_to_lower(words[line_idx]:gsub("[%p%s]", ""))
+                                if tw_clean ~= lw_clean then
+                                    sequence_match = false
+                                    break
+                                end
+                            end
+                        end
+                        if sequence_match then
+                            match_found = true
+                            break
+                        end
+                    end
                 end
             end
         end
         
-        if match then
-            if Options.anki_global_highlight then
-                stack = stack + 1
-            else
-                if math.abs(time_pos - data.time) < Options.anki_local_fuzzy_window then
-                    stack = stack + 1
-                end
-            end
+        if match_found then
+            stack = stack + 1
         end
     end
     return stack
@@ -867,8 +883,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         
         local words = build_word_list(text)
         local formatted_parts = {}
-        for _, w in ipairs(words) do
-            local stack = calculate_highlight_stack(w, t_pos)
+        for i, w in ipairs(words) do
+            local stack = calculate_highlight_stack(words, i, t_pos)
             local h_color = base_color
             if stack == 1 then h_color = Options.anki_highlight_depth_1
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
@@ -1033,7 +1049,7 @@ local function draw_dw(subs, view_center, active_idx)
                 else
                     local sub_t = subs[i]
                     local t_pos = sub_t and sub_t.start_time or 0
-                    local stack = calculate_highlight_stack(w, t_pos)
+                    local stack = calculate_highlight_stack(entry.words, j, t_pos)
                     local h_color = color
                     if stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif stack == 2 then h_color = Options.anki_highlight_depth_2
