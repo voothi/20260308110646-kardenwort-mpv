@@ -7,7 +7,7 @@ The highlighter engine SHALL be capable of verifying word sequences that are spl
 - **WHEN** the term "falsch sind" is saved
 - **AND** "falsch" is the last word of Subtitle 1
 - **AND** "sind" is the first word of Subtitle 2
-- **AND** Subtitle 2 starts within 500ms of Subtitle 1 ending
+- **AND** Subtitle 2 starts within 1.5 seconds of Subtitle 1 ending
 - **THEN** both "falsch" and "sind" SHALL be highlighted in their respective segments
 
 ### Requirement: Temporal Proximity for Multi-Segment Phrases
