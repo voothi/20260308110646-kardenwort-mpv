@@ -23,3 +23,4 @@
 - [x] 4.2 Verify holding `a` or `d` works correctly in Drum Mode (`c`).
 - [x] 4.3 Verify holding `a` or `d` works correctly in Drum Window (`w`) and doesn't conflict with word-selection.
 - [x] 4.4 Update `release-notes.md` to reflect the new feature and version bump.
+- [x] 4.5 Update `mpv.conf` with new navigation repeat settings and documentation.
