@@ -1554,6 +1554,13 @@ local function cmd_dw_export_anki(tbl)
 
             if term and term ~= "" then
                 term = term:gsub("{[^}]+}", "")
+                -- Clean capture: Remove leading/trailing punctuation and spaces
+                local pre = term:match("^[%p%s]*")
+                local suf = term:match("[%p%s]*$")
+                if #pre < #term then
+                    term = term:sub(#pre + 1, #term - #suf)
+                end
+                
                 context_line = context_line:gsub("{[^}]+}", "")
                 local extracted_context = extract_anki_context(context_line, term)
                 save_anki_tsv_row(term, extracted_context, time_pos)
