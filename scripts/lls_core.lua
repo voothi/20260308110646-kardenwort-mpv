@@ -461,8 +461,8 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                     if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
                         local sequence_match = true
                         
-                        -- Phase 1: Sequence Match for phrases
-                        if #term_words > 1 and #term_words <= 10 then
+                        -- Phase 1: Sequence Match for all phrases (2+ words)
+                        if #term_words > 1 then
                             for k = 1, #term_words do
                                 local rw = get_relative_word(k - term_offset)
                                 if not rw or utf8_to_lower(term_words[k]:gsub("[%p%s]", "")) ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
