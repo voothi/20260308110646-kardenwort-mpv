@@ -33,3 +33,7 @@ The engine SHALL calculate the fuzzy matching window dynamically based on the le
 ### Requirement: Performance Caching
 The engine SHALL cache word lists and cleaned text for all highlight terms on first access.
 - Rendering latency SHALL NOT increase significantly when hundreds of terms are active.
+
+### Requirement: Self-Contextualization
+The engine SHALL verify word neighbors against both the original `SentenceSource` (context) and the `WordSource` (term) itself.
+- This allows long, multi-sentence captures to remain active even if only one sentence was saved as the primary context.
