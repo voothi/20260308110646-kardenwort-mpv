@@ -1039,12 +1039,6 @@ local function cmd_dw_tooltip_pin(tbl)
         end
     elseif tbl.event == "up" then
         FSM.DW_TOOLTIP_HOLDING = false
-        -- If we were in click mode, clear on release
-        if FSM.DW_TOOLTIP_MODE == "CLICK" then
-            FSM.DW_TOOLTIP_LINE = -1
-            dw_tooltip_osd.data = ""
-            dw_tooltip_osd:update()
-        end
     end
 end
 

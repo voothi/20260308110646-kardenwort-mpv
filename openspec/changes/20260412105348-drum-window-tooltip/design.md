@@ -22,7 +22,7 @@ Drum window mode currently lacks a feature to display secondary subtitles contex
 - **Data Availability:** On Drum Window activation (`w`), both primary and secondary subtitle tracks MUST be loaded into memory to ensure the tooltip renderer has immediate access to translation data.
 - **Complex Mouse Bindings:** `MBTN_RIGHT` will be registered as a `complex` keybinding to ensure reliable override of native MPV mouse behaviors. It supports both single clicks for pinning and long-holds for "Peeking".
 - **State Properties:** Introduce `FSM.DW_TOOLTIP_LINE`, `FSM.DW_TOOLTIP_MODE` ("CLICK" vs "HOVER"), and `FSM.DW_TOOLTIP_HOLDING` to track the interaction lifecycle.
-- **Hold to Peek (Scanned Hover):** While `MBTN_RIGHT` is held, the system automatically acts as if in "HOVER" mode, allowing the user to scan multiple line translations by moving the mouse. Releasing the button in "CLICK" mode clears the tooltip.
+- **Hold to Peek (Scanned Hover):** While `MBTN_RIGHT` is held, the system enables temporary hover updates. Releasing the button preserves the PIN on the last scanned line, adhering to normal "Click" logic.
 - **Fixed Wrapping Constraints:** The tooltip will use a fixed anchor layout on the right side `{\pos(1800, y)}{\an6}`, employing soft-wrapping tags (`\N`) where needed.
 - **Visual Unity:** Tooltip styling (font size, bolding, and opacity) is fully synchronized with Drum Mode (Reel C mode).
 - **Decoupled Alpha Control:** The system provides independent parameters for text transparency (`dw_tooltip_text_opacity`) and background transparency (`dw_tooltip_bg_opacity`). This allows for opaque "pop" text over translucent backgrounds, or fully blended "context-style" tooltips as per user preference.
