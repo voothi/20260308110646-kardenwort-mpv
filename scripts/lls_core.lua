@@ -69,7 +69,15 @@ local Options = {
     font_scaling_enabled = true,
     font_base_height = 1080,
     font_base_scale = 1.0,
-    font_scale_strength = 0.5
+    font_scale_strength = 0.5,
+
+    -- Drum Window Tooltip
+    dw_tooltip_font_size = 24,
+    dw_tooltip_context_lines = 1,
+    dw_tooltip_bg_opacity = "77",
+    dw_tooltip_bg_color = "1A1A1A",
+    dw_tooltip_text_color = "FFFFFF",
+    dw_tooltip_hover_key = "n"
 }
 options.read_options(Options, "lls")
 
@@ -119,7 +127,11 @@ local FSM = {
     SEARCH_ANCHOR = -1,
 
     -- Transient UI State
-    saved_osd_border_style = nil
+    saved_osd_border_style = nil,
+
+    -- Tooltip State
+    DW_TOOLTIP_LINE = -1,
+    DW_TOOLTIP_MODE = "CLICK"
 }
 
 local Tracks = {
@@ -142,6 +154,11 @@ local search_osd = mp.create_osd_overlay("ass-events")
 search_osd.res_x = 1920
 search_osd.res_y = 1080
 search_osd.z = 30
+
+local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
+dw_tooltip_osd.res_x = 1920
+dw_tooltip_osd.res_y = 1080
+dw_tooltip_osd.z = 25
 
 -- =========================================================================
 -- PARSERS & UTILS
@@ -817,6 +834,59 @@ local function draw_dw(subs, view_center, active_idx)
     return ass
 end
 
+local function draw_dw_tooltip(subs, target_line_idx, osd_y)
+    if target_line_idx == -1 or not Tracks.sec.subs or #Tracks.sec.subs == 0 then return "" end
+    
+    local primary_sub = subs[target_line_idx]
+    if not primary_sub then return "" end
+    
+    local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
+    local center_idx = get_center_index(Tracks.sec.subs, midpoint)
+    if center_idx == -1 then return "" end
+    
+    local start_idx = math.max(1, center_idx - Options.dw_tooltip_context_lines)
+    local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.dw_tooltip_context_lines)
+    
+    local lines = {}
+    for i = start_idx, end_idx do
+        table.insert(lines, Tracks.sec.subs[i].raw_text)
+    end
+    local text = table.concat(lines, "\\N")
+    
+    -- Styling
+    local fs = Options.dw_tooltip_font_size
+    local bg_alpha = Options.dw_tooltip_bg_opacity
+    local bg_color = Options.dw_tooltip_bg_color
+    local text_color = Options.dw_tooltip_text_color
+    
+    -- Approximate width for background box
+    local max_w = 500
+    local char_w = fs * 0.5
+    local longest_line_len = 0
+    for _, l in ipairs(lines) do
+        local _, count = l:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
+        longest_line_len = math.max(longest_line_len, count)
+    end
+    local box_w = math.min(max_w, longest_line_len * char_w + 40)
+    local box_h = #lines * fs * 1.3 + 20
+    
+    local ass = ""
+    local x2 = 1860
+    local x1 = x2 - box_w
+    local y1 = osd_y - box_h / 2
+    local y2 = osd_y + box_h / 2
+    
+    -- Background Box
+    ass = ass .. string.format("{\\pos(0,0)}{\\an7}{\\bord0}{\\shad0}{\\1a&H%s&}{\\1c&H%s&}{\\p1}m %d %d l %d %d %d %d %d %d{\\p0}\n",
+        bg_alpha, bg_color, x1, y1, x2, y1, x2, y2, x1, y2)
+        
+    -- Text
+    ass = ass .. string.format("{\\pos(1850, %d)}{\\an6}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&}{\\q1}%s",
+        osd_y, fs, text_color, text)
+        
+    return ass
+end
+
 -- =========================================================================
 -- DRUM WINDOW MOUSE SELECTION
 -- =========================================================================
@@ -962,6 +1032,65 @@ local function dw_mouse_auto_scroll()
     end
 end
 
+local function cmd_dw_tooltip_pin()
+    if FSM.DRUM_WINDOW == "OFF" then return end
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, _ = dw_hit_test(osd_x, osd_y)
+    
+    if line_idx then
+        FSM.DW_TOOLTIP_LINE = line_idx
+        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, osd_y)
+        dw_tooltip_osd:update()
+    end
+end
+
+local function cmd_toggle_dw_tooltip_hover()
+    FSM.DW_TOOLTIP_MODE = (FSM.DW_TOOLTIP_MODE == "CLICK") and "HOVER" or "CLICK"
+    show_osd("DW Translation: " .. FSM.DW_TOOLTIP_MODE)
+    if FSM.DW_TOOLTIP_MODE == "CLICK" then
+        FSM.DW_TOOLTIP_LINE = -1
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
+    end
+end
+
+local function dw_tooltip_mouse_update()
+    if FSM.DRUM_WINDOW == "OFF" then return end
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, _ = dw_hit_test(osd_x, osd_y)
+    
+    if FSM.DW_TOOLTIP_MODE == "HOVER" then
+        if line_idx then
+            if FSM.DW_TOOLTIP_LINE ~= line_idx then
+                FSM.DW_TOOLTIP_LINE = line_idx
+                dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, osd_y)
+                dw_tooltip_osd:update()
+            end
+        else
+            if FSM.DW_TOOLTIP_LINE ~= -1 then
+                FSM.DW_TOOLTIP_LINE = -1
+                dw_tooltip_osd.data = ""
+                dw_tooltip_osd:update()
+            end
+        end
+    else
+        -- CLICK mode: check if we left the pinned line
+        if FSM.DW_TOOLTIP_LINE ~= -1 then
+            if line_idx ~= FSM.DW_TOOLTIP_LINE then
+                FSM.DW_TOOLTIP_LINE = -1
+                dw_tooltip_osd.data = ""
+                dw_tooltip_osd:update()
+            end
+        end
+    end
+end
+
 local function make_mouse_handler(is_shift)
     return function(tbl)
         if tbl.event == "down" then
@@ -1056,6 +1185,8 @@ local function tick_dw(time_pos)
     
     dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
     dw_osd:update()
+    
+    dw_tooltip_mouse_update()
 end
 
 local function tick_drum(time_pos)
@@ -1368,6 +1499,9 @@ local function manage_dw_bindings(enable)
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_handler, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+        -- Tooltip Bindings
+        {key = "MBTN_RIGHT", name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin},
+        {key = Options.dw_tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
@@ -1422,6 +1556,10 @@ local function manage_dw_bindings(enable)
         if FSM.DW_NATIVE_WINDOW_DRAGGING ~= nil then
             mp.set_property_bool("window-dragging", FSM.DW_NATIVE_WINDOW_DRAGGING)
         end
+        -- Flush tooltip
+        FSM.DW_TOOLTIP_LINE = -1
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
     else
         FSM.DW_NATIVE_WINDOW_DRAGGING = mp.get_property_bool("window-dragging", true)
         mp.set_property_bool("window-dragging", false)
