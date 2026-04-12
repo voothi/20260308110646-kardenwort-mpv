@@ -1132,11 +1132,14 @@ local function cmd_dw_tooltip_hide_mid(tbl)
     FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
     
     if tbl.event == "down" then
+        FSM.DW_MOUSE_DRAGGING = true
         if FSM.DW_TOOLTIP_LINE ~= -1 then
             FSM.DW_TOOLTIP_LINE = -1
             dw_tooltip_osd.data = ""
             dw_tooltip_osd:update()
         end
+    elseif tbl.event == "up" then
+        FSM.DW_MOUSE_DRAGGING = false
     end
 end
 
