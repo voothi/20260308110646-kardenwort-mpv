@@ -444,6 +444,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     end
     
     local stack = 0
+    local has_phrase = false
     for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
         local match_found = false
         
@@ -523,16 +524,19 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
                         if sequence_match then
                             match_found = true
-                            local is_phrase = #term_words > 1
-                            stack = stack + 1
-                            return stack, is_phrase
+                            if #term_words > 1 then has_phrase = true end
+                            break -- Out of offsets for this term
                         end
                     end
                 end
             end
         end
+        if match_found then
+            stack = stack + 1
+            if stack >= 3 then break end
+        end
     end
-    return stack, false
+    return stack, has_phrase
 end
 
 local function get_word_boundary(q_table, pos, direction)
