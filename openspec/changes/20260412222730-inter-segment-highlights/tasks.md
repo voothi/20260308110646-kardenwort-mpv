@@ -3,7 +3,10 @@
 - [x] 1.1 Update `calculate_highlight_stack` signature to accept `subs` table and `idx`
 - [x] 1.2 Implement `get_word_at_relative_index` helper to peek into adjacent subs
 - [x] 1.3 Update the sequence matching loop to use the lookahead helper
-- [x] 1.4 Implement temporal adjacency check (500ms max gap)
+- [x] 1.4 Implement temporal adjacency check (increased to 1.5s gap)
+- [x] 1.5 Implement Deep Peeking (recursive/loop jumping across 5 segments)
+- [x] 1.6 Implement Adaptive Temporal Window for long paragraphs
+- [x] 1.7 Implement Self-Verification fallback for neighbors
 
 ## 2. Rendering Integration
 

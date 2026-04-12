@@ -19,13 +19,21 @@ The current highlighter engine processes one subtitle segment at a time. This ca
 **Alternative**: Pre-calculating a flattened word list for the entire video. Rejecting because it's memory-intensive and breaks the per-subtitle rendering pipeline.
 
 ### 2. Segment Adjacency Check
-**Decision**: Only look across segment boundaries if the gap between `end_time` of Sub A and `start_time` of Sub B is less than a small threshold (e.g., 500ms).
-**Rationale**: This ensures we don't accidentally join words from unrelated scenes that happen to match a phrase.
+**Decision**: Look across segment boundaries if the gap between `end_time` of Sub A and `start_time` of Sub B is less than 1.5 seconds.
+**Rationale**: Accommodates natural speech pauses and scene transitions in news broadcasts.
+
+### 3. Adaptive Temporal Window
+**Decision**: Automatically extend the `anki_local_fuzzy_window` for long highlights (Word count > 10). Add 0.5 seconds per word to the detection window.
+**Rationale**: Long paragraphs (e.g., news reports) take longer to read than the default 10s window allows. This prevents highlights from "flicking off" mid-read.
+
+### 4. Semantic Self-Verification
+**Decision**: In `anki_context_strict` mode, verify word neighbors against both the `SentenceSource` (context) and the `WordSource` (term) itself.
+**Rationale**: Supports highlights that span multiple sentences where the user only captured the first sentence as context. Allows a phrase to "self-verify" its internal structure.
 
 ## Risks / Trade-offs
 
 - [Risk] → Increased computational cost per word.
-- [Mitigation] → Peeking only occurs when a potential phrase match is detected at the boundary (start/end) of a line.
+- [Mitigation] → We use a 1-level cache for `sub.words` to avoid re-parsing strings in the lookahead loop.
 
-- [Risk] → `subs` table might not be loaded in all call sites.
-- [Mitigation] → Provide a fallback to the old single-line logic if `subs` is missing.
+- [Risk] → Jumping too many segments could lead to false positives.
+- [Mitigation] → Limited to 5 segments jump max, and strictly bound by the 1.5s adjacency rule.
