@@ -22,6 +22,6 @@ Restore the dark subtitle frame in Drum Mode C even when the Search UI is active
 - `drum-mode-rendering`: Visual style persistence is achieved via per-event ASS styling rather than property toggling.
 
 ## Impact
-- **Affected Code**: `scripts/lls_core.lua` (specifically `draw_search_ui`, `draw_dw`, `draw_drum`, and `manage_ui_border_override`).
+- **Affected Code**: `scripts/lls_core.lua` (specifically `draw_search_ui`, `manage_ui_border_override`, and `recover_native_osd_style`).
 - **Benefits**: Zero visual artifacts in the Search UI (it remains "light") and 100% persistence for subtitle frames.
 
