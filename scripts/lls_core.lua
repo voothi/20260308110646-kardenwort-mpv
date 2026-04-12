@@ -428,7 +428,8 @@ local function calculate_highlight_stack(words, word_idx, time_pos)
                             local ctx_lower = utf8_to_lower(data.context)
                             local ctx_words = build_word_list(ctx_lower)
                             
-                            if #term_words < #ctx_words then
+                            -- Only enforce neighbor check if there ARE other words on the screen to check against
+                            if #term_words < #ctx_words and #words > #term_words then
                                 local has_neighbor = false
                                 -- Check word immediately before the potential phrase match
                                 local prev_idx = word_idx - start_offset
