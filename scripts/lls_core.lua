@@ -861,9 +861,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bg_color = Options.dw_tooltip_bg_color
     local text_color = Options.dw_tooltip_text_color
     local bold = Options.dw_tooltip_bold or "0"
+    local bord = Options.dw_tooltip_border_size or 1.5
+    local shad = Options.dw_tooltip_shadow_offset or 1.0
 
-    local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        osd_y, fs, bold, text_color, bg_alpha, bg_color, bg_alpha, text)
+    local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        osd_y, fs, bold, bord, shad, text_color, bg_alpha, bg_color, bg_alpha, text)
         
     return ass
 end
