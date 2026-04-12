@@ -446,7 +446,19 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     local stack = 0
     for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
         local match_found = false
-        local term_words = build_word_list(utf8_to_lower(term_key))
+        
+        -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
+        if not data.__term_words then
+            data.__term_words = build_word_list(utf8_to_lower(term_key))
+            data.__term_words_clean = {}
+            for _, w in ipairs(data.__term_words) do
+                table.insert(data.__term_words_clean, utf8_to_lower(w:gsub("[%p%s]", "")))
+            end
+            data.__term_key_lower = utf8_to_lower(term_key)
+            data.__ctx_lower = utf8_to_lower(data.context)
+        end
+        local term_words = data.__term_words
+        local term_clean = data.__term_words_clean
         
         -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
         local window = Options.anki_local_fuzzy_window
@@ -456,9 +468,12 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
         if Options.anki_global_highlight or math.abs(time_pos - data.time) < window then
             if #term_words > 0 then
+                local term_lower = data.__term_key_lower
+                local ctx_lower = data.__ctx_lower
+
                 -- Check all occurrences of target_lower in the term
-                for term_offset, tw in ipairs(term_words) do
-                    if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
+                for term_offset, tw_clean in ipairs(term_clean) do
+                    if tw_clean == target_lower then
                         local sequence_match = true
                         
                         -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
@@ -466,18 +481,18 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                             local check_start = math.max(1, term_offset - 3)
                             local check_end = math.min(#term_words, term_offset + 3)
                             for k = check_start, check_end do
-                                local rw = get_relative_word(k - term_offset)
-                                if rw and utf8_to_lower(term_words[k]:gsub("[%p%s]", "")) ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
-                                    sequence_match = false
-                                    break
+                                if k ~= term_offset then
+                                    local rw = get_relative_word(k - term_offset)
+                                    if rw and term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
+                                        sequence_match = false
+                                        break
+                                    end
                                 end
                             end
                         end
 
                         -- Phase 2: Context Match
                         if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
-                            local ctx_lower = utf8_to_lower(data.context)
-                            local term_lower = utf8_to_lower(term_key)
                             local has_neighbor = false
                             -- Check word immediately before on screen
                             local prev_w = get_relative_word(-1)
