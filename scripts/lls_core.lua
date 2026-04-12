@@ -1323,11 +1323,19 @@ local function cmd_dw_export_anki(tbl)
                 for j = s_w, e_w do table.insert(parts, words[j]) end
             end
             term = table.concat(parts, " ")
-            context_line = subs[p1_l].text:gsub("\n", " ")
+            local ctx_parts = {}
+            for k = math.max(1, p1_l - 1), math.min(#subs, p2_l + 1) do
+                table.insert(ctx_parts, subs[k].text:gsub("\n", " "))
+            end
+            context_line = table.concat(ctx_parts, " ")
             time_pos = subs[p1_l].start_time
         elseif cl ~= -1 then
             local sub = subs[cl]
-            context_line = sub.text:gsub("\n", " ")
+            local ctx_parts = {}
+            for k = math.max(1, cl - 1), math.min(#subs, cl + 1) do
+                table.insert(ctx_parts, subs[k].text:gsub("\n", " "))
+            end
+            context_line = table.concat(ctx_parts, " ")
             time_pos = sub.start_time
             if cw ~= -1 then
                 local words = build_word_list(context_line)

@@ -5,7 +5,7 @@ The application SHALL allow the user to extract the currently selected text insi
 
 #### Scenario: Exporting a selected term
 - **WHEN** the user selects text in the Drum Window and triggers the export binding (MBTN_MID)
-- **THEN** the system extracts the literal selected string and its surrounding sentence context (capped at max constraints), and appends/updates an Anki-compatible TSV row into the media's directory.
+- **THEN** the system extracts the literal selected string and a broadened context window (including surrounding subtitles, capped by max constraints), and appends/updates an Anki-compatible TSV row into the media's directory.
 
 ### Requirement: Highlight Toggle Keybinding
 The application SHALL bind `h` (and `р` for RU layout) to toggle the visual re-rendering scope of the highlights.
