@@ -12,8 +12,11 @@
 - **Manual Hint Priority**: Explicitly pressing **MBTN_RIGHT** (RMB) now resets all suppression locks for that line, allowing you to instantly peek at a hint even if the area was previously suppressed or part of a selection.
 
 ### ⚙️ **Refined Interaction Logic**
-- **LMB & MMB Dismissal**: Manual tooltip pins can now be instantly dismissed with a standard **Left-Click** or **Middle-Click (Wheel)** anywhere in the window, providing a much faster "peek and return" workflow.
-- **Improved Focus Stability**: The suppression engine is aware of mult-line selection drags, ensuring the UI remains professionally clean throughout complex text study operations.
+- **LMB & MMB Hold Suppression**: Tooltips now remain suppressed as long as the **Left** or **Middle (Wheel)** Mouse Button is held down. This allows you to "sweep" across lines while selecting or analyzing without any auto-hover popups interfering with your focus.
+- **Improved Focus Stability**: Manual tooltip pins can be instantly dismissed with a standard click (LMB/MMB). The system is fully aware of multi-line selection drags, ensuring the UI remains professionally clean throughout complex study operations.
+
+### 🧹 **Architectural Cleanup**
+- **Functional Naming**: Internal mouse handles have been refactored (e.g., `cmd_dw_mouse_select`) to more accurately reflect their role in the selection and suppression lifecycle, ensuring the codebase remains maintainable as new interactions are added.
 
 ---
 
