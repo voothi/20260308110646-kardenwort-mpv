@@ -16,6 +16,7 @@ The highlighter must function reliably during fast-paced news broadcasts where s
 
 ### 1. Lazy Pre-Caching
 **Decision**: Pre-clean and cache the word list and lower-case term on first access.
+- Caches: `__term_words` (original list), `__term_words_clean` (lowercase+stripped), `__term_key_lower` (joined string), and `__ctx_lower`.
 **Rationale**: Avoids redundant `utf8_to_lower` and `gsub` calls for every word on screen (20 words * 100 terms = 2,000 calls per frame). Restores instantaneous mouse responsiveness.
 
 ### 2. Adaptive Temporal Window
