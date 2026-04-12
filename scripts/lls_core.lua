@@ -445,96 +445,100 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     
     local stack = 0
     local has_phrase = false
+    local matched_terms = {}
     for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
-        local match_found = false
         local term_key = data.term
-        
-        -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
-        if not data.__term_words then
-            data.__term_words = build_word_list(utf8_to_lower(term_key))
-            data.__term_words_clean = {}
-            for _, w in ipairs(data.__term_words) do
-                table.insert(data.__term_words_clean, utf8_to_lower(w:gsub("[%p%s]", "")))
+        if not matched_terms[term_key] then
+            local match_found = false
+            
+            -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
+            if not data.__term_words then
+                data.__term_words = build_word_list(utf8_to_lower(term_key))
+                data.__term_words_clean = {}
+                for _, w in ipairs(data.__term_words) do
+                    table.insert(data.__term_words_clean, utf8_to_lower(w:gsub("[%p%s]", "")))
+                end
+                data.__term_key_lower = utf8_to_lower(term_key)
+                data.__ctx_lower = utf8_to_lower(data.context)
             end
-            data.__term_key_lower = utf8_to_lower(term_key)
-            data.__ctx_lower = utf8_to_lower(data.context)
-        end
-        local term_words = data.__term_words
-        local term_clean = data.__term_words_clean
-        
-        -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
-        local window = Options.anki_local_fuzzy_window
-        if #term_words > 10 then
-            window = window + (#term_words * 0.5)
-        end
+            local term_words = data.__term_words
+            local term_clean = data.__term_words_clean
+            
+            -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
+            local window = Options.anki_local_fuzzy_window
+            if #term_words > 10 then
+                window = window + (#term_words * 0.5)
+            end
 
-        if Options.anki_global_highlight or math.abs(time_pos - data.time) < window then
-            if #term_words > 0 then
-                local term_lower = data.__term_key_lower
-                local ctx_lower = data.__ctx_lower
+            if Options.anki_global_highlight or math.abs(time_pos - data.time) < window then
+                if #term_words > 0 then
+                    local term_lower = data.__term_key_lower
+                    local ctx_lower = data.__ctx_lower
 
-                -- Check all occurrences of target_lower in the term
-                for term_offset, tw_clean in ipairs(term_clean) do
-                    if tw_clean == target_lower then
-                        local sequence_match = true
-                        
-                        -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
-                        if #term_words > 1 then
-                            local check_start = math.max(1, term_offset - 3)
-                            local check_end = math.min(#term_words, term_offset + 3)
-                            for k = check_start, check_end do
-                                if k ~= term_offset then
-                                    local rw = get_relative_word(k - term_offset)
-                                    if rw and term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
-                                        sequence_match = false
-                                        break
-                                    end
-                                end
-                            end
-                        end
-
-                        -- Phase 2: Context Match
-                        if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
-                            local has_neighbor = false
-                            -- Check word immediately before on screen
-                            local prev_w = get_relative_word(-1)
-                            if prev_w then
-                                local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
-                                if pw_clean ~= "" then
-                                    if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
-                                        has_neighbor = true
-                                    end
-                                end
-                            end
-                            -- Check word immediately after on screen
-                            if not has_neighbor then
-                                local next_w = get_relative_word(1)
-                                if next_w then
-                                    local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
-                                    if nw_clean ~= "" then
-                                        if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
-                                            has_neighbor = true
+                    -- Check all occurrences of target_lower in the term
+                    for term_offset, tw_clean in ipairs(term_clean) do
+                        if tw_clean == target_lower then
+                            local sequence_match = true
+                            
+                            -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
+                            if #term_words > 1 then
+                                local check_start = math.max(1, term_offset - 3)
+                                local check_end = math.min(#term_words, term_offset + 3)
+                                for k = check_start, check_end do
+                                    if k ~= term_offset then
+                                        local rw = get_relative_word(k - term_offset)
+                                        if rw and term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
+                                            sequence_match = false
+                                            break
                                         end
                                     end
                                 end
                             end
-                            if not has_neighbor and #words > 1 then
-                                sequence_match = false
-                            end
-                        end
 
-                        if sequence_match then
-                            match_found = true
-                            if #term_words > 1 then has_phrase = true end
-                            break -- Out of offsets for this term
+                            -- Phase 2: Context Match
+                            if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
+                                local has_neighbor = false
+                                -- Check word immediately before on screen
+                                local prev_w = get_relative_word(-1)
+                                if prev_w then
+                                    local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
+                                    if pw_clean ~= "" then
+                                        if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
+                                            has_neighbor = true
+                                        end
+                                    end
+                                end
+                                -- Check word immediately after on screen
+                                if not has_neighbor then
+                                    local next_w = get_relative_word(1)
+                                    if next_w then
+                                        local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
+                                        if nw_clean ~= "" then
+                                            if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
+                                                has_neighbor = true
+                                            end
+                                        end
+                                    end
+                                end
+                                if not has_neighbor and #words > 1 then
+                                    sequence_match = false
+                                end
+                            end
+
+                            if sequence_match then
+                                match_found = true
+                                if #term_words > 1 then has_phrase = true end
+                                break -- Out of offsets for this term
+                            end
                         end
                     end
                 end
             end
-        end
-        if match_found then
-            stack = stack + 1
-            if stack >= 3 then break end
+            if match_found then
+                stack = stack + 1
+                matched_terms[term_key] = true
+                if stack >= 3 then break end
+            end
         end
     end
     return stack, has_phrase
