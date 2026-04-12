@@ -30,6 +30,11 @@ Update `make_mouse_handler` to set the suppression state on both `down` and `up`
 ### Interaction Recovery via RMB
 `cmd_dw_tooltip_pin` (RMB) must explicitly clear the `FSM.DW_TOOLTIP_LOCKED_LINE` to `-1` on its `down` event. This ensures manual hints takes precedence over the suppression lock.
 
+### Secondary Suppression via MMB (Middle-Click)
+Implement `cmd_dw_tooltip_hide_mid` to trigger the suppression lock and clear the OSD without impacting the selection state.
+- **Rationale**: Provides a dedicated "suppression-only" trigger for users who want to clear hints without clicking words or changing focus.
+- **Refactoring**: Finalized the naming of primary handlers to `cmd_dw_mouse_select` and `cmd_dw_mouse_select_shift` for architectural clarity.
+
 ### Tooltip Tick Guard
 Modify `dw_tooltip_mouse_update` to respect the suppression lock and selection range.
 
