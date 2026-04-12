@@ -96,7 +96,8 @@ local Options = {
     anki_highlight_depth_1 = "00A5FF",
     anki_highlight_depth_2 = "0066CC",
     anki_highlight_depth_3 = "003399",
-    anki_global_highlight = false
+    anki_global_highlight = false,
+    anki_sync_period = 30
 }
 options.read_options(Options, "lls")
 
@@ -577,19 +578,21 @@ local function get_tsv_path()
     return base .. ".tsv"
 end
 
-local function load_anki_tsv()
+local function load_anki_tsv(force)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
     
     if FSM.ANKI_DB_PATH ~= tsv_path then
         FSM.ANKI_DB_PATH = tsv_path
         FSM.ANKI_HIGHLIGHTS = {}
-    else
+    elseif not force then
         if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return end
     end
 
     local f = io.open(tsv_path, "r")
     if not f then return end
+
+    local new_highlights = {}
 
     local line_count = 0
     for line in f:lines() do
@@ -603,11 +606,13 @@ local function load_anki_tsv()
                 local term = fields[1]
                 local context = fields[2]
                 local time_val = tonumber(fields[3]) or 0
-                FSM.ANKI_HIGHLIGHTS[term] = { context = context, time = time_val }
+                new_highlights[term] = { context = context, time = time_val }
             end
         end
     end
     f:close()
+    
+    FSM.ANKI_HIGHLIGHTS = new_highlights
 end
 
 local function save_anki_tsv_row(term, context, time_pos)
@@ -2921,6 +2926,14 @@ mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
+
+if Options.anki_sync_period > 0 then
+    mp.add_periodic_timer(Options.anki_sync_period, function()
+        load_anki_tsv(true)
+        drum_osd:update()
+        if dw_osd then dw_osd:update() end
+    end)
+end
 ---------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
 ---------------------------------------------------------------------------
