@@ -459,12 +459,12 @@ local function extract_anki_context(full_line, selected_term)
         end
         
         -- Search forwards for punctuation
-        local post = full_line:sub(end_pos + 1)
+        local post = full_line:sub(start_pos)
         local sent_end = #full_line
-        -- Look for . ! ? followed by space or end of string
+        -- Look for . ! ? 
         local f_idx = post:find("[.!?]")
         if f_idx then
-            sent_end = end_pos + f_idx
+            sent_end = start_pos + f_idx - 1
         end
         
         sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
