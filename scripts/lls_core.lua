@@ -99,7 +99,8 @@ local Options = {
     anki_global_highlight = false,
     anki_sync_period = 30,
     anki_context_lines = 3,
-    anki_local_fuzzy_window = 10.0
+    anki_local_fuzzy_window = 10.0,
+    anki_highlight_opacity = "70" -- 00 to FF (transparency)
 }
 options.read_options(Options, "lls")
 
@@ -207,6 +208,20 @@ local function parse_time(time_str)
         return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + ms_val / 1000
     end
     return 0
+end
+
+local function draw_ass_box(x, y, w, h, color, alpha)
+    -- ASS coordinates for a rectangle. 
+    -- x,y is top-left.
+    -- {\p1} switches to drawing mode (scale 1:1)
+    -- m (move), l (line), {\p0} (exit drawing)
+    -- We use \pos to place it, then draw relative to 0,0
+    local alpha_tag = string.format("{\\1a&H%s&}", alpha or "B0")
+    local color_tag = string.format("{\\1c&H%s&}", color)
+    local border_tag = "{\\bord0}{\\shad0}"
+    local pos_tag = string.format("{\\an7}{\\pos(%.1f,%.1f)}", x, y)
+    local draw_tag = string.format("{\\p1}m 0 0 l %.1f 0 l %.1f %.1f l 0 %.1f{\\p0}", w, w, h, h)
+    return pos_tag .. alpha_tag .. color_tag .. border_tag .. draw_tag
 end
 
 local function clean_text_srt(line)
@@ -851,73 +866,70 @@ end
 local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     if center_idx == -1 then return "" end
     
-    local ass = ""
     local start_idx = math.max(1, center_idx - Options.drum_context_lines)
     local end_idx = math.min(#subs, center_idx + Options.drum_context_lines)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
     
-    local function format_sub(text, is_active, t_pos)
+    local line_h = font_size * 1.2
+    local DepthColors = { Options.anki_highlight_depth_1, Options.anki_highlight_depth_2, Options.anki_highlight_depth_3 }
+    local bg_parts = {}
+    local fg_parts = {}
+
+    local function process_line(text, is_active, t_pos, current_y)
         if text == "" then return "" end
         local base_color = is_active and Options.drum_active_color or Options.drum_context_color
         local opacity = is_active and Options.drum_active_opacity or Options.drum_context_opacity
         local bold = is_active and Options.drum_active_bold or Options.drum_context_bold
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         
+        local clean_text = text:gsub("{[^}]+}", "")
+        local line_w = dw_get_str_width(clean_text)
+        local scale = size / Options.dw_font_size
+        line_w = line_w * scale
+        
+        local line_left = 960 - line_w / 2
+        local current_x = 0
         local words = build_word_list(text)
-        local formatted_parts = {}
+        local formatted_words = {}
+        local space_w = dw_get_str_width(" ") * scale
+
         for _, w in ipairs(words) do
+            local word_w = dw_get_str_width(w) * scale
             local stack = calculate_highlight_stack(w, t_pos)
-            local h_color = base_color
-            if stack == 1 then h_color = Options.anki_highlight_depth_1
-            elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-            elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-
-            if h_color ~= base_color then
-                table.insert(formatted_parts, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", h_color, w, base_color))
-            else
-                table.insert(formatted_parts, w)
+            
+            if stack > 0 then
+                local h_color = DepthColors[math.min(3, stack)]
+                local box = draw_ass_box(line_left + current_x, current_y, word_w, size * 1.05, h_color, Options.anki_highlight_opacity)
+                table.insert(bg_parts, box)
             end
+            
+            table.insert(formatted_words, w)
+            current_x = current_x + word_w + space_w
         end
-        local result_text = table.concat(formatted_parts, " ")
-
-        return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-            opacity, bold, base_color, size, result_text)
+        
+        local result_text = table.concat(formatted_words, " ")
+        return string.format("{\\pos(960, %.1f)}{\\an8}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
+            current_y, opacity, bold, base_color, size, result_text)
     end
 
-    local raw_prev = ""
-    local prev_text = ""
-    for i = start_idx, center_idx - 1 do
+    local lines_to_draw = {}
+    for i = start_idx, end_idx do
         local sub = subs[i]
-        prev_text = prev_text .. (prev_text == "" and "" or "\\N") .. format_sub(sub.text, false, sub.start_time)
-    end
-    
-    local active_text = ""
-    if center_idx > 0 and center_idx <= #subs then
-        local sub = subs[center_idx]
-        local is_active = (time_pos >= sub.start_time and time_pos <= sub.end_time)
-        active_text = format_sub(sub.text, is_active, sub.start_time)
-    end
-    
-    local next_text = ""
-    for i = center_idx + 1, end_idx do
-        local sub = subs[i]
-        next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(sub.text, false, sub.start_time)
-    end
-    
-    local all_text = prev_text
-    if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
-    all_text = all_text .. active_text
-    if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
-    all_text = all_text .. next_text
-
-    if is_top then
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, all_text)
-    else
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, all_text)
+        local is_active = (i == center_idx and time_pos >= sub.start_time and time_pos <= sub.end_time)
+        table.insert(lines_to_draw, {sub = sub, active = is_active})
     end
 
-    return ass
+    local total_h = #lines_to_draw * line_h
+    local start_y = is_top and y_pixel or (y_pixel - total_h)
+
+    for idx, item in ipairs(lines_to_draw) do
+        local current_y = start_y + (idx - 1) * line_h
+        local fg = process_line(item.sub.text, item.active, item.sub.start_time, current_y)
+        table.insert(fg_parts, fg)
+    end
+
+    return table.concat(bg_parts, "") .. table.concat(fg_parts, "\n")
 end
 
 
@@ -978,17 +990,14 @@ end
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 local function draw_dw(subs, view_center, active_idx)
-    if not subs or #subs == 0 then return "" end
-    
+    local layout, total_height = dw_build_layout(subs, view_center)
     local ass = ""
-    local layout, _ = dw_build_layout(subs, view_center)
     
-    -- Background: Opaque beige panel
+    -- Background Layer 0: Original opaque beige panel
     local bg_alpha = Options.dw_bg_opacity
     local bg_color = Options.dw_bg_color
     ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\1a&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
-    -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
     local has_selection = (al ~= -1 and aw ~= -1)
@@ -1001,62 +1010,76 @@ local function draw_dw(subs, view_center, active_idx)
         end
     end
 
-    -- Text Block mapping
-    local lines_ass = {}
+    local all_parts = {}
+    local bg_parts = {}
+    local y_pos = 540 - total_height / 2
+    local space_w = dw_get_str_width(" ")
+    local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
+    local DepthColors = { Options.anki_highlight_depth_1, Options.anki_highlight_depth_2, Options.anki_highlight_depth_3 }
+
     for _, entry in ipairs(layout) do
         local i = entry.sub_idx
         local is_active = (i == active_idx)
-        local color = is_active and Options.dw_active_color or Options.dw_text_color
-        local line_prefix = string.format("{\\fn%s}{\\c&H%s&}", Options.dw_font_name, color)
-        
-        local entry_ass_vlines = {}
-        for _, vl_indices in ipairs(entry.vlines) do
-            local formatted_words = {}
-            for _, j in ipairs(vl_indices) do
-                local w = entry.words[j]
-                local selected = false
-                if has_selection then
-                    if i > p1_l and i < p2_l then selected = true
-                    elseif i == p1_l and i == p2_l then selected = (j >= p1_w and j <= p2_w)
-                    elseif i == p1_l then selected = (j >= p1_w)
-                    elseif i == p2_l then selected = (j <= p2_w) end
-                elseif i == cl and j == cw then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                    goto next_word
-                end
-                
-                if selected then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                else
-                    local sub_t = subs[i]
-                    local t_pos = sub_t and sub_t.start_time or 0
-                    local stack = calculate_highlight_stack(w, t_pos)
-                    local h_color = color
-                    if stack == 1 then h_color = Options.anki_highlight_depth_1
-                    elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-                    elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+        local base_color = is_active and Options.dw_active_color or Options.dw_text_color
+        local sub = subs[i]
+        local time_pos = sub and sub.start_time or 0
 
-                    if h_color ~= color then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", h_color, w, color))
-                    else
-                        table.insert(formatted_words, w)
-                    end
-                end
-                ::next_word::
+        for vl_idx, vline in ipairs(entry.vlines) do
+            local line_y = y_pos + (vl_idx - 1) * vline_h
+            
+            -- Calculate line width for centering
+            local line_w = 0
+            for k, wi in ipairs(vline) do
+                line_w = line_w + dw_get_str_width(entry.words[wi])
+                if k < #vline then line_w = line_w + space_w end
             end
-            table.insert(entry_ass_vlines, table.concat(formatted_words, " "))
+            
+            local line_left = math.floor(960 - line_w / 2)
+            local current_x = 0
+            local parts = {}
+
+            -- Process Words
+            for k, wi in ipairs(vline) do
+                local w = entry.words[wi]
+                local word_w = dw_get_str_width(w)
+                
+                -- 1. Selection State (Gold Text)
+                local is_selected = false
+                if has_selection then
+                    if i > p1_l and i < p2_l then is_selected = true
+                    elseif i == p1_l and i == p2_l then is_selected = (wi >= p1_w and wi <= p2_w)
+                    elseif i == p1_l then is_selected = (wi >= p1_w)
+                    elseif i == p2_l then is_selected = (wi <= p2_w) end
+                elseif i == cl and wi == cw then
+                    is_selected = true
+                end
+
+                -- 2. Highlight Logic (Background Box layer)
+                local stack = calculate_highlight_stack(w, time_pos)
+                if stack > 0 then
+                    local h_color = DepthColors[math.min(3, stack)]
+                    local box = draw_ass_box(line_left + current_x, line_y, word_w, Options.dw_font_size * 1.05, h_color, Options.anki_highlight_opacity)
+                    table.insert(bg_parts, box)
+                end
+
+                -- 3. Text layer (Foreground)
+                if is_selected then
+                    table.insert(parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, base_color))
+                else
+                    table.insert(parts, w)
+                end
+
+                current_x = current_x + word_w + space_w
+            end
+            
+            -- Combine word tokens for this visual line
+            table.insert(all_parts, string.format("{\\an8}{\\pos(960,%.1f)}{\\c&H%s&}%s", line_y, base_color, table.concat(parts, " ")))
         end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
-        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
+        y_pos = y_pos + entry.height + (Options.dw_font_size * Options.dw_sub_gap_mul)
     end
-    
-    -- Join separate subtitles with \N\N
-    local block_text = table.concat(lines_ass, "\\N\\N")
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\1a&H00&}{\\3a&HFF&}{\\4a&HFF&}{\\q2}{\\fs%d}%s", 
-        Options.dw_font_size, block_text)
-    
-    return ass
+
+    -- Return Background layer then Text layer
+    return ass .. table.concat(bg_parts, "") .. string.format("{\\q2}{\\fs%d}", Options.dw_font_size) .. table.concat(all_parts, "\\N")
 end
 
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
