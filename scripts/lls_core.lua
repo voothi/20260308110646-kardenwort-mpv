@@ -681,35 +681,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
     all_text = all_text .. next_text
 
-    local bg_box = ""
-    local text_style_override = ""
-    if FSM.saved_osd_border_style and FSM.saved_osd_border_style:lower():match("box") then
-        text_style_override = "{\\bord0}{\\shad0}"
-        local max_w = 0
-        for i = start_idx, end_idx do
-            local w = dw_get_str_width(subs[i].text) * (font_size / math.max(1, Options.dw_font_size))
-            if w > max_w then max_w = w end
-        end
-        max_w = max_w + 100
-        local line_count = end_idx - start_idx + 1
-        local box_h = line_count * font_size * Options.drum_stack_multiplier + 40
-        local rect_x = 960 - (max_w / 2)
-        -- Using &H3F& alpha (75% opaque) for solid dark look
-        if is_top then
-            bg_box = string.format("{\\pos(%d, %d)}{\\an7}{\\bord0}{\\shad0}{\\1c&H000000&}{\\1a&H3F&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-                rect_x, y_pixel - 20, max_w, max_w, box_h, box_h)
-        else
-            bg_box = string.format("{\\pos(%d, %d)}{\\an1}{\\bord0}{\\shad0}{\\1c&H000000&}{\\1a&H3F&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-                rect_x, y_pixel + 20, max_w, max_w, -box_h, -box_h)
-        end
-    end
-
     if is_top then
-        ass = ass .. bg_box .. string.format("{\\pos(960, %d)}{\\an8}%s{\\fs%d}%s\n", y_pixel, text_style_override, font_size, all_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, all_text)
     else
-        ass = ass .. bg_box .. string.format("{\\pos(960, %d)}{\\an2}%s{\\fs%d}%s\n", y_pixel, text_style_override, font_size, all_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, all_text)
     end
-
 
     return ass
 end
@@ -1579,7 +1555,7 @@ local function draw_search_ui()
     end
     
     -- Draw Input Field Backing
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H11&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H11&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
         box_x, box_y, border_color, bg_color, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
     
     -- Draw Input Text
@@ -1619,7 +1595,7 @@ local function draw_search_ui()
         end
     end
 
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
         box_x + padding_x, box_y + padding_y, font_size, text_color, display_query)
         
     -- Draw Results Dropdown
@@ -1630,7 +1606,7 @@ local function draw_search_ui()
         local results_y = box_y + line_height + padding_y * 2 + 5
         
         -- Dropdown Backing
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
             
         -- Scroll window mapping
@@ -1677,7 +1653,7 @@ local function draw_search_ui()
                 end
             end
             
-            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
                 box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
@@ -1685,9 +1661,9 @@ local function draw_search_ui()
         local results_h = line_height + padding_y * 2
         local results_y = box_y + line_height + padding_y * 2 + 5
         
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} No results found.\n",
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} No results found.\n",
             box_x + padding_x, results_y + padding_y, font_size * 0.8, "999999")
     end
     
@@ -1722,19 +1698,8 @@ local function move_search_cursor(direction, ctrl, shift)
 end
 
 local function manage_ui_border_override(enable)
-    if enable then
-        if not FSM.saved_osd_border_style then
-            FSM.saved_osd_border_style = mp.get_property("osd-border-style")
-            mp.set_property("osd-border-style", "outline-and-shadow")
-        end
-    else
-        if FSM.DRUM_WINDOW == "OFF" and not FSM.SEARCH_MODE then
-            if FSM.saved_osd_border_style then
-                mp.set_property("osd-border-style", FSM.saved_osd_border_style)
-                FSM.saved_osd_border_style = nil
-            end
-        end
-    end
+    -- Deprecated: We now rely on \4a&HFF& in ASS to hide background box.
+    -- Kept to avoid breaking existing bindings/calls.
 end
 
 local function manage_search_bindings(enable)
@@ -2518,3 +2483,14 @@ mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "lls-seek_prev", function() cmd_dw_seek_delta(-1) end)
 mp.add_key_binding(nil, "lls-seek_next", function() cmd_dw_seek_delta(1) end)
+---------------------------------------------------------------------------
+-- Safety Net: Recover stuck OSD properties from previous crashes
+---------------------------------------------------------------------------
+local function recover_native_osd_style()
+    local opt_style = mp.get_property("options/osd-border-style")
+    local cur_style = mp.get_property("osd-border-style")
+    if opt_style and cur_style and opt_style ~= cur_style then
+        mp.set_property("osd-border-style", opt_style)
+    end
+end
+recover_native_osd_style()

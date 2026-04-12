@@ -16,23 +16,20 @@ The project uses `osd-border-style=background-box` for a premium look. To preven
 
 ## Decisions
 
-### 1. Robust Manual Frame for Drum Subtitles
-To handle the global style override during search, the Drum Mode renderer will implement a manual background box drawing when `FSM.saved_osd_border_style` is detected.
+### 1. Removing Fragile Global State Overrides
+The previous implementation used `manage_ui_border_override` to globally mutate the `osd-border-style` property from `background-box` to `outline-and-shadow`. This proved fragile: if the script crashed during search, mpv's global state remained stuck, corrupting the UI indefinitely. 
+We will completely disable `manage_ui_border_override` state modification. 
 
-**Rationale:**
-Since global OSD properties cannot be set per-overlay, drawing a standard ASS rectangle (`{\\p1}`) behind the subtitles is the only way to maintain the "Black Frame" aesthetic while the search UI is active.
+### 2. Native ASS Opacity for UI Isolation
+Instead of altering global properties, we will use ASS alpha tags to natively hide the background box on specific elements. By prepending `{\\4a&HFF&}` (Fully Transparent Shadow/Box) directly to the ASS styling payload of Search UI elements, mpv will naturally hide the background box for those UI elements only.
+Crucially, this `{\\4a&HFF&}` tag must be injected into *both* text objects **and vector polygons** (`{\p1}m...`) rendered by the Search script, because mpv natively applies `background-box` to all shapes.
 
-### 2. Refined Parameters
-- **Check**: We will check `if FSM.saved_osd_border_style then` to ensure the box activates on any override.
-- **Alpha**: We will use `{\\1a&H3F&}` (which corresponds to ~75% opacity) to match the project's `#C0000000` styling.
-- **Width Heuristic**: Use `dw_get_str_width` to dynamically scale the box width to the subtitle content, with a generous safety margin (+80px).
+### 3. Native Restoration of Drum Mode Subtitles
+Because `osd-border-style` will no longer be artificially changed when Search is invoked, Drum Mode C will naturally render its background box natively through mpv, perfectly retaining its premium styling without needing brittle manual box reconstruction logic.
 
-### 3. Maintain Global Logic
-We will keep the original `manage_ui_border_override` property toggling. This ensures that non-drum elements (Search, DW) remain clean and box-free without requiring per-tag alpha injection on every OSD event.
-
-
+### 4. Safety Net
+Provide a `recover_native_osd_style()` routine on script initialization to detect and revert any previous state corruption left over from old script crashes, ensuring users don't encounter mysteriously missing backgrounds.
 
 ## Risks / Trade-offs
-
-- **Risk**: The Search UI will look slightly different (extra frames around text) if opened while Drum Mode C is active.
-- **Trade-off**: This is acceptable as a "minimally invasive" fix that solves the primary bug reported by the user without introducing complex manual rendering logic.
+- **Risk**: Finding every ASS block to inject the opacity tag can easily miss an element if new UI panels are added.
+- **Trade-off**: This approach strictly abides by mpv's intended rendering design, fundamentally resolving the visual bugs without mutating global states that break the rest of the application ecosystem.
