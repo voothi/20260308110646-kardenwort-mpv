@@ -1574,6 +1574,7 @@ local function dw_anki_export_selection()
             load_anki_tsv(true)
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_WORD = -1
             
             drum_osd:update()
             if dw_osd then dw_osd:update() end
