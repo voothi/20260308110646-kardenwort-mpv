@@ -22,6 +22,7 @@ We will introduce `DW_TOOLTIP_LOCKED_LINE` to the `FSM` table. This variable wil
 
 ### Mouse Handler Integration
 Update `make_mouse_handler` to set the suppression state on both `down` and `up` events.
+- **Hold Duration**: Tooltips are suppressed for the entire duration while LMB is held (via `FSM.DW_MOUSE_DRAGGING`).
 
 **Process**:
 1. On `down`: Clear active tooltip OSD and set `FSM.DW_TOOLTIP_LOCKED_LINE` to the current line index.

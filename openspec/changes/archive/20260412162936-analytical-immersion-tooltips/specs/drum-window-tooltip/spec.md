@@ -13,6 +13,10 @@ The system SHALL dismiss the tooltip instantly when the context changes or the u
 - **AND** the user presses the Left Mouse Button (LMB)
 - **THEN** the tooltip SHALL be immediately suppressed and hidden from the screen
 
+#### Scenario: User holds left mouse button
+- **WHEN** the user is holding down the Left Mouse Button (LMB)
+- **THEN** the translation tooltip SHALL remain suppressed and hidden from the screen for the entire duration of the hold
+
 #### Scenario: User clicks middle mouse button
 - **WHEN** a translation tooltip is currently visible (either pinned or hovered)
 - **AND** the user presses the Middle Mouse Button (MMB / Wheel Click)
