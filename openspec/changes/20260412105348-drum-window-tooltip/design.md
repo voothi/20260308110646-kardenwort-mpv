@@ -19,8 +19,10 @@ Drum window mode currently lacks a feature to display secondary subtitles contex
 
 - **Segregated OSD:** The tooltip will be rendered using a dedicated new OSD object `dw_tooltip_osd` at `z=25`. This avoids layout-breaking interactions with `dw_osd` (z=20) and `search_osd` (z=30).
 - **Hit-Test Reuse:** The system will repurpose `dw_hit_test(osd_x, osd_y)` to fetch `line_idx` during mouse move events, avoiding duplicating coordinate calculation logic.
+- **Data Availability:** On Drum Window activation (`w`), both primary and secondary subtitle tracks MUST be loaded into memory to ensure the tooltip renderer has immediate access to translation data.
+- **Complex Mouse Bindings:** `MBTN_RIGHT` will be registered as a `complex` keybinding to ensure reliable override of native MPV mouse behaviors and right-click menus.
 - **State Properties:** Introduce `FSM.DW_TOOLTIP_LINE` and `FSM.DW_TOOLTIP_MODE` ("CLICK" vs "HOVER") to track the tooltip lifecycle smoothly. Pinning on click vs pinning constantly on move.
-- **Fixed Wrapping Constraints:** The tooltip will use a fixed anchor layout on the right side `{\pos(1850, y)}{\an6}`, employing soft-wrapping tags (`\N`) where needed, and a semi-transparent box `{\1a&H77&}` to layer harmlessly over long English content.
+- **Fixed Wrapping Constraints:** The tooltip will use a fixed anchor layout on the right side `{\pos(1800, y)}{\an6}`, employing soft-wrapping tags (`\N`) where needed, and a semi-transparent box `{\1a&H77&}` to layer harmlessly over long English content.
 
 ## Risks / Trade-offs
 
