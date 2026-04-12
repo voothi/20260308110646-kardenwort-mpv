@@ -993,11 +993,12 @@ local function draw_dw(subs, view_center, active_idx)
     local layout, total_height = dw_build_layout(subs, view_center)
     local ass = ""
     
-    -- Background Layer 0: Original opaque beige panel
+    -- Layer 0: Background Panel
     local bg_alpha = Options.dw_bg_opacity
     local bg_color = Options.dw_bg_color
-    ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\1a&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
+    ass = ass .. string.format("{\\an5}{\\pos(960,540)}{\\bord0}{\\shad0}{\\1a&H%s&}{\\1c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
+    -- Selection data
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
     local has_selection = (al ~= -1 and aw ~= -1)
@@ -1010,9 +1011,9 @@ local function draw_dw(subs, view_center, active_idx)
         end
     end
 
-    local all_parts = {}
-    local bg_parts = {}
-    local y_pos = 540 - total_height / 2
+    local bg_boxes = {}
+    local fg_text = {}
+    local y_cursor = 540 - total_height / 2
     local space_w = dw_get_str_width(" ")
     local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
     local DepthColors = { Options.anki_highlight_depth_1, Options.anki_highlight_depth_2, Options.anki_highlight_depth_3 }
@@ -1025,9 +1026,7 @@ local function draw_dw(subs, view_center, active_idx)
         local time_pos = sub and sub.start_time or 0
 
         for vl_idx, vline in ipairs(entry.vlines) do
-            local line_y = y_pos + (vl_idx - 1) * vline_h
-            
-            -- Calculate line width for centering
+            local line_y = y_cursor + (vl_idx - 1) * vline_h
             local line_w = 0
             for k, wi in ipairs(vline) do
                 line_w = line_w + dw_get_str_width(entry.words[wi])
@@ -1038,12 +1037,10 @@ local function draw_dw(subs, view_center, active_idx)
             local current_x = 0
             local parts = {}
 
-            -- Process Words
             for k, wi in ipairs(vline) do
                 local w = entry.words[wi]
                 local word_w = dw_get_str_width(w)
                 
-                -- 1. Selection State (Gold Text)
                 local is_selected = false
                 if has_selection then
                     if i > p1_l and i < p2_l then is_selected = true
@@ -1054,32 +1051,28 @@ local function draw_dw(subs, view_center, active_idx)
                     is_selected = true
                 end
 
-                -- 2. Highlight Logic (Background Box layer)
                 local stack = calculate_highlight_stack(w, time_pos)
                 if stack > 0 then
                     local h_color = DepthColors[math.min(3, stack)]
-                    local box = draw_ass_box(line_left + current_x, line_y, word_w, Options.dw_font_size * 1.05, h_color, Options.anki_highlight_opacity)
-                    table.insert(bg_parts, box)
+                    local box = draw_ass_box(line_left + current_x, line_y, word_w, Options.dw_font_size * 1.1, h_color, Options.anki_highlight_opacity)
+                    table.insert(bg_boxes, box)
                 end
 
-                -- 3. Text layer (Foreground)
                 if is_selected then
                     table.insert(parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, base_color))
                 else
                     table.insert(parts, w)
                 end
-
                 current_x = current_x + word_w + space_w
             end
             
-            -- Combine word tokens for this visual line
-            table.insert(all_parts, string.format("{\\an8}{\\pos(960,%.1f)}{\\c&H%s&}%s", line_y, base_color, table.concat(parts, " ")))
+            table.insert(fg_text, string.format("{\\an8}{\\pos(960,%.1f)}{\\c&H%s&}{\\fs%d}{\\q2}%s", line_y, base_color, Options.dw_font_size, table.concat(parts, " ")))
         end
-        y_pos = y_pos + entry.height + (Options.dw_font_size * Options.dw_sub_gap_mul)
+        y_cursor = y_cursor + entry.height + (Options.dw_font_size * Options.dw_sub_gap_mul)
     end
 
-    -- Return Background layer then Text layer
-    return ass .. table.concat(bg_parts, "") .. string.format("{\\q2}{\\fs%d}", Options.dw_font_size) .. table.concat(all_parts, "\\N")
+    -- Join with NEWLINES (\n) to handle multiple \pos tags correctly
+    return ass .. table.concat(bg_boxes, "\n") .. "\n" .. table.concat(fg_text, "\n")
 end
 
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
