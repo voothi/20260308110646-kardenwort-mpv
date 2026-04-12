@@ -10,6 +10,7 @@
 - [x] 2.3 Verify that single-click MMB still works by ensuring the export logic handles cases where `DW_ANCHOR_LINE` is `-1`.
 - [x] 2.4 Implement `is_inside_dw_selection` helper function in `scripts/lls_core.lua` for detecting clicks within the current Red range.
 - [x] 2.5 Update `make_mouse_handler` on `down` event to bypass cursor movement if clicking MMB over an existing selection.
+- [x] 2.6 Add `drum_osd:update()` to the `down` event branch in `make_mouse_handler` for immediate visual feedback.
 
 ## 3. Verification
 

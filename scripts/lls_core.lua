@@ -1627,6 +1627,10 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     FSM.DW_MOUSE_SCROLL_TIMER:kill()
                 end
                 FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+                
+                -- Force immediate update to show Red selection highlight on down
+                drum_osd:update()
+                if dw_osd then dw_osd:update() end
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false

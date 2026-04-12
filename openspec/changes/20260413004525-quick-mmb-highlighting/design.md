@@ -21,6 +21,7 @@ Current mouse interaction in the Drum Window uses `MBTN_LEFT` for selection (via
 - **Callback Integration**: The `on_up_callback` will be executed after the standard dragging teardown (removing key bindings, killing timers) but before the function returns.
 - **Export Logic reuse**: The existing export logic (currently in `cmd_dw_export_anki`) will be moved into a standalone function `dw_anki_export_selection` which is passed as the callback to the updated MMB handler.
 - **Selection Persistence (SCM Protection)**: To preserve the "SCM" commitment behavior, `make_mouse_handler` will include an "Inside Selection" check using a new helper function `is_inside_dw_selection`. If MMB `down` occurs inside an existing selection, the cursor/anchor will NOT be moved, allowing the existing range to be exported upon release.
+- **Immediate Visual Feedback**: `make_mouse_handler` will trigger `drum_osd:update()` on the `down` event to ensure the Red selection highlight appears immediately upon button press, matching the LMB behavior.
 - **Single-click clearing**: Maintain the logic where a single click (Anchor == Cursor) clears the anchor for LMB selection. For MMB, since the callback happens after this clearing, the export logic will correctly handle the single-word case (Anchor is -1) or the Commit case (Anchor matches previous state).
 
 ## Risks / Trade-offs
