@@ -30,3 +30,11 @@
 - [x] 5.2 Refactor the subtitle string generation (likely inside `draw_drum` or formatting loops) from a monolithic block insertion to a word-by-word builder.
 - [x] 5.3 As each word is concatenated for rendering, evaluate `calculate_highlight_stack`. If `stack == 1`, inject `{\\c&H` + `Options.anki_highlight_depth_1` + `&}` before the word. If `stack >= 2`, inject `depth_2`. If `stack >= 3`, inject `depth_3`. Reset to the default context color `{\\c&H[default]&}` after the highlighted string boundary finishes.
 - [x] 5.4 Ensure both `draw_dw` (Drum Window) and `draw_drum` (Timeline Drum Mode) utilize this enhanced text builder so highlights display accurately in both views.
+
+## 6. Periodic Synchronization
+
+- [x] 6.1 Add `anki_sync_period = 30` (or user-preferred `5`) to `Options` in `lls_core.lua`.
+- [x] 6.2 Refactor `load_anki_tsv(force)` to support force-reloading the dictionary from disk.
+- [x] 6.3 Use an atomic swap (local `new_highlights` table) inside `load_anki_tsv` to prevent state corruption during the async-like sync.
+- [x] 6.4 Initialize a `mp.add_periodic_timer` in the script's entry point that calls the force-sync and updates the OSD.
+- [x] 6.5 Update `mpv.conf` with the synchronization interval.

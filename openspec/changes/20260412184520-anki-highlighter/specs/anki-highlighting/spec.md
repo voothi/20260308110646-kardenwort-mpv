@@ -13,3 +13,10 @@ The application SHALL bind `h` (and `р` for RU layout) to toggle the visual re-
 #### Scenario: Toggling Global Highlighting
 - **WHEN** the user presses `h`
 - **THEN** the rendering engine swaps between evaluating the TSV terms globally across all timeline elements and locally strictly to the original export timestamp.
+
+### Requirement: Periodic Database Sync
+The application SHALL periodically re-synchronize the in-memory highlight dictionary with the state of the physical TSV file.
+
+#### Scenario: Real-time update from file edit
+- **WHEN** the user or an external process modifies the TSV database file
+- **THEN** within a configurable interval (5s), the player system reloads the file atomically and refreshes all active subtitle viewports (Drum and Timeline) to reflect the new state.

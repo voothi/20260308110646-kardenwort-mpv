@@ -8,6 +8,7 @@ Language learners use MPV to immersive themselves in target languages, but build
 - Overlay dynamically calculated colors onto the subtitle script based on the overlap depth of highlighted passages (e.g., compounding intensity if a Term is highlighted within a Quote).
 - Implement configurable context boundaries mapping directly to TSV headers to extract the whole sentence without capturing unrelated surrounding text.
 - Introduce an instantaneous toggle (`h` / `р` layout) to choose whether highlights are rendered globally throughout the video or locally at their exact creation timestamp.
+- Implement a periodic background synchronization (default 5s) to reflect manual TSV edits or external mining updates in real-time.
 - Add robust parsing layer to reload the TSV dictionary when the video is loaded, enabling seamless edit/restore capacity across sessions.
 
 ## Capabilities

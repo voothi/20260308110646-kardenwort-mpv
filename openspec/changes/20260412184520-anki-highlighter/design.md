@@ -28,6 +28,14 @@ A core capability of a specialized language acquisition video player is friction
 - *Choice*: `global` vs `local` highlight burning.
 - *Rationale*: For Local mapping, the system checks whether the current media timestamp strictly intersects the definition's captured `start_pos`. If Global, the string is globally processed across the whole video file's timeline.
 
+**Decision 4: Periodic Synchronization**
+- *Choice*: Implement a configurable periodic background poll (defaulting to every 5 seconds).
+- *Rationale*: Language learners often process flashcards in parallel or manual external TSV edits. Periodic syncing ensures the visual highlights in the player stay up-to-date with the database without restarting the player.
+
+**Decision 5: TSV Formatting**
+- *Choice*: Use literal tab characters instead of the `\t` escape sequence for header strings.
+- *Rationale*: Maximizes compatibility with standard spreadsheet software and simplifies raw TSV auditing.
+
 ## Risks / Trade-offs
 
 - **Risk: Extracted context might lose punctuation semantics at word truncations.** → Mitigation: Append robust `...` suffixes anytime the context exceeds `lls-anki_context_max_words`.
