@@ -208,6 +208,25 @@ local function parse_time(time_str)
     return 0
 end
 
+local function clean_text_srt(line)
+    line = line:gsub("^\xEF\xBB\xBF", "")
+    return line:gsub("\r", ""):gsub("<[^>]+>", "")
+end
+
+local function has_cyrillic(str)
+    if not str then return false end
+    return str:find("[\208\209]") ~= nil
+end
+
+local function build_word_list(text)
+    local words = {}
+    if not text then return words end
+    for w in text:gmatch("%S+") do
+        table.insert(words, (w))
+    end
+    return words
+end
+
 local function utf8_to_table(str)
     local t = {}
     for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
@@ -429,24 +448,7 @@ local function get_word_boundary(q_table, pos, direction)
     return new_pos
 end
 
-local function clean_text_srt(line)
-    line = line:gsub("^\xEF\xBB\xBF", "")
-    return line:gsub("\r", ""):gsub("<[^>]+>", "")
-end
 
-local function has_cyrillic(str)
-    if not str then return false end
-    return str:find("[\208\209]") ~= nil
-end
-
-local function build_word_list(text)
-    local words = {}
-    if not text then return words end
-    for w in text:gmatch("%S+") do
-        table.insert(words, w)
-    end
-    return words
-end
 
 local function extract_anki_context(full_line, selected_term)
     if not full_line or full_line == "" then return "" end
