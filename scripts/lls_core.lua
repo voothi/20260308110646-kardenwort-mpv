@@ -622,11 +622,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local function format_sub(text, is_active)
         if text == "" then return "" end
         if is_active then
-            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
+            return string.format("{\\1a&H%s&}{\\4a&H00&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
                 Options.drum_active_opacity, Options.drum_active_bold, Options.drum_active_color, 
                 font_size * Options.drum_active_size_mul, text)
         else
-            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
+            return string.format("{\\1a&H%s&}{\\4a&H00&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
                 Options.drum_context_opacity, Options.drum_context_bold, Options.drum_context_color, 
                 font_size * Options.drum_context_size_mul, text)
         end
@@ -1593,7 +1593,7 @@ local function draw_search_ui()
         end
     end
 
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s\n",
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
         box_x + padding_x, box_y + padding_y, font_size, text_color, display_query)
         
     -- Draw Results Dropdown
@@ -1651,7 +1651,7 @@ local function draw_search_ui()
                 end
             end
             
-            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
                 box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
@@ -1661,7 +1661,7 @@ local function draw_search_ui()
         
         ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&} No results found.\n",
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} No results found.\n",
             box_x + padding_x, results_y + padding_y, font_size * 0.8, "999999")
     end
     
@@ -1696,19 +1696,8 @@ local function move_search_cursor(direction, ctrl, shift)
 end
 
 local function manage_ui_border_override(enable)
-    if enable then
-        if not FSM.saved_osd_border_style then
-            FSM.saved_osd_border_style = mp.get_property("osd-border-style")
-            mp.set_property("osd-border-style", "outline-and-shadow")
-        end
-    else
-        if FSM.DRUM_WINDOW == "OFF" and not FSM.SEARCH_MODE then
-            if FSM.saved_osd_border_style then
-                mp.set_property("osd-border-style", FSM.saved_osd_border_style)
-                FSM.saved_osd_border_style = nil
-            end
-        end
-    end
+    -- [DEPRECATED] We now use per-element alpha management (\4a&HFF& for no box, \4a&H00& for box).
+    -- Keeping the function shell for compatibility but removing global style changes.
 end
 
 local function manage_search_bindings(enable)
