@@ -445,6 +445,7 @@ local function extract_anki_context(full_line, selected_term)
     if #words <= Options.anki_context_max_words then return full_line end
     
     local selected_words = build_word_list(selected_term)
+    if #selected_words == 0 then return full_line end
     local start_idx = -1
     for i = 1, #words - #selected_words + 1 do
         local match = true
@@ -1338,11 +1339,12 @@ local function cmd_dw_export_anki(tbl)
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = sub.start_time
+            time_pos = sub.start_time
             if cw ~= -1 then
-                local words = build_word_list(context_line)
-                term = words[cw] or context_line
+                local line_words = build_word_list(sub.text:gsub("\n", " "))
+                term = line_words[cw] or sub.text:gsub("\n", " ")
             else
-                term = context_line
+                term = sub.text:gsub("\n", " ")
             end
         end
 
@@ -2938,9 +2940,11 @@ mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
-        load_anki_tsv(true)
-        drum_osd:update()
-        if dw_osd then dw_osd:update() end
+        pcall(function()
+            load_anki_tsv(true)
+            drum_osd:update()
+            if dw_osd then dw_osd:update() end
+        end)
     end)
 end
 ---------------------------------------------------------------------------
