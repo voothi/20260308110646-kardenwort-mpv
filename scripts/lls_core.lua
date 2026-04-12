@@ -991,10 +991,16 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
+            local pre, mid, suf = w:match("^([^%w\128-\255]*)(.-)([^%w\128-\255]*)$")
+
             if h_color ~= base_color then
                 local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
                 local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state) or ""
-                table.insert(formatted_parts, string.format("%s{\\1c&H%s&}%s{\\1c&H%s&}%s", b_on, h_color, w, base_color, b_off))
+                if mid and mid ~= "" then
+                    table.insert(formatted_parts, string.format("%s%s{\\1c&H%s&}%s%s{\\1c&H%s&}%s", pre, b_on, h_color, mid, b_off, base_color, suf))
+                else
+                    table.insert(formatted_parts, w)
+                end
             else
                 table.insert(formatted_parts, w)
             end
@@ -1148,17 +1154,19 @@ local function draw_dw(subs, view_center, active_idx)
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 else
                     local sub_t = subs[i]
-                    local t_pos = sub_t and sub_t.start_time or 0
-                    local stack = calculate_highlight_stack(subs, i, j, t_pos)
+                    local stack = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
                     if stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
                     if h_color ~= color then
-                        local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
-                        local b_off = Options.anki_highlight_bold and "{\\b0}" or ""
-                        table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", b_on, h_color, w, color, b_off))
+                        local pre, mid, suf = w:match("^([^%w\128-\255]*)(.-)([^%w\128-\255]*)$")
+                        if mid and mid ~= "" then
+                            table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", pre, h_color, mid, color, suf))
+                        else
+                            table.insert(formatted_words, w)
+                        end
                     else
                         table.insert(formatted_words, w)
                     end
@@ -2811,8 +2819,12 @@ function cmd_dw_copy()
     
     if final_text ~= "" then
         final_text = final_text:gsub("{[^}]+}", "")
+        -- Clean capture: Remove trailing/leading punctuation
+        local pre, mid, suf = final_text:match("^([^%w\128-\255]*)(.-)([^%w\128-\255]*)$")
+        if mid and mid ~= "" then final_text = mid end
+        
         set_clipboard(final_text)
-        show_osd("DW Copied: " .. final_text:sub(1, 30) .. (#final_text > 30 and "..." or ""))
+        show_osd("DW Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
     end
 end
 
