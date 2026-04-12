@@ -97,7 +97,8 @@ local Options = {
     anki_highlight_depth_2 = "0066CC",
     anki_highlight_depth_3 = "003399",
     anki_global_highlight = false,
-    anki_sync_period = 30
+    anki_sync_period = 30,
+    anki_context_lines = 3
 }
 options.read_options(Options, "lls")
 
@@ -1324,7 +1325,7 @@ local function cmd_dw_export_anki(tbl)
             end
             term = table.concat(parts, " ")
             local ctx_parts = {}
-            for k = math.max(1, p1_l - 1), math.min(#subs, p2_l + 1) do
+            for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 table.insert(ctx_parts, subs[k].text:gsub("\n", " "))
             end
             context_line = table.concat(ctx_parts, " ")
@@ -1332,7 +1333,7 @@ local function cmd_dw_export_anki(tbl)
         elseif cl ~= -1 then
             local sub = subs[cl]
             local ctx_parts = {}
-            for k = math.max(1, cl - 1), math.min(#subs, cl + 1) do
+            for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
                 table.insert(ctx_parts, subs[k].text:gsub("\n", " "))
             end
             context_line = table.concat(ctx_parts, " ")

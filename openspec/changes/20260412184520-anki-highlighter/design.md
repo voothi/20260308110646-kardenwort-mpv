@@ -6,7 +6,7 @@ A core capability of a specialized language acquisition video player is friction
 
 **Goals:**
 - Provide a database-like mechanism (`.tsv`) to store and retrieve user-created highlights associated with the video.
-- Broaden context capturing by using a 3-line sliding window (previous, current, next) before applying truncation algorithms so user flashes are not unwieldy.
+- Broaden context capturing by using a configurable sliding window (`lls-anki_context_lines`, default 1) before applying truncation algorithms so user flashes are not unwieldy.
 - Visually indicate highlights through compounding depth-based shading rather than overlapping alpha boxes to guarantee clean ASS rendering.
 - Let users easily toggle between purely local (bounded to original timestamp) vs global (all instances) renderings of terms.
 

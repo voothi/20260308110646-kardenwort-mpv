@@ -1,6 +1,6 @@
 ## 1. Configuration & Input Setup
 
-- [x] 1.1 In `lls_core.lua`, add `Options` properties: `dw_export_key = "MBTN_MID"`, `anki_context_max_words = 20`, `anki_tsv_headers = "Term\\tContext"`, `anki_highlight_depth_1 = "00A5FF"`, `anki_highlight_depth_2 = "0066CC"`, `anki_highlight_depth_3 = "003399"`, `anki_global_highlight = true`.
+- [x] 1.1 In `lls_core.lua`, add `Options` properties: `dw_export_key = "MBTN_MID"`, `anki_context_max_words = 20`, `anki_context_lines = 1`, `anki_tsv_headers = "Term\\tContext"`, `anki_highlight_depth_1 = "00A5FF"`, `anki_highlight_depth_2 = "0066CC"`, `anki_highlight_depth_3 = "003399"`, `anki_global_highlight = true`.
 - [x] 1.2 In `lls_core.lua`, add to the `FSM` table: `ANKI_HIGHLIGHTS = {}` and `ANKI_DB_PATH = nil`.
 - [x] 1.3 In `input.conf`, map the `h` and `р` keys to a new script-binding named `toggle-anki-global`.
 - [x] 1.4 In `lls_core.lua`, implement `toggle_anki_global()` function that flips `Options.anki_global_highlight`, prints an OSD message showing the new state, and forces a subtitle redraw (`drum_osd:update()`). Register the keybinding.
