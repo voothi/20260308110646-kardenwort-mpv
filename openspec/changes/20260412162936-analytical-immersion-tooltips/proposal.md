@@ -6,7 +6,8 @@ Current translation tooltips in the Drum Window do not respect active selection 
 
 - **Manual Hint Dismissal**: In CLICK mode (manual peeking), clicking the Left Mouse Button (LMB) instantly hides any pinned tooltip.
 - **Selection-Aware Suppression**: In HOVER mode (auto-peeking), holding down the LMB (dragging) suppresses all tooltips across all lines.
-- **Symmetrical Linger Guard**: Suppression applies to both the start and end focus lines of an interaction. After LMB release, the tooltip stays suppressed for the line where the drag ended (or where the click occurred) until focus moves to a different subtitle line.
+- **Symmetrical Linger Guard**: Suppression applies to both the start and end focus lines of an interaction. After LMB release, the tooltip stays suppressed for the line where the drag ended (or where the click occurred).
+- **Persistent Selection Guard**: Any line within an active red-selection range (`DW_ANCHOR_LINE`) is automatically shielded from auto-hover tooltips, requiring a manual RMB to show hints.
 - **Interaction Recovery**: Manual activation (RMB) resets the suppression lock, allowing for immediate re-peeking if desired.
 
 ## Capabilities

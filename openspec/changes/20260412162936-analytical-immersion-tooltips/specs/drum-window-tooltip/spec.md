@@ -22,3 +22,10 @@ The system SHALL dismiss the tooltip instantly when the context changes or the u
 - **AND** the user releases the LMB
 - **THEN** the tooltip SHALL remain suppressed for the line where the interaction ended (Focus X)
 - **AND** the tooltip SHALL only resume display once the user moves the pointer focus to a different line Y
+
+#### Scenario: Selection Range Suppression
+- **WHEN** Hover Mode (`n`) is ENABLED
+- **AND** the user has a red-selection range active (from Line X to Line Y)
+- **AND** the user hovers over any line Z where X <= Z <= Y
+- **THEN** the translation tooltip SHALL NOT automatically pop up
+- **AND** the tooltip SHALL only appear if the user explicitly clicks the Right Mouse Button (RMB)

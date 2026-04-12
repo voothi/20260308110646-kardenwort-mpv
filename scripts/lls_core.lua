@@ -1088,7 +1088,17 @@ local function dw_tooltip_mouse_update()
         FSM.DW_TOOLTIP_LOCKED_LINE = -1
     end
 
-    if FSM.DW_TOOLTIP_MODE == "HOVER" or FSM.DW_TOOLTIP_HOLDING then
+    -- Persistent Range Suppression: If line is in a selection range, it requires manual RMB (similar to CLICK mode)
+    local in_selection = false
+    if line_idx and FSM.DW_ANCHOR_LINE ~= -1 then
+        local start_l = math.min(FSM.DW_CURSOR_LINE, FSM.DW_ANCHOR_LINE)
+        local end_l = math.max(FSM.DW_CURSOR_LINE, FSM.DW_ANCHOR_LINE)
+        if line_idx >= start_l and line_idx <= end_l then
+            in_selection = true
+        end
+    end
+
+    if (FSM.DW_TOOLTIP_MODE == "HOVER" and not in_selection) or FSM.DW_TOOLTIP_HOLDING then
         if line_idx then
             if FSM.DW_TOOLTIP_LINE ~= line_idx then
                 FSM.DW_TOOLTIP_LINE = line_idx
@@ -1103,7 +1113,7 @@ local function dw_tooltip_mouse_update()
             end
         end
     else
-        -- CLICK mode: check if we left the pinned line
+        -- CLICK mode or Selection Protected: check if we left the pinned line
         if FSM.DW_TOOLTIP_LINE ~= -1 then
             if line_idx ~= FSM.DW_TOOLTIP_LINE then
                 FSM.DW_TOOLTIP_LINE = -1
