@@ -405,28 +405,36 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
     -- Helper to get a word relative to current word_idx across segment boundaries
     local function get_relative_word(rel_offset)
-        local target_abs_idx = word_idx + rel_offset
-        if target_abs_idx >= 1 and target_abs_idx <= #words then
-            return words[target_abs_idx]
-        end
-
-        -- Look Ahead
-        if target_abs_idx > #words then
-            local next_sub = subs[sub_idx + 1]
-            if next_sub and (next_sub.start_time - subs[sub_idx].end_time < 0.5) then
-                local next_words = get_sub_words(next_sub)
-                local next_idx = target_abs_idx - #words
-                if next_idx <= #next_words then return next_words[next_idx] end
+        local curr_sub_idx = sub_idx
+        local current_words = get_sub_words(subs[curr_sub_idx])
+        local target_rel_idx = word_idx + rel_offset
+        
+        local safety = 0
+        while safety < 5 do -- Allow jumping up to 5 segments
+            safety = safety + 1
+            if target_rel_idx >= 1 and target_rel_idx <= #current_words then
+                return current_words[target_rel_idx]
             end
-        end
-
-        -- Look Behind
-        if target_abs_idx < 1 then
-            local prev_sub = subs[sub_idx - 1]
-            if prev_sub and (subs[sub_idx].start_time - prev_sub.end_time < 0.5) then
-                local prev_words = get_sub_words(prev_sub)
-                local prev_idx = #prev_words + target_abs_idx
-                if prev_idx >= 1 then return prev_words[prev_idx] end
+            
+            if target_rel_idx > #current_words then
+                local next_sub_idx = curr_sub_idx + 1
+                if subs[next_sub_idx] and (subs[next_sub_idx].start_time - subs[curr_sub_idx].end_time < 0.5) then
+                    target_rel_idx = target_rel_idx - #current_words
+                    curr_sub_idx = next_sub_idx
+                    current_words = get_sub_words(subs[curr_sub_idx])
+                else
+                    return nil
+                end
+            elseif target_rel_idx < 1 then
+                local prev_sub_idx = curr_sub_idx - 1
+                if subs[prev_sub_idx] and (subs[curr_sub_idx].start_time - subs[prev_sub_idx].end_time < 0.5) then
+                    local prev_words = get_sub_words(subs[prev_sub_idx])
+                    target_rel_idx = target_rel_idx + #prev_words
+                    curr_sub_idx = prev_sub_idx
+                    current_words = prev_words
+                else
+                    return nil
+                end
             end
         end
         return nil
@@ -440,47 +448,64 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
         if Options.anki_global_highlight or math.abs(time_pos - data.time) < Options.anki_local_fuzzy_window then
             local term_words = build_word_list(term_lower)
             if #term_words > 0 then
-                for start_offset, tw in ipairs(term_words) do
+                -- Check if target_lower exists in this highlighted term
+                local target_in_term = false
+                local term_offset = -1
+                for k, tw in ipairs(term_words) do
                     if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
-                        local sequence_match = true
+                        target_in_term = true
+                        term_offset = k
+                        break
+                    end
+                end
+
+                if target_in_term then
+                    local sequence_match = true
+                    
+                    -- Phase 1: If it's a specific short phrase (2-10 words), verify the local sequence
+                    if #term_words > 1 and #term_words <= 10 then
                         for k = 1, #term_words do
-                            local rw = get_relative_word(k - start_offset)
+                            local rw = get_relative_word(k - term_offset)
                             if not rw or utf8_to_lower(term_words[k]:gsub("[%p%s]", "")) ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
                                 sequence_match = false
                                 break
                             end
                         end
+                    end
+
+                    -- Phase 2: Verify against the original Sentence context (Anki data.context)
+                    if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
+                        local ctx_lower = utf8_to_lower(data.context)
+                        local has_neighbor = false
                         
-                        -- If sequence matches, finally check Context Strictness
-                        if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
-                            local ctx_lower = utf8_to_lower(data.context)
-                            local ctx_words = build_word_list(ctx_lower)
-                            if #term_words < #ctx_words and #words > #term_words then
-                                local has_neighbor = false
-                                local prev_w = get_relative_word(-start_offset)
-                                if prev_w then
-                                    local prev_word_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
-                                    if prev_word_clean ~= "" and ctx_lower:find(prev_word_clean, 1, true) then
-                                        has_neighbor = true
-                                    end
-                                end
-                                if not has_neighbor then
-                                    local next_w = get_relative_word(#term_words - start_offset + 1)
-                                    if next_w then
-                                        local next_word_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
-                                        if next_word_clean ~= "" and ctx_lower:find(next_word_clean, 1, true) then
-                                            has_neighbor = true
-                                        end
-                                    end
-                                end
-                                if not has_neighbor then sequence_match = false end
+                        -- Check word immediately before on screen
+                        local prev_w = get_relative_word(-1)
+                        if prev_w then
+                            local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
+                            if pw_clean ~= "" and ctx_lower:find(pw_clean, 1, true) then
+                                has_neighbor = true
                             end
                         end
-
-                        if sequence_match then
-                            match_found = true
-                            break
+                        -- Check word immediately after on screen
+                        if not has_neighbor then
+                            local next_w = get_relative_word(1)
+                            if next_w then
+                                local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
+                                if nw_clean ~= "" and ctx_lower:find(nw_clean, 1, true) then
+                                    has_neighbor = true
+                                end
+                            end
                         end
+                        
+                        -- If line has neighbors on screen but none match the context, it's a bleed (e.g. unrelated "Sie")
+                        if not has_neighbor and #words > 1 then
+                            sequence_match = false
+                        end
+                    end
+
+                    if sequence_match then
+                        match_found = true
+                        break
                     end
                 end
             end
