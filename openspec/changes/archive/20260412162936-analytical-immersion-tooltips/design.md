@@ -33,6 +33,7 @@ Update `make_mouse_handler` to set the suppression state on both `down` and `up`
 
 ### Secondary Suppression via MMB (Middle-Click)
 Implement `cmd_dw_tooltip_hide_mid` to trigger the suppression lock and clear the OSD without impacting the selection state.
+- **Hold Duration**: Supports persistent suppression for the entire duration while the wheel is held (via `FSM.DW_MOUSE_DRAGGING`).
 - **Rationale**: Provides a dedicated "suppression-only" trigger for users who want to clear hints without clicking words or changing focus.
 - **Refactoring**: Finalized the naming of primary handlers to `cmd_dw_mouse_select` and `cmd_dw_mouse_select_shift` for architectural clarity.
 
