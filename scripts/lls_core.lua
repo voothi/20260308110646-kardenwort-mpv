@@ -100,10 +100,10 @@ local Options = {
     anki_sync_period = 30,
     anki_context_lines = 3,
     anki_local_fuzzy_window = 10.0,
-    anki_highlight_opacity = "90", -- A bit more opaque for visibility
-    anki_highlight_depth_1 = "FFCC88", -- Light Amber
-    anki_highlight_depth_2 = "FFAA55", -- Medium Orange
-    anki_highlight_depth_3 = "FF8822"  -- Deep Rust
+    anki_highlight_opacity = "A0", -- Semi-transparent
+    anki_highlight_depth_1 = "00A5FF", -- Orange (ASS BBGGRR)
+    anki_highlight_depth_2 = "0080FF", -- Deep Orange
+    anki_highlight_depth_3 = "0055FF"  -- Red-Orange
 }
 options.read_options(Options, "lls")
 
@@ -996,9 +996,9 @@ local function draw_dw(subs, view_center, active_idx)
     local layout, total_height = dw_build_layout(subs, view_center)
     local ass = ""
     
-    -- Layer 0: Background Panel
-    local bg_alpha = Options.dw_bg_opacity
-    local bg_color = Options.dw_bg_color
+    -- Layer 0: Background Panel (Beige)
+    local bg_alpha = Options.dw_bg_opacity or "00"
+    local bg_color = Options.dw_bg_color or "FAF9F6"
     ass = ass .. string.format("{\\an5}{\\pos(960,540)}{\\bord0}{\\shad0}{\\1a&H%s&}{\\1c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
     
     -- Selection data
@@ -1007,11 +1007,8 @@ local function draw_dw(subs, view_center, active_idx)
     local has_selection = (al ~= -1 and aw ~= -1)
     local p1_l, p1_w, p2_l, p2_w
     if has_selection then
-        if al < cl or (al == cl and aw <= cw) then
-            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-        else
-            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
-        end
+        if al < cl or (al == cl and aw <= cw) then p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+        else p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw end
     end
 
     local bg_boxes = {}
@@ -1049,32 +1046,31 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif i == p1_l and i == p2_l then is_selected = (wi >= p1_w and wi <= p2_w)
                     elseif i == p1_l then is_selected = (wi >= p1_w)
                     elseif i == p2_l then is_selected = (wi <= p2_w) end
-                elseif i == cl and wi == cw then
-                    is_selected = true
+                elseif i == cl and wi == cw then is_selected = true end
+
+                -- Only highlight words longer than 2 characters to prevent particle pollution
+                local stack = 0
+                if #w > 2 then
+                    stack = calculate_highlight_stack(w, time_pos)
                 end
 
-                local stack = calculate_highlight_stack(w, time_pos)
                 if stack > 0 then
                     local h_color = DepthColors[math.min(3, stack)]
-                    -- Padding: x-2, word_w+4 for a softer look
                     local box = draw_ass_box(line_left + current_x - 2, line_y, word_w + 4, Options.dw_font_size * 1.1, h_color, Options.anki_highlight_opacity)
                     table.insert(bg_boxes, box)
                 end
 
-                if is_selected then
-                    table.insert(fg_text, string.format("{\\an7}{\\pos(%.1f,%.1f)}{\\bord0}{\\shad0}{\\c&H%s&}{\\fs%d}%s", 
-                        line_left + current_x, line_y, Options.dw_highlight_color, Options.dw_font_size, w))
-                else
-                    table.insert(fg_text, string.format("{\\an7}{\\pos(%.1f,%.1f)}{\\bord0}{\\shad0}{\\c&H%s&}{\\fs%d}%s", 
-                        line_left + current_x, line_y, base_color, Options.dw_font_size, w))
-                end
+                local draw_color = is_selected and Options.dw_highlight_color or base_color
+                local word_ass = string.format("{\\an7}{\\pos(%.1f,%.1f)}{\\bord0}{\\shad0}{\\c&H%s&}{\\fs%d}%s", 
+                    line_left + current_x, line_y, draw_color, Options.dw_font_size, w)
+                table.insert(fg_text, word_ass)
+
                 current_x = current_x + word_w + space_w
             end
         end
         y_cursor = y_cursor + entry.height + (Options.dw_font_size * Options.dw_sub_gap_mul)
     end
 
-    -- Join with NEWLINES (\n) to handle multiple \pos tags correctly
     return ass .. table.concat(bg_boxes, "\n") .. "\n" .. table.concat(fg_text, "\n")
 end
 
