@@ -1,3 +1,17 @@
+# Release Notes - v1.28.3 (Startup Fix)
+
+**Date**: 2026-04-12
+**Version**: v1.28.3
+**Request ZID**: 20260412135354
+
+## Bug Fixes
+
+### 🛠️ **Resolved Startup Navigation Latency**
+- **Eager Memory Loading**: Fixed an issue where navigation keys (`a`/`d`) were unresponsive immediately after starting a video. The script now eagerly loads subtitle data into memory as soon as a track is detected, regardless of whether a specialized mode (Drum/Window) is active.
+- **Improved Initializer**: Consolidated all track-loading logic into the core media state handler, ensuring consistent behavior from the very first frame of playback.
+
+---
+
 # Release Notes - v1.28.2 (Unified Smooth Navigation Repeat)
 
 **Date**: 2026-04-12

@@ -602,6 +602,14 @@ local function update_media_state()
     if Tracks.pri.path ~= old_pri_path then Tracks.pri.subs = {} end
     if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
 
+    -- Load subtitles for logic memory if necessary (always eager to support global navigation)
+    if Tracks.pri.path and #Tracks.pri.subs == 0 then
+        Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+    end
+    if Tracks.sec.path and #Tracks.sec.subs == 0 then
+        Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
+    end
+
     -- Determine State
     if Tracks.pri.id == 0 and Tracks.sec.id == 0 then
         FSM.MEDIA_STATE = "NO_SUBS"
@@ -610,9 +618,9 @@ local function update_media_state()
     elseif Tracks.pri.id == 0 then
         FSM.MEDIA_STATE = Tracks.sec.is_ass and "SINGLE_ASS" or "SINGLE_SRT"
     else
-        if Tracks.pri.is_ass and Tracks.sec.is_ass then
+        if Tracks.pri.is_ass and Tracks.sec.id ~= 0 and Tracks.sec.is_ass then
             FSM.MEDIA_STATE = "DUAL_ASS"
-        elseif not Tracks.pri.is_ass and not Tracks.sec.is_ass then
+        elseif not Tracks.pri.is_ass and (Tracks.sec.id == 0 or not Tracks.sec.is_ass) then
             FSM.MEDIA_STATE = "DUAL_SRT"
         else
             FSM.MEDIA_STATE = "DUAL_MIXED"
@@ -629,10 +637,6 @@ local function update_media_state()
             drum_osd.data = ""
             drum_osd:update()
             show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
-        else
-            -- Reload subtitles for Drum memory only if necessary
-            if Tracks.pri.path and #Tracks.pri.subs == 0 then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
-            if Tracks.sec.path and #Tracks.sec.subs == 0 then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
         end
     end
 end
@@ -2236,14 +2240,6 @@ function cmd_toggle_drum_window()
     if FSM.DRUM_WINDOW == "OFF" then
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
-        
-        -- Boot subs for memory if haven't already
-        if Tracks.pri.path and #Tracks.pri.subs == 0 then
-            Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
-        end
-        if Tracks.sec.path and #Tracks.sec.subs == 0 then
-            Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
-        end
         
         -- Snapshot and hide all subtitle overlays to prevent overlap
         FSM.DW_SAVED_SUB_VIS = mp.get_property_bool("sub-visibility", true)
