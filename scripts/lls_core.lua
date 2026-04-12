@@ -468,15 +468,28 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                         -- Phase 2: Context Match
                         if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
                             local ctx_lower = utf8_to_lower(data.context)
+                            local term_lower = utf8_to_lower(term_key)
                             local has_neighbor = false
+                            -- Check word immediately before on screen
                             local prev_w = get_relative_word(-1)
-                            if prev_w and ctx_lower:find(utf8_to_lower(prev_w:gsub("[%p%s]", "")), 1, true) then
-                                has_neighbor = true
+                            if prev_w then
+                                local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
+                                if pw_clean ~= "" then
+                                    if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
+                                        has_neighbor = true
+                                    end
+                                end
                             end
+                            -- Check word immediately after on screen
                             if not has_neighbor then
                                 local next_w = get_relative_word(1)
-                                if next_w and ctx_lower:find(utf8_to_lower(next_w:gsub("[%p%s]", "")), 1, true) then
-                                    has_neighbor = true
+                                if next_w then
+                                    local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
+                                    if nw_clean ~= "" then
+                                        if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
+                                            has_neighbor = true
+                                        end
+                                    end
                                 end
                             end
                             if not has_neighbor and #words > 1 then
