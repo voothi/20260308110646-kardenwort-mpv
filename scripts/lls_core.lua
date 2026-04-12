@@ -1161,6 +1161,12 @@ local function make_mouse_handler(is_shift)
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
+            
+            -- Lock suppression to the line where the interaction ended
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local line_idx, _ = dw_hit_test(osd_x, osd_y)
+            FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
+
             mp.remove_key_binding("dw-mouse-drag")
             if FSM.DW_MOUSE_SCROLL_TIMER then
                 FSM.DW_MOUSE_SCROLL_TIMER:kill()
