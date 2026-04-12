@@ -29,4 +29,6 @@
 - [x] 4.7 Refactor `draw_dw_tooltip` to use native OSD background boxes instead of manual `\p1` shapes.
 - [x] 4.8 Expose all internal tooltip and navigation keys to `mpv.conf` (script-opts) to allow user customization while maintaining programmatic "Temporary Overlay" logic.
 - [x] 4.9 Add "Ghost" shortcut documentation to `input.conf` to ensure all player capabilities are discoverable in one file.
-- [x] 4.10 Ensure Russian layout support (`т`) is provided for new toggles.
+- [x] 4.10 Decouple text alpha from background alpha and expose `dw_tooltip_text_opacity` for independent translucency control.
+- [x] 4.11 Ensure Russian layout support (`т`) is provided for new toggles.
+- [x] 4.12 Synchronize final geometry parameters (border, shadow) with mpv.conf globals.

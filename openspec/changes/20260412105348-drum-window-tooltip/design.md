@@ -23,7 +23,8 @@ Drum window mode currently lacks a feature to display secondary subtitles contex
 - **Complex Mouse Bindings:** `MBTN_RIGHT` will be registered as a `complex` keybinding to ensure reliable override of native MPV mouse behaviors and right-click menus.
 - **State Properties:** Introduce `FSM.DW_TOOLTIP_LINE` and `FSM.DW_TOOLTIP_MODE` ("CLICK" vs "HOVER") to track the tooltip lifecycle smoothly. Pinning on click vs pinning constantly on move.
 - **Fixed Wrapping Constraints:** The tooltip will use a fixed anchor layout on the right side `{\pos(1800, y)}{\an6}`, employing soft-wrapping tags (`\N`) where needed.
-- **Visual Unity:** Tooltip styling (font size, bolding, and background/text opacity) MUST be identical to the "context" style used in Drum Mode (Reel C mode).
+- **Visual Unity:** Tooltip styling (font size, bolding, and opacity) is fully synchronized with Drum Mode (Reel C mode).
+- **Decoupled Alpha Control:** The system provides independent parameters for text transparency (`dw_tooltip_text_opacity`) and background transparency (`dw_tooltip_bg_opacity`). This allows for opaque "pop" text over translucent backgrounds, or fully blended "context-style" tooltips as per user preference.
 - **Native Framing:** The system leverages mpv's native OSD background frame (`border-style=3`) rather than manual shapes to ensure perfect visual consistency with the player's overall theme.
 - **Architectural Key Management:** To prevent global shortcut pollution, internal Drum Window keys are managed as "Temporary Overlays" (forced bindings) and configured via `script-opts` in `mpv.conf`, while `input.conf` remains a documentation hub for these keys.
 
