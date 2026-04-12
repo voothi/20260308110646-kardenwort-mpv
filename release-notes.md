@@ -1,3 +1,19 @@
+# Release Notes - v1.26.36 (Visual Style Persistence)
+
+**Date**: 2026-04-12
+**Version**: v1.26.36
+**Request ZID**: 20260412080107
+
+## Highlights
+
+### 🛡️ **Visual Style Persistence & Isolation**
+- **Drum Mode C Fix**: Resolved a visual bug where the "Black Frame" (background box) around subtitles would disappear whenever the Search UI was active.
+- **Granular Styling**: Switched from global property mutations to per-element ASS styling using the `{\\4a&HFF&}` (shadow alpha) tag. This allows the Search UI and Drum Window to stay "light" and clean without polluting the native styling of the actual reading track.
+- **Safety Net Recovery**: Added an automatic recovery routine (`recover_native_osd_style`) that detects and reverts any "stuck" OSD properties left over from previous script crashes, ensuring your preferred visual theme is always respected.
+- **Enhanced Context**: Refined default Drum Mode behavior with support for increased context lines (3) for better phrasal awareness during immersion.
+
+---
+
 # Release Notes - v1.26.34 (Universal Navigation Reliability)
 
 **Date**: 2026-03-22
