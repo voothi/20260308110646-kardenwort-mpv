@@ -1508,6 +1508,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
+        {key = "т", name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
         
         -- Search Toggle
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
