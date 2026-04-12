@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
 ### Requirement: Compound Intensity Rendering
-The subtitle OSD formatting engine SHALL parse all active TSV highlight objects and apply depth-stacking colors to the rendered words. 
+The subtitle OSD formatting engine SHALL parse all active TSV highlight objects for the current context and apply depth-stacking BGR colors to the rendered words. 
 
 #### Scenario: Rendering an overlapping highlight
-- **WHEN** a specific word is part of multiple database entries (e.g., a word and a phrase containing it)
-- **THEN** it receives a progressively darker 'Rust' palette color (`depth_1` -> `depth_3`).
+- **WHEN** a subtitle sentence contains two highlighted words, but one of those words is also part of a larger, surrounding highlight quote
+- **THEN** that specific word receives a progressively darker 'Rust' palette color (`depth_1` -> `depth_3`) compared to the un-overlapped highlighted word.
 
 ### Requirement: Whole-Word Matching Filter
 The rendering engine SHALL use whole-word tokenization when calculating highlight depth to prevent accidental substring matches.

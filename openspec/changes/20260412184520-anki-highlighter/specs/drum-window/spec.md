@@ -5,7 +5,7 @@ The Drum Window FSM mode SHALL listen to `MBTN_MID` to initiate the Anki TSV row
 
 #### Scenario: Triggering Export via Mouse
 - **WHEN** the Drum Window mode is active and the user presses `MBTN_MID` over an active text selection
-- **THEN** the core export mechanism is triggered and any active tooltips for that line are suppressed to prevent visual overlap.
+- **THEN** the core export mechanism is triggered with the indices of the selection passed to the exporter, and any active tooltips for that line are suppressed to prevent visual overlap.
 
 ### Requirement: Contextual Range Expansion
 The Drum Window SHALL allow capturing context from a configurable number of surrounding lines (`anki_context_lines`) when mining.
