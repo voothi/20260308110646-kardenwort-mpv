@@ -682,24 +682,26 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     all_text = all_text .. next_text
 
     local bg_box = ""
-    if FSM.saved_osd_border_style == "background-box" then
+    if FSM.saved_osd_border_style then
         local max_w = 0
         for i = start_idx, end_idx do
             local w = dw_get_str_width(subs[i].text) * (font_size / math.max(1, Options.dw_font_size))
             if w > max_w then max_w = w end
         end
-        max_w = max_w + 60
+        max_w = max_w + 80
         local line_count = end_idx - start_idx + 1
-        local box_h = line_count * font_size * Options.drum_stack_multiplier + 20
+        local box_h = line_count * font_size * Options.drum_stack_multiplier + 30
         local rect_x = 960 - (max_w / 2)
+        -- Using &H3F& alpha for 75% opacity to match mpv config #C0000000
         if is_top then
-            bg_box = string.format("{\\pos(%d, %d)}{\\an7}{\\bord0}{\\shad0}{\\1c&H000000&}{\\1a&HC0&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-                rect_x, y_pixel - 10, max_w, max_w, box_h, box_h)
+            bg_box = string.format("{\\pos(%d, %d)}{\\an7}{\\bord0}{\\shad0}{\\1c&H000000&}{\\1a&H3F&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+                rect_x, y_pixel - 15, max_w, max_w, box_h, box_h)
         else
-            bg_box = string.format("{\\pos(%d, %d)}{\\an1}{\\bord0}{\\shad0}{\\1c&H000000&}{\\1a&HC0&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-                rect_x, y_pixel + 10, max_w, max_w, -box_h, -box_h)
+            bg_box = string.format("{\\pos(%d, %d)}{\\an1}{\\bord0}{\\shad0}{\\1c&H000000&}{\\1a&H3F&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+                rect_x, y_pixel + 15, max_w, max_w, -box_h, -box_h)
         end
     end
+
 
     if is_top then
         ass = ass .. bg_box .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, all_text)

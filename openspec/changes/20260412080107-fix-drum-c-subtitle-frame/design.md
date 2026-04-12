@@ -16,19 +16,20 @@ The project uses `osd-border-style=background-box` for a premium look. To preven
 
 ## Decisions
 
-### 1. Granular Background Box Control via ASS
-Instead of a global toggle, we will use the `\4a` (shadow alpha) ASS tag to control the visibility of the background box on a per-element basis.
+### 1. Robust Manual Frame for Drum Subtitles
+To handle the global style override during search, the Drum Mode renderer will implement a manual background box drawing when `FSM.saved_osd_border_style` is detected.
 
 **Rationale:**
-Since `osd-border-style=background-box` uses the shadow alpha for box opacity, we can hide the box by setting `{\\4a&HFF&}` (fully transparent) and show it by setting `{\\4a&H00&}` (opaque) or using the global default. This allows the Search UI to stay "light" (no extra boxes) while the Drum Subtitles stay "dark" (with their frame).
+Since global OSD properties cannot be set per-overlay, drawing a standard ASS rectangle (`{\\p1}`) behind the subtitles is the only way to maintain the "Black Frame" aesthetic while the search UI is active.
 
-### 2. Update OSD Renderers
-- **`draw_search_ui`**: Add `{\\4a&HFF&}` to all text lines.
-- **`draw_dw`**: Ensure `{\\4a&HFF&}` is used for main text blocks.
-- **`draw_drum`**: Explicitly set `{\\4a&H00&}` or similar to preserve the subtitle frame.
+### 2. Refined Parameters
+- **Check**: We will check `if FSM.saved_osd_border_style then` to ensure the box activates on any override.
+- **Alpha**: We will use `{\\1a&H3F&}` (which corresponds to ~75% opacity) to match the project's `#C0000000` styling.
+- **Width Heuristic**: Use `dw_get_str_width` to dynamically scale the box width to the subtitle content, with a generous safety margin (+80px).
 
-### 3. Simplify Global Style Logic
-The `manage_ui_border_override` function will be modified to NOT change the `osd-border-style`. This prevents flickering and global property drift.
+### 3. Maintain Global Logic
+We will keep the original `manage_ui_border_override` property toggling. This ensures that non-drum elements (Search, DW) remain clean and box-free without requiring per-tag alpha injection on every OSD event.
+
 
 
 ## Risks / Trade-offs
