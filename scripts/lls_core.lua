@@ -72,11 +72,14 @@ local Options = {
     font_scale_strength = 0.5,
 
     -- Drum Window Tooltip
-    dw_tooltip_font_size = 24,
+    dw_tooltip_font_size = 34,
     dw_tooltip_context_lines = 1,
-    dw_tooltip_bg_opacity = "77",
-    dw_tooltip_bg_color = "1A1A1A",
+    dw_tooltip_bg_opacity = "30",
+    dw_tooltip_bg_color = "000000",
     dw_tooltip_text_color = "FFFFFF",
+    dw_tooltip_bold = "0",
+    dw_tooltip_border_size = 1.5,
+    dw_tooltip_shadow_offset = 1.0,
     dw_tooltip_hover_key = "n"
 }
 options.read_options(Options, "lls")
@@ -857,9 +860,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bg_alpha = Options.dw_tooltip_bg_opacity
     local bg_color = Options.dw_tooltip_bg_color
     local text_color = Options.dw_tooltip_text_color
+    local bold = Options.dw_tooltip_bold or "0"
 
-    local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\c&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        osd_y, fs, text_color, bg_color, bg_alpha, text)
+    local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        osd_y, fs, bold, text_color, bg_alpha, bg_color, bg_alpha, text)
         
     return ass
 end

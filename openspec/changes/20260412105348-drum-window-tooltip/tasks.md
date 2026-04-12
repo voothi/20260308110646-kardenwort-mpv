@@ -25,3 +25,5 @@
 - [x] 4.3 In `manage_dw_bindings()`, add the hover mode toggle binding dynamically: `{key = Options.dw_tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover}`.
 - [x] 4.4 In `manage_dw_bindings(enable)`, when `enable` is false (closing window), forcefully set `FSM.DW_TOOLTIP_LINE = -1` and flush `dw_tooltip_osd` to ensure it disappears instantly when the window closes.
 - [x] 4.5 In `cmd_toggle_drum_window()`, ensure `Tracks.sec.subs` is loaded alongside `Tracks.pri.subs` on bootstrap.
+- [x] 4.6 Synchronize tooltip visual properties (`Options`) to match Drum Mode C (Size 34, Opacity 30).
+- [x] 4.7 Refactor `draw_dw_tooltip` to use native OSD background boxes instead of manual `\p1` shapes.
