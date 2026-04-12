@@ -92,7 +92,7 @@ local Options = {
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
     anki_context_max_words = 20,
-    anki_tsv_headers = "Term\tContext",
+    anki_tsv_headers = "Term	Context",
     anki_highlight_depth_1 = "00A5FF",
     anki_highlight_depth_2 = "0066CC",
     anki_highlight_depth_3 = "003399",
@@ -627,7 +627,7 @@ local function save_anki_tsv_row(term, context, time_pos)
     if not f then return end
 
     if not exists then
-        f:write(Options.anki_tsv_headers .. "\tTime\n")
+        f:write(Options.anki_tsv_headers .. "	Time\n")
     end
 
     f:write(string.format("%s\t%s\t%.3f\n", term, context, time_pos))
