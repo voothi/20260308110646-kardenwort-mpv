@@ -1,8 +1,33 @@
-# Release Notes - v1.28.6 (ReadEra Vocabulary Highlighting)
+# Release Notes - v1.28.8 (High-Recall & Adaptive Highlighting)
 
-**Date**: 2026-04-12
-**Version**: v1.28.6
-**Request ZID**: 20260412184520
+**Date**: 2026-04-13
+**Version**: v1.28.8
+**Request ZID**: 20260413003200
+
+## Highlights
+
+### 🎨 **Adaptive Punctuation & Visual Continuity**
+- **Logical Flow Balancing**: Highlights now intelligently distinguish between single vocabulary words and long-form phrases. 
+  - **Single Words**: Word boundaries remain "surgical" (colored word body, white periods/commas) for a professional dictionary look.
+  - **Phrases & Paragraphs**: Internal punctuation marks are now fully highlighted green to maintain visual flow and prevent "white holes" in long subtitle blocks.
+- **Priority Logic**: When a single-word card overlaps with a larger phrase match, the system automatically prioritizes **Continuity Mode** to ensure a seamless visual experience.
+
+### 📋 **Clean Capture Pipeline**
+- **Boundary Sanitization**: All exported clips (clipboard copy) now automatically strip leading and trailing punctuation/whitespace. This ensures your Anki database remains clean and cards are optimized for perfect dictionary matching.
+- **Internal Preservation**: Commas and periods inside a captured phrase are accurately preserved to maintain grammatical integrity.
+
+### 🛡️ **Hardened High-Recall Engine**
+- **Deep-Peek Verification**: The engine now recursively traverses up to 5 adjacent subtitle segments to verify phrase integrity, even if the text is heavily fragmented across single-word subtitles.
+- **Adaptive Temporal Windows**: Introduced a dynamic fuzzy window that scales by **+0.5s per word** for long paragraphs. This prevents massive news report highlights from expiring prematurely as you read.
+- **Inter-Segment Bridging**: Refined the 1.5s temporal threshold to bridge natural speaker pauses while preventing unrelated subtitle clusters from bleeding together.
+
+### ⚡ **Performance & Data Integrity**
+- **Lazy-Caching Logic**: Implemented high-performance caching for highlight terms. Word lists, cleaned keys, and context lookups are now pre-processed on first access.
+- **Result**: Zero UI latency or mouse "sticking" even when hundreds of paragraph-long terms are active simultaneously.
+
+---
+
+# Release Notes - v1.28.6 (ReadEra Vocabulary Highlighting)
 
 ## Highlights
 
