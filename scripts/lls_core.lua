@@ -441,30 +441,62 @@ end
 
 local function extract_anki_context(full_line, selected_term)
     if not full_line or full_line == "" then return "" end
-    local words = build_word_list(full_line)
-    if #words <= Options.anki_context_max_words then return full_line end
     
+    -- 1. Try to find the sentence boundary within the provided context lines
+    local term_lower = selected_term:lower()
+    local full_lower = full_line:lower()
+    local start_pos, end_pos = full_lower:find(term_lower, 1, true)
+    
+    local sentence = full_line
+    if start_pos then
+        -- Search backwards for punctuation
+        local pre = full_line:sub(1, start_pos - 1)
+        local sent_start = 1
+        -- Look for . ! ? followed by space (or beginning of string)
+        local b_idx = pre:reverse():find("[.!?]%s")
+        if b_idx then
+            sent_start = start_pos - b_idx + 1
+        end
+        
+        -- Search forwards for punctuation
+        local post = full_line:sub(end_pos + 1)
+        local sent_end = #full_line
+        local f_idx = post:find("[.!?]")
+        if f_idx then
+            sent_end = end_pos + f_idx
+        end
+        
+        sentence = full_line:sub(sent_start, sent_end):match("^%s*(.-)%s*$")
+    end
+
+    -- 2. Check word count of the extracted sentence
+    local words = build_word_list(sentence)
+    if #words <= Options.anki_context_max_words then return sentence end
+    
+    -- 3. If the sentence is still too long, fallback to word-based truncation around the term
     local selected_words = build_word_list(selected_term)
-    if #selected_words == 0 then return full_line end
-    local start_idx = -1
+    if #selected_words == 0 then return sentence:sub(1, 100) .. "..." end
+    
+    local target_idx = -1
     for i = 1, #words - #selected_words + 1 do
         local match = true
         for j = 1, #selected_words do
             if words[i + j - 1] ~= selected_words[j] then match = false break end
         end
-        if match then start_idx = i break end
+        if match then target_idx = i break end
     end
     
-    if start_idx == -1 then return full_line end
-    local end_idx = start_idx + #selected_words - 1
+    if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
+    
+    local last_idx = target_idx + #selected_words - 1
     local half_max = math.floor(Options.anki_context_max_words / 2)
-    local context_start = math.max(1, start_idx - half_max)
-    local context_end = math.min(#words, end_idx + half_max)
+    local context_start = math.max(1, target_idx - half_max)
+    local context_end = math.min(#words, last_idx + half_max)
+    
     local context_words = {}
-    if context_start > 1 then table.insert(context_words, "...") end
     for i = context_start, context_end do table.insert(context_words, words[i]) end
-    if context_end < #words then table.insert(context_words, "...") end
-    return table.concat(context_words, " ")
+    
+    return table.concat(context_words, " "):match("^%s*(.-)%s*$")
 end
 
 local function load_sub(path, is_ass)

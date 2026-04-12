@@ -38,5 +38,5 @@ A core capability of a specialized language acquisition video player is friction
 
 ## Risks / Trade-offs
 
-- **Risk: Extracted context might lose punctuation semantics at word truncations.** → Mitigation: Append robust `...` suffixes anytime the context exceeds `lls-anki_context_max_words`.
+- **Risk: Extracted context might lose punctuation semantics at word truncations.** → Mitigation: Prioritize sentence-boundary detection (searching for `.`, `!`, `?` around the term) before resorting to word-limit truncation. Append robust `...` suffixes only if the isolated sentence exceeds `lls-anki_context_max_words`.
 - **Risk: Global highlighting can be CPU heavy during active rendering.** → Mitigation: A caching layer or regex compilation step when loading the TSV into memory mapping will keep CPU overhead extremely low on each frame render, avoiding `O(N*M)` nested loops where possible, but since subtitle blocks are very small, the overhead should be negligible even globally.
