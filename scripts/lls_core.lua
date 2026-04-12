@@ -143,6 +143,7 @@ local FSM = {
     DW_TOOLTIP_LINE = -1,
     DW_TOOLTIP_MODE = "CLICK",
     DW_TOOLTIP_HOLDING = false,
+    DW_TOOLTIP_LOCKED_LINE = -1,
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil
@@ -1043,6 +1044,7 @@ local function cmd_dw_tooltip_pin(tbl)
         local line_idx, _ = dw_hit_test(osd_x, osd_y)
         
         if line_idx then
+            FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
             local ass = draw_dw_tooltip(subs, line_idx, osd_y)
             dw_tooltip_osd.data = ass
@@ -1071,6 +1073,21 @@ local function dw_tooltip_mouse_update()
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
     
+    -- Selection-Aware Suppression: Hide tooltip during dragging or if currently locked to this line
+    if FSM.DW_MOUSE_DRAGGING or (line_idx and line_idx == FSM.DW_TOOLTIP_LOCKED_LINE) then
+        if FSM.DW_TOOLTIP_LINE ~= -1 then
+            FSM.DW_TOOLTIP_LINE = -1
+            dw_tooltip_osd.data = ""
+            dw_tooltip_osd:update()
+        end
+        return
+    end
+    
+    -- Sticky Suppression Release: Release lock once focus moves to a different line or is lost
+    if not FSM.DW_MOUSE_DRAGGING and line_idx ~= FSM.DW_TOOLTIP_LOCKED_LINE then
+        FSM.DW_TOOLTIP_LOCKED_LINE = -1
+    end
+
     if FSM.DW_TOOLTIP_MODE == "HOVER" or FSM.DW_TOOLTIP_HOLDING then
         if line_idx then
             if FSM.DW_TOOLTIP_LINE ~= line_idx then
@@ -1102,8 +1119,16 @@ local function make_mouse_handler(is_shift)
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
 
+            -- Dismiss tooltip on click and lock suppression for the current focus
             local osd_x, osd_y = dw_get_mouse_osd()
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            
+            FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
+            if FSM.DW_TOOLTIP_LINE ~= -1 then
+                FSM.DW_TOOLTIP_LINE = -1
+                dw_tooltip_osd.data = ""
+                dw_tooltip_osd:update()
+            end
 
             if line_idx and word_idx then
                 if is_shift then
