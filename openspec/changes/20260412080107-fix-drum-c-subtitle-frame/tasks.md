@@ -5,6 +5,7 @@
 ## 2. Search UI ASS Isolation
 - [x] 2.1 Inject `{\\4a&HFF&}` into the Search UI text blocks in `draw_search_ui`.
 - [x] 2.2 Inject `{\\4a&HFF&}` into the Search UI vector polygon backgrounds (`{\p1}m...`) to prevent native boxes from surrounding them.
+- [x] 2.3 Replace global `{\\alpha}` tags with `{\\1a}` inside the empty search placeholder text to prevent the tag from accidentally unmasking the background box.
 
 ## 3. Drum Mode Subtitles
 - [x] 3.1 Revert brittle `bg_box` manual logic inside `draw_drum`, as removing the global override allows the subtitles to natively recover their background box.
