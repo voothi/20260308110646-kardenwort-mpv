@@ -96,7 +96,7 @@ local Options = {
     anki_highlight_depth_1 = "00A5FF",
     anki_highlight_depth_2 = "0066CC",
     anki_highlight_depth_3 = "003399",
-    anki_global_highlight = true
+    anki_global_highlight = false
 }
 options.read_options(Options, "lls")
 
