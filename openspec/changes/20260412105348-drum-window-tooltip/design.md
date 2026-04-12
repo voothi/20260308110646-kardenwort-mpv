@@ -30,5 +30,7 @@ Drum window mode currently lacks a feature to display secondary subtitles contex
   - *Mitigation:* Ensure hitting the same `line_idx` does not trigger redundant redraws or text collation. Only update `dw_tooltip_osd` when the target line actually changes.
 - **Hit Test Clamping UI Issue:** `dw_hit_test` currently snaps coordinates to the nearest word/line even if the cursor is in the empty margins. Thus, moving the pointer off the line horizontally won't change the `line_idx` and won't dismiss the tooltip. 
   - *Mitigation:* This actually acts as a feature, allowing users to hover the mouse *over the tooltip itself* without it dismissing. No change required; we let it snap.
+- **Scrolling Dynamics:** If the user scrolls using the keyboard (`a`, `d`) while the mouse remains stationary, the window grid shifts independently of the cursor.
+  - *Mitigation:* `dw_hit_test` recalculates natively based on the new layout. A stationary mouse over scrolling text inherently triggers a line departure, so the tooltip elegantly and correctly auto-dismisses (in click mode) or updates to the new line (in hover mode).
 - **ASS Tag Bleed:** Pulling raw `Tracks.sec.subs` text might inject unescaped ASS tags into the tooltip macro causing massive visual breakage.
   - *Mitigation:* We will enforce using `sub.raw_text` or stripping `{}` in `draw_dw_tooltip()` to guarantee payload safety.

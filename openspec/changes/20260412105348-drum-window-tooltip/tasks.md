@@ -6,10 +6,10 @@
 
 ## 2. Tooltip Rendering Logic
 
-- [ ] 2.1 Write function `draw_dw_tooltip(subs, target_line_idx, y_pixel)` below the `draw_dw` function. If `target_line_idx == -1` or `Tracks.sec.subs` is empty, return an empty string `""`.
+- [ ] 2.1 Write function `draw_dw_tooltip(subs, target_line_idx, osd_y)` below the `draw_dw` function. If `target_line_idx == -1` or `Tracks.sec.subs` is empty, return an empty string `""`.
 - [ ] 2.2 In `draw_dw_tooltip`, find the temporal center point: calculate the midpoint time between `subs[target_line_idx].start_time` and `subs[target_line_idx].end_time`. Use `get_center_index(Tracks.sec.subs, midpoint)` to find the matching secondary subtitle index.
 - [ ] 2.3 Gather the context lines from `Tracks.sec.subs`: Loop from `center_idx - Options.dw_tooltip_context_lines` to `center_idx + Options.dw_tooltip_context_lines`. Join their `raw_text` fields (to prevent ASS injection crashes) using `"\\N"`.
-- [ ] 2.4 Return the constructed ASS string. Anchor it to the right: `{\pos(1850, y_pixel)}{\an6}`. Use `{\1a&H...&}{\1c&H...&}{\p1}...{\p0}` for a background rectangle and properly style the text. Ensure text wraps correctly or enforce `\q1`.
+- [ ] 2.4 Return the constructed ASS string. Anchor it to the right: `{\pos(1850, osd_y)}{\an6}`. Use `{\1a&H...&}{\1c&H...&}{\p1}...{\p0}` for a background rectangle and properly style the text. Ensure text wraps correctly or enforce `\q1`.
 
 ## 3. Tooltip Interaction Handlers
 
