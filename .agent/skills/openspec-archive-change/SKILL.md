@@ -72,14 +72,14 @@ Archive a completed change in the experimental workflow.
    mkdir -p openspec/changes/archive
    ```
 
-   Generate target name using current date: `YYYY-MM-DD-<change-name>`
+   Generate target name: <target-name> - use <change-name> (if it already starts with a 14-digit ZID) OR <ZID>-<change-name> (if it does not, using current timestamp in YYYY-MM-DD format for the prefix).`
 
    **Check if target already exists:**
    - If yes: Fail with error, suggest renaming existing archive or using different date
    - If no: Move the change directory to archive
 
    ```bash
-   mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
+    mv openspec/changes/<name> openspec/changes/archive/<target-name>
    ```
 
 6. **Display summary**
@@ -98,7 +98,7 @@ Archive a completed change in the experimental workflow.
 
 **Change:** <change-name>
 **Schema:** <schema-name>
-**Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
+**Archived to:** openspec/changes/archive/<target-name>/
 **Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
 
 All artifacts complete. All tasks complete.
