@@ -1,8 +1,12 @@
-## 1. Core Logic Update
+## 1. Overlay Styling Updates
+- [ ] 1.1 Inject `{\\4a&HFF&}` into `draw_search_ui` text lines in `scripts/lls_core.lua` to hide background boxes in Search.
+- [ ] 1.2 Inject `{\\4a&HFF&}` into `draw_dw` (Drum Window) text blocks to ensure no extra boxes appear there.
+- [ ] 1.3 Ensure `draw_drum` (Drum Mode C) subtitles use `{\\4a&H00&}` or the default alpha to preserve the "dark frame".
 
-- [ ] 1.1 Add `FSM.DRUM == "OFF"` condition to `manage_ui_border_override` in `scripts/lls_core.lua`. This prevents the subtitle frame from being globally overridden when Drum Mode C is active.
+## 2. Global Style Cleanup
+- [ ] 2.1 Modify `manage_ui_border_override` to stop forcing `outline-and-shadow`. Since we now use per-element alpha management, the global override is no longer necessary.
 
-## 2. Verification
+## 3. Verification
+- [ ] 3.1 Verify Drum Mode C subtitles retain their dark frame while Search is active.
+- [ ] 3.2 Verify Search UI and Drum Window remain "light" and box-free.
 
-- [ ] 2.1 Verify that subtitles in Drum Mode C retain their dark frame when `Ctrl+f` (Search) is activated.
-- [ ] 2.2 Verify that the Search UI still functions correctly and its style restoration works as expected when Drum Mode is not active.

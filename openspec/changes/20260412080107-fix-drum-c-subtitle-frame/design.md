@@ -16,17 +16,20 @@ The project uses `osd-border-style=background-box` for a premium look. To preven
 
 ## Decisions
 
-### 1. Conditional Override in `manage_ui_border_override`
-We will modify the `manage_ui_border_override` function to check the `FSM.DRUM` state. 
+### 1. Granular Background Box Control via ASS
+Instead of a global toggle, we will use the `\4a` (shadow alpha) ASS tag to control the visibility of the background box on a per-element basis.
 
 **Rationale:**
-The override to `outline-and-shadow` is primarily to benefit the Search UI and Drum Window (W). However, if Drum Mode C is active, it relies on the OSD background box for subtitle readability. By skipping the override when `FSM.DRUM == "ON"`, we ensure the subtitles remain legible.
+Since `osd-border-style=background-box` uses the shadow alpha for box opacity, we can hide the box by setting `{\\4a&HFF&}` (fully transparent) and show it by setting `{\\4a&H00&}` (opaque) or using the global default. This allows the Search UI to stay "light" (no extra boxes) while the Drum Subtitles stay "dark" (with their frame).
 
-### 2. Priority Logic
-In the event of a conflict (e.g., both Search and Drum Mode are active), we prioritize the visibility and styling of the primary content (subtitles) over the perfection of the search interface.
+### 2. Update OSD Renderers
+- **`draw_search_ui`**: Add `{\\4a&HFF&}` to all text lines.
+- **`draw_dw`**: Ensure `{\\4a&HFF&}` is used for main text blocks.
+- **`draw_drum`**: Explicitly set `{\\4a&H00&}` or similar to preserve the subtitle frame.
 
-### 3. State Sequence Safety
-Since `manage_ui_border_override` handles its own idempotent state (`saved_osd_border_style`), skipping the override simply means the property isn't changed and the restoration logic is similarly skipped (as `saved_osd_border_style` remains `nil`).
+### 3. Simplify Global Style Logic
+The `manage_ui_border_override` function will be modified to NOT change the `osd-border-style`. This prevents flickering and global property drift.
+
 
 ## Risks / Trade-offs
 

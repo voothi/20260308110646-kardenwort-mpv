@@ -12,15 +12,16 @@ The root cause is the `manage_ui_border_override` function in `lls_core.lua`. To
 Restore the dark subtitle frame in Drum Mode C even when the Search UI is active, while maintaining the "minimally invasive" approach.
 
 ## What Changes
-- **Logic Refinement**: Modify `manage_ui_border_override` to take the current `DRUM` state into account.
-- **Priority Shift**: If Drum Mode is active, the global `osd-border-style` will not be overridden to `outline-and-shadow`. This ensures subtitles retain their frame at the cost of the Search UI showing its default background boxes (which is preferable to losing subtitles context).
-- **Transient State Handling**: Ensure that if Drum Mode is toggled or Search is closed/opened in various sequences, the style is correctly restored to the user's `mpv.conf` default.
+- **ASS Alpha Management**: Instead of globally forcing `osd-border-style`, we will use the `{\\4a&HFF&}` ASS tag (shadow alpha) to hide the background box for specific OSD elements (Search UI, Drum Window) while leaving it visible for others (Drum Mode subtitles).
+- **Cleanup**: Remove or disable the global `osd-border-style` override in `manage_ui_border_override`, and instead ensure all overlays explicitly define their background box transparency.
+- **Consistency**: This ensures that even when Search is active, the subtitle frame remains visible because we no longer change the global border style.
 
 ## Capabilities
 
 ### Modified Capabilities
-- `drum-mode-rendering`: The Drum Mode renderer will now have its visual style preserved during active search sessions by preventing global OSD style overrides when active.
+- `drum-mode-rendering`: Visual style persistence is achieved via per-event ASS styling rather than property toggling.
 
 ## Impact
-- **Affected Code**: `scripts/lls_core.lua` (specifically `manage_ui_border_override` and potentially the search toggle logic).
-- **Side Effects**: The Search UI may show additional background boxes around its text *only when Drum Mode is active*. Given the "minimally invasive" requirement, this is the safest trade-off compared to complex manual box rendering.
+- **Affected Code**: `scripts/lls_core.lua` (specifically `draw_search_ui`, `draw_dw`, `draw_drum`, and `manage_ui_border_override`).
+- **Benefits**: Zero visual artifacts in the Search UI (it remains "light") and 100% persistence for subtitle frames.
+
