@@ -1208,8 +1208,8 @@ local function make_mouse_handler(is_shift)
     end
 end
 
-local cmd_dw_mouse_handler = make_mouse_handler(false)
-local cmd_dw_mouse_shift_handler = make_mouse_handler(true)
+local cmd_dw_mouse_select = make_mouse_handler(false)
+local cmd_dw_mouse_select_shift = make_mouse_handler(true)
 
 local function cmd_dw_double_click()
     local subs = Tracks.pri.subs
@@ -1585,9 +1585,9 @@ local function manage_dw_bindings(enable)
         {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
-        {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_handler, complex = true},
+        {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
         {key = "MBTN_MID", name = "dw-tooltip-hide-mid", fn = cmd_dw_tooltip_hide_mid, complex = true},
-        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
+        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Tooltip Bindings
         {key = Options.dw_tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
