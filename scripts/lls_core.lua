@@ -1322,7 +1322,7 @@ local function cmd_dw_export_anki(tbl)
 
                 local parts = {}
                 for i = p1_l, p2_l do
-                    local text = subs[i].text:gsub("\n", " ")
+                    local text = (subs[i].text:gsub("\n", " "))
                     local words = build_word_list(text)
                     local s_w = (i == p1_l) and p1_w or 1
                     local e_w = (i == p2_l) and p2_w or #words
@@ -1334,7 +1334,7 @@ local function cmd_dw_export_anki(tbl)
                 
                 local ctx_parts = {}
                 for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
-                    if subs[k] then table.insert(ctx_parts, subs[k].text:gsub("\n", " ")) end
+                    if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
                 end
                 context_line = table.concat(ctx_parts, " ")
                 time_pos = subs[p1_l].start_time
@@ -1342,7 +1342,7 @@ local function cmd_dw_export_anki(tbl)
                 local sub = subs[cl]
                 local ctx_parts = {}
                 for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
-                    if subs[k] then table.insert(ctx_parts, subs[k].text:gsub("\n", " ")) end
+                    if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
                 end
                 context_line = table.concat(ctx_parts, " ")
                 time_pos = sub.start_time
