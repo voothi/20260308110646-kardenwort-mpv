@@ -1,3 +1,19 @@
+# Release Notes - v1.28.2 (Unified Smooth Navigation Repeat)
+
+**Date**: 2026-04-12
+**Version**: v1.28.2
+**Request ZID**: 20260412131945
+
+## Highlights
+
+### 🚄 **Unified Smooth Navigation Repeat**
+- **Hold-to-Scroll Engine**: Replaced native OS key-repeat with a custom, high-precision script-controlled engine for subtitle seeking (`a`/`d`).
+- **Universal Parity**: Navigation now behaves identically with smooth auto-scrolling in **Normal Mode**, **Drum Mode (`c`)**, and **Drum Window Mode (`w`)**.
+- **Configurable Dynamics**: Introduced `seek_hold_delay` (default: 500ms) and `seek_hold_rate` (default: 10/sec) options. Fine-tune your scrolling experience via `mpv.conf`.
+- **Zero-Stick Precision**: Leverages complex key bindings to ensure auto-scrolling stops instantly upon key release, eliminating "sticky" jumps during rapid navigation.
+
+---
+
 # Release Notes - v1.28.0 (Contextual Translation Tooltips)
 
 **Date**: 2026-04-12

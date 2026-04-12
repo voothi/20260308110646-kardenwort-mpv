@@ -83,7 +83,11 @@ local Options = {
     dw_tooltip_shadow_offset = 1.0,
     dw_tooltip_pin_key = "MBTN_RIGHT",
     dw_tooltip_hover_key = "n",
-    dw_tooltip_hover_key_ru = "т"
+    dw_tooltip_hover_key_ru = "т",
+
+    -- Navigation Repeat
+    seek_hold_delay = 0.5,
+    seek_hold_rate = 10
 }
 options.read_options(Options, "lls")
 
@@ -138,7 +142,10 @@ local FSM = {
     -- Tooltip State
     DW_TOOLTIP_LINE = -1,
     DW_TOOLTIP_MODE = "CLICK",
-    DW_TOOLTIP_HOLDING = false
+    DW_TOOLTIP_HOLDING = false,
+
+    -- Repeat Timer
+    SEEK_REPEAT_TIMER = nil
 }
 
 local Tracks = {
@@ -1464,6 +1471,32 @@ local function cmd_dw_seek_delta(dir)
     end
 end
 
+local function cmd_seek_with_repeat(dir, table)
+    if not table or not table.event then 
+        -- Fallback for simple calls if any
+        cmd_dw_seek_delta(dir)
+        return 
+    end
+
+    if table.event == "down" then
+        -- Initial press
+        cmd_dw_seek_delta(dir)
+        
+        -- Setup repeat timer
+        if FSM.SEEK_REPEAT_TIMER then FSM.SEEK_REPEAT_TIMER:kill() end
+        FSM.SEEK_REPEAT_TIMER = mp.add_timeout(Options.seek_hold_delay, function()
+            FSM.SEEK_REPEAT_TIMER = mp.add_periodic_timer(1.0 / Options.seek_hold_rate, function()
+                cmd_dw_seek_delta(dir)
+            end)
+        end)
+    elseif table.event == "up" then
+        if FSM.SEEK_REPEAT_TIMER then
+            FSM.SEEK_REPEAT_TIMER:kill()
+            FSM.SEEK_REPEAT_TIMER = nil
+        end
+    end
+end
+
 local function manage_dw_bindings(enable)
     local keys = {
         {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
@@ -1472,8 +1505,8 @@ local function manage_dw_bindings(enable)
         {key = "DOWN", name = "dw-line-down", fn = function() cmd_dw_line_move(1, false) end},
         {key = "Shift+UP", name = "dw-line-up-shift", fn = function() cmd_dw_line_move(-1, true) end},
         {key = "Shift+DOWN", name = "dw-line-down-shift", fn = function() cmd_dw_line_move(1, true) end},
-        {key = "a", name = "dw-seek-back", fn = function() cmd_dw_seek_delta(-1) end},
-        {key = "d", name = "dw-seek-fwd", fn = function() cmd_dw_seek_delta(1) end},
+        {key = "a", name = "dw-seek-back", fn = function(t) cmd_seek_with_repeat(-1, t) end, complex = true},
+        {key = "d", name = "dw-seek-fwd", fn = function(t) cmd_seek_with_repeat(1, t) end, complex = true},
         {key = "ENTER", name = "dw-enter", fn = function() cmd_dw_seek_selected() end},
         {key = "KP_ENTER", name = "dw-enter-kp", fn = function() cmd_dw_seek_selected() end},
         {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
@@ -1508,8 +1541,8 @@ local function manage_dw_bindings(enable)
         {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
         {key = "Ctrl+ВВЕРХ", name = "dw-scroll-up-ctrl-ru", fn = function() cmd_dw_scroll(-1) end},
         {key = "Ctrl+ВНИЗ", name = "dw-scroll-down-ctrl-ru", fn = function() cmd_dw_scroll(1) end},
-        {key = "ф", name = "dw-seek-back-ru", fn = function() cmd_dw_seek_delta(-1) end},
-        {key = "в", name = "dw-seek-fwd-ru", fn = function() cmd_dw_seek_delta(1) end},
+        {key = "ф", name = "dw-seek-back-ru", fn = function(t) cmd_seek_with_repeat(-1, t) end, complex = true},
+        {key = "в", name = "dw-seek-fwd-ru", fn = function(t) cmd_seek_with_repeat(1, t) end, complex = true},
         {key = "ENTER", name = "dw-enter-ru", fn = function() cmd_dw_seek_selected() end},
         {key = "Ctrl+ЛЕВЫЙ", name = "dw-word-left-ctrl-ru", fn = function() cmd_dw_word_move(-5, false) end},
         {key = "Ctrl+ПРАВЫЙ", name = "dw-word-right-ctrl-ru", fn = function() cmd_dw_word_move(5, false) end},
@@ -1533,7 +1566,6 @@ local function manage_dw_bindings(enable)
                 local settings = nil
                 if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
                    or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-                   or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" 
                    or k.key == "ENTER" or k.key == "KP_ENTER" then
                     settings = "repeatable"
                 end
@@ -2618,8 +2650,8 @@ mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
-mp.add_key_binding(nil, "lls-seek_prev", function() cmd_dw_seek_delta(-1) end)
-mp.add_key_binding(nil, "lls-seek_next", function() cmd_dw_seek_delta(1) end)
+mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
+mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 ---------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
 ---------------------------------------------------------------------------
