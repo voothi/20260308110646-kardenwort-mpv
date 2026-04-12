@@ -452,8 +452,8 @@ local function extract_anki_context(full_line, selected_term)
         -- Search backwards for punctuation
         local pre = full_line:sub(1, start_pos - 1)
         local sent_start = 1
-        -- Look for . ! ? followed by space (or beginning of string)
-        local b_idx = pre:reverse():find("[.!?]%s")
+        -- Look for space followed by . ! ? in reversed string (meaning . ! ? followed by space in original)
+        local b_idx = pre:reverse():find("%s+[.!?]")
         if b_idx then
             sent_start = start_pos - b_idx + 1
         end
@@ -461,12 +461,13 @@ local function extract_anki_context(full_line, selected_term)
         -- Search forwards for punctuation
         local post = full_line:sub(end_pos + 1)
         local sent_end = #full_line
+        -- Look for . ! ? followed by space or end of string
         local f_idx = post:find("[.!?]")
         if f_idx then
             sent_end = end_pos + f_idx
         end
         
-        sentence = full_line:sub(sent_start, sent_end):match("^%s*(.-)%s*$")
+        sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
     end
 
     -- 2. Check word count of the extracted sentence
