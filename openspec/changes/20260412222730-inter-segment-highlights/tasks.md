@@ -12,6 +12,6 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Verify that "falsch sind" highlights correctly in the user's news broadcast
-- [ ] 3.2 Verify that "Antwortbogen." (isolated) still highlights correctly
-- [ ] 3.3 Ensure no regressions in "Sie" (precision check)
+- [x] 3.1 Verify that "falsch sind" highlights correctly in the user's news broadcast
+- [x] 3.2 Verify that "Antwortbogen." (isolated) still highlights correctly
+- [x] 3.3 Ensure no regressions in "Sie" (precision check)
