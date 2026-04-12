@@ -80,7 +80,9 @@ local Options = {
     dw_tooltip_bold = "0",
     dw_tooltip_border_size = 1.5,
     dw_tooltip_shadow_offset = 1.0,
-    dw_tooltip_hover_key = "n"
+    dw_tooltip_pin_key = "MBTN_RIGHT",
+    dw_tooltip_hover_key = "n",
+    dw_tooltip_hover_key_ru = "т"
 }
 options.read_options(Options, "lls")
 
@@ -1485,7 +1487,7 @@ local function manage_dw_bindings(enable)
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Tooltip Bindings
-        {key = "MBTN_RIGHT", name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
+        {key = Options.dw_tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = Options.dw_tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
@@ -1508,7 +1510,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
-        {key = "т", name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
+        {key = Options.dw_tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
         
         -- Search Toggle
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
