@@ -991,8 +991,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
-            local pre = w:match("^[^%w\128-\255]*")
-            local suf = w:match("[^%w\128-\255]*$")
+            local pre = w:match("^[%p%s]*")
+            local suf = w:match("[%p%s]*$")
             local mid = ""
             if #pre < #w then
                 mid = w:sub(#pre + 1, #w - #suf)
@@ -1166,8 +1166,8 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
                     if h_color ~= color then
-                        local pre = w:match("^[^%w\128-\255]*")
-                        local suf = w:match("[^%w\128-\255]*$")
+                        local pre = w:match("^[%p%s]*")
+                        local suf = w:match("[%p%s]*$")
                         local mid = ""
                         if #pre < #w then
                             mid = w:sub(#pre + 1, #w - #suf)
@@ -2829,9 +2829,9 @@ function cmd_dw_copy()
     
     if final_text ~= "" then
         final_text = final_text:gsub("{[^}]+}", "")
-        -- Clean capture: Remove trailing/leading punctuation
-        local pre = final_text:match("^[^%w\128-\255]*")
-        local suf = final_text:match("[^%w\128-\255]*$")
+        -- Clean capture: Remove trailing/leading punctuation/spaces
+        local pre = final_text:match("^[%p%s]*")
+        local suf = final_text:match("[%p%s]*$")
         if #pre < #final_text then
             final_text = final_text:sub(#pre + 1, #final_text - #suf)
         end
