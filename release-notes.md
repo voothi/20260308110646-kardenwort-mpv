@@ -1,3 +1,28 @@
+# Release Notes - v1.28.0 (Contextual Translation Tooltips)
+
+**Date**: 2026-04-12
+**Version**: v1.28.0
+**Request ZID**: 20260412105348
+
+## Highlights
+
+### 🔦 **Contextual Translation Tooltips**
+- **On-Demand Peeking**: Press **MBTN_RIGHT** (Right Click) in the Drum Window (`w`) to instantly see a secondary subtitle translation in a translucent balloon. 
+- **Hold to Peek (Scanned Hover)**: Innovative interaction—hold the Right Mouse button and move across subtitles to "scan" translations fluently. Releasing the button preserves the pin on your last focus.
+- **Dedicated Hover Mode**: Toggle permanent hover-based translations using **`n`** (or Russian **`т`**) for hands-free reading.
+
+### 🎨 **Visual Unity & Customization**
+- **Style Synchronization**: Tooltips are visually unified with the Drum Mode (Reel C) aesthetic, featuring matched font sizes (32) and translucent background boxes.
+- **Independent Alpha Control**: Introduced separate controls for text and background opacity (`dw_tooltip_text_opacity` vs `dw_tooltip_bg_opacity`), allowing for perfectly balanced legibility.
+- **Native OSD Framing**: Leverages mpv's native Style 3 background boxes for a premium, integrated look that respects global player themes.
+
+### ⚙️ **Architectural Shortcut Management**
+- **Temporary Key Overlays**: Implemented a "Hijack & Release" system where tooltip keys (RMB, `n`, etc.) are only active while the Drum Window is open, preventing global shortcut pollution.
+- **Script-Opt Exposure**: Every aspect of the tooltip—shortcuts, colors, fonts, and behavior—is now fully configurable via `mpv.conf` without editing script files.
+- **Enhanced Discoverability**: Integrated internal shortcut documentation directly into `input.conf` for a single, comprehensive reference hub.
+
+---
+
 # Release Notes - v1.26.36 (Visual Style Persistence)
 
 **Date**: 2026-04-12
