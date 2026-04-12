@@ -1,3 +1,29 @@
+# Release Notes - v1.28.6 (ReadEra Vocabulary Highlighting)
+
+**Date**: 2026-04-12
+**Version**: v1.28.6
+**Request ZID**: 20260412184520
+
+## Highlights
+
+### 🎨 **ReadEra-Style Premium Highlighting**
+- **Absolute Coordinate Rendering**: Vocabulary highlights now use a high-performance rendering engine that anchors to the physical top-left of the screen (`\an7\pos(0,0)`). This ensures every highlight box and word is placed with sub-pixel precision, eliminating visual desync.
+- **Translucent Background Boxes**: Replaced invasive text-color gradients with semi-transparent rectangular "marker" underlays. This preserves the original subtitle colors while providing clear, stackable visual depth.
+- **Amber/Gold Palette**: Implemented a sophisticated, depth-aware palette using correct ASS `BBGGRR` byte ordering. Highlights now shift from Light Amber (Depth 1) to Deep Rust (Depth 3) as multiple terms overlap.
+- **Human-Centric Padding**: Every highlight box features soft horizontal padding (+4px) and vertical alignment offsets to mimic the look of a professional e-reader selection.
+
+### 📋 **Intelligent Anki Mining Workflow**
+- **Sentence-Aware Context**: The mining engine now prioritizes capturing grammatically complete sentences. It scans for `.`, `!`, and `?` boundaries within your context window before applying word-count truncation.
+- **Automated TSV Synchronization**: Highlights are now managed via a localized `.tsv` database. The script reloads this file automatically every 30 seconds (or on demand), allowing for external cards to be edited without restarting the player.
+- **Atomic Database Handling**: Uses protected `pcall` logic and atomic memory swaps during syncs to ensure the UI remains responsive and the database stays protected against corruption.
+
+### 🛡️ **Hardened Matching & Stability**
+- **Strict Whole-Word Filtering**: The highlight engine now uses tokenized word matching. Highlighting "auf" will no longer accidentally trigger on substrings like "Aufgaben," ensuring your vocabulary focus stays accurate.
+- **Temporal Fuzzy Windowing**: Introduced a 10s "Fuzzy Window" that allows highlights to correctly stack and track even when a phrase spans across multiple subtitle file boundaries.
+- **Particle Pollution Guard**: Implemented a 3-character minimum filter for automatic highlights, preventing common particles (like "de", "il") from cluttering your reading view while preserving high-value vocabulary.
+
+---
+
 # Release Notes - v1.28.4 (Selection-Aware Tooltip Suppression)
 
 **Date**: 2026-04-12
