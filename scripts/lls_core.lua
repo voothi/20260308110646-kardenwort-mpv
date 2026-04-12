@@ -137,7 +137,8 @@ local FSM = {
 
     -- Tooltip State
     DW_TOOLTIP_LINE = -1,
-    DW_TOOLTIP_MODE = "CLICK"
+    DW_TOOLTIP_MODE = "CLICK",
+    DW_TOOLTIP_HOLDING = false
 }
 
 local Tracks = {
@@ -1020,19 +1021,30 @@ local function dw_mouse_auto_scroll()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
-    if tbl.event ~= "down" then return end
     if FSM.DRUM_WINDOW == "OFF" then return end
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
     
-    local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _ = dw_hit_test(osd_x, osd_y)
-    
-    if line_idx then
-        FSM.DW_TOOLTIP_LINE = line_idx
-        local ass = draw_dw_tooltip(subs, line_idx, osd_y)
-        dw_tooltip_osd.data = ass
-        dw_tooltip_osd:update()
+    if tbl.event == "down" then
+        FSM.DW_TOOLTIP_HOLDING = true
+        local subs = Tracks.pri.subs
+        if not subs or #subs == 0 then return end
+        
+        local osd_x, osd_y = dw_get_mouse_osd()
+        local line_idx, _ = dw_hit_test(osd_x, osd_y)
+        
+        if line_idx then
+            FSM.DW_TOOLTIP_LINE = line_idx
+            local ass = draw_dw_tooltip(subs, line_idx, osd_y)
+            dw_tooltip_osd.data = ass
+            dw_tooltip_osd:update()
+        end
+    elseif tbl.event == "up" then
+        FSM.DW_TOOLTIP_HOLDING = false
+        -- If we were in click mode, clear on release
+        if FSM.DW_TOOLTIP_MODE == "CLICK" then
+            FSM.DW_TOOLTIP_LINE = -1
+            dw_tooltip_osd.data = ""
+            dw_tooltip_osd:update()
+        end
     end
 end
 
@@ -1054,7 +1066,7 @@ local function dw_tooltip_mouse_update()
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
     
-    if FSM.DW_TOOLTIP_MODE == "HOVER" then
+    if FSM.DW_TOOLTIP_MODE == "HOVER" or FSM.DW_TOOLTIP_HOLDING then
         if line_idx then
             if FSM.DW_TOOLTIP_LINE ~= line_idx then
                 FSM.DW_TOOLTIP_LINE = line_idx

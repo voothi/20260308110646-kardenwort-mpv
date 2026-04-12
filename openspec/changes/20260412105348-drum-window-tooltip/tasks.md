@@ -32,3 +32,4 @@
 - [x] 4.10 Decouple text alpha from background alpha and expose `dw_tooltip_text_opacity` for independent translucency control.
 - [x] 4.11 Ensure Russian layout support (`т`) is provided for new toggles.
 - [x] 4.12 Synchronize final geometry parameters (border, shadow) with mpv.conf globals.
+- [x] 4.13 Implement "Hold to Peek" behavior: track button state and enable hover-scan during RMB hold.
