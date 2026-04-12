@@ -445,8 +445,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     
     local stack = 0
     local has_phrase = false
-    for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
+    for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
         local match_found = false
+        local term_key = data.term
         
         -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
         if not data.__term_words then
@@ -772,7 +773,7 @@ local function load_anki_tsv(force)
                 local term = fields[1]
                 local context = fields[2]
                 local time_val = tonumber(fields[3]) or 0
-                new_highlights[term] = { context = context, time = time_val }
+                table.insert(new_highlights, { term = term, context = context, time = time_val })
             end
         end
     end
@@ -799,7 +800,7 @@ local function save_anki_tsv_row(term, context, time_pos)
     f:write(string.format("%s\t%s\t%.3f\n", term, context, time_pos))
     f:close()
 
-    FSM.ANKI_HIGHLIGHTS[term] = { context = context, time = time_pos }
+    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos })
 end
 
 local function show_osd(msg, dur)
