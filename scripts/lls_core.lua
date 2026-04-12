@@ -87,7 +87,16 @@ local Options = {
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
-    seek_hold_rate = 10
+    seek_hold_rate = 10,
+
+    -- Anki Highlighter
+    dw_export_key = "MBTN_MID",
+    anki_context_max_words = 20,
+    anki_tsv_headers = "Term\tContext",
+    anki_highlight_depth_1 = "00A5FF",
+    anki_highlight_depth_2 = "0066CC",
+    anki_highlight_depth_3 = "003399",
+    anki_global_highlight = true
 }
 options.read_options(Options, "lls")
 
@@ -146,7 +155,11 @@ local FSM = {
     DW_TOOLTIP_LOCKED_LINE = -1,
 
     -- Repeat Timer
-    SEEK_REPEAT_TIMER = nil
+    SEEK_REPEAT_TIMER = nil,
+
+    -- Anki Highlighter State
+    ANKI_HIGHLIGHTS = {},
+    ANKI_DB_PATH = nil
 }
 
 local Tracks = {
@@ -351,6 +364,31 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
+local function calculate_highlight_stack(target_word, time_pos)
+    if not target_word or target_word == "" then return 0 end
+    local stack = 0
+    local target_lower = utf8_to_lower(target_word:gsub("[%p%s]", ""))
+    if target_lower == "" then return 0 end
+
+    for term, data in pairs(FSM.ANKI_HIGHLIGHTS) do
+        local term_lower = utf8_to_lower(term:gsub("[%p%s]", ""))
+        local match = false
+        if Options.anki_global_highlight then
+            if term_lower:find(target_lower, 1, true) or target_lower:find(term_lower, 1, true) then
+                match = true
+            end
+        else
+            if math.abs(time_pos - data.time) < 2.0 then
+                if term_lower:find(target_lower, 1, true) or target_lower:find(term_lower, 1, true) then
+                    match = true
+                end
+            end
+        end
+        if match then stack = stack + 1 end
+    end
+    return stack
+end
+
 local function get_word_boundary(q_table, pos, direction)
     -- direction: -1 (left), 1 (right)
     if #q_table == 0 then return 0 end
@@ -397,6 +435,33 @@ local function build_word_list(text)
         table.insert(words, w)
     end
     return words
+end
+
+local function extract_anki_context(full_line, selected_term)
+    if not full_line or full_line == "" then return "" end
+    local words = build_word_list(full_line)
+    if #words <= Options.anki_context_max_words then return full_line end
+    
+    local selected_words = build_word_list(selected_term)
+    local start_idx = -1
+    for i = 1, #words - #selected_words + 1 do
+        local match = true
+        for j = 1, #selected_words do
+            if words[i + j - 1] ~= selected_words[j] then match = false break end
+        end
+        if match then start_idx = i break end
+    end
+    
+    if start_idx == -1 then return full_line end
+    local end_idx = start_idx + #selected_words - 1
+    local half_max = math.floor(Options.anki_context_max_words / 2)
+    local context_start = math.max(1, start_idx - half_max)
+    local context_end = math.min(#words, end_idx + half_max)
+    local context_words = {}
+    if context_start > 1 then table.insert(context_words, "...") end
+    for i = context_start, context_end do table.insert(context_words, words[i]) end
+    if context_end < #words then table.insert(context_words, "...") end
+    return table.concat(context_words, " ")
 end
 
 local function load_sub(path, is_ass)
@@ -504,6 +569,68 @@ local function load_sub(path, is_ass)
     return subs
 end
 
+local function get_tsv_path()
+    local path = mp.get_property("path")
+    if not path then return nil end
+    local base = path:match("(.+)%.[^%.]+$")
+    if not base then base = path end
+    return base .. ".tsv"
+end
+
+local function load_anki_tsv()
+    local tsv_path = get_tsv_path()
+    if not tsv_path then return end
+    
+    if FSM.ANKI_DB_PATH ~= tsv_path then
+        FSM.ANKI_DB_PATH = tsv_path
+        FSM.ANKI_HIGHLIGHTS = {}
+    else
+        if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return end
+    end
+
+    local f = io.open(tsv_path, "r")
+    if not f then return end
+
+    local line_count = 0
+    for line in f:lines() do
+        line_count = line_count + 1
+        if line_count > 1 then
+            local fields = {}
+            for field in (line .. "\t"):gmatch("([^\t]*)\t") do
+                table.insert(fields, field)
+            end
+            if #fields >= 2 then
+                local term = fields[1]
+                local context = fields[2]
+                local time_val = tonumber(fields[3]) or 0
+                FSM.ANKI_HIGHLIGHTS[term] = { context = context, time = time_val }
+            end
+        end
+    end
+    f:close()
+end
+
+local function save_anki_tsv_row(term, context, time_pos)
+    local tsv_path = get_tsv_path()
+    if not tsv_path then return end
+
+    local f_check = io.open(tsv_path, "r")
+    local exists = false
+    if f_check then exists = true f_check:close() end
+
+    local f = io.open(tsv_path, "a")
+    if not f then return end
+
+    if not exists then
+        f:write(Options.anki_tsv_headers .. "\tTime\n")
+    end
+
+    f:write(string.format("%s\t%s\t%.3f\n", term, context, time_pos))
+    f:close()
+
+    FSM.ANKI_HIGHLIGHTS[term] = { context = context, time = time_pos }
+end
+
 local function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
@@ -559,6 +686,7 @@ local function update_font_scale()
 end
 
 local function update_media_state()
+    load_anki_tsv()
     Tracks.pri.id = mp.get_property_number("sid", 0)
     Tracks.sec.id = mp.get_property_number("secondary-sid", 0)
     
@@ -677,39 +805,53 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
     
-    local function format_sub(text, is_active)
+    local function format_sub(text, is_active, t_pos)
         if text == "" then return "" end
-        if is_active then
-            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-                Options.drum_active_opacity, Options.drum_active_bold, Options.drum_active_color, 
-                font_size * Options.drum_active_size_mul, text)
-        else
-            return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-                Options.drum_context_opacity, Options.drum_context_bold, Options.drum_context_color, 
-                font_size * Options.drum_context_size_mul, text)
+        local base_color = is_active and Options.drum_active_color or Options.drum_context_color
+        local opacity = is_active and Options.drum_active_opacity or Options.drum_context_opacity
+        local bold = is_active and Options.drum_active_bold or Options.drum_context_bold
+        local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
+        
+        local words = build_word_list(text)
+        local formatted_parts = {}
+        for _, w in ipairs(words) do
+            local stack = calculate_highlight_stack(w, t_pos)
+            local h_color = base_color
+            if stack == 1 then h_color = Options.anki_highlight_depth_1
+            elseif stack == 2 then h_color = Options.anki_highlight_depth_2
+            elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+
+            if h_color ~= base_color then
+                table.insert(formatted_parts, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", h_color, w, base_color))
+            else
+                table.insert(formatted_parts, w)
+            end
         end
+        local result_text = table.concat(formatted_parts, " ")
+
+        return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
+            opacity, bold, base_color, size, result_text)
     end
 
     local raw_prev = ""
+    local prev_text = ""
     for i = start_idx, center_idx - 1 do
-        if raw_prev ~= "" then raw_prev = raw_prev .. "\\N" end
-        raw_prev = raw_prev .. subs[i].text
+        local sub = subs[i]
+        prev_text = prev_text .. (prev_text == "" and "" or "\\N") .. format_sub(sub.text, false, sub.start_time)
     end
-    local prev_text = format_sub(raw_prev, false)
     
     local active_text = ""
     if center_idx > 0 and center_idx <= #subs then
         local sub = subs[center_idx]
         local is_active = (time_pos >= sub.start_time and time_pos <= sub.end_time)
-        active_text = format_sub(sub.text, is_active)
+        active_text = format_sub(sub.text, is_active, sub.start_time)
     end
     
-    local raw_next = ""
+    local next_text = ""
     for i = center_idx + 1, end_idx do
-        if raw_next ~= "" then raw_next = raw_next .. "\\N" end
-        raw_next = raw_next .. subs[i].text
+        local sub = subs[i]
+        next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(sub.text, false, sub.start_time)
     end
-    local next_text = format_sub(raw_next, false)
     
     local all_text = prev_text
     if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
@@ -834,7 +976,19 @@ local function draw_dw(subs, view_center, active_idx)
                 if selected then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 else
-                    table.insert(formatted_words, w)
+                    local sub_t = subs[i]
+                    local t_pos = sub_t and sub_t.start_time or 0
+                    local stack = calculate_highlight_stack(w, t_pos)
+                    local h_color = color
+                    if stack == 1 then h_color = Options.anki_highlight_depth_1
+                    elseif stack == 2 then h_color = Options.anki_highlight_depth_2
+                    elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+
+                    if h_color ~= color then
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", h_color, w, color))
+                    else
+                        table.insert(formatted_words, w)
+                    end
                 end
                 ::next_word::
             end
@@ -1124,11 +1278,9 @@ local function dw_tooltip_mouse_update()
     end
 end
 
-local function cmd_dw_tooltip_hide_mid(tbl)
-    -- Trigger suppression logic for MBTN_MID (Wheel Click)
+local function cmd_dw_export_anki(tbl)
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
-    
     FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
     
     if tbl.event == "down" then
@@ -1140,6 +1292,58 @@ local function cmd_dw_tooltip_hide_mid(tbl)
         end
     elseif tbl.event == "up" then
         FSM.DW_MOUSE_DRAGGING = false
+
+        local subs = Tracks.pri.subs
+        if not subs or #subs == 0 then return end
+        
+        local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+        local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+        local term = ""
+        local context_line = ""
+        local time_pos = 0
+
+        if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+            local p1_l, p1_w, p2_l, p2_w
+            if al < cl or (al == cl and aw <= cw) then
+                p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+            else
+                p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+            end
+            local parts = {}
+            for i = p1_l, p2_l do
+                local text = subs[i].text:gsub("\n", " ")
+                local words = build_word_list(text)
+                local s_w = (i == p1_l) and p1_w or 1
+                local e_w = (i == p2_l) and p2_w or #words
+                for j = s_w, e_w do table.insert(parts, words[j]) end
+            end
+            term = table.concat(parts, " ")
+            context_line = subs[p1_l].text:gsub("\n", " ")
+            time_pos = subs[p1_l].start_time
+        elseif cl ~= -1 then
+            local sub = subs[cl]
+            context_line = sub.text:gsub("\n", " ")
+            time_pos = sub.start_time
+            if cw ~= -1 then
+                local words = build_word_list(context_line)
+                term = words[cw] or context_line
+            else
+                term = context_line
+            end
+        end
+
+        if term ~= "" then
+            term = term:gsub("{[^}]+}", "")
+            context_line = context_line:gsub("{[^}]+}", "")
+            local extracted_context = extract_anki_context(context_line, term)
+            save_anki_tsv_row(term, extracted_context, time_pos)
+            show_osd("Anki Highlight Saved: " .. term)
+            drum_osd:update()
+            if dw_osd then dw_osd:update() end
+            if dw_tooltip_osd then dw_tooltip_osd:update() end
+        else
+            show_osd("Anki Highlight: No selection")
+        end
     end
 end
 
@@ -1377,6 +1581,13 @@ local function cmd_smart_space(table)
     end
 end
 
+local function cmd_toggle_anki_global()
+    Options.anki_global_highlight = not Options.anki_global_highlight
+    show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
+    drum_osd:update()
+    if dw_osd then dw_osd:update() end
+end
+
 local function cmd_toggle_drum()
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Mode: No subtitles loaded")
@@ -1589,7 +1800,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
-        {key = "MBTN_MID", name = "dw-tooltip-hide-mid", fn = cmd_dw_tooltip_hide_mid, complex = true},
+        {key = "MBTN_MID", name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Tooltip Bindings
@@ -2709,6 +2920,7 @@ mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
+mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 ---------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
 ---------------------------------------------------------------------------
