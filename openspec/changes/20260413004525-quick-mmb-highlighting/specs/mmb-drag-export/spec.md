@@ -28,3 +28,22 @@ A single click of the MMB over non-selected text SHALL export the word under foc
 #### Scenario: Single-click export
 - **WHEN** the user clicks (press and release without dragging) MMB on a word that is not part of a selection
 - **THEN** only that single word SHALL be exported
++
++### Requirement: Multi-Occurrence Persistence
++Highlighting SHALL persist across all bookmarked occurrences of a word or phrase, regardless of when they were saved.
++
++#### Scenario: Highlighting a repeated word
++- **GIVEN** a word appears at 10s and 30s
++- **WHEN** the user saves the word at 10s
++- **AND** the user later saves the same word at 30s
++- **THEN** both the 10s and 30s occurrences SHALL remain highlighted.
++
++### Requirement: Overlap-Based Intensity
++The color intensity (depth) of a highlight SHALL only increase if distinct overlapping phrases are saved for the same word.
++
++#### Scenario: Avoiding redundant stacking
++- **GIVEN** the word "Aufgaben" is saved multiple times at different locations
++- **WHEN** the user views one of these locations
++- **THEN** the highlight level SHALL NOT increase due to redundant bookmarks of the exact same term.
++- **BUT WHEN** the word "Aufgaben" is covered by both a single-word bookmark AND a phrase bookmark (e.g. "fünf Aufgaben")
++- **THEN** the highlight level SHALL increase to reflect the textual overlap.

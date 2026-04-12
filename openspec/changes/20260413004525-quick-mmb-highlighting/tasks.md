@@ -12,6 +12,8 @@
 - [x] 2.5 Update `make_mouse_handler` on `down` event to bypass cursor movement if clicking MMB over an existing selection.
 - [x] 2.6 Add `drum_osd:update()` to the `down` event branch in `make_mouse_handler` for immediate visual feedback.
 - [x] 2.7 In `dw_anki_export_selection`, clear `DW_CURSOR_WORD` to allow the saved (green) highlight to show immediately on MMB release.
+- [x] 2.8 Refactor `ANKI_HIGHLIGHTS` to an array structure to support multiple time-anchors for the same word.
+- [x] 2.9 Implement unique-term check in `calculate_highlight_stack` to ensure Overlap-Only Intensity.
 
 ## 3. Verification
 
