@@ -388,12 +388,49 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
-local function calculate_highlight_stack(words, word_idx, time_pos)
-    if not next(FSM.ANKI_HIGHLIGHTS) then return 0 end
+local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
+    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0 end
+    
+    local function get_sub_words(s)
+        if not s then return nil end
+        if not s.words then s.words = build_word_list(s.text) end
+        return s.words
+    end
+
+    local words = get_sub_words(subs[sub_idx])
     local target_word = words[word_idx]
     if not target_word then return 0 end
     local target_lower = utf8_to_lower(target_word:gsub("[%p%s]", ""))
     if target_lower == "" then return 0 end
+
+    -- Helper to get a word relative to current word_idx across segment boundaries
+    local function get_relative_word(rel_offset)
+        local target_abs_idx = word_idx + rel_offset
+        if target_abs_idx >= 1 and target_abs_idx <= #words then
+            return words[target_abs_idx]
+        end
+
+        -- Look Ahead
+        if target_abs_idx > #words then
+            local next_sub = subs[sub_idx + 1]
+            if next_sub and (next_sub.start_time - subs[sub_idx].end_time < 0.5) then
+                local next_words = get_sub_words(next_sub)
+                local next_idx = target_abs_idx - #words
+                if next_idx <= #next_words then return next_words[next_idx] end
+            end
+        end
+
+        -- Look Behind
+        if target_abs_idx < 1 then
+            local prev_sub = subs[sub_idx - 1]
+            if prev_sub and (subs[sub_idx].start_time - prev_sub.end_time < 0.5) then
+                local prev_words = get_sub_words(prev_sub)
+                local prev_idx = #prev_words + target_abs_idx
+                if prev_idx >= 1 then return prev_words[prev_idx] end
+            end
+        end
+        return nil
+    end
     
     local stack = 0
     for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
@@ -403,23 +440,14 @@ local function calculate_highlight_stack(words, word_idx, time_pos)
         if Options.anki_global_highlight or math.abs(time_pos - data.time) < Options.anki_local_fuzzy_window then
             local term_words = build_word_list(term_lower)
             if #term_words > 0 then
-                -- For each term, find all occurrences of its first word that matches target_lower
                 for start_offset, tw in ipairs(term_words) do
                     if utf8_to_lower(tw:gsub("[%p%s]", "")) == target_lower then
-                        -- Potential phrase match at this offset. Verify whole sequence.
                         local sequence_match = true
-                        -- Check start boundary
-                        if word_idx - start_offset + 1 < 1 or word_idx - start_offset + #term_words > #words then
-                            sequence_match = false
-                        else
-                            for k = 1, #term_words do
-                                local line_idx = word_idx - start_offset + k
-                                local tw_clean = utf8_to_lower(term_words[k]:gsub("[%p%s]", ""))
-                                local lw_clean = utf8_to_lower(words[line_idx]:gsub("[%p%s]", ""))
-                                if tw_clean ~= lw_clean then
-                                    sequence_match = false
-                                    break
-                                end
+                        for k = 1, #term_words do
+                            local rw = get_relative_word(k - start_offset)
+                            if not rw or utf8_to_lower(term_words[k]:gsub("[%p%s]", "")) ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
+                                sequence_match = false
+                                break
                             end
                         end
                         
@@ -427,31 +455,25 @@ local function calculate_highlight_stack(words, word_idx, time_pos)
                         if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
                             local ctx_lower = utf8_to_lower(data.context)
                             local ctx_words = build_word_list(ctx_lower)
-                            
-                            -- Only enforce neighbor check if there ARE other words on the screen to check against
                             if #term_words < #ctx_words and #words > #term_words then
                                 local has_neighbor = false
-                                -- Check word immediately before the potential phrase match
-                                local prev_idx = word_idx - start_offset
-                                if prev_idx >= 1 then
-                                    local prev_word_clean = utf8_to_lower(words[prev_idx]:gsub("[%p%s]", ""))
+                                local prev_w = get_relative_word(-start_offset)
+                                if prev_w then
+                                    local prev_word_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
                                     if prev_word_clean ~= "" and ctx_lower:find(prev_word_clean, 1, true) then
                                         has_neighbor = true
                                     end
                                 end
-                                -- Check word immediately after the potential phrase match
                                 if not has_neighbor then
-                                    local next_idx = word_idx - start_offset + #term_words + 1
-                                    if next_idx <= #words then
-                                        local next_word_clean = utf8_to_lower(words[next_idx]:gsub("[%p%s]", ""))
+                                    local next_w = get_relative_word(#term_words - start_offset + 1)
+                                    if next_w then
+                                        local next_word_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
                                         if next_word_clean ~= "" and ctx_lower:find(next_word_clean, 1, true) then
                                             has_neighbor = true
                                         end
                                     end
                                 end
-                                if not has_neighbor then
-                                    sequence_match = false
-                                end
+                                if not has_neighbor then sequence_match = false end
                             end
                         end
 
@@ -908,7 +930,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
     
-    local function format_sub(text, is_active, t_pos)
+    local function format_sub(sub_idx, is_active, t_pos)
+        local text = subs[sub_idx] and subs[sub_idx].text or ""
         if text == "" then return "" end
         local base_color = is_active and Options.drum_active_color or Options.drum_context_color
         local opacity = is_active and Options.drum_active_opacity or Options.drum_context_opacity
@@ -918,7 +941,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local words = build_word_list(text)
         local formatted_parts = {}
         for i, w in ipairs(words) do
-            local stack = calculate_highlight_stack(words, i, t_pos)
+            local stack = calculate_highlight_stack(subs, sub_idx, i, t_pos)
             local h_color = base_color
             if stack == 1 then h_color = Options.anki_highlight_depth_1
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
@@ -938,24 +961,23 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             opacity, bold_state, base_color, size, result_text)
     end
 
-    local raw_prev = ""
     local prev_text = ""
     for i = start_idx, center_idx - 1 do
         local sub = subs[i]
-        prev_text = prev_text .. (prev_text == "" and "" or "\\N") .. format_sub(sub.text, false, sub.start_time)
+        prev_text = prev_text .. (prev_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
     end
     
     local active_text = ""
     if center_idx > 0 and center_idx <= #subs then
         local sub = subs[center_idx]
         local is_active = (time_pos >= sub.start_time and time_pos <= sub.end_time)
-        active_text = format_sub(sub.text, is_active, sub.start_time)
+        active_text = format_sub(center_idx, is_active, sub.start_time)
     end
     
     local next_text = ""
     for i = center_idx + 1, end_idx do
         local sub = subs[i]
-        next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(sub.text, false, sub.start_time)
+        next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
     end
     
     local all_text = prev_text
@@ -1083,7 +1105,7 @@ local function draw_dw(subs, view_center, active_idx)
                 else
                     local sub_t = subs[i]
                     local t_pos = sub_t and sub_t.start_time or 0
-                    local stack = calculate_highlight_stack(entry.words, j, t_pos)
+                    local stack = calculate_highlight_stack(subs, i, j, t_pos)
                     local h_color = color
                     if stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif stack == 2 then h_color = Options.anki_highlight_depth_2
