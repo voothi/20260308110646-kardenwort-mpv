@@ -610,6 +610,28 @@ end
 -- DRUM RENDERER
 -- =========================================================================
 
+-- Helper to estimate the width of a proportional string
+local function dw_get_str_width(str)
+    local char_w = Options.dw_font_size * Options.dw_char_width
+    if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
+        local len = 0
+        for _ in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do len = len + 1 end
+        return len * char_w
+    end
+    
+    local fs = Options.dw_font_size
+    local w = 0
+    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        if c == " " then w = w + (fs * 0.35)
+        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.25)
+        elseif c:match("[mwMW%@]") then w = w + (fs * 0.70)
+        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.45)
+        elseif #c > 1 then w = w + (fs * 0.50)
+        else w = w + (fs * 0.45) end
+    end
+    return w
+end
+
 local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     if center_idx == -1 then return "" end
     
@@ -663,7 +685,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     if FSM.saved_osd_border_style == "background-box" then
         local max_w = 0
         for i = start_idx, end_idx do
-            local w = dw_get_str_width(subs[i].text) * (font_size / Options.dw_font_size)
+            local w = dw_get_str_width(subs[i].text) * (font_size / math.max(1, Options.dw_font_size))
             if w > max_w then max_w = w end
         end
         max_w = max_w + 60
@@ -687,27 +709,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     return ass
 end
 
--- Helper to estimate the width of a proportional string
-local function dw_get_str_width(str)
-    local char_w = Options.dw_font_size * Options.dw_char_width
-    if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
-        local len = 0
-        for _ in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do len = len + 1 end
-        return len * char_w
-    end
-    
-    local fs = Options.dw_font_size
-    local w = 0
-    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if c == " " then w = w + (fs * 0.35)
-        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.25)
-        elseif c:match("[mwMW%@]") then w = w + (fs * 0.70)
-        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.45)
-        elseif #c > 1 then w = w + (fs * 0.50)
-        else w = w + (fs * 0.45) end
-    end
-    return w
-end
 
 -- Unified layout engine: wraps subtitle words into visual lines
 local function dw_build_layout(subs, view_center)
