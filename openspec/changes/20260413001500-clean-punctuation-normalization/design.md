@@ -5,7 +5,8 @@ Subtitle words often include trailing punctuation (e.g., `Bühne.`, `Knie,`). Th
 ## Goals / Non-Goals
 
 **Goals:**
-- Surgical separation of ASCII punctuation from UTF-8 word bodies.
+- Surgical separation of ASCII punctuation from UTF-8 word bodies for single-word terms.
+- Visual continuity for multi-word phrases (internal punctuation remains highlighted).
 - Consistent behavior across all rendering modes (Drum, Window) and capture methods (Copy/Export).
 
 ## Decisions
@@ -17,6 +18,10 @@ Subtitle words often include trailing punctuation (e.g., `Bühne.`, `Knie,`). Th
 ### 2. Highlighting Layering
 **Decision**: Separate each word into `prefix`, `body`, and `suffix` before applying color tags.
 **Rationale**: By applying the `{\\c&H...&}` tag only to the `body`, the punctuation naturally inherits the subtitle's base color, resulting in a cleaner "word highlight" effect.
+
+### 3. Adaptive Visual Continuity
+**Decision**: Apply the surgical stripping (Decision 2) **only** to single-word highlights. For multi-word phrases, apply the color to the entire word block (including punctuation).
+**Rationale**: Phrases are perceived as semantic units; "holes" in the highlight for internal commas/periods look incorrect. Single words are perceived as lexical entries; "clean" highlights look more professional.
 
 ## Risks / Trade-offs
 

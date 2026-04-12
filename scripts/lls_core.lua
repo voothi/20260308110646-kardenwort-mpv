@@ -523,18 +523,16 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
                         if sequence_match then
                             match_found = true
-                            break -- Out of offsets for this term
+                            local is_phrase = #term_words > 1
+                            stack = stack + 1
+                            return stack, is_phrase
                         end
                     end
                 end
             end
         end
-        
-        if match_found then
-            stack = stack + 1
-        end
     end
-    return stack
+    return stack, false
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -985,26 +983,32 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local words = build_word_list(text)
         local formatted_parts = {}
         for i, w in ipairs(words) do
-            local stack = calculate_highlight_stack(subs, sub_idx, i, t_pos)
+            local stack, is_phrase = calculate_highlight_stack(subs, sub_idx, i, t_pos)
             local h_color = base_color
             if stack == 1 then h_color = Options.anki_highlight_depth_1
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
-            local pre = w:match("^[%p%s]*")
-            local suf = w:match("[%p%s]*$")
-            local mid = ""
-            if #pre < #w then
-                mid = w:sub(#pre + 1, #w - #suf)
-            end
-
             if h_color ~= base_color then
                 local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
                 local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state) or ""
-                if mid ~= "" then
-                    table.insert(formatted_parts, string.format("%s%s{\\1c&H%s&}%s%s{\\1c&H%s&}%s", pre, b_on, h_color, mid, b_off, base_color, suf))
+                
+                if is_phrase then
+                    -- Full highlighting for phrases (continuous flow)
+                    table.insert(formatted_parts, string.format("%s{\\1c&H%s&}%s{\\1c&H%s&}%s", b_on, h_color, w, base_color, b_off))
                 else
-                    table.insert(formatted_parts, w)
+                    -- Surgical highlighting for single words (professional look)
+                    local pre = w:match("^[%p%s]*")
+                    local suf = w:match("[%p%s]*$")
+                    local mid = ""
+                    if #pre < #w then
+                        mid = w:sub(#pre + 1, #w - #suf)
+                    end
+                    if mid ~= "" then
+                        table.insert(formatted_parts, string.format("%s%s{\\1c&H%s&}%s%s{\\1c&H%s&}%s", pre, b_on, h_color, mid, b_off, base_color, suf))
+                    else
+                        table.insert(formatted_parts, w)
+                    end
                 end
             else
                 table.insert(formatted_parts, w)
@@ -1159,23 +1163,29 @@ local function draw_dw(subs, view_center, active_idx)
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 else
                     local sub_t = subs[i]
-                    local stack = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+                    local stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
                     if stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
                     if h_color ~= color then
-                        local pre = w:match("^[%p%s]*")
-                        local suf = w:match("[%p%s]*$")
-                        local mid = ""
-                        if #pre < #w then
-                            mid = w:sub(#pre + 1, #w - #suf)
-                        end
-                        if mid ~= "" then
-                            table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", pre, h_color, mid, color, suf))
+                        if is_phrase then
+                            -- Full highlighting for phrases
+                            table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", h_color, w, color))
                         else
-                            table.insert(formatted_words, w)
+                            -- Surgical highlighting for single words
+                            local pre = w:match("^[%p%s]*")
+                            local suf = w:match("[%p%s]*$")
+                            local mid = ""
+                            if #pre < #w then
+                                mid = w:sub(#pre + 1, #w - #suf)
+                            end
+                            if mid ~= "" then
+                                table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", pre, h_color, mid, color, suf))
+                            else
+                                table.insert(formatted_words, w)
+                            end
                         end
                     else
                         table.insert(formatted_words, w)
