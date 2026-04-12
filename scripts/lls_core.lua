@@ -100,7 +100,10 @@ local Options = {
     anki_sync_period = 30,
     anki_context_lines = 3,
     anki_local_fuzzy_window = 10.0,
-    anki_highlight_opacity = "70" -- 00 to FF (transparency)
+    anki_highlight_opacity = "90", -- A bit more opaque for visibility
+    anki_highlight_depth_1 = "FFCC88", -- Light Amber
+    anki_highlight_depth_2 = "FFAA55", -- Medium Orange
+    anki_highlight_depth_3 = "FF8822"  -- Deep Rust
 }
 options.read_options(Options, "lls")
 
@@ -1035,7 +1038,6 @@ local function draw_dw(subs, view_center, active_idx)
             
             local line_left = math.floor(960 - line_w / 2)
             local current_x = 0
-            local parts = {}
 
             for k, wi in ipairs(vline) do
                 local w = entry.words[wi]
@@ -1054,19 +1056,20 @@ local function draw_dw(subs, view_center, active_idx)
                 local stack = calculate_highlight_stack(w, time_pos)
                 if stack > 0 then
                     local h_color = DepthColors[math.min(3, stack)]
-                    local box = draw_ass_box(line_left + current_x, line_y, word_w, Options.dw_font_size * 1.1, h_color, Options.anki_highlight_opacity)
+                    -- Padding: x-2, word_w+4 for a softer look
+                    local box = draw_ass_box(line_left + current_x - 2, line_y, word_w + 4, Options.dw_font_size * 1.1, h_color, Options.anki_highlight_opacity)
                     table.insert(bg_boxes, box)
                 end
 
                 if is_selected then
-                    table.insert(parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, base_color))
+                    table.insert(fg_text, string.format("{\\an7}{\\pos(%.1f,%.1f)}{\\bord0}{\\shad0}{\\c&H%s&}{\\fs%d}%s", 
+                        line_left + current_x, line_y, Options.dw_highlight_color, Options.dw_font_size, w))
                 else
-                    table.insert(parts, w)
+                    table.insert(fg_text, string.format("{\\an7}{\\pos(%.1f,%.1f)}{\\bord0}{\\shad0}{\\c&H%s&}{\\fs%d}%s", 
+                        line_left + current_x, line_y, base_color, Options.dw_font_size, w))
                 end
                 current_x = current_x + word_w + space_w
             end
-            
-            table.insert(fg_text, string.format("{\\an8}{\\pos(960,%.1f)}{\\c&H%s&}{\\fs%d}{\\q2}%s", line_y, base_color, Options.dw_font_size, table.concat(parts, " ")))
         end
         y_cursor = y_cursor + entry.height + (Options.dw_font_size * Options.dw_sub_gap_mul)
     end
