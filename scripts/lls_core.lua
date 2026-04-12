@@ -100,6 +100,7 @@ local Options = {
     anki_sync_period = 30,
     anki_context_lines = 3,
     anki_local_fuzzy_window = 10.0,
+    anki_context_strict = true,
     anki_highlight_bold = false
 }
 options.read_options(Options, "lls")
@@ -421,6 +422,38 @@ local function calculate_highlight_stack(words, word_idx, time_pos)
                                 end
                             end
                         end
+                        
+                        -- If sequence matches, finally check Context Strictness
+                        if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
+                            local ctx_lower = utf8_to_lower(data.context)
+                            local ctx_words = build_word_list(ctx_lower)
+                            
+                            if #term_words < #ctx_words then
+                                local has_neighbor = false
+                                -- Check word immediately before the potential phrase match
+                                local prev_idx = word_idx - start_offset
+                                if prev_idx >= 1 then
+                                    local prev_word_clean = utf8_to_lower(words[prev_idx]:gsub("[%p%s]", ""))
+                                    if prev_word_clean ~= "" and ctx_lower:find(prev_word_clean, 1, true) then
+                                        has_neighbor = true
+                                    end
+                                end
+                                -- Check word immediately after the potential phrase match
+                                if not has_neighbor then
+                                    local next_idx = word_idx - start_offset + #term_words + 1
+                                    if next_idx <= #words then
+                                        local next_word_clean = utf8_to_lower(words[next_idx]:gsub("[%p%s]", ""))
+                                        if next_word_clean ~= "" and ctx_lower:find(next_word_clean, 1, true) then
+                                            has_neighbor = true
+                                        end
+                                    end
+                                end
+                                if not has_neighbor then
+                                    sequence_match = false
+                                end
+                            end
+                        end
+
                         if sequence_match then
                             match_found = true
                             break
@@ -588,8 +621,8 @@ local function load_sub(path, is_ass)
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
     else
         local state = "ID"
-        for line in f:lines() do
-            line = clean_text_srt(line)
+        for raw_line in f:lines() do
+            local line = clean_text_srt(raw_line)
             if line == "" then
                 if current_sub and current_sub.text ~= "" then
                     current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
@@ -2934,8 +2967,8 @@ local function cmd_copy_sub()
         final_text = ctext:gsub("\n", " ")
     else
         local lines = {}
-        for line in ctext:gmatch("[^\n]+") do
-            line = line:match("^%s*(.-)%s*$")
+        for raw_line in ctext:gmatch("[^\n]+") do
+            local line = raw_line:match("^%s*(.-)%s*$")
             if line and line ~= "" then table.insert(lines, line) end
         end
         
