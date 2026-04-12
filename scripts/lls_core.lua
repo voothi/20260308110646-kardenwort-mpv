@@ -881,7 +881,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         bg_alpha, bg_color, x1, y1, x2, y1, x2, y2, x1, y2)
         
     -- Text
-    ass = ass .. string.format("{\\pos(1850, %d)}{\\an6}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&}{\\q1}%s",
+    ass = ass .. string.format("{\\pos(1800, %d)}{\\an6}{\\bord0}{\\shad0}{\\fs%d}{\\c&H%s&}{\\q1}%s",
         osd_y, fs, text_color, text)
         
     return ass
@@ -1032,7 +1032,8 @@ local function dw_mouse_auto_scroll()
     end
 end
 
-local function cmd_dw_tooltip_pin()
+local function cmd_dw_tooltip_pin(tbl)
+    if tbl.event ~= "down" then return end
     if FSM.DRUM_WINDOW == "OFF" then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
@@ -1042,7 +1043,8 @@ local function cmd_dw_tooltip_pin()
     
     if line_idx then
         FSM.DW_TOOLTIP_LINE = line_idx
-        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, osd_y)
+        local ass = draw_dw_tooltip(subs, line_idx, osd_y)
+        dw_tooltip_osd.data = ass
         dw_tooltip_osd:update()
     end
 end
@@ -1500,7 +1502,7 @@ local function manage_dw_bindings(enable)
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Tooltip Bindings
-        {key = "MBTN_RIGHT", name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin},
+        {key = "MBTN_RIGHT", name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = Options.dw_tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
@@ -2212,6 +2214,9 @@ function cmd_toggle_drum_window()
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
             Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+        end
+        if Tracks.sec.path and #Tracks.sec.subs == 0 then
+            Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
         end
         
         -- Snapshot and hide all subtitle overlays to prevent overlap
