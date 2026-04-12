@@ -12,7 +12,7 @@
 - **Manual Hint Priority**: Explicitly pressing **MBTN_RIGHT** (RMB) now resets all suppression locks for that line, allowing you to instantly peek at a hint even if the area was previously suppressed or part of a selection.
 
 ### ⚙️ **Refined Interaction Logic**
-- **LMB Dismissal**: Manual tooltip pins can now be instantly dismissed with a standard Left-Click anywhere in the window, providing a much faster "peek and return" workflow.
+- **LMB & MMB Dismissal**: Manual tooltip pins can now be instantly dismissed with a standard **Left-Click** or **Middle-Click (Wheel)** anywhere in the window, providing a much faster "peek and return" workflow.
 - **Improved Focus Stability**: The suppression engine is aware of mult-line selection drags, ensuring the UI remains professionally clean throughout complex text study operations.
 
 ---

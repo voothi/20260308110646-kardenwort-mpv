@@ -1124,6 +1124,22 @@ local function dw_tooltip_mouse_update()
     end
 end
 
+local function cmd_dw_tooltip_hide_mid(tbl)
+    -- Trigger suppression logic for MBTN_MID (Wheel Click)
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, _ = dw_hit_test(osd_x, osd_y)
+    
+    FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
+    
+    if tbl.event == "down" then
+        if FSM.DW_TOOLTIP_LINE ~= -1 then
+            FSM.DW_TOOLTIP_LINE = -1
+            dw_tooltip_osd.data = ""
+            dw_tooltip_osd:update()
+        end
+    end
+end
+
 local function make_mouse_handler(is_shift)
     return function(tbl)
         if tbl.event == "down" then
@@ -1568,8 +1584,9 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = function() cmd_dw_scroll(1) end},
         {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
-        -- Mouse selection
+        -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_handler, complex = true},
+        {key = "MBTN_MID", name = "dw-tooltip-hide-mid", fn = cmd_dw_tooltip_hide_mid, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_shift_handler, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Tooltip Bindings
