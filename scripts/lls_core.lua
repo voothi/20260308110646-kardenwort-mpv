@@ -419,7 +419,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             
             if target_rel_idx > #current_words then
                 local next_sub_idx = curr_sub_idx + 1
-                if subs[next_sub_idx] and (subs[next_sub_idx].start_time - subs[curr_sub_idx].end_time < 0.5) then
+                if subs[next_sub_idx] and (subs[next_sub_idx].start_time - subs[curr_sub_idx].end_time < 1.5) then
                     target_rel_idx = target_rel_idx - #current_words
                     curr_sub_idx = next_sub_idx
                     current_words = get_sub_words(subs[curr_sub_idx])
@@ -429,7 +429,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                 end
             elseif target_rel_idx < 1 then
                 local prev_sub_idx = curr_sub_idx - 1
-                if subs[prev_sub_idx] and (subs[curr_sub_idx].start_time - subs[prev_sub_idx].end_time < 0.5) then
+                if subs[prev_sub_idx] and (subs[curr_sub_idx].start_time - subs[prev_sub_idx].end_time < 1.5) then
                     local prev_words = get_sub_words(subs[prev_sub_idx])
                     if not prev_words then return nil end
                     target_rel_idx = target_rel_idx + #prev_words
@@ -446,8 +446,15 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     local stack = 0
     for term_key, data in pairs(FSM.ANKI_HIGHLIGHTS) do
         local match_found = false
-        if Options.anki_global_highlight or math.abs(time_pos - data.time) < Options.anki_local_fuzzy_window then
-            local term_words = build_word_list(utf8_to_lower(term_key))
+        local term_words = build_word_list(utf8_to_lower(term_key))
+        
+        -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
+        local window = Options.anki_local_fuzzy_window
+        if #term_words > 10 then
+            window = window + (#term_words * 0.5)
+        end
+
+        if Options.anki_global_highlight or math.abs(time_pos - data.time) < window then
             if #term_words > 0 then
                 -- Check all occurrences of target_lower in the term
                 for term_offset, tw in ipairs(term_words) do
