@@ -1569,6 +1569,12 @@ local function dw_anki_export_selection()
             local extracted_context = extract_anki_context(context_line, term)
             save_anki_tsv_row(term, extracted_context, time_pos)
             show_osd("Anki Highlight Saved: " .. term)
+            
+            -- Force reload of TSV to pick up the new highlight and clear selection to show it
+            load_anki_tsv(true)
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            
             drum_osd:update()
             if dw_osd then dw_osd:update() end
             if dw_tooltip_osd then dw_tooltip_osd:update() end
