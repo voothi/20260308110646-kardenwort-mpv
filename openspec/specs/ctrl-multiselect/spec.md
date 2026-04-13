@@ -30,9 +30,11 @@ Words in the `ctrl_pending_set` SHALL be rendered with a distinct yellow pending
 The Drum Window SHALL commit the accumulated `ctrl_pending_set` to a saved Anki export when the user Ctrl+MMB-clicks any word already in the set.
 
 #### Scenario: Successful commit of a multi-word set
-- **WHEN** `ctrl_pending_set` contains two or more words
+- **WHEN** `ctrl_pending_set` contains two or more words (potentially from different subtitle lines)
 - **AND** the user Ctrl+MMB-clicks a word that is a member of `ctrl_pending_set`
 - **THEN** the system SHALL sort the accumulated words in document order (by line index, then word index), join them with a single space, and pass the resulting term string to the standard Anki export pipeline
+- **AND** the context window supplied to the context-extraction function SHALL span from the earliest-selected line (first in document order) to the latest-selected line (last in document order), each padded by `anki_context_lines` lines on either side, ensuring the composed term is always locatable within the supplied context
+- **AND** the export timestamp SHALL be set to the `start_time` of the earliest-selected line (first in document order)
 - **AND** `ctrl_pending_set` SHALL be cleared
 - **AND** the committed words SHALL subsequently be rendered in the standard saved orange highlight
 
