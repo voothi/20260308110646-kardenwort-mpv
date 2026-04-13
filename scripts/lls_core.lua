@@ -63,6 +63,7 @@ local Options = {
     dw_text_opacity = "00",       -- text alpha
     dw_active_color = "FFFFFF",   -- white active text in BGR
     dw_highlight_color = "00FFFF",-- yellow highlight in BGR
+    dw_ctrl_select_color = "66E0FF",-- Light yellow for multi-word select (BGR)
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_font_bold = false,
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
@@ -157,6 +158,8 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
+    DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
     DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
 
     -- Global Search State
@@ -211,8 +214,104 @@ dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
 
 -- =========================================================================
--- PARSERS & UTILS
+-- DRUM WINDOW CTRL-SELECT ACCUMULATOR
 -- =========================================================================
+
+local function ctrl_discard_set()
+    if not next(FSM.DW_CTRL_PENDING_SET) then return end
+    FSM.DW_CTRL_PENDING_SET = {}
+    dw_osd:update()
+end
+
+local function ctrl_toggle_word(line_idx, word_idx)
+    if line_idx < 1 or word_idx < 1 then return end
+    
+    local key = string.format("%d:%d", line_idx, word_idx)
+    if FSM.DW_CTRL_PENDING_SET[key] then
+        FSM.DW_CTRL_PENDING_SET[key] = nil
+    else
+        FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
+    end
+    dw_osd:update()
+end
+
+local function ctrl_commit_set(line_idx, word_idx)
+    -- Check if cursor word is in set
+    local key = string.format("%d:%d", line_idx, word_idx)
+    if not FSM.DW_CTRL_PENDING_SET[key] then
+        -- Fallback to plain MMB single-click export
+        dw_anki_export_selection()
+        return
+    end
+    
+    -- Extract all members into a list and sort by document order
+    local members = {}
+    for _, m in pairs(FSM.DW_CTRL_PENDING_SET) do
+        table.insert(members, m)
+    end
+    
+    if #members == 0 then return end
+    
+    table.sort(members, function(a, b)
+        if a.line ~= b.line then return a.line < b.line end
+        return a.word < b.word
+    end)
+    
+    -- Compose the term
+    local subs = Tracks.pri.subs
+    local words = {}
+    for _, m in ipairs(members) do
+        local sub = subs[m.line]
+        if sub then
+            if not sub.words then sub.words = build_word_list(sub.text) end
+            local w = sub.words[m.word]
+            if w then
+                table.insert(words, (w:gsub("[%p%s]", "")))
+            end
+        end
+    end
+    
+    if #words == 0 then return end
+    local term = table.concat(words, " ")
+    
+    -- Pick a focal line for context (the one user clicked to commit)
+    local sub = subs[line_idx]
+    if not sub then return end
+    
+    local time_pos = sub.start_time
+    
+    -- Gather context lines
+    local ctx_start = math.max(1, line_idx - Options.anki_context_lines)
+    local ctx_end = math.min(#subs, line_idx + Options.anki_context_lines)
+    local ctx_parts = {}
+    for i = ctx_start, ctx_end do
+        table.insert(ctx_parts, subs[i].text)
+    end
+    local full_ctx_text = table.concat(ctx_parts, " ")
+    
+    -- Clean context: remove ASS tags and metadata
+    full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
+    if Options.anki_strip_metadata then
+        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
+    end
+    full_ctx_text = full_ctx_text:gsub("%s+", " ")
+
+    local term_words = build_word_list(term)
+    local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
+    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
+    
+    save_anki_tsv_row(term, extracted_context, time_pos)
+    show_osd("Anki Highlight Saved (Multi): " .. term)
+    
+    -- Force reload of TSV to pick up the new highlight
+    load_anki_tsv(true)
+    
+    -- Clear set
+    FSM.DW_CTRL_PENDING_SET = {}
+    dw_osd:update()
+end
+
+
 
 local ANKI_MAPPING_CACHE = nil
 
@@ -1415,14 +1514,23 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif i == p1_l and i == p2_l then selected = (j >= p1_w and j <= p2_w)
                     elseif i == p1_l then selected = (j >= p1_w)
                     elseif i == p2_l then selected = (j <= p2_w) end
-                elseif i == cl and j == cw then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                    goto next_word
                 end
                 
                 if selected then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 else
+                    -- Ctrl-pending highlight
+                    local ctrl_member = FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, j)]
+                    if ctrl_member then
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
+                        goto next_word
+                    end
+
+                    if i == cl and j == cw then
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+                        goto next_word
+                    end
+
                     local sub_t = subs[i]
                     local stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
@@ -2223,6 +2331,7 @@ end
 
 
 local function cmd_dw_scroll(dir)
+    ctrl_discard_set()
     FSM.DW_FOLLOW_PLAYER = false
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
@@ -2409,6 +2518,23 @@ local function manage_dw_bindings(enable)
         {key = "MBTN_MID", name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+        -- Ctrl Multi-select
+        {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
+            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
+            if t.event == "up" then ctrl_discard_set() end
+        end, complex = true},
+        {key = "Ctrl+MBTN_LEFT", name = "dw-ctrl-lmb", fn = function(t)
+            if t.event ~= "down" then return end
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            if line_idx then ctrl_toggle_word(line_idx, word_idx) end
+        end, complex = true},
+        {key = "Ctrl+MBTN_MID", name = "dw-ctrl-mmb", fn = function(t)
+            if t.event ~= "down" then return end
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            if line_idx then ctrl_commit_set(line_idx, word_idx) end
+        end, complex = true},
         -- Tooltip Bindings
         {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = Options.tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
