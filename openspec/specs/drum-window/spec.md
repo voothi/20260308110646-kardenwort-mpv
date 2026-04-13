@@ -13,4 +13,17 @@ The Drum Window SHALL allow explicit control over its appearance (font name, siz
 
 #### Scenario: Unified Font and Weight
 - **WHEN** the user configures `dw_font_name` or `dw_font_bold`
-- **THEN** the Drum Window rendering engine SHALL apply the specified font family and boldness (`\b1`/`\b0`) to all rendered lines, ensuring stylistic parity with the primary Drum Mode.
+### Requirement: Scroll-Aware Selection Continuity
+The Drum Window SHALL ensure that any active text selection or word-highlight state is preserved and correctly synchronized when the viewport is scrolled using the mouse wheel.
+
+#### Scenario: Wheel Scroll Selection Stability
+- **WHEN** the user is actively dragging the mouse to select text (MBTN_LEFT down)
+- **AND** the user scrolls the mouse wheel (WHEEL_UP or WHEEL_DOWN)
+- **THEN** the system SHALL immediately update the selection range to include the word now under the mouse cursor at its new viewport position.
+- **AND** the selection SHALL NOT be cleared or disrupted by the scroll event.
+
+#### Scenario: Stationary Active Highlight
+- **WHEN** the Drum Window is scrolled via mouse wheel while NOT dragging
+- **THEN** the system SHALL maintain the highlight on the specific text index previously selected.
+- **AND** the highlight SHALL NOT snap to the word currently under the mouse pointer.
+- **AND** the cursor state (`FSM.DW_CURSOR_WORD`) SHALL NOT be reset to an invalid state.
