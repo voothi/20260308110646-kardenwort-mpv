@@ -106,8 +106,12 @@ local Options = {
 
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
+    anki_fields = "WordSource,SentenceSource",
+    anki_mapping_word = "WordSource=source_word,SentenceSource=source_sentence",
+    anki_mapping_sentence = "WordSource=source_sentence,SentenceSource=source_sentence",
+    anki_deck_name = "",
     anki_context_max_words = 20,
-    anki_tsv_headers = "Term	Context",
+    anki_tsv_headers = "WordSource	SentenceSource",
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003A70",
@@ -214,6 +218,37 @@ dw_tooltip_osd.z = 25
 -- PARSERS & UTILS
 -- =========================================================================
 
+local function split_and_trim(str, sep)
+    local t = {}
+    if not str or str == "" then return t end
+    for item in (str .. (sep or ",")):gmatch("([^" .. (sep or ",") .. "]*)" .. (sep or ",")) do
+        table.insert(t, item:match("^%s*(.-)%s*$"))
+    end
+    return t
+end
+
+local function parse_mapping(str)
+    local m = {}
+    if not str or str == "" then return m end
+    for _, kv in ipairs(split_and_trim(str, ";")) do
+        -- Also support comma as separator if user preferred it in mapping string
+        if kv == "" then goto next_kv end
+        local k, v = kv:match("^%s*([^=]+)%s*=%s*([^%s]+)%s*$")
+        if k and v then
+            m[k:match("^%s*(.-)%s*$")] = v:match("^%s*(.-)%s*$")
+        end
+        ::next_kv::
+    end
+    -- Support comma if semicolon split didn't find multiple items
+    if not next(m) and str:find("=") then
+        for _, kv in ipairs(split_and_trim(str, ",")) do
+            local k, v = kv:match("^%s*([^=]+)%s*=%s*([^%s]+)%s*$")
+            if k and v then m[k] = v end
+        end
+    end
+    return m
+end
+
 local function calculate_ass_alpha(val)
     if type(val) == "string" and #val == 2 and val:match("%x%x") then
         return val:upper()
@@ -250,6 +285,24 @@ local function clean_text_srt(line)
     return line:gsub("\r", ""):gsub("<[^>]+>", "")
 end
 
+local function get_deck_info()
+    local path = Tracks.pri.path
+    if not path or path == "" then 
+        local p = mp.get_property("path")
+        if p then path = p else return "DefaultDeck", "und" end
+    end
+    -- Get basename
+    local filename = path:match("([^/\\]+)$") or path
+    -- Remove extension (last .xxx part)
+    local name_no_ext = filename:gsub("%.[^%.]+$", "")
+    
+    -- Extract language code from postfix (e.g. .de.srt -> de)
+    local lang_code = name_no_ext:match("%.([a-z][a-z])$") or "und"
+    
+    -- In Kardenwort style, the deck name includes the lang postfix but not the .srt
+    return name_no_ext, lang_code
+end
+
 local function has_cyrillic(str)
     if not str then return false end
     return str:find("[\208\209]") ~= nil
@@ -264,6 +317,13 @@ local function build_word_list(text)
     return words
 end
 
+local function escape_tsv(str)
+    if not str then return "" end
+    -- Replace tabs with spaces and newlines with spaces or an alternative
+    local res = str:gsub("\t", " "):gsub("\r", ""):gsub("\n", " ")
+    return res
+end
+
 local function utf8_to_table(str)
     local t = {}
     for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
@@ -272,7 +332,31 @@ local function utf8_to_table(str)
     return t
 end
 
-local function utf8_to_lower(str)
+local function format_timestamp(time_pos)
+    local h = math.floor(time_pos / 3600)
+    local m = math.floor((time_pos % 3600) / 60)
+    local s = math.floor(time_pos % 60)
+    local ms = math.floor((time_pos - math.floor(time_pos)) * 1000)
+    return string.format("%02d:%02d:%02d.%03d", h, m, s, ms)
+end
+
+local function resolve_anki_field(source_id, term, context, time_pos)
+    if not source_id or source_id == "" or source_id == "-" then return "" end
+    
+    local deck_name, lang_code = get_deck_info()
+
+    if source_id == "source_word" then return term or ""
+    elseif source_id == "source_sentence" then return context or ""
+    elseif source_id == "time" then return string.format("%.3f", time_pos)
+    elseif source_id == "timestamp" then return format_timestamp(time_pos)
+    elseif source_id == "deck_name" then return Options.anki_deck_name ~= "" and Options.anki_deck_name or deck_name
+    elseif source_id:match("^tts_source_") then
+        local target_lang = source_id:match("^tts_source_(.+)$"):lower()
+        if lang_code:lower():find(target_lang, 1, true) then return "1" else return "" end
+    end
+    
+    return ""
+end
     local res = str:lower()
     local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
     local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
@@ -798,44 +882,83 @@ local function load_anki_tsv(force)
     if not f then return end
 
     local new_highlights = {}
+    local term_idx, ctx_idx, time_idx = -1, -1, -1
+    local header_found = false
 
-    local line_count = 0
     for line in f:lines() do
-        line_count = line_count + 1
-        if line_count > 1 then
-            local fields = {}
-            for field in (line .. "\t"):gmatch("([^\t]*)\t") do
-                table.insert(fields, field)
+        if line:sub(1,1) == "#" then goto next_line end
+        
+        local fields = split_and_trim(line, "\t")
+        if not header_found then
+            -- First non-comment line is header
+            for i, h in ipairs(fields) do
+                local h_lower = h:lower()
+                if h_lower == "wordsource" or h_lower == "term" or h_lower == "quotation" then term_idx = i
+                elseif h_lower == "sentencesource" or h_lower == "context" or h_lower == "sentence" then ctx_idx = i
+                elseif h_lower == "time" or h_lower == "timestamp" then time_idx = i end
             end
-            if #fields >= 2 then
-                local term = fields[1]
-                local context = fields[2]
-                local time_val = tonumber(fields[3]) or 0
+            header_found = true
+            -- Fallback if header doesn't match names (legacy support)
+            if term_idx == -1 then term_idx = 1 end
+            if ctx_idx == -1 then ctx_idx = 2 end
+            if time_idx == -1 then time_idx = 3 end
+            goto next_line
+        end
+
+        if #fields > 0 then
+            local term = term_idx > 0 and fields[term_idx] or ""
+            local context = ctx_idx > 0 and fields[ctx_idx] or ""
+            local time_val = time_idx > 0 and tonumber(fields[time_idx]) or 0
+            if term ~= "" then
                 table.insert(new_highlights, { term = term, context = context, time = time_val })
             end
         end
+        ::next_line::
     end
     f:close()
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
 end
 
-local function save_anki_tsv_row(term, context, time_pos)
+local function save_anki_tsv_row(term, context, time_pos, mode)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
 
+    local fields_list = split_and_trim(Options.anki_fields)
+    local mapping_str = (mode == "sentence") and Options.anki_field_mapping_sentence or Options.anki_field_mapping_word
+    local mapping = parse_mapping(mapping_str)
+
     local f_check = io.open(tsv_path, "r")
-    local exists = false
-    if f_check then exists = true f_check:close() end
+    local exists = (f_check ~= nil)
+    if f_check then f_check:close() end
 
     local f = io.open(tsv_path, "a")
     if not f then return end
 
     if not exists then
-        f:write(Options.anki_tsv_headers .. "	Time\n")
+        -- Find deck column N for #deck column:N
+        local deck_col_idx = 0
+        for i, field in ipairs(fields_list) do
+            if mapping[field] == "deck_name" then
+                deck_col_idx = i
+                break
+            end
+        end
+        if deck_col_idx > 0 then
+            f:write(string.format("#deck column:%d\n", deck_col_idx))
+        end
+        -- Write headers
+        f:write(table.concat(fields_list, "\t") .. "\n")
     end
 
-    f:write(string.format("%s\t%s\t%.3f\n", term, context, time_pos))
+    local row_values = {}
+    for _, field_name in ipairs(fields_list) do
+        local source_id = mapping[field_name]
+        local val = resolve_anki_field(source_id, term, context, time_pos)
+        table.insert(row_values, escape_tsv(val))
+    end
+
+    f:write(table.concat(row_values, "\t") .. "\n")
     f:close()
 
     table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos })
@@ -1614,6 +1737,13 @@ local function dw_anki_export_selection()
             end
         end
 
+        local mode = "word"
+        if al ~= -1 and (al ~= cl or aw ~= cw) then
+            mode = "sentence"
+        elseif cl ~= -1 and cw == -1 then
+            mode = "sentence"
+        end
+
         if term and term ~= "" then
             term = term:gsub("{[^}]+}", "")
             -- Clean capture: Remove leading/trailing punctuation and spaces
@@ -1625,7 +1755,7 @@ local function dw_anki_export_selection()
             
             context_line = context_line:gsub("{[^}]+}", "")
             local extracted_context = extract_anki_context(context_line, term)
-            save_anki_tsv_row(term, extracted_context, time_pos)
+            save_anki_tsv_row(term, extracted_context, time_pos, mode)
             show_osd("Anki Highlight Saved: " .. term)
             
             -- Force reload of TSV to pick up the new highlight and clear selection to show it
