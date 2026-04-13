@@ -45,7 +45,7 @@ local Options = {
     osd_duration = 1.0,
 
     -- Drum Window
-    dw_font_size = 34,
+    dw_font_size = 38,
     dw_lines_visible = 15,        -- how many lines visible in the window
     dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
@@ -74,9 +74,9 @@ local Options = {
     -- Drum Window Tooltip
     dw_tooltip_font_size = 34,
     dw_tooltip_context_lines = 1,
-    dw_tooltip_bg_opacity = "11",
+    dw_tooltip_bg_opacity = "60",
     dw_tooltip_bg_color = "222222",
-    dw_tooltip_text_color = "FFFFFF",
+    dw_tooltip_text_color = "CCCCCC",
     dw_tooltip_text_opacity = "00",
     dw_tooltip_bold = false,
     dw_tooltip_border_size = 1.5,

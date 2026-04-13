@@ -10,3 +10,7 @@ The Drum Window SHALL render using localized background boxes for each line of t
 #### Scenario: Vocabulary Visibility
 - **WHEN** the user views highlighted Anki terms within these boxes
 - **THEN** the system applies vibrant Orange/Gold overlays which pop against the localized dark background, maintaining consistent legibility across all subtitle interfaces.
+
+#### Scenario: Visual Parity (Size & Tooltip)
+- **WHEN** the user toggles between `c` and `w` mode
+- **THEN** the textual height and opacity SHALL remain perceptually identical, and the transition to the Translation Tooltip SHALL maintain the same background transparency and text color parameters as the Drum Window.

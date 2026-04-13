@@ -45,3 +45,9 @@
 - [x] 4.1 In `scripts/lls_core.lua`, within the `draw_dw` function, identify and remove the vector drawing block that renders the large central background rectangle (search for `get_bg_ass`).
 - [x] 4.2 In `scripts/lls_core.lua`, within the `draw_dw` function, remove the ASS tags `{\\bord0}{\\shad0}{\\blur0}{\\1a&H00&}{\\3a&HFF&}{\\4a&HFF&}` from the main text block to allow the window to inherit native OSD background boxes.
 - [x] 4.3 In `scripts/lls_core.lua`, within `draw_drum`, ensure any missing formatting tags (like `\q2` for wrap style) are aligned if necessary for perfect parity.
+
+## 5. Visual Normalization & Tooltip Sync
+
+- [ ] 5.1 Normalize `dw_font_size` to `38` in `mpv.conf` and `lls_core.lua` to match `drum_font_size=34` visual scale.
+- [ ] 5.2 Sync `dw_tooltip_bg_opacity` to `60` in `mpv.conf` and `lls_core.lua` to match Drum Window transparency.
+- [ ] 5.3 Update `draw_dw_tooltip` in `lls_core.lua` to use `Options.dw_text_color` (`CCCCCC`) as primary text color for parity with Drum Window.
