@@ -278,7 +278,7 @@ end
 
 local function escape_tsv(str)
     if type(str) ~= "string" then return tostring(str or "") end
-    return str:gsub("\t", " "):gsub("\n", " ")
+    return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
 local function resolve_anki_field(field_name, term, context, time_pos, deck_name, lang_code, mapping, tts)
