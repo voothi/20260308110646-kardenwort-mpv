@@ -1723,8 +1723,12 @@ local function cmd_dw_double_click()
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = word_idx or 1
-        FSM.DW_VIEW_CENTER = line_idx
-        FSM.DW_FOLLOW_PLAYER = true
+        
+        if not FSM.BOOK_MODE then
+            FSM.DW_VIEW_CENTER = line_idx
+        end
+        
+        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     end
@@ -2049,8 +2053,12 @@ local function cmd_dw_seek_selected()
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
             mp.commandv("seek", sub.start_time, "absolute+exact")
-            FSM.DW_FOLLOW_PLAYER = true
-            FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+            FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+            
+            if not FSM.BOOK_MODE then
+                FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+            end
+            
             show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
         end
     end
@@ -2070,9 +2078,13 @@ local function cmd_dw_seek_delta(dir)
     local sub = subs[target_idx]
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
-        FSM.DW_FOLLOW_PLAYER = true
-        FSM.DW_VIEW_CENTER = target_idx
-        FSM.DW_CURSOR_LINE = target_idx
+        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        
+        if not FSM.BOOK_MODE then
+            FSM.DW_VIEW_CENTER = target_idx
+            FSM.DW_CURSOR_LINE = target_idx
+        end
+        
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_CURSOR_WORD = -1
