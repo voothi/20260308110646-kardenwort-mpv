@@ -303,6 +303,11 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
         local tts_lang = source:match("^tts_dest_(.+)$")
         -- Destination flags check the secondary track's language
         if tts_lang and sec_lang and tts_lang:lower() == sec_lang:lower() then return "1" end
+        
+        -- Fallback: If no secondary language is detected, default to Russian ("ru")
+        if (not sec_lang or sec_lang == "") and tts_lang == "ru" then
+            return "1"
+        end
         return ""
     end
     
