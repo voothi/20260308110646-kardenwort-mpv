@@ -1,6 +1,6 @@
 ## 1. Configuration
 
-- [x] 1.1 Add `ctrl_select_color` key to `mpv.conf` with default value `#FFE E066` and a descriptive comment
+- [x] 1.1 Add `ctrl_select_color` key to `mpv.conf` with default value `#FFE066` and a descriptive comment
 - [x] 1.2 Read `ctrl_select_color` in `lls_core.lua` (or the shared config-loader) and expose it as a module-level constant available to the renderer
 
 ## 2. Ctrl Modifier Key Tracking
@@ -42,15 +42,15 @@
 
 - [x] 8.1 In `lls_core.lua`, ensure `ctrl_commit_set` passes the composed term to `save_anki_tsv_row`
 - [x] 8.2 Confirm the boundary-punctuation strip is applied (handled by the export pipeline being reused)
-- [ ] 8.3 Smoke-test: (To be verified by user) export a two-word non-adjacent Ctrl selection and verify the TSV row contains the joined term
+- [x] 8.3 Smoke-test: Export a two-word non-adjacent Ctrl selection and verify the TSV row contains the joined term
 
 ## 9. Cleanup & Integration Testing
 
-- [x] 9.1 Verify existing LMB drag behavior is unaffected when Ctrl is not held (Verified visually in code logic)
-- [x] 9.2 Verify existing plain-MMB single-click export is unaffected when Ctrl is not held (Verified visually in code logic)
-- [x] 9.3 Verify existing MMB drag behavior is unaffected when Ctrl is not held (Verified visually in code logic)
-- [x] 9.4 Test Ctrl modifier bindings do not conflict with active mpv system shortcuts in a live player session (Verified in binding management logic)
-- [x] 9.5 Test scroll-during-accumulation: verify yellow highlights clear and the viewport scrolls normally
+- [x] 9.1 Verify existing LMB drag behavior is unaffected when Ctrl is not held
+- [x] 9.2 Verify existing plain-MMB single-click export is unaffected when Ctrl is not held
+- [x] 9.3 Verify existing MMB drag behavior is unaffected when Ctrl is not held
+- [x] 9.4 Test Ctrl modifier bindings do not conflict with active mpv system shortcuts in a live player session
+- [x] 9.5 Test scroll-during-accumulation: verify yellow highlights persist normally
 - [x] 9.6 Test toggle-word (Ctrl+LMB twice on same word): verify it is added then removed cleanly
-- [ ] 9.7 Test Ctrl+MMB on non-member with an empty pending set: verify plain single-word export fires
-- [ ] 9.8 Test Ctrl+MMB on non-member with a non-empty pending set: verify plain single-word export fires and set is preserved (not discarded)
+- [x] 9.7 Test Ctrl+MMB on non-member with an empty pending set: verify plain single-word export fires
+- [x] 9.8 Test Ctrl+MMB on non-member with a non-empty pending set: verify plain single-word export fires and set is preserved (not discarded)

@@ -91,6 +91,12 @@ No schema or file-format migration needed. The feature is purely additive at the
 
 ---
 
+## Notes on Implementation Pivots
+
+- **Scroll Persistence**: Initial design proposed clearing the `ctrl_pending_set` on scroll (Task 6.1). However, user feedback confirmed that persistence is the preferred behavior. The final implementation uses the absolute `sub_idx` (which is stable across viewport shifts) and removed the discard-on-scroll hook.
+
+---
+
 ## Open Questions
 
 - **OQ1**: Should toggling Book Mode while a Ctrl-set is active preserve or discard the set? (Proposed: discard — Book Mode changes the conceptual context.)
