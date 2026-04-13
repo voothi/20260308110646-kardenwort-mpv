@@ -280,7 +280,7 @@ local function escape_tsv(str)
     return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
-local function resolve_anki_field(field_name, term, context, time_pos, deck_name, lang_code, mapping, tts)
+local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts)
     if not field_name or field_name == "" then return "" end
     
     local source = mapping[field_name]
@@ -296,12 +296,13 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     
     if source:match("^tts_source_") then
         local tts_lang = source:match("^tts_source_(.+)$")
-        if tts_lang and lang_code and tts_lang:lower() == lang_code:lower() then return "1" end
+        if tts_lang and pri_lang and tts_lang:lower() == pri_lang:lower() then return "1" end
         return ""
     end
     if source:match("^tts_dest_") then
         local tts_lang = source:match("^tts_dest_(.+)$")
-        if tts_lang and lang_code and tts_lang:lower() == lang_code:lower() then return "1" end
+        -- Destination flags check the secondary track's language
+        if tts_lang and sec_lang and tts_lang:lower() == sec_lang:lower() then return "1" end
         return ""
     end
     
@@ -944,9 +945,13 @@ local function save_anki_tsv_row(term, context, time_pos)
         mapping = {Term = "source_word", Context = "source_sentence"}
     end
 
-    local deck_name, lang_code = "", ""
+    local deck_name, pri_lang, sec_lang = "", "", ""
     if Tracks.pri.path then
-        deck_name, lang_code = extract_subtitle_metadata(Tracks.pri.path)
+        deck_name, pri_lang = extract_subtitle_metadata(Tracks.pri.path)
+    end
+    if Tracks.sec.path then
+        local _, s_lang = extract_subtitle_metadata(Tracks.sec.path)
+        sec_lang = s_lang
     end
     if settings.deck_name and settings.deck_name ~= "" then
         deck_name = settings.deck_name
@@ -989,7 +994,7 @@ local function save_anki_tsv_row(term, context, time_pos)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, lang_code, mapping, tts))
+            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts))
         end
     end
     
