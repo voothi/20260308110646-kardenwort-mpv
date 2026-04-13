@@ -29,6 +29,8 @@ Currently, the styling parameters for the three main script-driven HUDs (Drum Mo
 
 - **Defaults Sync**: Defaults will be synchronized to `bg_opacity = "60"` (ASS Hex) and `text_color = "CCCCCC"` / `"FFFFFF"` across the board to match the new Dark Theme aesthetic.
 
+- **Font Normalization**: The Drum Window (`w`) font size is normalized to **`38`** to visually match the perceptual weight of the **`34`** proportional font used in Drum Mode (`c`).
+
 - **Documentation Preservation**: During the `mpv.conf` reorganization, detailed calibration notes (e.g., `vline_h_mul`, `sub_gap_mul`) and alternative styling presets (`MODE 1/2`) will be meticulously preserved and updated to reflect the new variable schema, ensuring no instructional entropy.
 
 ## Risks / Trade-offs
