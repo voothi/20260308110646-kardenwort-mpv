@@ -13,8 +13,11 @@
 
 - [x] 3.1 Increase default `anki_context_max_words` in `Options` table to `40` (Line 109).
 - [x] 3.2 Add a comment in `lls_core.lua` explaining the new adaptive truncation behavior for future maintenance.
+- [x] 3.3 Increase `anki_context_lines` from 3 to 6 to handle long sentence spans.
+- [x] 3.4 Update `mpv.conf` with new defaults to prevent local override of script improvements.
+- [x] 3.5 Refactor `context_line` assembly in `dw_anki_export_selection` to use `build_word_list` for consistent normalization.
 
-## 4. Validation
+## 4. Final Verification
 
-- [ ] 4.1 Test a selection spanning two sentences to ensure both are captured.
-- [ ] 4.2 Test a very long selection (> 40 words) to ensure the 20-word buffer is still applied beyond the selection.
+- [ ] 4.1 Verify total coverage of multi-sentence selections in the TSV (no trailing truncation if word count < limit).
+- [ ] 4.2 Verify that punctuation INSIDE the selection does not trigger early forward-search termination.

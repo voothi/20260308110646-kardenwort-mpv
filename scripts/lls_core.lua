@@ -729,13 +729,13 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             sent_start = start_pos - b_idx + 1
         end
         
-        -- Search forwards for punctuation starting from the END of the term
-        -- to ensure we don't cut off multi-sentence selections prematurely.
-        local post = full_line:sub(end_pos)
+        -- Search forwards for punctuation starting safely AFTER the term
+        -- to ensure we don't cut off multi-sentence selections if they end near punctuation.
+        local post = full_line:sub(end_pos + 1)
         local sent_end = #full_line
         local f_idx = post:find("[.!?]")
         if f_idx then
-            sent_end = end_pos + f_idx - 1
+            sent_end = end_pos + f_idx
         end
         
         sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
@@ -1761,10 +1761,12 @@ local function dw_anki_export_selection()
                 end
             end
             term = table.concat(parts, " ")
-            
             local ctx_parts = {}
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
-                if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
+                if subs[k] then 
+                    local words = build_word_list(subs[k].text)
+                    table.insert(ctx_parts, table.concat(words, " "))
+                end
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = subs[p1_l].start_time
@@ -1772,7 +1774,10 @@ local function dw_anki_export_selection()
             local sub = subs[cl]
             local ctx_parts = {}
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
-                if subs[k] then table.insert(ctx_parts, (subs[k].text:gsub("\n", " "))) end
+                if subs[k] then 
+                    local words = build_word_list(subs[k].text)
+                    table.insert(ctx_parts, table.concat(words, " "))
+                end
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = sub.start_time
