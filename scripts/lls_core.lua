@@ -107,8 +107,7 @@ local Options = {
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
     anki_fields = "WordSource,SentenceSource",
-    anki_mapping_word = "WordSource=source_word,SentenceSource=source_sentence",
-    anki_mapping_sentence = "WordSource=source_sentence,SentenceSource=source_sentence",
+    anki_field_mapping = "Quotation=source_word;WordSource=source_word;SentenceSource=source_sentence;Note=time;Deck=deck_name",
     anki_deck_name = "",
     anki_context_max_words = 20,
     anki_tsv_headers = "WordSource	SentenceSource",
@@ -947,13 +946,12 @@ local function load_anki_tsv(force)
     FSM.ANKI_HIGHLIGHTS = new_highlights
 end
 
-local function save_anki_tsv_row(term, context, time_pos, mode)
+local function save_anki_tsv_row(term, context, time_pos)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
 
     local fields_list = split_and_trim(Options.anki_fields)
-    local mapping_str = (mode == "sentence") and Options.anki_field_mapping_sentence or Options.anki_field_mapping_word
-    local mapping = parse_mapping(mapping_str)
+    local mapping = parse_mapping(Options.anki_field_mapping)
 
     local f_check = io.open(tsv_path, "r")
     local exists = (f_check ~= nil)
@@ -1764,13 +1762,6 @@ local function dw_anki_export_selection()
             end
         end
 
-        local mode = "word"
-        if al ~= -1 and (al ~= cl or aw ~= cw) then
-            mode = "sentence"
-        elseif cl ~= -1 and cw == -1 then
-            mode = "sentence"
-        end
-
         if term and term ~= "" then
             term = term:gsub("{[^}]+}", "")
             -- Clean capture: Remove leading/trailing punctuation and spaces
@@ -1782,8 +1773,9 @@ local function dw_anki_export_selection()
             
             context_line = context_line:gsub("{[^}]+}", "")
             local extracted_context = extract_anki_context(context_line, term)
-            save_anki_tsv_row(term, extracted_context, time_pos, mode)
+            save_anki_tsv_row(term, extracted_context, time_pos)
             show_osd("Anki Highlight Saved: " .. term)
+        end
             
             -- Force reload of TSV to pick up the new highlight and clear selection to show it
             load_anki_tsv(true)
