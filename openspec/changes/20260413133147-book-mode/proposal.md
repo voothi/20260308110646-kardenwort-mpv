@@ -13,7 +13,7 @@ The user requires a navigation style identical to reading a static book when exp
 
 ### New Capabilities
 
-- `book-mode-navigation`: Introduces the Book Mode interaction state and keybindings (`b`/`и`), configuration integration (`mpv.conf`), and suppression/override mechanisms for subtitle navigation triggers (`a`, `d`, LMB double-click) within the Window Drum mode.
+- `book-mode-navigation`: Introduces the Book Mode interaction state and keybindings (`b`/`и`), configuration integration (`mpv.conf`), and suppression of both mode-regression and automatic viewport scrolling within the Window Drum mode.
 
 ### Modified Capabilities
 

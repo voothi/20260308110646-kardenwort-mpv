@@ -5,9 +5,10 @@ The Drum Window subtitle UI ("w" mode) offers a stationary viewing port that pre
 ## Goals / Non-Goals
 
 **Goals:**
-- Implement a discrete toggleable "Book Mode" variable, manageable via hotkey `b` (or `и`).
+- Implement a discrete toggleable "Book Mode" variable, managed via `FSM.BOOK_MODE`.
 - Make the Book Mode permanently engangeable via `mpv.conf`.
-- Intercept and suppress the exact conditional logic blocks that collapse the `w` mode during `a`, `d` inputs, and `mbtn_left_dbl` clicks, specifically ensuring the UI maintains the centered block presentation.
+- Intercept and suppress the exact conditional logic blocks that collapse the `w` mode during `a`, `d` inputs and `mbtn_left_dbl` clicks.
+- **New Feature**: "Freeze" the viewport center in Book Mode, ensuring the list stays stationary during playback and navigation unless explicitly moved by the user.
 
 **Non-Goals:**
 - Removing or altering the normal, dynamic reel behavior when `w` (Drum Window) mode is genuinely toggled off.
@@ -15,9 +16,10 @@ The Drum Window subtitle UI ("w" mode) offers a stationary viewing port that pre
 
 ## Decisions
 
-- **State Management**: Introduce `local is_book_mode = false` at script initialization, mapped early to read configuration keys. This ensures the design seamlessly inherits from a central source of truth.
-- **Keybinding Setup**: Bind both `b` and `и` (Russian layout equivalent) to an observed function `toggle_book_mode()`. This function toggles `is_book_mode` and updates `state.drum_window` if needed, optionally throwing an On-Screen Display (OSD) feedback message like "Book Mode: ON".
-- **Interaction Supression**: Locate handlers for `a` (prev_sub), `d` (next_sub), and `mbtn_left_dbl` (vocab selection). Wrap the mode-switch downcast logic in conditional blocks: e.g., `if state.drum_window and not is_book_mode then state.drum_window = false end`.
+- **State Management**: Integrated into the central state machine as `FSM.BOOK_MODE`. Initialized from `Options.book_mode`.
+- **Keybinding Setup**: Bind both `b` and `и` to `toggle_book_mode()`. This function toggles the lock and ensures the Drum Window is active if Book Mode is turned ON.
+- **Viewport Freezing**: Modify `tick_dw` to skip `FSM.DW_VIEW_CENTER` updates when `FSM.BOOK_MODE` is active.
+- **Navigation Suppression**: Modify `cmd_dw_seek_delta` and `cmd_dw_double_click` to bypass `FSM.DW_VIEW_CENTER` updates when `FSM.BOOK_MODE` is active, allowing the video to seek while keeping the list stationary.
 
 ## Risks / Trade-offs
 

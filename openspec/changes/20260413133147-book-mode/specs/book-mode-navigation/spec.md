@@ -13,17 +13,16 @@ The system SHALL allow this mode to be toggled at runtime using the `b` (or `и`
 - **WHEN** the script initializes
 - **THEN** the system SHALL read the `book_mode` boolean parameter from `mpv.conf` (under the script-opts grouping) to define the initial lock state.
 
-### Requirement: Interaction Supression in Book Mode
-When the system is in Book Mode, standard subtitle navigation interactions and vocabulary selection interactions SHALL NOT exit or collapse the Drum Window state back into normal Drum Mode.
+### Requirement: Stationary Viewport (Frozen Scroll) in Book Mode
+When in Book Mode, the system SHALL decouple the viewport center from the playback time, ensuring the list remains stationary during playback and navigation.
 
-#### Scenario: Subtitle scrolling with Book Mode ON
-- **WHEN** the user is in Book Mode (`is_book_mode == true` and `state.drum_window == true`)
-- **AND** the user navigates subtitles using `a` (previous) or `d` (next) keys
-- **THEN** the subtitle position SHALL seek to the appropriate line 
-- **AND** the active rendering mode SHALL REMAIN as Drum Window mode exclusively.
+#### Scenario: Playback progression in Book Mode
+- **WHEN** the system is in Book Mode
+- **AND** the video plays forward
+- **THEN** the active subtitle highlight SHALL move
+- **BUT** the viewport (`FSM.DW_VIEW_CENTER`) SHALL NOT scroll automatically.
 
-#### Scenario: Vocabulary selection with Book Mode ON
-- **WHEN** the user is in Book Mode (`is_book_mode == true` and `state.drum_window == true`)
-- **AND** the user double-clicks the Left Mouse Button (`mbtn_left_dbl`)
-- **THEN** the vocabulary highlight SHALL register correctly 
-- **AND** the active rendering mode SHALL REMAIN as Drum Window mode exclusively.
+#### Scenario: Manual navigation in Book Mode
+- **WHEN** the user seeks via `a`/`d` or double-click to select a word
+- **THEN** the video SHALL seek to the target line
+- **BUT** the viewport center SHALL REMAIN static at its current scrolled position, preventing the "jump" back to center.
