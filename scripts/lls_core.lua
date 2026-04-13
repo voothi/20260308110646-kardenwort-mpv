@@ -121,8 +121,6 @@ local Options = {
 }
 options.read_options(Options, "lls")
 
-local is_book_mode = Options.book_mode
-
 -- =========================================================================
 -- STATE MACHINE
 -- =========================================================================
@@ -138,6 +136,7 @@ local FSM = {
     DRUM = "OFF",
     COPY_MODE = "A",
     COPY_CONTEXT = "OFF",
+    BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
 
     -- Transients
@@ -1728,10 +1727,6 @@ local function cmd_dw_double_click()
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-
-        if not is_book_mode then
-            cmd_toggle_drum_window()
-        end
     end
 end
 
@@ -1743,7 +1738,7 @@ local function tick_dw(time_pos)
     if active_idx == -1 then return end
     
     -- In follow mode: viewport and cursor track the active playback line
-    if FSM.DW_FOLLOW_PLAYER then
+    if FSM.DW_FOLLOW_PLAYER and not FSM.BOOK_MODE then
         FSM.DW_VIEW_CENTER = active_idx
         FSM.DW_CURSOR_LINE = active_idx
     end
@@ -2057,10 +2052,6 @@ local function cmd_dw_seek_selected()
             FSM.DW_FOLLOW_PLAYER = true
             FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
             show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
-            
-            if not is_book_mode then
-                cmd_toggle_drum_window()
-            end
         end
     end
 end
@@ -2080,13 +2071,11 @@ local function cmd_dw_seek_delta(dir)
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
+        FSM.DW_VIEW_CENTER = target_idx
+        FSM.DW_CURSOR_LINE = target_idx
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_CURSOR_WORD = -1
-
-        if not is_book_mode then
-            cmd_toggle_drum_window()
-        end
     end
 end
 
@@ -2903,8 +2892,8 @@ function cmd_toggle_drum_window()
 end
 
 function toggle_book_mode()
-    is_book_mode = not is_book_mode
-    if is_book_mode then
+    FSM.BOOK_MODE = not FSM.BOOK_MODE
+    if FSM.BOOK_MODE then
         if FSM.DRUM_WINDOW == "OFF" then
             cmd_toggle_drum_window()
         end
