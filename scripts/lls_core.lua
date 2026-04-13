@@ -720,6 +720,8 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local start_pos, end_pos = full_lower:find(term_lower, 1, true)
     
     local sentence = full_line
+    local is_sentence_start = true
+    
     if start_pos then
         -- Search backwards for punctuation
         local pre = full_line:sub(1, start_pos - 1)
@@ -728,6 +730,8 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         local b_idx = pre:reverse():find("%s+[.!?]")
         if b_idx then
             sent_start = start_pos - b_idx + 1
+        elseif pre:match("%S") then
+            is_sentence_start = false
         end
         
         -- Search forwards for punctuation starting safely AFTER the term
@@ -746,32 +750,54 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     -- We use a dynamic limit to avoid overly aggressive truncation for long selections.
     local words = build_word_list(sentence)
     local limit = max_words_override or Options.anki_context_max_words
-    if #words <= limit then return sentence end
     
-    -- 3. If the sentence is still too long, fallback to word-based truncation around the term
-    local selected_words = build_word_list(selected_term)
-    if #selected_words == 0 then return sentence:sub(1, 100) .. "..." end
+    local final_sentence = sentence
     
-    local target_idx = -1
-    for i = 1, #words - #selected_words + 1 do
-        local match = true
-        for j = 1, #selected_words do
-            if words[i + j - 1] ~= selected_words[j] then match = false break end
+    if #words > limit then
+        -- 3. If the sentence is still too long, fallback to word-based truncation around the term
+        local selected_words = build_word_list(selected_term)
+        if #selected_words == 0 then 
+            final_sentence = sentence:sub(1, 100) .. "..." 
+        else
+            local target_idx = -1
+            for i = 1, #words - #selected_words + 1 do
+                local match = true
+                for j = 1, #selected_words do
+                    if words[i + j - 1] ~= selected_words[j] then match = false break end
+                end
+                if match then target_idx = i break end
+            end
+            
+            if target_idx == -1 then 
+                final_sentence = sentence:sub(1, 100) .. "..." 
+            else
+                local last_idx = target_idx + #selected_words - 1
+                local half_max = math.floor(limit / 2)
+                local context_start = math.max(1, target_idx - half_max)
+                local context_end = math.min(#words, last_idx + half_max)
+                
+                if context_start > 1 then
+                    is_sentence_start = false
+                end
+                
+                local context_words = {}
+                for i = context_start, context_end do table.insert(context_words, words[i]) end
+                
+                final_sentence = table.concat(context_words, " "):match("^%s*(.-)%s*$")
+            end
         end
-        if match then target_idx = i break end
     end
     
-    if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
+    if is_sentence_start and final_sentence ~= "" then
+        local first_char = final_sentence:match("^[%z\1-\127\194-\244][\128-\191]*")
+        if first_char and first_char ~= utf8_to_lower(first_char) then
+            if not final_sentence:match("[.!?]$") then
+                final_sentence = final_sentence .. "."
+            end
+        end
+    end
     
-    local last_idx = target_idx + #selected_words - 1
-    local half_max = math.floor(limit / 2)
-    local context_start = math.max(1, target_idx - half_max)
-    local context_end = math.min(#words, last_idx + half_max)
-    
-    local context_words = {}
-    for i = context_start, context_end do table.insert(context_words, words[i]) end
-    
-    return table.concat(context_words, " "):match("^%s*(.-)%s*$")
+    return final_sentence
 end
 
 local function load_sub(path, is_ass)
