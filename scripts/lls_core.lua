@@ -116,6 +116,7 @@ local Options = {
     anki_local_fuzzy_window = 10.0,
     anki_context_strict = true,
     anki_highlight_bold = false,
+    anki_strip_metadata = true,
     book_mode = false
 }
 options.read_options(Options, "lls")
@@ -1790,8 +1791,12 @@ local function dw_anki_export_selection()
         end
 
         if term and term ~= "" then
-            -- Clean term: remove ASS tags, bracketed metadata, and trim whitespace
-            term = term:gsub("{[^}]+}", ""):gsub("%b[]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
+            -- Clean term: remove ASS tags and trim whitespace
+            term = term:gsub("{[^}]+}", "")
+            if Options.anki_strip_metadata then
+                term = term:gsub("%b[]", " ")
+            end
+            term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
             
             -- Clean capture: Remove leading/trailing punctuation
             local pre = term:match("^[%p%s]*")
@@ -1800,8 +1805,12 @@ local function dw_anki_export_selection()
                 term = term:sub(#pre + 1, #term - #suf)
             end
             
-            -- Clean context: remove ASS tags and bracketed metadata
-            context_line = context_line:gsub("{[^}]+}", ""):gsub("%b[]", " "):gsub("%s+", " ")
+            -- Clean context: remove ASS tags
+            context_line = context_line:gsub("{[^}]+}", "")
+            if Options.anki_strip_metadata then
+                context_line = context_line:gsub("%b[]", " ")
+            end
+            context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit)
