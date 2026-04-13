@@ -214,6 +214,102 @@ dw_tooltip_osd.z = 25
 -- PARSERS & UTILS
 -- =========================================================================
 
+local ANKI_MAPPING_CACHE = nil
+
+local function load_anki_mapping_ini()
+    if ANKI_MAPPING_CACHE then return ANKI_MAPPING_CACHE end
+    
+    local path = mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
+    local f = io.open(path, "r")
+    
+    local config = {
+        fields = {},
+        mapping = {},
+        tts = {},
+        settings = {}
+    }
+    
+    if not f then 
+        ANKI_MAPPING_CACHE = config
+        return config 
+    end
+
+    local section = nil
+
+    for line in f:lines() do
+        local clean_line = line:match("^%s*(.-)%s*$")
+        if clean_line ~= "" and not clean_line:match("^#") then
+            local header = clean_line:match("^%[(.+)%]$")
+            if header then
+                section = header:lower()
+            elseif section == "fields" then
+                table.insert(config.fields, clean_line)
+            elseif section == "mapping" or section == "tts" or section == "settings" then
+                local k, v = clean_line:match("^([^=]+)=(.*)$")
+                if k and v then
+                    k = k:match("^%s*(.-)%s*$")
+                    v = v:match("^%s*(.-)%s*$")
+                    if (v:match('^".*"$') or v:match("^'.*'$")) then
+                        v = v:sub(2, -2)
+                    end
+                    config[section][k] = v
+                end
+            end
+        elseif clean_line == "" and section == "fields" then
+            table.insert(config.fields, "") -- hole
+        end
+    end
+    f:close()
+    
+    ANKI_MAPPING_CACHE = config
+    return config
+end
+
+local function extract_subtitle_metadata(path)
+    if not path or path == "" then return "", "" end
+    local filename = path:match("([^/\\]+)$") or path
+    local base = filename:gsub("%.[^.]+$", "")
+    local lang_code = base:match("%.([a-zA-Z]+)$")
+    if lang_code then
+        return base, lang_code:lower()
+    end
+    return base, ""
+end
+
+local function escape_tsv(str)
+    if type(str) ~= "string" then return tostring(str or "") end
+    return str:gsub("\t", " "):gsub("\n", " ")
+end
+
+local function resolve_anki_field(field_name, term, context, time_pos, deck_name, lang_code, mapping, tts)
+    if not field_name or field_name == "" then return "" end
+    
+    local source = mapping[field_name]
+    if not source then
+        source = tts[field_name]
+        if not source then return "" end
+    end
+    
+    if source == "source_word" then return escape_tsv(term) end
+    if source == "source_sentence" then return escape_tsv(context) end
+    if source == "time" then return string.format("%.3f", time_pos) end
+    if source == "deck_name" then return escape_tsv(deck_name) end
+    
+    if source:match("^tts_source_") then
+        local tts_lang = source:match("^tts_source_(.+)$")
+        if tts_lang and lang_code and tts_lang:lower() == lang_code:lower() then return "1" end
+        return ""
+    end
+    if source:match("^tts_dest_") then
+        local tts_lang = source:match("^tts_dest_(.+)$")
+        if tts_lang and lang_code and tts_lang:lower() == lang_code:lower() then return "1" end
+        return ""
+    end
+    
+    if source == "1" then return "1" end
+    return escape_tsv(source)
+end
+
 local function calculate_ass_alpha(val)
     if type(val) == "string" and #val == 2 and val:match("%x%x") then
         return val:upper()
@@ -798,20 +894,33 @@ local function load_anki_tsv(force)
     if not f then return end
 
     local new_highlights = {}
+    local config = load_anki_mapping_ini()
 
-    local line_count = 0
+    local term_col, ctx_col, time_col = 1, 2, 3
+    if #config.fields > 0 then
+        for i, fld in ipairs(config.fields) do
+            local src = config.mapping[fld]
+            if src == "source_word" then term_col = i
+            elseif src == "source_sentence" then ctx_col = i
+            elseif src == "time" then time_col = i end
+        end
+    end
+
     for line in f:lines() do
-        line_count = line_count + 1
-        if line_count > 1 then
+        if not line:match("^#") then
             local fields = {}
             for field in (line .. "\t"):gmatch("([^\t]*)\t") do
                 table.insert(fields, field)
             end
-            if #fields >= 2 then
-                local term = fields[1]
-                local context = fields[2]
-                local time_val = tonumber(fields[3]) or 0
-                table.insert(new_highlights, { term = term, context = context, time = time_val })
+            -- Note: We now allow missing fields if they aren't part of the core 3
+            if #fields >= math.max(term_col, time_col) then
+                local term = fields[term_col]
+                local context = fields[ctx_col] or ""
+                local time_val = tonumber(fields[time_col]) or 0
+                -- Don't load headers or empty terms
+                if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
+                    table.insert(new_highlights, { term = term, context = context, time = time_val })
+                end
             end
         end
     end
@@ -824,18 +933,67 @@ local function save_anki_tsv_row(term, context, time_pos)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
 
+    local config = load_anki_mapping_ini()
+    local fields = config.fields
+    local mapping = config.mapping
+    local tts = config.tts
+    local settings = config.settings
+
+    if #fields == 0 then
+        -- Fallback default behavior
+        fields = {"Term", "Context"}
+        mapping = {Term = "source_word", Context = "source_sentence"}
+    end
+
+    local deck_name, lang_code = "", ""
+    if Tracks.pri.path then
+        deck_name, lang_code = extract_subtitle_metadata(Tracks.pri.path)
+    end
+    if settings.deck_name and settings.deck_name ~= "" then
+        deck_name = settings.deck_name
+    end
+
     local f_check = io.open(tsv_path, "r")
-    local exists = false
-    if f_check then exists = true f_check:close() end
+    local exists = (f_check ~= nil)
+    local is_empty = true
+    if exists then 
+        local content = f_check:read(1)
+        if content then is_empty = false end
+        f_check:close() 
+    end
 
     local f = io.open(tsv_path, "a")
     if not f then return end
 
-    if not exists then
-        f:write(Options.anki_tsv_headers .. "	Time\n")
+    if not exists or is_empty then
+        local deck_col = -1
+        for i, fld in ipairs(fields) do
+            if mapping[fld] == "deck_name" then
+                deck_col = i
+                break
+            end
+        end
+        if deck_col > 0 then
+            f:write(string.format("#deck column:%d\n", deck_col))
+        end
+        
+        -- Optional: Write standard headers if `#deck` is not the only thing we want
+        if deck_col == -1 then
+            -- Fallback header for TSV
+            f:write(table.concat(fields, "\t") .. "\n")
+        end
     end
 
-    f:write(string.format("%s\t%s\t%.3f\n", term, context, time_pos))
+    local row_data = {}
+    for i, field_name in ipairs(fields) do
+        if field_name == "" then
+            table.insert(row_data, "")
+        else
+            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, lang_code, mapping, tts))
+        end
+    end
+    
+    f:write(table.concat(row_data, "\t") .. "\n")
     f:close()
 
     table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos })
