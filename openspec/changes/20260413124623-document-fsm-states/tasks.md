@@ -9,6 +9,13 @@
 - [x] 2.2 Re-architect `master_tick` suppression `if` branches to explicitly catch `mp.get_property_bool("secondary-sub-visibility")` escaping false loops (Fixes `20260413130213` secondary sub duplicate artefact).
 - [x] 2.3 Audit the fallback logic inside `master_tick` restoring native visibility to properly respect `FSM.native_sec_sub_vis` instead of forcefully asserting true or false.
 
-## 3. Finalization
+## 3. Expanded Architectural Documentation
 
-- [x] 3.1 Conclude the review successfully and confirm that all required FSM states were captured.
+- [x] 3.1 Document `MEDIA_STATE` and its override mechanisms against `DRUM` mode.
+- [x] 3.2 Document `AUTOPAUSE` and `SPACEBAR` concurrency interactions.
+- [x] 3.3 Document `DW_TOOLTIP_MODE` and relative Z-index drawing mechanisms.
+- [x] 3.4 Document hijacked input modal states for `SEARCH_MODE` and `COPY_MODE`.
+
+## 4. Finalization
+
+- [x] 4.1 Conclude the review successfully and confirm that all required FSM states were captured.
