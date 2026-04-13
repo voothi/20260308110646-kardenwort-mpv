@@ -970,9 +970,11 @@ local function update_media_state()
     if FSM.DRUM == "ON" then
         if FSM.MEDIA_STATE:match("ASS") then
             FSM.DRUM = "OFF"
-            mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
-            mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
-            mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
+            if FSM.DRUM_WINDOW == "OFF" then
+                mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
+                mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
+                mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
+            end
             drum_osd.data = ""
             drum_osd:update()
             show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
@@ -1854,41 +1856,47 @@ local function master_tick()
     end
 
     -- Manage native subtitle suppression
-    -- We hide native subs if OSD rendering is active.
-    -- To keep things simple, if Drum is OFF, we let the user choose between native and OSD.
-    -- If they configured SRT fonts, we assume they want OSD.
-    if FSM.DRUM_WINDOW == "OFF" then
-        local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
-        local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
+    -- We hide native subs if OSD rendering is active OR Drum Window is open.
+    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
+    local dw_active = (FSM.DRUM_WINDOW ~= "OFF")
 
-        if render_osd then
-            if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
-                mp.set_property_bool("sub-visibility", false)
-                mp.set_property_bool("secondary-sub-visibility", false)
-            end
+    if dw_active or render_osd then
+        if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
+            mp.set_property_bool("sub-visibility", false)
+            mp.set_property_bool("secondary-sub-visibility", false)
+        end
+        
+        -- Only render one-line Drum/SRT OSD if Drum Window is not active
+        if not dw_active and render_osd then
             tick_drum(time_pos)
         else
-            -- Clear OSD if not rendering
             if drum_osd.data ~= "" then
                 drum_osd.data = ""
                 drum_osd:update()
             end
-            -- Restore native if user wants subs and we aren't using OSD
-            if FSM.native_sub_vis then
-                if not mp.get_property_bool("sub-visibility") then
-                    mp.set_property_bool("sub-visibility", true)
-                end
-                -- Only restore secondary if it should be on
-                if FSM.native_sec_sub_vis and not mp.get_property_bool("secondary-sub-visibility") then
-                    mp.set_property_bool("secondary-sub-visibility", true)
-                elseif not FSM.native_sec_sub_vis and mp.get_property_bool("secondary-sub-visibility") then
-                    mp.set_property_bool("secondary-sub-visibility", false)
-                end
-            else
-                if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
-                    mp.set_property_bool("sub-visibility", false)
-                    mp.set_property_bool("secondary-sub-visibility", false)
-                end
+        end
+    else
+        -- Clear OSD if not rendering
+        if drum_osd.data ~= "" then
+            drum_osd.data = ""
+            drum_osd:update()
+        end
+        -- Restore native if user wants subs and we aren't using OSD
+        if FSM.native_sub_vis then
+            if not mp.get_property_bool("sub-visibility") then
+                mp.set_property_bool("sub-visibility", true)
+            end
+            -- Only restore secondary if it should be on
+            if FSM.native_sec_sub_vis and not mp.get_property_bool("secondary-sub-visibility") then
+                mp.set_property_bool("secondary-sub-visibility", true)
+            elseif not FSM.native_sec_sub_vis and mp.get_property_bool("secondary-sub-visibility") then
+                mp.set_property_bool("secondary-sub-visibility", false)
+            end
+        else
+            if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
+                mp.set_property_bool("sub-visibility", false)
+                mp.set_property_bool("secondary-sub-visibility", false)
             end
         end
     end

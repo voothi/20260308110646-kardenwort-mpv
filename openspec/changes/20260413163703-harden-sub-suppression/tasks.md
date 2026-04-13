@@ -1,13 +1,13 @@
 ## 1. Harden Master Tick Suppression
 
-- [ ] 1.1 Refactor the visibility management block in `master_tick` to include `FSM.DRUM_WINDOW ~= "OFF"` in the suppression condition.
-- [ ] 1.2 Ensure that if any OSD rendering mode is active (Drum Mode, OSD-SRT, or Drum Window), native subtitles are forced to `false` periodically.
-- [ ] 1.3 Verify that the logic correctly restores native subtitles based on `FSM.native_sub_vis` when neither Drum Mode nor Drum Window is active.
+- [x] 1.1 Refactor the visibility management block in `master_tick` to include `FSM.DRUM_WINDOW ~= "OFF"` in the suppression condition.
+- [x] 1.2 Ensure that if any OSD rendering mode is active (Drum Mode, OSD-SRT, or Drum Window), native subtitles are forced to `false` periodically.
+- [x] 1.3 Verify that the logic correctly restores native subtitles based on `FSM.native_sub_vis` when neither Drum Mode nor Drum Window is active.
 
 ## 2. Secure Track Transitions
 
-- [ ] 2.1 Update `update_media_state` to prevent visibility restoration during track changes if the Drum Window is active.
-- [ ] 2.2 Ensure the "auto-disable Drum Mode" block in `update_media_state` respects the Drum Window state when deciding to restore native properties.
+- [x] 2.1 Update `update_media_state` to prevent visibility restoration during track changes if the Drum Window is active.
+- [x] 2.2 Ensure the "auto-disable Drum Mode" block in `update_media_state` respects the Drum Window state when deciding to restore native properties.
 
 ## 3. Validation
 
