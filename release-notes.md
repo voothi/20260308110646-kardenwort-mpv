@@ -1,3 +1,26 @@
+# Release Notes - v1.28.12 (MMB Drag-Export & Occurrence Persistence)
+
+**Date**: 2026-04-13
+**Version**: v1.28.12
+**Request ZID**: 20260413013335 (Archived: 20260413004525)
+
+## Highlights
+
+### 🖱️ **MMB Drag-to-Export**
+- **Unified Selection Logic**: The Middle Mouse Button (MMB) now supports high-performance drag selection, identical to the Left Mouse Button.
+- **Instant Commitment**: Releasing MMB now automatically triggers the Anki export process. Draw a phrase and release to instantly save it with full context and timing.
+- **SCM Compatibility**: Middle-clicking an existing red selection range still commits and exports it, preserving the "Second Click Mode" workflow.
+
+### 🎨 **Multi-Occurrence Persistence**
+- **Non-Destructive Bookmarking**: Resolved the issue where saving a word in a new location would "un-highlight" previous occurrences. The engine now supports multiple time-anchors per word.
+- **Global Context Fidelity**: All bookmarked instances of a word or phrase remain visible across the entire timeline, regardless of which specific instance was saved last.
+
+### ⚖️ **Overlap-Only Intensity**
+- **Intelligent Stacking**: Color intensity (highlight depth) now strictly reflects textual overlap between *different* saved items (e.g., a single word vs. a phrase).
+- **Redundancy Guard**: Duplicate bookmarks of the exact same term across different locations no longer artificially darken the highlight, maintaining a clean and professional visual style.
+
+---
+
 # Release Notes - v1.28.10 (Sanitized Anki Export)
 
 **Date**: 2026-04-13
