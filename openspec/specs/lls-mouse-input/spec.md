@@ -33,3 +33,41 @@ The mouse input system SHALL ensure that viewport-altering events (scrolling) on
 #### Scenario: Passive Scroll Stability
 - **WHEN** a mouse wheel event is processed while NOT dragging
 - **THEN** the system SHALL refresh the OSD layout but SHALL NOT update the logical cursor coordinates from the mouse position.
+
+### Requirement: Ctrl Modifier Key State Tracking
+The mouse input system SHALL track the held/released state of the Ctrl key while the Drum Window is active, exposing a `ctrl_held` boolean for use by gesture dispatchers.
+
+#### Scenario: Ctrl key state set on press
+- **WHEN** the Drum Window is active
+- **AND** the user presses the Ctrl key
+- **THEN** the system SHALL set `ctrl_held = true`
+
+#### Scenario: Ctrl key state cleared on release
+- **WHEN** the Drum Window is active
+- **AND** the user releases the Ctrl key
+- **THEN** the system SHALL set `ctrl_held = false`
+- **AND** the system SHALL emit a `ctrl-released` event to trigger accumulator discard
+
+### Requirement: Ctrl+LMB Gesture Routing
+When `ctrl_held` is true, LMB press events SHALL be routed to the Ctrl-accumulator handler instead of the drag-selection handler.
+
+#### Scenario: LMB with Ctrl held routes to accumulator
+- **WHEN** the user presses LMB while `ctrl_held` is true
+- **THEN** the word under the cursor SHALL be passed to the `ctrl_pending_set` toggle handler
+- **AND** the drag-selection state machine SHALL NOT be entered
+
+#### Scenario: LMB without Ctrl routes to drag as before
+- **WHEN** the user presses LMB while `ctrl_held` is false
+- **THEN** the existing drag-selection behavior SHALL remain unchanged
+
+### Requirement: Ctrl+MMB Gesture Routing
+When `ctrl_held` is true, MMB press events SHALL be routed to the Ctrl-accumulator commit handler.
+
+#### Scenario: MMB with Ctrl held routes to commit handler
+- **WHEN** the user presses MMB while `ctrl_held` is true
+- **THEN** the system SHALL pass the event to the `ctrl-multiselect` commit handler
+- **AND** the word under the cursor SHALL be evaluated for set membership before dispatching export
+
+#### Scenario: MMB without Ctrl routes to standard export as before
+- **WHEN** the user presses MMB while `ctrl_held` is false
+- **THEN** the existing MMB export/drag behavior SHALL remain unchanged
