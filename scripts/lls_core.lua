@@ -231,12 +231,12 @@ local function parse_mapping(str)
     if not str or str == "" then return m end
     for _, kv in ipairs(split_and_trim(str, ";")) do
         -- Also support comma as separator if user preferred it in mapping string
-        if kv == "" then goto next_kv end
-        local k, v = kv:match("^%s*([^=]+)%s*=%s*([^%s]+)%s*$")
-        if k and v then
-            m[k:match("^%s*(.-)%s*$")] = v:match("^%s*(.-)%s*$")
+        if kv ~= "" then
+            local k, v = kv:match("^%s*([^=]+)%s*=%s*([^%s]+)%s*$")
+            if k and v then
+                m[k:match("^%s*(.-)%s*$")] = v:match("^%s*(.-)%s*$")
+            end
         end
-        ::next_kv::
     end
     -- Support comma if semicolon split didn't find multiple items
     if not next(m) and str:find("=") then
@@ -912,34 +912,32 @@ local function load_anki_tsv(force)
     local header_found = false
 
     for line in f:lines() do
-        if line:sub(1,1) == "#" then goto next_line end
-        
-        local fields = split_and_trim(line, "\t")
-        if not header_found then
-            -- First non-comment line is header
-            for i, h in ipairs(fields) do
-                local h_lower = h:lower()
-                if h_lower == "wordsource" or h_lower == "term" or h_lower == "quotation" then term_idx = i
-                elseif h_lower == "sentencesource" or h_lower == "context" or h_lower == "sentence" then ctx_idx = i
-                elseif h_lower == "time" or h_lower == "timestamp" then time_idx = i end
+        if line:sub(1,1) ~= "#" then
+            local fields = split_and_trim(line, "\t")
+            if not header_found then
+                -- First non-comment line is header
+                for i, h in ipairs(fields) do
+                    local h_lower = h:lower()
+                    if h_lower == "wordsource" or h_lower == "term" or h_lower == "quotation" then term_idx = i
+                    elseif h_lower == "sentencesource" or h_lower == "context" or h_lower == "sentence" then ctx_idx = i
+                    elseif h_lower == "time" or h_lower == "timestamp" then time_idx = i end
+                end
+                header_found = true
+                -- Fallback if header doesn't match names (legacy support)
+                if term_idx == -1 then term_idx = 1 end
+                if ctx_idx == -1 then ctx_idx = 2 end
+                if time_idx == -1 then time_idx = 3 end
+            else
+                if #fields > 0 then
+                    local term = term_idx > 0 and fields[term_idx] or ""
+                    local context = ctx_idx > 0 and fields[ctx_idx] or ""
+                    local time_val = time_idx > 0 and tonumber(fields[time_idx]) or 0
+                    if term ~= "" then
+                        table.insert(new_highlights, { term = term, context = context, time = time_val })
+                    end
+                end
             end
-            header_found = true
-            -- Fallback if header doesn't match names (legacy support)
-            if term_idx == -1 then term_idx = 1 end
-            if ctx_idx == -1 then ctx_idx = 2 end
-            if time_idx == -1 then time_idx = 3 end
-            goto next_line
         end
-
-        if #fields > 0 then
-            local term = term_idx > 0 and fields[term_idx] or ""
-            local context = ctx_idx > 0 and fields[ctx_idx] or ""
-            local time_val = time_idx > 0 and tonumber(fields[time_idx]) or 0
-            if term ~= "" then
-                table.insert(new_highlights, { term = term, context = context, time = time_val })
-            end
-        end
-        ::next_line::
     end
     f:close()
     
@@ -1368,26 +1366,24 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif i == p2_l then selected = (j <= p2_w) end
                 elseif i == cl and j == cw then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                    goto next_word
-                end
-                
-                if selected then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                 else
-                    local sub_t = subs[i]
-                    local stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
-                    local h_color = color
-                    if stack == 1 then h_color = Options.anki_highlight_depth_1
-                    elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-                    elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-
-                    if h_color ~= color then
-                        table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
+                    if selected then
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                     else
-                        table.insert(formatted_words, w)
+                        local sub_t = subs[i]
+                        local stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+                        local h_color = color
+                        if stack == 1 then h_color = Options.anki_highlight_depth_1
+                        elseif stack == 2 then h_color = Options.anki_highlight_depth_2
+                        elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+
+                        if h_color ~= color then
+                            table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
+                        else
+                            table.insert(formatted_words, w)
+                        end
                     end
                 end
-                ::next_word::
             end
             table.insert(entry_ass_vlines, table.concat(formatted_words, " "))
         end
@@ -3474,4 +3470,3 @@ local function recover_native_osd_style()
     end
 end
 recover_native_osd_style()
-show_osd("LLS INITIALIZED", 2)
