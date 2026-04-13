@@ -4,9 +4,9 @@ The current Anki export logic is hardcoded to a fixed set of columns, which limi
 
 ## What Changes
 
-- **External INI Config**: Moving Anki field definitions out of the strict `mpv.conf` parser and into a dedicated `anki_mapping.ini` file to allow clean, vertical configuration.
+- **External INI Config**: Moving Anki field definitions out of the strict `mpv.conf` parser and into a dedicated `anki_mapping.ini` file to allow clean, vertical configuration where column position is determined purely by line order.
 - **Flexible Mappings**: Introduction of `anki_mapping_word` and `anki_mapping_sentence` to link Anki fields to internal data sources (`source_word`, `source_sentence`, `time`, `deck_name`).
-- **Hole Support**: Ability to define "holes" in the INI field list (leaving a key blank) to produce empty Anki columns.
+- **Hole Support**: Ability to define "holes" in the INI field list (by leaving a blank line in the `[fields]` block) to produce empty Anki columns.
 - **Smart Metadata Extraction**: Automatic extraction of deck names and language codes from the primary subtitle filename (e.g., `file.de.srt` -> deck `file.de`, language `de`).
 - **Automated Anki Headers**: Generation of the `#deck column:N` header at the start of the TSV for zero-touch Anki imports.
 - **Dynamic TTS Flags**: Support for `tts_source_[lang]` sources that automatically set a field to "1" based on the subtitle language postfix.

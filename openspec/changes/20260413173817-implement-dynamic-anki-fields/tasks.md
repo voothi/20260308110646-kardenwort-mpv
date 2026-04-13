@@ -1,7 +1,7 @@
 ## 1. Configuration & Metadata
 
 - [ ] 1.1 Create a lightweight `ini` parser utility in `lls_core.lua` to read configuration from `~~/script-opts/anki_mapping.ini`
-- [ ] [turbo] 1.2 Load `anki_fields`, `anki_mapping_word`, `anki_mapping_sentence`, and `anki_deck_name` from the parsed INI file, preserving empty values as holes
+- [ ] [turbo] 1.2 Parse the `[fields]` section strictly line-by-line into an ordered array (preserving blank lines as holes), and load the `[mapping]` and `[tts]` key-value pairs
 - [ ] 1.3 Add a filename parsing utility to extract the `deck_name` (base + lang postfix) and `lang_code` from `Tracks.pri.path`
 
 ## 2. Dynamic Export Engine
