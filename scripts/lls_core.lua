@@ -1827,8 +1827,16 @@ local function dw_anki_export_selection()
             -- Clean capture: Remove leading/trailing punctuation
             local pre = term:match("^[%p%s]*")
             local suf = term:match("[%p%s]*$")
+            local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
             if #pre < #term then
                 term = term:sub(#pre + 1, #term - #suf)
+            end
+            -- If the original subtitle ended with a period (or ! or ?) and
+            -- the cleaned term starts with an uppercase letter, restore the period.
+            -- This handles: "Die Luftfahrtbranche befindet sich im Umbruch." → stripped to
+            -- "Die Luftfahrtbranche befindet sich im Umbruch" → restored with "."
+            if raw_had_terminal and starts_with_uppercase(term) and not term:match("[.!?]$") then
+                term = term .. "."
             end
             
             -- Clean context: remove ASS tags
