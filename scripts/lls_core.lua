@@ -1766,6 +1766,7 @@ local function dw_anki_export_selection()
         local term = ""
         local context_line = ""
         local time_pos = 0
+        local is_sentence_boundary = false
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
             local p1_l, p1_w, p2_l, p2_w
@@ -1797,6 +1798,16 @@ local function dw_anki_export_selection()
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = subs[p1_l].start_time
+
+            -- Check if selection starts at a boundary
+            if p1_w == 1 then
+                is_sentence_boundary = true
+            else
+                local first_words = build_word_list(subs[p1_l].text:gsub("\n", " "))
+                if first_words[p1_w - 1] and first_words[p1_w - 1]:match("[.!?]$") then
+                    is_sentence_boundary = true
+                end
+            end
         elseif cl ~= -1 and subs[cl] then
             local sub = subs[cl]
             local ctx_parts = {}
@@ -1811,8 +1822,15 @@ local function dw_anki_export_selection()
             if cw ~= -1 then
                 local line_words = build_word_list(sub.text:gsub("\n", " "))
                 term = line_words[cw] or (sub.text:gsub("\n", " "))
+                -- Check for boundary
+                if cw == 1 then
+                    is_sentence_boundary = true
+                elseif line_words[cw - 1] and line_words[cw - 1]:match("[.!?]$") then
+                    is_sentence_boundary = true
+                end
             else
                 term = sub.text:gsub("\n", " ")
+                is_sentence_boundary = true
             end
         end
 
@@ -1831,11 +1849,9 @@ local function dw_anki_export_selection()
             if #pre < #term then
                 term = term:sub(#pre + 1, #term - #suf)
             end
-            -- If the original subtitle ended with a period (or ! or ?) and
+            -- If the selection starts at a boundary AND original subtitle ended with a period (or ! or ?) AND
             -- the cleaned term starts with an uppercase letter AND contains spaces (multi-word), restore the period.
-            -- This handles: "Die Luftfahrtbranche befindet sich im Umbruch." → restored with "."
-            -- But ignores single words like: "Umbruch." → "Umbruch"
-            if raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
+            if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
                 term = term .. "."
             end
             

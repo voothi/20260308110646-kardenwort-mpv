@@ -27,3 +27,8 @@ When the original subtitle text ends with terminal punctuation **and** the clean
 - **GIVEN** a subtitle segment containing only `Umbruch.`
 - **WHEN** the user saves the word `Umbruch`
 - **THEN** the `source_word` field SHALL contain `Umbruch` (without the period).
+
+#### Scenario: Capitalized phrase in the middle of a sentence — no period (German nouns)
+- **GIVEN** a subtitle segment `Sie haben dazu 30 Sekunden Zeit.`
+- **WHEN** the user saves the phrase `Sekunden Zeit`
+- **THEN** the `source_word` field SHALL contain `Sekunden Zeit` (no period added, as it did not start the sentence).

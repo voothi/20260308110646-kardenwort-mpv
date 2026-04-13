@@ -17,8 +17,9 @@ The export system in `lls_core.lua` performs a "clean capture" of the selected t
 
 - **Raw Terminal Detection**: Captue a boolean state (`raw_had_terminal`) before the punctuation stripping happens in the term cleanup block.
 - **Phrase Detection**: Check if the cleaned term contains at least one space (`term:find(" ")`) to distinguish between full sentences/phrases and single words.
+- **Boundary Detection**: Analyze the source text immediately preceding the selection to verify if it starts at a sentence boundary (start of subtitle or following `.!?`).
 - **Capitalization Guard**: Use the `starts_with_uppercase` helper to ensure we only apply restoration to capitalized sentences/proper thoughts.
-- **Restoration Action**: If `raw_had_terminal` is true, the term contains a space, and the cleaned term starts with an uppercase letter but no longer ends in punctuation, append a period.
+- **Restoration Action**: If `is_sentence_boundary` is true, `raw_had_terminal` is true, the term contains a space, and the cleaned term starts with an uppercase letter, append a period.
 - **Punctuation Support**: The detection covers `.`, `!`, and `?` while the restoration defaults to `.` for normalized study material.
 
 ## Risks / Trade-offs
