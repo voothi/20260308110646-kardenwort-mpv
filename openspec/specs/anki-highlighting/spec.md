@@ -11,11 +11,11 @@ The application SHALL allow the user to extract the currently selected text insi
 - **THEN** the system extracts the literal selected string and a broadened context window (including surrounding subtitles, capped by max constraints), and appends/updates an Anki-compatible TSV row into the media's directory.
 
 ### Requirement: Sentence-Aware Context Extraction
-The context extraction algorithm SHALL prioritize isolating complete sentences within the sliding subtitle window before applying any word-limit truncation.
+The context extraction algorithm SHALL prioritize isolating complete sentences within the sliding subtitle window before applying any word-limit truncation. **The algorithm MUST identify sentence boundaries (punctuation) relative to the END of the selected term to ensure multi-sentence selections are fully encompassed.**
 
-#### Scenario: Capturing context at sentence boundaries
-- **WHEN** a term is exported from a context that spans multiple sentences
-- **THEN** the system identifies `.`, `!`, `?` marks surrounding the term and attempts to capture only the grammatically complete sentence, avoiding "leaking" text from previous or subsequent unrelated sentences.
+#### Scenario: Capturing context for multi-sentence terms
+- **WHEN** a term containing punctuation (e.g., "Umbruch. Während") is exported
+- **THEN** the system searches for the preceding punctuation starting from the term's start, and the following punctuation starting from the term's end, ensuring both sentences are included in the result.
 
 ### Requirement: Highlight Toggle Keybinding
 The application SHALL bind `h` (and `р` for RU layout) to toggle the visual re-rendering scope of the highlights.
