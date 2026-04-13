@@ -48,6 +48,6 @@
 
 ## 5. Visual Normalization & Tooltip Sync
 
-- [ ] 5.1 Normalize `dw_font_size` to `38` in `mpv.conf` and `lls_core.lua` to match `drum_font_size=34` visual scale.
-- [ ] 5.2 Sync `dw_tooltip_bg_opacity` to `60` in `mpv.conf` and `lls_core.lua` to match Drum Window transparency.
-- [ ] 5.3 Update `draw_dw_tooltip` in `lls_core.lua` to use `Options.dw_text_color` (`CCCCCC`) as primary text color for parity with Drum Window.
+- [x] 5.1 Normalize `dw_font_size` to `34` (Unified) in `mpv.conf` and `lls_core.lua` to match global scale.
+- [x] 5.2 Sync `tooltip_bg_opacity` to `60` in `mpv.conf` and `lls_core.lua` to match Drum Window transparency.
+- [x] 5.3 Update `draw_dw_tooltip` in `lls_core.lua` to use unified visual parameters for parity.
