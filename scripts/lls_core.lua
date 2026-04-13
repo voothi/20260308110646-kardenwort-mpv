@@ -736,6 +736,19 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local full_lower = full_line:lower()
     local start_pos, end_pos = full_lower:find(term_lower, 1, true)
     
+    -- Non-contiguous term fallback: if the composed term can't be found verbatim
+    -- (e.g. "ist die Anwohner" when actual text is "ist für die Anwohner"), anchor
+    -- the sentence boundary search on the first word of the term instead.
+    if not start_pos then
+        local first_word = term_lower:match("^(%S+)")
+        if first_word then
+            local fw_s, fw_e = full_lower:find(first_word, 1, true)
+            if fw_s then
+                start_pos, end_pos = fw_s, fw_e
+            end
+        end
+    end
+    
     local sentence = full_line
     if start_pos then
         local is_sentence_start = false
