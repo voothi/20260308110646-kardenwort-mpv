@@ -16,6 +16,8 @@ local Options = {
 
     -- Drum Mode
     drum_font_size = 34,
+    drum_font_name = "Inter",
+    drum_font_bold = false,
     drum_context_lines = 2,
     drum_context_opacity = "30",
     drum_context_color = "FFFFFF",
@@ -30,6 +32,11 @@ local Options = {
     drum_bg_opacity = "60",        -- Frame transparency (ASS alpha 00-FF)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
+
+    -- SRT Style (Regular Mode)
+    srt_font_size = 55,
+    srt_font_name = "Inter",
+    srt_font_bold = true,
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -57,6 +64,7 @@ local Options = {
     dw_active_color = "FFFFFF",   -- white active text in BGR
     dw_highlight_color = "00FFFF",-- yellow highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
+    dw_font_bold = false,
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_vline_h_mul = 0.87,        -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
@@ -83,8 +91,9 @@ local Options = {
     tooltip_bg_opacity = "60",
     tooltip_bg_color = "222222",
     tooltip_text_color = "CCCCCC",
+    tooltip_font_name = "Inter",
     tooltip_text_opacity = "00",
-    tooltip_bold = false,
+    tooltip_font_bold = false,
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
     tooltip_pin_key = "MBTN_RIGHT",
@@ -202,6 +211,23 @@ dw_tooltip_osd.z = 25
 -- =========================================================================
 -- PARSERS & UTILS
 -- =========================================================================
+
+local function calculate_ass_alpha(val)
+    if type(val) == "string" and #val == 2 and val:match("%x%x") then
+        return val:upper()
+    end
+    local num = tonumber(val)
+    if not num then return "00" end
+    -- If value is 0-1 (decimal opacity), convert to transparency percentage
+    if num >= 0 and num <= 1 then
+        num = (1.0 - num) * 100
+    end
+    -- Clamp to 0-100
+    num = math.max(0, math.min(100, num))
+    -- Convert 0-100 transparency to 00-FF hex
+    local hex = string.format("%02X", math.floor((num / 100) * 255 + 0.5))
+    return hex
+end
 
 local function parse_time(time_str)
     local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
@@ -1012,8 +1038,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     if center_idx == -1 then return "" end
     
     local ass = ""
-    local start_idx = math.max(1, center_idx - Options.drum_context_lines)
-    local end_idx = math.min(#subs, center_idx + Options.drum_context_lines)
+    local is_drum = (FSM.DRUM == "ON")
+    local context_lines = is_drum and Options.drum_context_lines or 0
+    local start_idx = math.max(1, center_idx - context_lines)
+    local end_idx = math.min(#subs, center_idx + context_lines)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
     
@@ -1021,8 +1049,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local text = subs[sub_idx] and subs[sub_idx].text or ""
         if text == "" then return "" end
         local base_color = is_active and Options.drum_active_color or Options.drum_context_color
-        local opacity = is_active and Options.drum_active_opacity or Options.drum_context_opacity
-        local bold_state = (is_active and Options.drum_active_bold or Options.drum_context_bold) and "1" or "0"
+        local opacity = calculate_ass_alpha(is_active and Options.drum_active_opacity or Options.drum_context_opacity)
+        local is_drum = (FSM.DRUM == "ON")
+        local font_name = is_drum and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
+                                   or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
+        local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
+        local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
+                                      or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
+        
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         
         local words = build_word_list(text)
@@ -1042,8 +1076,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         end
         local result_text = table.concat(formatted_parts, " ")
 
-        return string.format("{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-            opacity, bold_state, base_color, size, result_text)
+        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
+            font_name, opacity, bold_state, base_color, size, result_text)
     end
 
     local prev_text = ""
@@ -1072,7 +1106,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     all_text = all_text .. next_text
 
     local style_block = string.format("{\\bord%g}{\\shad%g}{\\4a&H%s&}", 
-        Options.drum_border_size, Options.drum_shadow_offset, Options.drum_bg_opacity)
+        Options.drum_border_size, Options.drum_shadow_offset, calculate_ass_alpha(Options.drum_bg_opacity))
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -1165,7 +1199,9 @@ local function draw_dw(subs, view_center, active_idx)
         local i = entry.sub_idx
         local is_active = (i == active_idx)
         local color = is_active and Options.dw_active_color or Options.dw_text_color
-        local line_prefix = string.format("{\\fn%s}{\\c&H%s&}", Options.dw_font_name, color)
+        local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
+        local bold_state = Options.dw_font_bold and "1" or "0"
+        local line_prefix = string.format("{\\fn%s}{\\b%s}{\\c&H%s&}", font_name, bold_state, color)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -1211,7 +1247,7 @@ local function draw_dw(subs, view_center, active_idx)
     local block_text = table.concat(lines_ass, "\\N\\N")
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_text_opacity, Options.dw_bg_opacity, Options.dw_font_size, block_text)
+        Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
     return ass
 end
@@ -1235,17 +1271,18 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     local text = table.concat(lines, "\\N")
     
+    local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local fs = Options.tooltip_font_size
     local bg_alpha = Options.tooltip_bg_opacity
     local bg_color = Options.tooltip_bg_color
     local text_color = Options.tooltip_text_color
     local text_alpha = Options.tooltip_text_opacity or "00"
-    local bold = Options.tooltip_bold and "1" or "0"
+    local bold = Options.tooltip_font_bold and "1" or "0"
     local bord = Options.tooltip_border_size or 1.5
     local shad = Options.tooltip_shadow_offset or 1.0
 
-    local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        osd_y, fs, bold, bord, shad, text_color, text_alpha, bg_color, bg_alpha, text)
+    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        font_name, osd_y, fs, bold, bord, shad, text_color, calculate_ass_alpha(text_alpha), bg_color, calculate_ass_alpha(bg_alpha), text)
         
     return ass
 end
@@ -1715,19 +1752,35 @@ end
 local function tick_drum(time_pos)
     -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
     if FSM.DRUM_WINDOW ~= "OFF" then return end
-    if not FSM.native_sub_vis then
+    
+    local is_drum = (FSM.DRUM == "ON")
+    local vis = FSM.native_sub_vis
+    
+    if not vis then
         drum_osd.data = ""
         drum_osd:update()
         return
     end
 
+    -- If we are in regular SRT mode (Drum OFF), we still use OSD to allow custom font/boldness.
+    -- To prevent double-rendering, we hide the native subtitles while OSD is active.
+    if not is_drum then
+        mp.set_property_bool("sub-visibility", false)
+        mp.set_property_bool("secondary-sub-visibility", false)
+    end
+
     local ass_text = ""
-    local font_size = Options.drum_font_size > 0 and Options.drum_font_size or mp.get_property_number("sub-font-size", 44)
+    local font_size = is_drum 
+        and (Options.drum_font_size > 0 and Options.drum_font_size or mp.get_property_number("sub-font-size", 44))
+        or (Options.srt_font_size > 0 and Options.srt_font_size or mp.get_property_number("sub-font-size", 44))
+    
     local pri_pos = mp.get_property_number("sub-pos", 95)
     local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
     
-    if sec_pos > 50 then
-        local max_lines = Options.drum_active_size_mul + (2 * Options.drum_context_lines * Options.drum_context_size_mul)
+    local context_lines = is_drum and Options.drum_context_lines or 0
+    
+    if is_drum and sec_pos > 50 then
+        local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
         local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
         sec_pos = pri_pos - ((max_pixels / 1080) * 100)
     end
@@ -1788,8 +1841,8 @@ local function master_tick()
         tick_autopause(time_pos)
     end
 
-    -- Execute Drum rendering
-    if FSM.DRUM == "ON" then
+    -- Execute OSD subtitle rendering (Drum or Regular SRT)
+    if FSM.DRUM == "ON" or (FSM.MEDIA_STATE ~= "NO_SUBS" and FSM.native_sub_vis) then
         tick_drum(time_pos)
     end
 
@@ -2884,12 +2937,14 @@ function cmd_dw_copy()
 end
 
 local function cmd_toggle_sub_vis()
-    local current = (FSM.DRUM == "ON") and FSM.native_sub_vis or mp.get_property_bool("sub-visibility", true)
+    local current = FSM.native_sub_vis
     local nxt = not current
-    if FSM.DRUM == "ON" then
-        FSM.native_sub_vis = nxt
-        FSM.native_sec_sub_vis = nxt
-    else
+    FSM.native_sub_vis = nxt
+    FSM.native_sec_sub_vis = nxt
+    
+    if FSM.DRUM == "OFF" then
+        -- In regular mode, we still sync to mpv property so other scripts/OSC know what's up,
+        -- but our master_tick will override it if it wants to render via OSD.
         mp.set_property_bool("sub-visibility", nxt)
         mp.set_property_bool("secondary-sub-visibility", nxt)
     end
