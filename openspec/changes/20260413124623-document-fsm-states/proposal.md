@@ -7,7 +7,13 @@ The `lls_core.lua` engine has grown more complex, managing multiple interacting 
 - Create a comprehensive new specification that formally documents the FSM table in `lls_core.lua`.
 - Document all core states (`MEDIA_STATE`, `DRUM`, `DRUM_WINDOW`, `AUTOPAUSE` etc.).
 - Detail state transitions, how they combine (e.g., how the Drum Window hides native and Drum OSD subtitles, how SRT OSD mode impacts visibility flags).
-- No actual code logic will be fundamentally altered in this change; this is purely an architectural classification and documentation effort to harden the project structure.
+- **Resolve known regressions:** Fix the bug where closing Drum Mode failed to cleanly restore Regular SRT mode, and fix the "Duplicate Secondary Subtitle" artefact caused when pressing `j` in Drum Mode (`master_tick` failing to evaluate `secondary-sub-visibility`).
+
+**Chat Anchors for context:**
+- `20260413123223`: Mode switching bug reported.
+- `20260413123542` & `20260413123947`: Drum window 'w' visibility combat with regular SRT.
+- `20260413124623` & `20260413125428`: Specifications formally proposed and legacy baseline `4d71703` referenced.
+- `20260413130213`: Duplicate secondary subtitle artifact bug reported.
 
 ## Capabilities
 
@@ -19,4 +25,5 @@ The `lls_core.lua` engine has grown more complex, managing multiple interacting 
 
 ## Impact
 
-- No functional code logic changes are strictly mandated by this proposal, but future codebase updates will reference this specific documentation to maintain architectural integrity.
+- Corrects critical overlap bugs (multiple subtitles rendering at once) by hardening `master_tick`.
+- Future codebase updates will reference this specific documentation to maintain architectural integrity and prevent infinite rendering loops or flag fighting.

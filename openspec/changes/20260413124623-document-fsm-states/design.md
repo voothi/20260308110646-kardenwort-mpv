@@ -18,10 +18,10 @@ While `lls_core.lua` already defines a central `FSM` table, its interactions are
 ## Decisions
 
 - **Single Specification File (`openspec/specs/fsm-architecture/spec.md`)**: The FSM states are critical to the engine's core. We will maintain a single spec mapping out:
-  1. The Global Visibility State (`FSM.native_sub_vis`).
+  1. The Global Visibility State (`FSM.native_sub_vis` & `FSM.native_sec_sub_vis`).
   2. The Subtitle OSD Matrix Context (`DRUM`, `DRUM_WINDOW`, `Regular Mode`).
   3. The Interaction Overrides (`TOOLTIP_MODE`, `SEARCH_MODE`, `MOUSE_DRAGGING`).
-- **Separation of Policy and Mechanism**: The spec will document the architectural policy (e.g. "Drum Window forcefully masks all other rendering"). This defines the required output state regardless of implementation mechanism, providing rigid guardrails for model maintenance.
+- **Hardening `master_tick` Suppression Logic**: To prevent overlap bugs (where MPV natively draws subtitles underneath the OSD), `master_tick` must evaluate both `mp.get_property_bool("sub-visibility")` AND `mp.get_property_bool("secondary-sub-visibility")`. Additionally, `master_tick`'s continuous suppression loop will explicitly yield when `FSM.DRUM_WINDOW ~= "OFF"`, allowing `cmd_toggle_drum_window` to manage window-mode visibility safely without fighting.
 
 ## Risks / Trade-offs
 

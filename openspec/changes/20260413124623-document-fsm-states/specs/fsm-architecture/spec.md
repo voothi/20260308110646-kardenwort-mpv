@@ -14,9 +14,13 @@ The system SHALL manage native and custom (OSD) subtitle visibilities via a unif
 ### Requirement: Mode Mutually Exclusive Execution (Master Tick)
 The system SHALL funnel all periodic updates through `master_tick()`. Only one primary subtitle rendering engine (Native, Drum Mode OSD, Drum Window OSD) SHALL draw to the screen at any given time.
 
-#### Scenario: Master tick processes subtitle states
-- **WHEN** the 0.05s periodic timer fires `master_tick()`
-- **THEN** it SHALL evaluate `FSM.DRUM_WINDOW`. If `DOCKED`, execute `tick_dw()`. If `OFF` but `FSM.native_sub_vis` is true, execute `tick_drum()`. If `FSM.native_sub_vis` is true but native `sub-visibility` is active while OSD rendering is desired (e.g. `DRUM = 'ON'` or `srt_font_size` config detected), hide mpv's native strings properties explicitly.
+#### Scenario: Master tick prevents native duplicate artefact
+- **WHEN** the 0.05s periodic timer fires `master_tick()` and `FSM.DRUM_WINDOW == "OFF"`
+- **THEN** it SHALL evaluate `sub-visibility` OR `secondary-sub-visibility`. If either is autonomously turned `ON` by mpv (for example: user pressing `j` to cycle secondary subs) while our custom OSD handles rendering, `master_tick` MUST forcefully turn BOTH native properties `false` again to prevent duplicate overlay logic.
+
+#### Scenario: Subcontracting visibility to the Drum Window mode
+- **WHEN** `FSM.DRUM_WINDOW` is `DOCKED`
+- **THEN** `master_tick` SHALL bypass its continuous background visibility suppression loop completely, leaving `cmd_toggle_drum_window` directly in charge of its own visibility snap-shots.
 
 ### Requirement: Global Subtitle Quick Toggle (cmd_toggle_sub_vis)
 The system SHALL ensure the "s" (global toggle) key updates the desired state uniformly, bypassing lower-level mode conflicts.
