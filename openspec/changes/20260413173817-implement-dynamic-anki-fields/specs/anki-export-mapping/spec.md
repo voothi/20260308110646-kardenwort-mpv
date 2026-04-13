@@ -13,37 +13,28 @@ The system SHALL support an ordered list of Anki field names defined in `anki_ma
   ```
 - **THEN** the system SHALL recognize a 3-column export structure where column 2 is empty.
 
-### Requirement: Dynamic Field Resolution (Word vs Sentence Mode)
-The system SHALL resolve each field in the ordered list to a data source based on whether a single word or a phrase/line is being exported.
+### Requirement: Unified Field Resolution
+The system SHALL resolve each field in the ordered list to a data source based on a single mapping table defined in `anki_mapping.ini`.
 
-#### Scenario: Exporting a single word
-- **GIVEN** `anki_mapping_word` maps `WordField` to `source_word`
-- **WHEN** user exports a single word "Example"
-- **THEN** the column `WordField` SHALL contains "Example" in the TSV.
+#### Scenario: Exporting a field
+- **GIVEN** `Quotation` is mapped to `source_word`
+- **WHEN** user exports "Example"
+- **THEN** the column `Quotation` SHALL contain "Example" in the TSV.
 
 ### Requirement: Automatic Deck and Language Extraction
-The system SHALL extract the deck name and source language code from the primary subtitle filename.
+The system SHALL extract the deck name and language code from the Primary track (Source) and the language code from the Secondary track (Destination).
 
-#### Scenario: Extracting from standard filename
-- **GIVEN** the subtitle file is named `2026.test.de.srt`
+#### Scenario: Extracting from tracks
+- **GIVEN** primary track is `test.de.srt` and secondary is `test.ru.srt`
 - **WHEN** the export logic initializes
-- **THEN** the `deck_name` source SHALL be `2026.test.de`
-- **AND** the `lang_code` source SHALL be `de`.
+- **THEN** `pri_lang` SHALL be `de` and `sec_lang` SHALL be `ru`.
 
-### Requirement: Automatic Anki Import Header
-The system SHALL automatically prepend the TSV file with a `#deck column:N` header if the file is new or empty.
+### Requirement: Track-Aware TTS Flags & Fallback
+The system SHALL support `tts_source_[lang]` (matches primary track) and `tts_dest_[lang]` (matches secondary track). If no secondary track is found, `tts_dest_ru` SHALL return "1" by default.
 
-#### Scenario: Generating header for new file
-- **GIVEN** `DeckField` is the 3rd field in `anki_fields`
-- **AND** `DeckField` is mapped to `deck_name`
-- **WHEN** the first row is written to a new TSV
-- **THEN** the absolute first line of the file SHALL be `#deck column:3`.
-
-### Requirement: Language-Aware TTS Flags
-The system SHALL support `tts_source_[lang]` data sources that resolve to "1" if the extracted language code matches `[lang]`.
-
-#### Scenario: Activating German TTS flag
-- **GIVEN** the subtitle language postfix is `.de`
-- **AND** a field is mapped to `tts_source_de`
+#### Scenario: Russian destination fallback
+- **GIVEN** no secondary subtitles are loaded
+- **AND** a field is mapped to `tts_dest_ru`
 - **WHEN** the row is exported
-- **THEN** that field SHALL contain "1" in the TSV output.
+- **THEN** that field SHALL contains "1" in the TSV output.
+

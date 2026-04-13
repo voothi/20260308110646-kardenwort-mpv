@@ -25,10 +25,11 @@ The current Anki export implementation in `lls_core.lua` is rigid, supporting on
 ### Decision 3: Unified Field Resolution
 **Rationale**: We separate the *name* of the field from its *source*. A field is mapped once in the `[mapping]` or `[tts]` section. During export, the system resolves the value based on the current context (e.g. `source_word` returns the selected text, while `source_sentence` returns the extracted line).
 
-### Decision 4: Metadata Extraction from Primary Track
-**Rationale**: The primary subtitle filename contains both the deck name (base) and the language (postfix). We will capture `Tracks.pri.path` and use regex to extract `deck_name` and `lang_code`.
-- Deck: `file.de.srt` -> `file.de`
-- TTS Flag: `de` -> sets `tts_source_de=1`
+### Decision 4: Dual-Track Metadata Extraction
+**Rationale**: The system distinguishes between the **Source** (Primary track) and the **Destination** (Secondary track). We capture metadata from both tracks to enable language-specific TTS flagging.
+- **Source Logic**: `tts_source_[lang]` checks the language postfix of the currently active primary subtitle.
+- **Destination Logic**: `tts_dest_[lang]` checks the language postfix of the currently active secondary subtitle.
+- **Smart Fallback**: If no secondary subtitle is loaded, any field mapped to `tts_dest_ru` automatically resolves to `1` as the default study destination. Explicit overrides (`="1"` in INI) take final precedence.
 
 ### Decision 5: Dynamic Header Generation
 **Rationale**: To support `#deck column:N`, the writer determines the index of the column containing the `deck_name` source by scanning the `[fields]` list and verifying the mapping.
