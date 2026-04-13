@@ -60,7 +60,7 @@ local Options = {
     -- Search HUD Styling
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
-    search_sel_color = "FF0000",       -- Selected line color (BGR)
+    search_sel_color = "FFFFFF",       -- Selected line color (White)
     search_sel_bold = false,           -- Bold selected line?
     search_query_hit_color = "0088FF", -- Search bar text hits (Select All/Selection)
     search_query_hit_bold = false,      -- Bold search bar hits?

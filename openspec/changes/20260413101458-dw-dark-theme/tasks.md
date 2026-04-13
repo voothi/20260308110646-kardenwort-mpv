@@ -33,3 +33,9 @@
 - [x] 2.3 In the same `Options` table, locate the \"Drum Window Tooltip\" section and update the strings:
   - `dw_tooltip_bg_opacity = "11"`
   - `dw_tooltip_bg_color = "222222"`
+
+## 3. Style Refinements (Search & Anki)
+
+- [x] 3.1 Fix Search selection unreadability in `mpv.conf` by changing `lls-search_sel_color` from Blue (`FF0000`) to White (`FFFFFF`).
+- [x] 3.2 Transition Anki highlights from Green to Orange in `mpv.conf` by updating `lls-anki_highlight_depth_1`, `lls-anki_highlight_depth_2`, and `lls-anki_highlight_depth_3` to `0075D1`, `005DAE`, and `003A70` respectively.
+- [x] 3.3 Synchronize these refinements in `scripts/lls_core.lua` by updating the default `search_sel_color` and `anki_highlight_depth_1-3` values.

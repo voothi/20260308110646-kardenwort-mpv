@@ -9,4 +9,4 @@ The Drum Window SHALL render a translucent dark background box with light-gray d
 
 #### Scenario: Applying Interactive Highlights
 - **WHEN** the user hovers over text or views highlighted Anki terms in the Drum Window
-- **THEN** the system applies vibrant neon overlays (Cyan/Yellow/Green) which maintain accessible contrast against the translucent dark canvas.
+- **THEN** the system applies vibrant neon and warm orange overlays (Cyan/Orange/Gold) which maintain accessible contrast against the translucent dark canvas.
