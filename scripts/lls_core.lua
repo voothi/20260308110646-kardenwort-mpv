@@ -268,7 +268,7 @@ local function extract_subtitle_metadata(path)
     if not path or path == "" then return "", "" end
     local filename = path:match("([^/\\]+)$") or path
     local base = filename:gsub("%.[^.]+$", "")
-    local lang_code = base:match("%.([a-zA-Z]+)$")
+    local lang_code = base:match("%.([a-zA-Z%-]+)$")
     if lang_code then
         return base, lang_code:lower()
     end
