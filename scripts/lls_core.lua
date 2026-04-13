@@ -47,22 +47,22 @@ local Options = {
     -- Drum Window
     dw_font_size = 34,
     dw_lines_visible = 15,        -- how many lines visible in the window
-    dw_bg_color = "A9C5D4",       -- beige in BGR hex for ASS
-    dw_bg_opacity = "10",         -- background opacity (00-FF, lower is more opaque in ASS alpha? No, 00 is opaque)
-    dw_text_color = "1A1A1A",     -- dark text
-    dw_active_color = "ff0000",   -- brighter bright blue in BGR
-    dw_highlight_color = "0000bf",-- red highlight in BGR
+    dw_bg_color = "000000",       -- black in BGR hex for ASS
+    dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
+    dw_text_color = "CCCCCC",     -- light text
+    dw_active_color = "FFFFFF",   -- white active text in BGR
+    dw_highlight_color = "00FFFF",-- yellow highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
-    dw_char_width = 0.5,         -- char width multiplier (0.5 is exact for Consolas)
+    dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_vline_h_mul = 0.87,        -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
 
     -- Search HUD Styling
-    search_hit_color = "0000bf",       -- Match highlighting (BGR)
+    search_hit_color = "0088FF",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
-    search_sel_color = "ff0000",       -- Selected line color (BGR)
+    search_sel_color = "FF0000",       -- Selected line color (BGR)
     search_sel_bold = false,           -- Bold selected line?
-    search_query_hit_color = "0000bf", -- Search bar text hits (Select All/Selection)
+    search_query_hit_color = "0088FF", -- Search bar text hits (Select All/Selection)
     search_query_hit_bold = false,      -- Bold search bar hits?
 
     -- Font Scaling (Ported from fixed_font.lua)
@@ -74,8 +74,8 @@ local Options = {
     -- Drum Window Tooltip
     dw_tooltip_font_size = 34,
     dw_tooltip_context_lines = 1,
-    dw_tooltip_bg_opacity = "30",
-    dw_tooltip_bg_color = "000000",
+    dw_tooltip_bg_opacity = "11",
+    dw_tooltip_bg_color = "222222",
     dw_tooltip_text_color = "FFFFFF",
     dw_tooltip_text_opacity = "00",
     dw_tooltip_bold = false,
