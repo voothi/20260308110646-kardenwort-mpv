@@ -107,7 +107,6 @@ local Options = {
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
     anki_context_max_words = 20,
-    anki_tsv_headers = "Term	Context",
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003A70",
@@ -973,13 +972,14 @@ local function save_anki_tsv_row(term, context, time_pos)
                 break
             end
         end
+        
+        -- 1. Write the #deck directive if possible
         if deck_col > 0 then
             f:write(string.format("#deck column:%d\n", deck_col))
         end
         
-        -- Optional: Write standard headers if `#deck` is not the only thing we want
-        if deck_col == -1 then
-            -- Fallback header for TSV
+        -- 2. ALWAYS write the field list as headers for Anki mapping clarity
+        if #fields > 0 then
             f:write(table.concat(fields, "\t") .. "\n")
         end
     end
