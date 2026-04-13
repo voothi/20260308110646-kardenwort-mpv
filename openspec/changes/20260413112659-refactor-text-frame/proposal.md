@@ -8,6 +8,7 @@ Currently, visual parameters like background transparency, font weights, and bor
 - **Explicit HUD Control**: Update the rendering engines for Drum Mode (`c`) and Drum Window (`w`) to explicitly inject secondary/background alpha (`\4a`) and border/shadow tags based on script options, ensuring they are independent of global OSD defaults when configured.
 - **Parameter Parity**: Ensure every mode supports the full suite of "Pro" parameters: `font_name`, `font_size`, `bg_opacity`, `text_color`, `bold`, `border_size`, and `shadow_offset`.
 - **SRT Context Integration**: Clarify and document the connection between the script's visual parameters and MPV's native `sub-*` / `osd-*` settings for standard SRT playback.
+- **Documentation Integrity**: Ensure the refactor preserves all legacy calibration notes, verbose instructional comments, and alternative styling modes (`MODE 1/2`) to maintain the repository's educational value.
 
 ## Capabilities
 
