@@ -1,10 +1,16 @@
 ## ADDED Requirements
 
-### Requirement: Ordered Field Mapping from mpv.conf
-The system SHALL support an ordered list of Anki field names defined in `mpv.conf` using a comma-separated string that supports native line-continuation (`\`).
+### Requirement: Ordered Field Mapping from INI
+The system SHALL support an ordered list of Anki field names defined in `anki_mapping.ini` within a `[fields]` section where each line represents a subsequent TSV column.
 
 #### Scenario: Defining a vertical field list
-- **WHEN** `mpv.conf` contains `lls-anki_fields=Field1,\,Field2,\,Field3`
+- **WHEN** `anki_mapping.ini` contains:
+  ```ini
+  [fields]
+  Field1
+  
+  Field2
+  ```
 - **THEN** the system SHALL recognize a 3-column export structure where column 2 is empty.
 
 ### Requirement: Dynamic Field Resolution (Word vs Sentence Mode)
