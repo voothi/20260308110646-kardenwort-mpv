@@ -763,7 +763,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
     
     local last_idx = target_idx + #selected_words - 1
-    local half_max = math.floor(Options.anki_context_max_words / 2)
+    local half_max = math.floor(limit / 2)
     local context_start = math.max(1, target_idx - half_max)
     local context_end = math.min(#words, last_idx + half_max)
     
