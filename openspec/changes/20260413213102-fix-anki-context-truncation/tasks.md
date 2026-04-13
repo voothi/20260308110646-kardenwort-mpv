@@ -14,7 +14,7 @@
 - [x] 3.1 Increase default `anki_context_max_words` in `Options` table to `40` (Line 109).
 - [x] 3.2 Add a comment in `lls_core.lua` explaining the new adaptive truncation behavior for future maintenance.
 - [x] 3.3 Increase `anki_context_lines` from 3 to 6 to handle long sentence spans.
-- [x] 3.4 Update `mpv.conf` with new defaults to prevent local override of script improvements.
+- [x] 3.4 Update `mpv.conf` with new defaults and `anki_strip_metadata=yes`.
 - [x] 3.5 Refactor `context_line` assembly in `dw_anki_export_selection` to use `build_word_list` for consistent normalization.
 
 ## 4. Metadata Tag Filtering
@@ -23,6 +23,6 @@
 
 ## 5. Final Verification
 
-- [ ] 5.1 Verify total coverage of multi-sentence selections in the TSV (no trailing truncation if word count < limit).
-- [ ] 5.2 Verify that punctuation INSIDE the selection does not trigger early forward-search termination.
+- [x] 5.1 Verify total coverage of multi-sentence selections in the TSV (no trailing truncation if word count < limit).
+- [x] 5.2 Verify that punctuation INSIDE the selection does not trigger early forward-search termination.
 - [x] 5.3 Verify that `[musik]` and similar tags are removed from exported Anki cards.
