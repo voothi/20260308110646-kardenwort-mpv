@@ -1,3 +1,30 @@
+# Release Notes - v1.28.16 (Unified Styling & FSM Hardening)
+
+**Date**: 2026-04-13
+**Version**: v1.28.16
+**Implementation ZIDs**: 20260413121002, 20260413124623
+
+## Highlights
+
+### 🎨 **Unified Styling Architecture**
+- **Mode-Specific Fonts**: Introduced the ability to specify independent `font_name`, `font_bold`, and `font_size` for all four rendering modes: Regular SRT, Drum Mode (`c`), Drum Window (`w`), and Tooltips.
+- **Enhanced Legibility**: Updated default styling to **Consolas** across the suite for superior monospace alignment and professional aesthetic.
+- **Monospace Calibration**: Finely tuned hit-testing and word-wrapping logic for Consolas, ensuring pixel-perfect mouse selection and pointer alignment.
+
+### 🛡️ **FSM Architecture & Visibility Hardening**
+- **Continuous Background Suppression**: The `master_tick` loop now rigorously monitors both `sub-visibility` and `secondary-sub-visibility` properties to prevent duplicate native overlays, especially when cycling tracks with `j`.
+- **Visibility Conflict Resolution**: Resolved "flickering" issues by centralizing all property mutations into a single-source-of-truth logic engine.
+- **Mode Mutex**: Implemented strict mutual exclusion between Drum Mode, Drum Window, and Regular OSD-SRT rendering to prevent frame buffer collisions.
+
+### 🖼️ **Refactored Text Framing & Dark Theme**
+- **Dynamic Background Boxes**: Refactored the internal text frame renderer to use hardware-weighted ASS alpha calculations. Background transparency is now perfectly balanced across all UI elements.
+- **Premium Dark Aesthetics**: Implemented a "Dark Theme" baseline for the Drum Window, using consistent semi-transparent backgrounds that preserve cinematic immersion while providing high-contrast reading surfaces.
+
+### 🛠️ **Anki Highlight Restoration**
+- **Selection Fidelity**: Restored the `anki_highlight_bold` functionality within the Drum Window. Saved words and phrases now correctly display bold/color emphasis without desynchronizing from the viewport tracking.
+
+---
+
 # Release Notes - v1.28.12 (MMB Drag-Export & Occurrence Persistence)
 
 **Date**: 2026-04-13
