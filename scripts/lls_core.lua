@@ -1838,31 +1838,33 @@ local function master_tick()
     -- We hide native subs if OSD rendering is active.
     -- To keep things simple, if Drum is OFF, we let the user choose between native and OSD.
     -- If they configured SRT fonts, we assume they want OSD.
-    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
-    local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
+    if FSM.DRUM_WINDOW == "OFF" then
+        local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+        local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
 
-    if render_osd then
-        if mp.get_property_bool("sub-visibility") then
-            mp.set_property_bool("sub-visibility", false)
-            mp.set_property_bool("secondary-sub-visibility", false)
-        end
-        tick_drum(time_pos)
-    else
-        -- Clear OSD if not rendering
-        if drum_osd.data ~= "" then
-            drum_osd.data = ""
-            drum_osd:update()
-        end
-        -- Restore native if user wants subs and we aren't using OSD
-        if FSM.native_sub_vis then
-            if not mp.get_property_bool("sub-visibility") then
-                mp.set_property_bool("sub-visibility", true)
-                mp.set_property_bool("secondary-sub-visibility", true)
-            end
-        else
+        if render_osd then
             if mp.get_property_bool("sub-visibility") then
                 mp.set_property_bool("sub-visibility", false)
                 mp.set_property_bool("secondary-sub-visibility", false)
+            end
+            tick_drum(time_pos)
+        else
+            -- Clear OSD if not rendering
+            if drum_osd.data ~= "" then
+                drum_osd.data = ""
+                drum_osd:update()
+            end
+            -- Restore native if user wants subs and we aren't using OSD
+            if FSM.native_sub_vis then
+                if not mp.get_property_bool("sub-visibility") then
+                    mp.set_property_bool("sub-visibility", true)
+                    mp.set_property_bool("secondary-sub-visibility", true)
+                end
+            else
+                if mp.get_property_bool("sub-visibility") then
+                    mp.set_property_bool("sub-visibility", false)
+                    mp.set_property_bool("secondary-sub-visibility", false)
+                end
             end
         end
     end
