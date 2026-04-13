@@ -6,11 +6,12 @@
 
 ## 2. Fix `extract_anki_context` Non-Contiguous Fallback
 
-- [x] 2.1 After `full_lower:find(term_lower, 1, true)` in `extract_anki_context`, add a first-word fallback: when `start_pos` is nil, extract the first whitespace-delimited word of `term_lower` and search for it in `full_lower`; use the result as `start_pos`/`end_pos` so the existing sentence boundary logic runs correctly
+- [x] 2.1 Refine `extract_anki_context` with a center-proximity fallback: Instead of a naive verbatim search, iterate through term words and anchor on the occurrence closest to the blob center. This handles non-contiguous terms and avoids ambiguity from common words (like "und").
 
 ## 3. Verification
 
-- [ ] 3.1 Export a multi-word set where words come from the **same** subtitle line — confirm context and timestamp are correct
-- [ ] 3.2 Export a multi-word set where words come from **different** subtitle lines — confirm context spans both lines and term is locatable
-- [ ] 3.3 Export a **non-contiguous** selection (words with skipped words between them, e.g. `"ist die Anwohner"` skipping `"für"`) — confirm context now matches the correct sentence from the Drum Window
-- [ ] 3.4 Check TSV output reproduces the reported bug scenarios (`"für vielfältiges Schnupperkursen"` and `"ist die Anwohner"`)
+- [ ] 3.1 Export a same-line multi-word set (verbatim match) -> Confirm context OK.
+- [ ] 3.2 Export a different-line multi-word set (broken verbatim) -> Confirm context spans lines.
+- [ ] 3.3 Export a non-contiguous set (skipped words, e.g., "ist die Anwohner") -> Confirm correct sentence.
+- [ ] 3.4 Export a selection starting with a common word (e.g., "und Ende") where "und" appears earlier in the padding -> Confirm it correctly anchors on the selection's "und" and not the earlier one.
+- [ ] 3.5 Check TSV output reproduces all reported bug scenarios.

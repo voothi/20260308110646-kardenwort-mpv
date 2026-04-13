@@ -736,15 +736,27 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local full_lower = full_line:lower()
     local start_pos, end_pos = full_lower:find(term_lower, 1, true)
     
-    -- Non-contiguous term fallback: if the composed term can't be found verbatim
-    -- (e.g. "ist die Anwohner" when actual text is "ist für die Anwohner"), anchor
-    -- the sentence boundary search on the first word of the term instead.
+    -- Non-contiguous term fallback: the composed term can't be found verbatim
+    -- (words were skipped between picks, or picks span sentence boundaries).
+    -- Search for every word of the term, find all their occurrences in the blob,
+    -- and anchor on the one whose midpoint is closest to the blob center.
+    -- Since the blob is built with equal padding on both sides of the selected lines,
+    -- blob-center approximates the selection midpoint — so the in-selection occurrence
+    -- of even a common word (e.g. "und") wins over earlier duplicates in the padding.
     if not start_pos then
-        local first_word = term_lower:match("^(%S+)")
-        if first_word then
-            local fw_s, fw_e = full_lower:find(first_word, 1, true)
-            if fw_s then
-                start_pos, end_pos = fw_s, fw_e
+        local center = #full_line / 2
+        local best_dist = math.huge
+        for word in term_lower:gmatch("%S+") do
+            local search_from = 1
+            while true do
+                local ws, we = full_lower:find(word, search_from, true)
+                if not ws then break end
+                local dist = math.abs((ws + we) / 2 - center)
+                if dist < best_dist then
+                    best_dist = dist
+                    start_pos, end_pos = ws, we
+                end
+                search_from = we + 1
             end
         end
     end

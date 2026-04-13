@@ -12,7 +12,7 @@ The Drum Window allows users to Ctrl+LMB-click individual words across different
 
 **Goals:**
 - Ensure the context window passed to `extract_anki_context` always spans at least from the earliest-member line to the latest-member line, so all contributing subtitle text is present in the block.
-- Handle non-contiguous terms that cannot be found verbatim in `extract_anki_context` by anchoring on the first word of the term instead.
+- Handle non-contiguous terms that cannot be found verbatim in `extract_anki_context` by using a center-proximity search for all words in the term, anchoring on the match closest to the selection midpoint.
 - Use `time_pos` of the FIRST (document-earliest) member line as the export timestamp, consistent with where the selection begins.
 - Keep both fixes minimal and surgical — no new abstractions or API changes.
 
@@ -42,23 +42,18 @@ Replace `time_pos = sub.start_time` (where `sub = subs[line_idx]` = the MMB line
 
 **Rationale**: The natural "start" of a selection is its first word in document order. Using the MMB-commit line's time is arbitrary and depends on where the user happens to click to commit, which is inconsistent.
 
-### Decision 3: First-word fallback in `extract_anki_context`
+### Decision 3: Center-proximity word anchor in `extract_anki_context`
 
-**Chosen**: After the verbatim `find(term_lower)` call, add a fallback block:
-```lua
-if not start_pos then
-    local first_word = term_lower:match("^(%S+)")
-    if first_word then
-        local fw_s, fw_e = full_lower:find(first_word, 1, true)
-        if fw_s then start_pos, end_pos = fw_s, fw_e end
-    end
-end
-```
-This re-uses the existing sentence boundary detection code (backward/forward punctuation search) with the first word's position as anchor.
+**Chosen**: When verbatim `find(term_lower)` fails, implement a proximity-aware search:
+1. Calculate the `center` of the context blob.
+2. Iterate through every word in the composed term.
+3. For each word, find all occurrences in the context blob.
+4. Calculate the distance from each occurrence's midpoint to the blob's center.
+5. Anchor the sentence boundary search on the occurrence with the minimum distance (`best_dist`).
 
-**Rationale**: The first word of the composed term is always a real, contiguous word that exists verbatim in the subtitle text. Anchoring the sentence search there reliably finds the correct sentence regardless of how many words were skipped between picks. No changes to the sentence extraction, truncation, or saving logic below.
+**Rationale**: Composed terms for multi-word selections are often non-contiguous, meaning a verbatim substring search fails. While anchoring on the first word is better than failing, it breaks if the first word is a common word (e.g., "und") appearing elsewhere in the context padding. Since the context blob is built symmetrically around the selection, the "correct" occurrence of any word in the term is statistically guaranteed to be the one closest to the center of the blob.
 
-**Alternative considered**: Pass the first member's raw line index into `extract_anki_context` and use line-level text directly. Rejected — requires changing the function signature and every call site; the first-word anchor achieves the same result with zero interface change.
+**Alternative considered**: Naive first-word anchor. Rejected because it incorrectly anchors on earlier sentences if the selection starts with a common word.
 
 ## Risks / Trade-offs
 
