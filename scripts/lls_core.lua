@@ -27,6 +27,9 @@ local Options = {
     drum_active_size_mul = 1.0,
     drum_spacing_gap = -0.1,
     drum_stack_multiplier = 1.15,
+    drum_bg_opacity = "60",        -- Frame transparency (ASS alpha 00-FF)
+    drum_border_size = 1.5,
+    drum_shadow_offset = 1.0,
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -50,12 +53,15 @@ local Options = {
     dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     dw_text_color = "CCCCCC",     -- light text
+    dw_text_opacity = "00",       -- text alpha
     dw_active_color = "FFFFFF",   -- white active text in BGR
     dw_highlight_color = "00FFFF",-- yellow highlight in BGR
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_vline_h_mul = 0.87,        -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
+    dw_border_size = 1.5,
+    dw_shadow_offset = 1.0,
 
     -- Search HUD Styling
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
@@ -71,19 +77,19 @@ local Options = {
     font_base_scale = 1.0,
     font_scale_strength = 0.5,
 
-    -- Drum Window Tooltip
-    dw_tooltip_font_size = 34,
-    dw_tooltip_context_lines = 1,
-    dw_tooltip_bg_opacity = "60",
-    dw_tooltip_bg_color = "222222",
-    dw_tooltip_text_color = "CCCCCC",
-    dw_tooltip_text_opacity = "00",
-    dw_tooltip_bold = false,
-    dw_tooltip_border_size = 1.5,
-    dw_tooltip_shadow_offset = 1.0,
-    dw_tooltip_pin_key = "MBTN_RIGHT",
-    dw_tooltip_hover_key = "n",
-    dw_tooltip_hover_key_ru = "т",
+    -- Tooltip Style (Unified Schema)
+    tooltip_font_size = 34,
+    tooltip_context_lines = 1,
+    tooltip_bg_opacity = "60",
+    tooltip_bg_color = "222222",
+    tooltip_text_color = "CCCCCC",
+    tooltip_text_opacity = "00",
+    tooltip_bold = false,
+    tooltip_border_size = 1.5,
+    tooltip_shadow_offset = 1.0,
+    tooltip_pin_key = "MBTN_RIGHT",
+    tooltip_hover_key = "n",
+    tooltip_hover_key_ru = "т",
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -1065,10 +1071,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
     all_text = all_text .. next_text
 
+    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4a&H%s&}", 
+        Options.drum_border_size, Options.drum_shadow_offset, Options.drum_bg_opacity)
+
     if is_top then
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s\n", y_pixel, font_size, all_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
     else
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s\n", y_pixel, font_size, all_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
     end
 
     return ass
@@ -1201,8 +1210,8 @@ local function draw_dw(subs, view_center, active_idx)
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\q2}{\\fs%d}%s", 
-        Options.dw_font_size, block_text)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_text_opacity, Options.dw_bg_opacity, Options.dw_font_size, block_text)
     
     return ass
 end
@@ -1217,8 +1226,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local center_idx = get_center_index(Tracks.sec.subs, midpoint)
     if center_idx == -1 then return "" end
     
-    local start_idx = math.max(1, center_idx - Options.dw_tooltip_context_lines)
-    local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.dw_tooltip_context_lines)
+    local start_idx = math.max(1, center_idx - Options.tooltip_context_lines)
+    local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.tooltip_context_lines)
     
     local lines = {}
     for i = start_idx, end_idx do
@@ -1226,14 +1235,14 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     local text = table.concat(lines, "\\N")
     
-    local fs = Options.dw_tooltip_font_size
-    local bg_alpha = Options.dw_tooltip_bg_opacity
-    local bg_color = Options.dw_tooltip_bg_color
-    local text_color = Options.dw_tooltip_text_color
-    local text_alpha = Options.dw_tooltip_text_opacity or "00"
-    local bold = Options.dw_tooltip_bold and "1" or "0"
-    local bord = Options.dw_tooltip_border_size or 1.5
-    local shad = Options.dw_tooltip_shadow_offset or 1.0
+    local fs = Options.tooltip_font_size
+    local bg_alpha = Options.tooltip_bg_opacity
+    local bg_color = Options.tooltip_bg_color
+    local text_color = Options.tooltip_text_color
+    local text_alpha = Options.tooltip_text_opacity or "00"
+    local bold = Options.tooltip_bold and "1" or "0"
+    local bord = Options.tooltip_border_size or 1.5
+    local shad = Options.tooltip_shadow_offset or 1.0
 
     local ass = string.format("{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
         osd_y, fs, bold, bord, shad, text_color, text_alpha, bg_color, bg_alpha, text)
@@ -2048,8 +2057,8 @@ local function manage_dw_bindings(enable)
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Tooltip Bindings
-        {key = Options.dw_tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
-        {key = Options.dw_tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
+        {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
+        {key = Options.tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
@@ -2071,7 +2080,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
-        {key = Options.dw_tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
+        {key = Options.tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
         
         -- Search Toggle
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
