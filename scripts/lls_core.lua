@@ -2836,16 +2836,17 @@ function cmd_toggle_drum_window()
         manage_ui_border_override(true)
         
         -- Snapshot and hide all subtitle overlays to prevent overlap
-        FSM.DW_SAVED_SUB_VIS = mp.get_property_bool("sub-visibility", true)
-        FSM.DW_SAVED_SEC_SUB_VIS = mp.get_property_bool("secondary-sub-visibility", true)
-        FSM.DW_SAVED_DRUM_STATE = FSM.DRUM  -- "ON" or "OFF"
+        -- Use FSM.native_sub_vis for consistent state tracking
+        FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
+        FSM.DW_SAVED_DRUM_STATE = FSM.DRUM
+
+        -- Hide native subs (for compatibility and to ensure they are off)
         mp.set_property_bool("sub-visibility", false)
         mp.set_property_bool("secondary-sub-visibility", false)
-        -- If Drum Mode is rendering its own OSD subtitles, hide them too
-        if FSM.DRUM == "ON" then
-            drum_osd.data = ""
-            drum_osd:update()
-        end
+        
+        -- Always hide drum_osd, as it now renders both Drum and Regular SRT modes
+        drum_osd.data = ""
+        drum_osd:update()
 
         local time_pos = mp.get_property_number("time-pos")
         if FSM.DW_CURSOR_LINE == -1 then
@@ -2870,21 +2871,10 @@ function cmd_toggle_drum_window()
         dw_osd.data = ""
         dw_osd:update()
 
-        -- Restore subtitle visibility to pre-DW state
-        if FSM.DW_SAVED_DRUM_STATE == "ON" then
-            -- Drum Mode was active: it had already hidden native subs.
-            -- Don't touch native sub-visibility (drum manages that).
-            -- Drum OSD will resume on the next tick_drum cycle automatically.
-        else
-            -- Drum Mode was NOT active: restore native sub visibility
-            local r_pri = FSM.DW_SAVED_SUB_VIS
-            if r_pri == nil then r_pri = true end
-            local r_sec = FSM.DW_SAVED_SEC_SUB_VIS
-            if r_sec == nil then r_sec = false end
-            
-            mp.set_property_bool("sub-visibility", r_pri)
-            mp.set_property_bool("secondary-sub-visibility", r_sec)
-        end
+        -- Restore subtitle visibility
+        -- Our master_tick now handles the actual property suppression for OSD-SRT,
+        -- so we just need to ensure the FSM state is correct.
+        FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
 
         -- show_osd("Drum Window: CLOSED")
     end
