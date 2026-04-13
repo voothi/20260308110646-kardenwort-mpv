@@ -1835,27 +1835,36 @@ local function master_tick()
     end
 
     -- Manage native subtitle suppression
-    -- We hide native subs if OSD rendering is desired (always now for srt/drum)
-    if FSM.native_sub_vis then
+    -- We hide native subs if OSD rendering is active.
+    -- To keep things simple, if Drum is OFF, we let the user choose between native and OSD.
+    -- If they configured SRT fonts, we assume they want OSD.
+    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
+
+    if render_osd then
         if mp.get_property_bool("sub-visibility") then
             mp.set_property_bool("sub-visibility", false)
             mp.set_property_bool("secondary-sub-visibility", false)
         end
+        tick_drum(time_pos)
     else
-        -- If user turned subs OFF, ensure OSD is clear and native is hidden
+        -- Clear OSD if not rendering
         if drum_osd.data ~= "" then
             drum_osd.data = ""
             drum_osd:update()
         end
-        if mp.get_property_bool("sub-visibility") then
-            mp.set_property_bool("sub-visibility", false)
-            mp.set_property_bool("secondary-sub-visibility", false)
+        -- Restore native if user wants subs and we aren't using OSD
+        if FSM.native_sub_vis then
+            if not mp.get_property_bool("sub-visibility") then
+                mp.set_property_bool("sub-visibility", true)
+                mp.set_property_bool("secondary-sub-visibility", true)
+            end
+        else
+            if mp.get_property_bool("sub-visibility") then
+                mp.set_property_bool("sub-visibility", false)
+                mp.set_property_bool("secondary-sub-visibility", false)
+            end
         end
-    end
-
-    -- Execute OSD subtitle rendering (Drum or Regular SRT)
-    if FSM.native_sub_vis then
-        tick_drum(time_pos)
     end
 
     -- Execute Drum Window
@@ -1922,10 +1931,8 @@ local function cmd_toggle_drum()
 
     if FSM.DRUM == "OFF" then
         FSM.DRUM = "ON"
-        -- Store the desired visibility state before hiding native for Drum Mode
-        FSM.native_sub_vis = mp.get_property_bool("sub-visibility", true)
-        FSM.native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true)
-        FSM.native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10)
+        -- We no longer update FSM.native_sub_vis here because it's managed by cmd_toggle_sub_vis
+        -- and would be overwritten by our own suppression logic.
         
         -- Boot subs for drum memory
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
