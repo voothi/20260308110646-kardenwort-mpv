@@ -106,7 +106,7 @@ local Options = {
 
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
-    anki_context_max_words = 20,
+    anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003A70",
@@ -713,46 +713,57 @@ end
 local function extract_anki_context(full_line, selected_term)
     if not full_line or full_line == "" then return "" end
     
-    -- 1. Try to find the sentence boundary within the provided context lines
-    local term_lower = selected_term:lower()
-    local full_lower = full_line:lower()
+    -- Normalize whitespace so multi-line joins don't cause find() mismatches.
+    local norm_line = full_line:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    local norm_term = selected_term:gsub("%s+", " "):match("^%s*(.-)%s*$")
+
+    -- 1. Try to find the sentence boundary within the provided context lines.
+    local term_lower = norm_term:lower()
+    local full_lower = norm_line:lower()
     local start_pos, end_pos = full_lower:find(term_lower, 1, true)
     
-    local sentence = full_line
+    local sentence = norm_line
     if start_pos then
-        -- Search backwards for punctuation
-        local pre = full_line:sub(1, start_pos - 1)
+        -- Search backwards for punctuation (. ! ? followed by a space in the original).
+        local pre = norm_line:sub(1, start_pos - 1)
         local sent_start = 1
-        -- Look for space followed by . ! ? in reversed string (meaning . ! ? followed by space in original)
         local b_idx = pre:reverse():find("%s+[.!?]")
         if b_idx then
             sent_start = start_pos - b_idx + 1
         end
         
-        -- Search forwards for punctuation
-        local post = full_line:sub(start_pos)
-        local sent_end = #full_line
-        -- Look for . ! ? 
+        -- [FIX Task 1.1] Search forwards starting AFTER the entire selected term (end_pos)
+        -- so that any period embedded inside the selection does not prematurely
+        -- cut off context for multi-sentence selections.
+        local post = norm_line:sub(end_pos)
+        local sent_end = #norm_line
         local f_idx = post:find("[.!?]")
         if f_idx then
-            sent_end = start_pos + f_idx - 1
+            sent_end = end_pos + f_idx - 1
         end
         
-        sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
+        sentence = norm_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
     end
 
-    -- 2. Check word count of the extracted sentence
+    -- [FIX Task 2] Adaptive truncation: the effective limit is always at least
+    -- (selection_word_count + 20) so that long multi-word selections always
+    -- receive a comfortable surrounding-context buffer regardless of the
+    -- configured anki_context_max_words value.
+    local selected_words = build_word_list(norm_term)
+    local selection_word_count = #selected_words
+    local effective_max_words = math.max(Options.anki_context_max_words, selection_word_count + 20)
+
+    -- 2. Check word count of the extracted sentence.
     local words = build_word_list(sentence)
-    if #words <= Options.anki_context_max_words then return sentence end
+    if #words <= effective_max_words then return sentence end
     
-    -- 3. If the sentence is still too long, fallback to word-based truncation around the term
-    local selected_words = build_word_list(selected_term)
-    if #selected_words == 0 then return sentence:sub(1, 100) .. "..." end
+    -- 3. If the sentence is still too long, fallback to word-based truncation around the term.
+    if selection_word_count == 0 then return sentence:sub(1, 100) .. "..." end
     
     local target_idx = -1
-    for i = 1, #words - #selected_words + 1 do
+    for i = 1, #words - selection_word_count + 1 do
         local match = true
-        for j = 1, #selected_words do
+        for j = 1, selection_word_count do
             if words[i + j - 1] ~= selected_words[j] then match = false break end
         end
         if match then target_idx = i break end
@@ -760,8 +771,8 @@ local function extract_anki_context(full_line, selected_term)
     
     if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
     
-    local last_idx = target_idx + #selected_words - 1
-    local half_max = math.floor(Options.anki_context_max_words / 2)
+    local last_idx = target_idx + selection_word_count - 1
+    local half_max = math.floor(effective_max_words / 2)
     local context_start = math.max(1, target_idx - half_max)
     local context_end = math.min(#words, last_idx + half_max)
     
