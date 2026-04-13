@@ -106,7 +106,7 @@ local Options = {
 
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
-    anki_context_max_words = 20,
+    anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003A70",
@@ -710,7 +710,7 @@ end
 
 
 
-local function extract_anki_context(full_line, selected_term)
+local function extract_anki_context(full_line, selected_term, max_words_override)
     if not full_line or full_line == "" then return "" end
     
     -- 1. Try to find the sentence boundary within the provided context lines
@@ -729,21 +729,23 @@ local function extract_anki_context(full_line, selected_term)
             sent_start = start_pos - b_idx + 1
         end
         
-        -- Search forwards for punctuation
-        local post = full_line:sub(start_pos)
+        -- Search forwards for punctuation starting from the END of the term
+        -- to ensure we don't cut off multi-sentence selections prematurely.
+        local post = full_line:sub(end_pos)
         local sent_end = #full_line
-        -- Look for . ! ? 
         local f_idx = post:find("[.!?]")
         if f_idx then
-            sent_end = start_pos + f_idx - 1
+            sent_end = end_pos + f_idx - 1
         end
         
         sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
     end
 
-    -- 2. Check word count of the extracted sentence
+    -- 2. Check word count of the extracted sentence.
+    -- We use a dynamic limit to avoid overly aggressive truncation for long selections.
     local words = build_word_list(sentence)
-    if #words <= Options.anki_context_max_words then return sentence end
+    local limit = max_words_override or Options.anki_context_max_words
+    if #words <= limit then return sentence end
     
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
     local selected_words = build_word_list(selected_term)
@@ -1792,7 +1794,9 @@ local function dw_anki_export_selection()
             end
             
             context_line = context_line:gsub("{[^}]+}", "")
-            local extracted_context = extract_anki_context(context_line, term)
+            local term_words = build_word_list(term)
+            local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
+            local extracted_context = extract_anki_context(context_line, term, effective_limit)
             save_anki_tsv_row(term, extracted_context, time_pos)
             show_osd("Anki Highlight Saved: " .. term)
             
