@@ -2331,7 +2331,6 @@ end
 
 
 local function cmd_dw_scroll(dir)
-    ctrl_discard_set()
     FSM.DW_FOLLOW_PLAYER = false
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end

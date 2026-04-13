@@ -78,9 +78,8 @@ Neither gesture handles a **non-contiguous, discrete click-accumulation** workfl
 |------|-----------|
 | Ctrl key binding conflicts with mpv system shortcuts (e.g., Ctrl+Q) | Bind only `ctrl+mbtn_left` and `ctrl+mbtn_mid`; `ctrl` key itself is bound only while Drum Window is active |
 | User accidentally adds a word by a mis-click and doesn't realize the set is dirty | Yellow visual indicator is persistent; releasing Ctrl without MMB clears it with a brief flash (no permanent side effect) |
-| Words in `ctrl_pending_set` become stale if the subtitle viewport scrolls | Set is keyed by `(line_index, word_index)` from the current render frame; a scroll event that shifts lines should clear the pending set (same as releasing Ctrl) for safety |
-| Ctrl+MMB on a set member that coincides with an existing saved word triggers double-export | Export function is idempotent at the TSV level (duplicate term at same timestamp is a no-op or update); no data corruption |
-| Long accumulated sets produce an unwieldy TSV term | By design — the user is explicitly constructing a compound. No truncation imposed at accumulation time |
+| Words in `ctrl_pending_set` become stale if the subtitle viewport scrolls | Set is keyed by absolute `sub_idx`, so it remains valid across scrolls |
+| User accidentally adds a word by a mis-click and doesn't realize the set is dirty | Yellow visual indicator is persistent; releasing Ctrl without MMB clears it with a brief flash (no permanent side effect) |
 
 ---
 
@@ -94,6 +93,5 @@ No schema or file-format migration needed. The feature is purely additive at the
 
 ## Open Questions
 
-- **OQ1**: Should scrolling during an active Ctrl-set clear the set, or attempt to remap indices to the new viewport? (Proposed: clear for simplicity; revisit if UX feedback suggests remapping is needed.)
-- **OQ2**: Should toggling Book Mode while a Ctrl-set is active preserve or discard the set? (Proposed: discard — Book Mode changes the conceptual context.)
-- **OQ3**: Should the `ctrl_select_color` be exposed in `mpv.conf` from day one, or only after user demand? (Proposed: include from day one, with a clear default.)
+- **OQ1**: Should toggling Book Mode while a Ctrl-set is active preserve or discard the set? (Proposed: discard — Book Mode changes the conceptual context.)
+- **OQ2**: Should the `ctrl_select_color` be exposed in `mpv.conf` from day one, or only after user demand? (Proposed: include from day one, with a clear default.)

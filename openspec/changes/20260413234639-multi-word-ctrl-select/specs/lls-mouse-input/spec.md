@@ -27,11 +27,6 @@ The mouse input system SHALL ensure that viewport-altering events (scrolling) on
 - **WHEN** a mouse wheel event is processed while NOT dragging
 - **THEN** the system SHALL refresh the OSD layout but SHALL NOT update the logical cursor coordinates from the mouse position
 
-#### Scenario: Ctrl-Pending Set Cleared on Scroll
-- **WHEN** a mouse wheel event is processed and `ctrl_pending_set` is non-empty
-- **THEN** the system SHALL empty `ctrl_pending_set` before processing the scroll event
-- **AND** the yellow highlights SHALL be absent from the next render pass
-
 ## ADDED Requirements
 
 ### Requirement: Ctrl Modifier Key State Tracking

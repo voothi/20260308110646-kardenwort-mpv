@@ -55,14 +55,6 @@ The system SHALL automatically discard the pending `ctrl_pending_set` whenever t
 - **AND** no Ctrl+MMB commit has been issued since the last Ctrl-press
 - **THEN** `ctrl_pending_set` SHALL be emptied and yellow highlights SHALL be cleared on the next render pass
 
-### Requirement: Ctrl-Set Discard on Viewport Shift
-The system SHALL automatically discard the pending `ctrl_pending_set` when a scroll event shifts the Drum Window viewport while Ctrl accumulation is active, to prevent stale word-index references.
-
-#### Scenario: Scroll during active accumulation
-- **WHEN** `ctrl_pending_set` is non-empty
-- **AND** the user scrolls the Drum Window (mouse wheel or equivalent)
-- **THEN** `ctrl_pending_set` SHALL be emptied and yellow highlights SHALL be cleared
-
 ### Requirement: Configurable Pending Selection Color
 The system SHALL expose a `ctrl_select_color` configuration key in `mpv.conf` to allow the user to override the default yellow pending highlight color.
 

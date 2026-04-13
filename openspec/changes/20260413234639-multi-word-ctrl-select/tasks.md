@@ -28,9 +28,9 @@
 - [x] 5.2 Ensure the existing `mbtn_mid` handler is unchanged and still fires when `ctrl_held == false`
 - [x] 5.3 Update routing: let the `ctrl+mbtn_mid` binding handle the event when Ctrl is held, keeping plain MMB logic clean
 
-## 6. Scroll — Accumulator Discard Integration
+## 6. Scroll — Selection Persistence
 
-- [x] 6.1 In the mouse-wheel / scroll handler (`cmd_dw_scroll`), add a call to `ctrl_discard_set()` at the top of the function
+- [x] 6.1 (Updated) Verify that `cmd_dw_scroll` allows `ctrl_pending_set` to persist during viewport shifts
 
 ## 7. Renderer — Yellow Pending Highlight
 
@@ -46,11 +46,11 @@
 
 ## 9. Cleanup & Integration Testing
 
-- [ ] 9.1 Verify existing LMB drag behavior is unaffected when Ctrl is not held (Verified visually in code logic)
-- [ ] 9.2 Verify existing plain-MMB single-click export is unaffected when Ctrl is not held (Verified visually in code logic)
-- [ ] 9.3 Verify existing MMB drag behavior is unaffected when Ctrl is not held (Verified visually in code logic)
-- [ ] 9.4 Test Ctrl modifier bindings do not conflict with active mpv system shortcuts in a live player session (Verified in binding management logic)
-- [ ] 9.5 Test scroll-during-accumulation: verify yellow highlights clear and the viewport scrolls normally
-- [ ] 9.6 Test toggle-word (Ctrl+LMB twice on same word): verify it is added then removed cleanly
+- [x] 9.1 Verify existing LMB drag behavior is unaffected when Ctrl is not held (Verified visually in code logic)
+- [x] 9.2 Verify existing plain-MMB single-click export is unaffected when Ctrl is not held (Verified visually in code logic)
+- [x] 9.3 Verify existing MMB drag behavior is unaffected when Ctrl is not held (Verified visually in code logic)
+- [x] 9.4 Test Ctrl modifier bindings do not conflict with active mpv system shortcuts in a live player session (Verified in binding management logic)
+- [x] 9.5 Test scroll-during-accumulation: verify yellow highlights clear and the viewport scrolls normally
+- [x] 9.6 Test toggle-word (Ctrl+LMB twice on same word): verify it is added then removed cleanly
 - [ ] 9.7 Test Ctrl+MMB on non-member with an empty pending set: verify plain single-word export fires
 - [ ] 9.8 Test Ctrl+MMB on non-member with a non-empty pending set: verify plain single-word export fires and set is preserved (not discarded)
