@@ -1843,7 +1843,7 @@ local function master_tick()
         local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
 
         if render_osd then
-            if mp.get_property_bool("sub-visibility") then
+            if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
                 mp.set_property_bool("sub-visibility", false)
                 mp.set_property_bool("secondary-sub-visibility", false)
             end
@@ -1858,10 +1858,15 @@ local function master_tick()
             if FSM.native_sub_vis then
                 if not mp.get_property_bool("sub-visibility") then
                     mp.set_property_bool("sub-visibility", true)
+                end
+                -- Only restore secondary if it should be on
+                if FSM.native_sec_sub_vis and not mp.get_property_bool("secondary-sub-visibility") then
                     mp.set_property_bool("secondary-sub-visibility", true)
+                elseif not FSM.native_sec_sub_vis and mp.get_property_bool("secondary-sub-visibility") then
+                    mp.set_property_bool("secondary-sub-visibility", false)
                 end
             else
-                if mp.get_property_bool("sub-visibility") then
+                if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
                     mp.set_property_bool("sub-visibility", false)
                     mp.set_property_bool("secondary-sub-visibility", false)
                 end
