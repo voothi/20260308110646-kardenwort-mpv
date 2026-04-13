@@ -947,6 +947,36 @@ local function update_media_state()
 end
 
 -- =========================================================================
+-- HIGHLIGHT RENDERING UTILS
+-- =========================================================================
+
+local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c)
+    local c_tag = use_1c and "1c" or "c"
+    local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
+    local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state or "0") or ""
+    
+    if (h_color == base_color) then return word end
+
+    if is_phrase then
+        -- Full highlighting for phrases (continuous flow)
+        return string.format("%s{\\%s&H%s&}%s{\\%s&H%s&}%s", b_on, c_tag, h_color, word, c_tag, base_color, b_off)
+    else
+        -- Surgical highlighting for single words (professional look: punctuation uncolored)
+        local pre = word:match("^[%p%s]*")
+        local suf = word:match("[%p%s]*$")
+        local mid = ""
+        if #pre < #word then
+            mid = word:sub(#pre + 1, #word - #suf)
+        end
+        if mid ~= "" then
+            return string.format("%s%s{\\%s&H%s&}%s%s{\\%s&H%s&}%s", pre, b_on, c_tag, h_color, mid, b_off, c_tag, base_color, suf)
+        else
+            return word
+        end
+    end
+end
+
+-- =========================================================================
 -- DRUM RENDERER
 -- =========================================================================
 
@@ -999,26 +1029,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
             if h_color ~= base_color then
-                local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
-                local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state) or ""
-                
-                if is_phrase then
-                    -- Full highlighting for phrases (continuous flow)
-                    table.insert(formatted_parts, string.format("%s{\\1c&H%s&}%s{\\1c&H%s&}%s", b_on, h_color, w, base_color, b_off))
-                else
-                    -- Surgical highlighting for single words (professional look)
-                    local pre = w:match("^[%p%s]*")
-                    local suf = w:match("[%p%s]*$")
-                    local mid = ""
-                    if #pre < #w then
-                        mid = w:sub(#pre + 1, #w - #suf)
-                    end
-                    if mid ~= "" then
-                        table.insert(formatted_parts, string.format("%s%s{\\1c&H%s&}%s%s{\\1c&H%s&}%s", pre, b_on, h_color, mid, b_off, base_color, suf))
-                    else
-                        table.insert(formatted_parts, w)
-                    end
-                end
+                table.insert(formatted_parts, format_highlighted_word(w, h_color, base_color, is_phrase, bold_state, true))
             else
                 table.insert(formatted_parts, w)
             end
@@ -1179,23 +1190,7 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
 
                     if h_color ~= color then
-                        if is_phrase then
-                            -- Full highlighting for phrases
-                            table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", h_color, w, color))
-                        else
-                            -- Surgical highlighting for single words
-                            local pre = w:match("^[%p%s]*")
-                            local suf = w:match("[%p%s]*$")
-                            local mid = ""
-                            if #pre < #w then
-                                mid = w:sub(#pre + 1, #w - #suf)
-                            end
-                            if mid ~= "" then
-                                table.insert(formatted_words, string.format("%s{\\c&H%s&}%s{\\c&H%s&}%s", pre, h_color, mid, color, suf))
-                            else
-                                table.insert(formatted_words, w)
-                            end
-                        end
+                        table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
                     else
                         table.insert(formatted_words, w)
                     end

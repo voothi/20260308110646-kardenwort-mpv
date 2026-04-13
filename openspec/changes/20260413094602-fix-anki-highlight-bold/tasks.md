@@ -1,9 +1,9 @@
 ## 1. Refactor word highlighting logic
 
-- [ ] 1.1 Implement the `format_highlighted_word` helper function in `scripts/lls_core.lua`.
-- [ ] 1.2 Include the `anki_highlight_bold` logic (wrapping in `{\b1}`/`{\b0}`) in the helper function.
-- [ ] 1.3 Refactor the classic `draw_drum` renderer function to use the new helper.
-- [ ] 1.4 Refactor the unified `draw_dw` (Drum Window) renderer function to use the new helper.
+- [x] 1.1 Implement the `format_highlighted_word` helper function in `scripts/lls_core.lua`.
+- [x] 1.2 Include the `anki_highlight_bold` logic (wrapping in `{\b1}`/`{\b0}`) in the helper function.
+- [x] 1.3 Refactor the classic `draw_drum` renderer function to use the new helper.
+- [x] 1.4 Refactor the unified `draw_dw` (Drum Window) renderer function to use the new helper.
 
 ## 2. Verification and testing
 
