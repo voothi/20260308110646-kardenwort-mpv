@@ -217,101 +217,6 @@ dw_tooltip_osd.z = 25
 -- DRUM WINDOW CTRL-SELECT ACCUMULATOR
 -- =========================================================================
 
-local function ctrl_discard_set()
-    if not next(FSM.DW_CTRL_PENDING_SET) then return end
-    FSM.DW_CTRL_PENDING_SET = {}
-    dw_osd:update()
-end
-
-local function ctrl_toggle_word(line_idx, word_idx)
-    if line_idx < 1 or word_idx < 1 then return end
-    
-    local key = string.format("%d:%d", line_idx, word_idx)
-    if FSM.DW_CTRL_PENDING_SET[key] then
-        FSM.DW_CTRL_PENDING_SET[key] = nil
-    else
-        FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
-    end
-    dw_osd:update()
-end
-
-local function ctrl_commit_set(line_idx, word_idx)
-    -- Check if cursor word is in set
-    local key = string.format("%d:%d", line_idx, word_idx)
-    if not FSM.DW_CTRL_PENDING_SET[key] then
-        -- Fallback to plain MMB single-click export
-        dw_anki_export_selection()
-        return
-    end
-    
-    -- Extract all members into a list and sort by document order
-    local members = {}
-    for _, m in pairs(FSM.DW_CTRL_PENDING_SET) do
-        table.insert(members, m)
-    end
-    
-    if #members == 0 then return end
-    
-    table.sort(members, function(a, b)
-        if a.line ~= b.line then return a.line < b.line end
-        return a.word < b.word
-    end)
-    
-    -- Compose the term
-    local subs = Tracks.pri.subs
-    local words = {}
-    for _, m in ipairs(members) do
-        local sub = subs[m.line]
-        if sub then
-            if not sub.words then sub.words = build_word_list(sub.text) end
-            local w = sub.words[m.word]
-            if w then
-                table.insert(words, (w:gsub("[%p%s]", "")))
-            end
-        end
-    end
-    
-    if #words == 0 then return end
-    local term = table.concat(words, " ")
-    
-    -- Pick a focal line for context (the one user clicked to commit)
-    local sub = subs[line_idx]
-    if not sub then return end
-    
-    local time_pos = sub.start_time
-    
-    -- Gather context lines
-    local ctx_start = math.max(1, line_idx - Options.anki_context_lines)
-    local ctx_end = math.min(#subs, line_idx + Options.anki_context_lines)
-    local ctx_parts = {}
-    for i = ctx_start, ctx_end do
-        table.insert(ctx_parts, subs[i].text)
-    end
-    local full_ctx_text = table.concat(ctx_parts, " ")
-    
-    -- Clean context: remove ASS tags and metadata
-    full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
-    if Options.anki_strip_metadata then
-        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
-    end
-    full_ctx_text = full_ctx_text:gsub("%s+", " ")
-
-    local term_words = build_word_list(term)
-    local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
-    
-    save_anki_tsv_row(term, extracted_context, time_pos)
-    show_osd("Anki Highlight Saved (Multi): " .. term)
-    
-    -- Force reload of TSV to pick up the new highlight
-    load_anki_tsv(true)
-    
-    -- Clear set
-    FSM.DW_CTRL_PENDING_SET = {}
-    dw_osd:update()
-end
-
-
 
 local ANKI_MAPPING_CACHE = nil
 
@@ -1990,6 +1895,101 @@ local function dw_anki_export_selection()
     if not ok then
         show_osd("Anki Export Error: " .. tostring(err), 5)
     end
+end
+
+
+local function ctrl_discard_set()
+    if not next(FSM.DW_CTRL_PENDING_SET) then return end
+    FSM.DW_CTRL_PENDING_SET = {}
+    dw_osd:update()
+end
+
+local function ctrl_toggle_word(line_idx, word_idx)
+    if line_idx < 1 or word_idx < 1 then return end
+    
+    local key = string.format("%d:%d", line_idx, word_idx)
+    if FSM.DW_CTRL_PENDING_SET[key] then
+        FSM.DW_CTRL_PENDING_SET[key] = nil
+    else
+        FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
+    end
+    dw_osd:update()
+end
+
+local function ctrl_commit_set(line_idx, word_idx)
+    -- Check if cursor word is in set
+    local key = string.format("%d:%d", line_idx, word_idx)
+    if not FSM.DW_CTRL_PENDING_SET[key] then
+        -- Fallback to plain MMB single-click export
+        dw_anki_export_selection()
+        return
+    end
+    
+    -- Extract all members into a list and sort by document order
+    local members = {}
+    for _, m in pairs(FSM.DW_CTRL_PENDING_SET) do
+        table.insert(members, m)
+    end
+    
+    if #members == 0 then return end
+    
+    table.sort(members, function(a, b)
+        if a.line ~= b.line then return a.line < b.line end
+        return a.word < b.word
+    end)
+    
+    -- Compose the term
+    local subs = Tracks.pri.subs
+    local words = {}
+    for _, m in ipairs(members) do
+        local sub = subs[m.line]
+        if sub then
+            if not sub.words then sub.words = build_word_list(sub.text) end
+            local w = sub.words[m.word]
+            if w then
+                table.insert(words, (w:gsub("[%p%s]", "")))
+            end
+        end
+    end
+    
+    if #words == 0 then return end
+    local term = table.concat(words, " ")
+    
+    -- Pick a focal line for context (the one user clicked to commit)
+    local sub = subs[line_idx]
+    if not sub then return end
+    
+    local time_pos = sub.start_time
+    
+    -- Gather context lines
+    local ctx_start = math.max(1, line_idx - Options.anki_context_lines)
+    local ctx_end = math.min(#subs, line_idx + Options.anki_context_lines)
+    local ctx_parts = {}
+    for i = ctx_start, ctx_end do
+        table.insert(ctx_parts, subs[i].text)
+    end
+    local full_ctx_text = table.concat(ctx_parts, " ")
+    
+    -- Clean context: remove ASS tags and metadata
+    full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
+    if Options.anki_strip_metadata then
+        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
+    end
+    full_ctx_text = full_ctx_text:gsub("%s+", " ")
+
+    local term_words = build_word_list(term)
+    local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
+    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
+    
+    save_anki_tsv_row(term, extracted_context, time_pos)
+    show_osd("Anki Highlight Saved (Multi): " .. term)
+    
+    -- Force reload of TSV to pick up the new highlight
+    load_anki_tsv(true)
+    
+    -- Clear set
+    FSM.DW_CTRL_PENDING_SET = {}
+    dw_osd:update()
 end
 
 
