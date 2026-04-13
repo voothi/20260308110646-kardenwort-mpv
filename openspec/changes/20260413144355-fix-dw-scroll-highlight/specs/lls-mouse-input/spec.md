@@ -1,8 +1,12 @@
 ## MODIFIED Requirements
 
-### Requirement: Unified Mouse Interaction Event Loop
-The mouse input system SHALL ensure that all viewport-altering events (scrolling, clicking, dragging) trigger a recalculation of the hit-test mapping when the Drum Window is active.
+### Requirement: State-Aware Scroll Synchronization
+The mouse input system SHALL ensure that viewport-altering events (scrolling) only synchronize the logical cursor state when an active user-initiated interaction (dragging) is in progress.
 
-#### Scenario: Post-Scroll Hit-Test Refresh
-- **WHEN** a mouse wheel event is processed in Drum Window mode
-- **THEN** the system SHALL invoke a hit-test refresh to synchronize the logical cursor state with the updated ASS layout immediately.
+#### Scenario: Drag-Selection Hit-Test Refresh
+- **WHEN** a mouse wheel event is processed during an active drag operation
+- **THEN** the system SHALL recalculate the hit-test and update the logical cursor to match the new word under the pointer.
+
+#### Scenario: Passive Scroll Stability
+- **WHEN** a mouse wheel event is processed while NOT dragging
+- **THEN** the system SHALL refresh the OSD layout but SHALL NOT update the logical cursor coordinates from the mouse position.

@@ -1,12 +1,14 @@
 ## Why
 
-Scrolling in Drum Window mode currently disrupts text selection and word highlighting. This occurs because wheel scrolling events manually clear the word-cursor state and fail to synchronize the mouse-to-text mapping after the viewport shifts. This creates a jerky, inconsistent experience where users lose their selection or active highlight when using the mouse wheel.
+Scrolling in Drum Window mode currently disrupts text selection and word highlighting. Previously, wheel scrolling events manually cleared the word-cursor state and failed to synchronize the mapping after the viewport shifted. This created two problems:
+1.  **Disruption**: Active selections were lost or "cleared" on scroll.
+2.  **Sticking/Snapping**: Attempts to synchronize the cursor during scrolling initially revealed "sticking" effects where finished selections would expand to match the mouse, or the active word (yellow highlight) would unexpectedly snap to the mouse pointer during a scroll.
 
 ## What Changes
 
-- **Synchronized Scroll Highlight**: Update `cmd_dw_scroll` to maintain the word-cursor state instead of clearing it.
-- **Immediate Hit-Test Refresh**: Force a mouse hit-test recalculation immediately after a wheel scroll to ensure the highlight/selection updates with the new viewport state.
-- **Selection Continuity**: Ensure that active drag-selection remains stable and visually correct when the viewport is scrolled via the mouse wheel.
+- **Synchronized Scroll Highlight**: Update `cmd_dw_scroll` to maintain and refresh the word-cursor state during viewport shifts.
+- **Drag-Exclusive Synchronization**: Harden the synchronization logic to ensure the logical cursor only follows the mouse during an active drag operation.
+- **Selection & Hover Protection**: Ensure that "finished" selections and the stationary yellow active-word highlight remain correctly anchored to their text indices and do not snap to the mouse pointer during scrolling unless the user is actively selecting.
 
 ## Capabilities
 
@@ -14,10 +16,10 @@ Scrolling in Drum Window mode currently disrupts text selection and word highlig
 - None
 
 ### Modified Capabilities
-- `drum-window`: Update mouse interaction requirements to ensure scrolling preserves selection state and highlight synchronization.
-- `lls-mouse-input`: Refine how mouse scroll events interact with the active window hit-testing.
+- `drum-window`: Update mouse interaction requirements to ensure scrolling preserves selection stability and prevents unintended hover snapping.
+- `lls-mouse-input`: Refine the event-driven hit-test synchronization to be state-aware (dragging vs. stationary).
 
 ## Impact
 
-- `scripts/lls_core.lua`: Modification to `cmd_dw_scroll` and surrounding mouse logic.
-- Visual continuity in Drum Window mode.
+- `scripts/lls_core.lua`: Significant hardening of `cmd_dw_scroll` and introducing `dw_sync_cursor_to_mouse` with state-aware guards.
+- Visual continuity and interaction fidelity in Drum Window mode.
