@@ -343,6 +343,10 @@ end
 local function resolve_anki_field(source_id, term, context, time_pos)
     if not source_id or source_id == "" or source_id == "-" then return "" end
     
+    -- Handle string literals (quoted)
+    local literal = source_id:match('^"(.*)"$') or source_id:match("^'(.*)'$")
+    if literal then return literal end
+
     local deck_name, lang_code = get_deck_info()
     
     -- Extract target language from secondary track if available
@@ -358,6 +362,16 @@ local function resolve_anki_field(source_id, term, context, time_pos)
     elseif source_id == "time" then return string.format("%.3f", time_pos)
     elseif source_id == "timestamp" then return format_timestamp(time_pos)
     elseif source_id == "deck_name" then return Options.anki_deck_name ~= "" and Options.anki_deck_name or deck_name
+    
+    -- Language specific content (e.g. source_word_ru)
+    elseif source_id:match("^source_word_") then
+        local target = source_id:match("^source_word_(.+)$"):lower()
+        if lang_code:lower():find(target, 1, true) then return term or "" else return "" end
+    elseif source_id:match("^source_sentence_") then
+        local target = source_id:match("^source_sentence_(.+)$"):lower()
+        if lang_code:lower():find(target, 1, true) then return context or "" else return "" end
+
+    -- Flags based on postfix detection
     elseif source_id:match("^tts_source_") then
         local target = source_id:match("^tts_source_(.+)$"):lower()
         if lang_code:lower():find(target, 1, true) then return "1" else return "" end
@@ -368,6 +382,8 @@ local function resolve_anki_field(source_id, term, context, time_pos)
     
     return ""
 end
+
+local function utf8_to_lower(str)
     local res = str:lower()
     local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
     local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
