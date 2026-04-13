@@ -1955,15 +1955,11 @@ local function ctrl_commit_set(line_idx, word_idx)
     if #words == 0 then return end
     local term = table.concat(words, " ")
     
-    -- Pick a focal line for context (the one user clicked to commit)
-    local sub = subs[line_idx]
-    if not sub then return end
+    local time_pos = subs[members[1].line].start_time
     
-    local time_pos = sub.start_time
-    
-    -- Gather context lines
-    local ctx_start = math.max(1, line_idx - Options.anki_context_lines)
-    local ctx_end = math.min(#subs, line_idx + Options.anki_context_lines)
+    -- Gather context lines spanning from first to last selected word
+    local ctx_start = math.max(1, members[1].line - Options.anki_context_lines)
+    local ctx_end = math.min(#subs, members[#members].line + Options.anki_context_lines)
     local ctx_parts = {}
     for i = ctx_start, ctx_end do
         table.insert(ctx_parts, subs[i].text)
