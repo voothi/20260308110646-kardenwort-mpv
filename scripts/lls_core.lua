@@ -1955,9 +1955,12 @@ local function ctrl_commit_set(line_idx, word_idx)
     if #words == 0 then return end
     local term = table.concat(words, " ")
     
+    -- Use the earliest selected word's line for timestamp (document-natural start)
     local time_pos = subs[members[1].line].start_time
     
-    -- Gather context lines spanning from first to last selected word
+    -- Gather context lines spanning the full selection (earliest → latest member line),
+    -- padded by anki_context_lines on each side.  This ensures the composed term
+    -- always appears verbatim inside the context block passed to extract_anki_context.
     local ctx_start = math.max(1, members[1].line - Options.anki_context_lines)
     local ctx_end = math.min(#subs, members[#members].line + Options.anki_context_lines)
     local ctx_parts = {}

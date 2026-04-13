@@ -6,6 +6,6 @@
 
 ## 2. Verification
 
-- [x] 2.1 Export a multi-word set where the words come from the **same** subtitle line — confirm context and timestamp are unchanged/correct
-- [x] 2.2 Export a multi-word set where the words come from **different** subtitle lines — confirm the context now includes all contributing lines and the term is found verbatim within it
-- [x] 2.3 Check the TSV output matches the visible text shown in the Drum Window for a cross-line multi-word export (reproduces the reported bug scenario with `"für vielfältiges Schnupperkursen"`)
+- [ ] 2.1 Export a multi-word set where the words come from the **same** subtitle line — confirm context and timestamp are unchanged/correct
+- [ ] 2.2 Export a multi-word set where the words come from **different** subtitle lines — confirm the context now includes all contributing lines and the term is found verbatim within it
+- [ ] 2.3 Check the TSV output matches the visible text shown in the Drum Window for a cross-line multi-word export (reproduces the reported bug scenario with `"für vielfältiges Schnupperkursen"`)
