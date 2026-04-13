@@ -3474,3 +3474,4 @@ local function recover_native_osd_style()
     end
 end
 recover_native_osd_style()
+show_osd("LLS INITIALIZED", 2)
