@@ -1,7 +1,8 @@
 # Quick MMB Highlighting
 
+## Purpose
+Enable rapid Anki export by committing selections upon release of the Middle Mouse Button, streamlining the vocabulary acquisition workflow.
 ## Requirements
-
 ### Requirement: MMB Hold-to-Select
 The Middle Mouse Button (MMB) in the Drum Window SHALL support the same hold-and-drag selection behavior as the Left Mouse Button (LMB).
 
@@ -10,11 +11,11 @@ The Middle Mouse Button (MMB) in the Drum Window SHALL support the same hold-and
 - **THEN** a selection (red highlight) SHALL follow the mouse cursor dynamically
 
 ### Requirement: MMB Release-to-Export
-The Middle Mouse Button (MMB) in the Drum Window SHALL automatically trigger the Anki export process upon release.
+The Middle Mouse Button (MMB) in the Drum Window SHALL automatically trigger the Anki export process upon release. The output format SHALL be determined by the `anki-export-mapping` configuration.
 
 #### Scenario: Auto-export on release
 - **WHEN** the user releases MMB after selecting a phrase
-- **THEN** the phrase SHALL be saved to Anki (green highlight) immediately
+- **THEN** the phrase SHALL be saved to Anki (green highlight) immediately according to the dynamic mapping specified in `anki_mapping.ini`.
 
 ### Requirement: Single-Click Selection Commitment (SCM)
 A single click of the MMB over an existing multi-word selection SHALL export the entire selection rather than clearing it.
@@ -49,3 +50,4 @@ The color intensity (depth) of a highlight SHALL only increase if distinct overl
 - **THEN** the highlight level SHALL NOT increase due to redundant bookmarks of the exact same term.
 - **BUT WHEN** the word "Aufgaben" is covered by both a single-word bookmark AND a phrase bookmark (e.g. "fünf Aufgaben")
 - **THEN** the highlight level SHALL increase to reflect the textual overlap.
+

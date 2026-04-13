@@ -5,4 +5,4 @@ The Middle Mouse Button (MMB) in the Drum Window SHALL automatically trigger the
 
 #### Scenario: Auto-export on release
 - **WHEN** the user releases MMB after selecting a phrase
-- **THEN** the phrase SHALL be saved to Anki (green highlight) immediately according to the dynamic mapping specified in `mpv.conf`.
+- **THEN** the phrase SHALL be saved to Anki (green highlight) immediately according to the dynamic mapping specified in `anki_mapping.ini`.

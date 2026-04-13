@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Anki Export Mapping
+
+## Purpose
+Decouple Anki TSV export structure from the core logic using a dynamic, position-based INI configuration.
+
+## MODIFIED Requirements
 
 ### Requirement: Ordered Field Mapping from INI
 The system SHALL support an ordered list of Anki field names defined in `anki_mapping.ini` within a `[fields]` section where each line represents a subsequent TSV column.
