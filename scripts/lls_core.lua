@@ -1407,8 +1407,7 @@ local function is_inside_dw_selection(l, w)
     return true
 end
 
-local function dw_mouse_update_selection()
-    if not FSM.DW_MOUSE_DRAGGING then return end
+local function dw_sync_cursor_to_mouse()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
@@ -1418,10 +1417,17 @@ local function dw_mouse_update_selection()
     if line_idx and word_idx then
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = word_idx
-        dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, get_center_index(subs, mp.get_property_number("time-pos") or 0))
+        local active_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
+        dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
         dw_osd:update()
     end
 end
+
+local function dw_mouse_update_selection()
+    if not FSM.DW_MOUSE_DRAGGING then return end
+    dw_sync_cursor_to_mouse()
+end
+
 
 local function dw_mouse_auto_scroll()
     if not FSM.DW_MOUSE_DRAGGING then return end
@@ -1967,8 +1973,9 @@ local function cmd_dw_scroll(dir)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
-    FSM.DW_CURSOR_WORD = -1
+    dw_sync_cursor_to_mouse()
 end
+
 
 local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
