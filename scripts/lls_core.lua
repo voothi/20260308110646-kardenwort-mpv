@@ -116,9 +116,12 @@ local Options = {
     anki_context_lines = 3,
     anki_local_fuzzy_window = 10.0,
     anki_context_strict = true,
-    anki_highlight_bold = false
+    anki_highlight_bold = false,
+    book_mode = false
 }
 options.read_options(Options, "lls")
+
+local is_book_mode = Options.book_mode
 
 -- =========================================================================
 -- STATE MACHINE
@@ -1725,6 +1728,10 @@ local function cmd_dw_double_click()
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
+
+        if not is_book_mode then
+            cmd_toggle_drum_window()
+        end
     end
 end
 
@@ -2050,6 +2057,10 @@ local function cmd_dw_seek_selected()
             FSM.DW_FOLLOW_PLAYER = true
             FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
             show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
+            
+            if not is_book_mode then
+                cmd_toggle_drum_window()
+            end
         end
     end
 end
@@ -2072,6 +2083,10 @@ local function cmd_dw_seek_delta(dir)
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_CURSOR_WORD = -1
+
+        if not is_book_mode then
+            cmd_toggle_drum_window()
+        end
     end
 end
 
@@ -2887,6 +2902,18 @@ function cmd_toggle_drum_window()
     end
 end
 
+function toggle_book_mode()
+    is_book_mode = not is_book_mode
+    if is_book_mode then
+        if FSM.DRUM_WINDOW == "OFF" then
+            cmd_toggle_drum_window()
+        end
+        show_osd("Book Mode: ON")
+    else
+        show_osd("Book Mode: OFF")
+    end
+end
+
 
 
 
@@ -3248,6 +3275,9 @@ mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
+mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
+mp.add_forced_key_binding("b", "book-mode-b", toggle_book_mode)
+mp.add_forced_key_binding("и", "book-mode-ru", toggle_book_mode)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
