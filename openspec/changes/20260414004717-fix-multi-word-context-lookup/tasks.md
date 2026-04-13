@@ -6,7 +6,7 @@
 
 ## 2. Fix `extract_anki_context` Non-Contiguous Fallback
 
-- [x] 2.1 Refine `extract_anki_context` with a center-proximity fallback: Instead of a naive verbatim search, iterate through term words and anchor on the occurrence closest to the blob center. This handles non-contiguous terms and avoids ambiguity from common words (like "und").
+- [x] 2.1 Refine `extract_anki_context` with a center-proximity span fallback: find the best match of every word in the selection and use their full range (min-start to max-end) as the search anchor. This ensures that non-contiguous selections spanning multiple sentences (e.g. "und ... Ende") capture all relevant sentences.
 
 ## 3. Verification
 

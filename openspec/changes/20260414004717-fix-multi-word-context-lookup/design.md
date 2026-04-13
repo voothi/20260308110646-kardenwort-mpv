@@ -12,7 +12,7 @@ The Drum Window allows users to Ctrl+LMB-click individual words across different
 
 **Goals:**
 - Ensure the context window passed to `extract_anki_context` always spans at least from the earliest-member line to the latest-member line, so all contributing subtitle text is present in the block.
-- Handle non-contiguous terms that cannot be found verbatim in `extract_anki_context` by using a center-proximity search for all words in the term, anchoring on the match closest to the selection midpoint.
+- Handle non-contiguous terms that cannot be found verbatim by using a center-proximity span search: find the best occurrence of every word in the term and expand the anchor range to cover all of them. This allows capturing context across sentence boundaries.
 - Use `time_pos` of the FIRST (document-earliest) member line as the export timestamp, consistent with where the selection begins.
 - Keep both fixes minimal and surgical — no new abstractions or API changes.
 
@@ -42,18 +42,19 @@ Replace `time_pos = sub.start_time` (where `sub = subs[line_idx]` = the MMB line
 
 **Rationale**: The natural "start" of a selection is its first word in document order. Using the MMB-commit line's time is arbitrary and depends on where the user happens to click to commit, which is inconsistent.
 
-### Decision 3: Center-proximity word anchor in `extract_anki_context`
+### Decision 3: Center-proximity span anchor in `extract_anki_context`
 
-**Chosen**: When verbatim `find(term_lower)` fails, implement a proximity-aware search:
+**Chosen**: When verbatim `find(term_lower)` fails, implement a proximity-aware span search:
 1. Calculate the `center` of the context blob.
 2. Iterate through every word in the composed term.
-3. For each word, find all occurrences in the context blob.
-4. Calculate the distance from each occurrence's midpoint to the blob's center.
-5. Anchor the sentence boundary search on the occurrence with the minimum distance (`best_dist`).
+3. For each word, find all occurrences in the context blob and pick the one closest to the center.
+4. Track the `min_start` and `max_end` across all these "best" word matches.
+5. Set `start_pos = min_start` and `end_pos = max_end`.
+6. Anchor the sentence boundary search on this full range.
 
-**Rationale**: Composed terms for multi-word selections are often non-contiguous, meaning a verbatim substring search fails. While anchoring on the first word is better than failing, it breaks if the first word is a common word (e.g., "und") appearing elsewhere in the context padding. Since the context blob is built symmetrically around the selection, the "correct" occurrence of any word in the term is statistically guaranteed to be the one closest to the center of the blob.
+**Rationale**: Composed terms for multi-word selections are often non-contiguous and can span across sentence boundaries (e.g., "und ... Ende"). If we only anchor on a single word, we might capture only one of the involved sentences. By expanding the anchor range to cover the best match of every word in the selection, the existing punctuation-search logic naturally expands to capture all contributing sentences.
 
-**Alternative considered**: Naive first-word anchor. Rejected because it incorrectly anchors on earlier sentences if the selection starts with a common word.
+**Alternative considered**: Naive single-word anchor closest to center. Rejected because it fails to capture all sentences when a selection spans a sentence boundary.
 
 ## Risks / Trade-offs
 

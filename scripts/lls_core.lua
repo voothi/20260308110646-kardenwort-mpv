@@ -738,26 +738,39 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     
     -- Non-contiguous term fallback: the composed term can't be found verbatim
     -- (words were skipped between picks, or picks span sentence boundaries).
-    -- Search for every word of the term, find all their occurrences in the blob,
-    -- and anchor on the one whose midpoint is closest to the blob center.
-    -- Since the blob is built with equal padding on both sides of the selected lines,
-    -- blob-center approximates the selection midpoint — so the in-selection occurrence
-    -- of even a common word (e.g. "und") wins over earlier duplicates in the padding.
+    -- Anchor accurately by finding the occurrence of EVERY word in the term
+    -- that is closest to the blob center, then using the min-start and max-end
+    -- of those matches as the search span. This ensures that selections spanning
+    -- across sentence boundaries (e.g. "und ... Ende") correctly capture all
+    -- involved sentences.
     if not start_pos then
         local center = #full_line / 2
-        local best_dist = math.huge
+        local min_s, max_e = nil, nil
+        
         for word in term_lower:gmatch("%S+") do
+            local best_ws, best_we = nil, nil
+            local best_dist = math.huge
             local search_from = 1
+            
             while true do
                 local ws, we = full_lower:find(word, search_from, true)
                 if not ws then break end
                 local dist = math.abs((ws + we) / 2 - center)
                 if dist < best_dist then
                     best_dist = dist
-                    start_pos, end_pos = ws, we
+                    best_ws, best_we = ws, we
                 end
                 search_from = we + 1
             end
+            
+            if best_ws then
+                min_s = (not min_s) and best_ws or math.min(min_s, best_ws)
+                max_e = (not max_e) and best_we or math.max(max_e, best_we)
+            end
+        end
+        
+        if min_s then
+            start_pos, end_pos = min_s, max_e
         end
     end
     

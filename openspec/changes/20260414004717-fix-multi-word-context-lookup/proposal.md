@@ -10,7 +10,7 @@ Two related bugs cause incorrect Anki context when committing a Ctrl+LMB/Ctrl+MM
 
 - **Fix `ctrl_commit_set`**: Build the context window spanning from the **earliest** selected word's line to the **latest** selected word's line (instead of only around the MMB-commit line), so all contributing lines are always included.
 - **Use `time_pos` of the earliest member line** (document-order first) for consistent timestamp anchoring, since that is the natural "start" of the selection.
-- **Fix `extract_anki_context`**: Implement a center-proximity search — when the composed term can't be found verbatim (non-contiguous picks), the system searches for every word of the term and anchors on the occurrence closest to the center of the context blob. This reliably handles common words (like "und") appearing multiple times in the padding.
+- **Fix `extract_anki_context`**: Implement a center-proximity span search — when the composed term can't be found verbatim (non-contiguous picks), the system finds the occurrence of every word closest to the center and anchors the boundary detection on the full span of those matches. This ensures that selections spanning multiple sentences (like "und ... Ende") capture all involved sentences correctly.
 
 ## Capabilities
 
