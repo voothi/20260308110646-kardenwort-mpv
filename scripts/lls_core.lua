@@ -1832,10 +1832,10 @@ local function dw_anki_export_selection()
                 term = term:sub(#pre + 1, #term - #suf)
             end
             -- If the original subtitle ended with a period (or ! or ?) and
-            -- the cleaned term starts with an uppercase letter, restore the period.
-            -- This handles: "Die Luftfahrtbranche befindet sich im Umbruch." → stripped to
-            -- "Die Luftfahrtbranche befindet sich im Umbruch" → restored with "."
-            if raw_had_terminal and starts_with_uppercase(term) and not term:match("[.!?]$") then
+            -- the cleaned term starts with an uppercase letter AND contains spaces (multi-word), restore the period.
+            -- This handles: "Die Luftfahrtbranche befindet sich im Umbruch." → restored with "."
+            -- But ignores single words like: "Umbruch." → "Umbruch"
+            if raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
                 term = term .. "."
             end
             

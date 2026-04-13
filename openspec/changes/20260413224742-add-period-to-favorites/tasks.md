@@ -3,7 +3,7 @@
 - [x] 1.1 Implement `starts_with_uppercase` helper in `scripts/lls_core.lua` supporting Latin, German, and Cyrillic.
 - [x] 1.2 Modify `extract_anki_context` to handle sentence start boundary detection and period appendage.
 - [x] 1.3 Update the main Anki export logic to detect raw terminal punctuation before stripping it from the `term`.
-- [x] 1.4 Implement the restoration of terminal punctuation for capitalized `source_word` (term) fields.
+- [x] 1.4 Implement the restoration of terminal punctuation for capitalized `source_word` (term) fields, restricted to multi-word terms (containing spaces).
 
 ## 2. Verification
 

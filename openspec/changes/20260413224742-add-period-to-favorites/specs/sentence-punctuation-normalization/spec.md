@@ -22,3 +22,8 @@ When the original subtitle text ends with terminal punctuation **and** the clean
 - **GIVEN** a subtitle split across two visual lines, e.g. `Die Luftfahrtbranche\nUmbruch.`
 - **WHEN** the user exports the full subtitle
 - **THEN** the `source_word` SHALL be `Die Luftfahrtbranche Umbruch.` with the period intact.
+
+#### Scenario: Single capitalized word — no period
+- **GIVEN** a subtitle segment containing only `Umbruch.`
+- **WHEN** the user saves the word `Umbruch`
+- **THEN** the `source_word` field SHALL contain `Umbruch` (without the period).
