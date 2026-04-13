@@ -48,7 +48,7 @@ local Options = {
     osd_duration = 1.0,
 
     -- Drum Window
-    dw_font_size = 38,
+    dw_font_size = 34,
     dw_lines_visible = 15,        -- how many lines visible in the window
     dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)

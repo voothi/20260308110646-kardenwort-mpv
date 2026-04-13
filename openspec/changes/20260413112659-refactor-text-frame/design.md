@@ -10,7 +10,7 @@ Currently, the styling parameters for the three main script-driven HUDs (Drum Mo
 - Unify parameter naming in `Options` and `mpv.conf` (e.g., transitioning `dw_tooltip_*` to `tooltip_*`).
 - Categorize and document these settings in `mpv.conf` for ease of use.
 
-**Non-Goals:**
+## Non-Goals:**
 - Do not attempt to override native MPV subtitle (`srt`) rendering via Lua; standard `sub-*` properties in `mpv.conf` will remain the source of truth for "Normal Mode" but will be documented for parity.
 
 ## Decisions
@@ -29,7 +29,7 @@ Currently, the styling parameters for the three main script-driven HUDs (Drum Mo
 
 - **Defaults Sync**: Defaults will be synchronized to `bg_opacity = "60"` (ASS Hex) and `text_color = "CCCCCC"` / `"FFFFFF"` across the board to match the new Dark Theme aesthetic.
 
-- **Font Normalization**: The Drum Window (`w`) font size is normalized to **`38`** to visually match the perceptual weight of the **`34`** proportional font used in Drum Mode (`c`).
+- **Font Unification**: All modes (Drum, Window, Tooltip) are unified to a global base font size of **`34`**. Calibration for the Drum Window monospace interface is maintained at this scale.
 
 - **Documentation Preservation**: During the `mpv.conf` reorganization, detailed calibration notes (e.g., `vline_h_mul`, `sub_gap_mul`) and alternative styling presets (`MODE 1/2`) will be meticulously preserved and updated to reflect the new variable schema, ensuring no instructional entropy.
 

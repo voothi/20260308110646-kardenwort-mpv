@@ -2,7 +2,7 @@
 
 - [x] 1.1 Rename and unify tooltip parameters in `scripts/lls_core.lua`: `dw_tooltip_*` -> `tooltip_*` in the `Options` table.
 - [x] 1.2 Add missing frame control parameters to `Options`: `drum_bg_opacity`, `drum_border_size`, `drum_shadow_offset`, `dw_text_opacity`, `dw_border_size`, `dw_shadow_offset`.
-- [x] 1.3 Normalize default visual values in `Options` across all modes (Target: `bg_opacity = "60"`, `dw_font_size = 38`, `border_size = 1.5`, `shadow_offset = 1.0`).
+- [x] 1.3 Normalize default visual values in `Options` across all modes (Target: `bg_opacity = "60"`, `dw_font_size = 34`, `border_size = 1.5`, `shadow_offset = 1.0`).
 
 ## 2. Core Renderer Refactor
 
