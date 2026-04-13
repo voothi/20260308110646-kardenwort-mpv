@@ -17,7 +17,12 @@
 - [x] 3.4 Update `mpv.conf` with new defaults to prevent local override of script improvements.
 - [x] 3.5 Refactor `context_line` assembly in `dw_anki_export_selection` to use `build_word_list` for consistent normalization.
 
-## 4. Final Verification
+## 4. Metadata Tag Filtering
+- [x] 4.1 Strip bracketed metadata tags (e.g., `[musik]`) from both term and context in `lls_core.lua`.
+- [x] 4.2 Ensure sentence boundary detection treats remaining punctuation correctly after stripping.
 
-- [ ] 4.1 Verify total coverage of multi-sentence selections in the TSV (no trailing truncation if word count < limit).
-- [ ] 4.2 Verify that punctuation INSIDE the selection does not trigger early forward-search termination.
+## 5. Final Verification
+
+- [ ] 5.1 Verify total coverage of multi-sentence selections in the TSV (no trailing truncation if word count < limit).
+- [ ] 5.2 Verify that punctuation INSIDE the selection does not trigger early forward-search termination.
+- [x] 5.3 Verify that `[musik]` and similar tags are removed from exported Anki cards.

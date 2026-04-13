@@ -1790,15 +1790,18 @@ local function dw_anki_export_selection()
         end
 
         if term and term ~= "" then
-            term = term:gsub("{[^}]+}", "")
-            -- Clean capture: Remove leading/trailing punctuation and spaces
+            -- Clean term: remove ASS tags, bracketed metadata, and trim whitespace
+            term = term:gsub("{[^}]+}", ""):gsub("%b[]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
+            
+            -- Clean capture: Remove leading/trailing punctuation
             local pre = term:match("^[%p%s]*")
             local suf = term:match("[%p%s]*$")
             if #pre < #term then
                 term = term:sub(#pre + 1, #term - #suf)
             end
             
-            context_line = context_line:gsub("{[^}]+}", "")
+            -- Clean context: remove ASS tags and bracketed metadata
+            context_line = context_line:gsub("{[^}]+}", ""):gsub("%b[]", " "):gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit)
