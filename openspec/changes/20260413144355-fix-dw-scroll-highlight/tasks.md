@@ -12,4 +12,7 @@
 ## 4. Fix Regression
 
 - [x] 4.1 Fix "Sticking" Selection Regression: Guard cursor updates in `dw_sync_cursor_to_mouse` to only occur during active dragging or when no selection is present.
+- [x] 4.2 Restrict Yellow Highlight Synchronization: Only update logical cursor position during a scroll if `DW_MOUSE_DRAGGING` is true.
+
+
 
