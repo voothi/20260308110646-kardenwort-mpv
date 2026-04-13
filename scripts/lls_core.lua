@@ -711,6 +711,19 @@ end
 
 
 
+local function starts_with_uppercase(str)
+    if not str or str == "" then return false end
+    local first_char = str:match("^([%z\1-\127\194-\244][\128-\191]*)")
+    if not first_char then return false end
+    if first_char:match("^[A-Z]") then return true end
+    
+    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜ"
+    for ch in string.gmatch(upper, "[%z\1-\127\194-\244][\128-\191]*") do
+        if first_char == ch then return true end
+    end
+    return false
+end
+
 local function extract_anki_context(full_line, selected_term, max_words_override)
     if not full_line or full_line == "" then return "" end
     
@@ -721,6 +734,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     
     local sentence = full_line
     if start_pos then
+        local is_sentence_start = false
         -- Search backwards for punctuation
         local pre = full_line:sub(1, start_pos - 1)
         local sent_start = 1
@@ -728,6 +742,12 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         local b_idx = pre:reverse():find("%s+[.!?]")
         if b_idx then
             sent_start = start_pos - b_idx + 1
+            is_sentence_start = true
+        else
+            -- No preceding punctuation found, meaning it starts at the beginning of the text block.
+            -- This acts as a sentence boundary.
+            sent_start = 1
+            is_sentence_start = true
         end
         
         -- Search forwards for punctuation starting safely AFTER the term
@@ -740,6 +760,12 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
         
         sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
+        
+        if is_sentence_start and sentence and sentence ~= "" and starts_with_uppercase(sentence) then
+            if not sentence:match("[.!?]$") then
+                sentence = sentence .. "."
+            end
+        end
     end
 
     -- 2. Check word count of the extracted sentence.
