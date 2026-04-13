@@ -1,12 +1,16 @@
 ## Why
 
-When committing a Ctrl+LMB/Ctrl+MMB multi-word selection, the exported Anki context is wrong: `extract_anki_context` receives a context window anchored on the MMB-clicked line, but the composed term (built from non-contiguous picks across multiple lines) may not appear verbatim in that narrow window, causing the function's substring search to miss and return unrelated surrounding text instead.
+Two related bugs cause incorrect Anki context when committing a Ctrl+LMB/Ctrl+MMB multi-word selection:
+
+1. **Wrong context window anchor** — `ctrl_commit_set` gathered context lines around the single MMB-clicked line. When words are picked from multiple subtitle lines, the context window may not overlap all contributing lines, so the composed term can't be located within it.
+
+2. **Non-contiguous term search failure** — Even with the correct window, `extract_anki_context` tries to find the composed term as a verbatim substring (e.g. `"ist die Anwohner"`). But a non-contiguous selection skips words in between (actual text: `"ist für die Anwohner"`), so the search always fails for such terms, and the function falls back to returning the raw full-blob context — which is entirely wrong.
 
 ## What Changes
 
-- **Fix `ctrl_commit_set`**: Build the context window spanning from the **earliest** selected word's line to the **latest** selected word's line (instead of only around the MMB-commit line), so the full composed term always falls inside the context passed to `extract_anki_context`.
+- **Fix `ctrl_commit_set`**: Build the context window spanning from the **earliest** selected word's line to the **latest** selected word's line (instead of only around the MMB-commit line), so all contributing lines are always included.
 - **Use `time_pos` of the earliest member line** (document-order first) for consistent timestamp anchoring, since that is the natural "start" of the selection.
-- **No changes to `extract_anki_context`**: The existing logic is correct once the input context window reliably contains the term.
+- **Fix `extract_anki_context`**: Add a first-word fallback — when the composed term can't be found verbatim (non-contiguous picks), anchor the sentence boundary search on the **first word** of the term instead, producing a correct sentence context.
 
 ## Capabilities
 
@@ -15,9 +19,10 @@ When committing a Ctrl+LMB/Ctrl+MMB multi-word selection, the exported Anki cont
 
 ### Modified Capabilities
 - `ctrl-multiselect`: The commit handler's context-gathering logic changes so the window spans all selected lines rather than only the MMB-clicked line.
+- `adaptive-context-truncation`: `extract_anki_context` gains a first-word fallback for non-contiguous terms that cannot be found verbatim.
 
 ## Impact
 
-- **`scripts/lls_core.lua`** — `ctrl_commit_set` function (lines ~1958–1971): replace single-line-anchored context window with a span from `members[1].line` to `members[#members].line`.
-- No spec-level requirement changes; this is a bug fix in the existing Ctrl+MMB commit flow.
+- **`scripts/lls_core.lua`** — `ctrl_commit_set` (~line 1958): replace single-line-anchored context window with span from `members[1].line` to `members[#members].line`.
+- **`scripts/lls_core.lua`** — `extract_anki_context` (~line 737): add first-word fallback when verbatim term search returns nil.
 - No changes to configuration, dependencies, or other modules.
