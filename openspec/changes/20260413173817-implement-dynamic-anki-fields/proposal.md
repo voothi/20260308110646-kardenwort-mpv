@@ -4,9 +4,9 @@ The current Anki export logic is hardcoded to a fixed set of columns, which limi
 
 ## What Changes
 
-- **Dynamic Field List**: Support for vertical, position-based field enumeration in `mpv.conf` using line-continuation (`\`).
+- **Indexed Field List**: Support for vertical, position-based field enumeration using sequential options in `mpv.conf` (e.g., `anki_field_1`, `anki_field_2`, `anki_field_3`).
 - **Flexible Mappings**: Introduction of `anki_mapping_word` and `anki_mapping_sentence` to link Anki fields to internal data sources (`source_word`, `source_sentence`, `time`, `deck_name`).
-- **Hole Support**: Ability to define "holes" in the field list (consecutive commas) to produce empty Anki columns.
+- **Hole Support**: Ability to define "holes" in the field list by leaving an indexed option blank (e.g., `anki_field_3=`) to produce empty Anki columns.
 - **Smart Metadata Extraction**: Automatic extraction of deck names and language codes from the primary subtitle filename (e.g., `file.de.srt` -> deck `file.de`, language `de`).
 - **Automated Anki Headers**: Generation of the `#deck column:N` header at the start of the TSV for zero-touch Anki imports.
 - **Dynamic TTS Flags**: Support for `tts_source_[lang]` sources that automatically set a field to "1" based on the subtitle language postfix.
