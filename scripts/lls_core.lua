@@ -344,6 +344,14 @@ local function resolve_anki_field(source_id, term, context, time_pos)
     if not source_id or source_id == "" or source_id == "-" then return "" end
     
     local deck_name, lang_code = get_deck_info()
+    
+    -- Extract target language from secondary track if available
+    local target_lang_code = "und"
+    if Tracks.sec.path and Tracks.sec.path ~= "" then
+        local sec_filename = Tracks.sec.path:match("([^/\\]+)$") or Tracks.sec.path
+        target_lang_code = sec_filename:match("%.([a-z][a-z])%.[a-z0-9]+$") or 
+                          sec_filename:match("%.([a-z][a-z])%s*$") or "und"
+    end
 
     if source_id == "source_word" then return term or ""
     elseif source_id == "source_sentence" then return context or ""
@@ -351,8 +359,11 @@ local function resolve_anki_field(source_id, term, context, time_pos)
     elseif source_id == "timestamp" then return format_timestamp(time_pos)
     elseif source_id == "deck_name" then return Options.anki_deck_name ~= "" and Options.anki_deck_name or deck_name
     elseif source_id:match("^tts_source_") then
-        local target_lang = source_id:match("^tts_source_(.+)$"):lower()
-        if lang_code:lower():find(target_lang, 1, true) then return "1" else return "" end
+        local target = source_id:match("^tts_source_(.+)$"):lower()
+        if lang_code:lower():find(target, 1, true) then return "1" else return "" end
+    elseif source_id:match("^tts_dest_") then
+        local target = source_id:match("^tts_dest_(.+)$"):lower()
+        if target_lang_code:lower():find(target, 1, true) then return "1" else return "" end
     end
     
     return ""
