@@ -35,3 +35,31 @@ The system SHALL respect the `FSM.DRUM` OFF state while still passing styling ru
 #### Scenario: User loads regular subtitles with OSD style rules
 - **WHEN** `FSM.native_sub_vis` is true but custom `lls-srt_font_name` is set
 - **THEN** the system SHALL hide native subtitles and execute `draw_drum()` with 0 context lines, serving as a styled pass-through instead of raw mpv OS-level rendering.
+
+### Requirement: Global Media Context Gatekeeping (MEDIA_STATE)
+The system SHALL evaluate the current tracks loaded into `FSM.MEDIA_STATE` and adjust dependent capabilities accordingly to prevent renderer crashes. 
+
+#### Scenario: User loads an ASS tracking format
+- **WHEN** `boot_subs()` evaluates tracks and finds an ASS codec (`FSM.MEDIA_STATE` includes `ASS`)
+- **THEN** it SHALL force `FSM.DRUM = "OFF"` and `FSM.DRUM_WINDOW = "OFF"`, restoring native parameters, because ASS styling structures conflict heavily with internal OSD plain-text override parsers.
+
+### Requirement: Autopause Coordination (AUTOPAUSE / SPACEBAR)
+The system SHALL manage subtitle-boundary pausing autonomously based on FSM state flags without overlapping with user manual playback triggers.
+
+#### Scenario: Autopause halts playback at subtitle boundaries
+- **WHEN** `FSM.AUTOPAUSE == "ON"` and playback crosses the threshold of `FSM.last_paused_sub_end` 
+- **THEN** it SHALL evaluate `FSM.SPACEBAR`. If `IDLE`, it pauses the player. If the user overrides via spacebar, the system yields until the next track boundary.
+
+### Requirement: Tooltip Overlay Mutex (DW_TOOLTIP_MODE)
+The system SHALL render analytical tooltips safely within the overarching Drum Window subsystem.
+
+#### Scenario: Active Drum Window triggers tooltip
+- **WHEN** `FSM.DRUM_WINDOW == "DOCKED"` and the user clicks/holds the left or middle mouse button (`DW_TOOLTIP_MODE ~= "OFF"`)
+- **THEN** the system SHALL calculate the cursor position relative to the FSM coordinate grid, drawing `dw_tooltip_osd` with high priority.
+
+### Requirement: Specialized Input States (SEARCH_MODE & COPY_MODE)
+The system configuration explicitly tracks modal interfaces that hijack default keyboard bindings.
+
+#### Scenario: Search Mode Hijack
+- **WHEN** `FSM.SEARCH_MODE == true`
+- **THEN** it SHALL instantiate a dedicated input grabber, routing all character keystrokes away from native bindings into the Search Query buffer (`FSM.SEARCH_QUERY`), rendering the `search_osd` overlay at maximum z-index.
