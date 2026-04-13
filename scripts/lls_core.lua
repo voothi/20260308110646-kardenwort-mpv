@@ -1137,11 +1137,6 @@ local function draw_dw(subs, view_center, active_idx)
     local ass = ""
     local layout, _ = dw_build_layout(subs, view_center)
     
-    -- Background: Opaque beige panel
-    local bg_alpha = Options.dw_bg_opacity
-    local bg_color = Options.dw_bg_color
-    ass = ass .. string.format("{\\an5}{\\bord0}{\\shad0}{\\1a&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}\n", bg_alpha, bg_color)
-    
     -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
@@ -1206,7 +1201,7 @@ local function draw_dw(subs, view_center, active_idx)
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord0}{\\shad0}{\\blur0}{\\1a&H00&}{\\3a&HFF&}{\\4a&HFF&}{\\q2}{\\fs%d}%s", 
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\q2}{\\fs%d}%s", 
         Options.dw_font_size, block_text)
     
     return ass

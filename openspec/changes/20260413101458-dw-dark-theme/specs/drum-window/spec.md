@@ -1,12 +1,12 @@
 ## ADDED Requirements
 
-### Requirement: Drum Window Dark Theme Styling
-The Drum Window SHALL render a translucent dark background box with light-gray default text to provide high contrast separation from the underlying video and to optimize color contrast for Anki highlighting.
+### Requirement: Drum Window Localized Aesthetic styling
+The Drum Window SHALL render using localized background boxes for each line of text—replacing global panel darkening—to ensure visual parity with the primary Drum mode and optimize contrast for vocabulary highlights against the video.
 
-#### Scenario: Rendering Standard Context
+#### Scenario: Rendering Individual Boxes
 - **WHEN** the user opens the Drum Window
-- **THEN** the panel renders with a translucent dark background, with non-active textual context displayed in a dimmer grey.
+- **THEN** the textual content renders as an centered list where each line is individually backed by a translucent high-contrast box (`background-box`), while the rest of the video remains undarkened.
 
-#### Scenario: Applying Interactive Highlights
-- **WHEN** the user hovers over text or views highlighted Anki terms in the Drum Window
-- **THEN** the system applies vibrant neon and warm orange overlays (Cyan/Orange/Gold) which maintain accessible contrast against the translucent dark canvas.
+#### Scenario: Vocabulary Visibility
+- **WHEN** the user views highlighted Anki terms within these boxes
+- **THEN** the system applies vibrant Orange/Gold overlays which pop against the localized dark background, maintaining consistent legibility across all subtitle interfaces.

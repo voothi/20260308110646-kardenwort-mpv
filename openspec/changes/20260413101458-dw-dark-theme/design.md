@@ -1,38 +1,34 @@
 ## Context
 
-The Drum Window was rendering a solid beige panel for read-ability (`dw_bg_color=A9C5D4`). However, since the Anki Highlighting feature heavily leverages green overlay tags (e.g., `#71CC2E`), this created unreadable color mixing between beige and green. The standard `c` sub mode handles this natively by relying on MPV's dark translucent `background-box`. 
-
-Additionally, the Search HUD's blue selection highlight (`FF0000`) clashes with the new dark theme, and the green vocabulary highlights should be unified with the Search HUD's orange/gold motif.
+The Drum Window currently renders a large centered vector rectangle as a background. The standard Drum Mode (`c`), however, uses localized background boxes per line (via `osd-border-style=background-box`). To achieve a unified "Pro" aesthetic, the Drum Window must transition to this line-based box model, removing global screen-darkening and aligning its font/border parameters with the standard subtitle environment.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Unify Drum Window `w` mode visuals to match the standard `c` mode dark background stringency.
-- Transition all vocabulary highlighting (Anki) to the established Orange/Gold project palette.
-- Ensure Search HUD selection is clearly readable against a dark translucent backdrop.
-- Ensure Search UI dropdown / tooltips remain distinctly visible over a darker canvas.
+- Unify Drum Window `w` mode visuals to match the standard `c` mode line-based background boxes.
+- Remove global background vectoring in favor of localized MPV-native background boxes.
+- Synchronize text parameters (borders, shadows, opacity) between `c` and `w` modes.
+- Achieve a high-recall visual style where key terms pop identically across all modes.
 
 **Non-Goals:**
-- Do not refactor `draw_dw` positioning or ASS coordinate mounting logic.
+- Do not refactor `draw_dw` multi-line wrap logic or coordinate mounting.
 
 ## Decisions
 
-- **Color Palette Modifications**:
-  - `dw_bg_color=000000`, `dw_bg_opacity=60` (translucent black film over video)
-  - `dw_text_color=CCCCCC` (dimmer context lines)
-  - `dw_highlight_color=00FFFF` (neon cyan for hovering)
-  - `dw_tooltip_bg_color=222222`, `dw_tooltip_bg_opacity=11` (fully opaque dark gray tooltips)
-  - `search_hit_color=0088FF` (Orange match variant)
-  - `search_sel_color=FFFFFF` (Pure white for selected search line to ensure text clarity)
-  
-- **Anki Highlight Transition**: Reverting green overrides to use the core orange levels:
-  - `anki_highlight_depth_1=0075D1` (Gold/Orange)
-  - `anki_highlight_depth_2=005DAE` (Amber)
-  - `anki_highlight_depth_3=003A70` (Burnt Orange)
+- **Environmental Unification**:
+  - **Remove Background Vector**: In `draw_dw`, remove the code that draws the `{\p1}m 0 ...` rectangle.
+  - **Restore OSD Border/Shadow**: Remove the `{\\bord0}{\\shad0}{\\blur0}{\\1a&H00&}{\\3a&HFF&}{\\4a&HFF&}` overrides. By removing these, the Drum Window text will automatically inherit the `osd-border-style=background-box` defined in `mpv.conf`.
+  - **Fallback Opacity**: If the user desires a specific Drum Window opacity different from global OSD, it can be re-injected via `\4a&HXX&` where `XX` is `Options.dw_bg_opacity`.
 
-*Rationale*: This change mirrors how standard MPV subtitles are naturally presented and leverages the existing thematic colors of the script for a more professional, "branded" experience.
+- **Anki Highlight Transition**:
+  - Reverting Green overrides to the core Orange/Gold levels: `0075D1`, `005DAE`, `003A70`.
+
+- **Search HUD Refinement**:
+  - `search_sel_color=FFFFFF` (White) to ensure selected items are readable without a blue "wash".
+
+*Rationale*: Moving to native background boxes reduces rendering overhead and ensures that the player's UI feels like a single coherent system rather than two separate rendering engines.
 
 ## Risks / Trade-offs
 
-- [Risk] Tooltips and dropdown interfaces blending into a dark translucent background.
-  → Mitigation: Setting interface modals like tooltips to a distinct opaque dark gray (`222222`) so they clearly segment and elevate from the translucent black canvas beneath them.
+- [Risk] Loss of global background darkening for readability.
+  → Mitigation: The native `background-box` provides excellent line-level contrast. If global darkening is still needed, a separate `dw_global_dim` option could be introduced, but current focus is on OSD-parity.

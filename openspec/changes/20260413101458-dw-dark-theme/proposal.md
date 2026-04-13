@@ -1,17 +1,14 @@
 ## Why
 
-The Drum Window (`w`) default theme was a nearly solid beige canvas (`A9C5D4`, `alpha=10`), which caused standard Anki green highlights (`71CC2E`) to contrast poorly and wash out due to extreme color mixing. The standard Drum Mode (`c`) does not have this issue because it sits atop MPV's native dark translucent background box (`#C0000000`). This change unifies the "w" mode aesthetic with the "c" mode translucent dark theme to radically improve contrast and readability for saved vocabulary. 
-
-Furthermore, the Search HUD styling requires refinement to match this dark theme, specifically fixing the blue selection highlight which is now unreadable, and transitioning the Anki vocabulary highlights from Green to a more thematic Orange/Gold palette.
+The Drum Window (`w`) currently uses a large, vectored black rectangle as a global background, which differs significantly from the localized "background-box" aesthetic of the standard Drum Mode (`c`). To achieve visual parity and improve readability, the Drum Window's environment and text parameters (borders, shadows, and background style) MUST be aligned with Drum Mode, transitioning from a global panel to line-based background boxes.
 
 ## What Changes
 
-- Change Drum Window background to a translucent black pane (`000000`, `alpha=60`) replacing the beige theme.
-- Update inactive Drum Window text to light gray (`CCCCCC`) while keeping the active line pure white (`FFFFFF`).
-- Update hover cursor highlight to bright cyan (`00FFFF`) to clearly pop on dark mode.
-- Update Search rendering selection highlight from Blue to warm White/Gold for visibility over dark background.
-- Transition Anki highlights from Green shades to the project's signature Orange/Gold palette (`0075D1`, `005DAE`, `003A70`).
-- Change tooltip default background to opaque dark gray (`222222`, `alpha=11`) to float above the translucent window rather than blending in.
+- **Environmental Alignment**: Remove the global vector background rectangle in Drum Window (`draw_dw`).
+- **Text Styling**: Remove the `\bord0\shad0` overrides in the Drum Window renderer to allow it to inherit the project's `background-box` OSD style.
+- **Visual Parity**: Synchronize border and shadow parameters between `c` and `w` modes, ensuring Anki highlights and text appear "fuller" and consistent across both interfaces.
+- **Theme Transition**: Transition Anki highlights from Green shades to the project's signature Orange/Gold palette (`0075D1`, `005DAE`, `003A70`).
+- **Search HUD Fix**: Update Search selection from Blue to White for readable contrast on dark backgrounds.
 
 ## Capabilities
 
@@ -19,9 +16,9 @@ Furthermore, the Search HUD styling requires refinement to match this dark theme
 None.
 
 ### Modified Capabilities
-- `drum-window`: Modifies the core aesthetic requirement from "beige/readable canvas" to "translucent dark mode interface" to structurally support standard Anki highlight visibility and color contrast.
+- `drum-window`: Modifies the core aesthetic requirement from "global-pane interface" to "localized-box interface" to match Drum Mode and maintain cross-mode visual continuity.
 
 ## Impact
 
-- `lls_core.lua`: Default `dw_*` configurations, default search hit configurations, and default tooltip configurations.
-- `mpv.conf`: User-level script options for `lls-dw_*`, `lls-search_*`, and `lls-dw_tooltip_*`.
+- `lls_core.lua`: Refactor `draw_dw` to remove background vectoring and border overrides.
+- `mpv.conf`: Alignment of `lls-dw_bg_opacity` values with global OSD background box opacity if necessary, though it will now primarily rely on global OSD style.

@@ -39,3 +39,9 @@
 - [x] 3.1 Fix Search selection unreadability in `mpv.conf` by changing `lls-search_sel_color` from Blue (`FF0000`) to White (`FFFFFF`).
 - [x] 3.2 Transition Anki highlights from Green to Orange in `mpv.conf` by updating `lls-anki_highlight_depth_1`, `lls-anki_highlight_depth_2`, and `lls-anki_highlight_depth_3` to `0075D1`, `005DAE`, and `003A70` respectively.
 - [x] 3.3 Synchronize these refinements in `scripts/lls_core.lua` by updating the default `search_sel_color` and `anki_highlight_depth_1-3` values.
+
+## 4. Visual Parity (Alignment with Drum Mode C)
+
+- [x] 4.1 In `scripts/lls_core.lua`, within the `draw_dw` function, identify and remove the vector drawing block that renders the large central background rectangle (search for `get_bg_ass`).
+- [x] 4.2 In `scripts/lls_core.lua`, within the `draw_dw` function, remove the ASS tags `{\\bord0}{\\shad0}{\\blur0}{\\1a&H00&}{\\3a&HFF&}{\\4a&HFF&}` from the main text block to allow the window to inherit native OSD background boxes.
+- [x] 4.3 In `scripts/lls_core.lua`, within `draw_drum`, ensure any missing formatting tags (like `\q2` for wrap style) are aligned if necessary for perfect parity.
