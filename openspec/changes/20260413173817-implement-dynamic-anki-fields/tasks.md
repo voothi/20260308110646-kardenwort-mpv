@@ -1,7 +1,7 @@
 ## 1. Configuration & Metadata
 
-- [ ] 1.1 Update `Options` table to include sequenced fields (`anki_field_1` through `anki_field_20`), `anki_mapping_word`, `anki_mapping_sentence`, and `anki_deck_name`
-- [ ] [turbo] 1.2 Implement a loop utility to aggregate the sequentially numbered `anki_field_*` options into an ordered field array, preserving empty string values as holes
+- [ ] 1.1 Create a lightweight `ini` parser utility in `lls_core.lua` to read configuration from `~~/script-opts/anki_mapping.ini`
+- [ ] [turbo] 1.2 Load `anki_fields`, `anki_mapping_word`, `anki_mapping_sentence`, and `anki_deck_name` from the parsed INI file, preserving empty values as holes
 - [ ] 1.3 Add a filename parsing utility to extract the `deck_name` (base + lang postfix) and `lang_code` from `Tracks.pri.path`
 
 ## 2. Dynamic Export Engine
@@ -19,5 +19,5 @@
 ## 4. Mode Integration & Testing
 
 - [ ] [turbo] 4.1 Update `dw_anki_export_selection` to correctly pass the current mode (word vs sentence) to the resolver
-- [ ] 4.2 Verify that "holes" (leaving an `anki_field_*` option blank) result in correct empty columns in the TSV
+- [ ] 4.2 Verify that "holes" (blank values in the INI file) result in correct empty columns in the TSV
 - [ ] 4.3 Verify that `#deck column:N` matches the actual position of the deck name in the exported file
