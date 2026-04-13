@@ -9,7 +9,7 @@
 - [x] 2.2 Add call to `dw_sync_cursor_to_mouse()` at the end of `cmd_dw_scroll()`.
 - [x] 2.3 Verify that OSD updates immediately after a wheel scroll event.
 
-## 3. Verification
+## 4. Fix Regression
 
-- [x] 3.1 Verify yellow highlight persistence while scrolling.
-- [x] 3.2 Verify drag-selection continuity while using the mouse wheel at boundaries.
+- [x] 4.1 Fix "Sticking" Selection Regression: Guard cursor updates in `dw_sync_cursor_to_mouse` to only occur during active dragging or when no selection is present.
+

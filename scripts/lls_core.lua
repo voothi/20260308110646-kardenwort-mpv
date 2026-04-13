@@ -1415,12 +1415,17 @@ local function dw_sync_cursor_to_mouse()
     local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
 
     if line_idx and word_idx then
-        FSM.DW_CURSOR_LINE = line_idx
-        FSM.DW_CURSOR_WORD = word_idx
+        -- Selection Protection: Only update cl, cw if we ARE dragging 
+        -- OR if no persistent selection range exists.
+        if FSM.DW_MOUSE_DRAGGING or FSM.DW_ANCHOR_LINE == -1 then
+            FSM.DW_CURSOR_LINE = line_idx
+            FSM.DW_CURSOR_WORD = word_idx
+        end
         local active_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
         dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
         dw_osd:update()
     end
+
 end
 
 local function dw_mouse_update_selection()
