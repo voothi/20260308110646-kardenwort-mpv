@@ -801,7 +801,6 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                         end
                     end
                 end
-            end
             if match_found then
                 if term_is_split then
                     purple_stack = purple_stack + 1
