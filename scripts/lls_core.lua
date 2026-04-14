@@ -1062,6 +1062,21 @@ local function get_tsv_path()
     return base .. ".tsv"
 end
 
+local function cmd_open_record_file()
+    local path = get_tsv_path()
+    if not path then return end
+    
+    local f = io.open(path, "r")
+    if not f then
+        show_osd("Record file does not exist: " .. path:match("([^/\\]+)$"))
+        return
+    end
+    f:close()
+    
+    show_osd("Opening record file...")
+    utils.subprocess_detached({args = {"powershell", "-NoProfile", "-Command", "Start-Process", "'" .. path .. "'"}})
+end
+
 local function load_anki_tsv(force)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
@@ -2731,7 +2746,11 @@ local function manage_dw_bindings(enable)
         
         -- Search Toggle
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
-        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end}
+        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
+
+        -- Open Record File
+        {key = "o", name = "dw-open-record", fn = cmd_open_record_file},
+        {key = "щ", name = "dw-open-record-ru", fn = cmd_open_record_file}
     }
     
     for _, k in ipairs(keys) do
