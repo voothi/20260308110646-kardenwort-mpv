@@ -614,7 +614,22 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             local sub_start = subs[sub_idx] and subs[sub_idx].start_time or 0
             local sub_end = subs[sub_idx] and subs[sub_idx].end_time or 0
 
+            local in_window = false
             if Options.anki_global_highlight or (data.time >= sub_start - window and data.time <= sub_end + window) then
+                in_window = true
+            elseif #term_words > 1 then
+                -- Multi-word split expressions can span huge distances. 
+                -- If data.time aligns anywhere inside our local subtitle scan cluster [-15, +15], it's valid.
+                local min_scan = math.max(1, sub_idx - 15)
+                local max_scan = math.min(#subs, sub_idx + 15)
+                if subs[min_scan] and subs[max_scan] then
+                    if data.time >= (subs[min_scan].start_time - window) and data.time <= (subs[max_scan].end_time + window) then
+                        in_window = true
+                    end
+                end
+            end
+
+            if in_window then
                 if #term_words > 0 then
                     local term_lower = data.__term_key_lower
                     local ctx_lower = data.__ctx_lower
