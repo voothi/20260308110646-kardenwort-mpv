@@ -117,24 +117,54 @@ local is_header = (term == "WordSource" or term == "Term"
 if term and term ~= "" and not is_header then
 ```
 
-### Change 4 — Add subs guard + force-refresh in `cmd_toggle_drum_window` (around line 3490)
+### Change 4 — Force-refresh TSV in `cmd_toggle_drum_window` (around line 3490)
 
-The DW should not proceed to `DOCKED` state if there are no subtitle lines in memory.
-This is a secondary safeguard (the primary guard at line 3481 catches `NO_SUBS` state),
-but `Tracks.pri.subs` can be empty even when `MEDIA_STATE` is set, if the observer
-callback failed and subs were never loaded.
-
-Additionally, force-refresh the TSV state immediately before opening, so a mid-session
-file deletion is reflected at the exact moment the user opens the window.
+When the user opens the Drum Window, force a `load_anki_tsv(true)` refresh immediately
+before transitioning to `DOCKED` state, so mid-session file deletions are reflected
+instantly rather than waiting for the next 5-second timer cycle.
 
 **After the existing guard at line 3488 (after `if not Tracks.pri.path then ... end`), add:**
 ```lua
 -- Force-refresh TSV to reflect any mid-session file deletion
 load_anki_tsv(true)
-
--- Guard: if subs failed to load (observer crash), DW cannot render anything useful
-if #Tracks.pri.subs == 0 then
-    show_osd("Drum Window: Subtitles not loaded yet")
-    return
-end
 ```
+
+> **Implementation Note:** The original design included a secondary subs guard
+> (`if #Tracks.pri.subs == 0 then ... return end`) after the TSV refresh.
+> This was **removed during testing** — it caused a regression where the window
+> refused to open whenever the TSV was absent, because the system falsely correlated
+> an empty highlights table with an empty subtitle set. The primary `NO_SUBS` guard
+> at the function entry point is sufficient.
+
+---
+
+## Extra Hardening (Added During Implementation)
+
+During debugging it became clear that the script was failing silently with zero console
+output. Three additional changes were necessary to diagnose and fix the root cause:
+
+### Extra 1 — TSV Auto-Creation
+
+When `io.open(tsv_path, "r")` returns nil (file missing), instead of only clearing
+highlights and returning, the script now attempts to **create** a fresh `.tsv` file
+with a default header row (`Term\tSentence\tTime`).
+
+This prevents cascading nil-reference errors in downstream callers that assume a
+valid file always exists after the first write, and also gives the user a visible
+artifact confirming the script is running.
+
+### Extra 2 — Loud Initialization Markers
+
+Two `print()` calls were added at script load time:
+- `[LLS] SCRIPT INITIALIZING...` — at the top of the initialization block
+- `[LLS] SCRIPT LOADED SUCCESSFULLY` — at the very end of the file
+
+`mp.msg.*` calls are filtered by mpv's log level and were not reliably appearing in
+the terminal. `print()` writes directly to stdout and is always visible, making it
+possible to confirm script execution without changing any mpv flags.
+
+### Extra 3 — `print()` for All Observer Error Handlers
+
+All `mp.msg.error` calls inside `pcall` error handlers in the observer callbacks were
+replaced with `print()`. This was the primary reason no diagnostic output appeared
+during the investigation — mpv was suppressing the log messages based on log level.

@@ -129,59 +129,73 @@ compares against the actual configured name so the header is always skipped.
 
 ---
 
-## Task 4 — Add TSV refresh + subs guard to `cmd_toggle_drum_window`
+## Task 4 — Add TSV refresh to `cmd_toggle_drum_window`
 
 **File:** `scripts/lls_core.lua`
 **Location:** Inside `cmd_toggle_drum_window`, inside the `if FSM.DRUM_WINDOW == "OFF"` branch
 
-**Find this exact line (line 3490):**
-```lua
-    if FSM.DRUM_WINDOW == "OFF" then
-        FSM.DRUM_WINDOW = "DOCKED"
-```
+Added `load_anki_tsv(true)` force-refresh at the top of the `OFF → DOCKED` branch so that
+mid-session file deletions are reflected immediately when the user opens the window.
 
-**Replace with:**
-```lua
-    if FSM.DRUM_WINDOW == "OFF" then
-        -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
-        -- The periodic timer runs every 5s, so this ensures instant sync on user action.
-        load_anki_tsv(true)
+> **Note:** The `#Tracks.pri.subs == 0` guard from the original design was **not** kept.
+> Testing revealed it incorrectly blocked the window from opening whenever the TSV file
+> was absent (even though subtitles were loaded), because the system associated an empty
+> highlights table with "no data to show." The primary `NO_SUBS` guard at the start of
+> the function is sufficient.
 
-        -- Secondary subs guard: MEDIA_STATE may say subs are loaded, but if the observer
-        -- callback failed earlier, Tracks.pri.subs can still be empty. An empty subs
-        -- table causes tick_dw to render nothing and the window appears blank.
-        if #Tracks.pri.subs == 0 then
-            show_osd("Drum Window: Subtitles not loaded yet")
-            return
-        end
-
-        FSM.DRUM_WINDOW = "DOCKED"
-```
-
-**Why:**
-- `load_anki_tsv(true)` with `force=true` bypasses the `next(ANKI_HIGHLIGHTS) ~= nil`
-  early-exit guard. Even if highlights are non-empty (stale), this forces a full re-read.
-- The `#Tracks.pri.subs == 0` guard prevents the window from entering `DOCKED` state
-  with no subtitle data. Without this, `tick_dw` renders zero lines → blank OSD.
-- The existing guard at line 3481 (`FSM.MEDIA_STATE == "NO_SUBS"`) is not sufficient
-  because `MEDIA_STATE` can be stale if the earlier observer crash happened.
-
-- [x] 4.1 Make this replacement (note: the `#Tracks.pri.subs == 0` guard was removed — it incorrectly blocked the window when TSV was absent; only the `load_anki_tsv(true)` refresh call was kept)
+- [x] 4.1 Added `load_anki_tsv(true)` before `FSM.DRUM_WINDOW = "DOCKED"`
+- [x] 4.2 Wrapped `cmd_toggle_drum_window` body in `pcall` — errors now logged via `print()` instead of crashing silently
 
 ---
 
-## Task 5 — Verification
+## Task 5 — Extra Hardening (added during implementation)
 
-- [ ] 5.1 **Scenario A — File never existed**: Open a video with NO `.tsv` file present.
-  Expected: Script loads normally. All keys (`w`, `q`, etc.) work. No blank window.
+During debugging, the root cause was traced to the script loading silently with no
+output — making it impossible to determine whether the script was running at all.
+The following additional changes were made beyond the original plan:
 
-- [ ] 5.2 **Scenario B — File deleted mid-session**: Open video, open DW, add a word (TSV created).
-  Then delete the `.tsv` file while mpv is running. Wait 6 seconds (one timer cycle).
-  Expected: The highlight on the word disappears from the DW within ~5s.
+### 5.1 — TSV Auto-Creation
 
-- [ ] 5.3 **Scenario C — File cleared to 0 bytes**: Open video with an existing `.tsv` file.
-  Open the file in an editor and delete all content (save as empty). Wait 6 seconds.
-  Expected: All highlights disappear. No "Quotation" phantom highlight.
+**File:** `scripts/lls_core.lua` — inside `load_anki_tsv`
 
-- [ ] 5.4 **Scenario D — Press 'w' with observer crash simulated**: Check mpv log for
-  any `pcall` error messages after starting mpv. Confirm script still operational.
+If `io.open` returns `nil` (file missing), the script now attempts to **create** a fresh
+`.tsv` file with a default header row (`Term\tSentence\tTime`). This ensures subsequent
+calls have a valid file to open and prevents cascading nil-reference errors.
+
+- [x] 5.1.1 Added auto-creation block after the `if not f then` check
+
+### 5.2 — Loud Initialization Logging
+
+Added two `print()` statements at script load time:
+- `[LLS] SCRIPT INITIALIZING...` — at the very top of the initialization block
+- `[LLS] SCRIPT LOADED SUCCESSFULLY` — at the very end of the file
+
+This allows the user to confirm via terminal that the script is being executed by mpv
+at all, ruling out configuration or path errors before debugging internal logic.
+
+- [x] 5.2.1 Added `print("[LLS] SCRIPT INITIALIZING...")` at script start
+- [x] 5.2.2 Added `print("[LLS] SCRIPT LOADED SUCCESSFULLY")` at end of file
+
+### 5.3 — `print()`-based Diagnostics for All Observers
+
+Replaced `mp.msg.error` calls in observer callbacks with `print()` to bypass mpv's
+internal log-level filtering. This was the primary reason diagnostic messages were
+not appearing in the console during the investigation.
+
+- [x] 5.3.1 Observer error handlers use `print()` instead of `mp.msg.error`
+
+---
+
+## Task 6 — Verification
+
+- [x] 6.1 **Scenario A — File never existed**: Script loads normally. Keys (`w`, `q`, etc.) work.
+  Auto-creation creates a fresh `.tsv` on first use. Window opens correctly.
+
+- [ ] 6.2 **Scenario B — File deleted mid-session**: Delete `.tsv` while mpv is running.
+  Wait ~6s. Expected: highlights disappear from the DW.
+
+- [ ] 6.3 **Scenario C — File cleared to 0 bytes**: Clear `.tsv` in editor, wait ~6s.
+  Expected: All highlights disappear. No phantom "Quotation" highlight.
+
+- [ ] 6.4 **Scenario D — Observer pcall coverage**: Check mpv terminal for `[LLS] SCRIPT LOADED SUCCESSFULLY`
+  on startup. Confirms script is running. Any observer errors appear as `[LLS ERROR] ...` lines.

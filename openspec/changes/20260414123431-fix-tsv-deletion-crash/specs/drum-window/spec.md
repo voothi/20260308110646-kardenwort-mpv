@@ -30,31 +30,24 @@ This ensures:
 Position: immediately at the top of the `if FSM.DRUM_WINDOW == "OFF" then` branch,
 before the `FSM.DRUM_WINDOW = "DOCKED"` assignment.
 
-### R2 — Empty Subs Guard
+### R2 — Empty Subs Guard *(not implemented — see note)*
 
-After the TSV refresh (R1), the function MUST check `#Tracks.pri.subs == 0`.
-If true:
-1. Call `show_osd("Drum Window: Subtitles not loaded yet")`
-2. `return` — do NOT transition to DOCKED
+> **Implementation Note:** During testing, this guard caused a regression.
+> When the TSV file was absent, `#Tracks.pri.subs` was always `0` because the
+> system correlated "no highlights" with "no subtitle data." The guard blocked
+> the window from opening even when subtitles were correctly loaded.
+>
+> **Decision:** R2 was dropped. The existing `MEDIA_STATE == "NO_SUBS"` guard
+> at the top of `cmd_toggle_drum_window` is sufficient to block the window when
+> no subtitles are present. The DW can safely open with an empty highlights table.
 
-**Why this matters:** `tick_dw` (the rendering function) calls `dw_build_layout`
-which iterates `Tracks.pri.subs`. If the table is empty, it renders zero lines.
-The `dw_osd.data` is set to an ASS string with only the background box, no text.
-The user sees what appears to be a frozen or blank application with none of the
-familiar keyboard shortcuts working (because those bindings ARE registered — but
-they operate on empty data and produce no visible output).
+### R3 — Position of new code relative to existing guards
 
-### R3 — Position of new guard relative to existing guards
-
-The new code must come AFTER the two existing guards (the `NO_SUBS` and `path` checks)
-and BEFORE the `FSM.DRUM_WINDOW = "DOCKED"` line.
-
-Final order inside the `if FSM.DRUM_WINDOW == "OFF" then` block:
+The final order inside the `if FSM.DRUM_WINDOW == "OFF" then` block is:
 ```
 1. [existing] if MEDIA_STATE == "NO_SUBS" → return
 2. [existing] if not Tracks.pri.path → return
-3. [NEW] load_anki_tsv(true)
-4. [NEW] if #Tracks.pri.subs == 0 → return
-5. FSM.DRUM_WINDOW = "DOCKED"
-6. ... rest of initialization ...
+3. [NEW] load_anki_tsv(true)   ← R1 implemented
+4. FSM.DRUM_WINDOW = "DOCKED"  ← R2 guard removed
+5. ... rest of initialization ...
 ```
