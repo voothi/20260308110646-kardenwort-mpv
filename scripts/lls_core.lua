@@ -3502,14 +3502,6 @@ function cmd_toggle_drum_window()
         -- The periodic timer runs every 5s, so this ensures instant sync on user action.
         load_anki_tsv(true)
 
-        -- Secondary subs guard: MEDIA_STATE may say subs are loaded, but if the observer
-        -- callback failed earlier, Tracks.pri.subs can still be empty. An empty subs
-        -- table causes tick_dw to render nothing and the window appears blank.
-        if #Tracks.pri.subs == 0 then
-            show_osd("Drum Window: Subtitles not loaded yet")
-            return
-        end
-
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
         

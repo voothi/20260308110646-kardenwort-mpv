@@ -166,7 +166,7 @@ compares against the actual configured name so the header is always skipped.
 - The existing guard at line 3481 (`FSM.MEDIA_STATE == "NO_SUBS"`) is not sufficient
   because `MEDIA_STATE` can be stale if the earlier observer crash happened.
 
-- [x] 4.1 Make this replacement
+- [x] 4.1 Make this replacement (note: the `#Tracks.pri.subs == 0` guard was removed — it incorrectly blocked the window when TSV was absent; only the `load_anki_tsv(true)` refresh call was kept)
 
 ---
 
