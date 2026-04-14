@@ -1068,26 +1068,34 @@ end
 local function cmd_open_record_file()
     local path = get_tsv_path()
     if not path then
-        show_osd("[REC] No media loaded")
+        mp.msg.info("OPEN-RECORD: no media loaded")
         return
     end
 
     local f = io.open(path, "r")
     if not f then
-        show_osd("[REC] No record file found")
+        mp.msg.info("OPEN-RECORD: file not found: " .. tostring(path))
+        show_osd("No record file found")
         return
     end
     f:close()
 
     local editor = Options.record_editor
     if not editor or editor == "" then
-        show_osd("[REC] record_editor not set in mpv.conf")
+        mp.msg.info("OPEN-RECORD: record_editor not configured")
+        show_osd("Set lls-record_editor in mpv.conf")
         return
     end
 
-    show_osd("[REC] Launching editor...")
-    local cmd = 'start "" "' .. editor .. '" "' .. path .. '"'
-    os.execute(cmd)
+    mp.msg.info("OPEN-RECORD: launching [" .. editor .. "] with [" .. path .. "]")
+    mp.command_native_async({
+        name = "subprocess",
+        args = {editor, path},
+        playback_only = false,
+        detach = true
+    }, function(success, result, err)
+        if err then mp.msg.warn("OPEN-RECORD error: " .. tostring(err)) end
+    end)
 end
 
 local function load_anki_tsv(force)
