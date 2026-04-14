@@ -1074,7 +1074,7 @@ local function cmd_open_record_file()
     f:close()
     
     show_osd("Opening record file...")
-    utils.subprocess({args = {"powershell", "-NoProfile", "-Command", "Start-Process", '\"' .. path .. '\"'}, cancellable = false})
+    mp.commandv("run", "cmd", "/c", "start", "", path)
 end
 
 local function load_anki_tsv(force)
