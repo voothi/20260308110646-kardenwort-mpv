@@ -540,7 +540,7 @@ local function is_word_char(ch)
 end
 
 local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
-    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0 end
+    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false end
     
     local function get_sub_words(s)
         if not s then return nil end
@@ -550,9 +550,10 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
     local words = get_sub_words(subs[sub_idx])
     local target_word = words[word_idx]
-    if not target_word then return 0 end
+    if not target_word then return 0, 0, false end
     local target_lower = utf8_to_lower(target_word:gsub("[%p%s]", ""))
-    if target_lower == "" then return 0 end
+    if target_lower == "" then return 0, 0, false end
+
 
     -- Helper to get a word relative to current word_idx across segment boundaries
     local function get_relative_word(rel_offset)
