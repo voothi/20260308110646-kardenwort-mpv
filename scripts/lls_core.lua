@@ -114,6 +114,9 @@ local Options = {
     anki_split_depth_1 = "FF88B0",
     anki_split_depth_2 = "D97496",
     anki_split_depth_3 = "B3607C",
+    anki_mix_depth_1 = "4A4AD3",
+    anki_mix_depth_2 = "3636A8",
+    anki_mix_depth_3 = "202078",
     anki_global_highlight = false,
     anki_sync_period = 30,
     anki_context_lines = 6,
@@ -589,9 +592,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
         return nil
     end
     
-    local stack = 0
+    local orange_stack = 0
+    local purple_stack = 0
     local has_phrase = false
-    local is_split = false
     local matched_terms = {}
     for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
         local term_key = data.term
@@ -774,13 +777,17 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 end
                             end
 
+                            local match_is_split = false
+                            local match_is_sequence = false
+
                             if sequence_match then
                                 match_found = true
+                                match_is_sequence = true
                                 if #term_words > 1 then has_phrase = true end
                                 break -- Out of offsets for this term
                             elseif split_match then
                                 match_found = true
-                                is_split = true
+                                match_is_split = true
                                 break -- Out of offsets for this term
                             end
                         end
@@ -788,13 +795,16 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                 end
             end
             if match_found then
-                stack = stack + 1
+                if match_is_split then
+                    purple_stack = purple_stack + 1
+                else
+                    orange_stack = orange_stack + 1
+                end
                 matched_terms[term_key] = true
-                if stack >= 3 then break end
             end
         end
     end
-    return stack, has_phrase, is_split
+    return orange_stack, purple_stack, has_phrase
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -1462,18 +1472,25 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local words = build_word_list(text)
         local formatted_parts = {}
         for i, w in ipairs(words) do
-            local stack, is_phrase, is_split = calculate_highlight_stack(subs, sub_idx, i, t_pos)
+            local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, i, t_pos)
             local h_color = base_color
-            if stack > 0 then
-                if is_split and not is_phrase then
-                    if stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                    elseif stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                    elseif stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
-                else
-                    if stack == 1 then h_color = Options.anki_highlight_depth_1
-                    elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-                    elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                end
+            
+            if orange_stack > 0 and purple_stack > 0 then
+                -- Mixed Intersection
+                local total_stack = math.min(orange_stack + purple_stack, 3)
+                if total_stack == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                elseif total_stack == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
+                elseif total_stack >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
+            elseif orange_stack > 0 then
+                -- Pure Orange
+                if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
+                elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
+                elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+            elseif purple_stack > 0 then
+                -- Pure Purple (Split)
+                if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
             end
 
             if h_color ~= base_color then
@@ -1640,18 +1657,25 @@ local function draw_dw(subs, view_center, active_idx)
                     end
 
                     local sub_t = subs[i]
-                    local stack, is_phrase, is_split = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
-                    if stack > 0 then
-                        if is_split and not is_phrase then
-                            if stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                            elseif stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                            elseif stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
-                        else
-                            if stack == 1 then h_color = Options.anki_highlight_depth_1
-                            elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-                            elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                        end
+                    
+                    if orange_stack > 0 and purple_stack > 0 then
+                        -- Mixed Intersection
+                        local total_stack = math.min(orange_stack + purple_stack, 3)
+                        if total_stack == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                        elseif total_stack == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
+                        elseif total_stack >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
+                    elseif orange_stack > 0 then
+                        -- Pure Orange
+                        if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
+                        elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
+                        elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                    elseif purple_stack > 0 then
+                        -- Pure Purple (Split)
+                        if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                        elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                        elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
                     end
 
                     if h_color ~= color then
