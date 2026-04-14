@@ -2,6 +2,8 @@ local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 
+print("[LLS] SCRIPT INITIALIZING (u:\\voothi\\20260308110646-kardenwort-mpv\\scripts\\lls_core.lua)")
+
 -- =========================================================================
 -- LLS CORE CONFIGURATION
 -- =========================================================================
@@ -1132,8 +1134,22 @@ local function load_anki_tsv(force)
     local f = io.open(tsv_path, "r")
     if not f then
         FSM.ANKI_HIGHLIGHTS = {}
-        mp.msg.verbose("load_anki_tsv: file not found, cleared: " .. tostring(tsv_path))
-        return
+        print("[LLS] TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
+        
+        -- Try to create a fresh one with a header
+        local wf = io.open(tsv_path, "w")
+        if wf then
+            wf:write("Term\tSentence\tTime\n")
+            wf:close()
+            f = io.open(tsv_path, "r") -- Try to open the newly created file
+            if not f then 
+                print("[LLS] TSV creation failed - path may be read-only")
+                return 
+            end
+        else
+            print("[LLS] TSV creation failed - could not open for writing")
+            return 
+        end
     end
 
     local new_highlights = {}
@@ -3488,6 +3504,8 @@ function cmd_toggle_search()
 end
 
 function cmd_toggle_drum_window()
+    print("[LLS] TOGGLE CALLED: FSM.DRUM_WINDOW=" .. tostring(FSM.DRUM_WINDOW))
+    local ok, err = pcall(function()
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Window: No subtitles loaded")
         return
@@ -3547,6 +3565,11 @@ function cmd_toggle_drum_window()
         FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
 
         -- show_osd("Drum Window: CLOSED")
+    end
+    end)
+    if not ok then
+        print("[LLS ERROR] Drum Window Toggle: " .. tostring(err))
+        show_osd("LLS ERROR: Check console")
     end
 end
 
@@ -3888,24 +3911,24 @@ end
 
 mp.observe_property("sid", "number", function(name, val)
     local ok, err = pcall(update_media_state)
-    if not ok then mp.msg.error("LLS Error (sid observer): " .. tostring(err)) end
+    if not ok then print("[LLS ERROR] sid observer: " .. tostring(err)) end
 end)
 mp.observe_property("secondary-sid", "number", function(name, val)
     local ok, err = pcall(update_media_state)
-    if not ok then mp.msg.error("LLS Error (sec-sid observer): " .. tostring(err)) end
+    if not ok then print("[LLS ERROR] sec-sid observer: " .. tostring(err)) end
 end)
 mp.observe_property("track-list", "native", function()
     local ok, err = pcall(update_media_state)
-    if not ok then mp.msg.error("LLS Error (track-list observer): " .. tostring(err)) end
+    if not ok then print("[LLS ERROR] track-list observer: " .. tostring(err)) end
     if Options.font_scaling_enabled then
         local ok2, err2 = pcall(update_font_scale)
-        if not ok2 then mp.msg.error("LLS Error (font-scaling): " .. tostring(err2)) end
+        if not ok2 then print("[LLS ERROR] font-scaling: " .. tostring(err2)) end
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
     if Options.font_scaling_enabled then
         local ok, err = pcall(update_font_scale)
-        if not ok then mp.msg.error("LLS Error (osd-dim observer): " .. tostring(err)) end
+        if not ok then print("[LLS ERROR] osd-dim observer: " .. tostring(err)) end
     end
 end)
 
@@ -3951,9 +3974,10 @@ if Options.anki_sync_period > 0 then
             drum_osd:update()
             if dw_osd then dw_osd:update() end
         end)
-        if not ok then mp.msg.error("LLS Error (periodic sync): " .. tostring(err)) end
+        if not ok then print("[LLS ERROR] periodic sync: " .. tostring(err)) end
     end)
 end
+print("[LLS] SCRIPT LOADED SUCCESSFULLY")
 ---------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
 ---------------------------------------------------------------------------
