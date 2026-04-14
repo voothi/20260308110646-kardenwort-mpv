@@ -647,8 +647,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 if prev_w then
                                     local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
                                     if pw_clean ~= "" then
-                                        -- Add space padding to finding neighbors inside context
-                                        if ctx_lower:find("%s" .. pw_clean .. " ") or ctx_lower:find("^" .. pw_clean .. " ") or ctx_lower:find(" " .. pw_clean .. "$") or term_lower:find("%s" .. pw_clean .. " ") or term_lower:find("^" .. pw_clean .. " ") or term_lower:find(" " .. pw_clean .. "$") then
+                                        if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
                                             has_neighbor = true
                                         end
                                     end
@@ -659,7 +658,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                     if next_w then
                                         local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
                                         if nw_clean ~= "" then
-                                            if ctx_lower:find("%s" .. nw_clean .. " ") or ctx_lower:find("^" .. nw_clean .. " ") or ctx_lower:find(" " .. nw_clean .. "$") or term_lower:find("%s" .. nw_clean .. " ") or term_lower:find("^" .. nw_clean .. " ") or term_lower:find(" " .. nw_clean .. "$") then
+                                            if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
                                                 has_neighbor = true
                                             end
                                         end
@@ -674,7 +673,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                             if not sequence_match and #term_words > 1 then
                                 if not subs[sub_idx].__ctx_clean_words then
                                     local cw_set = {}
-                                    for scan_i = math.max(1, sub_idx - 1), math.min(#subs, sub_idx + 1) do
+                                    for scan_i = math.max(1, sub_idx - 3), math.min(#subs, sub_idx + 3) do
                                         local scan_words = get_sub_words(subs[scan_i])
                                         if scan_words then
                                             for _, w in ipairs(scan_words) do
@@ -1026,10 +1025,21 @@ local function load_anki_tsv(force)
                 table.insert(fields, field)
             end
             -- Note: We now allow missing fields if they aren't part of the core 3
-            if #fields >= math.max(term_col, time_col) then
+            if #fields >= math.max(term_col, time_col) or #fields > term_col then
                 local term = fields[term_col]
                 local context = fields[ctx_col] or ""
-                local time_val = tonumber(fields[time_col]) or 0
+                local time_val = tonumber(fields[time_col])
+                if not time_val or time_val <= 0 then
+                    -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
+                    for c = #fields, math.max(1, #fields - 10), -1 do
+                        if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
+                            time_val = tonumber(fields[c])
+                            break
+                        end
+                    end
+                    time_val = time_val or 0
+                end
+                
                 -- Don't load headers or empty terms
                 if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
                     table.insert(new_highlights, { term = term, context = context, time = time_val })
