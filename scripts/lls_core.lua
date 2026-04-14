@@ -1120,20 +1120,41 @@ end
 
 local function load_anki_tsv(force)
     local tsv_path = get_tsv_path()
-    if not tsv_path then return end
+    if not tsv_path then return false end
     
     if FSM.ANKI_DB_PATH ~= tsv_path then
         FSM.ANKI_DB_PATH = tsv_path
         FSM.ANKI_HIGHLIGHTS = {}
     elseif not force then
-        if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return end
+        if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return true end
+    end
+
+    local f_check = io.open(tsv_path, "r")
+    local is_missing_or_empty = true
+    if f_check then
+        local first_char = f_check:read(1)
+        if first_char then is_missing_or_empty = false end
+        f_check:close()
+    end
+
+    local config = load_anki_mapping_ini()
+
+    if is_missing_or_empty then
+        local f_write = io.open(tsv_path, "w")
+        if not f_write then
+            mp.msg.warn("Failed to create TSV file: " .. tostring(tsv_path))
+            return false
+        end
+        local fields = config.fields
+        if not fields or #fields == 0 then fields = {"Term", "Context"} end
+        f_write:write(table.concat(fields, "\t") .. "\n")
+        f_write:close()
     end
 
     local f = io.open(tsv_path, "r")
-    if not f then return end
+    if not f then return false end
 
     local new_highlights = {}
-    local config = load_anki_mapping_ini()
 
     local term_col, ctx_col, time_col = 1, 2, 3
     if #config.fields > 0 then
@@ -1145,38 +1166,46 @@ local function load_anki_tsv(force)
         end
     end
 
-    for line in f:lines() do
-        if not line:match("^#") then
-            local fields = {}
-            for field in (line .. "\t"):gmatch("([^\t]*)\t") do
-                table.insert(fields, field)
-            end
-            -- Note: We now allow missing fields if they aren't part of the core 3
-            if #fields >= math.max(term_col, time_col) or #fields > term_col then
-                local term = fields[term_col]
-                local context = fields[ctx_col] or ""
-                local time_val = tonumber(fields[time_col])
-                if not time_val or time_val <= 0 then
-                    -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
-                    for c = #fields, math.max(1, #fields - 10), -1 do
-                        if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
-                            time_val = tonumber(fields[c])
-                            break
-                        end
-                    end
-                    time_val = time_val or 0
+    local success, err = pcall(function()
+        for line in f:lines() do
+            if not line:match("^#") then
+                local fields = {}
+                for field in (line .. "\t"):gmatch("([^\t]*)\t") do
+                    table.insert(fields, field)
                 end
-                
-                -- Don't load headers or empty terms
-                if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
-                    table.insert(new_highlights, { term = term, context = context, time = time_val })
+                -- Note: We now allow missing fields if they aren't part of the core 3
+                if #fields >= math.max(term_col, time_col) or #fields > term_col then
+                    local term = fields[term_col]
+                    local context = fields[ctx_col] or ""
+                    local time_val = tonumber(fields[time_col])
+                    if not time_val or time_val <= 0 then
+                        -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
+                        for c = #fields, math.max(1, #fields - 10), -1 do
+                            if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
+                                time_val = tonumber(fields[c])
+                                break
+                            end
+                        end
+                        time_val = time_val or 0
+                    end
+                    
+                    -- Don't load headers or empty terms
+                    if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
+                        table.insert(new_highlights, { term = term, context = context, time = time_val })
+                    end
                 end
             end
         end
-    end
+    end)
     f:close()
     
+    if not success then
+        mp.msg.warn("Error parsing TSV: " .. tostring(err))
+        return false
+    end
+    
     FSM.ANKI_HIGHLIGHTS = new_highlights
+    return true
 end
 
 local function save_anki_tsv_row(term, context, time_pos)
@@ -3488,6 +3517,13 @@ function cmd_toggle_drum_window()
     end
 
     if FSM.DRUM_WINDOW == "OFF" then
+        -- Verify TSV state before allowing Drum Window to open
+        if load_anki_tsv(false) == false then
+            show_osd("Drum Window: TSV Load Failed")
+            mp.msg.warn("Aborted Drum Window opening do to fatal TSV load error.")
+            return
+        end
+
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
         
