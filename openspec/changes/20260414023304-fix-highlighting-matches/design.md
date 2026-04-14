@@ -6,20 +6,19 @@ Furthermore, sequence matching contained a vulnerability where reaching the end 
 
 ## Goals / Non-Goals
 
-**Goals:**
 - Fix the false negative rate on Drum Window multi-word highlighting by evaluating fuzzy time matching against the FULL subtitle start-to-end span, not just the start point.
 - Eliminate false positive sequence matching when expected contiguous words are missing (`rw == nil`).
-- Harden Phase 2 Context matching.
+- Harden Phase 2 Context matching and split-term identification.
+- Robustly handle TSV parsing even when column counts/mappings are inconsistent or truncated.
 
 **Non-Goals:**
 - Altering the visual design or colors.
 - Affecting single-word highlighting logic unexpectedly.
 
-## Decisions
-
-- **Span-based Time Window:** Update `calculat_highlight_stack` to check `data.time` against `[sub_start - window, sub_end + window]`. This covers long subtitles comprehensively.
+- **Span-based Time Window:** Update `calculate_highlight_stack` to check `data.time` against `[sub_start - window, sub_end + window]`. This covers long subtitles comprehensively.
 - **Strict Boundary Enforcement:** Explicitly set `sequence_match = false` when `get_relative_word` returns `nil`.
-- **Word-bounded Context Search:** Add spacing boundaries (` %s ` format) when searching for `prev_w` or `next_w` inside `ctx_lower` to ensure accurate contiguous boundary validation.
+- **Fallback Timestamp Parsing:** Implement a backward-scanning logic in `load_anki_highlights` to find valid timestamps in tail columns if the primary `time` mapping fails (e.g., due to row truncation).
+- **Shortest-Span Ordered Matching:** For split terms, implement a recursive search that identifies the tightest sequential occurrence of term constituent words in the subtitle context. This prevents generic words (like "die") from triggering false highlights on unrelated instances.
 
 ## Risks / Trade-offs
 
