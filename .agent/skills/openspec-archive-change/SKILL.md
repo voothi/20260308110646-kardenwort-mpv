@@ -6,7 +6,7 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "1.2.0"
+  generatedBy: "1.4.6"
 ---
 
 Archive a completed change in the experimental workflow.
@@ -72,14 +72,14 @@ Archive a completed change in the experimental workflow.
    mkdir -p openspec/changes/archive
    ```
 
-   Generate target name: <target-name> - use <change-name> (if it already starts with a 14-digit ZID) OR <ZID>-<change-name> (if it does not, using current timestamp in YYYY-MM-DD format for the prefix).`
+   Generate target name: <target-name> - use <change-name> (if it already starts with a 14-digit ZID) OR <ZID>-<change-name> (if it does not, using current timestamp in YYYY-MM-DD format for the prefix).
 
    **Check if target already exists:**
    - If yes: Fail with error, suggest renaming existing archive or using different date
    - If no: Move the change directory to archive
 
    ```bash
-    mv openspec/changes/<name> openspec/changes/archive/<target-name>
+   mv openspec/changes/<name> openspec/changes/archive/<target-name>
    ```
 
 6. **Display summary**
@@ -112,3 +112,4 @@ All artifacts complete. All tasks complete.
 - Show clear summary of what happened
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- **Cross-platform safety**: When running on Windows, use `;` as a command separator or run commands as separate steps (avoid `&&`).

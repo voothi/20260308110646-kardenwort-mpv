@@ -152,3 +152,4 @@ Target archive directory already exists.
 - Show clear summary of what happened
 - If sync is requested, use the Skill tool to invoke `openspec-sync-specs` (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- **Cross-platform safety**: When running on Windows, use `;` as a command separator or run commands as separate steps (avoid `&&`).
