@@ -671,46 +671,29 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
                             local split_match = false
                             if not sequence_match and #term_words > 1 then
-                                -- For very short words (articles/conjunctions), be extremely strict.
-                                -- Only allow split match if there is SOME contextual hint.
-                                local allow_split = true
-                                if Options.anki_context_strict and #tw_clean <= 3 then
-                                    local prev_w = get_relative_word(-1)
-                                    local next_w = get_relative_word(1)
-                                    local p_clean = prev_w and utf8_to_lower(prev_w:gsub("[%p%s]", "")) or ""
-                                    local n_clean = next_w and utf8_to_lower(next_w:gsub("[%p%s]", "")) or ""
-                                    
-                                    -- If no neighbor matches anything in the term's exported context/term string, block the split highlight.
-                                    if not (ctx_lower:find(p_clean, 1, true) or ctx_lower:find(n_clean, 1, true) or term_lower:find(p_clean, 1, true) or term_lower:find(n_clean, 1, true)) then
-                                        allow_split = false
-                                    end
-                                end
-
-                                if allow_split then
-                                    if not subs[sub_idx].__ctx_clean_words then
-                                        local cw_set = {}
-                                        for scan_i = math.max(1, sub_idx - 3), math.min(#subs, sub_idx + 3) do
-                                            local scan_words = get_sub_words(subs[scan_i])
-                                            if scan_words then
-                                                for _, w in ipairs(scan_words) do
-                                                    local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
-                                                    if cw ~= "" then cw_set[cw] = true end
-                                                end
+                                if not subs[sub_idx].__ctx_clean_words then
+                                    local cw_set = {}
+                                    for scan_i = math.max(1, sub_idx - 3), math.min(#subs, sub_idx + 3) do
+                                        local scan_words = get_sub_words(subs[scan_i])
+                                        if scan_words then
+                                            for _, w in ipairs(scan_words) do
+                                                local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
+                                                if cw ~= "" then cw_set[cw] = true end
                                             end
                                         end
-                                        subs[sub_idx].__ctx_clean_words = cw_set
                                     end
-                                    
-                                    local all_found = true
-                                    for _, tc in ipairs(term_clean) do
-                                        if not subs[sub_idx].__ctx_clean_words[tc] then
-                                            all_found = false
-                                            break
-                                        end
+                                    subs[sub_idx].__ctx_clean_words = cw_set
+                                end
+                                
+                                local all_found = true
+                                for _, tc in ipairs(term_clean) do
+                                    if not subs[sub_idx].__ctx_clean_words[tc] then
+                                        all_found = false
+                                        break
                                     end
-                                    if all_found then
-                                        split_match = true
-                                    end
+                                end
+                                if all_found then
+                                    split_match = true
                                 end
                             end
 
