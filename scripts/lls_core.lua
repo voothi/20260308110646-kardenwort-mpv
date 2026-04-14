@@ -3606,8 +3606,9 @@ function cmd_toggle_drum_window()
         -- Roll back FSM state to prevent phantom window open/close on next toggle
         FSM.DRUM_WINDOW = prev_drum_window
         print("[LLS ERROR] Drum Window Toggle: " .. tostring(err))
-        show_osd("LLS ERROR: Check console")
+        show_osd("LLS ERROR: " .. tostring(err):sub(1, 100))
     end
+
 end
 
 function toggle_book_mode()
