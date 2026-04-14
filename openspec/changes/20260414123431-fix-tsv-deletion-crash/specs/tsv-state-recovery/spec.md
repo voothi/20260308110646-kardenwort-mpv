@@ -1,24 +1,15 @@
-## ADDED Requirements
+# Spec: TSV State Recovery
 
-### Requirement: Active TSV File Existence Verification
-The system SHALL verify the existence and readability of the currently active TSV record file before attempting to parse it or before opening UI elements that depend on its data.
+## Requirements
 
-#### Scenario: Active File Missing on Startup Opening
-- **WHEN** the user attempts to open the Drum Window
-- **AND** the active TSV record file has been deleted or cannot be found
-- **THEN** the system SHALL recreate an empty TSV file with the correct headers in its place
-- **AND** open the Drum Window seamlessly with an empty record state without crashing or freezing.
+### R1: Atomic Presence Checking
+The script MUST verify if the TSV file exists on every load request (synchronous startup and periodic).
 
-### Requirement: Resilient TSV Parsing
-The system SHALL gracefully handle standard parsing routines over empty or newly initialized TSV files without throwing exceptions.
+### R2: State Clearing
+If the TSV file is missing, the in-memory highlight state MUST be cleared (`{} `) to prevent displaying stale information from a deleted file.
 
-#### Scenario: Parsing an Empty File
-- **WHEN** the system begins iterating through the TSV file rows
-- **AND** the file contains only headers or is completely empty
-- **THEN** the parsing routine SHALL return an empty result set
-- **AND** NOT produce Lua runtime errors regarding string matching or nil values.
+### R3: Header Robustness
+The parsing routine MUST identify the header row dynamically by comparing the first column against the field name bound to `source_word` in the configuration. 
 
-#### Scenario: Unrecoverable File IO Error
-- **WHEN** the system fails to read or recreate the TSV file due to IO errors (e.g., file lock, permissions)
-- **THEN** the system SHALL abort the dependent UI operations gracefully
-- **AND** display an OSD error indicating the failure.
+### R4: Parsing Resilience
+The parsing loop MUST be isolated to prevent a single malformed line or I/O error from crashing the script's main thread.

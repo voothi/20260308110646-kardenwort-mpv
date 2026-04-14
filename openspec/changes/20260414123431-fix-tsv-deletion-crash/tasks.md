@@ -1,16 +1,19 @@
-## 1. Safety Wrapping TSV State Loading
+# Tasks: Fixing TSV Deletion and Drum Window Hang
 
-- [ ] 1.1 Locate the Drum Window initialize and file loading routines (e.g. in `lls_core.lua` or `kardenwort.lua` `init_tsv_state` or `open_drum_window`).
-- [ ] 1.2 Implement a robust file existence verification check before parsing (using `io.open`).
-- [ ] 1.3 Add a fallback path that writes the standard ANKI header map to a recreated file if it is missing or empty.
+## 1. Startup Resilience
+- [ ] 1.1 Wrap the top-level `update_media_state()` call in `mp.observe_property` and script init with a `pcall`.
+- [ ] 1.2 Add defensive logging to identify if/when the init logic fails.
 
-## 2. Drum Window Resiliency Integration
+## 2. Robust TSV Parsing
+- [ ] 2.1 Refactor `load_anki_tsv` to clear `FSM.ANKI_HIGHLIGHTS` when `io.open` fails.
+- [ ] 2.2 Implement dynamic header skipping by looking up `config.fields[term_col]`.
+- [ ] 2.3 Wrap the internal file parsing loop in a `pcall`.
 
-- [ ] 2.1 Update the Drum Window `render_drum_window` or related state logic to check if a valid data set was successfully loaded.
-- [ ] 2.2 Add error messaging (`mp.osd_message`) when TSV reading encounters a fatal failure.
-- [ ] 2.3 Prevent `FSM.DRUM_WINDOW` state transition if valid rows cannot be initialized.
+## 3. Drum Window Safety
+- [ ] 3.1 Use `load_anki_tsv(true)` at the start of `cmd_toggle_drum_window`.
+- [ ] 3.2 Add a `#subs == 0` guard to `cmd_toggle_drum_window` with OSD feedback.
 
-## 3. Empty File Robustness
-
-- [ ] 3.1 Verify robust handling of empty rows without nil reference crashes in highlighting and TSV parsing sequences. 
-- [ ] 3.2 Ensure the script falls back gracefully, retaining operations on the rest of video/subs without locking the UI.
+## 4. Verification
+- [ ] 4.1 Test script loading with no TSV file present.
+- [ ] 4.2 Test mid-session TSV deletion (Verify highlights disappear after 5s or on next DW open).
+- [ ] 4.3 Test "blank" subtitle file (Verify DW shows an error message instead of a blank UI).

@@ -1,31 +1,38 @@
-## Context
+# Design: Robust Startup and State Recovery
 
-The Drum Window and related mechanisms depend on an active TSV file to store and retrieve records. Currently, when the user or an external process deletes or clears the active TSV file, `kardenwort.lua`/`lls_core.lua` attempts to read or parse the non-existent or empty file without proper boundary checks. This results in missing fields or unexpected nil values that cascade into a fatal silent failure during Drum Window initialization. The system lacks a safety mechanism to verify the integrity of the critical data source before engaging the UI.
+## Architecture Changes
 
-## Goals / Non-Goals
+### 1. The Global Startup Guard
+We will modify the startup sequence to ensure that all synchronous data loading is decoupled from keybinding registration.
 
-**Goals:**
-- Identify when the active TSV record file is deleted, missing, or empty right before operations that require reading it (like opening the Drum Window).
-- Re-initialize or recreate the TSV file seamlessly with correct headers if it is completely missing.
-- Provide a clear `mp.osd_message` indicating the failure state if recovery is impossible.
-- Prevent any UI freezing or state corruption during Drum Window opening when the file is unavailable.
+```mermaid
+graph TD
+    A[Mpv Starts] --> B[Load Config & Options]
+    B --> C[Register Observers]
+    C --> D{Initial Media State?}
+    D --> E[pcall: update_media_state]
+    E --> F[Register Keybindings]
+    E --> G[Register Periodic Timers]
+    F --> H[Script Ready]
+```
 
-**Non-Goals:**
-- Restoring lost data from the deleted TSV file.
-- Creating an independent backup/snapshot system for TSV data.
+By wrapping `update_media_state` in a `pcall`, we guarantee that a failure in reading a malformed TSV or a Windows path encoding error doesn't halt the rest of the script.
 
-## Decisions
+### 2. State Sync in `load_anki_tsv`
+The logic will be updated to handle the "File Missing" state as a valid "Zero Highlights" state, rather than an early exit.
 
-**Decision:** Before opening the Drum Window or returning rows in the TSV parser, explicitly verify the file's existence and size.
-*Rationale:* Relying simply on iteration limits or parsing logic assumes a structurally valid file. Explicitly checking `io.open` or utilizing standard Lua filesystem calls guarantees that we don't attempt to process a missing file.
+- **Current (Baseline)**: If `io.open` fails, return `nil`. `ANKI_HIGHLIGHTS` stays as it was.
+- **New**: If `io.open` fails, `ANKI_HIGHLIGHTS = {}`.
 
-**Decision:** Automatically rewrite the TSV headers if the file is recreated or discovered as empty.
-*Rationale:* If the user accidentally deletes the file, a seamless recovery involves recreating an empty, valid state. Re-writing standard anki mapping headers allows the script to continue without error.
+### 3. Dynamic Header Detection
+Instead of hardcoding `"WordSource"` and `"Term"`, we will lookup the actual field name configured for the `source_word` mapping in `anki_mapping.ini`. This prevents the header row from being treated as a content row when the column names are customized (e.g., "Quotation").
 
-**Decision:** Wrap critical reading loops in pcall or safe return fallbacks.
-*Rationale:* Prevents uncaught Lua errors from silently crashing the script thread if `io.lines` or similar operations fail unexpectedly.
-
-## Risks / Trade-offs
-
-- **Risk**: File locks from external editors (like VSCode) might prevent the script from recreating or reading the file, causing another failure.
-  - *Mitigation*: We will use robust `pcall` or check the return of `io.open(path, "a")` before trying to read/write, degrading gracefully to UI errors if standard file I/O operations fail.
+### 4. Drum Window Empty-State Guard
+We will add an explicit check to `cmd_toggle_drum_window`:
+```lua
+if #Tracks.pri.subs == 0 then
+    show_osd("Drum Window: No subtitles loaded")
+    return
+end
+```
+This solves the "blank screen" issue by preventing the window from ever opening in an invalid state.

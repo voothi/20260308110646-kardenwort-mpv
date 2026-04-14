@@ -1,10 +1,12 @@
-## ADDED Requirements
+# Spec: Drum Window Resilience
 
-### Requirement: Initialization Resilience against Missing Data
-The Drum Window SHALL verify the integrity and availability of its target data source (TSV) prior to state transitions. If the data is completely unavailable and recovery fails, it SHALL gracefully abort initialization without altering the `FSM.DRUM_WINDOW` state unpredictably.
+## Requirements
 
-#### Scenario: Safe Abortion on Fatal Data Loss
-- **WHEN** the Drum Window attempts to open or initialize
-- **AND** the required TSV file read encounters an unrecoverable failure (e.g. fatal locking, missing headers that cannot be written)
-- **THEN** the Drum Window SHALL log an error and display an OSD message indicating failure to load data
-- **AND** the Drum Window state SHALL remain `OFF`.
+### R1: Empty Source Guard
+The Drum Window MUST NOT initialize its UI state if the primary subtitle source is empty or missing. It MUST show a clear OSD notification explaining the missing dependency.
+
+### R2: Force Refresh
+Opening the Drum Window MUST trigger a forced synchronous reload of the TSV state to ensure the view represents the current state of the file system.
+
+### R3: Initialization Safety
+All UI setup logic MUST be protected to ensure that an invalid layout calculation (e.g. on empty subs) does not crash the script's visual rendering loop.
