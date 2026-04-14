@@ -2755,11 +2755,7 @@ local function manage_dw_bindings(enable)
         
         -- Search Toggle
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
-        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
-
-        -- Open Record File
-        {key = "o", name = "dw-open-record", fn = cmd_open_record_file},
-        {key = "щ", name = "dw-open-record-ru", fn = cmd_open_record_file}
+        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end}
     }
     
     for _, k in ipairs(keys) do
@@ -3865,6 +3861,11 @@ mp.add_forced_key_binding("и", "book-mode-ru", toggle_book_mode)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
+mp.add_key_binding(nil, "toggle-record-file", function()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        cmd_open_record_file()
+    end
+end)
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
