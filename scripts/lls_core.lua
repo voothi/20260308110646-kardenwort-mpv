@@ -2492,6 +2492,7 @@ end
 -- =========================================================================
 
 local function master_tick()
+    local ok, err = xpcall(function()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
@@ -2549,6 +2550,10 @@ local function master_tick()
     -- Execute Drum Window
     if FSM.DRUM_WINDOW == "DOCKED" then
         tick_dw(time_pos)
+    end
+    end, debug.traceback)
+    if not ok then
+        print("[LLS ERROR] master_tick crash: " .. tostring(err))
     end
 end
 mp.add_periodic_timer(Options.tick_rate, master_tick)
@@ -3543,12 +3548,15 @@ function cmd_toggle_drum_window()
     end
 
     if FSM.DRUM_WINDOW == "OFF" then
+        print("[LLS] OPENING DRUM WINDOW...")
+        -- Update state immediately for responsiveness
+        FSM.DRUM_WINDOW = "DOCKED"
+        manage_ui_border_override(true)
+
         -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
-        -- The periodic timer runs every 5s, so this ensures instant sync on user action.
         load_anki_tsv(true)
 
         -- Snapshot and hide all subtitle overlays to prevent overlap
-        -- Use FSM.native_sub_vis for consistent state tracking
         FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
         FSM.DW_SAVED_DRUM_STATE = FSM.DRUM
 
@@ -3570,15 +3578,20 @@ function cmd_toggle_drum_window()
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_FOLLOW_PLAYER = true
         
-        -- Commit state mutation last — after all initialization that can throw
-        FSM.DRUM_WINDOW = "DOCKED"
-        manage_ui_border_override(true)
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(true)
         end
-        -- show_osd("Drum Window: OPEN")
+
+        -- Explicitly trigger first render for instant appearance
+        if FSM.DRUM_WINDOW == "DOCKED" then
+            tick_dw(time_pos or 0)
+        end
     else
+        print("[LLS] CLOSING DRUM WINDOW...")
+        -- Update state immediately
+        FSM.DRUM_WINDOW = "OFF"
         manage_ui_border_override(false)
+
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(false)
         end
@@ -3586,13 +3599,7 @@ function cmd_toggle_drum_window()
         dw_osd:update()
 
         -- Restore subtitle visibility
-        -- Our master_tick now handles the actual property suppression for OSD-SRT,
-        -- so we just need to ensure the FSM state is correct.
         FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
-
-        -- Commit state mutation last
-        FSM.DRUM_WINDOW = "OFF"
-        -- show_osd("Drum Window: CLOSED")
     end
     end, debug.traceback)
     if not ok then
