@@ -26,3 +26,8 @@ The visual highlighting system SHALL support non-contiguous subset matching for 
 - **WHEN** a multi-word TSV term is processed for split matching (e.g. "ist die Anwohner")
 - **AND** intermediate generic words (e.g. "die") occur multiple times within the same context
 - **THEN** the system SHALL calculate the shortest sequential span of the term's elements matching their original order, restricting the highlight strictly to those valid subsets and preventing false coloration on earlier or unrelated instances of those words (e.g. "die Geräte").
+
+#### Scenario: Split phrase synchronization across wide clusters
+- **WHEN** a split multi-word term bridges an extremely long span of dialogue over many subtitle events (e.g. "Beruf ... da")
+- **THEN** the system SHALL securely scan a sufficient window of surrounding subtitle chunks (e.g. `[-15, +15]`) to capture scattered components.
+- **AND** the system SHALL automatically augment the fuzzy temporal validity constraint to span exactly that outer limit natively, to ensure that words located at the far extremities of the phrase correctly inherit the temporal validity initially recorded for the first word.

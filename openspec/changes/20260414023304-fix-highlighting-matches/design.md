@@ -19,6 +19,8 @@ Furthermore, sequence matching contained a vulnerability where reaching the end 
 - **Strict Boundary Enforcement:** Explicitly set `sequence_match = false` when `get_relative_word` returns `nil`.
 - **Fallback Timestamp Parsing:** Implement a backward-scanning logic in `load_anki_highlights` to find valid timestamps in tail columns if the primary `time` mapping fails (e.g., due to row truncation).
 - **Shortest-Span Ordered Matching:** For split terms, implement a recursive search that identifies the tightest sequential occurrence of term constituent words in the subtitle context. This prevents generic words (like "die") from triggering false highlights on unrelated instances.
+- **Wide-Cluster Spatial Scanning:** Expand subtitle context scan buffer from `[-3, +3]` to `[-15, +15]` chunks (roughly 30-45 seconds of local dialogue) to ensure that widely spread words (e.g. from outer bounds of whole paragraphs) are successfully linked into a valid split occurrence.
+- **Symmetric Temporal Sync:** Override the default `anki_local_fuzzy_window` timestamp limit entirely for multi-word phrases, enforcing `data.time` bounds against the extreme limits of the newly defined `[-15, +15]` cluster natively to avoid arbitrary temporal drop-outs for heavily separated pairs (e.g. `Beruf` validating but `da` failing).
 
 ## Risks / Trade-offs
 
