@@ -1163,8 +1163,21 @@ local function load_anki_tsv(force)
             header_line = "Term\tSentence\tTime"
         end
 
+        -- Find the deck column index (same logic as save_anki_tsv_row)
+        local deck_col = -1
+        for i, fld in ipairs(config.fields) do
+            if config.mapping[fld] == "deck_name" then
+                deck_col = i
+                break
+            end
+        end
+
         local wf = io.open(tsv_path, "w")
         if wf then
+            -- Write #deck directive first, then field headers — matches save_anki_tsv_row order
+            if deck_col > 0 then
+                wf:write(string.format("#deck column:%d\n", deck_col))
+            end
             wf:write(header_line .. "\n")
             wf:close()
             f = io.open(tsv_path, "r") -- Re-open for reading
@@ -1177,6 +1190,7 @@ local function load_anki_tsv(force)
             return 
         end
     end
+
 
     local new_highlights = {}
 
