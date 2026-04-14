@@ -1129,8 +1129,13 @@ local function load_anki_tsv(force)
         if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return end
     end
 
-    local f = io.open(tsv_path, "r")
-    if not f then return end
+    local f, err = io.open(tsv_path, "r")
+    if not f then 
+        -- If file is missing, clear highlights (it might have been deleted)
+        FSM.ANKI_HIGHLIGHTS = {}
+        if err then mp.msg.verbose("load_anki_tsv: " .. tostring(err)) end
+        return 
+    end
 
     local new_highlights = {}
     local config = load_anki_mapping_ini()
@@ -1146,29 +1151,31 @@ local function load_anki_tsv(force)
     end
 
     for line in f:lines() do
-        if not line:match("^#") then
+        if line and not line:match("^#") and line:match("%S") then
             local fields = {}
             for field in (line .. "\t"):gmatch("([^\t]*)\t") do
                 table.insert(fields, field)
             end
-            -- Note: We now allow missing fields if they aren't part of the core 3
-            if #fields >= math.max(term_col, time_col) or #fields > term_col then
+            
+            if #fields >= term_col then
                 local term = fields[term_col]
                 local context = fields[ctx_col] or ""
                 local time_val = tonumber(fields[time_col])
+                
                 if not time_val or time_val <= 0 then
-                    -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
-                    for c = #fields, math.max(1, #fields - 10), -1 do
-                        if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
-                            time_val = tonumber(fields[c])
-                            break
+                    -- Robust fallback: search tail columns for any valid timestamp string
+                    for c = #fields, 1, -1 do
+                        local val = fields[c]
+                        if val and val:match("^%d+%.%d+$") then
+                            time_val = tonumber(val)
+                            if time_val then break end
                         end
                     end
                     time_val = time_val or 0
                 end
                 
                 -- Don't load headers or empty terms
-                if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
+                if term and term ~= "" and term ~= "WordSource" and term ~= "Term" and term ~= config.fields[term_col] then
                     table.insert(new_highlights, { term = term, context = context, time = time_val })
                 end
             end
@@ -1191,8 +1198,8 @@ local function save_anki_tsv_row(term, context, time_pos)
 
     if #fields == 0 then
         -- Fallback default behavior
-        fields = {"Term", "Context"}
-        mapping = {Term = "source_word", Context = "source_sentence"}
+        fields = {"Term", "Context", "Time"}
+        mapping = {Term = "source_word", Context = "source_sentence", Time = "time"}
     end
 
     local deck_name, pri_lang, sec_lang = "", "", ""
@@ -1216,8 +1223,12 @@ local function save_anki_tsv_row(term, context, time_pos)
         f_check:close() 
     end
 
-    local f = io.open(tsv_path, "a")
-    if not f then return end
+    local f, err = io.open(tsv_path, "a")
+    if not f then 
+        mp.msg.error("Failed to open TSV for writing: " .. tostring(err))
+        show_osd("Error: Cannot write to record file", 3)
+        return 
+    end
 
     if not exists or is_empty then
         local deck_col = -1
@@ -3478,7 +3489,7 @@ function cmd_toggle_search()
 end
 
 function cmd_toggle_drum_window()
-    if FSM.MEDIA_STATE == "NO_SUBS" then
+    if FSM.MEDIA_STATE == "NO_SUBS" or #Tracks.pri.subs == 0 then
         show_osd("Drum Window: No subtitles loaded")
         return
     end
@@ -3488,6 +3499,9 @@ function cmd_toggle_drum_window()
     end
 
     if FSM.DRUM_WINDOW == "OFF" then
+        -- Refresh highlights on open to ensure we catch external deletions/clears
+        load_anki_tsv(true)
+        
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
         
@@ -3505,7 +3519,7 @@ function cmd_toggle_drum_window()
         drum_osd:update()
 
         local time_pos = mp.get_property_number("time-pos")
-        if FSM.DW_CURSOR_LINE == -1 then
+        if FSM.DW_CURSOR_LINE == -1 or FSM.DW_CURSOR_LINE > #Tracks.pri.subs then
             FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
             FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
         end
