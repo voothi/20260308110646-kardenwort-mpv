@@ -2,7 +2,7 @@ local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 
-print("[LLS] SCRIPT INITIALIZING (u:\\voothi\\20260308110646-kardenwort-mpv\\scripts\\lls_core.lua)")
+print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_script_directory() or "<unknown dir>"))
 
 -- =========================================================================
 -- LLS CORE CONFIGURATION
@@ -3505,7 +3505,9 @@ end
 
 function cmd_toggle_drum_window()
     print("[LLS] TOGGLE CALLED: FSM.DRUM_WINDOW=" .. tostring(FSM.DRUM_WINDOW))
-    local ok, err = pcall(function()
+    -- Snapshot FSM state before any mutation so we can roll back on error
+    local prev_drum_window = FSM.DRUM_WINDOW
+    local ok, err = xpcall(function()
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Window: No subtitles loaded")
         return
@@ -3520,9 +3522,6 @@ function cmd_toggle_drum_window()
         -- The periodic timer runs every 5s, so this ensures instant sync on user action.
         load_anki_tsv(true)
 
-        FSM.DRUM_WINDOW = "DOCKED"
-        manage_ui_border_override(true)
-        
         -- Snapshot and hide all subtitle overlays to prevent overlap
         -- Use FSM.native_sub_vis for consistent state tracking
         FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
@@ -3546,12 +3545,14 @@ function cmd_toggle_drum_window()
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_FOLLOW_PLAYER = true
         
+        -- Commit state mutation last — after all initialization that can throw
+        FSM.DRUM_WINDOW = "DOCKED"
+        manage_ui_border_override(true)
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(true)
         end
         -- show_osd("Drum Window: OPEN")
     else
-        FSM.DRUM_WINDOW = "OFF"
         manage_ui_border_override(false)
         if not FSM.SEARCH_MODE then
             manage_dw_bindings(false)
@@ -3564,10 +3565,14 @@ function cmd_toggle_drum_window()
         -- so we just need to ensure the FSM state is correct.
         FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
 
+        -- Commit state mutation last
+        FSM.DRUM_WINDOW = "OFF"
         -- show_osd("Drum Window: CLOSED")
     end
-    end)
+    end, debug.traceback)
     if not ok then
+        -- Roll back FSM state to prevent phantom window open/close on next toggle
+        FSM.DRUM_WINDOW = prev_drum_window
         print("[LLS ERROR] Drum Window Toggle: " .. tostring(err))
         show_osd("LLS ERROR: Check console")
     end
@@ -3910,24 +3915,24 @@ end
 -- =========================================================================
 
 mp.observe_property("sid", "number", function(name, val)
-    local ok, err = pcall(update_media_state)
+    local ok, err = xpcall(update_media_state, debug.traceback)
     if not ok then print("[LLS ERROR] sid observer: " .. tostring(err)) end
 end)
 mp.observe_property("secondary-sid", "number", function(name, val)
-    local ok, err = pcall(update_media_state)
+    local ok, err = xpcall(update_media_state, debug.traceback)
     if not ok then print("[LLS ERROR] sec-sid observer: " .. tostring(err)) end
 end)
 mp.observe_property("track-list", "native", function()
-    local ok, err = pcall(update_media_state)
+    local ok, err = xpcall(update_media_state, debug.traceback)
     if not ok then print("[LLS ERROR] track-list observer: " .. tostring(err)) end
     if Options.font_scaling_enabled then
-        local ok2, err2 = pcall(update_font_scale)
+        local ok2, err2 = xpcall(update_font_scale, debug.traceback)
         if not ok2 then print("[LLS ERROR] font-scaling: " .. tostring(err2)) end
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
     if Options.font_scaling_enabled then
-        local ok, err = pcall(update_font_scale)
+        local ok, err = xpcall(update_font_scale, debug.traceback)
         if not ok then print("[LLS ERROR] osd-dim observer: " .. tostring(err)) end
     end
 end)
@@ -3969,11 +3974,11 @@ end)
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
-        local ok, err = pcall(function()
+        local ok, err = xpcall(function()
             load_anki_tsv(true)
             drum_osd:update()
             if dw_osd then dw_osd:update() end
-        end)
+        end, debug.traceback)
         if not ok then print("[LLS ERROR] periodic sync: " .. tostring(err)) end
     end)
 end
