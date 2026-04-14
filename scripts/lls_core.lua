@@ -644,9 +644,16 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                     local term_lower = data.__term_key_lower
                     local ctx_lower = data.__ctx_lower
 
-                    -- Check all occurrences of target_lower in the term
+                    local target_offsets = {}
                     for term_offset, tw_clean in ipairs(term_clean) do
                         if tw_clean == target_lower then
+                            table.insert(target_offsets, term_offset)
+                        end
+                    end
+
+                    if #target_offsets > 0 then
+                        local any_sequence = false
+                        for _, term_offset in ipairs(target_offsets) do
                             local sequence_match = true
                             
                             -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
@@ -694,12 +701,21 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 end
                             end
 
+                            if sequence_match then
+                                any_sequence = true
+                                break
+                            end
+                        end
+
+                        if any_sequence then
+                            match_found = true
+                            if #term_words > 1 then has_phrase = true end
+                        elseif #term_words > 1 then
                             local split_match = false
-                            if not sequence_match and #term_words > 1 then
-                                -- Cache valid (sub_idx, word_idx) combinations for optimal split term matching
-                                if not subs[sub_idx].__split_valid_indices then
-                                    subs[sub_idx].__split_valid_indices = {}
-                                end
+                            -- Cache valid (sub_idx, word_idx) combinations for optimal split term matching
+                            if not subs[sub_idx].__split_valid_indices then
+                                subs[sub_idx].__split_valid_indices = {}
+                            end
                                 
                                 local valid_set = subs[sub_idx].__split_valid_indices[term_key]
                                 if valid_set == nil then
@@ -776,16 +792,11 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                         split_match = true
                                     end
                                 end
-                            end
-
-                            if sequence_match then
-                                match_found = true
-                                if #term_words > 1 then has_phrase = true end
-                                break -- Out of offsets for this term
-                            elseif split_match then
-                                match_found = true
-                                term_is_split = true
-                                break -- Out of offsets for this term
+                            
+                                if split_match then
+                                    match_found = true
+                                    term_is_split = true
+                                end
                             end
                         end
                     end
