@@ -1,28 +1,25 @@
-# Proposal: Robust TSV Recovery and Drum Window Initialization
+## Why
 
-## Problem
-The script currently crashes or hangs (showing a blank UI with no messages) when the TSV record file is externally deleted or cleared. This is due to a combination of:
-1. **Startup Crash**: Synchronous failures in `load_anki_tsv` during script initialization prevent keybindings from registering.
-2. **Stale Memory**: Highlights persist in memory even after the source file is deleted.
-3. **Empty Data Ghosting**: The Drum Window transitions to "on" but renders nothing if subtitles are missing, providing no feedback.
+Deleting or clearing the `.tsv` record file while mpv is running causes the Drum Window to enter a broken state — the interface either shows blank content or stops responding to key input entirely, with no error messages visible. The failure is silent because the initialization path uses `mp.observe_property` without crash protection: a single Lua error inside `update_media_state` causes mpv to drop the observer permanently, leaving subtitle data unpopulated for the rest of the session. Compound failures from stale highlight memory and defective header filtering make the state unrecoverable without restarting mpv.
 
-## Proposed Changes
+## What Changes
 
-### 1. Robust Initialization (`update_media_state`)
-- Wrap the initial `load_anki_tsv()` call in a `pcall`.
-- Ensure that if a crash occurs during startup, the script still proceeds to register keybindings so the user doesn't lose control.
+- Wrap all `mp.observe_property` callbacks that invoke `update_media_state` in `pcall`, keeping observers alive through errors.
+- Clear `FSM.ANKI_HIGHLIGHTS` when `load_anki_tsv` cannot open the record file, and auto-create a fresh file in its place.
+- Fix the TSV header filter to use the actual configured field name from `anki_mapping.ini` rather than a hardcoded list of two values.
+- Force a `load_anki_tsv(true)` refresh at the moment the Drum Window is opened, so file deletions are reflected immediately.
+- Replace `mp.msg.error` in observer error handlers with `print()` to guarantee terminal visibility regardless of mpv log level.
 
-### 2. Defensive TSV Loading (`load_anki_tsv`)
-- **Missing File**: Explicitly set `FSM.ANKI_HIGHLIGHTS = {}` when `io.open` fails.
-- **Header Protection**: Dynamically detect headers using the configured `term` field name from `anki_mapping.ini`.
-- **Parsing Safety**: Wrap the record parsing loop in a `pcall` to handle malformed lines (e.g., junk bytes from a partial clear).
+## Capabilities
 
-### 3. Drum Window Visibility & Feedback (`cmd_toggle_drum_window`)
-- Explicitly check if subtitles are loaded. If `#Tracks.pri.subs == 0`, show a clear OSD message and **prevent** opening the blank window.
-- Force a `load_anki_tsv(true)` refresh when opening to catch deletions that happened while mpv was paused.
+### New Capabilities
+- The script now prints `[LLS] SCRIPT INITIALIZING...` and `[LLS] SCRIPT LOADED SUCCESSFULLY` to the terminal on every startup, allowing the user to confirm the script is being loaded by mpv without changing any command-line flags.
 
-## Success Criteria
-- Deleting the TSV file should result in all highlights vanishing from the player immediately or upon next DW toggle.
-- Clearing the TSV to 0 bytes should result in no highlights.
-- The script should never "disappear" (keys stopped working) regardless of file state.
-- Pressing `w` when subs are missing should show a helpful error message instead of a blank screen.
+### Modified Capabilities
+- `tsv-state-recovery`: Expand the missing-file handling to clear stale highlights, auto-create the record file, and dynamically skip any header row regardless of the configured field name.
+- `drum-window`: Strengthen the window-open path to force a TSV sync and keep the observer pipeline alive through errors, ensuring the window always opens and renders correctly even when no record file exists.
+
+## Impact
+
+- **Affected code:** `load_anki_tsv`, `cmd_toggle_drum_window`, and the three `mp.observe_property` registrations in `lls_core.lua`.
+- **Side effects:** Observer errors now appear in the terminal as `[LLS ERROR] ...` lines using `print()`, which bypasses the mpv structured log system and will not appear in `--log-file` output.

@@ -1,170 +1,32 @@
-# Design: Robust Startup and State Recovery
+## Context
 
-## Root Cause Analysis
+Deleting or clearing the `.tsv` record file while mpv is running causes the Drum Window to silently fail — either showing nothing or stopping all key responses — with no error messages visible to the user. The failure was traced to three independent modes that compound each other.
 
-Three independent failure modes combine to produce the "blank/dead script" symptom:
+The first mode is stale memory: when `load_anki_tsv` cannot open the file, it returned immediately without touching `FSM.ANKI_HIGHLIGHTS`, leaving phantom highlights in memory permanently. The second mode is header pollution: when a fresh `.tsv` is written with only a header row, the parsing loop accepted the header field name (e.g. `"Quotation"`) as a real word because the filter only excluded `"WordSource"` and `"Term"`. The third and most critical mode is the silent observer crash: the three `mp.observe_property` callbacks that drive `update_media_state` were not protected with `pcall`. A single Lua error inside `update_media_state` (e.g., from an invalid path or malformed line) caused mpv to silently drop the callback — meaning `Tracks.pri.subs` was never populated for the rest of the session. The user then pressed `w`, the window opened, `tick_dw` iterated zero subtitle lines, and the OSD rendered blank. Because `mp.msg.error` is filtered by mpv log level, no diagnostic output appeared in the terminal.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  USER DELETES OR CLEARS TSV FILE                                │
-└──────────────┬───────────────────────────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────┐   ┌──────────────────────────────┐
-│  FAILURE A: Stale Memory     │   │  FAILURE B: Header Pollution │
-│                              │   │                              │
-│  load_anki_tsv: io.open      │   │  If TSV has only a header,   │
-│  fails → returns nil         │   │  "Quotation" (the term col)  │
-│  ANKI_HIGHLIGHTS stays full  │   │  is NOT in the hardcoded     │
-│  → phantom highlights shown  │   │  filter list, so it loads as │
-│                              │   │  a real word to highlight.   │
-└──────────────────────────────┘   └──────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  FAILURE C: Ghost Window ("blank screen/no messages")           │
-│                                                                  │
-│  The 5-second periodic timer is already pcall-wrapped.          │
-│  BUT: the initial call at startup via mp.observe_property is NOT.│
-│                                                                  │
-│  update_media_state() is called by the observer callback.       │
-│  That callbacks calls load_anki_tsv() without pcall.            │
-│  If load_anki_tsv() crashes (e.g. invalid path encoding on      │
-│  Windows), the callback throws — but mp.observe_property does   │
-│  NOT re-register it. The entire observer is silently dropped.   │
-│  The track-list is never re-read: Tracks.pri.subs stays {}.     │
-│                                                                  │
-│  Then user presses 'w' → cmd_toggle_drum_window()               │
-│  → MEDIA_STATE != NO_SUBS (still default, not re-set)           │
-│  → Tracks.pri.path might be set but subs == []                  │
-│  → get_center_index returns nil or 1                            │
-│  → tick_dw renders 0 lines → blank OSD                         │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Goals / Non-Goals
 
-## Architecture Changes
+**Goals:**
+- Ensure `FSM.ANKI_HIGHLIGHTS` is cleared whenever the `.tsv` file is absent or unreadable.
+- Dynamically detect and skip the TSV header row regardless of the configured field name.
+- Protect all `mp.observe_property` callbacks with `pcall` so an error inside `update_media_state` does not kill the observer.
+- Force a TSV refresh at the moment the Drum Window is opened, reflecting any mid-session file deletion without waiting for the 5-second timer.
+- Make script execution visible in the terminal unconditionally, independent of mpv log level.
 
-### Change 1 — Wrap `update_media_state` call in observers (lines 3875-3882)
+**Non-Goals:**
+- Rewriting the TSV parsing logic or changing the file format.
+- Adding a UI indicator for file health status.
+- Changing the behavior when the file exists and is well-formed.
 
-The three `mp.observe_property` callbacks that call `update_media_state` must each wrap
-the call in a `pcall` so that any crash inside the function does not kill the observer:
+## Decisions
 
-**Current code (line 3875-3882):**
-```lua
-mp.observe_property("sid", "number", update_media_state)
-mp.observe_property("secondary-sid", "number", update_media_state)
-mp.observe_property("track-list", "native", function()
-    update_media_state()
-    ...
-end)
-```
+- **Auto-Creation on Missing File:** When `io.open` fails, the script now creates a fresh `.tsv` with a default header rather than only clearing highlights. This prevents cascading nil-reference errors in downstream code that assumes a file has been written at least once, and gives the user a visible artifact confirming the script ran.
+- **Dynamic Header Detection:** The filter was broadened to compare term column values against the actual configured field name (`config.fields[term_col]`), derived after the column-index resolution loop. This handles any field name defined in `anki_mapping.ini`, not just the two previously hardcoded values.
+- **`pcall` on All Three Observers:** All three callbacks (`sid`, `secondary-sid`, `track-list`) now wrap their `update_media_state` call in `pcall`. The error handlers use `print()` instead of `mp.msg.error` to guarantee output visibility regardless of mpv's `--log-level` setting.
+- **Subs Guard Dropped:** The original design included a `#Tracks.pri.subs == 0` guard in `cmd_toggle_drum_window` after the TSV refresh. Testing revealed it caused a regression — the window refused to open whenever the TSV was absent, because the system falsely correlated an empty highlights table with empty subtitle data. The primary `MEDIA_STATE == "NO_SUBS"` guard at the function entry is sufficient.
+- **`print()` for Diagnostics:** `mp.msg.*` calls inside error handlers were replaced with `print()` throughout the affected code paths. This was the root cause of the "no messages" symptom — mpv was suppressing formatted log output at the default log level.
 
-**Required change:**
-```lua
-mp.observe_property("sid", "number", function(name, val)
-    pcall(update_media_state)
-end)
-mp.observe_property("secondary-sid", "number", function(name, val)
-    pcall(update_media_state)
-end)
-mp.observe_property("track-list", "native", function()
-    pcall(update_media_state)
-    if Options.font_scaling_enabled then
-        pcall(update_font_scale)
-    end
-end)
-```
+## Risks / Trade-offs
 
-### Change 2 — Fix `load_anki_tsv` stale-state bug (line 1133)
-
-**Current code (line 1132-1133):**
-```lua
-local f = io.open(tsv_path, "r")
-if not f then return end  -- BUG: leaves stale ANKI_HIGHLIGHTS intact
-```
-
-**Required change:**
-```lua
-local f = io.open(tsv_path, "r")
-if not f then
-    FSM.ANKI_HIGHLIGHTS = {}  -- clear stale highlights
-    mp.msg.verbose("load_anki_tsv: file not found, cleared: " .. tostring(tsv_path))
-    return
-end
-```
-
-### Change 3 — Fix header detection in `load_anki_tsv` (line 1171)
-
-The header filter must use the actual configured field name, not just hardcoded strings.
-After the column indices are resolved (lines 1138-1146), the field name at `term_col` is
-the header value for the term column. Add one line:
-
-**After line 1146 (the end of the column-resolution loop), add:**
-```lua
--- Capture the header name for the term column dynamically
-local term_header_name = config.fields[term_col]  -- e.g. "Quotation", "Term", etc.
-```
-
-**Current filter code (line 1171):**
-```lua
-if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
-```
-
-**Required change:**
-```lua
-local is_header = (term == "WordSource" or term == "Term"
-                   or (term_header_name and term == term_header_name))
-if term and term ~= "" and not is_header then
-```
-
-### Change 4 — Force-refresh TSV in `cmd_toggle_drum_window` (around line 3490)
-
-When the user opens the Drum Window, force a `load_anki_tsv(true)` refresh immediately
-before transitioning to `DOCKED` state, so mid-session file deletions are reflected
-instantly rather than waiting for the next 5-second timer cycle.
-
-**After the existing guard at line 3488 (after `if not Tracks.pri.path then ... end`), add:**
-```lua
--- Force-refresh TSV to reflect any mid-session file deletion
-load_anki_tsv(true)
-```
-
-> **Implementation Note:** The original design included a secondary subs guard
-> (`if #Tracks.pri.subs == 0 then ... return end`) after the TSV refresh.
-> This was **removed during testing** — it caused a regression where the window
-> refused to open whenever the TSV was absent, because the system falsely correlated
-> an empty highlights table with an empty subtitle set. The primary `NO_SUBS` guard
-> at the function entry point is sufficient.
-
----
-
-## Extra Hardening (Added During Implementation)
-
-During debugging it became clear that the script was failing silently with zero console
-output. Three additional changes were necessary to diagnose and fix the root cause:
-
-### Extra 1 — TSV Auto-Creation
-
-When `io.open(tsv_path, "r")` returns nil (file missing), instead of only clearing
-highlights and returning, the script now attempts to **create** a fresh `.tsv` file
-with a default header row (`Term\tSentence\tTime`).
-
-This prevents cascading nil-reference errors in downstream callers that assume a
-valid file always exists after the first write, and also gives the user a visible
-artifact confirming the script is running.
-
-### Extra 2 — Loud Initialization Markers
-
-Two `print()` calls were added at script load time:
-- `[LLS] SCRIPT INITIALIZING...` — at the top of the initialization block
-- `[LLS] SCRIPT LOADED SUCCESSFULLY` — at the very end of the file
-
-`mp.msg.*` calls are filtered by mpv's log level and were not reliably appearing in
-the terminal. `print()` writes directly to stdout and is always visible, making it
-possible to confirm script execution without changing any mpv flags.
-
-### Extra 3 — `print()` for All Observer Error Handlers
-
-All `mp.msg.error` calls inside `pcall` error handlers in the observer callbacks were
-replaced with `print()`. This was the primary reason no diagnostic output appeared
-during the investigation — mpv was suppressing the log messages based on log level.
+- **Auto-Creation Side Effect:** If the auto-creation write fails (e.g., read-only filesystem), the script logs the failure and continues. The highlights are still cleared. No user-visible fallback is provided beyond the terminal log line.
+- **`print()` vs Structured Logging:** Using `print()` bypasses mpv's structured `mp.msg` system, meaning these messages will not appear in mpv's `--log-file` output. This is an acceptable trade-off for debugging visibility but should be reviewed if structured log capture becomes important.

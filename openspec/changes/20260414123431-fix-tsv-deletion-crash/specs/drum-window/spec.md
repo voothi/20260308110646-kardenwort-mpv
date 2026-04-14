@@ -1,53 +1,29 @@
-# Spec: Drum Window Resilience
-
-## Context
-
-`cmd_toggle_drum_window()` is defined at line ~3480 of `scripts/lls_core.lua`.
-It is bound to the `toggle-drum-window` key via `mp.add_key_binding` at line 3910.
-
-The function has two existing guards at lines 3481-3488:
-1. `if FSM.MEDIA_STATE == "NO_SUBS"` → show OSD, return
-2. `if not Tracks.pri.path` → show OSD, return
-
-However, these guards are insufficient because:
-- `FSM.MEDIA_STATE` is set by `update_media_state()`, which may have failed silently
-  if its observer callback crashed before or during the media state resolution.
-- `Tracks.pri.path` can be set (non-nil) while `Tracks.pri.subs` is still empty `{}`
-  if the subtitle loading step in `update_media_state` (line 1358-1360) was never reached.
-
 ## Requirements
 
-### R1 — TSV Force Refresh on Open
+### Requirement: Drum Window Observer Resilience
+The system SHALL wrap all `mp.observe_property` callbacks that invoke `update_media_state` in `pcall` so that a Lua error inside that function does not cause mpv to silently drop the observer. If an observer error occurs, the error message SHALL be written via `print()` to ensure visibility in the terminal regardless of mpv's configured log level.
 
-When transitioning to `DOCKED` state, `load_anki_tsv(true)` MUST be called before
-any state mutation (`FSM.DRUM_WINDOW = "DOCKED"` must NOT happen first).
+#### Scenario: Observer callback crashes during subtitle load
+- **WHEN** `update_media_state` throws a Lua error while processing a track change
+- **AND** the error occurs inside an `mp.observe_property` callback
+- **THEN** the observer SHALL remain registered and continue firing on future property changes
+- **AND** the error SHALL be printed to the terminal as `[LLS ERROR] ...`
 
-This ensures:
-- Mid-session file deletions are reflected immediately, not ~5s later.
-- The `force=true` argument bypasses the early-exit guard (`next(ANKI_HIGHLIGHTS) ~= nil`),
-  so even a previously populated highlights table is fully re-evaluated.
+### Requirement: Drum Window Force Refresh on Open
+When transitioning from `OFF` to `DOCKED` state, the system SHALL call `load_anki_tsv(true)` before any state mutation, so that mid-session file deletions are reflected at the exact moment the user opens the window rather than waiting for the next periodic timer cycle.
 
-Position: immediately at the top of the `if FSM.DRUM_WINDOW == "OFF" then` branch,
-before the `FSM.DRUM_WINDOW = "DOCKED"` assignment.
+#### Scenario: File deleted before opening Drum Window
+- **WHEN** the `.tsv` file is deleted while mpv is running
+- **AND** the user presses the Drum Window toggle before the 5-second timer fires
+- **THEN** the window SHALL open with an empty highlights table
+- **AND** no phantom highlights from the deleted file SHALL be visible
 
-### R2 — Empty Subs Guard *(not implemented — see note)*
+### Requirement: Drum Window Opens Without TSV
+The Drum Window SHALL open and render subtitle content normally even when no `.tsv` record file exists. An absent TSV file results in an empty highlights table, which is a valid state. The system SHALL NOT block the window transition based on the size of the highlights table.
 
-> **Implementation Note:** During testing, this guard caused a regression.
-> When the TSV file was absent, `#Tracks.pri.subs` was always `0` because the
-> system correlated "no highlights" with "no subtitle data." The guard blocked
-> the window from opening even when subtitles were correctly loaded.
->
-> **Decision:** R2 was dropped. The existing `MEDIA_STATE == "NO_SUBS"` guard
-> at the top of `cmd_toggle_drum_window` is sufficient to block the window when
-> no subtitles are present. The DW can safely open with an empty highlights table.
-
-### R3 — Position of new code relative to existing guards
-
-The final order inside the `if FSM.DRUM_WINDOW == "OFF" then` block is:
-```
-1. [existing] if MEDIA_STATE == "NO_SUBS" → return
-2. [existing] if not Tracks.pri.path → return
-3. [NEW] load_anki_tsv(true)   ← R1 implemented
-4. FSM.DRUM_WINDOW = "DOCKED"  ← R2 guard removed
-5. ... rest of initialization ...
-```
+#### Scenario: No TSV file present
+- **WHEN** no `.tsv` file exists for the current media
+- **AND** the user presses the Drum Window toggle
+- **THEN** the window SHALL open in `DOCKED` state
+- **AND** subtitle lines SHALL render without any saved-word highlights
+- **AND** all Drum Window key bindings SHALL be active and functional
