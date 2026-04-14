@@ -15,5 +15,5 @@
 
 ## 3. Artifact Finalization
 
-- [ ] 3.1 Summarize findings in a `regression_report.md` (to be created in Phase 2).
+- [ ] 3.1 Summarize findings in a `regression-report.md` (to be created in Phase 2).
 - [ ] 3.2 Archive the change if no critical issues are found.
