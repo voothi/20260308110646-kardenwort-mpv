@@ -611,7 +611,10 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                 window = window + (#term_words * 0.5)
             end
 
-            if Options.anki_global_highlight or math.abs(time_pos - data.time) < window then
+            local sub_start = subs[sub_idx] and subs[sub_idx].start_time or 0
+            local sub_end = subs[sub_idx] and subs[sub_idx].end_time or 0
+
+            if Options.anki_global_highlight or (data.time >= sub_start - window and data.time <= sub_end + window) then
                 if #term_words > 0 then
                     local term_lower = data.__term_key_lower
                     local ctx_lower = data.__ctx_lower
@@ -628,7 +631,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 for k = check_start, check_end do
                                     if k ~= term_offset then
                                         local rw = get_relative_word(k - term_offset)
-                                        if rw and term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
+                                        if not rw or term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
                                             sequence_match = false
                                             break
                                         end
@@ -644,7 +647,8 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 if prev_w then
                                     local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
                                     if pw_clean ~= "" then
-                                        if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
+                                        -- Add space padding to finding neighbors inside context
+                                        if ctx_lower:find("%s" .. pw_clean .. " ") or ctx_lower:find("^" .. pw_clean .. " ") or ctx_lower:find(" " .. pw_clean .. "$") or term_lower:find("%s" .. pw_clean .. " ") or term_lower:find("^" .. pw_clean .. " ") or term_lower:find(" " .. pw_clean .. "$") then
                                             has_neighbor = true
                                         end
                                     end
@@ -655,7 +659,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                     if next_w then
                                         local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
                                         if nw_clean ~= "" then
-                                            if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
+                                            if ctx_lower:find("%s" .. nw_clean .. " ") or ctx_lower:find("^" .. nw_clean .. " ") or ctx_lower:find(" " .. nw_clean .. "$") or term_lower:find("%s" .. nw_clean .. " ") or term_lower:find("^" .. nw_clean .. " ") or term_lower:find(" " .. nw_clean .. "$") then
                                                 has_neighbor = true
                                             end
                                         end
