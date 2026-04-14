@@ -1130,7 +1130,13 @@ local function load_anki_tsv(force)
     end
 
     local f = io.open(tsv_path, "r")
-    if not f then return end
+    if not f then
+        -- File was deleted or is inaccessible: clear any stale in-memory highlights
+        -- so the DW reflects the actual (empty) on-disk state.
+        FSM.ANKI_HIGHLIGHTS = {}
+        mp.msg.verbose("load_anki_tsv: file not found, highlights cleared: " .. tostring(tsv_path))
+        return
+    end
 
     local new_highlights = {}
     local config = load_anki_mapping_ini()
@@ -1145,36 +1151,49 @@ local function load_anki_tsv(force)
         end
     end
 
-    for line in f:lines() do
-        if not line:match("^#") then
-            local fields = {}
-            for field in (line .. "\t"):gmatch("([^\t]*)\t") do
-                table.insert(fields, field)
-            end
-            -- Note: We now allow missing fields if they aren't part of the core 3
-            if #fields >= math.max(term_col, time_col) or #fields > term_col then
-                local term = fields[term_col]
-                local context = fields[ctx_col] or ""
-                local time_val = tonumber(fields[time_col])
-                if not time_val or time_val <= 0 then
-                    -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
-                    for c = #fields, math.max(1, #fields - 10), -1 do
-                        if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
-                            time_val = tonumber(fields[c])
-                            break
-                        end
-                    end
-                    time_val = time_val or 0
+    -- Determine the expected header field name for the term column to filter it out.
+    -- This handles custom field names (e.g. "Quotation") that differ from hardcoded defaults.
+    local term_field_name = config.fields[term_col]
+
+    local ok, parse_err = pcall(function()
+        for line in f:lines() do
+            if not line:match("^#") then
+                local fields = {}
+                for field in (line .. "\t"):gmatch("([^\t]*)\t") do
+                    table.insert(fields, field)
                 end
-                
-                -- Don't load headers or empty terms
-                if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
-                    table.insert(new_highlights, { term = term, context = context, time = time_val })
+                if #fields >= math.max(term_col, time_col) or #fields > term_col then
+                    local term = fields[term_col]
+                    local context = fields[ctx_col] or ""
+                    local time_val = tonumber(fields[time_col])
+                    if not time_val or time_val <= 0 then
+                        -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
+                        for c = #fields, math.max(1, #fields - 10), -1 do
+                            if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
+                                time_val = tonumber(fields[c])
+                                break
+                            end
+                        end
+                        time_val = time_val or 0
+                    end
+                    
+                    -- Skip header rows: filter hardcoded legacy names and the actual configured name
+                    local is_header = (term == "WordSource" or term == "Term"
+                                      or (term_field_name and term == term_field_name))
+                    if term and term ~= "" and not is_header then
+                        table.insert(new_highlights, { term = term, context = context, time = time_val })
+                    end
                 end
             end
         end
-    end
+    end)
     f:close()
+
+    if not ok then
+        mp.msg.warn("load_anki_tsv: parse error: " .. tostring(parse_err))
+        -- Don't corrupt existing highlights on a parse failure
+        return
+    end
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
 end
@@ -3488,6 +3507,10 @@ function cmd_toggle_drum_window()
     end
 
     if FSM.DRUM_WINDOW == "OFF" then
+        -- Force-refresh TSV state before opening so that any mid-session deletion
+        -- or clearing of the record file is immediately reflected (no stale highlights).
+        load_anki_tsv(true)
+
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
         
