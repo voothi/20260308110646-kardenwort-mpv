@@ -118,7 +118,10 @@ local Options = {
     anki_context_strict = true,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
-    book_mode = false
+    book_mode = false,
+
+    -- Record File
+    record_editor = "C:\\Program Files\\Microsoft VS Code\\Code.exe"
 }
 options.read_options(Options, "lls")
 
@@ -1065,16 +1068,22 @@ end
 local function cmd_open_record_file()
     local path = get_tsv_path()
     if not path then return end
-    
+
     local f = io.open(path, "r")
     if not f then
-        show_osd("Record file does not exist: " .. path:match("([^/\\]+)$"))
+        show_osd("Record file not found: " .. path:match("([^/\\]+)$"))
         return
     end
     f:close()
-    
+
+    local editor = Options.record_editor
+    if not editor or editor == "" then
+        show_osd("record_editor not configured")
+        return
+    end
+
     show_osd("Opening record file...")
-    mp.commandv("run", "cmd", "/c", "start", "", path)
+    mp.commandv("run", editor, path)
 end
 
 local function load_anki_tsv(force)
