@@ -643,179 +643,140 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             end
 
             if in_window then
-                if #term_words > 0 then
-                    local term_lower = data.__term_key_lower
-                    local ctx_lower = data.__ctx_lower
+                local term_lower = data.__term_key_lower
+                local ctx_lower = data.__ctx_lower
 
-                    local target_offsets = {}
-                    for term_offset, tw_clean in ipairs(term_clean) do
-                        if tw_clean == target_lower then
-                            table.insert(target_offsets, term_offset)
+                -- Use pre-calculated/cached metadata for this term+sub cluster
+                -- We need to know if the CURRENT (sub_idx, word_idx) is a MEMBER of the term,
+                -- and also if it is SPATIALLY WITHIN the term's span (even if not a member).
+                local is_member = false
+                local in_span = false
+
+                if #term_words == 1 then
+                    -- Single word terms: member and span are identical
+                    if term_clean[1] == target_lower then
+                        -- Context check for single words to prevent false positives
+                        local sequence_match = true
+                        if Options.anki_context_strict and not Options.anki_global_highlight then
+                            local prev_w = get_relative_word(-1)
+                            local next_w = get_relative_word(1)
+                            local pw = prev_w and utf8_to_lower(prev_w:gsub("[%p%s]", "")) or ""
+                            local nw = next_w and utf8_to_lower(next_w:gsub("[%p%s]", "")) or ""
+                            if (pw == "" or not ctx_lower:find(pw, 1, true)) and 
+                               (nw == "" or not ctx_lower:find(nw, 1, true)) then
+                                sequence_match = false
+                            end
+                        end
+                        if sequence_match then
+                            is_member = true
+                            in_span = true
                         end
                     end
-
-                    if #target_offsets > 0 then
-                        local any_sequence = false
-                        for _, term_offset in ipairs(target_offsets) do
-                            local sequence_match = true
-                            
-                            -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
-                            if #term_words > 1 then
-                                local check_start = math.max(1, term_offset - 3)
-                                local check_end = math.min(#term_words, term_offset + 3)
-                                for k = check_start, check_end do
-                                    if k ~= term_offset then
-                                        local rw = get_relative_word(k - term_offset)
-                                        if not rw or term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
-                                            sequence_match = false
-                                            break
-                                        end
-                                    end
-                                end
-                            end
-
-                            -- Phase 2: Context Match
-                            if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
-                                local has_neighbor = false
-                                -- Check word immediately before on screen
-                                local prev_w = get_relative_word(-1)
-                                if prev_w then
-                                    local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
-                                    if pw_clean ~= "" then
-                                        if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
-                                            has_neighbor = true
-                                        end
-                                    end
-                                end
-                                -- Check word immediately after on screen
-                                if not has_neighbor then
-                                    local next_w = get_relative_word(1)
-                                    if next_w then
-                                        local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
-                                        if nw_clean ~= "" then
-                                            if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
-                                                has_neighbor = true
-                                            end
-                                        end
-                                    end
-                                end
-                                if not has_neighbor and #words > 1 then
-                                    sequence_match = false
-                                end
-                            end
-
-                            if sequence_match then
-                                any_sequence = true
-                                break
-                            end
-                        end
-
-                        if any_sequence then
-                            match_found = true
-                            if #term_words > 1 then has_phrase = true end
-                        elseif #term_words > 1 then
-                            local split_match = false
-                            -- Cache valid (sub_idx, word_idx) combinations for optimal split term matching
-                            if not subs[sub_idx].__split_valid_indices then
-                                subs[sub_idx].__split_valid_indices = {}
-                            end
-                                
-                                local valid_set = subs[sub_idx].__split_valid_indices[term_key]
-                                if valid_set == nil then
-                                    valid_set = false
-                                    local ctx_list = {}
-                                    -- Generous scan radius (equivalent to roughly 30 seconds of speech) 
-                                    -- necessary for split terms spanning multiple subtitle blocks
-                                    for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
-                                        local scan_words = get_sub_words(subs[scan_i])
-                                        if scan_words then
-                                            for scan_w_idx, w in ipairs(scan_words) do
-                                                local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
-                                                if cw ~= "" then
-                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, w_i=scan_w_idx})
-                                                end
-                                            end
-                                        end
-                                    end
-                                    
-                                    local occs = {}
-                                    local all_present = true
-                                    for i, tc in ipairs(term_clean) do
-                                        occs[i] = {}
-                                        for c_idx, cw_obj in ipairs(ctx_list) do
-                                            if cw_obj.cw == tc then
-                                                table.insert(occs[i], c_idx)
-                                            end
-                                        end
-                                        if #occs[i] == 0 then
-                                            all_present = false
-                                            break
-                                        end
-                                    end
-
-                                    if all_present then
-                                        local best_tuple = nil
-                                        local min_span = 999999
-                                        
-                                        local function search(term_idx, current_tuple)
-                                            if term_idx > #term_clean then
-                                                local span = current_tuple[#current_tuple] - current_tuple[1]
-                                                if span < min_span then
-                                                    min_span = span
-                                                    best_tuple = {}
-                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
-                                                end
-                                                return
-                                            end
-                                            
-                                            local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
-                                            for _, c_idx in ipairs(occs[term_idx]) do
-                                                if c_idx > prev_idx then
-                                                    current_tuple[term_idx] = c_idx
-                                                    search(term_idx + 1, current_tuple)
-                                                end
-                                            end
-                                        end
-                                        
-                                        search(1, {})
-                                        
-                                        if best_tuple then
-                                            valid_set = {}
-                                            for _, c_idx in ipairs(best_tuple) do
-                                                local cw_obj = ctx_list[c_idx]
-                                                valid_set[cw_obj.s_i .. "-" .. cw_obj.w_i] = true
-                                            end
-                                        end
-                                    end
-                                    subs[sub_idx].__split_valid_indices[term_key] = valid_set
-                                end
-                                
-                                if valid_set and type(valid_set) == "table" then
-                                    if valid_set[sub_idx .. "-" .. word_idx] then
-                                        split_match = true
-                                    end
-                                end
-                            
-                                if split_match then
-                                    match_found = true
-                                    term_is_split = true
-                                end
-                            end
-                        end
-                    end
-                end
-            if match_found then
-                if term_is_split then
-                    purple_stack = purple_stack + 1
                 else
-                    orange_stack = orange_stack + 1
+                    -- Multi-word terms (Spans): could be contiguous or split
+                    -- Cache matching results per (term, sub_idx) to avoid redundant cross-sub scans
+                    if not subs[sub_idx].__dw_span_results then subs[sub_idx].__dw_span_results = {} end
+                    local res = subs[sub_idx].__dw_span_results[term_key]
+                    
+                    if res == nil then
+                        -- First time seeing this term for this subtitle block: find best match tuple
+                        local ctx_list = {}
+                        for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
+                            local scan_words = get_sub_words(subs[scan_i])
+                            if scan_words then
+                                for scan_w_idx, w in ipairs(scan_words) do
+                                    local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
+                                    if cw ~= "" then
+                                        table.insert(ctx_list, {cw=cw, s_i=scan_i, w_i=scan_w_idx})
+                                    end
+                                end
+                            end
+                        end
+                        
+                        local occs = {}
+                        local all_present = true
+                        for i, tc in ipairs(term_clean) do
+                            occs[i] = {}
+                            for c_idx, cw_obj in ipairs(ctx_list) do
+                                if cw_obj.cw == tc then table.insert(occs[i], c_idx) end
+                            end
+                            if #occs[i] == 0 then all_present = false; break end
+                        end
+
+                        if all_present then
+                            local min_span = 999999
+                            local best_tuple = nil
+                            local function search(term_idx, current_tuple, prev_idx)
+                                if term_idx > #term_clean then
+                                    local span = current_tuple[#current_tuple] - current_tuple[1]
+                                    if span < min_span then
+                                        min_span = span
+                                        best_tuple = {unpack(current_tuple)}
+                                    end
+                                    return
+                                end
+                                for _, c_idx in ipairs(occs[term_idx]) do
+                                    if c_idx > prev_idx then
+                                        current_tuple[term_idx] = c_idx
+                                        search(term_idx + 1, current_tuple, c_idx)
+                                    end
+                                end
+                            end
+                            search(1, {}, 0)
+                            
+                            if best_tuple then
+                                local members = {}
+                                local min_s, min_w = ctx_list[best_tuple[1]].s_i, ctx_list[best_tuple[1]].w_i
+                                local max_s, max_w = ctx_list[best_tuple[#best_tuple]].s_i, ctx_list[best_tuple[#best_tuple]].w_i
+                                for _, c_idx in ipairs(best_tuple) do
+                                    members[ctx_list[c_idx].s_i .. ":" .. ctx_list[c_idx].w_i] = true
+                                end
+                                res = { members=members, min_s=min_s, min_w=min_w, max_s=max_s, max_w=max_w }
+                            end
+                        end
+                        res = res or false
+                        subs[sub_idx].__dw_span_results[term_key] = res
+                    end
+
+                    if res then
+                        if res.members[sub_idx .. ":" .. word_idx] then
+                            is_member = true
+                            term_is_split = true
+                            in_span = true
+                        else
+                            -- Spatial Span check: is current position between min and max match elements?
+                            local s, w = sub_idx, word_idx
+                            if (s > res.min_s and s < res.max_s) then
+                                in_span = true
+                            elseif s == res.min_s and s == res.max_s then
+                                if (w >= res.min_w and w <= res.max_w) then in_span = true end
+                            elseif s == res.min_s then
+                                if w >= res.min_w then in_span = true end
+                            elseif s == res.max_s then
+                                if w <= res.max_w then in_span = true end
+                            end
+                        end
+                    end
                 end
-                matched_terms[term_key] = true
+
+                if in_span then
+                    if term_words == 1 then
+                        orange_stack = orange_stack + 1
+                    else
+                        purple_stack = purple_stack + 1
+                    end
+                    if is_member then
+                        match_found = true
+                        matched_terms[term_key] = true
+                        if #term_words > 1 then has_phrase = true end
+                    end
+                end
             end
         end
     end
     return orange_stack, purple_stack, has_phrase
 end
+
 
 local function get_word_boundary(q_table, pos, direction)
     -- direction: -1 (left), 1 (right)
