@@ -43,7 +43,7 @@ name and value as arguments to that function. `update_media_state` ignores its a
 but if the function *itself* throws a Lua error, mpv silently drops the callback and
 never calls it again. Wrapping in `pcall` catches the error and keeps the observer alive.
 
-- [ ] 1.1 Make this replacement
+- [x] 1.1 Make this replacement
 - [ ] 1.2 Verify: check mpv log at `--log-level=verbose` — the phrase "load_anki_tsv" should appear in the log on startup without crashing mpv
 
 ---
@@ -73,7 +73,7 @@ was deleted while mpv was running, the old highlight data stays in memory foreve
 5-second periodic timer calls `load_anki_tsv(true)`, but the missing file makes it return
 immediately, so highlights are never cleared. After this fix, missing file = empty highlights.
 
-- [ ] 2.1 Make this replacement
+- [x] 2.1 Make this replacement
 
 ---
 
@@ -124,8 +124,8 @@ is read as column 1 of that row and passes the hardcoded filter `term ~= "WordSo
 and term ~= "Term"`. It then gets added to `ANKI_HIGHLIGHTS` as a fake word. This fix
 compares against the actual configured name so the header is always skipped.
 
-- [ ] 3.1 Add `local term_header_name = config.fields[term_col]` after the loop
-- [ ] 3.2 Replace the filter condition with the `is_header` variable check
+- [x] 3.1 Add `local term_header_name = config.fields[term_col]` after the loop
+- [x] 3.2 Replace the filter condition with the `is_header` variable check
 
 ---
 
@@ -166,7 +166,7 @@ compares against the actual configured name so the header is always skipped.
 - The existing guard at line 3481 (`FSM.MEDIA_STATE == "NO_SUBS"`) is not sufficient
   because `MEDIA_STATE` can be stale if the earlier observer crash happened.
 
-- [ ] 4.1 Make this replacement
+- [x] 4.1 Make this replacement
 
 ---
 

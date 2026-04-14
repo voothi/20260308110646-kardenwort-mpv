@@ -1130,7 +1130,11 @@ local function load_anki_tsv(force)
     end
 
     local f = io.open(tsv_path, "r")
-    if not f then return end
+    if not f then
+        FSM.ANKI_HIGHLIGHTS = {}
+        mp.msg.verbose("load_anki_tsv: file not found, cleared: " .. tostring(tsv_path))
+        return
+    end
 
     local new_highlights = {}
     local config = load_anki_mapping_ini()
@@ -1144,6 +1148,7 @@ local function load_anki_tsv(force)
             elseif src == "time" then time_col = i end
         end
     end
+    local term_header_name = config.fields[term_col]
 
     for line in f:lines() do
         if not line:match("^#") then
@@ -1168,7 +1173,9 @@ local function load_anki_tsv(force)
                 end
                 
                 -- Don't load headers or empty terms
-                if term and term ~= "" and term ~= "WordSource" and term ~= "Term" then
+                local is_header = (term == "WordSource" or term == "Term"
+                                   or (term_header_name and term == term_header_name))
+                if term and term ~= "" and not is_header then
                     table.insert(new_highlights, { term = term, context = context, time = time_val })
                 end
             end
@@ -3488,6 +3495,18 @@ function cmd_toggle_drum_window()
     end
 
     if FSM.DRUM_WINDOW == "OFF" then
+        -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
+        -- The periodic timer runs every 5s, so this ensures instant sync on user action.
+        load_anki_tsv(true)
+
+        -- Secondary subs guard: MEDIA_STATE may say subs are loaded, but if the observer
+        -- callback failed earlier, Tracks.pri.subs can still be empty. An empty subs
+        -- table causes tick_dw to render nothing and the window appears blank.
+        if #Tracks.pri.subs == 0 then
+            show_osd("Drum Window: Subtitles not loaded yet")
+            return
+        end
+
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
         
@@ -3872,12 +3891,16 @@ end
 -- SYSTEM EVENTS
 -- =========================================================================
 
-mp.observe_property("sid", "number", update_media_state)
-mp.observe_property("secondary-sid", "number", update_media_state)
+mp.observe_property("sid", "number", function(name, val)
+    pcall(update_media_state)
+end)
+mp.observe_property("secondary-sid", "number", function(name, val)
+    pcall(update_media_state)
+end)
 mp.observe_property("track-list", "native", function()
-    update_media_state()
+    pcall(update_media_state)
     if Options.font_scaling_enabled then
-        update_font_scale()
+        pcall(update_font_scale)
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
