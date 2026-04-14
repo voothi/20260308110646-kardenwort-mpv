@@ -585,6 +585,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     
     local stack = 0
     local has_phrase = false
+    local is_split = false
     local matched_terms = {}
     for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
         local term_key = data.term
@@ -665,9 +666,41 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 end
                             end
 
+                            local split_match = false
+                            if not sequence_match and #term_words > 1 then
+                                if not subs[sub_idx].__ctx_clean_words then
+                                    local cw_set = {}
+                                    for scan_i = math.max(1, sub_idx - 1), math.min(#subs, sub_idx + 1) do
+                                        local scan_words = get_sub_words(subs[scan_i])
+                                        if scan_words then
+                                            for _, w in ipairs(scan_words) do
+                                                local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
+                                                if cw ~= "" then cw_set[cw] = true end
+                                            end
+                                        end
+                                    end
+                                    subs[sub_idx].__ctx_clean_words = cw_set
+                                end
+                                
+                                local all_found = true
+                                for _, tc in ipairs(term_clean) do
+                                    if not subs[sub_idx].__ctx_clean_words[tc] then
+                                        all_found = false
+                                        break
+                                    end
+                                end
+                                if all_found then
+                                    split_match = true
+                                end
+                            end
+
                             if sequence_match then
                                 match_found = true
                                 if #term_words > 1 then has_phrase = true end
+                                break -- Out of offsets for this term
+                            elseif split_match then
+                                match_found = true
+                                is_split = true
                                 break -- Out of offsets for this term
                             end
                         end
@@ -681,7 +714,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             end
         end
     end
-    return stack, has_phrase
+    return stack, has_phrase, is_split
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -1305,11 +1338,15 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local words = build_word_list(text)
         local formatted_parts = {}
         for i, w in ipairs(words) do
-            local stack, is_phrase = calculate_highlight_stack(subs, sub_idx, i, t_pos)
+            local stack, is_phrase, is_split = calculate_highlight_stack(subs, sub_idx, i, t_pos)
             local h_color = base_color
             if stack == 1 then h_color = Options.anki_highlight_depth_1
             elseif stack == 2 then h_color = Options.anki_highlight_depth_2
             elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+
+            if is_split and not is_phrase and stack > 0 then
+                h_color = Options.dw_split_select_color or "FF88B0"
+            end
 
             if h_color ~= base_color then
                 table.insert(formatted_parts, format_highlighted_word(w, h_color, base_color, is_phrase, bold_state, true))
@@ -1475,11 +1512,15 @@ local function draw_dw(subs, view_center, active_idx)
                     end
 
                     local sub_t = subs[i]
-                    local stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+                    local stack, is_phrase, is_split = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
                     if stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+
+                    if is_split and not is_phrase and stack > 0 then
+                        h_color = Options.dw_split_select_color or "FF88B0"
+                    end
 
                     if h_color ~= color then
                         table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
