@@ -21,3 +21,8 @@ The visual highlighting system SHALL support non-contiguous subset matching for 
 #### Scenario: Missing relative word invalidates sequence match
 - **WHEN** a multi-word TSV term is partially contiguous, but the expected consecutive word is absent from the subtitle block or gap range
 - **THEN** the system SHALL immediately invalidate the contiguous sequence matching logic and fall-back to split matching.
+
+#### Scenario: Proper split subset identification
+- **WHEN** a multi-word TSV term is processed for split matching (e.g. "ist die Anwohner")
+- **AND** intermediate generic words (e.g. "die") occur multiple times within the same context
+- **THEN** the system SHALL calculate the shortest sequential span of the term's elements matching their original order, restricting the highlight strictly to those valid subsets and preventing false coloration on earlier or unrelated instances of those words (e.g. "die Geräte").

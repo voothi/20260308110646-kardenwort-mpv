@@ -3,6 +3,7 @@
 - [ ] 1.1 Update `calculate_highlight_stack` runtime check to validate `data.time` against full subtitle interval `[start_time - window, end_time + window]`.
 - [ ] 1.2 Modify sequence matching to fail cleanly if `get_relative_word` returns nil by adding `if not rw` boundary abort.
 - [ ] 1.3 Add strict context substring bounds validation (with leading/trailing or spaced borders) in Phase 2 Context validation to prevent substring overlaps.
+- [ ] 1.4 Restrict split_match evaluations to tightly order-matched generic word spans, eliminating sequence permutations that generate false partial matches on stop words like 'die'.
 
 ## 2. Refinement and QA
 

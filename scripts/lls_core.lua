@@ -671,29 +671,83 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
                             local split_match = false
                             if not sequence_match and #term_words > 1 then
-                                if not subs[sub_idx].__ctx_clean_words then
-                                    local cw_set = {}
+                                -- Cache valid (sub_idx, word_idx) combinations for optimal split term matching
+                                if not subs[sub_idx].__split_valid_indices then
+                                    subs[sub_idx].__split_valid_indices = {}
+                                end
+                                
+                                local valid_set = subs[sub_idx].__split_valid_indices[term_key]
+                                if valid_set == nil then
+                                    valid_set = false
+                                    local ctx_list = {}
                                     for scan_i = math.max(1, sub_idx - 3), math.min(#subs, sub_idx + 3) do
                                         local scan_words = get_sub_words(subs[scan_i])
                                         if scan_words then
-                                            for _, w in ipairs(scan_words) do
+                                            for scan_w_idx, w in ipairs(scan_words) do
                                                 local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
-                                                if cw ~= "" then cw_set[cw] = true end
+                                                if cw ~= "" then
+                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, w_i=scan_w_idx})
+                                                end
                                             end
                                         end
                                     end
-                                    subs[sub_idx].__ctx_clean_words = cw_set
+                                    
+                                    local occs = {}
+                                    local all_present = true
+                                    for i, tc in ipairs(term_clean) do
+                                        occs[i] = {}
+                                        for c_idx, cw_obj in ipairs(ctx_list) do
+                                            if cw_obj.cw == tc then
+                                                table.insert(occs[i], c_idx)
+                                            end
+                                        end
+                                        if #occs[i] == 0 then
+                                            all_present = false
+                                            break
+                                        end
+                                    end
+
+                                    if all_present then
+                                        local best_tuple = nil
+                                        local min_span = 999999
+                                        
+                                        local function search(term_idx, current_tuple)
+                                            if term_idx > #term_clean then
+                                                local span = current_tuple[#current_tuple] - current_tuple[1]
+                                                if span < min_span then
+                                                    min_span = span
+                                                    best_tuple = {}
+                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                                end
+                                                return
+                                            end
+                                            
+                                            local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
+                                            for _, c_idx in ipairs(occs[term_idx]) do
+                                                if c_idx > prev_idx then
+                                                    current_tuple[term_idx] = c_idx
+                                                    search(term_idx + 1, current_tuple)
+                                                end
+                                            end
+                                        end
+                                        
+                                        search(1, {})
+                                        
+                                        if best_tuple then
+                                            valid_set = {}
+                                            for _, c_idx in ipairs(best_tuple) do
+                                                local cw_obj = ctx_list[c_idx]
+                                                valid_set[cw_obj.s_i .. "-" .. cw_obj.w_i] = true
+                                            end
+                                        end
+                                    end
+                                    subs[sub_idx].__split_valid_indices[term_key] = valid_set
                                 end
                                 
-                                local all_found = true
-                                for _, tc in ipairs(term_clean) do
-                                    if not subs[sub_idx].__ctx_clean_words[tc] then
-                                        all_found = false
-                                        break
+                                if valid_set and type(valid_set) == "table" then
+                                    if valid_set[sub_idx .. "-" .. word_idx] then
+                                        split_match = true
                                     end
-                                end
-                                if all_found then
-                                    split_match = true
                                 end
                             end
 
