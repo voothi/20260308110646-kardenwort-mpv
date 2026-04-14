@@ -32,4 +32,4 @@
 
 - [x] 4.1 Rewrite `specs/stability-review/spec.md` to cover gap scenarios identified in review (not restate existing requirements from `fix-tsv-deletion-crash`).
 - [x] 4.2 Summarize all findings and fixes in `regression-report.md`.
-- [ ] 4.3 Archive the change once all critical and high items are resolved.
+- [x] 4.3 Archive the change once all critical and high items are resolved.

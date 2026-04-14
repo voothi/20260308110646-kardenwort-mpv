@@ -21,10 +21,10 @@ The implementation addressed three core requirements: TSV state recovery on file
 | F1 | 🔴 Critical | ✅ Fixed | `FSM.DRUM_WINDOW = "DOCKED"` was set before all initialization completed inside `pcall`. A failure after that line would leave FSM permanently believing the window was open. |
 | F2 | 🟠 High | ✅ Fixed | All bare `pcall()` calls used — error messages captured without stack traces. Replaced with `xpcall(..., debug.traceback)`. |
 | F3 | 🟠 High | ✅ Fixed | Hardcoded machine-specific absolute path in `print("[LLS] SCRIPT INITIALIZING ...")`. Replaced with dynamic `mp.get_script_directory()`. |
-| F4 | 🟡 Medium | ✅ Safe | Auto-created TSV header `"Term\tSentence\tTime"` with custom `anki_mapping.ini` field names: the hardcoded `term == "Term"` fallback in `is_header` catches the auto-generated header correctly in all tested configurations. |
+| F4 | 🟡 Medium | ✅ Fixed | Auto-created TSV header was hardcoded as `"Term\tSentence\tTime"` regardless of `anki_mapping.ini`. Now loads config first and writes the real field names (falls back to generic only when no mapping exists). |
 | F5 | 🟡 Medium | ✅ Verified | `load_anki_tsv(true)` on every toggle is synchronous. Acceptable for vocabulary file sizes typical in this workflow (<2000 rows). No async mechanism available without coroutines. |
 | F6 | 🟢 Low | ⚠️ Accepted | `osd-dimensions` observer logs `[LLS ERROR]` on every resize in persistent failure mode. Rate-limit not added — failure condition is theoretical and debounce would add complexity. |
-| F7 | 🟢 Low | ⚠️ Known Limitation | No opt-out for TSV auto-creation. A user who intentionally deletes their file cannot prevent recreation. Auto-created file is empty (header only); no data loss occurs. |
+| F7 | 🟢 Low | ⚠️ Known Limitation | No opt-out for TSV auto-creation. A user who intentionally deletes their file cannot prevent recreation. Auto-created file is always empty (header only); no data loss occurs. |
 
 ---
 
@@ -60,6 +60,24 @@ print("[LLS] SCRIPT INITIALIZING (u:\\voothi\\...\\lls_core.lua)")
 print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_script_directory() or "<unknown dir>"))
 ```
 
+**Fix F4 — Config-Derived Auto-Creation Header**
+
+`load_anki_tsv` now loads `load_anki_mapping_ini()` before attempting `io.open`, so the auto-created file header matches the actual configured field names:
+
+```lua
+-- Before
+wf:write("Term\tSentence\tTime\n")
+
+-- After (mirrors save_anki_tsv_row header logic)
+local header_line
+if #config.fields > 0 then
+    header_line = table.concat(config.fields, "\t")
+else
+    header_line = "Term\tSentence\tTime"  -- fallback only when no mapping exists
+end
+wf:write(header_line .. "\n")
+```
+
 ---
 
 ## Requirements Traceability
@@ -68,7 +86,8 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 |-------------|-------------|--------|
 | TSV cleared on missing file | `tsv-state-recovery/spec.md` | ✅ Implemented & verified |
 | Auto-creation of missing file | `tsv-state-recovery/spec.md` | ✅ Implemented & verified |
-| Header row excluded from highlights | `tsv-state-recovery/spec.md` | ✅ Implemented; custom field names covered by fallback |
+| Header row excluded from highlights | `tsv-state-recovery/spec.md` | ✅ Implemented; custom field names now matched exactly (no fallback needed) |
+| Auto-created header matches config | `tsv-state-recovery/spec.md` | ✅ Fixed in this review — config loaded before file creation |
 | Force-refresh on toggle open | `drum-window/spec.md` | ✅ Implemented — called before state mutation |
 | Window opens with empty table when no TSV | `drum-window/spec.md` | ✅ Verified — auto-creation yields header-only file |
 | Observer errors logged, observer stays active | `drum-window/spec.md` | ✅ Implemented with xpcall |
@@ -80,6 +99,6 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 
 ## Remaining Known Limitations
 
-1. **Auto-creation opt-out**: No mechanism for users who prefer a missing TSV to remain missing. Non-blocking; file is always empty at creation.
-2. **Synchronous TSV load on toggle**: Large files (>5000 rows, unusual) could cause a brief hitch. No async mechanism available in standard mpv Lua.
-3. **osd-dimensions log spam in persistent error**: Theoretical only; `update_font_scale` failures are inherently transient.
+1. **Synchronous TSV load on toggle**: Large files (>5000 rows, unusual) could cause a brief hitch. No async mechanism available in standard mpv Lua.
+2. **osd-dimensions log spam in persistent error**: Theoretical only; `update_font_scale` failures are inherently transient.
+3. **Auto-creation opt-out**: No mechanism for users who prefer a missing TSV to remain missing. Non-blocking; auto-created file always contains only the header row.

@@ -1131,28 +1131,8 @@ local function load_anki_tsv(force)
         if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return end
     end
 
-    local f = io.open(tsv_path, "r")
-    if not f then
-        FSM.ANKI_HIGHLIGHTS = {}
-        print("[LLS] TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
-        
-        -- Try to create a fresh one with a header
-        local wf = io.open(tsv_path, "w")
-        if wf then
-            wf:write("Term\tSentence\tTime\n")
-            wf:close()
-            f = io.open(tsv_path, "r") -- Try to open the newly created file
-            if not f then 
-                print("[LLS] TSV creation failed - path may be read-only")
-                return 
-            end
-        else
-            print("[LLS] TSV creation failed - could not open for writing")
-            return 
-        end
-    end
-
-    local new_highlights = {}
+    -- Load config before attempting file open so the auto-created header
+    -- matches the actual anki_mapping.ini field names, not hardcoded defaults.
     local config = load_anki_mapping_ini()
 
     local term_col, ctx_col, time_col = 1, 2, 3
@@ -1168,6 +1148,37 @@ local function load_anki_tsv(force)
     if config.fields and term_col and config.fields[term_col] then
         term_header_name = config.fields[term_col]
     end
+
+    local f = io.open(tsv_path, "r")
+    if not f then
+        FSM.ANKI_HIGHLIGHTS = {}
+        print("[LLS] TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
+        
+        -- Build header from actual config fields; fall back to generic defaults
+        -- if no mapping is configured. This mirrors save_anki_tsv_row's header logic.
+        local header_line
+        if #config.fields > 0 then
+            header_line = table.concat(config.fields, "\t")
+        else
+            header_line = "Term\tSentence\tTime"
+        end
+
+        local wf = io.open(tsv_path, "w")
+        if wf then
+            wf:write(header_line .. "\n")
+            wf:close()
+            f = io.open(tsv_path, "r") -- Re-open for reading
+            if not f then 
+                print("[LLS] TSV creation failed - path may be read-only")
+                return 
+            end
+        else
+            print("[LLS] TSV creation failed - could not open for writing")
+            return 
+        end
+    end
+
+    local new_highlights = {}
 
     for line in f:lines() do
         if not line:match("^#") then
