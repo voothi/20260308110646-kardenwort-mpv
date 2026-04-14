@@ -1473,11 +1473,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             local h_color = base_color
             
             if orange_stack > 0 and purple_stack > 0 then
-                -- Mixed Intersection
-                local total_stack = math.min(orange_stack + purple_stack, 3)
-                if total_stack == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                elseif total_stack == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                elseif total_stack >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
+                -- Mixed Intersection (min sum is 2, so we shift by -1 to use all 3 colors)
+                local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
+                if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
+                elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
             elseif orange_stack > 0 then
                 -- Pure Orange
                 if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
@@ -1659,10 +1659,10 @@ local function draw_dw(subs, view_center, active_idx)
                     
                     if orange_stack > 0 and purple_stack > 0 then
                         -- Mixed Intersection
-                        local total_stack = math.min(orange_stack + purple_stack, 3)
-                        if total_stack == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                        elseif total_stack == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                        elseif total_stack >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
+                        local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
+                        if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                        elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
+                        elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
                     elseif orange_stack > 0 then
                         -- Pure Orange
                         if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
