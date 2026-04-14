@@ -1,10 +1,12 @@
-## 1. Core Logic Implementation
+## 1. Core Logic & Configuration
 
 - [x] 1.1 Define `cmd_open_record_file()` in `scripts/lls_core.lua`.
-- [x] 1.2 Implement logic in `cmd_open_record_file` to get TSV path, verify existence, and launch OS default editor via PowerShell.
-- [x] 1.3 Add user feedback using `show_osd` for both success and error states (e.g., file not found).
+- [x] 1.2 Implement async process launching using `mp.command_native_async` to prevent UI freezing.
+- [x] 1.3 Add `record_editor` to the `Options` table and `mpv.conf` for user configurability.
+- [x] 1.4 Implement logging via `mp.msg.info` for console-based troubleshooting.
 
-## 2. UI Hooking
+## 2. Keybindings & UI Integration
 
-- [x] 2.1 Modify `manage_dw_bindings` in `scripts/lls_core.lua` to include 'o' and 'щ' (RU layout) in the `keys` table.
-- [x] 2.2 Ensure the new bindings correctly trigger `cmd_open_record_file()` when the Drum Window is active.
+- [x] 2.1 Map `o` and `щ` in `input.conf` to a script-binding `toggle-record-file` to suppress native mpv behavior.
+- [x] 2.2 Implement router logic in `lls_core.lua` to trigger file opening only when Drum Window is active.
+- [x] 2.3 Verify that the Drum Window overlay remains stable during and after the file is opened.
