@@ -680,7 +680,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 if valid_set == nil then
                                     valid_set = false
                                     local ctx_list = {}
-                                    for scan_i = math.max(1, sub_idx - 3), math.min(#subs, sub_idx + 3) do
+                                    -- Generous scan radius (equivalent to roughly 30 seconds of speech) 
+                                    -- necessary for split terms spanning multiple subtitle blocks
+                                    for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
                                         local scan_words = get_sub_words(subs[scan_i])
                                         if scan_words then
                                             for scan_w_idx, w in ipairs(scan_words) do
