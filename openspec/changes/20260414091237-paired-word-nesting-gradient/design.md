@@ -17,7 +17,7 @@ Presently, the Drum Window differentiates between two types of multi-word highli
 ## Decisions
 
 - **Adapt Nesting Level Algorithm:** The current nesting logic loops through term bounds to establish depth. For paired words, which consist of multiple bounding boxes (`[start_a, end_a]`, `[start_b, end_b]`), the logic should be updated to account for overlapping boundaries across the whole span or per-chunk. Typically, nesting is calculated based on the overarching span of a term or exact bounding intersection. We will use the latter approach to increment the nesting depth factor on intersections.
-- **Unified Alpha Shading Logic:** The alpha channel modifier logic applied to contiguous terms based on nesting depth will be generalized so that it acts identically on non-contiguous terms, making deep overlapping sections appear more prominent or distinct.
+- **Three-Level Discrete Color System:** Instead of a calculated alpha gradient, we will introduce three distinct color configuration options for split words: `anki_split_depth_1`, `anki_split_depth_2`, and `anki_split_depth_3`. This ensures the visual style is perfectly consistent with the existing `anki_highlight_depth_X` system used for orange highlights.
 
 ## Risks / Trade-offs
 

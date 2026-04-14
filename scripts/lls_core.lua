@@ -111,6 +111,9 @@ local Options = {
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003A70",
+    anki_split_depth_1 = "FF88B0",
+    anki_split_depth_2 = "D97496",
+    anki_split_depth_3 = "B3607C",
     anki_global_highlight = false,
     anki_sync_period = 30,
     anki_context_lines = 6,
@@ -1461,12 +1464,16 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         for i, w in ipairs(words) do
             local stack, is_phrase, is_split = calculate_highlight_stack(subs, sub_idx, i, t_pos)
             local h_color = base_color
-            if stack == 1 then h_color = Options.anki_highlight_depth_1
-            elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-            elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-
-            if is_split and not is_phrase and stack > 0 then
-                h_color = Options.dw_split_select_color or "FF88B0"
+            if stack > 0 then
+                if is_split and not is_phrase then
+                    if stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                    elseif stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                    elseif stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                else
+                    if stack == 1 then h_color = Options.anki_highlight_depth_1
+                    elseif stack == 2 then h_color = Options.anki_highlight_depth_2
+                    elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                end
             end
 
             if h_color ~= base_color then
@@ -1635,12 +1642,16 @@ local function draw_dw(subs, view_center, active_idx)
                     local sub_t = subs[i]
                     local stack, is_phrase, is_split = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
-                    if stack == 1 then h_color = Options.anki_highlight_depth_1
-                    elseif stack == 2 then h_color = Options.anki_highlight_depth_2
-                    elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-
-                    if is_split and not is_phrase and stack > 0 then
-                        h_color = Options.dw_split_select_color or "FF88B0"
+                    if stack > 0 then
+                        if is_split and not is_phrase then
+                            if stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                            elseif stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                            elseif stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                        else
+                            if stack == 1 then h_color = Options.anki_highlight_depth_1
+                            elseif stack == 2 then h_color = Options.anki_highlight_depth_2
+                            elseif stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                        end
                     end
 
                     if h_color ~= color then
