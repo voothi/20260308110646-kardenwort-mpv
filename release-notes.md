@@ -1,4 +1,40 @@
+# Release Notes - v1.32.0 (Multi-Word Ctrl-Selection & Dynamic Anki Mappings)
+
+**Date**: 2026-04-14
+**Version**: v1.32.0
+**Implementation ZIDs**: 20260413133147, 20260413144355, 20260413163703, 20260413173817, 20260413213102, 20260413224742, 20260413234639, 20260414004717, 20260414015131, 20260414023304, 20260414033418
+
+## Highlights
+
+### 🖱️ **Multi-Word & Non-Contiguous Selection (Ctrl-Selection)**
+- **Ctrl-Multiselect Gesture**: Introduced a sophisticated new workflow for marking non-contiguous constructs (e.g., German separable-prefix verbs or English phrasal verbs).
+  - `Ctrl + LMB`: Click individual words to accumulate them into a yellow pending selection.
+  - `Ctrl + MMB`: Commit the accumulated set as a persistent highlight and Anki export.
+- **Split-Word Highlighting (Purple)**: Non-contiguous saved terms now feature a distinct **Purple** highlight to clearly distinguish them from contiguous selections.
+- **Robust Highlighting Matcher**: Refactored the internal matching algorithm to reliably detect and style both contiguous (Orange) and split (Purple) multi-word terms, even when overlapping within the same subtitle block.
+- **Center-Proximity Context Search**: Implemented a proximity-based search fallback for non-contiguous selections. This ensures that even when words are scattered across multiple sentences, the exported Anki context correctly captures the full logical span.
+
+### 📋 **Dynamic Anki Mappings & Smart Export**
+- **External Mapping Engine**: Migrated Anki field definitions to a dedicated `anki_mapping.ini` file. Users can now define an unlimited number of fields, use blank "holes" for alignment, and configure static text literals.
+- **Automated TSV Headers**: The export engine now automatically generates Anki-compatible headers (e.g., `#deck column:N`) and field names at the top of every record file for zero-touch imports.
+- **Track-Aware Metadata**: Enhanced the data pipeline to automatically extract deck names from filenames and generate language-specific TTS flags (`tts_source_[lang]`) based on active subtitle tracks.
+- **Forward-Search Context Preservation**: Refined the context extraction logic to search for sentence boundaries starting from the *end* of a selection. This prevents premature truncation in multi-sentence selections.
+- **Metadata & Punctuation Sanitization**: 
+  - **Tag Stripping**: Automatic removal of bracketed metadata like `[musik]` or `[Lachen]` from exported cards.
+  - **Period Restoration**: Naturally restores a terminal period to capitalized sentence exports that lost their original punctuation during the cleaning phase.
+
+### 📚 **"Book Mode" & UI Stability**
+- **Stationary Viewport Navigation**: Toggle **Book Mode** with **`b`** (Russian **`и`**) to lock the Drum Window UI. This freezes the viewport center while navigating (`a`/`d`) or selecting vocabulary, providing a flicker-free, book-like reading experience.
+- **Synchronized Scroll Stability**: Resolved the "scroll-drift" bug. Viewport scrolling (`MouseWheel`) now perfectly preserves active selections and prevents the highlight pointer from "snapping" to the mouse during motion.
+- **Hardened Subtitle Suppression**: Centralized the multi-track suppression logic in `master_tick`. Native subtitles are now rigorously hidden across all script modes, including during rapid track cycling.
+
+### 🛠️ **Workflow Optimizations**
+- **Instant Record Access**: Added the **`o`** (Russian **`щ`**) shortcut within the Drum Window to instantly open the currently active TSV record file in your system's default editor (e.g., VSCode).
+
+---
+
 # Release Notes - v1.28.16 (Unified Styling & FSM Hardening)
+
 
 **Date**: 2026-04-13
 **Version**: v1.28.16
