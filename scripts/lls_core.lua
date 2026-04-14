@@ -1148,7 +1148,10 @@ local function load_anki_tsv(force)
             elseif src == "time" then time_col = i end
         end
     end
-    local term_header_name = config.fields[term_col]
+    local term_header_name = nil
+    if config.fields and term_col and config.fields[term_col] then
+        term_header_name = config.fields[term_col]
+    end
 
     for line in f:lines() do
         if not line:match("^#") then
@@ -3892,20 +3895,25 @@ end
 -- =========================================================================
 
 mp.observe_property("sid", "number", function(name, val)
-    pcall(update_media_state)
+    local ok, err = pcall(update_media_state)
+    if not ok then mp.msg.error("LLS Error (sid observer): " .. tostring(err)) end
 end)
 mp.observe_property("secondary-sid", "number", function(name, val)
-    pcall(update_media_state)
+    local ok, err = pcall(update_media_state)
+    if not ok then mp.msg.error("LLS Error (sec-sid observer): " .. tostring(err)) end
 end)
 mp.observe_property("track-list", "native", function()
-    pcall(update_media_state)
+    local ok, err = pcall(update_media_state)
+    if not ok then mp.msg.error("LLS Error (track-list observer): " .. tostring(err)) end
     if Options.font_scaling_enabled then
-        pcall(update_font_scale)
+        local ok2, err2 = pcall(update_font_scale)
+        if not ok2 then mp.msg.error("LLS Error (font-scaling): " .. tostring(err2)) end
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
     if Options.font_scaling_enabled then
-        update_font_scale()
+        local ok, err = pcall(update_font_scale)
+        if not ok then mp.msg.error("LLS Error (osd-dim observer): " .. tostring(err)) end
     end
 end)
 
@@ -3946,11 +3954,12 @@ end)
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
-        pcall(function()
+        local ok, err = pcall(function()
             load_anki_tsv(true)
             drum_osd:update()
             if dw_osd then dw_osd:update() end
         end)
+        if not ok then mp.msg.error("LLS Error (periodic sync): " .. tostring(err)) end
     end)
 end
 ---------------------------------------------------------------------------
