@@ -10,7 +10,8 @@ The Drum Window SHALL commit the accumulated `ctrl_pending_set` to a saved Anki 
 - **AND** the context window supplied to the context-extraction function SHALL span from the earliest-selected line (first in document order) to the latest-selected line (last in document order), each padded by `anki_context_lines` lines on either side, ensuring the composed term is always locatable within the supplied context
 - **AND** the export timestamp SHALL be set to the `start_time` of the earliest-selected line (first in document order)
 - **AND** `ctrl_pending_set` SHALL be cleared
-- **AND** the committed words SHALL subsequently be rendered by the visual highlight engin in the correct saved state. If the words form a contiguous block, they are rendered orange; if they are non-contiguous, they are assigned the special split-word color (e.g., purple).
+- **AND** the selection anchor and cursor SHALL be reset (cleared) immediately to reveal the new highlight.
+- **AND** the committed words SHALL subsequently be rendered by the visual highlight engine in the correct saved state. If the words form a contiguous block, they are rendered orange; if they are non-contiguous, they are assigned the special split-word color (e.g., purple).
 
 #### Scenario: Ctrl+MMB on non-member falls back to plain MMB
 - **WHEN** `ctrl_pending_set` is non-empty (or even empty)

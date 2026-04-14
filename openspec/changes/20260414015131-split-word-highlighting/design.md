@@ -30,6 +30,9 @@ However, the visual highlighting system currently attempts to match terms exactl
    - Exact contiguous string matches maintain priority, receiving standard highlight colors.
    - Matched split-term words receive the new split-term purple highlight.
 
+5. **Immediate Visual Feedback**:
+   - Upon `Ctrl+MMB` commit, the selection anchor and cursor (`DW_ANCHOR_LINE`, `DW_ANCHOR_WORD`, `DW_CURSOR_WORD`) are explicitly reset. This ensures the hover/selection highlight doesn't mask the newly applied split-highlight color until the user moves the mouse.
+
 ## Risks / Trade-offs
 
 - **[Risk: False Positives in Split Matching]** → Mitigation: Enforce that all individual split-words constituting the TSV term must occur within the same short contextual block (like the current subtitle sequence) for the highlight to engage. If 'mache' is present but 'auf' is not, it will not highlight.
