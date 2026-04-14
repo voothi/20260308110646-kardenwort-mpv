@@ -1,3 +1,24 @@
+# Release Notes - v1.32.2 (TSV Recovery & Visual Depth)
+
+**Date**: 2026-04-14
+**Version**: v1.32.2
+**Implementation ZIDs**: 20260414091237, 20260414100928, 20260414123431, 20260414150031
+
+## Highlights
+
+### 🎨 **Advanced Highlight Intersections & Nesting**
+- **Paired Word Nesting (Purple Gradient)**: Non-contiguous/split highlights (Purple) now feature full nesting awareness. Overlapping split-word terms now exhibit a three-tier depth gradient (`anki_split_depth_1/2/3`), harmonizing their visual style with existing contiguous highlights.
+- **Mixed Intersection Blending**: Introduced a sophisticated "Mixed" highlight state. When a word belongs to both a contiguous (Orange) and non-contiguous (Purple) saved term, the system now renders a distinct blended color (`anki_mix_depth_1/2/3`) to visualize the intersection accurately.
+- **Decoupled Depth Tracking**: Refactored the internal stack-calculation engine to independently track `orange_stack` and `purple_stack`, enabling more precise multi-layer rendering and developer debugging.
+
+### 🛡️ **TSV State Recovery & Initialization Hardening**
+- **Auto-Creation Healing**: The Drum Window now automatically detects missing `.tsv` record files and creates a fresh template on startup. This ensures immediate UI recovery if the file is cleared or deleted mid-session.
+- **Dynamic Header Skipping**: Upgraded the TSV parser to dynamically detect and ignore the header row, regardless of the custom term field configured in `anki_mapping.ini`.
+- **Fail-Safe Observer Loop**: Wrapped all core mpv property observers in protected `pcall` execution. This prevents rogue subtitle errors from fatally crashing the player's internal state tracking.
+- **Terminal Diagnostics**: Critical subsystem errors now bypass mpv's internal logging filter and print directly to the terminal for visibility.
+
+---
+
 # Release Notes - v1.32.0 (Multi-Word Ctrl-Selection & Dynamic Anki Mappings)
 
 **Date**: 2026-04-14
