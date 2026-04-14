@@ -600,6 +600,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
         local term_key = data.term
         if not matched_terms[term_key] then
             local match_found = false
+            local term_is_split = false
             
             -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
             if not data.__term_words then
@@ -777,17 +778,13 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                 end
                             end
 
-                            local match_is_split = false
-                            local match_is_sequence = false
-
                             if sequence_match then
                                 match_found = true
-                                match_is_sequence = true
                                 if #term_words > 1 then has_phrase = true end
                                 break -- Out of offsets for this term
                             elseif split_match then
                                 match_found = true
-                                match_is_split = true
+                                term_is_split = true
                                 break -- Out of offsets for this term
                             end
                         end
@@ -795,7 +792,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                 end
             end
             if match_found then
-                if match_is_split then
+                if term_is_split then
                     purple_stack = purple_stack + 1
                 else
                     orange_stack = orange_stack + 1
