@@ -13,6 +13,7 @@
 - [x] 3.1 Update the TSV record construction logic to calculate the exact word length of the highlighted sequence being exported.
 - [x] 3.2 Add conditional branching to classify if the sequence qualifies as a word or a sentence depending on the user's `sentence_word_threshold`.
 - [x] 3.3 Dynamically switch both the field list AND the mapping source table based on the detected `fields_mapping` context.
+- [x] 3.4 Highlight Recovery: Implement fallback logic in `load_anki_tsv` to dynamically check all potential mapped term columns, and default to the `SentenceSource` context if `WordSource` was intentionally unmapped by the user.
 
 ## 4. Verification
 

@@ -24,8 +24,12 @@ Currently, the Drum Window exports all selected text sequences using a single TS
    - **Rationale:** Unified blocks where keys represent the Anki field name and values represent the data source (e.g., `Quotation=source_word`) are more intuitive and mirror the legacy Kardenwort structure more closely. This reduces configuration fragmentation.
 
 3. **Graceful Fallback Logic:**
-   - **Decision:** If a condition requires `[fields.sentence]` but it doesn't exist, the system must securely fall back to the default `[fields]` mapping.
+   - **Decision:** If a condition requires `[fields_mapping.sentence]` but it doesn't exist, the system must securely fall back to the default `[fields]` mapping.
    - **Rationale:** Prevents breaking existing installs that haven't been migrated to the new config template format.
+
+4. **Highlight Persistence for Unmapped Terms:**
+   - **Decision:** If a user chooses to omit the `source_word` from their `[fields_mapping.sentence]` configuration to keep Anki cards clean, the TSV reader will automatically map the missing phrase highlight to the `SentenceSource` text.
+   - **Rationale:** Ensures that Drum Window retains its color highlighting for TSV phrases without requiring artificial HTML code smuggling or forcing Anki fields to be populated against the user's intent.
 
 ## Risks / Trade-offs
 
