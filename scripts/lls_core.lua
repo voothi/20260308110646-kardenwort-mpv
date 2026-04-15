@@ -1167,18 +1167,23 @@ local function load_anki_tsv(force)
     -- matches the actual anki_mapping.ini field names, not hardcoded defaults.
     local config = load_anki_mapping_ini()
 
-    local term_col, ctx_col, time_col = 1, 2, 3
+    local term_cols = {}
+    local ctx_cols = {}
+    local time_col = 3
     if #config.fields > 0 then
         for i, fld in ipairs(config.fields) do
             local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
-            if src == "source_word" then term_col = i
-            elseif src == "source_sentence" then ctx_col = i
+            if src == "source_word" then table.insert(term_cols, i)
+            elseif src == "source_sentence" then table.insert(ctx_cols, i)
             elseif src == "time" then time_col = i end
         end
     end
+    if #term_cols == 0 then table.insert(term_cols, 1) end
+    if #ctx_cols == 0 then table.insert(ctx_cols, 2) end
+
     local term_header_name = nil
-    if config.fields and term_col and config.fields[term_col] then
-        term_header_name = config.fields[term_col]
+    if config.fields and term_cols[1] and config.fields[term_cols[1]] then
+        term_header_name = config.fields[term_cols[1]]
     end
 
     local f = io.open(tsv_path, "r")
@@ -1233,27 +1238,47 @@ local function load_anki_tsv(force)
             for field in (line .. "\t"):gmatch("([^\t]*)\t") do
                 table.insert(fields, field)
             end
-            -- Note: We now allow missing fields if they aren't part of the core 3
-            if #fields >= math.max(term_col, time_col) or #fields > term_col then
-                local term = fields[term_col]
-                local context = fields[ctx_col] or ""
+            -- Check time boundary minimums
+            if #fields > 0 then
+                local t = ""
+                for _, col_idx in ipairs(term_cols) do
+                    if fields[col_idx] and fields[col_idx] ~= "" then
+                        t = fields[col_idx]
+                        break
+                    end
+                end
+                
+                local c = ""
+                for _, col_idx in ipairs(ctx_cols) do
+                    if fields[col_idx] and fields[col_idx] ~= "" then
+                        c = fields[col_idx]
+                        break
+                    end
+                end
+
+                -- Resurrect hidden phrase from Anki SentenceSource mapping
+                if c ~= "" then
+                    local smuggled = c:match("<!%-%-LLS_TERM:(.-)%-%->")
+                    if smuggled then
+                        if t == "" then t = smuggled end
+                        c = c:gsub("<!%-%-LLS_TERM:.-%-%->", "")
+                    end
+                end
+
                 local time_val = tonumber(fields[time_col])
                 if not time_val or time_val <= 0 then
-                    -- Robust fallback: search tail columns for any valid timestamp string (e.g. 92.100)
-                    for c = #fields, math.max(1, #fields - 10), -1 do
-                        if tonumber(fields[c]) and tostring(fields[c]):match("^%d+%.%d+$") then
-                            time_val = tonumber(fields[c])
+                    for k = #fields, math.max(1, #fields - 10), -1 do
+                        if tonumber(fields[k]) and tostring(fields[k]):match("^%d+%.%d+$") then
+                            time_val = tonumber(fields[k])
                             break
                         end
                     end
                     time_val = time_val or 0
                 end
                 
-                -- Don't load headers or empty terms
-                local is_header = (term == "WordSource" or term == "Term"
-                                   or (term_header_name and term == term_header_name))
-                if term and term ~= "" and not is_header then
-                    table.insert(new_highlights, { term = term, context = context, time = time_val })
+                local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
+                if t and t ~= "" and not is_header then
+                    table.insert(new_highlights, { term = t, context = c, time = time_val })
                 end
             end
         end
@@ -1342,7 +1367,11 @@ local function save_anki_tsv_row(term, context, time_pos)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts))
+            local val = resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts)
+            if mapping[field_name] == "source_sentence" then
+                val = val .. string.format("<!--LLS_TERM:%s-->", escape_tsv(term))
+            end
+            table.insert(row_data, val)
         end
     end
     
