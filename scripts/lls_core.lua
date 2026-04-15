@@ -241,9 +241,7 @@ local function load_anki_mapping_ini()
     local f = io.open(path, "r")
         local config = {
         fields = {},
-        fields_word = {},
-        fields_sentence = {},
-        mapping = {},
+mapping = {},
         mapping_word = {},
         mapping_sentence = {},
         tts = {},
