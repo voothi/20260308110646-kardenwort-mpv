@@ -129,7 +129,10 @@ local Options = {
     book_mode = false,
 
     -- Record File
-    record_editor = "C:\\Program Files\\Microsoft VS Code\\Code.exe"
+    record_editor = "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+
+    -- Sentence Threshold
+    sentence_word_threshold = 3
 }
 options.read_options(Options, "lls")
 
@@ -239,6 +242,8 @@ local function load_anki_mapping_ini()
     
     local config = {
         fields = {},
+        fields_word = {},
+        fields_sentence = {},
         mapping = {},
         tts = {},
         settings = {}
@@ -259,6 +264,10 @@ local function load_anki_mapping_ini()
                 section = header:lower()
             elseif section == "fields" then
                 table.insert(config.fields, clean_line)
+            elseif section == "fields.word" then
+                table.insert(config.fields_word, clean_line)
+            elseif section == "fields.sentence" then
+                table.insert(config.fields_sentence, clean_line)
             elseif section == "mapping" or section == "tts" or section == "settings" then
                 local k, v = clean_line:match("^([^=]+)=(.*)$")
                 if k and v then
@@ -270,8 +279,14 @@ local function load_anki_mapping_ini()
                     config[section][k] = v
                 end
             end
-        elseif clean_line == "" and section == "fields" then
-            table.insert(config.fields, "") -- hole
+        elseif clean_line == "" then
+            if section == "fields" then
+                table.insert(config.fields, "") -- hole
+            elseif section == "fields.word" then
+                table.insert(config.fields_word, "")
+            elseif section == "fields.sentence" then
+                table.insert(config.fields_sentence, "")
+            end
         end
     end
     f:close()
@@ -1236,10 +1251,24 @@ local function save_anki_tsv_row(term, context, time_pos)
     if not tsv_path then return end
 
     local config = load_anki_mapping_ini()
+    local settings = config.settings
+    
+    -- Calculate word count to determine profile
+    local term_words = build_word_list(term)
+    local term_word_count = #term_words
+    local threshold = tonumber(settings.sentence_word_threshold) or Options.sentence_word_threshold or 3
+    
+    local is_sentence = (term_word_count >= threshold)
     local fields = config.fields
+    
+    if is_sentence and #config.fields_sentence > 0 then
+        fields = config.fields_sentence
+    elseif not is_sentence and #config.fields_word > 0 then
+        fields = config.fields_word
+    end
+
     local mapping = config.mapping
     local tts = config.tts
-    local settings = config.settings
 
     if #fields == 0 then
         -- Fallback default behavior
