@@ -275,7 +275,6 @@ local function load_anki_mapping_ini()
                     k = k:match("^%s*(.-)%s*$")
                     v = v:match("^%s*(.-)%s*$")
                     if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
-                    table.insert(config.fields_word, k)
                     config.mapping_word[k] = v
                 end
             elseif section == "fields_mapping.sentence" then
@@ -284,7 +283,6 @@ local function load_anki_mapping_ini()
                     k = k:match("^%s*(.-)%s*$")
                     v = v:match("^%s*(.-)%s*$")
                     if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
-                    table.insert(config.fields_sentence, k)
                     config.mapping_sentence[k] = v
                 end
             elseif section == "mapping" or section == "tts" or section == "settings" then
@@ -1283,10 +1281,8 @@ local function save_anki_tsv_row(term, context, time_pos)
     local mapping = config.mapping
 
     if is_sentence then
-        if #config.fields_sentence > 0 then fields = config.fields_sentence end
         if next(config.mapping_sentence) then mapping = config.mapping_sentence end
     else
-        if #config.fields_word > 0 then fields = config.fields_word end
         if next(config.mapping_word) then mapping = config.mapping_word end
     end
     
