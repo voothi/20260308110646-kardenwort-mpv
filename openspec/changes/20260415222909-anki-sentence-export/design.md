@@ -20,8 +20,8 @@ Currently, the Drum Window exports all selected text sequences using a single TS
    - **Rationale:** Hardcoding limits prevents users from fully controlling the threshold. Since token lengths and semantic structures vary wildly by language, the user must dictate this variable.
 
 2. **Template Branching Structure:**
-   - **Decision:** Update `anki_mapping.ini` parsing to detect and prioritize `[fields.word]` and `[fields.sentence]` groups over the default group.
-   - **Alternatives:** Continue using a single group but require complex inline conditionals. This was rejected because Kardenwort syntax logic is easier to read simply with dedicated configuration sections.
+   - **Decision:** Replace the split `[fields]` and `[mapping]` architecture with unified `[fields_mapping.word]` and `[fields_mapping.sentence]` groups.
+   - **Rationale:** Unified blocks where keys represent the Anki field name and values represent the data source (e.g., `Quotation=source_word`) are more intuitive and mirror the legacy Kardenwort structure more closely. This reduces configuration fragmentation.
 
 3. **Graceful Fallback Logic:**
    - **Decision:** If a condition requires `[fields.sentence]` but it doesn't exist, the system must securely fall back to the default `[fields]` mapping.

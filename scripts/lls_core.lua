@@ -239,12 +239,13 @@ local function load_anki_mapping_ini()
     
     local path = mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
     local f = io.open(path, "r")
-    
-    local config = {
+        local config = {
         fields = {},
         fields_word = {},
         fields_sentence = {},
         mapping = {},
+        mapping_word = {},
+        mapping_sentence = {},
         tts = {},
         settings = {}
     }
@@ -268,6 +269,24 @@ local function load_anki_mapping_ini()
                 table.insert(config.fields_word, clean_line)
             elseif section == "fields.sentence" then
                 table.insert(config.fields_sentence, clean_line)
+            elseif section == "fields_mapping.word" then
+                local k, v = clean_line:match("^([^=]+)=(.*)$")
+                if k and v then
+                    k = k:match("^%s*(.-)%s*$")
+                    v = v:match("^%s*(.-)%s*$")
+                    if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
+                    table.insert(config.fields_word, k)
+                    config.mapping_word[k] = v
+                end
+            elseif section == "fields_mapping.sentence" then
+                local k, v = clean_line:match("^([^=]+)=(.*)$")
+                if k and v then
+                    k = k:match("^%s*(.-)%s*$")
+                    v = v:match("^%s*(.-)%s*$")
+                    if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
+                    table.insert(config.fields_sentence, k)
+                    config.mapping_sentence[k] = v
+                end
             elseif section == "mapping" or section == "tts" or section == "settings" then
                 local k, v = clean_line:match("^([^=]+)=(.*)$")
                 if k and v then
@@ -290,6 +309,7 @@ local function load_anki_mapping_ini()
         end
     end
     f:close()
+
     
     ANKI_MAPPING_CACHE = config
     return config
@@ -1260,14 +1280,16 @@ local function save_anki_tsv_row(term, context, time_pos)
     
     local is_sentence = (term_word_count >= threshold)
     local fields = config.fields
-    
-    if is_sentence and #config.fields_sentence > 0 then
-        fields = config.fields_sentence
-    elseif not is_sentence and #config.fields_word > 0 then
-        fields = config.fields_word
-    end
-
     local mapping = config.mapping
+
+    if is_sentence then
+        if #config.fields_sentence > 0 then fields = config.fields_sentence end
+        if next(config.mapping_sentence) then mapping = config.mapping_sentence end
+    else
+        if #config.fields_word > 0 then fields = config.fields_word end
+        if next(config.mapping_word) then mapping = config.mapping_word end
+    end
+    
     local tts = config.tts
 
     if #fields == 0 then

@@ -5,14 +5,14 @@
 
 ## 2. Profile Parsing Logic
 
-- [x] 2.1 Refactor the `anki_mapping.ini` parser function to identify, read, and store separate mapping arrays for `[fields]`, `[fields.word]`, and `[fields.sentence]`.
-- [x] 2.2 Implement a profile fetching mechanism that attempts to fetch designated profiles (`.word` or `.sentence`) but robustly falls back to `[fields]` when specific formatting blocks are absent.
+- [x] 2.1 Refactor the `anki_mapping.ini` parser function to identify and read unified mapping blocks `[fields_mapping.word]` and `[fields_mapping.sentence]`.
+- [x] 2.2 Implement logic to preserve assignment order during configuration parsing to ensure TSV columns match the INI sequence.
 
 ## 3. TSV Export Implementation
 
 - [x] 3.1 Update the TSV record construction logic to calculate the exact word length of the highlighted sequence being exported.
 - [x] 3.2 Add conditional branching to classify if the sequence qualifies as a word or a sentence depending on the user's `sentence_word_threshold`.
-- [x] 3.3 Apply the accurately resolved Anki mapping profile definition array during TSV row construction over the prior singular mapped output.
+- [x] 3.3 Dynamically switch both the field list AND the mapping source table based on the detected `fields_mapping` context.
 
 ## 4. Verification
 
