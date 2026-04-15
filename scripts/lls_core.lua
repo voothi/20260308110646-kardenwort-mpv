@@ -1170,7 +1170,7 @@ local function load_anki_tsv(force)
     local term_col, ctx_col, time_col = 1, 2, 3
     if #config.fields > 0 then
         for i, fld in ipairs(config.fields) do
-            local src = config.mapping[fld]
+            local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
             if src == "source_word" then term_col = i
             elseif src == "source_sentence" then ctx_col = i
             elseif src == "time" then time_col = i end
@@ -1198,7 +1198,8 @@ local function load_anki_tsv(force)
         -- Find the deck column index (same logic as save_anki_tsv_row)
         local deck_col = -1
         for i, fld in ipairs(config.fields) do
-            if config.mapping[fld] == "deck_name" then
+            local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
+            if src == "deck_name" then
                 deck_col = i
                 break
             end
