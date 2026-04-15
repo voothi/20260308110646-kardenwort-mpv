@@ -1256,13 +1256,10 @@ local function load_anki_tsv(force)
                     end
                 end
 
-                -- Resurrect hidden phrase from Anki SentenceSource mapping
-                if c ~= "" then
-                    local smuggled = c:match("<!%-%-LLS_TERM:(.-)%-%->")
-                    if smuggled then
-                        if t == "" then t = smuggled end
-                        c = c:gsub("<!%-%-LLS_TERM:.-%-%->", "")
-                    end
+                -- If the TSV row did not export the term (e.g. phrase cards with no WordSource),
+                -- we simply fall back to treating the entire SentenceSource context as the highlight target!
+                if t == "" and c ~= "" then
+                    t = c
                 end
 
                 local time_val = tonumber(fields[time_col])
@@ -1367,11 +1364,7 @@ local function save_anki_tsv_row(term, context, time_pos)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            local val = resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts)
-            if mapping[field_name] == "source_sentence" then
-                val = val .. string.format("<!--LLS_TERM:%s-->", escape_tsv(term))
-            end
-            table.insert(row_data, val)
+            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts))
         end
     end
     
