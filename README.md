@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.26.34-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.26.34) 
+[![Version](https://img.shields.io/badge/version-v1.34.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.34.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -28,7 +28,8 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Intelligent Scripts](#intelligent-scripts)
   - [Universal Subtitle Search](#universal-subtitle-search)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
-  - [Static Reading Mode](#static-reading-mode)
+  - [Static Reading Mode (Drum Window)](#static-reading-mode)
+  - [Anki Highlighting & Export](#anki-mining)
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling)
@@ -51,6 +52,7 @@ This project is specifically designed for learners who work with **Dual Subtitle
 2.  **Convenient Content Consumption**: Focuses on the *playback phase* of intensive acquisition. Every feature—from [Independent Shifting](#positional-flexibility) to [Smart Spacebar](#smart-spacebar)—is built to remove friction during long, high-volume immersion sessions.
 3.  **YouTube Auto-Subtitle Handling**: Provides specialized tools like [Static Reading Mode](#static-reading-mode) to maintain linguistic context when dealing with poorly synchronized or lower-quality YouTube-extracted captions.
 4.  **Local Offline Focus**: Aimed at a robust local-first workflow. Learners can download media and subtitles, prepare them using external tools, and then consume them offline with maximum stability and control.
+5.  **Anki Workflow Core**: Deep integration with Anki/TSV databases. Highlighting, context extraction, and non-contiguous term matching are built-in native features, not just afterthoughts.
 
 ### Workflow Integration
 While this project focuses on the **consumption** of material, it is designed to be the final step in a broader acquisition workflow:
@@ -71,6 +73,8 @@ This suite solves problems that standard video players and generic scripts ignor
 7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
 8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
 9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
+10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session, even across multi-word split constructs.
+11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
 
 [Return to Top](#table-of-contents)
 
@@ -102,7 +106,8 @@ The search bar uses a multi-stage **Keyword-Based Fuzzy Matching** engine:
 1.  **Tokenization**: Your query is split into individual keywords (separated by spaces).
 2.  **Order-Independent Matching**: The engine finds results containing all keywords, regardless of the sequence you typed them in.
 3.  **"Really Fuzzy" Subsequence**: Each keyword matches if its letters appear in the correct order within a word, even if other letters are in between (e.g., `mne` matches **m**a**n**ag**e**).
-4.  **Relevance Ranking**:
+4.  **Hit Highlighting**: Character matches are elegantly bolded and colored in the result list.
+5.  **Relevance Ranking**:
     -   **Exact Match**: Literal matches are prioritized first.
     -   **Compactness Bonus**: Higher priority is given to "dense" matches where letters are clustered within a single word rather than scattered across the whole line.
     -   **Structural Bonus**: Matches at the start of a subtitle line receive a specific weight.
@@ -118,11 +123,26 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
 - **Advanced Mouse Selection**: Experience text-editor smooth interactions. Click and drag (`LMB`) to instantly highlight ranges, or `Shift+Click` to extend. Hardware-accelerated for 60fps tracking.
 - **Actionable Text**: Double-Click any subtitle word to instantly seek video playback to that exact phrase and re-center the viewport.
-- **Static Viewport**: Once you begin navigating via arrows, the viewport "freezes" synchronously, providing a stable, flicker-free environment for reading and selection.
+- **Stationary "Book Mode"**: Toggle with **`b`** to lock the viewport. Navigating through lines or selecting words won't cause the window to scroll or flicker, providing a stable, reading-focused experience.
+- **Selection Persistence**: Manual seeks via `a`/`d` no longer clear your yellow highlight, allowing you to check context and return to your pending export line.
+- **Contextual Tooltips**: Press **`e`** or **Right-Click** on any line to instantly see a translation hint. In "Hover Mode" (`n`), hints appear automatically as you scan the text.
+- **Static Viewport**: The viewport remains stable while navigating via arrows, providing a flicker-free environment for reading and selection.
 - **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, or via standard `Mouse Wheel`/`Ctrl+Arrows`.
-- **Conflict Free**: Opening the window auto-hides overlapping subtitle tracks and native OS window-drag behaviors to guarantee distraction-free reading.
-- **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's parchment background.
+- **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
 - **Toggle**: `W` (English) or `Ц` (Russian).
+
+### <span id="anki-mining"></span>Anki Highlighting & Export
+A specialized subsystem that bridges the gap between immersion and flashcard creation.
+- **High-Recall Highlighting**: Saved vocabulary and phrases are automatically highlighted across the entire video. 
+  - **Orange**: Contiguous word sequences.
+  - **Purple**: Split-word constructs (e.g., separable verbs).
+  - **Mixed**: Blended colors for overlapping terms.
+- **Multi-Word Selection**: 
+  - `Ctrl + LMB`: Accumulate individual words into a yellow pending selection.
+  - `MMB`: Commit the selected set as a highlight and export it to your TSV database.
+- **Automatic Sanitization**: Strips leading/trailing punctuation and bracketed metadata (e.g. `[Musik]`) to ensure cards are optimized for dictionary matching.
+- **Dynamic Context**: The engine intelligently scans surrounding lines to capture grammatically complete sentences for your flashcards.
+- **Instant Record Access**: Press **`o`** within the Drum Window to instantly open your active TSV database in your default editor.
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
 A sophisticated extraction tool that supports substring and multi-line range selection.
@@ -167,11 +187,17 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
 | `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
+| `b` | `и` | Toggle **Book Mode** (Static Viewport Lock) |
+| `e` | `у` | Toggle **Translation Tooltip** (Reading Mode) |
+| `n` | `т` | Toggle **Hover Tooltips** (Reading Mode) |
+| `o` | `щ` | **Open Record File** (Active TSV database) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+a` | `Ctrl+ф` | **Select All** (Inside Search HUD) |
 | `Ctrl+w` | `Ctrl+ц` | **Delete Word** (Bash-style, Search HUD) |
 | `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
 | `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
+| `Ctrl + LMB` | `Ctrl + LMB` | **Multi-Word Selection** (Accumulate individual words) |
+| `MMB` | `MMB` | **Commit & Export** (Release to save to Anki/TSV) |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
 | `Ctrl + Shift + LEFT/RIGHT` | `Ctrl+Shift+Л/П` | Block-word Selection (Navigation) |
 | `Ctrl + Shift + UP/DOWN` | `Ctrl+Shift+В/Н` | Multi-line Jump Selection |
@@ -202,11 +228,14 @@ The project now uses a centralized configuration model. All core script behavior
 
 ### Centralized Script Controls:
 - **`script-opts-append=lls-autopause_default=yes`**: Toggle autopause at session start.
-- **`script-opts-append=lls-dw_font_size=34`**: Global font size for Drum Window context.
-- **`script-opts-append=lls-dw_vline_h_mul=0.87`**: Tunable vertical hit-test multiplier (Prevents click-drift).
-- **`script-opts-append=lls-dw_sub_gap_mul=0.6`**: Tunable gap multiplier between distinct subtitle blocks.
-- **`script-opts-append=lls-sec_pos_bottom=90`**: Configure the script's toggle position.
+- **`script-opts-append=lls-dw_font_name=Consolas`**: Unified font for reading modes.
+- **`script-opts-append=lls-anki_sync_period=5`**: Frequency of TSV database reloads.
+- **`script-opts-append=lls-dw_vline_h_mul=0.87`**: Tunable vertical hit-test multiplier.
+- **`script-opts-append=lls-book_mode=no`**: Stationary viewport lock (default).
 - **`script-opts-append=lls-copy_default_mode=A`**: Set the default clipboard target.
+
+### Anki Field Mapping
+The suite leverages an external `anki_mapping.ini` to decouple metadata from logic. Users can define custom fields, static literals, and language-specific TTS flags for zero-touch Anki imports.
 
 ### Switchable Layout Modes:
 The configuration supports a **Mode-based architecture**. You can define and switch between different font size calibrations (e.g., MODE 1 for size 30, MODE 2 for size 34) directly in `mpv.conf` to ensure hit-testing remains pixel-perfect regardless of your chosen font scale.
@@ -221,7 +250,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.26.22 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.34.2 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -230,8 +259,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~305 Commits (v1.26.34)
-- **Intensity Profile**: 4.9 Commits/Hour 
+- **Current Maturity**: ~520 Commits (v1.34.2)
+- **Intensity Profile**: 5.2 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
