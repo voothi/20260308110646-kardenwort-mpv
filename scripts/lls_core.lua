@@ -404,6 +404,26 @@ local function clean_text_srt(line)
     return line:gsub("\r", ""):gsub("<[^>]+>", "")
 end
 
+local function utf8_to_table(str)
+    local t = {}
+    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(t, ch)
+    end
+    return t
+end
+
+local function utf8_to_lower(str)
+    local res = str:lower()
+    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
+    local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
+    local u_table = utf8_to_table(upper)
+    local l_table = utf8_to_table(lower)
+    for i = 1, #u_table do
+        res = res:gsub(u_table[i], l_table[i])
+    end
+    return res
+end
+
 local function has_cyrillic(str)
     if not str then return false end
     return str:find("[\208\209]") ~= nil
@@ -484,25 +504,6 @@ local function compose_term_smart(words)
     return res
 end
 
-local function utf8_to_table(str)
-    local t = {}
-    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
-        table.insert(t, ch)
-    end
-    return t
-end
-
-local function utf8_to_lower(str)
-    local res = str:lower()
-    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
-    local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
-    local u_table = utf8_to_table(upper)
-    local l_table = utf8_to_table(lower)
-    for i = 1, #u_table do
-        res = res:gsub(u_table[i], l_table[i])
-    end
-    return res
-end
 
 local function find_fuzzy_indices(str_lower, query_lower)
     if query_lower == "" then return {} end
