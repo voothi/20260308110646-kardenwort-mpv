@@ -2928,7 +2928,6 @@ local function cmd_dw_seek_delta(dir)
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_WORD = -1
         end
-        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
     end
 end
 
