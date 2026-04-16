@@ -409,27 +409,56 @@ local function has_cyrillic(str)
     return str:find("[\208\209]") ~= nil
 end
 
+local function is_word_char(c)
+    if not c or #c == 0 then return false end
+    -- ASCII alphanumeric + apostrophe
+    if c:match("^[%w']$") then return true end
+    -- German/Russian/Cyrillic support
+    local u = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
+    local l = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
+    if u:find(c, 1, true) or l:find(c, 1, true) then return true end
+    return false
+end
+
 local function build_word_list(text)
     local words = {}
     if not text then return words end
-    -- Initial split by whitespace
-    for token in text:gmatch("%S+") do
-        -- Strip ASS tags before sub-splitting
-        token = token:gsub("{[^}]+}", "")
-        if token ~= "" then
-            -- Sub-split by slashes, dashes, parentheses and punctuation, keeping separators as tokens
-            local last_pos = 1
-            -- Pattern matches ASCII hyphen, slash, (), [], and UTF-8 en-dash/em-dash
-            for pos, sep in token:gmatch("()([/\\-%(%)%[%]%!%?%,%.]|\226\128\147|\226\128\148)") do
-                if pos > last_pos then
-                    table.insert(words, token:sub(last_pos, pos - 1))
-                end
-                table.insert(words, sep)
-                last_pos = pos + #sep
-            end
-            if last_pos <= #token then
-                table.insert(words, token:sub(last_pos))
-            end
+    
+    local chars = utf8_to_table(text)
+    local i = 1
+    local n = #chars
+    
+    while i <= n do
+        local c = chars[i]
+        
+        -- 1. Handle ASS Tags (Atomize)
+        if c == "{" then
+            local start = i
+            while i <= n and chars[i] ~= "}" do i = i + 1 end
+            table.insert(words, table.concat(chars, "", start, i))
+            i = i + 1
+            
+        -- 2. Handle Metadata Brackets (Atomize)
+        elseif c == "[" then
+            local start = i
+            while i <= n and chars[i] ~= "]" do i = i + 1 end
+            table.insert(words, table.concat(chars, "", start, i))
+            i = i + 1
+            
+        -- 3. Skip Whitespace (compatibility with gmatch("%S+"))
+        elseif c:match("^%s$") then
+            i = i + 1
+            
+        -- 4. Handle Word Characters (Scanning contiguous blocks)
+        elseif is_word_char(c) then
+            local start = i
+            while i <= n and is_word_char(chars[i]) do i = i + 1 end
+            table.insert(words, table.concat(chars, "", start, i - 1))
+            
+        -- 5. Handle Punctuation/Misc (Atomic Separator)
+        else
+            table.insert(words, c)
+            i = i + 1
         end
     end
     return words
@@ -443,9 +472,9 @@ local function compose_term_smart(words)
         local next_w = words[idx + 1]
         
         if next_w then
-            -- Smart joiner: No space if current or next word is a hyphen, slash, or multi-byte dash
-            if w:match("^[/-]$") or w:match("^\226\128\147$") or w:match("^\226\128\148$") or 
-               next_w:match("^[/-]$") or next_w:match("^\226\128\147$") or next_w:match("^\226\128\148$") then
+            -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
+            if w:match("^[/-]$") or w:match("^\226\128\147$") or w:match("^\226\128\148$") or w:match("^[%[%]%(%){}]$") or
+               next_w:match("^[/-]$") or next_w:match("^\226\128\147$") or next_w:match("^\226\128\148$") or next_w:match("^[%[%]%(%){}]$") then
                 -- Join without space
             else
                 res = res .. " "
