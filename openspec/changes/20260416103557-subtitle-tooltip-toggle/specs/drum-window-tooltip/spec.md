@@ -59,3 +59,13 @@ The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns f
 - **WHEN** the user right-clicks a line to pin the tooltip
 - **AND** the user then moves the mouse focus to a different subtitle line
 - **THEN** the pinned tooltip SHALL be dismissed.
+
+### Requirement: Persistent Manual Selection
+The system SHALL ensure that manual text selections remain locked to their respective subtitle lines during navigation, regardless of the active operation mode (Book Mode ON/OFF).
+
+#### Scenario: Single-word selection remains visible during seek
+- **GIVEN** the Drum Window is open in Book Mode OFF
+- **WHEN** the user clicks a single word (selecting it in yellow)
+- **AND** the user navigates the video position (e.g., via 'a' or 'd')
+- **THEN** the yellow selection highlight SHALL remain on the chosen word
+- **AND** the cursor SHALL NOT reset to follow the playing subtitle (white highlight) until the selection is manually changed or the window is closed.
