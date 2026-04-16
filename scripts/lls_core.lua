@@ -2525,11 +2525,6 @@ local function make_mouse_handler(is_shift, on_up_callback)
                 FSM.DW_MOUSE_SCROLL_TIMER = nil
             end
 
-            -- If anchor equals cursor and we weren't shift-clicking, clear selection (single click = just cursor)
-            if not is_shift and FSM.DW_ANCHOR_LINE == FSM.DW_CURSOR_LINE and FSM.DW_ANCHOR_WORD == FSM.DW_CURSOR_WORD then
-                FSM.DW_ANCHOR_LINE = -1
-                FSM.DW_ANCHOR_WORD = -1
-            end
             if on_up_callback then on_up_callback(tbl) end
         end
     end
