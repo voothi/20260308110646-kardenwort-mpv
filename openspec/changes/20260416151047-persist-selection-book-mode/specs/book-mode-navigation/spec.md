@@ -39,8 +39,9 @@ In Standard (Follow) Mode, the system SHALL ensure that active highlights remain
 - **THEN** the selection cursor SHALL NOT follow the playback pointer
 - **AND** the highlight SHALL remain strictly on Line 10, preventing it from expanding across multiple lines.
 
-### Requirement: Selection Cleanup Nuances & Phantom Prevention
-The system SHALL proactively clear "phantom" highlights that could otherwise track playback unintentionally.
+### Requirement: Selection Cleanup & Persistence Nuances
+The system SHALL ensure that all intentional selections are stable and persistent, while avoiding "phantom" highlights during navigation.
 
-- **Standard Mode Seeking**: Single-word yellow pointers SHALL be cleared when seeking manually via `a`/`d` or double-clicking, ensuring only intentional selections persist.
-- **Track Change Safety**: All selection states (ANCHOR and CURSOR) SHALL be reset whenever the primary subtitle track is changed or reloaded to prevent out-of-bounds (OOB) index crashes and stale context.
+- **Intentional Selections**: Any selection created via click or drag (including single words) SHALL create an anchor-based context (`ANCHOR_LINE ~= -1`). Such selections SHALL be stable (no stretching) and persistent during seeks in BOTH Book Mode and Standard Mode.
+- **Pointer Cleanup**: In Standard (Follow) Mode, if there is NO active selection (e.g., following a double-click seek reset), the system SHALL clear the "naked" yellow cursor word during `a`/`d` seeks to preserve interface cleanliness.
+- **Track Change Safety**: All selection and tooltip states SHALL be reset upon subtitle track reload to prevent Out-of-Bounds crashes.
