@@ -1,11 +1,12 @@
 ## Context
 
-Currently, the tooltip system for displaying subtitle translation/context information is entirely mouse-driven (appearing on hover). Keyboard-only users need a way to display this tooltip without reaching for the mouse. The requested keys are 'e' and the cyrillic 'у' (which occupy the same physical key on standard EN/RU layouts).
+Currently, the tooltip system for displaying subtitle translation/context information is entirely mouse-driven (appearing on hover). Keyboard-only users need a way to display this tooltip without reaching for the mouse, specifically when interacting with the Drum Window ('w'). The requested keys are 'e' and the cyrillic 'у' (which occupy the same physical key on standard EN/RU layouts).
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Bind the 'e' and 'у' keys to toggle the visibility of the tooltip for the currently displayed subtitle.
+- Bind the 'e' and 'у' keys to toggle the visibility of the tooltip for the active subtitle inside the Drum Window ('w').
+- Expose these keys as configurable parameters in `mpv.conf` to remain flexible and easily discoverable.
 
 **Non-Goals:**
 - Altering existing tooltip styles, layout, or content.
@@ -13,8 +14,9 @@ Currently, the tooltip system for displaying subtitle translation/context inform
 
 ## Decisions
 
-- **Keybindings (`input.conf` or script bindings):** We will map the "e" and "у" keys to a script function that explicitly toggles the tooltip state. 
-- **State tracking:** The Tooltip system (likely `lls_core.lua` or similar module) will need a new state flag (e.g., `tooltip_keyboard_toggled`) to track whether the tooltip was invoked via keyboard vs. mouse, or simply re-use the existing display logic forced on the current active subtitle string.
+- **Keybindings via `mpv.conf` parameters:** We will expose new parameters (e.g., `lls-dw_tooltip_toggle_key=e` and `lls-dw_tooltip_toggle_key_ru=у`) under the Translation Tooltip Settings or Drum Window Settings in `mpv.conf` to define the keys used for toggling.
+- **Scope limitation:** The keyboard toggle functionality will strictly check if the Drum Window ('w') is currently active or focused. This ensures the tooltip only appears in the expected context.
+- **State tracking:** The Tooltip system (`lls_core.lua`) will use these parameter values to bind an explicit `toggle_tooltip()` function.
 - **Hide mechanism:** Pressing the key again while the tooltip is shown will explicitly hide it.
 
 ## Risks / Trade-offs

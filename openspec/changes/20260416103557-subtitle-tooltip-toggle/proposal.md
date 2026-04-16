@@ -1,11 +1,12 @@
 ## Why
 
-Users need the ability to toggle the current subtitle's tooltip using the keyboard (specifically the 'e' / 'у' keys on EN/RU layouts). Relying solely on the mouse for this interaction breaks keyboard-driven workflows and compromises accessibility.
+Users need the ability to toggle the subtitle translation/context tooltip using the keyboard (specifically the 'e' / 'у' keys on EN/RU layouts). Relying solely on the mouse for this interaction breaks keyboard-driven workflows and compromises accessibility. It must be clarified that this behavior is specifically scoped to the Drum Window ('w' mode).
 
 ## What Changes
 
-- Bind 'e' and 'у' (cyrillic) to a new action that toggles the display of the tooltip for the current subtitle on screen.
-- Implement logic to handle the visibility state of the tooltip via keyboard trigger, without requiring a mouse hover.
+- Bind 'e' and 'у' (cyrillic) to a new action that toggles the display of the tooltip specifically when interacting with the Drum Window ('w' mode).
+- Introduce configurable parameters in `mpv.conf` to easily assign or change the designated 'toggle' keys for this feature (e.g., `script-opts-append=drum_window-toggle_key=e`).
+- Implement logic to handle the visibility state of the tooltip via keyboard trigger within the Drum Window.
 
 ## Capabilities
 
