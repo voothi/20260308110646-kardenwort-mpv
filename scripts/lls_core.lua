@@ -2484,6 +2484,7 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     -- Extend selection to the clicked word
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
+                    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                 elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
                     -- Preserve existing selection for 'SCM' commit (Middle-click committed existing range)
                 else
@@ -2900,6 +2901,7 @@ local function cmd_dw_seek_selected()
         if sub and sub.start_time then
             mp.commandv("seek", sub.start_time, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+            FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
             if not FSM.BOOK_MODE then
                 FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
@@ -3496,6 +3498,7 @@ local function manage_search_bindings(enable)
                 
                 if sub.start_time then
                     mp.commandv("seek", sub.start_time, "absolute+exact")
+                    FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                 end
                 
                 -- Update DW state so if it opens, or is open, it jumps to this line
@@ -3628,6 +3631,7 @@ local function manage_search_bindings(enable)
                                 
                                 if sub.start_time then
                                     mp.commandv("seek", sub.start_time, "absolute+exact")
+                                    FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                                 end
                                 
                                 FSM.DW_CURSOR_LINE = selected_line
