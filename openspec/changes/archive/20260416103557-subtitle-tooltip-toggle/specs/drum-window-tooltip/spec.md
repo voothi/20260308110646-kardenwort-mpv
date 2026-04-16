@@ -1,17 +1,4 @@
-## Purpose
-
-Provides supplemental translation, dictionary, or context information for the currently active or selected subtitle within the Drum Window ('w').
-## Requirements
-### Requirement: Tooltip Styling Unification
-The Tooltip system SHALL support the standard suite of visual parameters (font name, font size, bg opacity, text color, boldness, etc.) following the project's unified schema to ensure stylistic parity with the parent display.
-
-#### Scenario: Stylistic Parity
-- **WHEN** the user modifies `tooltip_bg_opacity`, `tooltip_font_size`, or `tooltip_font_name`
-- **THEN** the tooltip rendering engine SHALL apply these values to the OSD overlay using standardized ASS tags, matching the visual weight and typography of the Drum Window and Drum Mode.
-
-#### Scenario: Unified Boldness
-- **WHEN** the `tooltip_font_bold` option is toggled
-- **THEN** the tooltip text SHALL render with the corresponding boldness state, synchronized with the user's preference for the active display mode.
+## ADDED Requirements
 
 ### Requirement: Keyboard Tooltip Toggling
 The system SHALL provide configurable keyboard shortcuts (defined in `mpv.conf`) to toggle the visibility of the tooltip for the currently active subtitle. This functionality SHALL be restricted entirely to the Drum Window ('w') mode.
@@ -72,4 +59,3 @@ The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns f
 - **WHEN** the user right-clicks a line to pin the tooltip
 - **AND** the user then moves the mouse focus to a different subtitle line
 - **THEN** the pinned tooltip SHALL be dismissed.
-
