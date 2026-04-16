@@ -1713,37 +1713,46 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         
-        local words = build_word_list(text)
+        local tokens = build_word_list_internal(text, Options.dw_original_spacing)
         local formatted_parts = {}
-        for i, w in ipairs(words) do
-            local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, i, t_pos)
+        local logic_idx = 0
+        for i, t in ipairs(tokens) do
             local h_color = base_color
+            local is_word = is_word_token(t)
             
-            if orange_stack > 0 and purple_stack > 0 then
-                -- Mixed Intersection (min sum is 2, so we shift by -1 to use all 3 colors)
-                local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
-                if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
-            elseif orange_stack > 0 then
-                -- Pure Orange
-                if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
-                elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
-                elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-            elseif purple_stack > 0 then
-                -- Pure Purple (Split)
-                if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
-            end
+            if is_word then
+                logic_idx = logic_idx + 1
+                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, logic_idx, t_pos)
+                
+                if orange_stack > 0 and purple_stack > 0 then
+                    -- Mixed Intersection (min sum is 2, so we shift by -1 to use all 3 colors)
+                    local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
+                    if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                    elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
+                    elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
+                elseif orange_stack > 0 then
+                    -- Pure Orange
+                    if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
+                    elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
+                    elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                elseif purple_stack > 0 then
+                    -- Pure Purple (Split)
+                    if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                    elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                    elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                end
 
-            if h_color ~= base_color then
-                table.insert(formatted_parts, format_highlighted_word(w, h_color, base_color, is_phrase, bold_state, true))
+                if h_color ~= base_color then
+                    table.insert(formatted_parts, format_highlighted_word(t, h_color, base_color, is_phrase, bold_state, true))
+                else
+                    table.insert(formatted_parts, t)
+                end
             else
-                table.insert(formatted_parts, w)
+                table.insert(formatted_parts, t)
             end
         end
-        local result_text = table.concat(formatted_parts, " ")
+        local joiner = Options.dw_original_spacing and "" or " "
+        local result_text = table.concat(formatted_parts, joiner)
 
         return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
             font_name, opacity, bold_state, base_color, size, result_text)
