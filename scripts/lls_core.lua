@@ -588,8 +588,17 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     local words = get_sub_words(subs[sub_idx])
     local target_word = words[word_idx]
     if not target_word then return 0, 0, false end
-    local target_lower = utf8_to_lower(target_word:gsub("[%p%s]", ""))
-    if target_lower == "" then return 0, 0, false end
+    
+    -- Whole-word lower-case
+    local target_lower_full = utf8_to_lower(target_word:gsub("[%p%s]", ""))
+    if target_lower_full == "" then return 0, 0, false end
+
+    -- Extract subwords for partial matches within compounds (e.g. Netto/Globus)
+    local target_subsets = { [target_lower_full] = true }
+    for sw in target_word:gmatch("[^%s/-]+") do
+        local csw = utf8_to_lower(sw:gsub("[%p%s]", ""))
+        if csw ~= "" then target_subsets[csw] = true end
+    end
 
 
     -- Helper to get a word relative to current word_idx across segment boundaries
@@ -686,7 +695,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
                     local target_offsets = {}
                     for term_offset, tw_clean in ipairs(term_clean) do
-                        if tw_clean == target_lower then
+                        if target_subsets[tw_clean] then
                             table.insert(target_offsets, term_offset)
                         end
                     end
@@ -2328,7 +2337,7 @@ local function dw_anki_export_selection()
             end
             term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
             
-            -- Clean capture: Remove leading/trailing punctuation
+            -- Clean capture: Remove leading/trailing punctuation (including hyphens and slashes)
             local pre = term:match("^[%p%s]*")
             local suf = term:match("[%p%s]*$")
             local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
