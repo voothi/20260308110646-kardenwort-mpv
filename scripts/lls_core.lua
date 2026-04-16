@@ -770,7 +770,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                         
                                         local nw_clean = utf8_to_lower(nw:gsub("[%p%s]", ""))
                                         if nw_clean ~= "" then
-                                            if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
+                                            if ctx_lower:find(nw_clean, 1, true) then
                                                 has_neighbor = true
                                             end
                                             -- Found a real word; stop searching this direction regardless of match
