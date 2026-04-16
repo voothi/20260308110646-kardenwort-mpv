@@ -412,8 +412,20 @@ end
 local function build_word_list(text)
     local words = {}
     if not text then return words end
-    for w in text:gmatch("%S+") do
-        table.insert(words, (w))
+    -- Initial split by whitespace
+    for token in text:gmatch("%S+") do
+        -- Sub-split by slashes and hyphens, keeping the separators as tokens
+        local last_pos = 1
+        for pos, sep in token:gmatch("()([/-])") do
+            if pos > last_pos then
+                table.insert(words, token:sub(last_pos, pos - 1))
+            end
+            table.insert(words, sep)
+            last_pos = pos + 1
+        end
+        if last_pos <= #token then
+            table.insert(words, token:sub(last_pos))
+        end
     end
     return words
 end
@@ -752,7 +764,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                         end
                                     end
                                 end
-                                if not has_neighbor and #words > 1 then
+                                if not has_neighbor and #words > 1 and not target_word:match("^%b[]$") then
                                     sequence_match = false
                                 end
                             end
@@ -1848,7 +1860,25 @@ local function draw_dw(subs, view_center, active_idx)
                 end
                 ::next_word::
             end
-            table.insert(entry_ass_vlines, table.concat(formatted_words, " "))
+            local line_ass = ""
+            for idx, fw in ipairs(formatted_words) do
+                local w_idx = vl_indices[idx]
+                local w_raw = entry.words[w_idx]
+                local next_idx = vl_indices[idx+1]
+                local next_w_raw = next_idx and entry.words[next_idx] or nil
+                
+                line_ass = line_ass .. fw
+                
+                if next_w_raw then
+                    -- Smart joiner: No space if current or next word is a hyphen or slash
+                    if w_raw:match("^[/-]$") or next_w_raw:match("^[/-]$") then
+                        -- Join without space
+                    else
+                        line_ass = line_ass .. " "
+                    end
+                end
+            end
+            table.insert(entry_ass_vlines, line_ass)
         end
         -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
         table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
