@@ -1,11 +1,11 @@
 ## 1. Export Logic Improvements
 
-- [ ] 1.1 Update `dw_anki_export_selection` in `lls_core.lua` to implement selective metadata stripping for terms (preserving content if it's the only thing in the selection).
-- [ ] 1.2 Update `ctrl_commit_set` in `lls_core.lua` to ensure consistent metadata stripping and bracket removal for multi-word manual selections.
+- [x] 1.1 Update `dw_anki_export_selection` in `lls_core.lua` to implement selective metadata stripping for terms (preserving content if it's the only thing in the selection).
+- [x] 1.2 Update `ctrl_commit_set` in `lls_core.lua` to ensure consistent metadata stripping and bracket removal for multi-word manual selections.
 
 ## 2. Highlighter Robustness
 
-- [ ] 2.1 Update `calculate_highlight_stack` in `lls_core.lua` to tolerate/skip metadata neighbors during strict context matching when `anki_strip_metadata` is enabled.
+- [x] 2.1 Update `calculate_highlight_stack` in `lls_core.lua` to tolerate/skip metadata neighbors during strict context matching when `anki_strip_metadata` is enabled.
 
 ## 3. Verification
 

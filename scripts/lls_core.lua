@@ -721,6 +721,10 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                     if pw_clean ~= "" then
                                         if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
                                             has_neighbor = true
+                                        elseif Options.anki_strip_metadata and prev_w:match("^%b[]$") then
+                                            -- Neighbor is a metadata tag that was likely stripped from context.
+                                            -- We count this as a valid neighbor to avoid false-negative mismatch.
+                                            has_neighbor = true
                                         end
                                     end
                                 end
@@ -731,6 +735,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                         local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
                                         if nw_clean ~= "" then
                                             if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
+                                                has_neighbor = true
+                                            elseif Options.anki_strip_metadata and next_w:match("^%b[]$") then
+                                                -- Same for trailing metadata tags
                                                 has_neighbor = true
                                             end
                                         end
@@ -2311,7 +2318,13 @@ local function dw_anki_export_selection()
             -- Clean term: remove ASS tags and trim whitespace
             term = term:gsub("{[^}]+}", "")
             if Options.anki_strip_metadata then
-                term = term:gsub("%b[]", " ")
+                local stripped = term:gsub("%b[]", " ")
+                if stripped:match("%S") then
+                    term = stripped
+                else
+                    -- It's all bracketed. Preserve content but strip brackets.
+                    term = term:gsub("[%[%]]", "")
+                end
             end
             term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
             
@@ -2407,7 +2420,12 @@ local function ctrl_commit_set(line_idx, word_idx)
             if not sub.words then sub.words = build_word_list(sub.text) end
             local w = sub.words[m.word]
             if w then
-                table.insert(words, (w:gsub("[%p%s]", "")))
+                -- Multi-word select: preserve content of bracketed tags if explicitly selected
+                local clean_w = w
+                if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
+                    clean_w = clean_w:gsub("[%[%]]", "")
+                end
+                table.insert(words, (clean_w:gsub("[%p%s]", "")))
             end
         end
     end
