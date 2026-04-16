@@ -17,7 +17,8 @@ Currently, the tooltip system for displaying subtitle translation/context inform
 - **Keybindings via `mpv.conf` parameters:** We will expose new parameters (e.g., `lls-dw_tooltip_toggle_key=e` and `lls-dw_tooltip_toggle_key_ru=у`) under the Translation Tooltip Settings or Drum Window Settings in `mpv.conf` to define the keys used for toggling.
 - **Scope limitation:** The keyboard toggle functionality will strictly check if the Drum Window ('w') is currently active or focused. This ensures the tooltip only appears in the expected context.
 - **State tracking:** The Tooltip system (`lls_core.lua`) will use these parameter values to bind an explicit `toggle_tooltip()` function.
-- **Hide mechanism:** Pressing the key again while the tooltip is shown will explicitly hide it.
+- **Robust Toggle Logic:** To prevent scenarios where the tooltip cannot be dismissed (e.g., when the target subtitle has changed due to seeking in Book Mode), the 'OFF' transition of the toggle key ('e') SHALL rely strictly on the `FSM.DW_TOOLTIP_FORCE` state rather than matching a specific line index. If the forced state is active, the next press always dismisses it.
+- **Hide mechanism:** Pressing the key again while the tooltip is shown via keyboard-force will explicitly hide it.
 - **Dynamic Y-Positioning:** To ensure the tooltip follows its subtitle during scrolling, the Drum Window's rendering engine will calculate and track the absolute Y-position of each line. When a tooltip is active (pinned or forced), its `osd_y` coordinate will be updated every tick to match the vertical center of the corresponding subtitle line on screen.
 - **Context-Sensitive Targeting (Book Mode Support):** During playback (video not paused), the toggled keyboard tooltip ('e') will dynamically follow the **active playback subtitle** (white highlight).
 - **Sub-Priority Tracking (Paused State):** When playback is paused, the toggled tooltip ('e') uses an interaction-based priority:

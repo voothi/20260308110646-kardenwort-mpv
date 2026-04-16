@@ -8,8 +8,8 @@ The system SHALL provide configurable keyboard shortcuts (defined in `mpv.conf`)
 - **THEN** the tooltip for the active subtitle SHALL appear on the screen
 
 #### Scenario: Hiding a visible tooltip with 'e' key
-- **WHEN** the user presses the assigned toggle key while the Drum Window tooltip is currently visible
-- **THEN** the tooltip SHALL be hidden
+- **WHEN** the user presses the assigned toggle key while the Drum Window tooltip is currently visible (forced state)
+- **THEN** the tooltip SHALL be hidden, regardless of whether the target subtitle line has changed since it was first displayed.
 
 ### Requirement: Dynamic Tooltip Positioning
 When a tooltip is visible (toggled via keyboard or pinned via mouse), it SHALL dynamically update its vertical (OSD Y) position to remain centered relative to its associated subtitle line as the line moves during scrolling.

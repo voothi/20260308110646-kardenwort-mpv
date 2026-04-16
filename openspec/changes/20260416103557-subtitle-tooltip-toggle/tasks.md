@@ -22,11 +22,12 @@
 - [x] 4.3 Update `cmd_dw_seek_delta` (and related seek functions) to set mode to "ACTIVE" on interaction.
 - [x] 4.4 Update `cmd_dw_line_move`, `cmd_dw_word_move` and `cmd_dw_mouse_select` to set mode to "CURSOR" on interaction.
 - [x] 4.5 Update `dw_tooltip_mouse_update` to select `target_l` based on `FSM.DW_TOOLTIP_TARGET_MODE` while paused.
+- [x] 4.6 Fix `cmd_dw_tooltip_toggle` to always dismiss when `FORCE` is active, regardless of current line match.
 
 ## 5. Verification
 
-- [ ] 5.1 Test playback: Tooltip follows white highlight.
-- [ ] 5.2 Test seek while paused ('a', 'd'): Tooltip follows white highlight.
-- [ ] 5.3 Test cursor move while paused (arrows, LMB): Tooltip follows yellow cursor.
-- [ ] 5.4 Test playback resume: Tooltip returns to white highlight.
-- [ ] 5.5 Regress Centered Mode (OFF): Ensure behavior remains intuitive.
+- [x] 5.1 Test toggling OFF after seeking in Book Mode ON (target mismatch case).
+- [x] 5.2 Test toggling OFF after moving cursor in Book Mode ON.
+- [x] 5.3 Test playback: Tooltip follows white highlight.
+- [x] 5.4 Test seek while paused ('a', 'd'): Tooltip follows white highlight.
+- [x] 5.5 Test cursor move while paused (arrows, LMB): Tooltip follows yellow cursor.

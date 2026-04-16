@@ -2090,22 +2090,33 @@ end
 local function cmd_dw_tooltip_toggle()
     if FSM.DRUM_WINDOW == "OFF" then return end
     
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-    
-    local line_idx = FSM.DW_CURSOR_LINE
-    if line_idx == -1 then
-        line_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
-    end
-    
-    if FSM.DW_TOOLTIP_FORCE and line_idx == FSM.DW_TOOLTIP_LINE then
+    -- If already forced ON, always toggle OFF regardless of current target match
+    if FSM.DW_TOOLTIP_FORCE then
         print("[LLS] TOOLTIP TOGGLE: OFF")
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_LINE = -1
         dw_tooltip_osd.data = ""
         dw_tooltip_osd:update()
-    elseif line_idx ~= -1 then
-        print("[LLS] TOOLTIP TOGGLE: ON/UPDATE")
+        return
+    end
+
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    -- Determine initial target based on playback/interaction state
+    local is_paused = mp.get_property_bool("pause", true)
+    local line_idx = -1
+    
+    if is_paused then
+        line_idx = (FSM.DW_TOOLTIP_TARGET_MODE == "CURSOR") and FSM.DW_CURSOR_LINE or FSM.DW_ACTIVE_LINE
+        -- Fallback if preferred target is invalid
+        if line_idx == -1 then line_idx = FSM.DW_CURSOR_LINE end
+    else
+        line_idx = FSM.DW_ACTIVE_LINE
+    end
+    
+    if line_idx ~= -1 then
+        print("[LLS] TOOLTIP TOGGLE: ON")
         FSM.DW_TOOLTIP_FORCE = true
         FSM.DW_TOOLTIP_LINE = line_idx
         -- Position using the tracked Y (with fallback)
