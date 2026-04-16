@@ -2119,10 +2119,12 @@ local function cmd_dw_tooltip_toggle()
         print("[LLS] TOOLTIP TOGGLE: ON")
         FSM.DW_TOOLTIP_FORCE = true
         FSM.DW_TOOLTIP_LINE = line_idx
-        -- Position using the tracked Y (with fallback)
-        local y = FSM.DW_LINE_Y_MAP[line_idx] or 540
-        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
-        dw_tooltip_osd:update()
+        -- Only draw if visible to prevent off-screen blinking artifacts
+        local y = FSM.DW_LINE_Y_MAP[line_idx]
+        if y then
+            dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
+            dw_tooltip_osd:update()
+        end
     end
 end
 

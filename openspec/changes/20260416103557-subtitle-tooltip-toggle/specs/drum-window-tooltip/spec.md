@@ -40,6 +40,12 @@ The toggled keyboard tooltip ('e') SHALL prioritize different text elements base
 - **WHEN** the user moves the manual selection cursor (e.g., via arrows or LMB)
 - **THEN** the tooltip SHALL switch to follow the **selection cursor** (yellow pointer).
 
+#### Scenario: Tooltip suppressed when target is off-screen
+- **GIVEN** the target subtitle (active or cursor) is currently scrolled off-screen
+- **WHEN** the user toggles the keyboard tooltip ON ('e')
+- **THEN** the tooltip SHALL NOT appear on screen
+- **BUT** the system SHALL remember the forced state, so it appears automatically once the target line scrolls back into view.
+
 ### Requirement: RMB Interaction Preservation
 The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns for tooltips.
 
