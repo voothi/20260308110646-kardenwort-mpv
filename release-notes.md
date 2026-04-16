@@ -1,3 +1,25 @@
+# Release Notes - v1.34.2 (Keyboard Tooltips & Selection Persistence)
+
+**Date**: 2026-04-16
+**Version**: v1.34.2
+**Implementation ZIDs**: 20260416103557, 20260416151047
+
+## Highlights
+
+### ⌨️ **Keyboard-Driven Tooltip Logic**
+- **Unified Toggle Shortcut**: Introduced **`e`** (Russian **`у`**) to toggle translation tooltips in the Drum Window. This enhances keyboard-driven study sessions by eliminating the need for mouse interaction to peek at hints.
+- **Dynamic Scroll Tracking**: Tooltips now intelligently follow their parent subtitle line during scrolling and navigation. The hint remains vertically anchored to the text rather than "float" at a static screen position.
+- **Contextual Priority Targeting**: 
+  - **Playback Mode**: While the video is running, the keyboard tooltip automatically follows the currently active subtitle (White).
+  - **Study Mode**: When paused, the toggle prioritizes the user's manual selection/cursor (Yellow) for precise, word-by-word analysis.
+- **RMB Interaction Hardening**: Restored and refined the Right-MouseButton (RMB) hold behavior. Tooltips now reliably appear during hold and correctly dismiss when focus is lost in non-hover modes.
+
+### 🛡️ **Selection Persistence & Focus Stability**
+- **Non-Destructive Navigation**: Manual seeking via **`a`** and **`d`** now preserves the active yellow selection in the Drum Window. This allows learners to jump back and forth between lines to check context without losing their current highlighted phrase.
+- **Intelligent Autopause Focus**: Implemented a priority logic that keeps tooltips centered on the active playback line after an autopause trigger, preventing the UI from "snapping" back to a distant manual cursor unless explicit interaction occurs.
+
+---
+
 # Release Notes - v1.32.2 (TSV Recovery & Visual Depth)
 
 **Date**: 2026-04-14
