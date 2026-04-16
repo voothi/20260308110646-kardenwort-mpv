@@ -1795,8 +1795,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local active_text = ""
     if center_idx > 0 and center_idx <= #subs then
         local sub = subs[center_idx]
-        local is_active = (time_pos >= sub.start_time and time_pos <= sub.end_time)
-        active_text = format_sub(center_idx, is_active, sub.start_time)
+        -- The centered line in draw_drum is always considered "active" (highlighted white),
+        -- which ensures consistent highlighting during scrolling and seek operations,
+        -- matching the robust behavior of the Drum Window (Mode W).
+        active_text = format_sub(center_idx, true, sub.start_time)
     end
     
     local next_text = ""
