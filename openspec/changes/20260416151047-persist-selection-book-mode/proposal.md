@@ -6,6 +6,7 @@ Users often select text (highlighting it in yellow) for study and analysis while
 
 - Modified `cmd_dw_seek_delta` logic to prevent resetting the selection `ANCHOR` and `CURSOR` state during manual seeks.
 - Ensured that manual navigation via `a`/`d` keys preserves the active yellow highlight in the Drum Window globally, improving consistency with standard playback behavior.
+- **Tooltip Targeting Stability**: Implemented a priority system that ensures the tooltip remains focused on the active playback subtitle after playback pauses (e.g., via autopause), preventing jarring jumps back to the selection cursor unless manual cursor interaction occurs.
 
 ## Capabilities
 

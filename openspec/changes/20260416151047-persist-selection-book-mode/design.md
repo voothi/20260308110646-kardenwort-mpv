@@ -21,6 +21,10 @@ While this is standard behavior for linear video playback, "Book Mode" in the Dr
 The logic in `cmd_dw_seek_delta` will be updated to remove the unconditional reset of selection state variables (`ANCHOR_LINE`, `ANCHOR_WORD`, `CURSOR_WORD`).
 
 - **Rationale**: Manual navigation via `a`/`d` is often used to re-listen to segments while maintaining focus on a specific piece of text. By persisting the selection state, we allow the Drum Window to maintain the yellow highlight during seeks.
+- **Playback-Aware Tooltip Targeting**:
+    - To prevent the tooltip from jumping between active playback and selection cursor, the `DW_TOOLTIP_TARGET_MODE` will be reset to `"ACTIVE"` whenever playback starts (`pause` property becomes `false`).
+    - This ensures that while listening, the tooltip follows the current audio. After an autopause, it remains at the last played subtitle instead of snapping back to a stale selection.
+    - Interaction with the selection cursor (arrows, clicks, or manual shifts) will restore `"CURSOR"` mode.
 - **Selection Stability (Fixing Stretching)**: 
     - To prevent selections from "stretching" as the playback cursor moves, the update logic for `DW_CURSOR_LINE` (both in `tick_dw` and `cmd_dw_seek_delta`) will be made conditional.
     - If `DW_ANCHOR_LINE` is valid (`~= -1`), `DW_CURSOR_LINE` SHALL NOT be automatically synchronized with the active playback index in Standard Mode. This keeps the selection range locked to its original subtitle lines.

@@ -4137,9 +4137,16 @@ mp.observe_property("track-list", "native", function()
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
+    dw_tooltip_osd:update()
     if Options.font_scaling_enabled then
         local ok, err = xpcall(update_font_scale, debug.traceback)
         if not ok then print("[LLS ERROR] osd-dim observer: " .. tostring(err)) end
+    end
+end)
+
+mp.observe_property("pause", "bool", function(name, paused)
+    if not paused then
+        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
     end
 end)
 
