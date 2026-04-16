@@ -414,17 +414,22 @@ local function build_word_list(text)
     if not text then return words end
     -- Initial split by whitespace
     for token in text:gmatch("%S+") do
-        -- Sub-split by slashes and hyphens, keeping the separators as tokens
-        local last_pos = 1
-        for pos, sep in token:gmatch("()([/-])") do
-            if pos > last_pos then
-                table.insert(words, token:sub(last_pos, pos - 1))
+        -- Strip ASS tags before sub-splitting
+        token = token:gsub("{[^}]+}", "")
+        if token ~= "" then
+            -- Sub-split by slashes and various dashes (en, em, hyphen), keeping the separators as tokens
+            local last_pos = 1
+            -- Pattern matches ASCII hyphen, slash, and UTF-8 en-dash/em-dash
+            for pos, sep in token:gmatch("()([/-]|\226\128\147|\226\128\148)") do
+                if pos > last_pos then
+                    table.insert(words, token:sub(last_pos, pos - 1))
+                end
+                table.insert(words, sep)
+                last_pos = pos + #sep
             end
-            table.insert(words, sep)
-            last_pos = pos + 1
-        end
-        if last_pos <= #token then
-            table.insert(words, token:sub(last_pos))
+            if last_pos <= #token then
+                table.insert(words, token:sub(last_pos))
+            end
         end
     end
     return words
@@ -671,7 +676,7 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                     table.insert(data.__term_words_clean, utf8_to_lower(w:gsub("[%p%s]", "")))
                 end
                 data.__term_key_lower = utf8_to_lower(term_key)
-                data.__ctx_lower = utf8_to_lower(data.context)
+                data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
             end
             local term_words = data.__term_words
             local term_clean = data.__term_words_clean
@@ -764,8 +769,19 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                         end
                                     end
                                 end
-                                if not has_neighbor and #words > 1 and not target_word:match("^%b[]$") then
-                                    sequence_match = false
+                                if not has_neighbor and #words > 1 then
+                                    -- Bypass neighbor check for labels [...] and common units/short tokens
+                                    local is_exempt = target_word:match("^%b[]$")
+                                    if not is_exempt then
+                                        local tw_strip = target_word:gsub("[%p%s]", ""):lower()
+                                        if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" then
+                                            is_exempt = true
+                                        end
+                                    end
+                                    
+                                    if not is_exempt then
+                                        sequence_match = false
+                                    end
                                 end
                             end
 
@@ -1870,8 +1886,9 @@ local function draw_dw(subs, view_center, active_idx)
                 line_ass = line_ass .. fw
                 
                 if next_w_raw then
-                    -- Smart joiner: No space if current or next word is a hyphen or slash
-                    if w_raw:match("^[/-]$") or next_w_raw:match("^[/-]$") then
+                    -- Smart joiner: No space if current or next word is a hyphen, slash, or multi-byte dash
+                    if w_raw:match("^[/-]$") or w_raw:match("^\226\128\147$") or w_raw:match("^\226\128\148$") or 
+                       next_w_raw:match("^[/-]$") or next_w_raw:match("^\226\128\147$") or next_w_raw:match("^\226\128\148$") then
                         -- Join without space
                     else
                         line_ass = line_ass .. " "

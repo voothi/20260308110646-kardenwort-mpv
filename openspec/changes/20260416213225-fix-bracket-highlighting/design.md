@@ -8,10 +8,10 @@ The `anki_strip_metadata` feature and strict context matching were preventing la
 
 ## Decisions
 
-- **Global Label Highlighting**: In `calculate_highlight_stack`, a word that is entirely enclosed in brackets `[...]` in the subtitle will be exempt from the neighbor strictness check.
-- **Intra-word Splitting**: 
-    - `build_word_list` will perform a second pass to split tokens by `[/-]` symbols, keeping the symbols as their own tokens.
-    - `dw_osd:update` will use a "smart joiner" logic: add a space between words ONLY if neither the current word nor the next word is a hyphen or slash.
+- **Global Label & Unit Highlighting**: In `calculate_highlight_stack`, words entirely enclosed in brackets `[...]` OR common short units/labels (like `ca`, `km`, `z.B.`) will be exempt from the strict context neighbor check.
+- **ASS Tag Stripping**: Update `build_word_list` and match logic to strip ASS tags `{[^}]+}` from tokens before processing. This prevents formatting codes from breaking word matches.
+- **Extended Intra-word Splitting**: Include en-dash (`–`) and em-dash (`—`) as word boundaries in `build_word_list`, joining them seamlessly in the OSD.
+- **Smart Joiner**: Use the existing smart joiner logic to ensure no extra spaces are added around hyphens, slashes, or dashes.
 - **Robust Stripping**: `dw_anki_export_selection` will use an "if entirely bracketed, strip brackets" fallback to ensure labels are saved as clean words.
 
 ## Verification
