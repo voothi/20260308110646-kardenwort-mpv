@@ -34,6 +34,7 @@ The toggled keyboard tooltip ('e') SHALL prioritize different text elements base
 - **WHEN** the user seeks to a different subtitle (e.g., via 'a' or 'd')
 - **THEN** the tooltip SHALL switch to follow the **active subtitle** (white highlight) at its new position.
 
+
 #### Scenario: Tooltip targets selection cursor on cursor move
 - **GIVEN** the video is currently paused
 - **AND** the keyboard tooltip is toggled ON ('e')
