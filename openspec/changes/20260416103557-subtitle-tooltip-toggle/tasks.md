@@ -28,7 +28,6 @@
 - [x] 4.7 Restore `CLICK` mode dismissal logic in `dw_tooltip_mouse_update` to handle RMB holding and coordinate-based pinning.
 - [x] 4.8 Update `dw_tooltip_mouse_update` to make `HOLDING` (RMB) follow the current `line_idx` (mouse focus) rather than a pinned line.
 - [x] 4.9 Add visibility check in `cmd_dw_tooltip_toggle` to prevent "blinking" for off-screen subtitles.
-- [x] 4.10 Unified Selection Persistence: Remove anchor-clearing logic for single-word clicks to ensure yellow focus persists during `a`/`d` navigation in all modes.
 
 ## 5. Verification Checklist
 
