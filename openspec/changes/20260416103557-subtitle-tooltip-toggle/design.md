@@ -19,6 +19,7 @@ Currently, the tooltip system for displaying subtitle translation/context inform
 - **State tracking:** The Tooltip system (`lls_core.lua`) will use these parameter values to bind an explicit `toggle_tooltip()` function.
 - **Hide mechanism:** Pressing the key again while the tooltip is shown will explicitly hide it.
 - **Dynamic Y-Positioning:** To ensure the tooltip follows its subtitle during scrolling, the Drum Window's rendering engine will calculate and track the absolute Y-position of each line. When a tooltip is active (pinned or forced), its `osd_y` coordinate will be updated every tick to match the vertical center of the corresponding subtitle line on screen.
+- **Navigation Tracking (Book Mode Focus):** When the keyboard tooltip ('e') is active, it will dynamically update the target `sub_idx` to match the current focus line (keyboard cursor or playback active line). This ensures that navigating with `a`/`d` keys or advancing via playback automatically shifts the tooltip to the new active subtitle.
 
 ## Risks / Trade-offs
 

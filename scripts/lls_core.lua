@@ -2121,12 +2121,18 @@ local function dw_tooltip_mouse_update()
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
     
-    -- Keyboard Force takes priority
+    -- Keyboard Force takes priority and follows the current focus (cursor or playback line)
     if FSM.DW_TOOLTIP_FORCE then
-        if FSM.DW_TOOLTIP_LINE ~= -1 then
-            local y = FSM.DW_LINE_Y_MAP[FSM.DW_TOOLTIP_LINE]
+        local target_idx = FSM.DW_CURSOR_LINE
+        if target_idx == -1 then
+            target_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
+        end
+        
+        if target_idx ~= -1 then
+            FSM.DW_TOOLTIP_LINE = target_idx
+            local y = FSM.DW_LINE_Y_MAP[target_idx]
             if y then
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, FSM.DW_TOOLTIP_LINE, y)
+                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_idx, y)
                 dw_tooltip_osd:update()
             else
                 if dw_tooltip_osd.data ~= "" then

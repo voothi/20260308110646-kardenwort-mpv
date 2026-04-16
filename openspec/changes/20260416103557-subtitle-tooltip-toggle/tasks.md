@@ -17,9 +17,15 @@
 - [x] 3.3 Update the tooltip refresh logic (in `tick_dw` or similar) to reposition the active tooltip based on its line's current Y-position on every tick.
 - [x] 3.4 Ensure the dynamic positioning applies to both keyboard-toggled (`FORCE`) and mouse-pinned (`HOLDING`) tooltips.
 
-## 4. Verification
+## 4. Navigation & Focus Tracking
 
-- [x] 4.1 Test that the tooltip follows its associated line when scrolling the Drum Window.
-- [x] 4.2 Verify that the tooltip remains correctly positioned even when the Drum Window layout changes (e.g., resizing or different "book mode" alignments).
-- [x] 4.3 Test that keyboard 'e' toggle and RMB pin still work correctly with dynamic tracking.
-- [x] 4.4 Regress mouse hover behavior.
+- [x] 4.1 Update `dw_tooltip_mouse_update` (or the refresh routine) to detect if the target line for a keyboard-forced tooltip (`FORCE`) has changed (e.g., via `DW_CURSOR_LINE` or active playback).
+- [x] 4.2 In Book Mode, ensure the keyboard tooltip ('e') automatically updates its `sub_idx` to follow the current playback position as the user seeks with `a`/`d`.
+- [x] 4.3 Ensure manual mouse selection still correctly updates the tooltip when forced.
+
+## 5. Verification
+
+- [x] 5.1 Test that the tooltip follows its associated line when scrolling.
+- [x] 5.2 **Book Mode Verification**: Toggle 'e', then use 'a' and 'd' keys to navigate. Verify the tooltip content and position update automatically to match the new white/highlighed line.
+- [x] 5.3 Verify that manual LMB selection still works as expected with a forced tooltip.
+- [x] 5.4 Regress mouse hover behavior.

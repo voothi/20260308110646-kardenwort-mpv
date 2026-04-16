@@ -18,3 +18,12 @@ When a tooltip is visible (toggled via keyboard or pinned via mouse), it SHALL d
 - **WHEN** a translation tooltip is visible for a specific subtitle line
 - **AND** the user scrolls the Drum Window (e.g., via wheel, arrow keys, or playback)
 - **THEN** the tooltip SHALL move vertically on the screen, maintaining its alignment with the horizontal centerline of the target subtitle line.
+
+### Requirement: Navigation Focus Tracking
+In Book Mode, a keyboard-toggled tooltip ('e') SHALL automatically shift its focus to the new active subtitle line when the user navigates between subtitles using previous/next keys.
+
+#### Scenario: Tooltip tracks navigation keys
+- **GIVEN** Book Mode is enabled and a keyboard tooltip ('e') is visible
+- **WHEN** the user presses the 'a' (previous) or 'd' (next) keys to change the playback position
+- **THEN** the tooltip SHALL automatically update to show the translation for the newly selected/active subtitle line
+- **AND** the tooltip SHALL reposition itself to center on the new line.
