@@ -10,23 +10,37 @@ The system SHALL ensure that any active Drum Window selection (yellow highlight)
 - **AND** the yellow highlight SHALL NOT be cleared or reset to gray (standard state)
 - **AND** the system SHALL maintain the existing `ANCHOR` point, allowing the selection to persist or expand naturally.
 
-### Requirement: Selection-Aware Tooltip Logic
-The system SHALL ensure that the tooltip remains focused on the active playback subtitle during and immediately after playback (e.g., in an autopause state). The tooltip SHALL ONLY switch back to the manual selection cursor (yellow pointer) when the user actively interacts with it.
+### Requirement: Selection-Aware Tooltip Logic (Stabilization)
+To ensure a fluid study workflow, the system SHALL prioritize the active playback context for tooltips during and immediately after subtitles are played, while allowing manual overrides.
 
 #### Scenario: Tooltip remains on active subtitle after autopause
 - **GIVEN** a selection (yellow highlight) is present on Line 10
 - **AND** the tooltip is currently following the active playback at Line 15
 - **WHEN** the player reaches the end of the subtitle and autopauses
-- **THEN** the tooltip SHALL remain stable at Line 15
-- **AND** it SHALL NOT automatically jump back to the yellow highlight at Line 10.
+- **THEN** the tooltip SHALL remain stable at Line 15 (last active context)
+- **AND** it SHALL NOT automatically jump back to the stale selection at Line 10.
+
+#### Scenario: Tooltip targeting reset on playback start
+- **GIVEN** the player is paused and the tooltip is focused on a manual selection cursor
+- **WHEN** the user starts playback (e.g. via spacebar)
+- **THEN** the tooltip SHALL immediately switch to follow the active playback subtitle.
 
 #### Scenario: Tooltip switches to selection on manual interaction
-- **GIVEN** the player is paused and the tooltip is currently following the active subtitle at Line 15
+- **GIVEN** the player is paused and the tooltip is currently following the active subtitle
 - **WHEN** the user manually moves the selection pointer (e.g., via arrow keys or a mouse click)
 - **THEN** the tooltip SHALL immediately switch to follow the selection pointer's new location.
 
-### Requirement: Selection Cleanup Nuances
-The system SHALL prioritize interface cleanliness in Standard Mode while maintaining persistent focus in Book Mode.
+### Requirement: Anti-Stretching Selection Logic (Stability)
+In Standard (Follow) Mode, the system SHALL ensure that active highlights remain fixed to their original text and do not "stretch" as the video advances.
 
-- **In Book Mode (ON)**: All highlights (single word and ranges) SHALL persist during `a`/`d` seeks, as the static viewport allows them to remain visible and relevant.
-- **In Standard Mode (OFF)**: Single-word highlights SHALL be cleared during `a`/`d` seeks to prevent "phantom" highlights from tracking moving subtitles. Range selections (multiple words), however, SHALL persist as they represent intentional user study areas.
+#### Scenario: Fixed highlight during playback
+- **GIVEN** a range is highlighted from Line 10 to Line 10 (Standard Mode)
+- **WHEN** the video playback advances to Line 11
+- **THEN** the selection cursor SHALL NOT follow the playback pointer
+- **AND** the highlight SHALL remain strictly on Line 10, preventing it from expanding across multiple lines.
+
+### Requirement: Selection Cleanup Nuances & Phantom Prevention
+The system SHALL proactively clear "phantom" highlights that could otherwise track playback unintentionally.
+
+- **Standard Mode Seeking**: Single-word yellow pointers SHALL be cleared when seeking manually via `a`/`d` or double-clicking, ensuring only intentional selections persist.
+- **Track Change Safety**: All selection states (ANCHOR and CURSOR) SHALL be reset whenever the primary subtitle track is changed or reloaded to prevent out-of-bounds (OOB) index crashes and stale context.
