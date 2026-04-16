@@ -435,6 +435,26 @@ local function build_word_list(text)
     return words
 end
 
+local function compose_term_smart(words)
+    if not words or #words == 0 then return "" end
+    local res = ""
+    for idx, w in ipairs(words) do
+        res = res .. w
+        local next_w = words[idx + 1]
+        
+        if next_w then
+            -- Smart joiner: No space if current or next word is a hyphen, slash, or multi-byte dash
+            if w:match("^[/-]$") or w:match("^\226\128\147$") or w:match("^\226\128\148$") or 
+               next_w:match("^[/-]$") or next_w:match("^\226\128\147$") or next_w:match("^\226\128\148$") then
+                -- Join without space
+            else
+                res = res .. " "
+            end
+        end
+    end
+    return res
+end
+
 local function utf8_to_table(str)
     local t = {}
     for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
@@ -445,8 +465,8 @@ end
 
 local function utf8_to_lower(str)
     local res = str:lower()
-    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-    local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
+    local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
     local u_table = utf8_to_table(upper)
     local l_table = utf8_to_table(lower)
     for i = 1, #u_table do
@@ -741,35 +761,29 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                             -- Phase 2: Context Match
                             if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
                                 local has_neighbor = false
-                                -- Check word immediately before on screen
-                                local prev_w = get_relative_word(-1)
-                                if prev_w then
-                                    local pw_clean = utf8_to_lower(prev_w:gsub("[%p%s]", ""))
-                                    if pw_clean ~= "" then
-                                        if ctx_lower:find(pw_clean, 1, true) or term_lower:find(pw_clean, 1, true) then
-                                            has_neighbor = true
-                                        elseif Options.anki_strip_metadata and prev_w:match("^%b[]$") then
-                                            -- Neighbor is a metadata tag that was likely stripped from context.
-                                            -- We count this as a valid neighbor to avoid false-negative mismatch.
-                                            has_neighbor = true
-                                        end
-                                    end
-                                end
-                                -- Check word immediately after on screen
-                                if not has_neighbor then
-                                    local next_w = get_relative_word(1)
-                                    if next_w then
-                                        local nw_clean = utf8_to_lower(next_w:gsub("[%p%s]", ""))
+                                
+                                -- Check neighbors in both directions (expand search up to 3 tokens to skip symbols/-//)
+                                for _, dir in ipairs({-1, 1}) do
+                                    for offset = 1, 3 do
+                                        local nw = get_relative_word(dir * offset)
+                                        if not nw then break end
+                                        
+                                        local nw_clean = utf8_to_lower(nw:gsub("[%p%s]", ""))
                                         if nw_clean ~= "" then
                                             if ctx_lower:find(nw_clean, 1, true) or term_lower:find(nw_clean, 1, true) then
                                                 has_neighbor = true
-                                            elseif Options.anki_strip_metadata and next_w:match("^%b[]$") then
-                                                -- Same for trailing metadata tags
-                                                has_neighbor = true
                                             end
+                                            -- Found a real word; stop searching this direction regardless of match
+                                            break
+                                        elseif Options.anki_strip_metadata and nw:match("^%b[]$") then
+                                            -- Neighbor is a specifically stripped metadata tag, which counts as a valid context neighbor
+                                            has_neighbor = true
+                                            break
                                         end
                                     end
+                                    if has_neighbor then break end
                                 end
+
                                 if not has_neighbor and #words > 1 then
                                     -- Bypass neighbor check for labels [...] and common units/short tokens
                                     local is_exempt = target_word:match("^%b[]$")
@@ -936,7 +950,7 @@ local function starts_with_uppercase(str)
     if not first_char then return false end
     if first_char:match("^[A-Z]") then return true end
     
-    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜ"
+    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
     for ch in string.gmatch(upper, "[%z\1-\127\194-\244][\128-\191]*") do
         if first_char == ch then return true end
     end
@@ -2325,7 +2339,7 @@ local function dw_anki_export_selection()
                     if words[j] then table.insert(parts, words[j]) end
                 end
             end
-            term = table.concat(parts, " ")
+            term = compose_term_smart(parts)
             local ctx_parts = {}
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
@@ -2482,13 +2496,13 @@ local function ctrl_commit_set(line_idx, word_idx)
                 if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
                     clean_w = clean_w:gsub("[%[%]]", "")
                 end
-                table.insert(words, (clean_w:gsub("[%p%s]", "")))
+                table.insert(words, clean_w)
             end
         end
     end
     
     if #words == 0 then return end
-    local term = table.concat(words, " ")
+    local term = compose_term_smart(words)
     
     -- Use the earliest selected word's line for timestamp (document-natural start)
     local time_pos = subs[members[1].line].start_time
