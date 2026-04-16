@@ -1,5 +1,7 @@
-## MODIFIED Requirements
+## Purpose
 
+Provides supplemental translation, dictionary, or context information for the currently active or selected subtitle within the Drum Window ('w').
+## Requirements
 ### Requirement: Tooltip Styling Unification
 The Tooltip system SHALL support the standard suite of visual parameters (font name, font size, bg opacity, text color, boldness, etc.) following the project's unified schema to ensure stylistic parity with the parent display.
 
