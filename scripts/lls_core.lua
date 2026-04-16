@@ -610,9 +610,10 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
     local target_lower_full = utf8_to_lower(target_word:gsub("[%p%s]", ""))
     if target_lower_full == "" then return 0, 0, false end
 
-    -- Extract subwords for partial matches within compounds (e.g. Netto/Globus)
+    -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
     local target_subsets = { [target_lower_full] = true }
-    for sw in target_word:gmatch("[^%s/-]+") do
+    -- Pattern excludes spaces, slashes, hyphens, and UTF-8 en-dash/em-dash
+    for sw in target_word:gmatch("[^%s/-\226\128\147\226\128\148]+") do
         local csw = utf8_to_lower(sw:gsub("[%p%s]", ""))
         if csw ~= "" then target_subsets[csw] = true end
     end
