@@ -33,19 +33,19 @@
 ## 5. Verification Checklist
 
 ### Keyboard Toggle ('e') & Book Mode
-- [ ] 5.1 Test Playback: Tooltip follows white highlight automatically.
-- [ ] 5.2 Test Seek while Paused ('a', 'd'): Tooltip switches to white highlight focus.
-- [ ] 5.3 Test Cursor Move while Paused (arrows): Tooltip switches to yellow cursor focus.
-- [ ] 5.4 Test LMB Click while Paused: Tooltip switches to yellow cursor focus.
-- [ ] 5.5 Test Resume Playback: Tooltip returns to white highlight focus.
-- [ ] 5.6 Verify "e" toggle for off-screen focus: No blinking artifacts, appears when scrolled in.
+- [x] 5.1 Test Playback: Tooltip follows white highlight automatically.
+- [x] 5.2 Test Seek while Paused ('a', 'd'): Tooltip switches to white highlight focus.
+- [x] 5.3 Test Cursor Move while Paused (arrows): Tooltip switches to yellow cursor focus.
+- [x] 5.4 Test LMB Click while Paused: Tooltip switches to yellow cursor focus.
+- [x] 5.5 Test Resume Playback: Tooltip returns to white highlight focus.
+- [x] 5.6 Verify "e" toggle for off-screen focus: No blinking artifacts, appears when scrolled in.
 
 ### Mouse Interactions (RMB)
-- [ ] 5.7 Test RMB Drag: Hold RMB and swipe. Tooltip tracks mouse focus dynamically.
-- [ ] 5.8 Test CLICK Mode Dismissal: Click a line, release, then move mouse away. Verify tooltip hides.
-- [ ] 5.9 Test HOVER Mode Regression: Verify normal hover tooltips still work when nothing is forced/pinned.
+- [x] 5.7 Test RMB Drag: Hold RMB and swipe. Tooltip tracks mouse focus dynamically.
+- [x] 5.8 Test CLICK Mode Dismissal: Click a line, release, then move mouse away. Verify tooltip hides.
+- [x] 5.9 Test HOVER Mode Regression: Verify normal hover tooltips still work when nothing is forced/pinned.
 
 ### Global Regressions
-- [ ] 5.10 Test Centered Mode (OFF): Verify tooltip follows centering logic as before.
-- [ ] 5.11 Verify Toggle Dismissal: Pressing 'e' always hides a visible keyboard tooltip.
-- [ ] 5.12 Verify RMB Override: Manual RMB interaction should clear keyboard-force state.
+- [x] 5.10 Test Centered Mode (OFF): Verify tooltip follows centering logic as before.
+- [x] 5.11 Verify Toggle Dismissal: Pressing 'e' always hides a visible keyboard tooltip.
+- [x] 5.12 Verify RMB Override: Manual RMB interaction should clear keyboard-force state.
