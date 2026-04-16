@@ -73,6 +73,7 @@ local Options = {
     dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_border_size = 1.5,
     dw_shadow_offset = 1.0,
+    dw_original_spacing = true,
 
     -- Search HUD Styling
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
@@ -443,7 +444,7 @@ local function is_word_char(c)
     return false
 end
 
-local function build_word_list(text)
+local function build_word_list_internal(text, keep_spaces)
     local words = {}
     if not text then return words end
     
@@ -468,9 +469,13 @@ local function build_word_list(text)
             table.insert(words, table.concat(chars, "", start, i))
             i = i + 1
             
-        -- 3. Skip Whitespace (compatibility with gmatch("%S+"))
+        -- 3. Handle/Skip Whitespace
         elseif c:match("^%s$") then
-            i = i + 1
+            local start = i
+            while i <= n and chars[i]:match("^%s$") do i = i + 1 end
+            if keep_spaces then
+                table.insert(words, table.concat(chars, "", start, i - 1))
+            end
             
         -- 4. Handle Word Characters (Scanning contiguous blocks)
         elseif is_word_char(c) then
@@ -485,6 +490,15 @@ local function build_word_list(text)
         end
     end
     return words
+end
+
+local function build_word_list(text)
+    return build_word_list_internal(text, false)
+end
+
+local function is_word_token(t)
+    if not t or #t == 0 then return false end
+    return not t:match("^%s+$")
 end
 
 local function compose_term_smart(words)
@@ -1791,16 +1805,30 @@ local function dw_build_layout(subs, view_center)
 
     for i = start_idx, end_idx do
         local text = subs[i].text:gsub("\n", " ")
-        local words = build_word_list(text)
-        if #words == 0 then words = {""} end
+        local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+        if #tokens == 0 then tokens = {""} end
+
+        local logical_words = {}
+        local visual_to_logical = {} -- tokens[j] -> index in logical_words
+        local logical_to_visual = {} -- logical_words[k] -> index in tokens
+        
+        for j, t in ipairs(tokens) do
+            if is_word_token(t) then
+                table.insert(logical_words, t)
+                local l_idx = #logical_words
+                visual_to_logical[j] = l_idx
+                logical_to_visual[l_idx] = j
+            end
+        end
 
         local vlines = {}
         local cur_indices = {}
         local cur_w = 0
 
-        for j, w in ipairs(words) do
+        for j, w in ipairs(tokens) do
             local ww = dw_get_str_width(w)
-            local space = (#cur_indices > 0) and space_w or 0
+            -- If original spacing is ON, we don't add artificial space width
+            local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
             if cur_w + space + ww > max_text_w and #cur_indices > 0 then
                 table.insert(vlines, cur_indices)
                 cur_indices = {j}
@@ -1816,9 +1844,12 @@ local function dw_build_layout(subs, view_center)
         local entry_h = #vlines * vline_h
         table.insert(layout, {
             sub_idx = i,
-            words = words,
-            vlines = vlines,
-            height = entry_h
+            words = tokens, -- Use tokens for visual rendering
+            logical_words = logical_words,
+            visual_to_logical = visual_to_logical,
+            logical_to_visual = logical_to_visual,
+            height = entry_h,
+            vlines = vlines
         })
         total_height = total_height + entry_h
         if i < end_idx then total_height = total_height + sub_gap end
@@ -1869,31 +1900,33 @@ local function draw_dw(subs, view_center, active_idx)
             local formatted_words = {}
             for _, j in ipairs(vl_indices) do
                 local w = entry.words[j]
+                local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
+                
                 local selected = false
-                if has_selection then
+                if has_selection and l_idx then
                     if i > p1_l and i < p2_l then selected = true
-                    elseif i == p1_l and i == p2_l then selected = (j >= p1_w and j <= p2_w)
-                    elseif i == p1_l then selected = (j >= p1_w)
-                    elseif i == p2_l then selected = (j <= p2_w) end
+                    elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
+                    elseif i == p1_l then selected = (l_idx >= p1_w)
+                    elseif i == p2_l then selected = (l_idx <= p2_w) end
                 end
                 
                 if selected then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                else
+                elseif l_idx then
                     -- Ctrl-pending highlight
-                    local ctrl_member = FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, j)]
+                    local ctrl_member = FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)]
                     if ctrl_member then
                         table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
-                        goto next_word
+                        goto next_token
                     end
 
-                    if i == cl and j == cw then
+                    if i == cl and l_idx == cw then
                         table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                        goto next_word
+                        goto next_token
                     end
 
                     local sub_t = subs[i]
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, l_idx, sub_t.start_time)
                     local h_color = color
                     
                     if orange_stack > 0 and purple_stack > 0 then
@@ -1919,22 +1952,25 @@ local function draw_dw(subs, view_center, active_idx)
                     else
                         table.insert(formatted_words, w)
                     end
+                else
+                    -- It's a filler token (space), just add it as is
+                    table.insert(formatted_words, w)
                 end
-                ::next_word::
+                ::next_token::
             end
             local line_ass = ""
             for idx, fw in ipairs(formatted_words) do
-                local w_idx = vl_indices[idx]
-                local w_raw = entry.words[w_idx]
-                local next_idx = vl_indices[idx+1]
-                local next_w_raw = next_idx and entry.words[next_idx] or nil
+                local t_idx = vl_indices[idx]
+                local t_raw = entry.words[t_idx]
+                local next_v_idx = vl_indices[idx+1]
+                local next_t_raw = next_v_idx and entry.words[next_v_idx] or nil
                 
                 line_ass = line_ass .. fw
                 
-                if next_w_raw then
-                    -- Smart joiner: No space if current or next word is a hyphen, slash, or multi-byte dash
-                    if w_raw:match("^[/-]$") or w_raw:match("^\226\128\147$") or w_raw:match("^\226\128\148$") or 
-                       next_w_raw:match("^[/-]$") or next_w_raw:match("^\226\128\147$") or next_w_raw:match("^\226\128\148$") then
+                if next_t_raw and not Options.dw_original_spacing then
+                    -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
+                    if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
+                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
                         -- Join without space
                     else
                         line_ass = line_ass .. " "
@@ -2053,14 +2089,16 @@ local function dw_hit_test(osd_x, osd_y)
             local vl_width = 0
             for k, wi in ipairs(vl_indices) do
                 vl_width = vl_width + dw_get_str_width(entry.words[wi])
-                if k < #vl_indices then vl_width = vl_width + space_w end
+                if k < #vl_indices and not Options.dw_original_spacing then 
+                    vl_width = vl_width + space_w 
+                end
             end
             
             local vl_left = 960 - vl_width / 2
 
             local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, vl_indices[1] end
-            if cx >= vl_width then return entry.sub_idx, vl_indices[#vl_indices] end
+            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
+            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or #entry.words end
 
             -- Build word center positions for snap-to-nearest logic
             local centers = {}
@@ -2068,19 +2106,37 @@ local function dw_hit_test(osd_x, osd_y)
             for k, wi in ipairs(vl_indices) do
                 local ww = dw_get_str_width(entry.words[wi])
                 centers[k] = { idx = wi, center = pos + ww / 2 }
-                pos = pos + ww + space_w
+                pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
             end
             -- Find the word whose center is closest to the cursor
             local best_k = 1
-            local best_dist = math.abs(cx - centers[1].center)
+            local min_dist = math.abs(cx - centers[1].center)
             for k = 2, #centers do
                 local dist = math.abs(cx - centers[k].center)
-                if dist < best_dist then
-                    best_dist = dist
+                if dist < min_dist then
+                    min_dist = dist
                     best_k = k
                 end
             end
-            return entry.sub_idx, centers[best_k].idx
+            
+            local visual_wi = centers[best_k].idx
+            local logical_wi = entry.visual_to_logical[visual_wi]
+            
+            -- If user clicked on a spacer/filler token, find the nearest selectable word
+            if not logical_wi then
+                local best_logical = nil
+                local best_logic_dist = 999
+                for l_idx, v_idx in pairs(entry.logical_to_visual) do
+                    local dist = math.abs(v_idx - visual_wi)
+                    if dist < best_logic_dist then
+                        best_logic_dist = dist
+                        best_logical = l_idx
+                    end
+                end
+                logical_wi = best_logical or 1
+            end
+
+            return entry.sub_idx, logical_wi
         end
         y_pos = entry_bottom + sub_gap
     end
