@@ -20,12 +20,12 @@ While this is standard behavior for linear video playback, "Book Mode" in the Dr
 ### Unconditional Selection Persistence in `cmd_dw_seek_delta`
 The logic in `cmd_dw_seek_delta` will be updated to remove the unconditional reset of selection state variables (`ANCHOR_LINE`, `ANCHOR_WORD`, `CURSOR_WORD`).
 
-- **Rationale**: Manual navigation via `a`/`d` is often used to re-listen to segments while maintaining focus on a specific piece of text. By persisting the selection state, we allow the Drum Window to maintain the yellow highlight during seeks, matching the persistent behavior already observed during standard playback (spacebar).
-- **Behavior**:
-    - `DW_ANCHOR_LINE` and `DW_ANCHOR_WORD` are preserved.
-    - `DW_CURSOR_WORD` is preserved.
-    - `DW_CURSOR_LINE` is still updated to the target subtitle index (standard behavior for seeks).
-- **Constraint**: This applies only to manual seeks (`a`/`d`). Mouse clicks on new lines will still naturally move both the cursor and the anchor, resetting the selection state as expected.
+- **Rationale**: Manual navigation via `a`/`d` is often used to re-listen to segments while maintaining focus on a specific piece of text. By persisting the selection state, we allow the Drum Window to maintain the yellow highlight during seeks.
+- **Selection Stability (Fixing Stretching)**: 
+    - To prevent selections from "stretching" as the playback cursor moves, the update logic for `DW_CURSOR_LINE` (both in `tick_dw` and `cmd_dw_seek_delta`) will be made conditional.
+    - If `DW_ANCHOR_LINE` is valid (`~= -1`), `DW_CURSOR_LINE` SHALL NOT be automatically synchronized with the active playback index in Standard Mode. This keeps the selection range locked to its original subtitle lines.
+- **Eliminating Phantom Highlights**:
+    - If `DW_ANCHOR_LINE` is NOT valid when seeking or navigating, `DW_CURSOR_WORD` SHALL be reset to `-1`. This ensures that a single yellow word doesn't "track" the playback cursor when the user hasn't explicitly made a selection.
 
 ## Risks / Trade-offs
 

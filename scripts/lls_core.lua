@@ -2543,7 +2543,9 @@ local function cmd_dw_double_click()
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
-        FSM.DW_CURSOR_WORD = word_idx or 1
+        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if not FSM.BOOK_MODE then
@@ -2551,8 +2553,6 @@ local function cmd_dw_double_click()
         end
         
         FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
     end
 end
 
@@ -2564,10 +2564,12 @@ local function tick_dw(time_pos)
     if active_idx == -1 then return end
     FSM.DW_ACTIVE_LINE = active_idx
     
-    -- In follow mode: viewport and cursor track the active playback line
+    -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER and not FSM.BOOK_MODE then
         FSM.DW_VIEW_CENTER = active_idx
-        FSM.DW_CURSOR_LINE = active_idx
+        if FSM.DW_ANCHOR_LINE == -1 then
+            FSM.DW_CURSOR_LINE = active_idx
+        end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
     -- active_idx just controls the blue highlight color (may be off-screen)
@@ -2920,7 +2922,10 @@ local function cmd_dw_seek_delta(dir)
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
-            FSM.DW_CURSOR_LINE = target_idx
+            if FSM.DW_ANCHOR_LINE == -1 then
+                FSM.DW_CURSOR_LINE = target_idx
+                FSM.DW_CURSOR_WORD = -1
+            end
         end
     end
 end
