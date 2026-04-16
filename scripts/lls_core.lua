@@ -197,6 +197,7 @@ local FSM = {
     DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
     DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
+    DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -2122,10 +2123,15 @@ local function dw_tooltip_mouse_update()
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
     
-    -- Keyboard Force takes priority and dynamically targets either the active subtitle (playing) or selection cursor (paused)
+    -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
     if FSM.DW_TOOLTIP_FORCE then
         local is_paused = mp.get_property_bool("pause", true)
-        local target_l = is_paused and FSM.DW_CURSOR_LINE or FSM.DW_ACTIVE_LINE
+        local target_l
+        if not is_paused then
+            target_l = FSM.DW_ACTIVE_LINE
+        else
+            target_l = (FSM.DW_TOOLTIP_TARGET_MODE == "ACTIVE") and FSM.DW_ACTIVE_LINE or FSM.DW_CURSOR_LINE
+        end
         
         if target_l ~= -1 then
             FSM.DW_TOOLTIP_LINE = target_l
@@ -2457,6 +2463,7 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     FSM.DW_CURSOR_WORD = word_idx
                     FSM.DW_ANCHOR_LINE = line_idx
                     FSM.DW_ANCHOR_WORD = word_idx
+                    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                 end
                 
                 FSM.DW_MOUSE_DRAGGING = true
@@ -2515,6 +2522,7 @@ local function cmd_dw_double_click()
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = word_idx or 1
+        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = line_idx
@@ -2787,6 +2795,7 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
+    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
     local half = math.floor(Options.dw_lines_visible / 2)
     local view_min = FSM.DW_VIEW_CENTER - half
@@ -2823,6 +2832,7 @@ local function cmd_dw_word_move(dir, shift)
     else
         FSM.DW_CURSOR_WORD = FSM.DW_CURSOR_WORD + dir
     end
+    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
     if FSM.DW_CURSOR_WORD < 1 then
         if FSM.DW_CURSOR_LINE > 1 then
@@ -2884,6 +2894,7 @@ local function cmd_dw_seek_delta(dir)
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
@@ -2893,6 +2904,7 @@ local function cmd_dw_seek_delta(dir)
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_CURSOR_WORD = -1
+        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
     end
 end
 
@@ -3708,6 +3720,7 @@ function cmd_toggle_drum_window()
             FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
             FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
         end
+        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1

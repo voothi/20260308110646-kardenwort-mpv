@@ -28,8 +28,14 @@ The toggled keyboard tooltip ('e') SHALL prioritize different text elements base
 - **THEN** the tooltip SHALL display information for the **currently playing subtitle** (white highlight)
 - **AND** it SHALL dynamically update its content and position as the video advances to the next subtitle.
 
-#### Scenario: Tooltip follows selection cursor when paused
+#### Scenario: Tooltip targets active subtitle on seek while paused
 - **GIVEN** the video is currently paused
-- **WHEN** the keyboard tooltip is toggled ON ('e')
-- **THEN** the tooltip SHALL display information for the **manual selection cursor** (yellow pointer).
-- **AND** it SHALL dynamically update its content and position if the user moves the cursor (e.g., via arrows or LMB).
+- **AND** the keyboard tooltip is toggled ON ('e')
+- **WHEN** the user seeks to a different subtitle (e.g., via 'a' or 'd')
+- **THEN** the tooltip SHALL switch to follow the **active subtitle** (white highlight) at its new position.
+
+#### Scenario: Tooltip targets selection cursor on cursor move
+- **GIVEN** the video is currently paused
+- **AND** the keyboard tooltip is toggled ON ('e')
+- **WHEN** the user moves the manual selection cursor (e.g., via arrows or LMB)
+- **THEN** the tooltip SHALL switch to follow the **selection cursor** (yellow pointer).

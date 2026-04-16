@@ -17,17 +17,16 @@
 - [x] 3.3 Update the tooltip refresh logic (in `tick_dw` or similar) to reposition the active tooltip based on its line's current Y-position on every tick.
 - [x] 3.4 Ensure the dynamic positioning applies to both keyboard-toggled (`FORCE`) and mouse-pinned (`HOLDING`) tooltips.
 
-## 4. Context-Sensitive Targeting (Book Mode Support)
-
-- [x] 4.1 Update the keyboard tooltip refresh logic to check the player's `pause` state.
-- [x] 4.2 IF playing: Refresh `FSM.DW_TOOLTIP_LINE` to match the current playback subtitle (`active_idx`).
-- [x] 4.3 IF paused: Respect the manual selection cursor (`FSM.DW_CURSOR_LINE`).
-- [x] 4.4 Ensure that manual cursor movements while paused immediately update the forced tooltip.
+- [x] 4.1 Introduce `FSM.DW_TOOLTIP_TARGET_MODE` with values "ACTIVE" or "CURSOR".
+- [x] 4.2 Initialize mode to "ACTIVE".
+- [x] 4.3 Update `cmd_dw_seek_delta` (and related seek functions) to set mode to "ACTIVE" on interaction.
+- [x] 4.4 Update `cmd_dw_line_move`, `cmd_dw_word_move` and `cmd_dw_mouse_select` to set mode to "CURSOR" on interaction.
+- [x] 4.5 Update `dw_tooltip_mouse_update` to select `target_l` based on `FSM.DW_TOOLTIP_TARGET_MODE` while paused.
 
 ## 5. Verification
 
-- [x] 5.1 Test dynamic following in Book Mode OFF (Centered).
-- [x] 5.2 Test Book Mode ON: Verify tooltip follows white highlight during playback.
-- [x] 5.3 Test Book Mode ON: Verify tooltip follows yellow cursor when paused.
-- [x] 5.4 Verify that 'e' toggle successfully hides/shows in both states.
-- [x] 5.5 Regress mouse RMB pinning and hover behavior.
+- [ ] 5.1 Test playback: Tooltip follows white highlight.
+- [ ] 5.2 Test seek while paused ('a', 'd'): Tooltip follows white highlight.
+- [ ] 5.3 Test cursor move while paused (arrows, LMB): Tooltip follows yellow cursor.
+- [ ] 5.4 Test playback resume: Tooltip returns to white highlight.
+- [ ] 5.5 Regress Centered Mode (OFF): Ensure behavior remains intuitive.
