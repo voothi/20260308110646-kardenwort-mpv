@@ -788,8 +788,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                     -- Bypass neighbor check for labels [...] and common units/short tokens
                                     local is_exempt = target_word:match("^%b[]$")
                                     if not is_exempt then
-                                        local tw_strip = target_word:gsub("[%p%s]", ""):lower()
-                                        if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" then
+                                        local tw_strip = utf8_to_lower(target_word:gsub("[%p%s]", ""))
+                                        if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
+                                           tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
                                             is_exempt = true
                                         end
                                     end
