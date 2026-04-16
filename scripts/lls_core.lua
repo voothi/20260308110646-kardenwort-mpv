@@ -2186,7 +2186,7 @@ local function dw_tooltip_mouse_update()
     end
 
     if (FSM.DW_TOOLTIP_MODE == "HOVER" and not in_selection) or FSM.DW_TOOLTIP_HOLDING then
-        local target_l = FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE or line_idx
+        local target_l = line_idx
         if target_l and target_l ~= -1 then
             local target_y = FSM.DW_LINE_Y_MAP[target_l]
             if target_y then

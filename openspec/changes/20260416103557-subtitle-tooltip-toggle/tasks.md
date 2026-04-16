@@ -24,11 +24,12 @@
 - [x] 4.5 Update `dw_tooltip_mouse_update` to select `target_l` based on `FSM.DW_TOOLTIP_TARGET_MODE` while paused.
 - [x] 4.6 Fix `cmd_dw_tooltip_toggle` to always dismiss when `FORCE` is active, regardless of current line match.
 - [x] 4.7 Restore `CLICK` mode dismissal logic in `dw_tooltip_mouse_update` to handle RMB holding and coordinate-based pinning.
+- [x] 4.8 Update `dw_tooltip_mouse_update` to make `HOLDING` (RMB) follow the current `line_idx` (mouse focus) rather than a pinned line.
 
 ## 5. Verification
 
-- [ ] 5.1 Test RMB Hold: Tooltip shows while clicked and disappears on release if MODE is CLICK (or follows old logic).
-- [ ] 5.2 Test CLICK mode dismissal: Pin a tooltip, then move mouse to another line. Verify tooltip hides.
+- [ ] 5.1 Test RMB Drag: Hold RMB and move over different lines. Tooltip should follow mouse focus.
+- [ ] 5.2 Test CLICK mode dismissal: Pin a tooltip (click and release), then move mouse to another line. Verify tooltip hides.
 - [ ] 5.3 Verify Keyboard 'e' toggle still takes priority.
 - [ ] 5.4 Test playback: Tooltip follows white highlight during playback.
 - [ ] 5.5 Test seek while paused ('a', 'd'): Tooltip follows white highlight.

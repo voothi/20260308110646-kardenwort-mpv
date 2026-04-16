@@ -43,10 +43,10 @@ The toggled keyboard tooltip ('e') SHALL prioritize different text elements base
 ### Requirement: RMB Interaction Preservation
 The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns for tooltips.
 
-#### Scenario: Tooltip remains visible while RMB is held
+#### Scenario: Tooltip remains visible and follows focus while RMB is held
 - **GIVEN** the Drum Window tooltip is configured for `CLICK` mode
-- **WHEN** the user presses and holds RMB over a subtitle line
-- **THEN** the tooltip SHALL appear for that line and remain visible as long as RMB is held.
+- **WHEN** the user presses and holds RMB and moves the mouse across multiple subtitle lines
+- **THEN** the tooltip SHALL dynamically update to show information for the line currently under the mouse pointer.
 
 #### Scenario: Tooltip dismisses when mouse focus leaves pinned line (CLICK Mode)
 - **GIVEN** the Drum Window tooltip is in `CLICK` mode (no active keyboard force)
