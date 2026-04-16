@@ -19,3 +19,8 @@ The system SHALL ensure that the tooltip remains focused on the active playback 
 - **WHEN** the player reaches the end of the subtitle and autopauses
 - **THEN** the tooltip SHALL remain stable at Line 15
 - **AND** it SHALL NOT automatically jump back to the yellow highlight at Line 10.
+
+#### Scenario: Tooltip switches to selection on manual interaction
+- **GIVEN** the player is paused and the tooltip is currently following the active subtitle at Line 15
+- **WHEN** the user manually moves the selection pointer (e.g., via arrow keys or a mouse click)
+- **THEN** the tooltip SHALL immediately switch to follow the selection pointer's new location.
