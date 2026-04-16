@@ -195,6 +195,7 @@ local FSM = {
     DW_TOOLTIP_HOLDING = false,
     DW_TOOLTIP_LOCKED_LINE = -1,
     DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
+    DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -1733,7 +1734,10 @@ local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
     local ass = ""
-    local layout, _ = dw_build_layout(subs, view_center)
+    local layout, total_height = dw_build_layout(subs, view_center)
+    local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
+    local current_y = 540 - (total_height / 2)
+    FSM.DW_LINE_Y_MAP = {}
     
     -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
@@ -1752,6 +1756,9 @@ local function draw_dw(subs, view_center, active_idx)
     local lines_ass = {}
     for _, entry in ipairs(layout) do
         local i = entry.sub_idx
+        FSM.DW_LINE_Y_MAP[i] = current_y + (entry.height / 2)
+        current_y = current_y + entry.height + sub_gap
+        
         local is_active = (i == active_idx)
         local color = is_active and Options.dw_active_color or Options.dw_text_color
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
@@ -2057,7 +2064,8 @@ local function cmd_dw_tooltip_pin(tbl)
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
-            local ass = draw_dw_tooltip(subs, line_idx, osd_y)
+            local y = FSM.DW_LINE_Y_MAP[line_idx] or osd_y
+            local ass = draw_dw_tooltip(subs, line_idx, y)
             dw_tooltip_osd.data = ass
             dw_tooltip_osd:update()
         end
@@ -2098,20 +2106,37 @@ local function cmd_dw_tooltip_toggle()
         print("[LLS] TOOLTIP TOGGLE: ON/UPDATE")
         FSM.DW_TOOLTIP_FORCE = true
         FSM.DW_TOOLTIP_LINE = line_idx
-        -- Center tooltip vertically (OSD Y 540) for keyboard toggle
-        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, 540)
+        -- Position using the tracked Y (with fallback)
+        local y = FSM.DW_LINE_Y_MAP[line_idx] or 540
+        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
         dw_tooltip_osd:update()
     end
 end
 
 local function dw_tooltip_mouse_update()
     if FSM.DRUM_WINDOW == "OFF" then return end
-    if FSM.DW_TOOLTIP_FORCE then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
+    
+    -- Keyboard Force takes priority
+    if FSM.DW_TOOLTIP_FORCE then
+        if FSM.DW_TOOLTIP_LINE ~= -1 then
+            local y = FSM.DW_LINE_Y_MAP[FSM.DW_TOOLTIP_LINE]
+            if y then
+                dw_tooltip_osd.data = draw_dw_tooltip(subs, FSM.DW_TOOLTIP_LINE, y)
+                dw_tooltip_osd:update()
+            else
+                if dw_tooltip_osd.data ~= "" then
+                    dw_tooltip_osd.data = ""
+                    dw_tooltip_osd:update()
+                end
+            end
+        end
+        return
+    end
     
     -- Selection-Aware Suppression: Hide tooltip during dragging or if currently locked to this line
     if FSM.DW_MOUSE_DRAGGING or (line_idx and line_idx == FSM.DW_TOOLTIP_LOCKED_LINE) then
@@ -2139,23 +2164,23 @@ local function dw_tooltip_mouse_update()
     end
 
     if (FSM.DW_TOOLTIP_MODE == "HOVER" and not in_selection) or FSM.DW_TOOLTIP_HOLDING then
-        if line_idx then
-            if FSM.DW_TOOLTIP_LINE ~= line_idx then
-                FSM.DW_TOOLTIP_LINE = line_idx
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, osd_y)
+        local target_l = FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE or line_idx
+        if target_l and target_l ~= -1 then
+            local target_y = FSM.DW_LINE_Y_MAP[target_l]
+            if target_y then
+                -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
+                FSM.DW_TOOLTIP_LINE = target_l
+                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, target_y)
                 dw_tooltip_osd:update()
+            else
+                if FSM.DW_TOOLTIP_LINE ~= -1 then
+                    FSM.DW_TOOLTIP_LINE = -1
+                    dw_tooltip_osd.data = ""
+                    dw_tooltip_osd:update()
+                end
             end
         else
             if FSM.DW_TOOLTIP_LINE ~= -1 then
-                FSM.DW_TOOLTIP_LINE = -1
-                dw_tooltip_osd.data = ""
-                dw_tooltip_osd:update()
-            end
-        end
-    else
-        -- CLICK mode or Selection Protected: check if we left the pinned line
-        if FSM.DW_TOOLTIP_LINE ~= -1 then
-            if line_idx ~= FSM.DW_TOOLTIP_LINE then
                 FSM.DW_TOOLTIP_LINE = -1
                 dw_tooltip_osd.data = ""
                 dw_tooltip_osd:update()

@@ -7,6 +7,7 @@ Users need the ability to toggle the subtitle translation/context tooltip using 
 - Bind 'e' and 'у' (cyrillic) to a new action that toggles the display of the tooltip specifically when interacting with the Drum Window ('w' mode).
 - Introduce configurable parameters in `mpv.conf` to easily assign or change the designated 'toggle' keys for this feature (e.g., `script-opts-append=drum_window-toggle_key=e`).
 - Implement logic to handle the visibility state of the tooltip via keyboard trigger within the Drum Window.
+- **Ensure the tooltip dynamically follows its associated subtitle line** during scrolling (both in keyboard and mouse-pin modes), rather than remaining at a static OSD position.
 
 ## Capabilities
 
