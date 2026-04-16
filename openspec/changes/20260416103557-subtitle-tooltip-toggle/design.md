@@ -26,6 +26,9 @@ Currently, the tooltip system for displaying subtitle translation/context inform
   - If the user **moves the cursor** (e.g., via arrows), the tooltip follows the **yellow cursor**.
   - This allows users to review the text independently of the playback position while still having the tooltip jump to the active line when seeking.
 - **Book Mode Cursor Decoupling:** In Book Mode ON, the manual selection cursor (yellow) is explicitly decoupled from the active playback subtitle (white). This allows users to study sections of text while hearing audio from a different section, a critical use case for language learning.
+- **RMB Logic Preservation (Regression Fix):** The Right Mouse Button (RMB) behavior SHALL be restored to its original functionality. This includes:
+  - **Holding Persistence:** While RMB is held down (`DW_TOOLTIP_HOLDING`), the tooltip remains visible and tracks the line where the button was originally pressed.
+  - **CLICK Mode Dismissal:** In standard `CLICK` mode (or while over a selection range in `HOVER` mode), moving the mouse focus away from the pinned/held line SHALL immediately dismiss the tooltip. This ensures that tooltips do not "stick" unintentionally after a click-and-drag or a simple coordinate-pinned view.
 
 ## Risks / Trade-offs
 

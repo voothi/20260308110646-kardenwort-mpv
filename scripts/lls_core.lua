@@ -2208,6 +2208,15 @@ local function dw_tooltip_mouse_update()
                 dw_tooltip_osd:update()
             end
         end
+    else
+        -- CLICK mode or Selection Protected: check if we left the pinned line focus
+        if FSM.DW_TOOLTIP_LINE ~= -1 then
+            if line_idx ~= FSM.DW_TOOLTIP_LINE then
+                FSM.DW_TOOLTIP_LINE = -1
+                dw_tooltip_osd.data = ""
+                dw_tooltip_osd:update()
+            end
+        end
     end
 end
 

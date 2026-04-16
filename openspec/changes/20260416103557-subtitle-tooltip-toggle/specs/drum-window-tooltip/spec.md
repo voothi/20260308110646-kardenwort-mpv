@@ -39,3 +39,17 @@ The toggled keyboard tooltip ('e') SHALL prioritize different text elements base
 - **AND** the keyboard tooltip is toggled ON ('e')
 - **WHEN** the user moves the manual selection cursor (e.g., via arrows or LMB)
 - **THEN** the tooltip SHALL switch to follow the **selection cursor** (yellow pointer).
+
+### Requirement: RMB Interaction Preservation
+The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns for tooltips.
+
+#### Scenario: Tooltip remains visible while RMB is held
+- **GIVEN** the Drum Window tooltip is configured for `CLICK` mode
+- **WHEN** the user presses and holds RMB over a subtitle line
+- **THEN** the tooltip SHALL appear for that line and remain visible as long as RMB is held.
+
+#### Scenario: Tooltip dismisses when mouse focus leaves pinned line (CLICK Mode)
+- **GIVEN** the Drum Window tooltip is in `CLICK` mode (no active keyboard force)
+- **WHEN** the user right-clicks a line to pin the tooltip
+- **AND** the user then moves the mouse focus to a different subtitle line
+- **THEN** the pinned tooltip SHALL be dismissed.

@@ -23,11 +23,13 @@
 - [x] 4.4 Update `cmd_dw_line_move`, `cmd_dw_word_move` and `cmd_dw_mouse_select` to set mode to "CURSOR" on interaction.
 - [x] 4.5 Update `dw_tooltip_mouse_update` to select `target_l` based on `FSM.DW_TOOLTIP_TARGET_MODE` while paused.
 - [x] 4.6 Fix `cmd_dw_tooltip_toggle` to always dismiss when `FORCE` is active, regardless of current line match.
+- [x] 4.7 Restore `CLICK` mode dismissal logic in `dw_tooltip_mouse_update` to handle RMB holding and coordinate-based pinning.
 
 ## 5. Verification
 
-- [x] 5.1 Test toggling OFF after seeking in Book Mode ON (target mismatch case).
-- [x] 5.2 Test toggling OFF after moving cursor in Book Mode ON.
-- [x] 5.3 Test playback: Tooltip follows white highlight.
-- [x] 5.4 Test seek while paused ('a', 'd'): Tooltip follows white highlight.
-- [x] 5.5 Test cursor move while paused (arrows, LMB): Tooltip follows yellow cursor.
+- [ ] 5.1 Test RMB Hold: Tooltip shows while clicked and disappears on release if MODE is CLICK (or follows old logic).
+- [ ] 5.2 Test CLICK mode dismissal: Pin a tooltip, then move mouse to another line. Verify tooltip hides.
+- [ ] 5.3 Verify Keyboard 'e' toggle still takes priority.
+- [ ] 5.4 Test playback: Tooltip follows white highlight during playback.
+- [ ] 5.5 Test seek while paused ('a', 'd'): Tooltip follows white highlight.
+- [ ] 5.6 Test cursor move while paused (arrows, LMB): Tooltip follows yellow cursor.
