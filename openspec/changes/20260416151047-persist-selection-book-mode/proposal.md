@@ -1,11 +1,11 @@
 ## Why
 
-In Book Mode, users often select text (highlighting it in yellow) for deep analysis while navigating the audio track with `a` and `d` keys. Currently, this navigation resets the selection state to gray, forcing the user to re-select text after every seek. Persisting the selection during manual navigation in Book Mode is essential for a fluid study workflow.
+Users often select text (highlighting it in yellow) for study and analysis while navigating the audio track using the `a` and `d` keys. Currently, this manual navigation unconditionally resets the selection state, forcing the user to re-select text after every seek. Making the selection persist during manual navigation (both in Book Mode and Standard Mode) is essential for a fluid study and comprehension workflow.
 
 ## What Changes
 
-- Modified `cmd_dw_seek_delta` logic to prevent resetting selection `ANCHOR` and `CURSOR` state while in Book Mode.
-- Ensured that manual navigation via `a`/`d` keys preserves the active yellow highlight in the Drum Window when Book Mode is enabled.
+- Modified `cmd_dw_seek_delta` logic to prevent resetting the selection `ANCHOR` and `CURSOR` state during manual seeks.
+- Ensured that manual navigation via `a`/`d` keys preserves the active yellow highlight in the Drum Window globally, improving consistency with standard playback behavior.
 
 ## Capabilities
 

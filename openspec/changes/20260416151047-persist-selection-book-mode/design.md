@@ -17,13 +17,15 @@ While this is standard behavior for linear video playback, "Book Mode" in the Dr
 
 ## Decisions
 
-### Conditional Selection Reset in `cmd_dw_seek_delta`
-The logic in `cmd_dw_seek_delta` will be updated to wrap the selection reset in a check for `FSM.BOOK_MODE`.
+### Unconditional Selection Persistence in `cmd_dw_seek_delta`
+The logic in `cmd_dw_seek_delta` will be updated to remove the unconditional reset of selection state variables (`ANCHOR_LINE`, `ANCHOR_WORD`, `CURSOR_WORD`).
 
-- **Rationale**: In Book Mode, the viewport is decoupled from playback. Selection is tied to the monospace text grid of the Drum Window. Since the grid doesn't move in Book Mode, the selection indices remain valid and should be preserved.
-- **Alternatives**: 
-    - Storing selection separately: Overly complex, `FSM` properties are already the source of truth.
-    - Re-applying selection after seek: Would cause a flicker and requires tracking "last book mode selection".
+- **Rationale**: Manual navigation via `a`/`d` is often used to re-listen to segments while maintaining focus on a specific piece of text. By persisting the selection state, we allow the Drum Window to maintain the yellow highlight during seeks, matching the persistent behavior already observed during standard playback (spacebar).
+- **Behavior**:
+    - `DW_ANCHOR_LINE` and `DW_ANCHOR_WORD` are preserved.
+    - `DW_CURSOR_WORD` is preserved.
+    - `DW_CURSOR_LINE` is still updated to the target subtitle index (standard behavior for seeks).
+- **Constraint**: This applies only to manual seeks (`a`/`d`). Mouse clicks on new lines will still naturally move both the cursor and the anchor, resetting the selection state as expected.
 
 ## Risks / Trade-offs
 
