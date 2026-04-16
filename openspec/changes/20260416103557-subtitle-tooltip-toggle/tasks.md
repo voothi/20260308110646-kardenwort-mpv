@@ -17,6 +17,8 @@
 - [x] 3.3 Update the tooltip refresh logic (in `tick_dw` or similar) to reposition the active tooltip based on its line's current Y-position on every tick.
 - [x] 3.4 Ensure the dynamic positioning applies to both keyboard-toggled (`FORCE`) and mouse-pinned (`HOLDING`) tooltips.
 
+## 4. Context-Sensitive Targeting & Regressions
+
 - [x] 4.1 Introduce `FSM.DW_TOOLTIP_TARGET_MODE` with values "ACTIVE" or "CURSOR".
 - [x] 4.2 Initialize mode to "ACTIVE".
 - [x] 4.3 Update `cmd_dw_seek_delta` (and related seek functions) to set mode to "ACTIVE" on interaction.
@@ -27,11 +29,22 @@
 - [x] 4.8 Update `dw_tooltip_mouse_update` to make `HOLDING` (RMB) follow the current `line_idx` (mouse focus) rather than a pinned line.
 - [x] 4.9 Add visibility check in `cmd_dw_tooltip_toggle` to prevent "blinking" for off-screen subtitles.
 
-## 5. Verification
+## 5. Verification Checklist
 
-- [ ] 5.1 Test "e" toggle for off-screen active subtitle (should not blink).
-- [ ] 5.2 Test "e" toggle for off-screen yellow cursor (should not blink).
-- [ ] 5.3 Test "e" toggle for on-screen focus (should appear immediately).
-- [ ] 5.4 Test scrolling: toggled tooltip should hide/show as its target leaves/enters the screen.
-- [ ] 5.5 Test RMB Drag: Hold RMB and move over different lines. Tooltip should follow mouse focus.
-- [ ] 5.6 Test CLICK mode dismissal: Pin a tooltip (click and release), then move mouse to another line. Verify tooltip hides.
+### Keyboard Toggle ('e') & Book Mode
+- [ ] 5.1 Test Playback: Tooltip follows white highlight automatically.
+- [ ] 5.2 Test Seek while Paused ('a', 'd'): Tooltip switches to white highlight focus.
+- [ ] 5.3 Test Cursor Move while Paused (arrows): Tooltip switches to yellow cursor focus.
+- [ ] 5.4 Test LMB Click while Paused: Tooltip switches to yellow cursor focus.
+- [ ] 5.5 Test Resume Playback: Tooltip returns to white highlight focus.
+- [ ] 5.6 Verify "e" toggle for off-screen focus: No blinking artifacts, appears when scrolled in.
+
+### Mouse Interactions (RMB)
+- [ ] 5.7 Test RMB Drag: Hold RMB and swipe. Tooltip tracks mouse focus dynamically.
+- [ ] 5.8 Test CLICK Mode Dismissal: Click a line, release, then move mouse away. Verify tooltip hides.
+- [ ] 5.9 Test HOVER Mode Regression: Verify normal hover tooltips still work when nothing is forced/pinned.
+
+### Global Regressions
+- [ ] 5.10 Test Centered Mode (OFF): Verify tooltip follows centering logic as before.
+- [ ] 5.11 Verify Toggle Dismissal: Pressing 'e' always hides a visible keyboard tooltip.
+- [ ] 5.12 Verify RMB Override: Manual RMB interaction should clear keyboard-force state.
