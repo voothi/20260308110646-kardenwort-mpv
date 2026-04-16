@@ -509,9 +509,11 @@ local function compose_term_smart(words)
         local next_w = words[idx + 1]
         
         if next_w then
-            -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
-            if w:match("^[/-]$") or w:match("^\226\128\147$") or w:match("^\226\128\148$") or w:match("^[%[%]%(%){}]$") or
-               next_w:match("^[/-]$") or next_w:match("^\226\128\147$") or next_w:match("^\226\128\148$") or next_w:match("^[%[%]%(%){}]$") then
+            -- Smart joiner: No space if current or next word is punctuation that shouldn't have a preceding space
+            local no_space_before = next_w:match("[%.,!?;:]$") or next_w:match("^[/-]$") or next_w:match("^\226\128\147$") or next_w:match("^\226\128\148$") or next_w:match("^[%]%)}]$")
+            local no_space_after = w:match("^[/-]$") or w:match("^\226\128\147$") or w:match("^\226\128\148$") or w:match("^[%[%({]$")
+            
+            if no_space_before or no_space_after then
                 -- Join without space
             else
                 res = res .. " "
@@ -1714,29 +1716,37 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         
         local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+        
+        -- Build logical word map to ensure parity with calculate_highlight_stack
+        local logical_to_visual = {}
+        local visual_to_logical = {}
+        local logic_count = 0
+        for j, t in ipairs(tokens) do
+            if is_word_token(t) then
+                logic_count = logic_count + 1
+                logical_to_visual[logic_count] = j
+                visual_to_logical[j] = logic_count
+            end
+        end
+
         local formatted_parts = {}
-        local logic_idx = 0
-        for i, t in ipairs(tokens) do
+        for j, t in ipairs(tokens) do
+            local l_idx = visual_to_logical[j]
             local h_color = base_color
-            local is_word = is_word_token(t)
             
-            if is_word then
-                logic_idx = logic_idx + 1
-                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, logic_idx, t_pos)
+            if l_idx then
+                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, l_idx, t_pos)
                 
                 if orange_stack > 0 and purple_stack > 0 then
-                    -- Mixed Intersection (min sum is 2, so we shift by -1 to use all 3 colors)
                     local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
                     if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                     elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                     elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
                 elseif orange_stack > 0 then
-                    -- Pure Orange
                     if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                 elseif purple_stack > 0 then
-                    -- Pure Purple (Split)
                     if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                     elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
                     elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
@@ -1751,8 +1761,26 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 table.insert(formatted_parts, t)
             end
         end
-        local joiner = Options.dw_original_spacing and "" or " "
-        local result_text = table.concat(formatted_parts, joiner)
+
+        local result_text = ""
+        if Options.dw_original_spacing then
+            result_text = table.concat(formatted_parts, "")
+        else
+            -- Smart joiner logic for non-raw mode
+            for idx, fw in ipairs(formatted_parts) do
+                local t_raw = tokens[idx]
+                local next_t_raw = tokens[idx+1]
+                result_text = result_text .. fw
+                if next_t_raw then
+                    if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
+                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
+                        -- Join without space
+                    else
+                        result_text = result_text .. " "
+                    end
+                end
+            end
+        end
 
         return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
             font_name, opacity, bold_state, base_color, size, result_text)

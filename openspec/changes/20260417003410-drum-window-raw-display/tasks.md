@@ -13,12 +13,12 @@
 
 ## 3. Display & Composition
 
-- [x] 3.1 Refactor `compose_term_smart` to simply `table.concat` text parts when `dw_original_spacing` is true. (Implemented in `draw_dw` joining loop).
-- [x] 3.2 Update `draw_dw` (the render loop) to iterate through the rich token list and only apply color tags to `is_word` tokens.
-- [x] 3.3 Ensure that `anki_strip_metadata` logic is applied to the individual tokens correctly.
-- [ ] 3.4 Update `draw_drum` (Reel Mode & Standard Mode) to respect `dw_original_spacing`.
-- [ ] 3.5 Implement `is_word_token` mapping in `draw_drum` for correct highlighting.
-- [ ] 3.6 Refine `compose_term_smart` joining rules for common punctuation across all modes.
+- [x] 3.1 Implement bit-perfect reproduction of original subtitle strings across all modes.
+- [x] 3.2 Refactor `calculate_highlight_stack` to retrieve center index from sub_idx for neighbor lookups.
+- [x] 3.3 Update `dw_build_layout` to use `visual_to_logical` mapping instead of manual iteration.
+- [x] 3.4 Update `draw_drum` (Reel Mode & Standard Mode) to respect `dw_original_spacing`.
+- [x] 3.5 Implement `is_word_token` mapping in `draw_drum` for correct highlighting.
+- [x] 3.6 Refine `compose_term_smart` joining rules for common punctuation across all modes.
 
 ## 4. Verification
 
