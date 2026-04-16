@@ -132,6 +132,9 @@ local Options = {
 
     -- Record File
     record_editor = "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+    
+    -- Colors
+    dw_split_select_color = "FF88B0",
 
     -- Sentence Threshold
     sentence_word_threshold = 3
