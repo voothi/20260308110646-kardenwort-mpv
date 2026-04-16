@@ -417,10 +417,10 @@ local function build_word_list(text)
         -- Strip ASS tags before sub-splitting
         token = token:gsub("{[^}]+}", "")
         if token ~= "" then
-            -- Sub-split by slashes and various dashes (en, em, hyphen), keeping the separators as tokens
+            -- Sub-split by slashes, dashes, parentheses and punctuation, keeping separators as tokens
             local last_pos = 1
-            -- Pattern matches ASCII hyphen, slash, and UTF-8 en-dash/em-dash
-            for pos, sep in token:gmatch("()([/-]|\226\128\147|\226\128\148)") do
+            -- Pattern matches ASCII hyphen, slash, (), [], and UTF-8 en-dash/em-dash
+            for pos, sep in token:gmatch("()([/\\-%(%)%[%]%!%?%,%.]|\226\128\147|\226\128\148)") do
                 if pos > last_pos then
                     table.insert(words, token:sub(last_pos, pos - 1))
                 end
@@ -762,22 +762,19 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                             if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
                                 local has_neighbor = false
                                 
-                                -- Check neighbors in both directions (expand search up to 3 tokens to skip symbols/-//)
+                                -- Check neighbors in both directions (expand search up to 4 tokens to skip symbols/-//)
                                 for _, dir in ipairs({-1, 1}) do
-                                    for offset = 1, 3 do
+                                    for offset = 1, 4 do
                                         local nw = get_relative_word(dir * offset)
                                         if not nw then break end
                                         
                                         local nw_clean = utf8_to_lower(nw:gsub("[%p%s]", ""))
                                         if nw_clean ~= "" then
+                                            -- Check if this specific neighbor exists in the context sentence
                                             if ctx_lower:find(nw_clean, 1, true) then
                                                 has_neighbor = true
                                             end
-                                            -- Found a real word; stop searching this direction regardless of match
-                                            break
-                                        elseif Options.anki_strip_metadata and nw:match("^%b[]$") then
-                                            -- Neighbor is a specifically stripped metadata tag, which counts as a valid context neighbor
-                                            has_neighbor = true
+                                            -- Found a word; stop searching this direction
                                             break
                                         end
                                     end
