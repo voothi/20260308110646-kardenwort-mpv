@@ -2884,9 +2884,11 @@ local function cmd_dw_seek_delta(dir)
             FSM.DW_CURSOR_LINE = target_idx
         end
         
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
-        FSM.DW_CURSOR_WORD = -1
+        if not FSM.BOOK_MODE then
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_WORD = -1
+        end
     end
 end
 
