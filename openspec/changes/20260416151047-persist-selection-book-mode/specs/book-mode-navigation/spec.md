@@ -24,3 +24,9 @@ The system SHALL ensure that the tooltip remains focused on the active playback 
 - **GIVEN** the player is paused and the tooltip is currently following the active subtitle at Line 15
 - **WHEN** the user manually moves the selection pointer (e.g., via arrow keys or a mouse click)
 - **THEN** the tooltip SHALL immediately switch to follow the selection pointer's new location.
+
+### Requirement: Selection Cleanup Nuances
+The system SHALL prioritize interface cleanliness in Standard Mode while maintaining persistent focus in Book Mode.
+
+- **In Book Mode (ON)**: All highlights (single word and ranges) SHALL persist during `a`/`d` seeks, as the static viewport allows them to remain visible and relevant.
+- **In Standard Mode (OFF)**: Single-word highlights SHALL be cleared during `a`/`d` seeks to prevent "phantom" highlights from tracking moving subtitles. Range selections (multiple words), however, SHALL persist as they represent intentional user study areas.
