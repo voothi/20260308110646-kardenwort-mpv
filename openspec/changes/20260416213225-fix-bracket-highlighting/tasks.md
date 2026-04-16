@@ -11,4 +11,7 @@
 
 - [ ] 3.1 Verify that `[UMGEBUNG]` can be added and is saved as `UMGEBUNG`.
 - [ ] 3.2 Verify that `Netto` in `[UMGEBUNG] Netto` remains highlighted even if `[UMGEBUNG]` was stripped from the saved context.
-- [ ] 3.3 Verify that `[musik]` followed by a word (e.g., `[musik] word`) correctly strips `[musik]` from the term if only `word` is intended, or allows it if `[musik]` was specifically selected.
+- [ ] 3.3 Verify that **paired/multi-word selection** (Ctrl+MMB/purple highlights) correctly handles metadata tags:
+    - [ ] Selecting `[UMGEBUNG]` + `Netto` results in `UMGEBUNG Netto`.
+    - [ ] Selecting `[musik]` + `word` results in `word` (if `[musik]` is stripped).
+- [ ] 3.4 Verify that `[musik]` followed by a word (e.g., `[musik] word`) correctly strips `[musik]` from the term if only `word` is intended, or allows it if `[musik]` was specifically selected.

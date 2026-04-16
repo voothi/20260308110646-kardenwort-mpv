@@ -19,6 +19,7 @@ Furthermore, the high-recall highlighter uses strict context matching, where a w
 
 - **Selective Stripping**: In `dw_anki_export_selection`, before applying `gsub("%b[]", " ")`, check if the resulting string is empty or just whitespace. If so, revert to the original term but strip only the `[` and `]` characters.
 - **Metadata-Tolerant Highlighting**: In `calculate_highlight_stack`, update the neighbor check logic. If a neighbor matches the `%b[]` pattern AND `anki_strip_metadata` is enabled, treat that neighbor as "valid" (or skip it) so it doesn't trigger a strict context mismatch for the word being checked.
+- **Multi-word (Purple) Selection Support**: In `ctrl_commit_set`, ensure that it also respects `anki_strip_metadata` by stripping brackets from individual words when they are collected into the final term. This ensures that a multi-word selection containing metadata tags (often represented by split/purple highlights after saving) correctly filters those tags.
 - **Consistency**: Apply similar "selective stripping" to `ctrl_commit_set` so that manual multi-word selections also benefit from this fix.
 
 ## Risks / Trade-offs
