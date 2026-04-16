@@ -17,9 +17,17 @@
 - [x] 3.3 Update the tooltip refresh logic (in `tick_dw` or similar) to reposition the active tooltip based on its line's current Y-position on every tick.
 - [x] 3.4 Ensure the dynamic positioning applies to both keyboard-toggled (`FORCE`) and mouse-pinned (`HOLDING`) tooltips.
 
-## 4. Verification
+## 4. Context-Sensitive Targeting (Book Mode Support)
 
-- [x] 4.1 Test that the tooltip follows its associated line when scrolling the Drum Window.
-- [x] 4.2 Verify that the tooltip remains correctly positioned even when the Drum Window layout changes (e.g., resizing or different "book mode" alignments).
-- [x] 4.3 Test that keyboard 'e' toggle and RMB pin still work correctly with dynamic tracking.
-- [x] 4.4 Regress mouse hover behavior.
+- [x] 4.1 Update the keyboard tooltip refresh logic to check the player's `pause` state.
+- [x] 4.2 IF playing: Refresh `FSM.DW_TOOLTIP_LINE` to match the current playback subtitle (`active_idx`).
+- [x] 4.3 IF paused: Respect the manual selection cursor (`FSM.DW_CURSOR_LINE`).
+- [x] 4.4 Ensure that manual cursor movements while paused immediately update the forced tooltip.
+
+## 5. Verification
+
+- [x] 5.1 Test dynamic following in Book Mode OFF (Centered).
+- [x] 5.2 Test Book Mode ON: Verify tooltip follows white highlight during playback.
+- [x] 5.3 Test Book Mode ON: Verify tooltip follows yellow cursor when paused.
+- [x] 5.4 Verify that 'e' toggle successfully hides/shows in both states.
+- [x] 5.5 Regress mouse RMB pinning and hover behavior.

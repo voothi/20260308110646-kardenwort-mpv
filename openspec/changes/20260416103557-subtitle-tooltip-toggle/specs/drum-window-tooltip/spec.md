@@ -18,3 +18,18 @@ When a tooltip is visible (toggled via keyboard or pinned via mouse), it SHALL d
 - **WHEN** a translation tooltip is visible for a specific subtitle line
 - **AND** the user scrolls the Drum Window (e.g., via wheel, arrow keys, or playback)
 - **THEN** the tooltip SHALL move vertically on the screen, maintaining its alignment with the horizontal centerline of the target subtitle line.
+
+### Requirement: Context-Sensitive Tooltip Targeting
+The toggled keyboard tooltip ('e') SHALL prioritize different text elements based on the player's playback state to ensure the most relevant information is displayed.
+
+#### Scenario: Tooltip follows active subtitle during playback
+- **GIVEN** the video is currently playing (not paused)
+- **WHEN** the keyboard tooltip is toggled ON ('e')
+- **THEN** the tooltip SHALL display information for the **currently playing subtitle** (white highlight)
+- **AND** it SHALL dynamically update its content and position as the video advances to the next subtitle.
+
+#### Scenario: Tooltip follows selection cursor when paused
+- **GIVEN** the video is currently paused
+- **WHEN** the keyboard tooltip is toggled ON ('e')
+- **THEN** the tooltip SHALL display information for the **manual selection cursor** (yellow pointer).
+- **AND** it SHALL dynamically update its content and position if the user moves the cursor (e.g., via arrows or LMB).

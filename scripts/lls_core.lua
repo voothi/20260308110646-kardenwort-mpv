@@ -196,6 +196,7 @@ local FSM = {
     DW_TOOLTIP_LOCKED_LINE = -1,
     DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
     DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
+    DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -2121,12 +2122,16 @@ local function dw_tooltip_mouse_update()
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = dw_hit_test(osd_x, osd_y)
     
-    -- Keyboard Force takes priority
+    -- Keyboard Force takes priority and dynamically targets either the active subtitle (playing) or selection cursor (paused)
     if FSM.DW_TOOLTIP_FORCE then
-        if FSM.DW_TOOLTIP_LINE ~= -1 then
-            local y = FSM.DW_LINE_Y_MAP[FSM.DW_TOOLTIP_LINE]
+        local is_paused = mp.get_property_bool("pause", true)
+        local target_l = is_paused and FSM.DW_CURSOR_LINE or FSM.DW_ACTIVE_LINE
+        
+        if target_l ~= -1 then
+            FSM.DW_TOOLTIP_LINE = target_l
+            local y = FSM.DW_LINE_Y_MAP[target_l]
             if y then
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, FSM.DW_TOOLTIP_LINE, y)
+                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, y)
                 dw_tooltip_osd:update()
             else
                 if dw_tooltip_osd.data ~= "" then
@@ -2527,6 +2532,7 @@ local function tick_dw(time_pos)
     
     local active_idx = get_center_index(subs, time_pos)
     if active_idx == -1 then return end
+    FSM.DW_ACTIVE_LINE = active_idx
     
     -- In follow mode: viewport and cursor track the active playback line
     if FSM.DW_FOLLOW_PLAYER and not FSM.BOOK_MODE then

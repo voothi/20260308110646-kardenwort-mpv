@@ -8,6 +8,7 @@ Users need the ability to toggle the subtitle translation/context tooltip using 
 - Introduce configurable parameters in `mpv.conf` to easily assign or change the designated 'toggle' keys for this feature (e.g., `script-opts-append=drum_window-toggle_key=e`).
 - Implement logic to handle the visibility state of the tooltip via keyboard trigger within the Drum Window.
 - **Ensure the tooltip dynamically follows its associated subtitle line** during scrolling (both in keyboard and mouse-pin modes), rather than remaining at a static OSD position.
+- **Implement state-dependent targeting for keyboard tooltips**: During playback, the toggled tooltip ('e') should prioritize following the currently playing subtitle (white highlight); when paused, it should follow the user's manual selection/cursor (yellow pointer).
 
 ## Capabilities
 
