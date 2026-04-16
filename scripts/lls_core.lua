@@ -1476,8 +1476,15 @@ local function update_media_state()
         end
     end
 
-    -- Flush stale drum subs when track path changed or track was disabled
-    if Tracks.pri.path ~= old_pri_path then Tracks.pri.subs = {} end
+    -- Flush stale drum subs and selection when track path changed or track was disabled
+    if Tracks.pri.path ~= old_pri_path then 
+        Tracks.pri.subs = {} 
+        FSM.DW_CURSOR_LINE = -1
+        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+    end
     if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
 
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)

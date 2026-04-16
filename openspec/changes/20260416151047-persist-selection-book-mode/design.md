@@ -30,6 +30,8 @@ The logic in `cmd_dw_seek_delta` will be updated to remove the unconditional res
     - If `DW_ANCHOR_LINE` is valid (`~= -1`), `DW_CURSOR_LINE` SHALL NOT be automatically synchronized with the active playback index in Standard Mode. This keeps the selection range locked to its original subtitle lines.
 - **Eliminating Phantom Highlights**:
     - If `DW_ANCHOR_LINE` is NOT valid when seeking or navigating, `DW_CURSOR_WORD` SHALL be reset to `-1`. This ensures that a single yellow word doesn't "track" the playback cursor when the user hasn't explicitly made a selection.
+- **Track Change Stability**:
+    - To prevent OOB (Out-of-Bounds) index crashes, the selection state (`ANCHOR` and `CURSOR`) and the `DW_TOOLTIP_TARGET_MODE` SHALL be reset whenever the primary subtitle track is changed or reloaded.
 
 ## Risks / Trade-offs
 
