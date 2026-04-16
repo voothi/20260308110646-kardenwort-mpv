@@ -102,6 +102,8 @@ local Options = {
     tooltip_pin_key = "MBTN_RIGHT",
     tooltip_hover_key = "n",
     tooltip_hover_key_ru = "т",
+    dw_tooltip_toggle_key = "e",
+    dw_tooltip_toggle_key_ru = "у",
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -192,6 +194,7 @@ local FSM = {
     DW_TOOLTIP_MODE = "CLICK",
     DW_TOOLTIP_HOLDING = false,
     DW_TOOLTIP_LOCKED_LINE = -1,
+    DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -2043,6 +2046,7 @@ local function cmd_dw_tooltip_pin(tbl)
     if FSM.DRUM_WINDOW == "OFF" then return end
     
     if tbl.event == "down" then
+        FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_HOLDING = true
         local subs = Tracks.pri.subs
         if not subs or #subs == 0 then return end
@@ -2066,14 +2070,43 @@ local function cmd_toggle_dw_tooltip_hover()
     FSM.DW_TOOLTIP_MODE = (FSM.DW_TOOLTIP_MODE == "CLICK") and "HOVER" or "CLICK"
     show_osd("DW Translation: " .. FSM.DW_TOOLTIP_MODE)
     if FSM.DW_TOOLTIP_MODE == "CLICK" then
+        FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_LINE = -1
         dw_tooltip_osd.data = ""
         dw_tooltip_osd:update()
     end
 end
 
+local function cmd_dw_tooltip_toggle()
+    if FSM.DRUM_WINDOW == "OFF" then return end
+    
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local line_idx = FSM.DW_CURSOR_LINE
+    if line_idx == -1 then
+        line_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
+    end
+    
+    if FSM.DW_TOOLTIP_FORCE and line_idx == FSM.DW_TOOLTIP_LINE then
+        print("[LLS] TOOLTIP TOGGLE: OFF")
+        FSM.DW_TOOLTIP_FORCE = false
+        FSM.DW_TOOLTIP_LINE = -1
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
+    elseif line_idx ~= -1 then
+        print("[LLS] TOOLTIP TOGGLE: ON/UPDATE")
+        FSM.DW_TOOLTIP_FORCE = true
+        FSM.DW_TOOLTIP_LINE = line_idx
+        -- Center tooltip vertically (OSD Y 540) for keyboard toggle
+        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, 540)
+        dw_tooltip_osd:update()
+    end
+end
+
 local function dw_tooltip_mouse_update()
     if FSM.DRUM_WINDOW == "OFF" then return end
+    if FSM.DW_TOOLTIP_FORCE then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -2909,6 +2942,7 @@ local function manage_dw_bindings(enable)
         -- Tooltip Bindings
         {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = Options.tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
+        {key = Options.dw_tooltip_toggle_key, name = "dw-tooltip-toggle", fn = cmd_dw_tooltip_toggle},
          -- RU Layout
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
@@ -2931,6 +2965,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
         {key = Options.tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
+        {key = Options.dw_tooltip_toggle_key_ru, name = "dw-tooltip-toggle-ru", fn = cmd_dw_tooltip_toggle},
         
         -- Search Toggle
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
@@ -3659,6 +3694,9 @@ function cmd_toggle_drum_window()
         print("[LLS] CLOSING DRUM WINDOW...")
         -- Update state immediately
         FSM.DRUM_WINDOW = "OFF"
+        FSM.DW_TOOLTIP_FORCE = false
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
         manage_ui_border_override(false)
 
         if not FSM.SEARCH_MODE then
