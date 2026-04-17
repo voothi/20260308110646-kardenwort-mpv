@@ -2477,6 +2477,7 @@ local function dw_anki_export_selection()
                 end
             end
             term = compose_term_smart(parts)
+            local ctx_parts = {}
             local target_anchor = 1
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
@@ -2500,6 +2501,7 @@ local function dw_anki_export_selection()
                 end
             end
         elseif cl ~= -1 and subs[cl] then
+            local ctx_parts = {}
             local target_anchor = 1
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
