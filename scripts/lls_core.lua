@@ -707,8 +707,10 @@ local function calculate_match_score(str, query)
             all_indices[idx] = true
         end
     end
+    return score, all_indices
+end
 
-  local function get_relative_word_token(subs, sub_idx, token_idx, word_offset)
+local function get_relative_word_token(subs, sub_idx, token_idx, word_offset)
     if word_offset == 0 then
         return subs[sub_idx].tokens and subs[sub_idx].tokens[token_idx]
     end
@@ -785,72 +787,70 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             -- Deterministic matching using global logical_idx
             if data.source_index and data.source_index == target_token.logical_idx then
                 match_found = true
-                goto match_confirmed
-            end
-
-            -- Fuzzy matching (fallback or global)
-            local win = Options.anki_local_fuzzy_window
-            if #term_clean > 10 then win = win + (#term_clean * 0.5) end
-            local sub = subs[sub_idx]
-            
-            local in_window = Options.anki_global_highlight or (data.time >= sub.start_time - win and data.time <= sub.end_time + win)
-            if not in_window and #term_clean > 1 then
-                local min_scan = math.max(1, sub_idx - 15)
-                local max_scan = math.min(#subs, sub_idx + 15)
-                if data.time >= subs[min_scan].start_time - win and data.time <= subs[max_scan].end_time + win then
-                    in_window = true
-                end
-            end
-
-            if in_window then
-                local first_word_clean = term_clean[1]
-                local match_offset = nil
-                for i, tw_clean in ipairs(term_clean) do
-                    if tw_clean == target_text_clean then
-                        match_offset = i
-                        break
+            else
+                -- Fuzzy matching (fallback or global)
+                local win = Options.anki_local_fuzzy_window
+                if #term_clean > 10 then win = win + (#term_clean * 0.5) end
+                local sub = subs[sub_idx]
+                
+                local in_window = Options.anki_global_highlight or (data.time >= sub.start_time - win and data.time <= sub.end_time + win)
+                if not in_window and #term_clean > 1 then
+                    local min_scan = math.max(1, sub_idx - 15)
+                    local max_scan = math.min(#subs, sub_idx + 15)
+                    if data.time >= subs[min_scan].start_time - win and data.time <= subs[max_scan].end_time + win then
+                        in_window = true
                     end
                 end
-                
-                if match_offset then
-                    -- 1. Sequence Match
-                    if #term_clean > 1 then
-                        local seq_match = true
-                        for k = 1, #term_clean do
-                            if k ~= match_offset then
-                                local rt = get_relative_word_token(subs, sub_idx, token_idx, k - match_offset)
-                                if not rt or term_clean[k] ~= utf8_to_lower(rt.text:gsub("[%p%s]", "")) then
-                                    seq_match = false
-                                    break
-                                end
-                            end
+
+                if in_window then
+                    local match_offset = nil
+                    for i, tw_clean in ipairs(term_clean) do
+                        if tw_clean == target_text_clean then
+                            match_offset = i
+                            break
                         end
-                        if seq_match then match_found = true end
-                    else
-                        -- 2. Single word: Triple-Evidence Check
-                        local seq_match = true
-                        if Options.anki_context_strict and not Options.anki_global_highlight then
-                            local ctx_lower = data.__ctx_lower
-                            local neighbors_found = 0
-                            for _, dir in ipairs({-1, 1}) do
-                                for off = 1, 4 do
-                                    local rt = get_relative_word_token(subs, sub_idx, token_idx, dir * off)
-                                    if not rt then break end
-                                    local rtc = utf8_to_lower(rt.text:gsub("[%p%s]", ""))
-                                    if rtc ~= "" then
-                                        if ctx_lower:find(rtc, 1, true) then
-                                            neighbors_found = neighbors_found + 1
-                                        end
+                    end
+                    
+                    if match_offset then
+                        -- 1. Sequence Match
+                        if #term_clean > 1 then
+                            local seq_match = true
+                            for k = 1, #term_clean do
+                                if k ~= match_offset then
+                                    local rt = get_relative_word_token(subs, sub_idx, token_idx, k - match_offset)
+                                    if not rt or term_clean[k] ~= utf8_to_lower(rt.text:gsub("[%p%s]", "")) then
+                                        seq_match = false
                                         break
                                     end
                                 end
                             end
-                            -- Require at least one neighbor match or term is unique enough
-                            if neighbors_found == 0 and #target_text_clean < 5 then
-                                seq_match = false
+                            if seq_match then match_found = true end
+                        else
+                            -- 2. Single word: Triple-Evidence Check
+                            local seq_match = true
+                            if Options.anki_context_strict and not Options.anki_global_highlight then
+                                local ctx_lower = data.__ctx_lower
+                                local neighbors_found = 0
+                                for _, dir in ipairs({-1, 1}) do
+                                    for off = 1, 4 do
+                                        local rt = get_relative_word_token(subs, sub_idx, token_idx, dir * off)
+                                        if not rt then break end
+                                        local rtc = utf8_to_lower(rt.text:gsub("[%p%s]", ""))
+                                        if rtc ~= "" then
+                                            if ctx_lower:find(rtc, 1, true) then
+                                                neighbors_found = neighbors_found + 1
+                                            end
+                                            break
+                                        end
+                                    end
+                                end
+                                -- Require at least one neighbor match or term is unique enough
+                                if neighbors_found == 0 and #target_text_clean < 5 then
+                                    seq_match = false
+                                end
                             end
+                            if seq_match then match_found = true end
                         end
-                        if seq_match then match_found = true end
                     end
                 end
             end
