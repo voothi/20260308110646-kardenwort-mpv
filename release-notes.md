@@ -1,8 +1,18 @@
-# Release Notes - v1.38.2 (Scanner-Based Precision & UI Hardening)
+# Release Notes - v1.38.4 (Selection Priority)
 
 **Date**: 2026-04-17
-**Version**: v1.38.2
-**Implementation ZIDs**: 20260416213225, 20260416233537, 20260417000743, 20260417003410, 20260417014024, 20260417020101, 20260417021703, 20260417031800
+**Version**: v1.38.4
+**Implementation ZIDs**: 20260417103320
+
+## Highlights
+
+### 🥁 **Drum Window Selection Priority**
+- **Non-Contiguous Selection Visibility**: Resolved a visual layering issue in the Drum Window (Mode W). Persistent multi-word selections made with `Ctrl + LMB` (muted yellow) now take absolute visual precedence over transient cursor highlights or drag-selection ranges (vibrant yellow).
+- **Uninterrupted Workflow**: Users can now clearly see which words are already part of their paired selection set even when the regular selection cursor is positioned directly over them, eliminating the need to move the mouse to verify selection state.
+
+---
+
+# Release Notes - v1.38.2 (Scanner-Based Precision & UI Hardening)
 
 ## Highlights
 

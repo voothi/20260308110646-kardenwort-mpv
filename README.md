@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.38.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.38.2) 
+[![Version](https://img.shields.io/badge/version-v1.38.4-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.38.4) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -77,6 +77,7 @@ This suite solves problems that standard video players and generic scripts ignor
 11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
 12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
 13. **Smart Stacking Engine**: Unified layout coordination for dual-track subtitles that restores manual positioning control while preventing visual overlap by default.
+14. **Selection Priority**: Persistent multi-word selections (Ctrl + LMB) now take visual precedence over transient cursor highlights, ensuring continuous feedback during complex vocabulary mining.
 
 [Return to Top](#table-of-contents)
 
@@ -254,7 +255,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.38.2 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.38.4 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -263,8 +264,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~560 Commits (v1.38.2)
-- **Intensity Profile**: 5.2 Commits/Hour 
+- **Current Maturity**: ~562 Commits (v1.38.4)
+- **Intensity Profile**: 5.3 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
