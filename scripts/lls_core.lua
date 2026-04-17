@@ -1014,13 +1014,13 @@ local function starts_with_uppercase(str)
     return false
 end
 
-local function extract_anki_context(full_line, selected_term, max_words_override)
+local function extract_anki_context(full_line, selected_term, max_words_override, anchor_pos)
     if not full_line or full_line == "" then return "" end
     
-    -- 1. Find the occurrence of the term closest to the center of the text block.
+    -- 1. Find the occurrence of the term closest to the designated anchor.
     -- This anchoring ensures that common words (like "die") correspond to the actual 
     -- selection center rather than the first occurrence in the context window.
-    local center = #full_line / 2
+    local center = anchor_pos or (#full_line / 2)
     local min_s, max_e = nil, nil
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
@@ -2477,13 +2477,32 @@ local function dw_anki_export_selection()
                 end
             end
             term = compose_term_smart(parts)
-            local ctx_parts = {}
+            local ctx_pre_parts, ctx_target_parts, ctx_post_parts = {}, {}, {}
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
-                    table.insert(ctx_parts, subs[k].text)
+                    if k < p1_l then
+                        table.insert(ctx_pre_parts, subs[k].text)
+                    elseif k > p2_l then
+                        table.insert(ctx_post_parts, subs[k].text)
+                    else
+                        table.insert(ctx_target_parts, subs[k].text)
+                    end
                 end
             end
-            context_line = table.concat(ctx_parts, " ")
+            
+            local function clean_ctx(txt)
+                txt = txt:gsub("{[^}]+}", "")
+                if Options.anki_strip_metadata then txt = txt:gsub("%b[]", " ") end
+                return txt:gsub("%s+", " ")
+            end
+
+            local c_pre = clean_ctx(table.concat(ctx_pre_parts, " "))
+            local c_target = clean_ctx(table.concat(ctx_target_parts, " "))
+            local c_post = clean_ctx(table.concat(ctx_post_parts, " "))
+
+            context_line = (c_pre .. " " .. c_target .. " " .. c_post):gsub("^%s+", ""):gsub("%s+$", "")
+            local anchor_pos = #c_pre + (#c_target / 2)
+            
             time_pos = subs[p1_l].start_time
 
             -- Check if selection starts at a boundary
@@ -2497,13 +2516,30 @@ local function dw_anki_export_selection()
             end
         elseif cl ~= -1 and subs[cl] then
             local sub = subs[cl]
-            local ctx_parts = {}
+            local ctx_pre_parts, ctx_target_parts, ctx_post_parts = {}, {sub.text}, {}
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
-                    table.insert(ctx_parts, subs[k].text)
+                    if k < cl then
+                        table.insert(ctx_pre_parts, subs[k].text)
+                    elseif k > cl then
+                        table.insert(ctx_post_parts, subs[k].text)
+                    end
                 end
             end
-            context_line = table.concat(ctx_parts, " ")
+
+            local function clean_ctx(txt)
+                txt = txt:gsub("{[^}]+}", "")
+                if Options.anki_strip_metadata then txt = txt:gsub("%b[]", " ") end
+                return txt:gsub("%s+", " ")
+            end
+
+            local c_pre = clean_ctx(table.concat(ctx_pre_parts, " "))
+            local c_target = clean_ctx(table.concat(ctx_target_parts, " "))
+            local c_post = clean_ctx(table.concat(ctx_post_parts, " "))
+
+            context_line = (c_pre .. " " .. c_target .. " " .. c_post):gsub("^%s+", ""):gsub("%s+$", "")
+            local anchor_pos = #c_pre + (#c_target / 2)
+
             time_pos = sub.start_time
             if cw ~= -1 then
                 local line_words = build_word_list(sub.text:gsub("\n", " "))
@@ -2547,15 +2583,9 @@ local function dw_anki_export_selection()
                 term = term .. "."
             end
             
-            -- Clean context: remove ASS tags
-            context_line = context_line:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then
-                context_line = context_line:gsub("%b[]", " ")
-            end
-            context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-            local extracted_context = extract_anki_context(context_line, term, effective_limit)
+            local extracted_context = extract_anki_context(context_line, term, effective_limit, anchor_pos)
             save_anki_tsv_row(term, extracted_context, time_pos)
             show_osd("Anki Highlight Saved: " .. term)
             
@@ -2647,22 +2677,38 @@ local function ctrl_commit_set(line_idx, word_idx)
     -- always appears verbatim inside the context block passed to extract_anki_context.
     local ctx_start = math.max(1, members[1].line - Options.anki_context_lines)
     local ctx_end = math.min(#subs, members[#members].line + Options.anki_context_lines)
-    local ctx_parts = {}
-    for i = ctx_start, ctx_end do
-        table.insert(ctx_parts, subs[i].text)
+    local ctx_pre_parts, ctx_target_parts, ctx_post_parts = {}, {}, {}
+    local p1_l = members[1].line
+    local p2_l = members[#members].line
+
+    for i = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
+        if subs[i] then 
+            if i < p1_l then
+                table.insert(ctx_pre_parts, subs[i].text)
+            elseif i > p2_l then
+                table.insert(ctx_post_parts, subs[i].text)
+            else
+                table.insert(ctx_target_parts, subs[i].text)
+            end
+        end
     end
-    local full_ctx_text = table.concat(ctx_parts, " ")
-    
-    -- Clean context: remove ASS tags and metadata
-    full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
-    if Options.anki_strip_metadata then
-        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
+
+    local function clean_ctx(txt)
+        txt = txt:gsub("{[^}]+}", "")
+        if Options.anki_strip_metadata then txt = txt:gsub("%b[]", " ") end
+        return txt:gsub("%s+", " ")
     end
-    full_ctx_text = full_ctx_text:gsub("%s+", " ")
+
+    local c_pre = clean_ctx(table.concat(ctx_pre_parts, " "))
+    local c_target = clean_ctx(table.concat(ctx_target_parts, " "))
+    local c_post = clean_ctx(table.concat(ctx_post_parts, " "))
+
+    local context_line = (c_pre .. " " .. c_target .. " " .. c_post):gsub("^%s+", ""):gsub("%s+$", "")
+    local anchor_pos = #c_pre + (#c_target / 2)
 
     local term_words = build_word_list(term)
     local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
+    local extracted_context = extract_anki_context(context_line, term, effective_limit, anchor_pos)
     
     save_anki_tsv_row(term, extracted_context, time_pos)
     show_osd("Anki Highlight Saved (Multi): " .. term)
