@@ -889,6 +889,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                     if any_sequence then
                         match_found = true
+                        local threshold = tonumber(Options.sentence_word_threshold) or 3
+                        if #term_clean >= threshold then term_is_split = true end
                         if #term_clean > 1 then has_phrase = true end
                     elseif #term_clean > 1 then
                         -- Phase 3: Split Matching (Deterministic Index Targeting)
@@ -959,7 +961,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         
                         if valid_set and valid_set[sub_idx .. "-" .. token_idx] then
                             match_found = true
-                            term_is_split = true
+                            local threshold = tonumber(Options.sentence_word_threshold) or 3
+                            if #term_clean >= threshold then term_is_split = true end
                         end
                     end
                 end
