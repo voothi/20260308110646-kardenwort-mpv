@@ -63,4 +63,11 @@ The color intensity (depth) of a highlight SHALL only increase if distinct overl
 - **THEN** the highlight level SHALL NOT increase due to redundant bookmarks of the exact same term.
 - **BUT WHEN** the word "Aufgaben" is covered by both a single-word bookmark AND a phrase bookmark (e.g. "fünf Aufgaben")
 - **THEN** the highlight level SHALL increase to reflect the textual overlap.
-
+ 
++### Requirement: Smart Joiner for TSV Composition
++TSV export MUST use a smart joiner that preserves the visual spacing of the source text for hyphenated or slashed terms, preventing both space injection and character stripping.
++
++#### Scenario: Exporting Marken-Discount
++- **WHEN** Exporting "Marken", "-", and "Discount" together
++- **THEN** The resulting term MUST be "Marken-Discount" (no spaces around the dash).
++

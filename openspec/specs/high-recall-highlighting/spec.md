@@ -80,4 +80,15 @@ The highlight engine SHALL ignore or skip metadata tags (e.g., `[musik]`) when c
 - **AND** the stored context in Anki is only `Netto` (metadata stripped)
 - **WHEN** the user plays the subtitle `[UMGEBUNG] Netto`
 - **THEN** the word `Netto` SHALL remain highlighted despite `[UMGEBUNG]` being missing from the stored context.
-
+ 
++### Requirement: Symbol-Agnostic Neighbor Matching
++The strict context neighbor check MUST look past symbol-only tokens (dashes, slashes, brackets) to determine if a neighboring word is present in the recorded context.
++
++#### Scenario: Highlighting compound words
++- **WHEN** Checking neighbor for "Netto" in "Netto/Globus"
++- **THEN** The engine MUST skip "/" and use "Globus" as the right-hand neighbor for context validation.
++
++#### Scenario: Highlighting bracketed context
++- **WHEN** Checking neighbor for "Große" in "Donau) Große"
++- **THEN** The engine MUST recognize "Donau" (even with the bracket) as a valid neighbor.
++

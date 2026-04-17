@@ -68,3 +68,11 @@ The system SHALL expose a `ctrl_select_color` configuration key in `mpv.conf` to
 #### Scenario: Default color used when key absent
 - **WHEN** `ctrl_select_color` is not present in `mpv.conf`
 - **THEN** the system SHALL default to `#FFE066` for the pending highlight color
+ 
++### Requirement: Punctuation Preservation in Term Composition
++Composed terms from multi-word selections MUST preserve all characters of the selected tokens, only stripping punctuation from the very start and end of the final composed string.
++
++#### Scenario: Selection containing a dash
++- **WHEN** Composing a term from tokens including "-"
++- **THEN** The "-" MUST NOT be stripped from the internal parts of the term.
++

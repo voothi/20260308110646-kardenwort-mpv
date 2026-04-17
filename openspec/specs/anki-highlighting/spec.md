@@ -75,4 +75,11 @@ The user SHALL be able to configure the specific hex color used for split-term h
 - **WHEN** the user provides `split_select_color=#123456` in `mpv.conf`
 - **THEN** the rendering system uses this specific color instead of the default purple hex for split words.
 
+### Requirement: German UTF-8 Localization
+The normalization engine MUST accurately map German uppercase umlauts and sharp S to their lowercase equivalents to support case-insensitive matching in German media.
+
+#### Scenario: Normalizing German words
+- **WHEN** Normalizing "Große" or "Änderung"
+- **THEN** The engine MUST produce "große" and "änderung".
+
 
