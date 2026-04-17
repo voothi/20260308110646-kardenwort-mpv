@@ -1696,8 +1696,21 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local ass = ""
     local is_drum = (FSM.DRUM == "ON")
     local context_lines = is_drum and Options.drum_context_lines or 0
-    local start_idx = math.max(1, center_idx - context_lines)
-    local end_idx = math.min(#subs, center_idx + context_lines)
+    local half = context_lines
+    local win_lines = 2 * half + 1
+    local start_idx = center_idx - half
+    local end_idx = center_idx + half
+
+    if start_idx < 1 then
+        end_idx = end_idx + (1 - start_idx)
+        start_idx = 1
+    end
+    if end_idx > #subs then
+        start_idx = start_idx - (end_idx - #subs)
+        end_idx = #subs
+    end
+    start_idx = math.max(1, start_idx)
+    end_idx = math.min(#subs, end_idx)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
     
@@ -1831,8 +1844,19 @@ local function dw_build_layout(subs, view_center)
     local win_lines = Options.dw_lines_visible
     local half_win = math.floor(win_lines / 2)
     view_center = math.max(1, math.min(#subs, view_center))
-    local start_idx = math.max(1, view_center - half_win)
-    local end_idx = math.min(#subs, start_idx + win_lines - 1)
+    local start_idx = view_center - half_win
+    local end_idx = view_center + (win_lines - half_win - 1)
+
+    if start_idx < 1 then
+        end_idx = end_idx + (1 - start_idx)
+        start_idx = 1
+    end
+    if end_idx > #subs then
+        start_idx = start_idx - (end_idx - #subs)
+        end_idx = #subs
+    end
+    start_idx = math.max(1, start_idx)
+    end_idx = math.min(#subs, end_idx)
 
     local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
     local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
