@@ -68,3 +68,12 @@ The system SHALL prioritize the presentation of persistent multi-word selections
 - **GIVEN** one or more words are already marked with `dw_ctrl_select_color` (muted yellow)
 - **WHEN** the user hovers the mouse over one of these words or includes it in a standard selection range (LMB drag)
 - **THEN** THE OSD SHALL continue to display the word using `dw_ctrl_select_color` instead of overriding it with `dw_highlight_color` (vibrant yellow).
+
+
+### Requirement: Smart Punctuation Rendering
+The Drum Mode display SHALL correctly render punctuation when `dw_original_spacing` is disabled.
+
+#### Scenario: Rendering with unified smart joiner
+- **WHEN** `dw_original_spacing` is OFF
+- **THEN** the `draw_drum` logic SHALL use the central `compose_term_smart` service to reconstruct the visible subtitle lines.
+- **AND** it SHALL correctly join punctuation tokens to their preceding word tokens according to the UPSR rules.
