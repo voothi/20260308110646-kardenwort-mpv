@@ -1966,6 +1966,12 @@ local function draw_dw(subs, view_center, active_idx)
                 local w = entry.words[j]
                 local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
                 
+                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
+                if ctrl_member then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
+                    goto next_token
+                end
+
                 local selected = false
                 if has_selection and l_idx then
                     if i > p1_l and i < p2_l then selected = true
@@ -1976,14 +1982,8 @@ local function draw_dw(subs, view_center, active_idx)
                 
                 if selected then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+                    goto next_token
                 elseif l_idx then
-                    -- Ctrl-pending highlight
-                    local ctrl_member = FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)]
-                    if ctrl_member then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
-                        goto next_token
-                    end
-
                     if i == cl and l_idx == cw then
                         table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                         goto next_token
