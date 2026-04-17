@@ -1,7 +1,7 @@
 ## 1. Update Search Whitelist
 
-- [ ] 1.1 Locate `manage_search_bindings` in `scripts/lls_core.lua`.
-- [ ] 1.2 Append `äöüßÄÖÜẞ` to the `chars` string to enable German character input.
+- [x] 1.1 Locate `manage_search_bindings` in `scripts/lls_core.lua`.
+- [x] 1.2 Append `äöüßÄÖÜẞ` to the `chars` string to enable German character input.
 
 ## 2. Verification
 
