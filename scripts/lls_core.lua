@@ -862,7 +862,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
                             if data.index and target_l_idx then
-                                context_satisfied = (data.index == target_l_idx)
+                                context_satisfied = (data.index == (target_l_idx - (term_offset - 1)))
                                 -- If we have an absolute index match, we skip the fuzzy neighbor check!
                                 if context_satisfied then match_count = 2 end 
                             end
