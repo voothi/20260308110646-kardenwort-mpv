@@ -34,6 +34,7 @@ local Options = {
     drum_bg_opacity = "60",        -- Frame transparency (ASS alpha 00-FF)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
+    drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
 
     -- SRT Style (Regular Mode)
     srt_font_size = 55,
@@ -2849,9 +2850,8 @@ local function tick_drum(time_pos)
     if sec_pos > 50 then
         local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
         local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
-        -- Calculate safety position (2 blocks above primary + 5% comfort gap)
-        local comfort_gap = 5
-        local min_safe_pos = pri_pos - (2 * (max_pixels / 1080) * 100) - comfort_gap
+        -- Calculate safety position (2 blocks above primary + comfort gap)
+        local min_safe_pos = pri_pos - (2 * (max_pixels / 1080) * 100) - Options.drum_track_gap
         -- Apply relative offset so user keys (r/t) still work responsively
         local auto_offset = min_safe_pos - Options.sec_pos_bottom
         sec_pos = sec_pos + auto_offset
