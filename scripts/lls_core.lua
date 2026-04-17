@@ -322,6 +322,20 @@ mapping = {},
     return config
 end
 
+local function reindex_track(track)
+    if not track or not track.subs then return end
+    local global_logical_idx = 1
+    for _, s in ipairs(track.subs) do
+        s.tokens = build_word_list_internal(s.text, true)
+        for _, t in ipairs(s.tokens) do
+            if t.is_word then
+                t.logical_idx = global_logical_idx
+                global_logical_idx = global_logical_idx + 1
+            end
+        end
+    end
+end
+
 local function extract_subtitle_metadata(path)
     if not path or path == "" then return "", "" end
     local filename = path:match("([^/\\]+)$") or path
@@ -338,7 +352,7 @@ local function escape_tsv(str)
     return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
-local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts)
+local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts, source_index)
     if not field_name or field_name == "" then return "" end
     
     local source = mapping[field_name]
@@ -349,6 +363,7 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     
     if source == "source_word" then return escape_tsv(term) end
     if source == "source_sentence" then return escape_tsv(context) end
+    if source == "source_index" then return tostring(source_index or "") end
     if source == "time" then return string.format("%.3f", time_pos) end
     if source == "deck_name" then return escape_tsv(deck_name) end
     
@@ -446,86 +461,115 @@ local function is_word_char(c)
 end
 
 local function build_word_list_internal(text, keep_spaces)
-    local words = {}
-    if not text then return words end
+    local tokens = {}
+    if not text then return tokens end
     
     local chars = utf8_to_table(text)
     local i = 1
     local n = #chars
+    local logical_idx = 1
+    local visual_idx = 1
     
     while i <= n do
         local c = chars[i]
+        local token = { text = "", is_word = false, logical_idx = nil, visual_idx = visual_idx }
         
         -- 1. Handle ASS Tags (Atomize)
         if c == "{" then
             local start = i
             while i <= n and chars[i] ~= "}" do i = i + 1 end
-            table.insert(words, table.concat(chars, "", start, i))
+            token.text = table.concat(chars, "", start, i)
             i = i + 1
             
         -- 2. Handle Metadata Brackets (Atomize)
         elseif c == "[" then
             local start = i
             while i <= n and chars[i] ~= "]" do i = i + 1 end
-            table.insert(words, table.concat(chars, "", start, i))
+            token.text = table.concat(chars, "", start, i)
             i = i + 1
             
-        -- 3. Handle/Skip Whitespace
+        -- 3. Handle Whitespace
         elseif c:match("^%s$") then
             local start = i
             while i <= n and chars[i]:match("^%s$") do i = i + 1 end
-            if keep_spaces then
-                table.insert(words, table.concat(chars, "", start, i - 1))
-            end
+            token.text = table.concat(chars, "", start, i - 1)
             
         -- 4. Handle Word Characters (Scanning contiguous blocks)
         elseif is_word_char(c) then
             local start = i
             while i <= n and is_word_char(chars[i]) do i = i + 1 end
-            table.insert(words, table.concat(chars, "", start, i - 1))
+            token.text = table.concat(chars, "", start, i - 1)
+            token.is_word = true
+            token.logical_idx = logical_idx
+            logical_idx = logical_idx + 1
             
         -- 5. Handle Punctuation/Misc (Atomic Separator)
         else
-            table.insert(words, c)
+            token.text = c
             i = i + 1
+        end
+        
+        if keep_spaces or token.is_word or (not token.text:match("^%s*$") and not token.text:match("^{") and not token.text:match("^%[")) then
+            table.insert(tokens, token)
+            visual_idx = visual_idx + 1
+        end
+    end
+    return tokens
+end
+
+local function build_word_list(text)
+    local tokens = build_word_list_internal(text, false)
+    local words = {}
+    for _, t in ipairs(tokens) do
+        if t.is_word then
+            table.insert(words, t.text)
         end
     end
     return words
 end
 
-local function build_word_list(text)
-    return build_word_list_internal(text, false)
+local function get_sub_tokens(s)
+    if not s then return nil end
+    if not s.tokens then
+        s.tokens = build_word_list_internal(s.text, true)
+    end
+    return s.tokens
 end
 
 local function is_word_token(t)
-    if not t or #t == 0 then return false end
+    if not t then return false end
+    if type(t) == "table" then
+        return t.is_word
+    end
+    if #t == 0 then return false end
     return not t:match("^%s+$")
 end
 
-local function compose_term_smart(words)
-    if not words or #words == 0 then return "" end
+local function compose_term_smart(tokens)
+    if not tokens or #tokens == 0 then return "" end
     local res = ""
-    for idx, w in ipairs(words) do
-        res = res .. w
-        local next_w = words[idx + 1]
+    for idx, t in ipairs(tokens) do
+        local text = type(t) == "table" and t.text or t
+        res = res .. text
         
-        if next_w then
+        local next_t = tokens[idx + 1]
+        if next_t then
+            local next_text = type(next_t) == "table" and next_t.text or next_t
+            
             -- Smart joiner: No space based on punctuation rules (covers English, German, Russian, etc.)
-            local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
-                                  or next_w:match("^[/-]$") 
-                                  or next_w:match("^\226\128\147$") -- en-dash
-                                  or next_w:match("^\226\128\148$") -- em-dash
-                                  or next_w:match("^[\"']$")
+            local no_space_before = next_text:match("[%.,!?;:…»”%)%]%}]$") 
+                                   or next_text:match("^[/-]$") 
+                                   or next_text:match("^\226\128\147$") -- en-dash
+                                   or next_text:match("^\226\128\148$") -- em-dash
+                                   or next_text:match("^[\"']$")
             
-            local no_space_after = w:match("^[/-]$") 
-                                 or w:match("^\226\128\147$") 
-                                 or w:match("^\226\128\148$") 
-                                 or w:match("^[%[%({¿¡«„“]$")
-                                 or w:match("^[\"']$")
+            local no_space_after = text:match("^[/-]$") 
+                                 or text:match("^\226\128\147$") 
+                                 or text:match("^\226\128\148$") 
+                                 or text:match("^[%[%({¿¡«„“]$")
+                                 or text:match("^[\"']$")
             
-            if no_space_before or no_space_after then
-                -- Join without space
-            else
+            if not (no_space_before or no_space_after) then
                 res = res .. " "
             end
         end
@@ -664,307 +708,164 @@ local function calculate_match_score(str, query)
         end
     end
 
-    return score, all_indices
-end
-
-local function is_word_char(ch)
-    if not ch then return false end
-    return ch:match("[%w\128-\255]") ~= nil
-end
-
-local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
-    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false end
-    
-    local function get_sub_words(s)
-        if not s then return nil end
-        if not s.words then s.words = build_word_list(s.text) end
-        return s.words
+  local function get_relative_word_token(subs, sub_idx, token_idx, word_offset)
+    if word_offset == 0 then
+        return subs[sub_idx].tokens and subs[sub_idx].tokens[token_idx]
     end
-
-    local words = get_sub_words(subs[sub_idx])
-    local target_word = words[word_idx]
-    if not target_word then return 0, 0, false end
     
-    -- Whole-word lower-case
-    local target_lower_full = utf8_to_lower(target_word:gsub("[%p%s]", ""))
-    if target_lower_full == "" then return 0, 0, false end
-
-    -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
-    local target_subsets = { [target_lower_full] = true }
-    -- Pattern excludes spaces, slashes, hyphens, and UTF-8 en-dash/em-dash
-    for sw in target_word:gmatch("[^%s/-\226\128\147\226\128\148]+") do
-        local csw = utf8_to_lower(sw:gsub("[%p%s]", ""))
-        if csw ~= "" then target_subsets[csw] = true end
+    local base_token = subs[sub_idx].tokens and subs[sub_idx].tokens[token_idx]
+    if not base_token or not base_token.logical_idx then return nil end
+    
+    local target_logical = base_token.logical_idx + word_offset
+    
+    -- Search locally
+    for _, t in ipairs(subs[sub_idx].tokens) do
+        if t.logical_idx == target_logical then return t end
     end
-
-
-    -- Helper to get a word relative to current word_idx across segment boundaries
-    local function get_relative_word(rel_offset)
-        local curr_sub_idx = sub_idx
-        local current_words = get_sub_words(subs[curr_sub_idx])
-        if not current_words then return nil end
-        local target_rel_idx = word_idx + rel_offset
+    
+    -- Search neighbors
+    local dir = word_offset > 0 and 1 or -1
+    local curr_sub_idx = sub_idx + dir
+    local safety = 0
+    while safety < 3 do
+        safety = safety + 1
+        if not subs[curr_sub_idx] then break end
         
-        local safety = 0
-        while safety < 5 do
-            safety = safety + 1
-            if target_rel_idx >= 1 and target_rel_idx <= #current_words then
-                return current_words[target_rel_idx]
-            end
-            
-            if target_rel_idx > #current_words then
-                local next_sub_idx = curr_sub_idx + 1
-                if subs[next_sub_idx] and (subs[next_sub_idx].start_time - subs[curr_sub_idx].end_time < 1.5) then
-                    target_rel_idx = target_rel_idx - #current_words
-                    curr_sub_idx = next_sub_idx
-                    current_words = get_sub_words(subs[curr_sub_idx])
-                    if not current_words then return nil end
-                else
-                    return nil
-                end
-            elseif target_rel_idx < 1 then
-                local prev_sub_idx = curr_sub_idx - 1
-                if subs[prev_sub_idx] and (subs[curr_sub_idx].start_time - subs[prev_sub_idx].end_time < 1.5) then
-                    local prev_words = get_sub_words(subs[prev_sub_idx])
-                    if not prev_words then return nil end
-                    target_rel_idx = target_rel_idx + #prev_words
-                    curr_sub_idx = prev_sub_idx
-                    current_words = prev_words
-                else
-                    return nil
-                end
+        local prev_sub = subs[curr_sub_idx - dir]
+        if dir > 0 then
+            if subs[curr_sub_idx].start_time - prev_sub.end_time > 1.5 then break end
+        else
+            if prev_sub.start_time - subs[curr_sub_idx].end_time > 1.5 then break end
+        end
+        
+        if subs[curr_sub_idx].tokens then
+            for _, t in ipairs(subs[curr_sub_idx].tokens) do
+                if t.logical_idx == target_logical then return t end
             end
         end
-        return nil
+        curr_sub_idx = curr_sub_idx + dir
     end
+    return nil
+end
+
+local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
+    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false end
+    
+    local tokens = get_sub_tokens(subs[sub_idx])
+    if not tokens then return 0, 0, false end
+    
+    local target_token = tokens[token_idx]
+    if not target_token or not target_token.is_word or not target_token.logical_idx then return 0, 0, false end
+    
+    local target_text_clean = utf8_to_lower(target_token.text:gsub("[%p%s]", ""))
     
     local orange_stack = 0
     local purple_stack = 0
     local has_phrase = false
     local matched_terms = {}
+    
     for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
         local term_key = data.term
         if not matched_terms[term_key] then
-            local match_found = false
-            local term_is_split = false
-            
-            -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
-            if not data.__term_words then
-                data.__term_words = build_word_list(utf8_to_lower(term_key))
+            if not data.__term_words_clean then
+                local twords = build_word_list(utf8_to_lower(term_key))
                 data.__term_words_clean = {}
-                for _, w in ipairs(data.__term_words) do
+                for _, w in ipairs(twords) do
                     table.insert(data.__term_words_clean, utf8_to_lower(w:gsub("[%p%s]", "")))
                 end
                 data.__term_key_lower = utf8_to_lower(term_key)
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
             end
-            local term_words = data.__term_words
-            local term_clean = data.__term_words_clean
             
-            -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
-            local window = Options.anki_local_fuzzy_window
-            if #term_words > 10 then
-                window = window + (#term_words * 0.5)
+            local term_clean = data.__term_words_clean
+            if #term_clean == 0 then goto next_data end
+            
+            local match_found = false
+            
+            -- Deterministic matching using global logical_idx
+            if data.source_index and data.source_index == target_token.logical_idx then
+                match_found = true
+                goto match_confirmed
             end
 
-            local sub_start = subs[sub_idx] and subs[sub_idx].start_time or 0
-            local sub_end = subs[sub_idx] and subs[sub_idx].end_time or 0
-
-            local in_window = false
-            if Options.anki_global_highlight or (data.time >= sub_start - window and data.time <= sub_end + window) then
-                in_window = true
-            elseif #term_words > 1 then
-                -- Multi-word split expressions can span huge distances. 
-                -- If data.time aligns anywhere inside our local subtitle scan cluster [-15, +15], it's valid.
+            -- Fuzzy matching (fallback or global)
+            local win = Options.anki_local_fuzzy_window
+            if #term_clean > 10 then win = win + (#term_clean * 0.5) end
+            local sub = subs[sub_idx]
+            
+            local in_window = Options.anki_global_highlight or (data.time >= sub.start_time - win and data.time <= sub.end_time + win)
+            if not in_window and #term_clean > 1 then
                 local min_scan = math.max(1, sub_idx - 15)
                 local max_scan = math.min(#subs, sub_idx + 15)
-                if subs[min_scan] and subs[max_scan] then
-                    if data.time >= (subs[min_scan].start_time - window) and data.time <= (subs[max_scan].end_time + window) then
-                        in_window = true
-                    end
+                if data.time >= subs[min_scan].start_time - win and data.time <= subs[max_scan].end_time + win then
+                    in_window = true
                 end
             end
 
             if in_window then
-                if #term_words > 0 then
-                    local term_lower = data.__term_key_lower
-                    local ctx_lower = data.__ctx_lower
-
-                    local target_offsets = {}
-                    for term_offset, tw_clean in ipairs(term_clean) do
-                        if target_subsets[tw_clean] then
-                            table.insert(target_offsets, term_offset)
-                        end
-                    end
-
-                    if #target_offsets > 0 then
-                        local any_sequence = false
-                        for _, term_offset in ipairs(target_offsets) do
-                            local sequence_match = true
-                            
-                            -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
-                            if #term_words > 1 then
-                                local check_start = math.max(1, term_offset - 3)
-                                local check_end = math.min(#term_words, term_offset + 3)
-                                for k = check_start, check_end do
-                                    if k ~= term_offset then
-                                        local rw = get_relative_word(k - term_offset)
-                                        if not rw or term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
-                                            sequence_match = false
-                                            break
-                                        end
-                                    end
-                                end
-                            end
-
-                            -- Phase 2: Context Match
-                            if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
-                                local has_neighbor = false
-                                
-                                -- Check neighbors in both directions (expand search up to 4 tokens to skip symbols/-//)
-                                for _, dir in ipairs({-1, 1}) do
-                                    for offset = 1, 4 do
-                                        local nw = get_relative_word(dir * offset)
-                                        if not nw then break end
-                                        
-                                        local nw_clean = utf8_to_lower(nw:gsub("[%p%s]", ""))
-                                        if nw_clean ~= "" then
-                                            -- Check if this specific neighbor exists in the context sentence
-                                            if ctx_lower:find(nw_clean, 1, true) then
-                                                has_neighbor = true
-                                            end
-                                            -- Found a word; stop searching this direction
-                                            break
-                                        end
-                                    end
-                                    if has_neighbor then break end
-                                end
-
-                                if not has_neighbor and #words > 1 then
-                                    -- Bypass neighbor check for labels [...] and common units/short tokens
-                                    local is_exempt = target_word:match("^%b[]$")
-                                    if not is_exempt then
-                                        local tw_strip = utf8_to_lower(target_word:gsub("[%p%s]", ""))
-                                        if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
-                                           tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
-                                            is_exempt = true
-                                        end
-                                    end
-                                    
-                                    if not is_exempt then
-                                        sequence_match = false
-                                    end
-                                end
-                            end
-
-                            if sequence_match then
-                                any_sequence = true
-                                break
-                            end
-                        end
-
-                        if any_sequence then
-                            match_found = true
-                            if #term_words > 1 then has_phrase = true end
-                        elseif #term_words > 1 then
-                            local split_match = false
-                            -- Cache valid (sub_idx, word_idx) combinations for optimal split term matching
-                            if not subs[sub_idx].__split_valid_indices then
-                                subs[sub_idx].__split_valid_indices = {}
-                            end
-                                
-                                local valid_set = subs[sub_idx].__split_valid_indices[term_key]
-                                if valid_set == nil then
-                                    valid_set = false
-                                    local ctx_list = {}
-                                    -- Generous scan radius (equivalent to roughly 30 seconds of speech) 
-                                    -- necessary for split terms spanning multiple subtitle blocks
-                                    for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
-                                        local scan_words = get_sub_words(subs[scan_i])
-                                        if scan_words then
-                                            for scan_w_idx, w in ipairs(scan_words) do
-                                                local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
-                                                if cw ~= "" then
-                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, w_i=scan_w_idx})
-                                                end
-                                            end
-                                        end
-                                    end
-                                    
-                                    local occs = {}
-                                    local all_present = true
-                                    for i, tc in ipairs(term_clean) do
-                                        occs[i] = {}
-                                        for c_idx, cw_obj in ipairs(ctx_list) do
-                                            if cw_obj.cw == tc then
-                                                table.insert(occs[i], c_idx)
-                                            end
-                                        end
-                                        if #occs[i] == 0 then
-                                            all_present = false
-                                            break
-                                        end
-                                    end
-
-                                    if all_present then
-                                        local best_tuple = nil
-                                        local min_span = 999999
-                                        
-                                        local function search(term_idx, current_tuple)
-                                            if term_idx > #term_clean then
-                                                local span = current_tuple[#current_tuple] - current_tuple[1]
-                                                if span < min_span then
-                                                    min_span = span
-                                                    best_tuple = {}
-                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
-                                                end
-                                                return
-                                            end
-                                            
-                                            local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
-                                            for _, c_idx in ipairs(occs[term_idx]) do
-                                                if c_idx > prev_idx then
-                                                    current_tuple[term_idx] = c_idx
-                                                    search(term_idx + 1, current_tuple)
-                                                end
-                                            end
-                                        end
-                                        
-                                        search(1, {})
-                                        
-                                        if best_tuple then
-                                            valid_set = {}
-                                            for _, c_idx in ipairs(best_tuple) do
-                                                local cw_obj = ctx_list[c_idx]
-                                                valid_set[cw_obj.s_i .. "-" .. cw_obj.w_i] = true
-                                            end
-                                        end
-                                    end
-                                    subs[sub_idx].__split_valid_indices[term_key] = valid_set
-                                end
-                                
-                                if valid_set and type(valid_set) == "table" then
-                                    if valid_set[sub_idx .. "-" .. word_idx] then
-                                        split_match = true
-                                    end
-                                end
-                            
-                                if split_match then
-                                    match_found = true
-                                    term_is_split = true
-                                end
-                            end
-                        end
+                local first_word_clean = term_clean[1]
+                local match_offset = nil
+                for i, tw_clean in ipairs(term_clean) do
+                    if tw_clean == target_text_clean then
+                        match_offset = i
+                        break
                     end
                 end
+                
+                if match_offset then
+                    -- 1. Sequence Match
+                    if #term_clean > 1 then
+                        local seq_match = true
+                        for k = 1, #term_clean do
+                            if k ~= match_offset then
+                                local rt = get_relative_word_token(subs, sub_idx, token_idx, k - match_offset)
+                                if not rt or term_clean[k] ~= utf8_to_lower(rt.text:gsub("[%p%s]", "")) then
+                                    seq_match = false
+                                    break
+                                end
+                            end
+                        end
+                        if seq_match then match_found = true end
+                    else
+                        -- 2. Single word: Triple-Evidence Check
+                        local seq_match = true
+                        if Options.anki_context_strict and not Options.anki_global_highlight then
+                            local ctx_lower = data.__ctx_lower
+                            local neighbors_found = 0
+                            for _, dir in ipairs({-1, 1}) do
+                                for off = 1, 4 do
+                                    local rt = get_relative_word_token(subs, sub_idx, token_idx, dir * off)
+                                    if not rt then break end
+                                    local rtc = utf8_to_lower(rt.text:gsub("[%p%s]", ""))
+                                    if rtc ~= "" then
+                                        if ctx_lower:find(rtc, 1, true) then
+                                            neighbors_found = neighbors_found + 1
+                                        end
+                                        break
+                                    end
+                                end
+                            end
+                            -- Require at least one neighbor match or term is unique enough
+                            if neighbors_found == 0 and #target_text_clean < 5 then
+                                seq_match = false
+                            end
+                        end
+                        if seq_match then match_found = true end
+                    end
+                end
+            end
+
+            ::match_confirmed::
             if match_found then
-                if term_is_split then
+                if #term_clean >= Options.sentence_word_threshold then
                     purple_stack = purple_stack + 1
                 else
                     orange_stack = orange_stack + 1
                 end
+                if #term_clean > 1 then has_phrase = true end
                 matched_terms[term_key] = true
             end
+            ::next_data::
         end
     end
     return orange_stack, purple_stack, has_phrase
@@ -1353,51 +1254,52 @@ local function load_anki_tsv(force)
 
 
     local new_highlights = {}
+    local idx_col = -1
+    local is_header_row = true
 
     for line in f:lines() do
-        if not line:match("^#") then
+        if line:match("^#") then
+            -- Skip directives
+        else
             local fields = {}
             for field in (line .. "\t"):gmatch("([^\t]*)\t") do
                 table.insert(fields, field)
             end
-            -- Check time boundary minimums
-            if #fields > 0 then
+            
+            if is_header_row then
+                for i, h in ipairs(fields) do
+                    local hl = h:lower()
+                    if hl:find("index") then
+                        idx_col = i
+                        break
+                    end
+                end
+                is_header_row = false
+            elseif #fields > 0 then
                 local t = ""
                 for _, col_idx in ipairs(term_cols) do
                     if fields[col_idx] and fields[col_idx] ~= "" then
-                        t = fields[col_idx]
-                        break
+                        t = t .. (t == "" and "" or " ") .. fields[col_idx]
                     end
                 end
                 
                 local c = ""
                 for _, col_idx in ipairs(ctx_cols) do
                     if fields[col_idx] and fields[col_idx] ~= "" then
-                        c = fields[col_idx]
-                        break
+                        c = c .. (c == "" and "" or " ") .. fields[col_idx]
                     end
-                end
-
-                -- If the TSV row did not export the term (e.g. phrase cards with no WordSource),
-                -- we simply fall back to treating the entire SentenceSource context as the highlight target!
-                if t == "" and c ~= "" then
-                    t = c
-                end
-
-                local time_val = tonumber(fields[time_col])
-                if not time_val or time_val <= 0 then
-                    for k = #fields, math.max(1, #fields - 10), -1 do
-                        if tonumber(fields[k]) and tostring(fields[k]):match("^%d+%.%d+$") then
-                            time_val = tonumber(fields[k])
-                            break
-                        end
-                    end
-                    time_val = time_val or 0
                 end
                 
-                local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
-                if t and t ~= "" and not is_header then
-                    table.insert(new_highlights, { term = t, context = c, time = time_val })
+                local time_val = tonumber(time_col and fields[time_col]) or 0
+                local s_idx = tonumber(idx_col > 0 and fields[idx_col]) or nil
+                
+                if t ~= "" then
+                    table.insert(new_highlights, {
+                        term = t,
+                        context = c,
+                        time = time_val,
+                        source_index = s_idx
+                    })
                 end
             end
         end
@@ -1407,7 +1309,7 @@ local function load_anki_tsv(force)
     FSM.ANKI_HIGHLIGHTS = new_highlights
 end
 
-local function save_anki_tsv_row(term, context, time_pos)
+local function save_anki_tsv_row(term, context, time_pos, source_index)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
 
@@ -1486,7 +1388,7 @@ local function save_anki_tsv_row(term, context, time_pos)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts))
+            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts, source_index))
         end
     end
     
@@ -1606,9 +1508,11 @@ local function update_media_state()
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
         Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+        reindex_track(Tracks.pri)
     end
     if Tracks.sec.path and #Tracks.sec.subs == 0 then
         Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
+        reindex_track(Tracks.sec)
     end
 
     -- Determine State
@@ -1725,40 +1629,31 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     local y_pixel = y_pos_percent * 1080 / 100
     
     local function format_sub(sub_idx, is_active, t_pos)
-        local text = subs[sub_idx] and subs[sub_idx].text or ""
-        if text == "" then return "" end
+        local s = subs[sub_idx]
+        if not s then return "" end
+        local tokens = get_sub_tokens(s)
+        if not tokens or #tokens == 0 then return "" end
+        
         local base_color = is_active and Options.drum_active_color or Options.drum_context_color
         local opacity = calculate_ass_alpha(is_active and Options.drum_active_opacity or Options.drum_context_opacity)
-        local is_drum = (FSM.DRUM == "ON")
-        local font_name = is_drum and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
+        
+        local is_d = (FSM.DRUM == "ON")
+        local font_name = is_d and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
                                    or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
-        local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
-        local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
-                                      or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
+        local f_bold = is_d and Options.drum_font_bold or Options.srt_font_bold
+        local bold_state = (is_active and (is_d and Options.drum_active_bold or f_bold) 
+                                      or (is_d and Options.drum_context_bold or f_bold)) and "1" or "0"
         
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         
-        local tokens = build_word_list_internal(text, Options.dw_original_spacing)
-        
-        -- Build logical word map to ensure parity with calculate_highlight_stack
-        local logical_to_visual = {}
-        local visual_to_logical = {}
-        local logic_count = 0
-        for j, t in ipairs(tokens) do
-            if is_word_token(t) then
-                logic_count = logic_count + 1
-                logical_to_visual[logic_count] = j
-                visual_to_logical[j] = logic_count
-            end
-        end
-
         local formatted_parts = {}
         for j, t in ipairs(tokens) do
-            local l_idx = visual_to_logical[j]
             local h_color = base_color
+            local is_phrase = false
             
-            if l_idx then
-                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, l_idx, t_pos)
+            if t.is_word then
+                local orange_stack, purple_stack, ph = calculate_highlight_stack(subs, sub_idx, j, t_pos)
+                is_phrase = ph
                 
                 if orange_stack > 0 and purple_stack > 0 then
                     local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
@@ -1776,23 +1671,16 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 end
 
                 if h_color ~= base_color then
-                    table.insert(formatted_parts, format_highlighted_word(t, h_color, base_color, is_phrase, bold_state, true))
+                    table.insert(formatted_parts, format_highlighted_word(t.text, h_color, base_color, is_phrase, bold_state, true))
                 else
-                    table.insert(formatted_parts, t)
+                    table.insert(formatted_parts, t.text)
                 end
             else
-                table.insert(formatted_parts, t)
+                table.insert(formatted_parts, t.text)
             end
         end
 
-        local result_text = ""
-        if Options.dw_original_spacing then
-            result_text = table.concat(formatted_parts, "")
-        else
-            -- Use unified smart joiner logic for non-raw mode
-            result_text = compose_term_smart(formatted_parts)
-        end
-
+        local result_text = table.concat(formatted_parts, "")
         return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
             font_name, opacity, bold_state, base_color, size, result_text)
     end
@@ -1859,38 +1747,23 @@ local function dw_build_layout(subs, view_center)
     local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
     local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
     local max_text_w = 1860
-    local space_w = dw_get_str_width(" ")
 
     local layout = {}
     local total_height = 0
 
     for i = start_idx, end_idx do
-        local text = subs[i].text:gsub("\n", " ")
-        local tokens = build_word_list_internal(text, Options.dw_original_spacing)
-        if #tokens == 0 then tokens = {""} end
-
-        local logical_words = {}
-        local visual_to_logical = {} -- tokens[j] -> index in logical_words
-        local logical_to_visual = {} -- logical_words[k] -> index in tokens
-        
-        for j, t in ipairs(tokens) do
-            if is_word_token(t) then
-                table.insert(logical_words, t)
-                local l_idx = #logical_words
-                visual_to_logical[j] = l_idx
-                logical_to_visual[l_idx] = j
-            end
-        end
+        local s = subs[i]
+        local tokens = get_sub_tokens(s)
+        if not tokens or #tokens == 0 then tokens = {{text=""}} end
 
         local vlines = {}
         local cur_indices = {}
         local cur_w = 0
 
-        for j, w in ipairs(tokens) do
-            local ww = dw_get_str_width(w)
-            -- If original spacing is ON, we don't add artificial space width
-            local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
-            if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+        for j, t in ipairs(tokens) do
+            local ww = dw_get_str_width(t.text)
+            
+            if cur_w > 0 and cur_w + ww > max_text_w and not Options.dw_original_spacing then
                 table.insert(vlines, cur_indices)
                 cur_indices = {j}
                 cur_w = ww
@@ -2158,18 +2031,18 @@ local function dw_hit_test(osd_x, osd_y)
             local vl_left = 960 - vl_width / 2
 
             local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or #entry.words end
+            if cx < 0 then return entry.sub_idx, vl_indices[1] or 1 end
+            if cx >= vl_width then return entry.sub_idx, vl_indices[#vl_indices] or 1 end
 
-            -- Build word center positions for snap-to-nearest logic
+            -- Build center positions for all tokens
             local centers = {}
             local pos = 0
-            for k, wi in ipairs(vl_indices) do
-                local ww = dw_get_str_width(entry.words[wi])
-                centers[k] = { idx = wi, center = pos + ww / 2 }
-                pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
+            for k, ti in ipairs(vl_indices) do
+                local ww = dw_get_str_width(entry.tokens[ti].text)
+                centers[k] = { idx = ti, center = pos + ww / 2 }
+                pos = pos + ww
             end
-            -- Find the word whose center is closest to the cursor
+            
             local best_k = 1
             local min_dist = math.abs(cx - centers[1].center)
             for k = 2, #centers do
@@ -2180,24 +2053,7 @@ local function dw_hit_test(osd_x, osd_y)
                 end
             end
             
-            local visual_wi = centers[best_k].idx
-            local logical_wi = entry.visual_to_logical[visual_wi]
-            
-            -- If user clicked on a spacer/filler token, find the nearest selectable word
-            if not logical_wi then
-                local best_logical = nil
-                local best_logic_dist = 999
-                for l_idx, v_idx in pairs(entry.logical_to_visual) do
-                    local dist = math.abs(v_idx - visual_wi)
-                    if dist < best_logic_dist then
-                        best_logic_dist = dist
-                        best_logical = l_idx
-                    end
-                end
-                logical_wi = best_logical or 1
-            end
-
-            return entry.sub_idx, logical_wi
+            return entry.sub_idx, centers[best_k].idx
         end
         y_pos = entry_bottom + sub_gap
     end
@@ -2478,13 +2334,22 @@ local function dw_anki_export_selection()
             if not subs[p1_l] or not subs[p2_l] then return end
 
             local parts = {}
+            local source_idx = nil
             for i = p1_l, p2_l do
-                local text = (subs[i].text:gsub("\n", " "))
-                local words = build_word_list(text)
-                local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or #words
-                for j = s_w, e_w do 
-                    if words[j] then table.insert(parts, words[j]) end
+                local s = subs[i]
+                if s then
+                    local tokens = get_sub_tokens(s)
+                    local s_w = (i == p1_l) and p1_w or 1
+                    local e_w = (i == p2_l) and p2_w or #tokens
+                    for j = s_w, e_w do
+                        local t = tokens[j]
+                        if t then
+                            table.insert(parts, t.text)
+                            if t.is_word and not source_idx then
+                                source_idx = t.logical_idx
+                            end
+                        end
+                    end
                 end
             end
             term = compose_term_smart(parts)
@@ -2501,11 +2366,13 @@ local function dw_anki_export_selection()
             if p1_w == 1 then
                 is_sentence_boundary = true
             else
-                local first_words = build_word_list(subs[p1_l].text:gsub("\n", " "))
-                if first_words[p1_w - 1] and first_words[p1_w - 1]:match("[.!?]$") then
+                local tks = get_sub_tokens(subs[p1_l])
+                if tks[p1_w - 1] and tks[p1_w - 1].text:match("[.!?]$") then
                     is_sentence_boundary = true
                 end
             end
+            
+            save_anki_tsv_row(term, context_line, time_pos, source_idx)
         elseif cl ~= -1 and subs[cl] then
             local sub = subs[cl]
             local ctx_parts = {}
@@ -3229,7 +3096,30 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
-        {key = "MBTN_MID", name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
+        {key = "MBTN_MID", name = "dw-mmb-paired", fn = function(t)
+            if t.event ~= "down" then return end
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            if not line_idx or not word_idx then return end
+            
+            local count = 0
+            for _ in pairs(FSM.DW_CTRL_PENDING_SET) do count = count + 1 end
+            
+            local key = string.format("%d:%d", line_idx, word_idx)
+            if count == 0 then
+                ctrl_toggle_word(line_idx, word_idx)
+            elseif count == 1 then
+                if not FSM.DW_CTRL_PENDING_SET[key] then
+                    ctrl_toggle_word(line_idx, word_idx)
+                    ctrl_commit_set(line_idx, word_idx)
+                else
+                    dw_anki_export_selection()
+                end
+            else
+                if not FSM.DW_CTRL_PENDING_SET[key] then ctrl_toggle_word(line_idx, word_idx) end
+                ctrl_commit_set(line_idx, word_idx)
+            end
+        end, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Multi-select
