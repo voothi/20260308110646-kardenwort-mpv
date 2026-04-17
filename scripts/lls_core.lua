@@ -2499,20 +2499,6 @@ local function dw_anki_export_selection()
             ctx_target_anchor = target_anchor
 
             -- Boundary check (global index)
-            local prev_w = get_relative_word_text(p1_w - target_l_idx - 1) -- Wait, offset logic
-            -- Actually easier:
-            local function check_boundary(g_idx)
-                local res = false
-                local offset = 0
-                while not res and offset < 10 do
-                    offset = offset + 1
-                    local t_prev = nil
-                    -- search globally for g_idx - offset
-                    -- but we just want the immediate previous WORD
-                    -- I'll use a simpler helper
-                end
-            end
-            -- Let's just use the fact that p1_w is global.
             -- If p1_w is the first word of the video, it's a boundary.
             if p1_w == 1 then
                 is_sentence_boundary = true
