@@ -1,12 +1,12 @@
 ## 1. Configuration
 
-- [ ] 1.1 Update `Options.anki_local_fuzzy_window` default from `10.0` to `2.0` in `scripts/lls_core.lua`.
+- [x] 1.1 Update `Options.anki_local_fuzzy_window` default from `10.0` to `2.0` in `scripts/lls_core.lua`.
 
 ## 2. Highlighter Logic Refactoring
 
-- [ ] 2.1 Modify the `window` variable calculation in `calculate_highlight_stack` to skip the expansion logic when `Options.anki_global_highlight` is `false`.
-- [ ] 2.2 Implement a conditional subtitle scan range in `calculate_highlight_stack`. If `anki_global_highlight` is `false`, use a range of ±3 subtitles instead of ±15 for multi-word term validation.
-- [ ] 2.3 Ensure the `in_window` flag correctly evaluates the tighter 2s window for single words in local mode.
+- [x] 2.1 Modify the `window` variable calculation in `calculate_highlight_stack` to skip the expansion logic when `Options.anki_global_highlight` is `false`.
+- [x] 2.2 Implement a conditional subtitle scan range in `calculate_highlight_stack`. If `anki_global_highlight` is `false`, use a range of ±3 subtitles instead of ±15 for multi-word term validation.
+- [x] 2.3 Ensure the `in_window` flag correctly evaluates the tighter 2s window for single words in local mode.
 
 ## 3. Testing and Verification
 

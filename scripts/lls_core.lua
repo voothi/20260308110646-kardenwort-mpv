@@ -126,7 +126,7 @@ local Options = {
     anki_global_highlight = false,
     anki_sync_period = 30,
     anki_context_lines = 6,
-    anki_local_fuzzy_window = 10.0,
+    anki_local_fuzzy_window = 2.0,
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
@@ -761,9 +761,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             local term_words = data.__term_words
             local term_clean = data.__term_words_clean
             
-            -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
+            -- Adaptive window: Give more time for long paragraphs in Global Mode
             local window = Options.anki_local_fuzzy_window
-            if #term_words > 10 then
+            if Options.anki_global_highlight and #term_words > 10 then
                 window = window + (#term_words * 0.5)
             end
 
@@ -776,8 +776,9 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             elseif #term_words > 1 then
                 -- Multi-word split expressions can span huge distances. 
                 -- If data.time aligns anywhere inside our local subtitle scan cluster [-15, +15], it's valid.
-                local min_scan = math.max(1, sub_idx - 15)
-                local max_scan = math.min(#subs, sub_idx + 15)
+                local scan_radius = Options.anki_global_highlight and 15 or 3
+                local min_scan = math.max(1, sub_idx - scan_radius)
+                local max_scan = math.min(#subs, sub_idx + scan_radius)
                 if subs[min_scan] and subs[max_scan] then
                     if data.time >= (subs[min_scan].start_time - window) and data.time <= (subs[max_scan].end_time + window) then
                         in_window = true
@@ -879,7 +880,8 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                                     local ctx_list = {}
                                     -- Generous scan radius (equivalent to roughly 30 seconds of speech) 
                                     -- necessary for split terms spanning multiple subtitle blocks
-                                    for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
+                                    local scan_radius = Options.anki_global_highlight and 15 or 3
+                                    for scan_i = math.max(1, sub_idx - scan_radius), math.min(#subs, sub_idx + scan_radius) do
                                         local scan_words = get_sub_words(subs[scan_i])
                                         if scan_words then
                                             for scan_w_idx, w in ipairs(scan_words) do
