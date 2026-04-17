@@ -2111,9 +2111,8 @@ local function dw_hit_test(osd_x, osd_y)
     local block_top = 540 - total_height / 2
 
     -- Clamp vertically to the first/last word if outside the entire block
-    if osd_y <= block_top then
-        local first = layout[1]
-        return first.sub_idx, first.vlines[1][1]
+    if osd_y <= block_top or osd_y >= block_top + total_height then
+        return -1, -1
     end
     if osd_y >= block_top + total_height then
         local last = layout[#layout]
@@ -2458,6 +2457,9 @@ local function dw_anki_export_selection()
             
             if not subs[p1_l] or not subs[p2_l] then return end
 
+            local line_text = subs[p1_l].text
+            print(string.format("[LLS] DEBUG: Exporting Sub #%d [Time:%.3f]: %s", p1_l, subs[p1_l].start_time, line_text))
+            
             local parts = {}
             for i = p1_l, p2_l do
                 local text = (subs[i].text:gsub("\n", " "))
