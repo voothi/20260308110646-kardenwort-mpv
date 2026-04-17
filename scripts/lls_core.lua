@@ -507,22 +507,32 @@ local function build_word_list_internal(text, keep_spaces)
 end
 
 local function build_word_list(text)
-    return build_word_list_internal(text, false)
+    local tokens = build_word_list_internal(text, false)
+    local words = {}
+    for _, t in ipairs(tokens) do
+        if t.is_word then
+            table.insert(words, t.text)
+        end
+    end
+    return words
 end
 
 local function is_word_token(t)
-    if not t or #t == 0 then return false end
-    return not t:match("^%s+$")
+    local text = type(t) == "table" and t.text or t
+    if not text or #text == 0 then return false end
+    return not text:match("^%s+$")
 end
 
 local function compose_term_smart(words)
     if not words or #words == 0 then return "" end
     local res = ""
-    for idx, w in ipairs(words) do
+    for idx, w_obj in ipairs(words) do
+        local w = type(w_obj) == "table" and w_obj.text or w_obj
         res = res .. w
-        local next_w = words[idx + 1]
+        local next_w_obj = words[idx + 1]
         
-        if next_w then
+        if next_w_obj then
+            local next_w = type(next_w_obj) == "table" and next_w_obj.text or next_w_obj
             -- Smart joiner: No space based on punctuation rules (covers English, German, Russian, etc.)
             local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
                                   or next_w:match("^[/-]$") 
@@ -763,10 +773,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             
             -- Performance: Lazy-cache processed term data
             if not data.__term_clean then
-                local term_tokens = build_word_list(utf8_to_lower(term_key))
+                local term_tokens = build_word_list_internal(utf8_to_lower(term_key), false)
                 data.__term_clean = {}
                 for _, t in ipairs(term_tokens) do
-                    table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
+                    if t.is_word then
+                        table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
+                    end
                 end
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
             end
