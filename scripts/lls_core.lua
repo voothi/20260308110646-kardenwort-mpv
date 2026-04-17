@@ -1769,7 +1769,7 @@ local function dw_build_layout(subs, view_center)
                 cur_w = ww
             else
                 table.insert(cur_indices, j)
-                cur_w = cur_w + space + ww
+                cur_w = cur_w + ww
             end
         end
         if #cur_indices > 0 then table.insert(vlines, cur_indices) end
@@ -1778,10 +1778,7 @@ local function dw_build_layout(subs, view_center)
         local entry_h = #vlines * vline_h
         table.insert(layout, {
             sub_idx = i,
-            words = tokens, -- Use tokens for visual rendering
-            logical_words = logical_words,
-            visual_to_logical = visual_to_logical,
-            logical_to_visual = logical_to_visual,
+            tokens = tokens, -- Use tokens for visual rendering and hit-testing
             height = entry_h,
             vlines = vlines
         })
@@ -1792,8 +1789,6 @@ local function dw_build_layout(subs, view_center)
     return layout, total_height
 end
 
--- draw_dw: view_center = which line is in the center of the viewport
---          active_idx = which line is currently playing (colored blue, may be off-screen)
 local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
@@ -1803,20 +1798,6 @@ local function draw_dw(subs, view_center, active_idx)
     local current_y = 540 - (total_height / 2)
     FSM.DW_LINE_Y_MAP = {}
     
-    -- Selection range
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    local has_selection = (al ~= -1 and aw ~= -1)
-    local p1_l, p1_w, p2_l, p2_w
-    if has_selection then
-        if al < cl or (al == cl and aw <= cw) then
-            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-        else
-            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
-        end
-    end
-
-    -- Text Block mapping
     local lines_ass = {}
     for _, entry in ipairs(layout) do
         local i = entry.sub_idx
@@ -1831,95 +1812,48 @@ local function draw_dw(subs, view_center, active_idx)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
-            local formatted_words = {}
+            local formatted_tokens = {}
             for _, j in ipairs(vl_indices) do
-                local w = entry.words[j]
-                local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
+                local t = entry.tokens[j]
+                local color_override = nil
+                local h_ph = false
                 
-                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
+                local ctrl_member = FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, j)]
                 if ctrl_member then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
-                    goto next_token
+                    color_override = Options.dw_ctrl_select_color
+                elseif is_inside_dw_selection(i, j) then
+                    color_override = Options.dw_highlight_color
+                elseif t.is_word then
+                    local orange, purple, ph = calculate_highlight_stack(subs, i, j, subs[i].start_time)
+                    h_ph = ph
+                    if orange > 0 and purple > 0 then
+                        local mix_depth = math.min((orange + purple) - 1, 3)
+                        if mix_depth == 1 then color_override = Options.anki_mix_depth_1 or "4A4AD3"
+                        elseif mix_depth == 2 then color_override = Options.anki_mix_depth_2 or "3636A8"
+                        elseif mix_depth >= 3 then color_override = Options.anki_mix_depth_3 or "202078" end
+                    elseif orange > 0 then
+                        if orange == 1 then color_override = Options.anki_highlight_depth_1
+                        elseif orange == 2 then color_override = Options.anki_highlight_depth_2
+                        elseif orange >= 3 then color_override = Options.anki_highlight_depth_3 end
+                    elseif purple > 0 then
+                        if purple == 1 then color_override = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                        elseif purple == 2 then color_override = Options.anki_split_depth_2 or "D97496"
+                        elseif purple >= 3 then color_override = Options.anki_split_depth_3 or "B3607C" end
+                    end
                 end
 
-                local selected = false
-                if has_selection and l_idx then
-                    if i > p1_l and i < p2_l then selected = true
-                    elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                    elseif i == p1_l then selected = (l_idx >= p1_w)
-                    elseif i == p2_l then selected = (l_idx <= p2_w) end
-                end
-                
-                if selected then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                    goto next_token
-                elseif l_idx then
-                    if i == cl and l_idx == cw then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                        goto next_token
-                    end
-
-                    local sub_t = subs[i]
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, l_idx, sub_t.start_time)
-                    local h_color = color
-                    
-                    if orange_stack > 0 and purple_stack > 0 then
-                        -- Mixed Intersection
-                        local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
-                        if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                        elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                        elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
-                    elseif orange_stack > 0 then
-                        -- Pure Orange
-                        if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
-                        elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
-                        elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                    elseif purple_stack > 0 then
-                        -- Pure Purple (Split)
-                        if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                        elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                        elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
-                    end
-
-                    if h_color ~= color then
-                        table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
-                    else
-                        table.insert(formatted_words, w)
-                    end
+                if color_override then
+                    table.insert(formatted_tokens, format_highlighted_word(t.text, color_override, color, h_ph, "1", false))
                 else
-                    -- It's a filler token (space), just add it as is
-                    table.insert(formatted_words, w)
-                end
-                ::next_token::
-            end
-            local line_ass = ""
-            for idx, fw in ipairs(formatted_words) do
-                local t_idx = vl_indices[idx]
-                local t_raw = entry.words[t_idx]
-                local next_v_idx = vl_indices[idx+1]
-                local next_t_raw = next_v_idx and entry.words[next_v_idx] or nil
-                
-                line_ass = line_ass .. fw
-                
-                if next_t_raw and not Options.dw_original_spacing then
-                    -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
-                    if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
-                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
-                        -- Join without space
-                    else
-                        line_ass = line_ass .. " "
-                    end
+                    table.insert(formatted_tokens, t.text)
                 end
             end
-            table.insert(entry_ass_vlines, line_ass)
+            table.insert(entry_ass_vlines, table.concat(formatted_tokens, ""))
         end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
         table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
-    -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
         Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
@@ -2021,11 +1955,8 @@ local function dw_hit_test(osd_x, osd_y)
             local vl_indices = entry.vlines[vl_num]
 
             local vl_width = 0
-            for k, wi in ipairs(vl_indices) do
-                vl_width = vl_width + dw_get_str_width(entry.words[wi])
-                if k < #vl_indices and not Options.dw_original_spacing then 
-                    vl_width = vl_width + space_w 
-                end
+            for k, ti in ipairs(vl_indices) do
+                vl_width = vl_width + dw_get_str_width(entry.tokens[ti].text)
             end
             
             local vl_left = 960 - vl_width / 2
@@ -2501,9 +2432,10 @@ local function ctrl_commit_set(line_idx, word_idx)
     for _, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
-            if not sub.words then sub.words = build_word_list(sub.text) end
-            local w = sub.words[m.word]
-            if w then
+            local tokens = get_sub_tokens(sub)
+            local t = tokens[m.word]
+            if t then
+                local w = t.text
                 -- Multi-word select: preserve content of bracketed tags if explicitly selected
                 local clean_w = w
                 if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
