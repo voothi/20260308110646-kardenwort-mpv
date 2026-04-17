@@ -829,7 +829,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         end
 
                         -- Phase 2: Context Match
-                        if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
+                        local needs_strict = Options.anki_context_strict or (#term_clean == 1)
+                        if sequence_match and needs_strict and not Options.anki_global_highlight then
                             local match_count = 0
                             local neighbors_found = 0
                             for _, dir in ipairs({-1, 1}) do
@@ -2548,7 +2549,7 @@ local function dw_anki_export_selection()
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit)
             save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
-            show_osd("Anki Highlight Saved: " .. term)
+            show_osd(string.format("Anki Highlight Saved: %s (Idx: %d)", term, p1_w))
             
             -- Force reload of TSV to pick up the new highlight and clear selection to show it
             load_anki_tsv(true)
@@ -2655,8 +2656,9 @@ local function ctrl_commit_set(line_idx, word_idx)
     local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
     
-    save_anki_tsv_row(term, extracted_context, time_pos)
-    show_osd("Anki Highlight Saved (Multi): " .. term)
+    local start_word_idx = members[1] and members[1].word or -1
+    save_anki_tsv_row(term, extracted_context, time_pos, start_word_idx)
+    show_osd(string.format("Anki Highlight Saved (Multi): %s (Idx: %d)", term, start_word_idx))
     
     -- Force reload of TSV to pick up the new highlight
     load_anki_tsv(true)
