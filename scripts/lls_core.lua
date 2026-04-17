@@ -341,6 +341,11 @@ end
 local function resolve_anki_field(field_name, term, context, time_pos, item_index, deck_name, pri_lang, sec_lang, mapping, tts)
     if not field_name or field_name == "" then return "" end
     
+    -- Hardcoded fallback for common index columns
+    if field_name == "SentenceSourceIndex" or field_name == "WordSourceIndex" then
+        return tostring(item_index or "")
+    end
+    
     local source = mapping[field_name]
     if not source then
         source = tts[field_name]
@@ -2458,7 +2463,9 @@ local function dw_anki_export_selection()
             if not subs[p1_l] or not subs[p2_l] then return end
 
             local line_text = subs[p1_l].text
-            print(string.format("[LLS] DEBUG: Exporting Sub #%d [Time:%.3f]: %s", p1_l, subs[p1_l].start_time, line_text))
+            local feedback = string.format("INDEXED: %s (Idx: %s) @ %s", term, tostring(p1_w or "None"), line_text:sub(1, 20) .. "...")
+            show_osd(feedback, 3)
+            print("[LLS] " .. feedback)
             
             local parts = {}
             for i = p1_l, p2_l do
