@@ -76,6 +76,7 @@ This suite solves problems that standard video players and generic scripts ignor
 10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session, even across multi-word split constructs and German hyphenated compounds.
 11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
 12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
+13. **Smart Stacking Engine**: Unified layout coordination for dual-track subtitles that restores manual positioning control while preventing visual overlap by default.
 
 [Return to Top](#table-of-contents)
 
@@ -93,7 +94,7 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 
 ### <span id="universal-subtitle-search"></span>Universal Subtitle Search
 A high-performance navigation overlay that decouples content lookup from playback.
-- **Cyrillic Parity**: Fully case-insensitive Russian search support.
+- **Cyrillic & German Parity**: Fully case-insensitive Russian search support and native input for German umlauts (`äöü`) and the eszett (`ß`).
 - **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word).
 - **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
 - **Hit Highlighting**: Elegant visual feedback highlighting matching characters (Subsequence-aware). **Fully configurable** via the `Options` table.
