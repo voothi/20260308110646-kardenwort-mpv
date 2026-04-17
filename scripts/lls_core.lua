@@ -2549,7 +2549,7 @@ local function dw_anki_export_selection()
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit)
             save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
-            show_osd(string.format("Anki Highlight Saved: %s (Idx: %d)", term, p1_w))
+            show_osd(string.format("Anki Highlight Saved: %s (Idx: %s)", term, tostring(p1_w or "None")))
             
             -- Force reload of TSV to pick up the new highlight and clear selection to show it
             load_anki_tsv(true)
