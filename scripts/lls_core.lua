@@ -833,7 +833,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         end
 
                         -- Phase 2: Context Match
-                        local needs_strict = Options.anki_context_strict or (#term_clean == 1)
+                        local needs_strict = Options.anki_context_strict or (#term_clean == 1) or (not Options.anki_global_highlight)
                         if sequence_match and needs_strict and not Options.anki_global_highlight then
                             local match_count = 0
                             local neighbors_found = 0
@@ -862,7 +862,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
                             if data.index and target_l_idx then
-                                context_satisfied = (data.index == target_l_idx)
+                                -- For phrases, data.index refers to the start of the term.
+                                -- We determine the start of this match candidate based on current target_l_idx and term_offset.
+                                local match_start_l_idx = target_l_idx - (term_offset - 1)
+                                context_satisfied = (data.index == match_start_l_idx)
+                                
                                 -- If we have an absolute index match, we skip the fuzzy neighbor check!
                                 if context_satisfied then match_count = 2 end 
                             end
