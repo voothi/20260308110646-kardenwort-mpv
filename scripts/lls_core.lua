@@ -50,7 +50,7 @@ local Options = {
     -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
     -- to prevent primary and secondary subtitles from overlapping at the bottom.
     sec_pos_top = 10,
-    sec_pos_bottom = 90,
+    sec_pos_bottom = 75,
 
     -- System
     tick_rate = 0.05,
@@ -2845,11 +2845,6 @@ local function tick_drum(time_pos)
     
     local context_lines = is_drum and Options.drum_context_lines or 0
     
-    if is_drum and sec_pos > 50 then
-        local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
-        local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
-        sec_pos = pri_pos - ((max_pixels / 1080) * 100)
-    end
     
     if #Tracks.sec.subs > 0 then
         local idx = get_center_index(Tracks.sec.subs, time_pos)
