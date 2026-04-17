@@ -510,9 +510,18 @@ local function compose_term_smart(words)
         local next_w = words[idx + 1]
         
         if next_w then
-            -- Smart joiner: No space if current or next word is punctuation that shouldn't have a preceding space
-            local no_space_before = next_w:match("[%.,!?;:]$") or next_w:match("^[/-]$") or next_w:match("^\226\128\147$") or next_w:match("^\226\128\148$") or next_w:match("^[%]%)}]$")
-            local no_space_after = w:match("^[/-]$") or w:match("^\226\128\147$") or w:match("^\226\128\148$") or w:match("^[%[%({]$")
+            -- Smart joiner: No space based on punctuation rules (covers English, German, Russian, etc.)
+            local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
+                                  or next_w:match("^[/-]$") 
+                                  or next_w:match("^\226\128\147$") -- en-dash
+                                  or next_w:match("^\226\128\148$") -- em-dash
+                                  or next_w:match("^[\"']$")
+            
+            local no_space_after = w:match("^[/-]$") 
+                                 or w:match("^\226\128\147$") 
+                                 or w:match("^\226\128\148$") 
+                                 or w:match("^[%[%({¿¡«„“]$")
+                                 or w:match("^[\"']$")
             
             if no_space_before or no_space_after then
                 -- Join without space
@@ -1116,7 +1125,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local context_words = {}
     for i = context_start, context_end do table.insert(context_words, words[i]) end
     
-    return table.concat(context_words, " "):match("^%s*(.-)%s*$")
+    return compose_term_smart(context_words):match("^%s*(.-)%s*$")
 end
 
 local function load_sub(path, is_ass)
@@ -1780,20 +1789,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         if Options.dw_original_spacing then
             result_text = table.concat(formatted_parts, "")
         else
-            -- Smart joiner logic for non-raw mode
-            for idx, fw in ipairs(formatted_parts) do
-                local t_raw = tokens[idx]
-                local next_t_raw = tokens[idx+1]
-                result_text = result_text .. fw
-                if next_t_raw then
-                    if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
-                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
-                        -- Join without space
-                    else
-                        result_text = result_text .. " "
-                    end
-                end
-            end
+            -- Use unified smart joiner logic for non-raw mode
+            result_text = compose_term_smart(formatted_parts)
         end
 
         return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
@@ -2494,8 +2491,7 @@ local function dw_anki_export_selection()
             local ctx_parts = {}
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
-                    local words = build_word_list(subs[k].text)
-                    table.insert(ctx_parts, table.concat(words, " "))
+                    table.insert(ctx_parts, subs[k].text)
                 end
             end
             context_line = table.concat(ctx_parts, " ")
@@ -2515,8 +2511,7 @@ local function dw_anki_export_selection()
             local ctx_parts = {}
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
-                    local words = build_word_list(subs[k].text)
-                    table.insert(ctx_parts, table.concat(words, " "))
+                    table.insert(ctx_parts, subs[k].text)
                 end
             end
             context_line = table.concat(ctx_parts, " ")
