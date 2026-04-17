@@ -2846,7 +2846,7 @@ local function tick_drum(time_pos)
     local context_lines = is_drum and Options.drum_context_lines or 0
     
     
-    if is_drum and sec_pos > 50 then
+    if sec_pos > 50 then
         local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
         local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
         -- Calculate safety position (2 blocks above primary)
