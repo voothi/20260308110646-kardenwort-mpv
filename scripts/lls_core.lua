@@ -703,7 +703,12 @@ end
 
 local function get_sub_tokens(s)
     if not s then return nil end
-    if not s.tokens then s.tokens = build_word_list_internal(s.text, Options.dw_original_spacing) end
+    if not s.tokens then 
+        s.tokens = build_word_list_internal(s.text, Options.dw_original_spacing)
+        local wc = 0
+        for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
+        s.word_count = wc
+    end
     return s.tokens
 end
 
@@ -744,22 +749,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             end
             
             -- Bounds check to move segments
-            local first_l, last_l = nil, nil
-            for _, t in ipairs(c_tokens) do
-                if t.logical_idx then
-                    if not first_l then first_l = t.logical_idx end
-                    last_l = t.logical_idx
-                end
-            end
-            
-            if not last_l then return nil end
-            
-            if target_logical_idx > last_l then
+            local wc = subs[curr_s_idx].word_count or 0
+            if target_logical_idx > wc then
+                target_logical_idx = target_logical_idx - wc
                 curr_s_idx = curr_s_idx + 1
                 if not subs[curr_s_idx] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 1.5) then return nil end
-            elseif target_logical_idx < first_l then
+            elseif target_logical_idx < 1 then
                 curr_s_idx = curr_s_idx - 1
                 if not subs[curr_s_idx] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 1.5) then return nil end
+                get_sub_tokens(subs[curr_s_idx]) -- Ensure word_count is cached
+                target_logical_idx = target_logical_idx + (subs[curr_s_idx].word_count or 0)
             else
                 return nil
             end
@@ -889,8 +888,6 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                     if any_sequence then
                         match_found = true
-                        local threshold = tonumber(Options.sentence_word_threshold) or 3
-                        if #term_clean >= threshold then term_is_split = true end
                         if #term_clean > 1 then has_phrase = true end
                     elseif #term_clean > 1 then
                         -- Phase 3: Split Matching (Deterministic Index Targeting)
@@ -961,8 +958,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         
                         if valid_set and valid_set[sub_idx .. "-" .. token_idx] then
                             match_found = true
-                            local threshold = tonumber(Options.sentence_word_threshold) or 3
-                            if #term_clean >= threshold then term_is_split = true end
+                            term_is_split = true
                         end
                     end
                 end
@@ -1174,15 +1170,13 @@ local function load_sub(path, is_ass)
                             if raw_text ~= "" and not has_cyrillic(raw_text) then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
-                                if true then -- Disabled merging for export accuracy
-                                    table.insert(subs, {
-                                        start_time = parsed_start,
-                                        end_time = parsed_end,
-                                        text = raw_text,
-                                        raw_text = raw_text,
-                                        tokens = build_word_list_internal(raw_text, Options.dw_original_spacing)
-                                    })
-                                end
+                                table.insert(subs, {
+                                    start_time = parsed_start,
+                                    end_time = parsed_end,
+                                    text = raw_text,
+                                    raw_text = raw_text,
+                                    tokens = build_word_list_internal(raw_text, Options.dw_original_spacing)
+                                })
                             end
                         end
                     end
@@ -1190,6 +1184,17 @@ local function load_sub(path, is_ass)
             end
         end
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+        
+        -- Post-sort merge pass for ASS
+        local merged = {}
+        for _, s in ipairs(subs) do
+            if #merged > 0 and merged[#merged].raw_text == s.raw_text and s.start_time <= merged[#merged].end_time + 0.1 then
+                merged[#merged].end_time = math.max(merged[#merged].end_time, s.end_time)
+            else
+                table.insert(merged, s)
+            end
+        end
+        subs = merged
     else
         local state = "ID"
         for raw_line in f:lines() do
@@ -2471,15 +2476,22 @@ local function dw_anki_export_selection()
             
             local parts = {}
             for i = p1_l, p2_l do
-                local text = (subs[i].text:gsub("\n", " "))
-                local words = build_word_list(text)
+                local tokens = get_sub_tokens(subs[i])
                 local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or #words
-                for j = s_w, e_w do 
-                    if words[j] then table.insert(parts, words[j]) end
+                local e_w = (i == p2_l) and p2_w or (subs[i].word_count or 0)
+                
+                local logical_ptr = 0
+                for _, t in ipairs(tokens) do
+                    if t.is_word then
+                        logical_ptr = logical_ptr + 1
+                        if logical_ptr >= s_w and logical_ptr <= e_w then
+                            table.insert(parts, t.text)
+                        end
+                    end
                 end
             end
             term = compose_term_smart(parts)
+            
             local ctx_parts = {}
             local target_anchor = 1
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
@@ -2495,15 +2507,24 @@ local function dw_anki_export_selection()
             ctx_target_anchor = target_anchor
 
             -- Check if selection starts at a boundary
-            if p1_w == 1 then
-                is_sentence_boundary = true
-            else
-                local first_words = build_word_list(subs[p1_l].text:gsub("\n", " "))
-                if first_words[p1_w - 1] and first_words[p1_w - 1]:match("[.!?]$") then
+            is_sentence_boundary = (p1_w == 1)
+            if not is_sentence_boundary then
+                local first_tokens = get_sub_tokens(subs[p1_l])
+                local prev_text = nil
+                local ptr = 0
+                for _, t in ipairs(first_tokens) do
+                    if t.is_word then
+                        ptr = ptr + 1
+                        if ptr == p1_w then break end
+                        prev_text = t.text
+                    end
+                end
+                if prev_text and prev_text:match("[.!?]$") then
                     is_sentence_boundary = true
                 end
             end
         elseif cl ~= -1 and subs[cl] then
+            local target_sub = subs[cl]
             local ctx_parts = {}
             local target_anchor = 1
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
@@ -2515,22 +2536,32 @@ local function dw_anki_export_selection()
                 end
             end
             context_line = table.concat(ctx_parts, " ")
-            time_pos = sub.start_time
+            time_pos = target_sub.start_time
             p1_w = cw
             p1_l = cl
             ctx_target_anchor = target_anchor
             
             if cw ~= -1 then
-                local line_words = build_word_list(sub.text:gsub("\n", " "))
-                term = line_words[cw] or (sub.text:gsub("\n", " "))
+                local tokens = get_sub_tokens(target_sub)
+                local ptr = 0
+                local prev_text = nil
+                for _, t in ipairs(tokens) do
+                    if t.is_word then
+                        ptr = ptr + 1
+                        if ptr == cw then
+                            term = t.text
+                            break
+                        end
+                        prev_text = t.text
+                    end
+                end
+                term = term or target_sub.text
                 -- Check for boundary
-                if cw == 1 then
-                    is_sentence_boundary = true
-                elseif line_words[cw - 1] and line_words[cw - 1]:match("[.!?]$") then
+                if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
                     is_sentence_boundary = true
                 end
             else
-                term = sub.text:gsub("\n", " ")
+                term = target_sub.text
                 is_sentence_boundary = true
             end
         end
