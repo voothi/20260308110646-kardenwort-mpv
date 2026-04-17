@@ -868,8 +868,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
 
                             -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
+                            -- Account for the word's position in the term (term_offset)
                             if data.index and target_l_idx then
-                                context_satisfied = (data.index == target_l_idx)
+                                local expected_idx = data.index + (term_offset - 1)
+                                context_satisfied = (expected_idx == target_l_idx)
                                 -- If we have an absolute index match, we skip the fuzzy neighbor check!
                                 if context_satisfied then match_count = 2 end 
                             end
