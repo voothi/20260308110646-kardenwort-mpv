@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-17
 **Version**: v1.38.2
-**Implementation ZIDs**: 20260416213225, 20260416233537, 20260417000743, 20260417003410, 20260417014024, 20260417020101, 20260417021703
+**Implementation ZIDs**: 20260416213225, 20260416233537, 20260417000743, 20260417003410, 20260417014024, 20260417020101, 20260417021703, 20260417031800
 
 ## Highlights
 
@@ -15,6 +15,7 @@
 - **Punctuation-Agnostic Highlighting**: The highlighter's context neighbor check now "skips" over compound separators (dashes, slashes) and brackets to verify matches. This restores highlighting for German terms like `Amazon-Verteilzentrum` or words adjacent to metadata tags.
 - **Smart Export Joiner**: Upgraded the Anki export engine with a smart joiner that preserves hyphens and slashes in compound terms, ensuring the exported data remains linguistically accurate.
 - **Expanded UTF-8 Normalization**: Full case-insensitive matching and normalization for German umlauts (`äöü`) and the sharp S (`ß`, `ẞ`).
+- **German Character Search**: Native input support for umlauts and eszett in the Search HUD, enabling precise filtering of German vocabulary.
 
 ### 🥁 **UI Stability & Layout Hardening**
 - **Boundary-Aware Sliding Window**: Fixed the "shrinking block" effect at track boundaries. The Drum viewport now intelligently shifts its range to maintain consistent subtitle line density when navigating near the start or end of a file.
