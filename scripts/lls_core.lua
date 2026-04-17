@@ -1019,13 +1019,18 @@ local function starts_with_uppercase(str)
     return false
 end
 
-local function extract_anki_context(full_line, selected_term, max_words_override)
+local function extract_anki_context(full_line, selected_term, max_words_override, target_pos)
     if not full_line or full_line == "" then return "" end
     
     -- 1. Try to find the sentence boundary within the provided context lines
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
-    local start_pos, end_pos = full_lower:find(term_lower, 1, true)
+    local start_pos, end_pos = full_lower:find(term_lower, target_pos or 1, true)
+    
+    -- If target_pos didn't work, fallback to global search
+    if not start_pos and target_pos then
+        start_pos, end_pos = full_lower:find(term_lower, 1, true)
+    end
     
     -- Non-contiguous term fallback: the composed term can't be found verbatim
     -- (words were skipped between picks, or picks span sentence boundaries).
@@ -2443,6 +2448,8 @@ local function dw_anki_export_selection()
         
         local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
         local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+        local p1_l, p1_w = -1, -1
+        local ctx_target_anchor = 1
         local term = ""
         local context_line = ""
         local time_pos = 0
@@ -2470,14 +2477,18 @@ local function dw_anki_export_selection()
                 end
             end
             term = compose_term_smart(parts)
-            local ctx_parts = {}
+            local target_anchor = 1
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
+                    if k < p1_l then
+                        target_anchor = target_anchor + #subs[k].text + 1
+                    end
                     table.insert(ctx_parts, subs[k].text)
                 end
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = subs[p1_l].start_time
+            ctx_target_anchor = target_anchor
 
             -- Check if selection starts at a boundary
             if p1_w == 1 then
@@ -2489,16 +2500,20 @@ local function dw_anki_export_selection()
                 end
             end
         elseif cl ~= -1 and subs[cl] then
-            local sub = subs[cl]
-            local ctx_parts = {}
+            local target_anchor = 1
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
+                    if k < cl then
+                        target_anchor = target_anchor + #subs[k].text + 1
+                    end
                     table.insert(ctx_parts, subs[k].text)
                 end
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = sub.start_time
             p1_w = cw
+            p1_l = cl
+            ctx_target_anchor = target_anchor
             
             if cw ~= -1 then
                 local line_words = build_word_list(sub.text:gsub("\n", " "))
@@ -2556,7 +2571,7 @@ local function dw_anki_export_selection()
             context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-            local extracted_context = extract_anki_context(context_line, term, effective_limit)
+            local extracted_context = extract_anki_context(context_line, term, effective_limit, ctx_target_anchor)
             save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
             show_osd(string.format("Anki Highlight Saved: %s (Idx: %s)", term, tostring(p1_w or "None")))
             
