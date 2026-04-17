@@ -338,7 +338,7 @@ local function escape_tsv(str)
     return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
-local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts)
+local function resolve_anki_field(field_name, term, context, time_pos, item_index, deck_name, pri_lang, sec_lang, mapping, tts)
     if not field_name or field_name == "" then return "" end
     
     local source = mapping[field_name]
@@ -349,6 +349,7 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     
     if source == "source_word" then return escape_tsv(term) end
     if source == "source_sentence" then return escape_tsv(context) end
+    if source == "source_index" then return tostring(item_index or "") end
     if source == "time" then return string.format("%.3f", time_pos) end
     if source == "deck_name" then return escape_tsv(deck_name) end
     
@@ -829,21 +830,37 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                         -- Phase 2: Context Match
                         if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
-                            local has_neighbor = false
+                            local match_count = 0
+                            local neighbors_found = 0
                             for _, dir in ipairs({-1, 1}) do
                                 for offset = 1, 4 do
                                     local nw_text = get_relative_word_text(dir * offset)
                                     if not nw_text then break end
                                     local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
                                     if nw_clean ~= "" then
-                                        if data.__ctx_lower:find(nw_clean, 1, true) then has_neighbor = true end
+                                        neighbors_found = neighbors_found + 1
+                                        if data.__ctx_lower:find(nw_clean, 1, true) then 
+                                            match_count = match_count + 1 
+                                        end
                                         break
                                     end
                                 end
-                                if has_neighbor then break end
+                            end
+                            
+                            local context_satisfied = (match_count > 0)
+                            if #term_clean == 1 then
+                                -- For single words, require higher evidence (matching neighbors on both sides if available)
+                                if neighbors_found >= 2 then
+                                    context_satisfied = (match_count >= 2)
+                                end
                             end
 
-                            if not has_neighbor and #tokens > 1 then
+                            -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
+                            if data.index then
+                                context_satisfied = (data.index == target_l_idx)
+                            end
+
+                            if not context_satisfied and #tokens > 1 then
                                 local is_exempt = target_word_text:match("^%b[]$")
                                 if not is_exempt then
                                     local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
@@ -1275,12 +1292,14 @@ local function load_anki_tsv(force)
     local term_cols = {}
     local ctx_cols = {}
     local time_col = 3
+    local index_col = -1
     if #config.fields > 0 then
         for i, fld in ipairs(config.fields) do
             local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
             if src == "source_word" then table.insert(term_cols, i)
             elseif src == "source_sentence" then table.insert(ctx_cols, i)
-            elseif src == "time" then time_col = i end
+            elseif src == "time" then time_col = i
+            elseif src == "source_index" then index_col = i end
         end
     end
     if #term_cols == 0 then table.insert(term_cols, 1) end
@@ -1378,9 +1397,11 @@ local function load_anki_tsv(force)
                     time_val = time_val or 0
                 end
                 
+                local index_val = (index_col > 0) and tonumber(fields[index_col]) or nil
+                
                 local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
                 if t and t ~= "" and not is_header then
-                    table.insert(new_highlights, { term = t, context = c, time = time_val })
+                    table.insert(new_highlights, { term = t, context = c, time = time_val, index = index_val })
                 end
             end
         end
@@ -1390,7 +1411,7 @@ local function load_anki_tsv(force)
     FSM.ANKI_HIGHLIGHTS = new_highlights
 end
 
-local function save_anki_tsv_row(term, context, time_pos)
+local function save_anki_tsv_row(term, context, time_pos, item_index)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
 
@@ -1469,7 +1490,7 @@ local function save_anki_tsv_row(term, context, time_pos)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts))
+            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, item_index, deck_name, pri_lang, sec_lang, mapping, tts))
         end
     end
     
@@ -2526,7 +2547,7 @@ local function dw_anki_export_selection()
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit)
-            save_anki_tsv_row(term, extracted_context, time_pos)
+            save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
             show_osd("Anki Highlight Saved: " .. term)
             
             -- Force reload of TSV to pick up the new highlight and clear selection to show it
