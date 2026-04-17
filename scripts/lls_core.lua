@@ -2849,9 +2849,11 @@ local function tick_drum(time_pos)
     if is_drum and sec_pos > 50 then
         local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
         local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
-        -- Safety buffer: Ensure secondary is at least 2 full blocks above primary
+        -- Calculate safety position (2 blocks above primary)
         local min_safe_pos = pri_pos - (2 * (max_pixels / 1080) * 100)
-        sec_pos = math.min(sec_pos, min_safe_pos)
+        -- Apply relative offset so user keys (r/t) still work responsively
+        local auto_offset = min_safe_pos - Options.sec_pos_bottom
+        sec_pos = sec_pos + auto_offset
     end
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
