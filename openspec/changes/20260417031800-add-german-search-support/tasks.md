@@ -5,6 +5,6 @@
 
 ## 2. Verification
 
-- [ ] 2.1 Start mpv with a subtitle track and toggle Search Mode (`Ctrl+F`).
-- [ ] 2.2 Verify that German umlauts and the eszett can now be typed into the search query.
-- [ ] 2.3 Ensure that searching for terms with these characters correctly filters and highlights the results.
+- [x] 2.1 Start mpv with a subtitle track and toggle Search Mode (`Ctrl+F`).
+- [x] 2.2 Verify that German umlauts and the eszett can now be typed into the search query.
+- [x] 2.3 Ensure that searching for terms with these characters correctly filters and highlights the results.
