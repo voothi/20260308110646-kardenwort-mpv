@@ -16,6 +16,6 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Verify `Marken-Discount` export results in "Marken-Discount" in the TSV (no extra spaces).
-- [ ] 4.2 Verify `große` highlighting for German cards with `ß`.
-- [ ] 4.3 Verify `Netto/Globus` components are selectable and highlight against context.
+- [x] 4.1 Verify `Marken-Discount` export results in "Marken-Discount" in the TSV (no extra spaces).
+- [x] 4.2 Verify `große` highlighting for German cards with `ß`.
+- [x] 4.3 Verify `Netto/Globus` components are selectable and highlight against context.
