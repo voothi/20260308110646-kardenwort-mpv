@@ -2173,6 +2173,7 @@ local function dw_hit_test(osd_x, osd_y)
                 logical_wi = best_logical or 1
             end
 
+            print(string.format("[LLS] HIT-TEST: Line %d, Visual %d, Logical %s", entry.sub_idx, visual_wi, tostring(logical_wi)))
             return entry.sub_idx, logical_wi
         end
         y_pos = entry_bottom + sub_gap
@@ -2454,10 +2455,11 @@ local function dw_anki_export_selection()
             if not subs[p1_l] or not subs[p2_l] then return end
 
             local line_text = subs[p1_l].text
-            local feedback = string.format("INDEXED: %s (Idx: %s) @ %s", term, tostring(p1_w or "None"), line_text:sub(1, 20) .. "...")
+            local feedback = string.format("INDEXED: %s (Idx: %s) @ %s", term, tostring(p1_w or "None"), line_text:sub(1, 40) .. "...")
             -- Extra large OSD for verification
             mp.osd_message(string.format("DEBUG EXPORT: Word %s | Line #%d | Text: %s", tostring(p1_w), p1_l, line_text), 5)
-            print("[LLS] " .. feedback)
+            print("[LLS] EXPORT DEBUG: " .. feedback)
+            print(string.format("[LLS] EXPORT DEBUG RAW: Line=%d, Time=%.3f, Text=%s", p1_l, subs[p1_l].start_time, subs[p1_l].text))
             
             local parts = {}
             for i = p1_l, p2_l do
