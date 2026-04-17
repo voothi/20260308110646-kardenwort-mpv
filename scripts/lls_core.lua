@@ -1164,16 +1164,7 @@ local function load_sub(path, is_ass)
                             if raw_text ~= "" and not has_cyrillic(raw_text) then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
-                                local merged = false
-                                local search_limit = math.max(1, #subs - 10)
-                                for i = #subs, search_limit, -1 do
-                                    if subs[i].raw_text == raw_text then
-                                        subs[i].end_time = math.max(subs[i].end_time, parsed_end)
-                                        merged = true
-                                        break
-                                    end
-                                end
-                                if not merged then
+                                if true then -- Disabled merging for export accuracy
                                     table.insert(subs, {
                                         start_time = parsed_start,
                                         end_time = parsed_end,
@@ -2464,7 +2455,8 @@ local function dw_anki_export_selection()
 
             local line_text = subs[p1_l].text
             local feedback = string.format("INDEXED: %s (Idx: %s) @ %s", term, tostring(p1_w or "None"), line_text:sub(1, 20) .. "...")
-            show_osd(feedback, 3)
+            -- Extra large OSD for verification
+            mp.osd_message(string.format("DEBUG EXPORT: Word %s | Line #%d | Text: %s", tostring(p1_w), p1_l, line_text), 5)
             print("[LLS] " .. feedback)
             
             local parts = {}
