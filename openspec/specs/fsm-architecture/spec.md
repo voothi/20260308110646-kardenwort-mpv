@@ -63,3 +63,10 @@ The system configuration explicitly tracks modal interfaces that hijack default 
 #### Scenario: Search Mode Hijack
 - **WHEN** `FSM.SEARCH_MODE == true`
 - **THEN** it SHALL instantiate a dedicated input grabber, routing all character keystrokes away from native bindings into the Search Query buffer (`FSM.SEARCH_QUERY`), rendering the `search_osd` overlay at maximum z-index.
+
+### Requirement: European Character Search Support
+The Search Mode input grabber SHALL support the entry of German umlauts and the eszett character, along with their uppercase variants, by including them in the forced key binding whitelist.
+
+#### Scenario: User types German characters in search field
+- **WHEN** FSM.SEARCH_MODE is true and the user presses 'ä', 'ö', 'ü', 'ß', 'Ä', 'Ö', 'Ü', or 'ẞ'
+- **THEN** THE OSD SHALL capture these characters, append them to FSM.SEARCH_QUERY, and update the search results dynamically.
