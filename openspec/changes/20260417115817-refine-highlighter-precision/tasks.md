@@ -1,12 +1,12 @@
 ## 1. Core Script Updates
 
-- [ ] 1.1 Update `Options.anki_local_fuzzy_window` from `10.0` to `3.0` in `scripts/lls_core.lua`.
-- [ ] 1.2 Update `Options.anki_context_strict` from `false` to `true` in `scripts/lls_core.lua`.
+- [x] 1.1 Update `Options.anki_local_fuzzy_window` from `10.0` to `3.0` in `scripts/lls_core.lua`.
+- [x] 1.2 Update `Options.anki_context_strict` from `false` to `true` in `scripts/lls_core.lua`.
 
 ## 2. Global Configuration Updates
 
-- [ ] 2.1 Update `lls-anki_local_fuzzy_window` to `3.0` in `mpv.conf` (overriding the existing restricted value of `1`).
-- [ ] 2.2 Update `lls-anki_context_strict` to `yes` in `mpv.conf`.
+- [x] 2.1 Update `lls-anki_local_fuzzy_window` to `3.0` in `mpv.conf` (overriding the existing restricted value of `1`).
+- [x] 2.2 Update `lls-anki_context_strict` to `yes` in `mpv.conf`.
 
 ## 3. Verification
 
