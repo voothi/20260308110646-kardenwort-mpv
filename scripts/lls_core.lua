@@ -322,6 +322,22 @@ mapping = {},
     return config
 end
 
+local function reindex_track(track)
+    if not track or not track.subs then return end
+    local global_logical_idx = 1
+    for _, s in ipairs(track.subs) do
+        if not s.tokens then
+            s.tokens = build_word_list_internal(s.text, true)
+        end
+        for _, t in ipairs(s.tokens) do
+            if t.is_word then
+                t.logical_idx = global_logical_idx
+                global_logical_idx = global_logical_idx + 1
+            end
+        end
+    end
+end
+
 local function extract_subtitle_metadata(path)
     if not path or path == "" then return "", "" end
     local filename = path:match("([^/\\]+)$") or path
@@ -728,41 +744,26 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
     -- Helper to get a word by relative LOGICAL offset
     local function get_relative_word_text(rel_logical_offset)
-        local curr_s_idx = sub_idx
         local target_logical_idx = target_l_idx + rel_logical_offset
-        
-        local safety = 0
-        while safety < 5 do
-            safety = safety + 1
-            local c_tokens = get_sub_tokens(subs[curr_s_idx])
-            if not c_tokens then return nil end
-            
-            for _, t in ipairs(c_tokens) do
-                if t.logical_idx == target_logical_idx then
-                    return t.text
-                end
+        if target_logical_idx < 1 then return nil end
+
+        local function search_sub(idx)
+            local s = subs[idx]
+            if not s then return nil end
+            local s_tokens = get_sub_tokens(s)
+            for _, t in ipairs(s_tokens) do
+                if t.logical_idx == target_logical_idx then return t.text end
             end
-            
-            -- Bounds check to move segments
-            local first_l, last_l = nil, nil
-            for _, t in ipairs(c_tokens) do
-                if t.logical_idx then
-                    if not first_l then first_l = t.logical_idx end
-                    last_l = t.logical_idx
-                end
-            end
-            
-            if not last_l then return nil end
-            
-            if target_logical_idx > last_l then
-                curr_s_idx = curr_s_idx + 1
-                if not subs[curr_s_idx] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 1.5) then return nil end
-            elseif target_logical_idx < first_l then
-                curr_s_idx = curr_s_idx - 1
-                if not subs[curr_s_idx] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 1.5) then return nil end
-            else
-                return nil
-            end
+            return nil
+        end
+
+        local res = search_sub(sub_idx)
+        if res then return res end
+
+        local dir = rel_logical_offset > 0 and 1 or -1
+        for i = 1, 3 do
+            res = search_sub(sub_idx + i * dir)
+            if res then return res end
         end
         return nil
     end
@@ -1619,9 +1620,11 @@ local function update_media_state()
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
         Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+        reindex_track(Tracks.pri)
     end
     if Tracks.sec.path and #Tracks.sec.subs == 0 then
         Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
+        reindex_track(Tracks.sec)
     end
 
     -- Determine State
@@ -2460,7 +2463,7 @@ local function dw_anki_export_selection()
         local is_sentence_boundary = false
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            local p1_l, p2_l, p2_w
+            local p2_l, p2_w
             if al < cl or (al == cl and aw <= cw) then
                 p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
             else
@@ -2471,15 +2474,16 @@ local function dw_anki_export_selection()
             
             local parts = {}
             for i = p1_l, p2_l do
-                local text = (subs[i].text:gsub("\n", " "))
-                local words = build_word_list(text)
-                local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or #words
-                for j = s_w, e_w do 
-                    if words[j] then table.insert(parts, words[j]) end
+                local s = subs[i]
+                local tokens = get_sub_tokens(s)
+                for _, t in ipairs(tokens) do
+                    if t.logical_idx and t.logical_idx >= p1_w and t.logical_idx <= p2_w then
+                        table.insert(parts, t.text)
+                    end
                 end
             end
             term = compose_term_smart(parts)
+            
             local ctx_parts = {}
             local target_anchor = 1
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
@@ -2494,16 +2498,44 @@ local function dw_anki_export_selection()
             time_pos = subs[p1_l].start_time
             ctx_target_anchor = target_anchor
 
-            -- Check if selection starts at a boundary
+            -- Boundary check (global index)
+            local prev_w = get_relative_word_text(p1_w - target_l_idx - 1) -- Wait, offset logic
+            -- Actually easier:
+            local function check_boundary(g_idx)
+                local res = false
+                local offset = 0
+                while not res and offset < 10 do
+                    offset = offset + 1
+                    local t_prev = nil
+                    -- search globally for g_idx - offset
+                    -- but we just want the immediate previous WORD
+                    -- I'll use a simpler helper
+                end
+            end
+            -- Let's just use the fact that p1_w is global.
+            -- If p1_w is the first word of the video, it's a boundary.
             if p1_w == 1 then
                 is_sentence_boundary = true
             else
-                local first_words = build_word_list(subs[p1_l].text:gsub("\n", " "))
-                if first_words[p1_w - 1] and first_words[p1_w - 1]:match("[.!?]$") then
+                -- Find previous word text
+                local target_p = p1_w - 1
+                local prev_text = nil
+                for scan_i = math.max(1, p1_l - 1), p1_l do
+                    local stks = get_sub_tokens(subs[scan_i])
+                    for _, t in ipairs(stks) do
+                        if t.logical_idx == target_p then
+                            prev_text = t.text
+                            break
+                        end
+                    end
+                    if prev_text then break end
+                end
+                if prev_text and prev_text:match("[.!?]$") then
                     is_sentence_boundary = true
                 end
             end
         elseif cl ~= -1 and subs[cl] then
+            local sub = subs[cl]
             local ctx_parts = {}
             local target_anchor = 1
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
@@ -2521,13 +2553,32 @@ local function dw_anki_export_selection()
             ctx_target_anchor = target_anchor
             
             if cw ~= -1 then
-                local line_words = build_word_list(sub.text:gsub("\n", " "))
-                term = line_words[cw] or (sub.text:gsub("\n", " "))
-                -- Check for boundary
+                local stks = get_sub_tokens(sub)
+                for _, t in ipairs(stks) do
+                    if t.logical_idx == cw then
+                        term = t.text
+                        break
+                    end
+                end
+                -- Boundary check
                 if cw == 1 then
                     is_sentence_boundary = true
-                elseif line_words[cw - 1] and line_words[cw - 1]:match("[.!?]$") then
-                    is_sentence_boundary = true
+                else
+                    local prev_text = nil
+                    local target_p = cw - 1
+                    for scan_i = math.max(1, cl - 1), cl do
+                        local sstks = get_sub_tokens(subs[scan_i])
+                        for _, t in ipairs(sstks) do
+                            if t.logical_idx == target_p then
+                                prev_text = t.text
+                                break
+                            end
+                        end
+                        if prev_text then break end
+                    end
+                    if prev_text and prev_text:match("[.!?]$") then
+                        is_sentence_boundary = true
+                    end
                 end
             else
                 term = sub.text:gsub("\n", " ")
@@ -3240,7 +3291,22 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
-        {key = "MBTN_MID", name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
+        {key = "MBTN_MID", name = "dw-mmb-action", fn = function(t)
+            if t.event ~= "down" then return end
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local l, w = dw_hit_test(osd_x, osd_y)
+            if not l or not w then return end
+            
+            -- If we have items in the pending set, commit them. Otherwise, do regular selection export.
+            local count = 0
+            for _ in pairs(FSM.DW_CTRL_PENDING_SET) do count = count + 1 end
+            
+            if count > 0 then
+                ctrl_commit_set(l, w)
+            else
+                dw_anki_export_selection()
+            end
+        end, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Multi-select
