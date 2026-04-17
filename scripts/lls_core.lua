@@ -701,6 +701,21 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
+local function get_center_index(subs, time_pos)
+    if not subs or #subs == 0 then return -1 end
+    for i = 1, #subs do
+        local sub = subs[i]
+        if time_pos >= sub.start_time and time_pos <= sub.end_time then return i end
+        if time_pos < sub.start_time then
+            if i > 1 then
+                local prev = subs[i-1]
+                if (time_pos - prev.end_time) < (sub.start_time - time_pos) then return i - 1 else return i end
+            else return 1 end
+        end
+    end
+    return #subs
+end
+
 local function get_sub_tokens(s)
     if not s then return nil end
     if not s.tokens then 
@@ -890,6 +905,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         match_found = true
                         if #term_clean > 1 then has_phrase = true end
                     elseif #term_clean > 1 then
+                        local origin_sub_idx = get_center_index(subs, data.time)
                         -- Phase 3: Split Matching (Deterministic Index Targeting)
                         if not subs[sub_idx].__split_valid_indices then
                             subs[sub_idx].__split_valid_indices = {}
@@ -899,14 +915,23 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set == nil then
                             valid_set = false
                             local ctx_list = {}
-                            for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
+                            
+                            -- Stricter scan window for splits: ±3 segments from either current or origin,
+                            -- and must fall within a 10s temporal window of the export.
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 3)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 3)
+
+                            for scan_i = s_start, s_end do
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
-                                    for t_idx, t in ipairs(scan_tokens) do
-                                        if t.is_word then
-                                            local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                                            if cw ~= "" then
-                                                table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_idx})
+                                    local gap = math.abs(subs[scan_i].start_time - data.time)
+                                    if gap < 5.0 then -- 5s search radius around export time
+                                        for t_idx, t in ipairs(scan_tokens) do
+                                            if t.is_word then
+                                                local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                                                if cw ~= "" then
+                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_idx, start=subs[scan_i].start_time})
+                                                end
                                             end
                                         end
                                     end
@@ -928,11 +953,32 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 local min_span = 999999
                                 local function search(term_idx, current_tuple)
                                     if term_idx > #term_clean then
-                                        local span = current_tuple[#current_tuple] - current_tuple[1]
-                                        if span < min_span then
-                                            min_span = span
-                                            best_tuple = {}
-                                            for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                        -- Verify Logic Contiguity
+                                        local valid_timing = true
+                                        local has_anchor = (not data.index) or (origin_sub_idx == -1)
+                                        
+                                        for m_idx = 1, #current_tuple do
+                                            local m = ctx_list[current_tuple[m_idx]]
+                                            if m_idx > 1 then
+                                                local prev_m = ctx_list[current_tuple[m_idx-1]]
+                                                -- Components of a split phrase must be within 2s of each other
+                                                if math.abs(m.start - prev_m.start) > 2.0 then
+                                                    valid_timing = false; break
+                                                end
+                                            end
+                                            -- If an index anchor was provided, it MUST be part of the tuple
+                                            if data.index and m.s_i == origin_sub_idx and m.t_i == data.index then
+                                                has_anchor = true
+                                            end
+                                        end
+
+                                        if valid_timing and has_anchor then
+                                            local span = current_tuple[#current_tuple] - current_tuple[1]
+                                            if span < min_span then
+                                                min_span = span
+                                                best_tuple = {}
+                                                for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                            end
                                         end
                                         return
                                     end
@@ -1519,20 +1565,6 @@ local function show_osd(msg, dur)
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
 end
 
-local function get_center_index(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
-    for i = 1, #subs do
-        local sub = subs[i]
-        if time_pos >= sub.start_time and time_pos <= sub.end_time then return i end
-        if time_pos < sub.start_time then
-            if i > 1 then
-                local prev = subs[i-1]
-                if (time_pos - prev.end_time) < (sub.start_time - time_pos) then return i - 1 else return i end
-            else return 1 end
-        end
-    end
-    return #subs
-end
 
 -- =========================================================================
 -- FSM INTERNAL LOGIC
