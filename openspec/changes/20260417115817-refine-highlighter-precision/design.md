@@ -17,6 +17,7 @@ The current `lls_core.lua` implementation of the Anki highlighter relies on a ge
 
 - **Enable `anki_context_strict` by default**: Set `Options.anki_context_strict = true` in the core script and `lls-anki_context_strict=yes` in `mpv.conf`. Rationale: Text-only matching on common grammatical particles is insufficient in local mode.
 - **Set `anki_local_fuzzy_window` to 3.0s**: This provides enough buffer for subtitle timing variances while effectively cutting off matches from neighboring sentences (which typically have a >3s gap between centers).
+- **Implement Proximity-to-Center Anchoring**: Modify `extract_anki_context` to perform a "fuzzy find" that favors the occurrence closest to the exact middle of the input string. Since `anki_export_selection` provides a window symmetrical around the selection, the true match is mathematically nearest to the buffer center.
 - **Update Core Defaults**: Ensure `lls_core.lua` has these as hardcoded defaults so new installations benefit immediately without requiring `mpv.conf` edits.
 
 ## Risks / Trade-offs

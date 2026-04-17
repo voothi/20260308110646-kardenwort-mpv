@@ -10,8 +10,17 @@ The system SHALL support a strict contextual validation mode for localized highl
 
 #### Scenario: Skipping word in different sentence
 - **WHEN** `anki_context_strict` is ON
-- **AND** a word matches a card whose neighbors do NOT match the card's context sentence (e.g. "die" in a different sentence)
+- **WHEN** a word matches a card whose neighbors do NOT match the card's context sentence (e.g. "die" in a different sentence)
 - **THEN** the highlight SHALL NOT be applied.
+
+### Requirement: Center-Biased Context Extraction
+The context extraction engine SHALL prioritize the occurrence of the term closest to the center of the provided text buffer when multiple identical matches are present.
+
+#### Scenario: Ambiguous Word Matching
+- **GIVEN** a context buffer containing "A: die word ... B: die word"
+- **AND** the target selection is at the center (Sentence B)
+- **WHEN** extracting context for "die"
+- **THEN** the system SHALL anchor around the "die" in Sentence B, even if another "die" exists earlier in the buffer.
 
 ### Requirement: Precise Local Matching Window
 The default temporal window for localized highlights SHALL be reduced to ensure that "drift" only bridges small technical timing variances between subtitles and TSV records, rather than spanning entire unrelated sentences.

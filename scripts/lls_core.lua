@@ -1017,48 +1017,37 @@ end
 local function extract_anki_context(full_line, selected_term, max_words_override)
     if not full_line or full_line == "" then return "" end
     
-    -- 1. Try to find the sentence boundary within the provided context lines
+    -- 1. Find the occurrence of the term closest to the center of the text block.
+    -- This anchoring ensures that common words (like "die") correspond to the actual 
+    -- selection center rather than the first occurrence in the context window.
+    local center = #full_line / 2
+    local min_s, max_e = nil, nil
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
-    local start_pos, end_pos = full_lower:find(term_lower, 1, true)
-    
-    -- Non-contiguous term fallback: the composed term can't be found verbatim
-    -- (words were skipped between picks, or picks span sentence boundaries).
-    -- Anchor accurately by finding the occurrence of EVERY word in the term
-    -- that is closest to the blob center, then using the min-start and max-end
-    -- of those matches as the search span. This ensures that selections spanning
-    -- across sentence boundaries (e.g. "und ... Ende") correctly capture all
-    -- involved sentences.
-    if not start_pos then
-        local center = #full_line / 2
-        local min_s, max_e = nil, nil
+
+    for word in term_lower:gmatch("%S+") do
+        local best_ws, best_we = nil, nil
+        local best_dist = math.huge
+        local search_from = 1
         
-        for word in term_lower:gmatch("%S+") do
-            local best_ws, best_we = nil, nil
-            local best_dist = math.huge
-            local search_from = 1
-            
-            while true do
-                local ws, we = full_lower:find(word, search_from, true)
-                if not ws then break end
-                local dist = math.abs((ws + we) / 2 - center)
-                if dist < best_dist then
-                    best_dist = dist
-                    best_ws, best_we = ws, we
-                end
-                search_from = we + 1
+        while true do
+            local ws, we = full_lower:find(word, search_from, true)
+            if not ws then break end
+            local dist = math.abs((ws + we) / 2 - center)
+            if dist < best_dist then
+                best_dist = dist
+                best_ws, best_we = ws, we
             end
-            
-            if best_ws then
-                min_s = (not min_s) and best_ws or math.min(min_s, best_ws)
-                max_e = (not max_e) and best_we or math.max(max_e, best_we)
-            end
+            search_from = we + 1
         end
         
-        if min_s then
-            start_pos, end_pos = min_s, max_e
+        if best_ws then
+            min_s = (not min_s) and best_ws or math.min(min_s, best_ws)
+            max_e = (not max_e) and best_we or math.max(max_e, best_we)
         end
     end
+    
+    local start_pos, end_pos = min_s, max_e
     
     local sentence = full_line
     if start_pos then

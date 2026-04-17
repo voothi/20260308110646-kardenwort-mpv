@@ -6,6 +6,7 @@ The Anki word highlighting system currently exhibits "visual noise" where words 
 
 - **Default Sensitivity**: Update the default configuration to enable strict context matching (`anki_context_strict=yes`) and reduce the local temporal window (`anki_local_fuzzy_window=3.0`).
 - **Linguistic Context Binding**: The highlighter will now require that neighbors of a word in the subtitle also appear in the original card's context sentence before applying a highlight in Local mode.
+- **Center-Biased Context Extraction**: Refine the TSV export logic to ensure that the extracted context sentence is centered around the *actual occurrence* of the term the user selected, rather than simply picking the first occurrence in the broad context window.
 - **Improved Focus**: These changes will ensure that "Local Mode" behaves as expected—only showing the specific words that were marked in the exact sentence they were created from.
 
 ## Capabilities

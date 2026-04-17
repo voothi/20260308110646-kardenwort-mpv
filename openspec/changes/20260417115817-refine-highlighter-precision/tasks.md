@@ -2,6 +2,7 @@
 
 - [x] 1.1 Update `Options.anki_local_fuzzy_window` from `10.0` to `3.0` in `scripts/lls_core.lua`.
 - [x] 1.2 Update `Options.anki_context_strict` from `false` to `true` in `scripts/lls_core.lua`.
+- [x] 1.3 Refactor `extract_anki_context` in `scripts/lls_core.lua` to always use center-biased anchoring for term matching.
 
 ## 2. Global Configuration Updates
 
