@@ -1,8 +1,33 @@
-# Release Notes - v1.34.2 (Keyboard Tooltips & Selection Persistence)
+# Release Notes - v1.38.2 (Scanner-Based Precision & UI Hardening)
 
-**Date**: 2026-04-16
-**Version**: v1.34.2
-**Implementation ZIDs**: 20260416103557, 20260416151047
+**Date**: 2026-04-17
+**Version**: v1.38.2
+**Implementation ZIDs**: 20260416213225, 20260416233537, 20260417000743, 20260417003410, 20260417014024, 20260417020101, 20260417021703
+
+## Highlights
+
+### ⚡ **Scanner-Based Parsing & "Original Form" Display**
+- **State-Machine Tokenization**: Migrated to a robust, single-pass scanner for subtitle parsing. This enables superior handling of complex German compounds, ASS tags (`{...}`), and bracketed metadata (`[...]`) without breaking word boundaries.
+- **"Original Form" Fidelity**: Introduced `dw_original_spacing` (Boolean). When enabled, the Drum Window perfectly mirrors the whitespace and formatting of the source subtitle file, while still allowing for individual word-level interactivity and coloring.
+- **Filler Token Retrieval**: The parser now captures whitespace and symbols as distinct tokens rather than discarding them, ensuring high-fidelity rendering for acronyms (e.g., `z.B.`) and technical terms.
+
+### 🇩🇪 **High-Fidelity German Compound Support**
+- **Punctuation-Agnostic Highlighting**: The highlighter's context neighbor check now "skips" over compound separators (dashes, slashes) and brackets to verify matches. This restores highlighting for German terms like `Amazon-Verteilzentrum` or words adjacent to metadata tags.
+- **Smart Export Joiner**: Upgraded the Anki export engine with a smart joiner that preserves hyphens and slashes in compound terms, ensuring the exported data remains linguistically accurate.
+- **Expanded UTF-8 Normalization**: Full case-insensitive matching and normalization for German umlauts (`äöü`) and the sharp S (`ß`, `ẞ`).
+
+### 🥁 **UI Stability & Layout Hardening**
+- **Boundary-Aware Sliding Window**: Fixed the "shrinking block" effect at track boundaries. The Drum viewport now intelligently shifts its range to maintain consistent subtitle line density when navigating near the start or end of a file.
+- **Reliable Seek Highlighting**: Standardized active line highlighting across all modes. Active subtitles now consistently render in white during navigation and playback, resolving a regression where floating-point precision issues caused lines to remain dimmed.
+- **Smart Stacking & Positioning**: Improved layout coordination for dual-track subtitles in Drum Mode. Restored manual vertical adjustment control (via `r`/`t` keys) while implementing better default spacing to prevent overlap.
+
+### 🛡️ **Bracketed Metadata & Content Handling**
+- **Selective Bracket Preservation**: Users can now export bracketed terms (e.g., `[UMGEBUNG]`) as clean text targets. The engine strips the brackets but preserves the content if it represents the primary selection.
+- **Safe Tag Neighbors**: Bracketed expressions are now treated as "safe" neighbors during strict context matching, preventing surrounding words from losing their highlights.
+
+---
+
+# Release Notes - v1.34.2 (Keyboard Tooltips & Selection Persistence)
 
 ## Highlights
 

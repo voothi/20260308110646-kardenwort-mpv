@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.34.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.34.2) 
+[![Version](https://img.shields.io/badge/version-v1.38.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.38.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -73,8 +73,9 @@ This suite solves problems that standard video players and generic scripts ignor
 7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
 8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
 9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
-10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session, even across multi-word split constructs.
+10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session, even across multi-word split constructs and German hyphenated compounds.
 11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
+12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
 
 [Return to Top](#table-of-contents)
 
@@ -125,9 +126,10 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Actionable Text**: Double-Click any subtitle word to instantly seek video playback to that exact phrase and re-center the viewport.
 - **Stationary "Book Mode"**: Toggle with **`b`** to lock the viewport. Navigating through lines or selecting words won't cause the window to scroll or flicker, providing a stable, reading-focused experience.
 - **Selection Persistence**: Manual seeks via `a`/`d` no longer clear your yellow highlight, allowing you to check context and return to your pending export line.
+- **"Original Form" Display**: Toggle `dw_original_spacing` to perfectly mirror any subtitle's whitespace and character-stream formatting without sacrificing word-level selection.
 - **Contextual Tooltips**: Press **`e`** or **Right-Click** on any line to instantly see a translation hint. In "Hover Mode" (`n`), hints appear automatically as you scan the text.
 - **Static Viewport**: The viewport remains stable while navigating via arrows, providing a flicker-free environment for reading and selection.
-- **Edge-Aware Scrolling**: The window only scrolls when the cursor hits the top or bottom edges, or via standard `Mouse Wheel`/`Ctrl+Arrows`.
+- **Boundary-Aware Sliding Window**: The viewport intelligently shifts at track edges to maintain consistent line density and vertical positioning.
 - **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
 - **Toggle**: `W` (English) or `Ц` (Russian).
 
@@ -140,7 +142,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 - **Multi-Word Selection**: 
   - `Ctrl + LMB`: Accumulate individual words into a yellow pending selection.
   - `MMB`: Commit the selected set as a highlight and export it to your TSV database.
-- **Automatic Sanitization**: Strips leading/trailing punctuation and bracketed metadata (e.g. `[Musik]`) to ensure cards are optimized for dictionary matching.
+- **Automatic Sanitization**: Strips leading/trailing punctuation and bracketed metadata (e.g. `[Musik]`) to ensure cards are optimized for dictionary matching. Smart joiners preserve hyphens/slashes in German compounds.
 - **Dynamic Context**: The engine intelligently scans surrounding lines to capture grammatically complete sentences for your flashcards.
 - **Instant Record Access**: Press **`o`** within the Drum Window to instantly open your active TSV database in your default editor.
 
@@ -232,6 +234,7 @@ The project now uses a centralized configuration model. All core script behavior
 - **`script-opts-append=lls-anki_sync_period=5`**: Frequency of TSV database reloads.
 - **`script-opts-append=lls-dw_vline_h_mul=0.87`**: Tunable vertical hit-test multiplier.
 - **`script-opts-append=lls-book_mode=no`**: Stationary viewport lock (default).
+- **`script-opts-append=lls-dw_original_spacing=yes`**: Perfectly mirror source subtitle formatting.
 - **`script-opts-append=lls-copy_default_mode=A`**: Set the default clipboard target.
 
 ### Anki Field Mapping
@@ -250,7 +253,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.34.2 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.38.2 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -259,7 +262,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~520 Commits (v1.34.2)
+- **Current Maturity**: ~560 Commits (v1.38.2)
 - **Intensity Profile**: 5.2 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
