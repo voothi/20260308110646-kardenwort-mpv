@@ -862,8 +862,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
 
                             -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
-                            if data.index then
+                            if data.index and target_l_idx then
                                 context_satisfied = (data.index == target_l_idx)
+                                -- If we have an absolute index match, we skip the fuzzy neighbor check!
+                                if context_satisfied then match_count = 2 end 
                             end
 
                             if not context_satisfied and #tokens > 1 then
@@ -1296,7 +1298,9 @@ local function load_anki_tsv(force)
             if src == "source_word" then table.insert(term_cols, i)
             elseif src == "source_sentence" then table.insert(ctx_cols, i)
             elseif src == "time" then time_col = i
-            elseif src == "source_index" then index_col = i end
+            elseif src == "source_index" or fld == "SentenceSourceIndex" or fld == "WordSourceIndex" then 
+                 index_col = i 
+            end
         end
     end
     if #term_cols == 0 then table.insert(term_cols, 1) end
@@ -1494,7 +1498,7 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     f:write(table.concat(row_data, "\t") .. "\n")
     f:close()
 
-    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos })
+    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos, index = item_index })
 end
 
 local function show_osd(msg, dur)
@@ -2442,10 +2446,11 @@ local function dw_anki_export_selection()
         local term = ""
         local context_line = ""
         local time_pos = 0
+        local p1_w = nil
         local is_sentence_boundary = false
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            local p1_l, p1_w, p2_l, p2_w
+            local p1_l, p2_l, p2_w
             if al < cl or (al == cl and aw <= cw) then
                 p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
             else
@@ -2453,13 +2458,6 @@ local function dw_anki_export_selection()
             end
             
             if not subs[p1_l] or not subs[p2_l] then return end
-
-            local line_text = subs[p1_l].text
-            local feedback = string.format("INDEXED: %s (Idx: %s) @ %s", term, tostring(p1_w or "None"), line_text:sub(1, 40) .. "...")
-            -- Extra large OSD for verification
-            mp.osd_message(string.format("DEBUG EXPORT: Word %s | Line #%d | Text: %s", tostring(p1_w), p1_l, line_text), 5)
-            print("[LLS] EXPORT DEBUG: " .. feedback)
-            print(string.format("[LLS] EXPORT DEBUG RAW: Line=%d, Time=%.3f, Text=%s", p1_l, subs[p1_l].start_time, subs[p1_l].text))
             
             local parts = {}
             for i = p1_l, p2_l do
@@ -2500,6 +2498,8 @@ local function dw_anki_export_selection()
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = sub.start_time
+            p1_w = cw
+            
             if cw ~= -1 then
                 local line_words = build_word_list(sub.text:gsub("\n", " "))
                 term = line_words[cw] or (sub.text:gsub("\n", " "))
@@ -2516,6 +2516,12 @@ local function dw_anki_export_selection()
         end
 
         if term and term ~= "" then
+            -- Debugging: Now that p1_w and term are definitely resolved, show info
+            local line_text = context_line:sub(1, 100)
+            local feedback = string.format("INDEXED: %s (Idx: %s) @ %s", term, tostring(p1_w or "None"), line_text:sub(1, 40) .. "...")
+            mp.osd_message(string.format("DEBUG EXPORT: Word %s | Text: %s", tostring(p1_w or "None"), term), 5)
+            print("[LLS] EXPORT DEBUG: " .. feedback)
+            
             -- Clean term: remove ASS tags and trim whitespace
             term = term:gsub("{[^}]+}", "")
             if Options.anki_strip_metadata then
