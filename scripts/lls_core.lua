@@ -834,29 +834,36 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                         -- Phase 2: Context Match
                         local needs_strict = Options.anki_context_strict or (#term_clean == 1)
-                        if sequence_match and needs_strict and not Options.anki_global_highlight then
+                        if sequence_match then
+                            -- Perform precision checks (Index and Neighbors)
                             local match_count = 0
                             local neighbors_found = 0
-                            for _, dir in ipairs({-1, 1}) do
-                                for offset = 1, 4 do
-                                    local nw_text = get_relative_word_text(dir * offset)
-                                    if not nw_text then break end
-                                    local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
-                                    if nw_clean ~= "" then
-                                        neighbors_found = neighbors_found + 1
-                                        if data.__ctx_lower:find(nw_clean, 1, true) then 
-                                            match_count = match_count + 1 
+                            
+                            -- Only perform fuzzy neighbor check if not in Global mode or explicitly requested
+                            if not Options.anki_global_highlight or needs_strict then
+                                for _, dir in ipairs({-1, 1}) do
+                                    for offset = 1, 4 do
+                                        local nw_text = get_relative_word_text(dir * offset)
+                                        if not nw_text then break end
+                                        local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
+                                        if nw_clean ~= "" then
+                                            neighbors_found = neighbors_found + 1
+                                            if data.__ctx_lower:find(nw_clean, 1, true) then 
+                                                match_count = match_count + 1 
+                                            end
+                                            break
                                         end
-                                        break
                                     end
                                 end
                             end
                             
-                            local context_satisfied = (match_count > 0)
-                            if #term_clean == 1 then
-                                -- For single words, require higher evidence (matching neighbors on both sides if available)
-                                if neighbors_found >= 2 then
-                                    context_satisfied = (match_count >= 2)
+                            local context_satisfied = true
+                            if not Options.anki_global_highlight or needs_strict then
+                                context_satisfied = (match_count > 0)
+                                if #term_clean == 1 then
+                                    if neighbors_found >= 2 then
+                                        context_satisfied = (match_count >= 2)
+                                    end
                                 end
                             end
 
