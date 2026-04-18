@@ -12,6 +12,15 @@ The rendering engine SHALL utilize three distinct color palettes, each with thre
 - **Palette 2: Split (Non-Contiguous)**: Used for multi-word terms where constituent words are present in the same context but arranged non-contiguously. Defined by `anki_split_depth_1`, `anki_split_depth_2`, `anki_split_depth_3`. Default hues: Purple.
 - **Palette 3: Brick Color (Intersection)**: Used when a single word is simultaneously a member of at least one Contiguous (Orange) term and at least one Split (Purple) term. Defined by `anki_mix_depth_1`, `anki_mix_depth_2`, `anki_mix_depth_3`. This represents a logical intersection.
 
+### Requirement: Palette Precedence and Priority Logic
+The highlighting engine MUST evaluate potential matches in a specific order to ensure that the most natural reading (contiguous phrases) is prioritized.
+
+#### Scenario: Contiguous Priority for Nearby Words
+- **GIVEN** a saved term contains multiple words (e.g. from an export of non-contiguous "dim yellow" selections)
+- **WHEN** those words appear in a subtitle segment as an exact, adjacent sequence (one after the other)
+- **THEN** the engine SHALL render them in **Orange** (Palette 1: Contiguous) rather than Purple.
+- **AND** this priority applies regardless of how the term was originally selected or saved, as long as it satisfies a contiguous match in the current context.
+
 ### Requirement: Interaction and Selection Priority
 The rendering engine SHALL resolve overlaps between manual user selections and automated highlighting according to a strict priority hierarchy.
 
