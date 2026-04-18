@@ -46,10 +46,8 @@
 20260418200908 What if this combination is highlighted in purple (1 word + 2 adjacent words)? Specify this case. 20260418201312 What if 3 words stand out? Specify as well. 20260418201620 I have described these cases. This is how it works now. It needs to be written down in the specifications.
 20260418201742 Add a full piece of text to the specifications for example - Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.
 20260418201933 opsx-archive
-
-
-
-
+20260418202234 o Let's deal with adding `die` to TSV from the sentence `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.` Now when you click on it, it is on it, and not on the previous `die` in the sentence `Dazu sollen Sie fünf Aufgaben lösen. Sie hören die Nachrichtensendung nur einmal.`, Such a record is saved in the TSV file and this is not correct. Apparently, he took `die` from the sentence `Sie hören die Nachrichtensendung nur einmal.`, which comes first. At the same time, this first `die` was also highlighted in orange, and not just the second, which I expected.
+20260418203703 Now it’s the other way around. When you click on the first die, it is added with the offer from the second.
 
 
 

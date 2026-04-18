@@ -1073,10 +1073,25 @@ end
 local function extract_anki_context(full_line, selected_term, max_words_override)
     if not full_line or full_line == "" then return "" end
     
-    -- 1. Try to find the sentence boundary within the provided context lines
+    -- 1. Try to find the occurrence closest to the center of the provided context block.
+    -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
-    local start_pos, end_pos = full_lower:find(term_lower, 1, true)
+    local center = #full_line / 2
+    local start_pos, end_pos = nil, nil
+    local best_dist = math.huge
+    local search_from = 1
+    
+    while true do
+        local s, e = full_lower:find(term_lower, search_from, true)
+        if not s then break end
+        local dist = math.abs((s + e) / 2 - center)
+        if dist < best_dist then
+            best_dist = dist
+            start_pos, end_pos = s, e
+        end
+        search_from = e + 1
+    end
     
     -- Non-contiguous term fallback: the composed term can't be found verbatim
     -- (words were skipped between picks, or picks span sentence boundaries).
@@ -1086,23 +1101,22 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     -- across sentence boundaries (e.g. "und ... Ende") correctly capture all
     -- involved sentences.
     if not start_pos then
-        local center = #full_line / 2
         local min_s, max_e = nil, nil
         
         for word in term_lower:gmatch("%S+") do
             local best_ws, best_we = nil, nil
-            local best_dist = math.huge
-            local search_from = 1
+            local best_dist_word = math.huge
+            local s_from = 1
             
             while true do
-                local ws, we = full_lower:find(word, search_from, true)
+                local ws, we = full_lower:find(word, s_from, true)
                 if not ws then break end
                 local dist = math.abs((ws + we) / 2 - center)
-                if dist < best_dist then
-                    best_dist = dist
+                if dist < best_dist_word then
+                    best_dist_word = dist
                     best_ws, best_we = ws, we
                 end
-                search_from = we + 1
+                s_from = we + 1
             end
             
             if best_ws then
