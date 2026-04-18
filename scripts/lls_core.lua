@@ -746,7 +746,6 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         if csw ~= "" then target_subsets[csw] = true end
     end
 
-    -- Helper to get a word by relative LOGICAL offset
     local function get_relative_word_text(rel_logical_offset)
         local curr_s_idx = sub_idx
         local target_logical_idx = target_l_idx + rel_logical_offset
@@ -757,6 +756,24 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             local c_tokens = get_sub_tokens(subs[curr_s_idx])
             if not c_tokens then return nil end
             
+            -- Check symbol distance if we are looking for the immediate neighbor
+            if math.abs(rel_logical_offset) == 1 then
+                local start_v_idx, end_v_idx
+                local found_start, found_end = false, false
+                for j, t in ipairs(c_tokens) do
+                    if t.logical_idx == target_l_idx then start_v_idx = j; found_start = true end
+                    if t.logical_idx == target_logical_idx then end_v_idx = j; found_end = true end
+                end
+                
+                -- If both words are in the same segment, check the gap
+                if found_start and found_end then
+                    local gap = math.abs(end_v_idx - start_v_idx) - 1
+                    if gap > 4 then return nil end -- Too many symbols in between
+                end
+                -- Note: Cross-segment symbol gap check is more complex, 
+                -- for now we allow it if the timing gap is <= 1.5s as per spec.
+            end
+
             for _, t in ipairs(c_tokens) do
                 if t.logical_idx == target_logical_idx then
                     return t.text
@@ -805,7 +822,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             local term_clean = data.__term_clean
             
             local window = Options.anki_local_fuzzy_window
-            if #term_clean > 10 then window = window + (#term_clean * 0.5) end
+            if #term_clean > 10 then window = window + ((#term_clean - 10) * 0.5) end
 
             local sub_start = subs[sub_idx].start_time
             local sub_end = subs[sub_idx].end_time
@@ -847,19 +864,21 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
                         end
 
-                        -- Phase 2: Context Match
-                        local needs_strict = Options.anki_context_strict or (#term_clean == 1)
-                        if sequence_match and needs_strict and not Options.anki_global_highlight then
+                        -- Phase 2: Context Match (Enforced in Global Mode for high-recall verification)
+                        local needs_strict = Options.anki_context_strict or (#term_clean == 1) or Options.anki_global_highlight
+                        if sequence_match and needs_strict then
                             local match_count = 0
                             local neighbors_found = 0
                             for _, dir in ipairs({-1, 1}) do
-                                for offset = 1, 4 do
+                                -- Check neighbors up to ±3 words away (logical offset)
+                                for offset = 1, 3 do
                                     local nw_text = get_relative_word_text(dir * offset)
                                     if not nw_text then break end
                                     local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
                                     if nw_clean ~= "" then
                                         neighbors_found = neighbors_found + 1
-                                        if data.__ctx_lower:find(nw_clean, 1, true) then 
+                                        -- Verify neighbor against both stored context AND self-term (if phrase)
+                                        if data.__ctx_lower:find(nw_clean, 1, true) or term_key:lower():find(nw_clean, 1, true) then 
                                             match_count = match_count + 1 
                                         end
                                         break
@@ -883,6 +902,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
 
                             if not context_satisfied and #tokens > 1 then
+                                -- Exemptions: units and bracketed labels ignore context checks
                                 local is_exempt = target_word_text:match("^%b[]$")
                                 if not is_exempt then
                                     local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
@@ -906,7 +926,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if #term_clean > 1 then has_phrase = true end
                     elseif #term_clean > 1 then
                         local origin_sub_idx = get_center_index(subs, data.time)
-                        -- Phase 3: Split Matching (Deterministic Index Targeting)
+                        -- Phase 3: Split Matching (Shortest Span logic)
                         if not subs[sub_idx].__split_valid_indices then
                             subs[sub_idx].__split_valid_indices = {}
                         end
@@ -916,16 +936,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             valid_set = false
                             local ctx_list = {}
                             
-                            -- Stricter scan window for splits: ±3 segments from either current or origin,
-                            -- and must fall within a 10s temporal window of the export.
-                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 3)
-                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 3)
+                            -- Wide scan window for splits: ±15 segments (~30s) as per spec
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 15)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 15)
 
                             for scan_i = s_start, s_end do
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
+                                    -- 30s search radius around export time
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if gap < 5.0 then -- 5s search radius around export time
+                                    if gap < 30.0 then 
                                         for t_idx, t in ipairs(scan_tokens) do
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
@@ -961,8 +981,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
                                                 local prev_m = ctx_list[current_tuple[m_idx-1]]
-                                                -- Components of a split phrase must be within 2s of each other
-                                                if math.abs(m.start - prev_m.start) > 2.0 then
+                                                -- Components of a split phrase must be within 5s of each other (looser for splits)
+                                                if math.abs(m.start - prev_m.start) > 5.0 then
                                                     valid_timing = false; break
                                                 end
                                             end
@@ -984,6 +1004,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     end
                                     local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
                                     for _, c_idx in ipairs(occs[term_idx]) do
+                                        -- For splits, we don't strictly enforce word order if they are non-contiguous?
+                                        -- Actually, spec says "in their original order".
                                         if c_idx > prev_idx then
                                             current_tuple[term_idx] = c_idx
                                             search(term_idx + 1, current_tuple)
@@ -2010,14 +2032,11 @@ local function draw_dw(subs, view_center, active_idx)
                 end
                 
                 if selected then
+                    -- Primary/Manual Selection: Radiant/Persistent Yellow (High Priority)
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, t.text, color))
                     goto next_token
                 elseif t.is_word then
-                    if i == cl and l_idx == cw then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, t.text, color))
-                        goto next_token
-                    end
-
+                    -- Secondary Priority: Vocabulary database highlights (Orange/Purple/Brick)
                     local sub_t = subs[i]
                     local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
@@ -2039,12 +2058,16 @@ local function draw_dw(subs, view_center, active_idx)
 
                     if h_color ~= color then
                         table.insert(formatted_words, format_highlighted_word(t.text, h_color, color, is_phrase, "0", false))
-                    else
-                        table.insert(formatted_words, t.text)
+                        goto next_token
                     end
-                else
-                    table.insert(formatted_words, t.text)
+
+                    -- Tertiary Priority: Transient cursor-based hover (Only if no database match)
+                    if i == cl and l_idx == cw then
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, t.text, color))
+                        goto next_token
+                    end
                 end
+                table.insert(formatted_words, t.text)
                 ::next_token::
             end
             local line_ass = ""
