@@ -147,3 +147,20 @@ Advanced ASS styling is subject to restrictions to prevent visual corruption.
 #### Scenario: Pre-colored ASS text
 - **GIVEN** an ASS segment has hardcoded high-level styling (e.g. colors).
 - **THEN** the highlighter SHALL prioritize its own palette (Orange/Purple/Brick), overriding original styling where necessary.
+
+### Requirement: Direct Line/Segment Navigation
+The Drum Window SHALL allow rapid navigation to any visible subtitle segment using mouse or keyboard input.
+
+#### Scenario: Jump to Segment (Double-Click / Enter)
+- **GIVEN** the Drum Window is open and displaying multiple segments.
+- **WHEN** a user double-clicks a non-active (gray) subtitle segment OR presses Enter while it is highlighted.
+- **THEN** the engine SHALL immediately set that segment as the "Active" segment (changing its color to white/primary color).
+- **AND** the media player SHALL jump to the start time of the newly activated segment.
+
+### Requirement: Interaction and State Transitions
+Rendering of highlights SHALL be independent of mouse activity to ensure immediate visual feedback.
+
+#### Scenario: Immediate Rendering on Open
+- **WHEN** the Drum Window (Mode W) is opened.
+- **THEN** the engine SHALL immediately calculate and render all database-driven highlights for the currently visible segments.
+- **AND** these highlights SHALL be visible before any mouse movement or user collision occurs.

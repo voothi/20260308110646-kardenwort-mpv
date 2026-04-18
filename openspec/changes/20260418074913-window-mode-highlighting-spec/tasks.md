@@ -7,5 +7,5 @@
 ## 2. Specification Integration
 
 - [x] 2.1 Finalize the "Window Mode" architectural description in `design.md`.
-- [ ] 2.2 Submit the specification for final approval by the maintainer.
+- [x] 2.2 Submit the specification for final approval by the maintainer.
 - [ ] 2.3 Run `/opsx:archive` to merge this specification into the project's permanent specification library.
