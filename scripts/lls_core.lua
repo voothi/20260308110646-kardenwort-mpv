@@ -1793,10 +1793,19 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             end
         end
 
-        local formatted_parts = {}
+        -- Level 1 & 2: Base Highlighting (First Pass)
+        local token_meta = {}
         for j, t in ipairs(tokens) do
             local l_idx = visual_to_logical[j]
-            if l_idx then
+            local meta = { text = t.text, color = base_color, is_phrase = false, priority = 0 }
+            
+            -- Level 1: Persistent Selection
+            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", sub_idx, l_idx)] or nil
+            if ctrl_member then
+                meta.color = Options.dw_ctrl_select_color
+                meta.priority = 1
+            elseif l_idx then
+                -- Level 2: Database Highlights
                 local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
                 local h_color = base_color
                 
@@ -1816,12 +1825,49 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 end
 
                 if h_color ~= base_color then
-                    table.insert(formatted_parts, format_highlighted_word(t, h_color, base_color, is_phrase, bold_state, true))
-                else
-                    table.insert(formatted_parts, t.text)
+                    meta.color = h_color
+                    meta.is_phrase = is_phrase
+                    meta.priority = 2
                 end
+            end
+            
+            -- Level 3: Selection/Hover (Optional for drum list, but good for consistency)
+            if meta.priority == 0 and l_idx then
+                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
+                if is_focus_point then
+                    meta.color = Options.dw_highlight_color
+                    meta.priority = 3
+                end
+            end
+            token_meta[j] = meta
+        end
+
+        -- Pass 2: Semantic Punctuation Coloring
+        for j, t in ipairs(tokens) do
+            local meta = token_meta[j]
+            if meta.priority == 0 and not is_word_token({text = meta.text}) then
+                local prev_meta = token_meta[j-1]
+                local next_meta = token_meta[j+1]
+
+                if prev_meta and prev_meta.priority == 2 and prev_meta.is_phrase then
+                    if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not is_word_token({text = next_meta.text})) then
+                        meta.color = prev_meta.color
+                        meta.is_phrase = true
+                    end
+                end
+            end
+        end
+
+        -- Final Formatting
+        local formatted_parts = {}
+        for j, t in ipairs(tokens) do
+            local meta = token_meta[j]
+            if meta.priority == 2 or (meta.priority == 0 and meta.is_phrase) then
+                table.insert(formatted_parts, format_highlighted_word({text = meta.text}, meta.color, base_color, meta.is_phrase, bold_state, true))
+            elseif meta.priority == 1 or meta.priority == 3 then
+                table.insert(formatted_parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, base_color))
             else
-                table.insert(formatted_parts, t.text)
+                table.insert(formatted_parts, meta.text)
             end
         end
 
@@ -2003,61 +2049,94 @@ local function draw_dw(subs, view_center, active_idx)
                 local w = entry.words[j]
                 local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
 
-                local selected = false
-                if has_selection and l_idx then
-                    if i > p1_l and i < p2_l then selected = true
-                    elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                    elseif i == p1_l then selected = (l_idx >= p1_w)
-                    elseif i == p2_l then selected = (l_idx <= p2_w) end
-                end
+            -- Level 1 & 2: Base Highlighting (First Pass)
+            local token_meta = {}
+            for _, j in ipairs(vl_indices) do
+                local w = entry.words[j]
+                local l_idx = entry.visual_to_logical[j]
+                local meta = { text = w.text, color = color, is_phrase = false, priority = 0 }
                 
-                local is_focus_point = (i == cl and l_idx == cw)
-                
-                if selected or is_focus_point then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w.text, color))
-                    goto next_token
-                end
-
+                -- Level 1: Persistent Selection
                 local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
                 if ctrl_member then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w.text, color))
-                    goto next_token
-                end
-
-                if l_idx then
-                    local sub_t = subs[i]
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
-
+                    meta.color = Options.dw_ctrl_select_color
+                    meta.priority = 1
+                elseif l_idx then
+                    -- Level 2: Database Highlights
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
                     if orange_stack > 0 and purple_stack > 0 then
-                        -- Mixed Intersection
                         local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
                         if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                         elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                         elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
                     elseif orange_stack > 0 then
-                        -- Pure Orange
                         if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                         elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                     elseif purple_stack > 0 then
-                        -- Pure Purple (Split)
                         if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                         elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
                         elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
                     end
 
                     if h_color ~= color then
-                        table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
-                    else
-                        table.insert(formatted_words, w.text)
+                        meta.color = h_color
+                        meta.is_phrase = is_phrase
+                        meta.priority = 2
                     end
-                else
-                    -- It's a filler token (space), just add it as is
-                    table.insert(formatted_words, w.text)
                 end
-                ::next_token::
+                
+                -- Level 3: Hover/Selection Focus
+                if meta.priority == 0 and l_idx then
+                    local selected = false
+                    if has_selection then
+                        if i > p1_l and i < p2_l then selected = true
+                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
+                        elseif i == p1_l then selected = (l_idx >= p1_w)
+                        elseif i == p2_l then selected = (l_idx <= p2_w) end
+                    end
+                    local is_focus_point = (i == cl and l_idx == cw)
+                    if selected or is_focus_point then
+                        meta.color = Options.dw_highlight_color
+                        meta.priority = 3
+                    end
+                end
+                token_meta[j] = meta
+            end
+
+            -- Pass 2: Semantic Punctuation Coloring
+            for m, j in ipairs(vl_indices) do
+                local meta = token_meta[j]
+                if meta.priority == 0 and not is_word_token({text = meta.text}) then
+                    local prev_j = vl_indices[m-1]
+                    local next_j = vl_indices[m+1]
+                    local prev_meta = prev_j and token_meta[prev_j]
+                    local next_meta = next_j and token_meta[next_j]
+
+                    -- If internal punctuation within a phrase OR trailing a phrase and not followed by a word
+                    if prev_meta and prev_meta.priority == 2 and prev_meta.is_phrase then
+                        if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not is_word_token({text = next_meta.text})) then
+                            meta.color = prev_meta.color
+                            meta.is_phrase = true
+                        end
+                    end
+                end
+            end
+
+            -- Final Formatting
+            local formatted_words = {}
+            for _, j in ipairs(vl_indices) do
+                local meta = token_meta[j]
+                if meta.priority == 2 or (meta.priority == 0 and meta.is_phrase) then
+                    table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", false))
+                elseif meta.priority == 1 or meta.priority == 3 then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, color))
+                else
+                    table.insert(formatted_words, meta.text)
+                end
+            end
             end
             local line_ass = ""
             for idx, fw in ipairs(formatted_words) do
