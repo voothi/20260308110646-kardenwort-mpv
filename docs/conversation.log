@@ -1,1 +1,14 @@
+/opsx-propose.md 20260418143225 I documented the behavior of the program in cases of text selection in openspec\changes\archive\20260418074913-window-mode-highlighting-spec and  
+
+window-highlighting-spec
+I need to check and implement according to the specs.
+
+Previous branch, where it worked as it should and at what state of the code I made 20260418074913-window-mode-highlighting-spec - commit efb3792a7f37ca1cc4deea386297e17a31e3748b
+20260418153101 Multi-line mode does not work. Check the implementation again using the specs.
+20260418154509 accept
+20260418154854 It seems to work, but only within one subtitle, that is, I can’t add such a bright yellow SCM highlight. 
 20260418160107 It was a failed attempt.
+20260418160754 accept
+
+
+
