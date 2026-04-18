@@ -1,7 +1,7 @@
 # window-highlighting-spec
 
 ## Purpose
-This specification provides a formal, exhaustive description of word highlighting behaviors within the "Window Mode" (Drum Window) of Kardenwort-mpv. It serves as a strict directive for the rendering engine to ensure consistent visual feedback during language study.
+This specification provides a formal, exhaustive description of word highlighting behaviors within the "Window Mode" (Drum Window) of Kardenwort-mpv. It serves as a strict directive for the rendering engine to ensure consistent visual feedback during language study. This document represents the canonical source of truth for the High-Recall Highlighter as implemented in `lls_core.lua`.
 
 ## Requirements
 
@@ -87,6 +87,47 @@ Window Mode rendering SHALL support additional visual emphasized states.
 #### Scenario: Bold highlighting
 - **WHEN** `anki_highlight_bold` is enabled
 - **THEN** all highlighted spans in the Drum Window SHALL be wrapped in ASS bold tags `{\b1}` and `{\b0}`.
+
+#### Scenario: Compound Word Partial Highlighting
+- **WHEN** a subtitle word contains separators like slashes, hyphens, or dashes (e.g., "Netto/Globus" or "20–25")
+- **AND** a saved term matches only one constituent part (e.g., "Netto")
+- **THEN** the engine SHALL successfully identify the match.
+- **AND** it SHALL highlight strictly that word token while treating the separator and other parts as distinct for logic purposes.
+
+### Requirement: Long-Term Adaptive Fuzzy Window
+To accommodate long paragraphs that may take significant time to read, the temporal fuzzy window SHALL grow dynamically.
+
+#### Scenario: Long paragraph temporal growth
+- **GIVEN** a saved term longer than 10 words
+- **THEN** the base `anki_local_fuzzy_window` (typically 1s) SHALL be extended by **0.5 seconds** for every word in the term.
+- **Example**: A 20-word term gets a $1 + (20 \times 0.5) = 11$ second validity window.
+
+### Requirement: Context Search Radius
+For multi-word split (non-contiguous) terms, the engine SHALL scan a widened neighborhood of subtitle segments.
+
+#### Scenario: Subtitle segment scan cluster
+- **GIVEN** the engine is evaluating a potential split match
+- **THEN** it SHALL scan up to **±15 subtitle segments** (approximately 30 seconds of dialogue) surrounding the current segment to locate all constituent words.
+
+### Requirement: Strict Context Neighbor Verification
+When `anki_context_strict` is enabled, matches MUST be anchored by their recorded neighbors to prevent false coloration of common words.
+
+#### Scenario: Symbol-Agnostic Neighbor Detection
+- **WHEN** searching for neighbors to verify context
+- **THEN** the engine SHALL look past up to **4 consecutive symbols/separators** (punctuation, slashes, brackets) to find the nearest word token.
+
+#### Scenario: Highlighting Exemptions
+- **GIVEN** a potential match is a bracketed label (e.g., `[musik]`) or a common unit/adjective (e.g., `ca`, `km`, `cm`, `mm`, `kg`, `m`, `große`, `zb`)
+- **THEN** the engine SHALL exempt these tokens from strict neighbor verification to ensure important markers remain highlighted even if their context varies.
+
+### Requirement: Split Term Shortest Span
+The engine SHALL strictly control which instances of common words are colored when they form part of a split term.
+
+#### Scenario: Minimizing phrase span
+- **WHEN** multiple instances of a term's words exist within the 15-segment scan radius
+- **THEN** the engine SHALL calculate the **shortest sequential span** that contains all words in their original order.
+- **AND** only the word instances within that optimal shortest span SHALL be highlighted.
+
 
 ### Requirement: ASS Mode Restrictions
 The "Window Mode" high-recall highlighting engine is strictly optimized for linear, plain-text subtitle formats (SRT). Advanced ASS styling (Advanced Substation Alpha) is subject to the following formal restrictions:
