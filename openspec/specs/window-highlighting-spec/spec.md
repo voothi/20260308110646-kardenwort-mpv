@@ -215,6 +215,6 @@ Rendering of highlights SHALL be independent of mouse activity to ensure immedia
 
 ## Reference Visuals
 
-![Visual State 20260418123301](file:///u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260418074913-window-mode-highlighting-spec/specs/window-highlighting-spec/media/screenshot_20260418123301.png)
+![Visual State 20260418123301](../../assets/window-highlighting-spec/screenshot_20260418123301.png)
 
-![Visual State 20260418123343](file:///u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260418074913-window-mode-highlighting-spec/specs/window-highlighting-spec/media/screenshot_20260418123343.png)
+![Visual State 20260418123343](../../assets/window-highlighting-spec/screenshot_20260418123343.png)
