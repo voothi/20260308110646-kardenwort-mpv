@@ -338,7 +338,7 @@ local function escape_tsv(str)
     return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
-local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts)
+local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts, item_index)
     if not field_name or field_name == "" then return "" end
     
     local source = mapping[field_name]
@@ -349,8 +349,10 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     
     if source == "source_word" then return escape_tsv(term) end
     if source == "source_sentence" then return escape_tsv(context) end
+    if source == "source_index" then return tostring(item_index or "") end
     if source == "time" then return string.format("%.3f", time_pos) end
     if source == "deck_name" then return escape_tsv(deck_name) end
+
     
     if source:match("^tts_source_") then
         local tts_lang = source:match("^tts_source_(.+)$")
@@ -446,56 +448,88 @@ local function is_word_char(c)
 end
 
 local function build_word_list_internal(text, keep_spaces)
-    local words = {}
-    if not text then return words end
+    local tokens = {}
+    if not text then return tokens end
     
     local chars = utf8_to_table(text)
     local i = 1
     local n = #chars
+    local curr_logical_idx = 1
+    local curr_visual_idx = 1
     
     while i <= n do
         local c = chars[i]
+        local token = { text = "", is_word = false, logical_idx = nil, visual_idx = curr_visual_idx }
         
         -- 1. Handle ASS Tags (Atomize)
         if c == "{" then
             local start = i
             while i <= n and chars[i] ~= "}" do i = i + 1 end
-            table.insert(words, table.concat(chars, "", start, i))
+            token.text = table.concat(chars, "", start, i)
             i = i + 1
             
         -- 2. Handle Metadata Brackets (Atomize)
         elseif c == "[" then
             local start = i
             while i <= n and chars[i] ~= "]" do i = i + 1 end
-            table.insert(words, table.concat(chars, "", start, i))
+            token.text = table.concat(chars, "", start, i)
             i = i + 1
             
-        -- 3. Handle/Skip Whitespace
+        -- 3. Handle Whitespace
         elseif c:match("^%s$") then
             local start = i
             while i <= n and chars[i]:match("^%s$") do i = i + 1 end
             if keep_spaces then
-                table.insert(words, table.concat(chars, "", start, i - 1))
+                token.text = table.concat(chars, "", start, i - 1)
+            else
+                token = nil
             end
             
         -- 4. Handle Word Characters (Scanning contiguous blocks)
         elseif is_word_char(c) then
             local start = i
             while i <= n and is_word_char(chars[i]) do i = i + 1 end
-            table.insert(words, table.concat(chars, "", start, i - 1))
+            token.text = table.concat(chars, "", start, i - 1)
+            token.is_word = true
+            token.logical_idx = curr_logical_idx
+            curr_logical_idx = curr_logical_idx + 1
             
         -- 5. Handle Punctuation/Misc (Atomic Separator)
         else
-            table.insert(words, c)
+            token.text = c
             i = i + 1
+        end
+
+        if token then
+            table.insert(tokens, token)
+            curr_visual_idx = curr_visual_idx + 1
+        end
+    end
+    return tokens
+end
+
+local function build_word_list(text)
+    local tokens = build_word_list_internal(text, false)
+    local words = {}
+    for _, t in ipairs(tokens) do
+        if t.is_word then
+            table.insert(words, t.text)
         end
     end
     return words
 end
 
-local function build_word_list(text)
-    return build_word_list_internal(text, false)
+local function get_sub_tokens(s)
+    if not s then return nil end
+    if not s.tokens then 
+        s.tokens = build_word_list_internal(s.text, Options.dw_original_spacing)
+        local wc = 0
+        for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
+        s.word_count = wc
+    end
+    return s.tokens
 end
+
 
 local function is_word_token(t)
     if not t or #t == 0 then return false end
@@ -672,82 +706,60 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
-local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
+local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false end
     
-    local function get_sub_words(s)
-        if not s then return nil end
-        if not s.words then s.words = build_word_list(s.text) end
-        return s.words
-    end
-
-    local words = get_sub_words(subs[sub_idx])
-    local target_word = words[word_idx]
-    if not target_word then return 0, 0, false end
+    local tokens = get_sub_tokens(subs[sub_idx])
+    local target_token = tokens[token_idx]
+    if not target_token or not target_token.is_word then return 0, 0, false end
     
-    -- Whole-word lower-case
-    local target_lower_full = utf8_to_lower(target_word:gsub("[%p%s]", ""))
+    local target_l_idx = target_token.logical_idx
+    local target_word_text = target_token.text
+    local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
     if target_lower_full == "" then return 0, 0, false end
 
     -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
     local target_subsets = { [target_lower_full] = true }
-    -- Pattern excludes spaces, slashes, hyphens, and UTF-8 en-dash/em-dash
-    for sw in target_word:gmatch("[^%s/-\226\128\147\226\128\148]+") do
+    for sw in target_word_text:gmatch("[^%s/-\226\128\147\226\128\148]+") do
         local csw = utf8_to_lower(sw:gsub("[%p%s]", ""))
         if csw ~= "" then target_subsets[csw] = true end
     end
 
-
-    -- Helper to get a word relative to current word_idx across segment boundaries
-    local function get_relative_word(rel_offset, skip_symbols)
-        local curr_sub_idx = sub_idx
-        local current_words = get_sub_words(subs[curr_sub_idx])
-        if not current_words then return nil end
-        
-        local target_rel_idx = word_idx
-        local remaining = math.abs(rel_offset)
-        local step = (rel_offset > 0) and 1 or -1
+    -- Helper to get a word by relative LOGICAL offset
+    local function get_relative_word_text(rel_logical_offset)
+        local curr_s_idx = sub_idx
+        local target_logical_idx = target_l_idx + rel_logical_offset
         
         local safety = 0
-        while remaining > 0 and safety < 10 do
+        while safety < 5 do
             safety = safety + 1
-            target_rel_idx = target_rel_idx + step
+            local c_tokens = get_sub_tokens(subs[curr_s_idx])
+            if not c_tokens then return nil end
             
-            -- Boundary check and segment jumping
-            if target_rel_idx > #current_words then
-                local next_sub_idx = curr_sub_idx + 1
-                if subs[next_sub_idx] and (subs[next_sub_idx].start_time - subs[curr_sub_idx].end_time < 1.5) then
-                    target_rel_idx = 1
-                    curr_sub_idx = next_sub_idx
-                    current_words = get_sub_words(subs[curr_sub_idx])
-                    if not current_words then return nil end
-                else
-                    return nil
-                end
-            elseif target_rel_idx < 1 then
-                local prev_sub_idx = curr_sub_idx - 1
-                if subs[prev_sub_idx] and (subs[curr_sub_idx].start_time - subs[prev_sub_idx].end_time < 1.5) then
-                    local prev_words = get_sub_words(subs[prev_sub_idx])
-                    if not prev_words then return nil end
-                    target_rel_idx = #prev_words
-                    curr_sub_idx = prev_sub_idx
-                    current_words = prev_words
-                else
-                    return nil
+            for _, t in ipairs(c_tokens) do
+                if t.logical_idx == target_logical_idx then
+                    return t.text
                 end
             end
             
-            local w = current_words[target_rel_idx]
-            if w then
-                local is_sym = not is_word_char(w:match("^([%z\1-\127\194-\244][\128-\191]*)"))
-                if not skip_symbols or not is_sym then
-                    remaining = remaining - 1
-                end
+            -- Bounds check to move segments
+            local wc = subs[curr_s_idx].word_count or 0
+            if target_logical_idx > wc then
+                target_logical_idx = target_logical_idx - wc
+                curr_s_idx = curr_s_idx + 1
+                if not subs[curr_s_idx] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 1.5) then return nil end
+            elseif target_logical_idx < 1 then
+                curr_s_idx = curr_s_idx - 1
+                if not subs[curr_s_idx] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 1.5) then return nil end
+                get_sub_tokens(subs[curr_s_idx]) -- Ensure word_count is cached
+                target_logical_idx = target_logical_idx + (subs[curr_s_idx].word_count or 0)
+            else
+                return nil
             end
         end
-        return current_words[target_rel_idx]
+        return nil
     end
-    
+
     local orange_stack = 0
     local purple_stack = 0
     local has_phrase = false
@@ -758,227 +770,224 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
             local match_found = false
             local term_is_split = false
             
-            -- Performance: Lazy-cache all cleaned word lists and lower-case contexts
-            if not data.__term_words then
-                data.__term_words = build_word_list(utf8_to_lower(term_key))
-                data.__term_words_clean = {}
-                for _, w in ipairs(data.__term_words) do
-                    table.insert(data.__term_words_clean, utf8_to_lower(w:gsub("[%p%s]", "")))
+            -- Performance: Lazy-cache processed term data
+            if not data.__term_clean then
+                local term_tokens = build_word_list_internal(utf8_to_lower(term_key), false)
+                data.__term_clean = {}
+                for _, t in ipairs(term_tokens) do
+                    if t.is_word then
+                        table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
+                    end
                 end
-                data.__term_key_lower = utf8_to_lower(term_key)
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
             end
-            local term_words = data.__term_words
-            local term_clean = data.__term_words_clean
+            local term_clean = data.__term_clean
             
-            -- Adaptive window: Give more time for long paragraphs (0.5s per word extra)
             local window = Options.anki_local_fuzzy_window
-            if #term_words > 10 then
-                window = window + (#term_words * 0.5)
-            end
+            if #term_clean > 10 then window = window + (#term_clean * 0.5) end
 
-            local sub_start = subs[sub_idx] and subs[sub_idx].start_time or 0
-            local sub_end = subs[sub_idx] and subs[sub_idx].end_time or 0
+            local sub_start = subs[sub_idx].start_time
+            local sub_end = subs[sub_idx].end_time
 
             local in_window = false
             if Options.anki_global_highlight or (data.time >= sub_start - window and data.time <= sub_end + window) then
                 in_window = true
-            elseif #term_words > 1 then
-                -- Multi-word split expressions can span huge distances. 
-                -- If data.time aligns anywhere inside our local subtitle scan cluster [-15, +15], it's valid.
+            elseif #term_clean > 1 then
                 local min_scan = math.max(1, sub_idx - 15)
                 local max_scan = math.min(#subs, sub_idx + 15)
-                if subs[min_scan] and subs[max_scan] then
-                    if data.time >= (subs[min_scan].start_time - window) and data.time <= (subs[max_scan].end_time + window) then
-                        in_window = true
-                    end
+                if data.time >= (subs[min_scan].start_time - window) and data.time <= (subs[max_scan].end_time + window) then
+                    in_window = true
                 end
             end
 
             if in_window then
-                if #term_words > 0 then
-                    local term_lower = data.__term_key_lower
-                    local ctx_lower = data.__ctx_lower
-
-                    local target_offsets = {}
-                    for term_offset, tw_clean in ipairs(term_clean) do
-                        if target_subsets[tw_clean] then
-                            table.insert(target_offsets, term_offset)
-                        end
+                local target_offsets = {}
+                for term_offset, tw_clean in ipairs(term_clean) do
+                    if target_subsets[tw_clean] then
+                        table.insert(target_offsets, term_offset)
                     end
+                end
 
-                    if #target_offsets > 0 then
-                        local any_sequence = false
-                        for _, term_offset in ipairs(target_offsets) do
-                            local sequence_match = false
-                            
-                            -- Phase 1: Local Sequence Match (verify sequence continuity)
-                            if #term_words > 1 then
-                                -- Requirement: High-Recall Sequence Verification - At least one neighbor must match 
-                                -- within a short window, skipping symbols to maintain phrase-logical continuity.
-                                for _, offset in ipairs({-1, 1}) do
-                                    local rw = get_relative_word(offset, true)
-                                    local term_neighbor_idx = term_offset + offset
-                                    if rw and term_clean[term_neighbor_idx] then
-                                        if term_clean[term_neighbor_idx] == utf8_to_lower(rw:gsub("[%p%s]", "")) then
-                                            sequence_match = true
-                                            break
-                                        end
-                                    end
-                                end
-                            else
-                                -- Single word terms are always considered a sequence match, 
-                                -- but they still must pass neighborhood/context checks if Global Mode is on.
-                                sequence_match = true
-                            end
-
-                            -- Phase 2: Context/Neighborhood Verification
-                            -- Requirement: High-Recall Sequence Verification for Global Mode
-                            if sequence_match and (Options.anki_context_strict or Options.anki_global_highlight) then
-                                local has_neighbor = false
-                                
-                                -- Check neighbors in both directions (expand search up to 4 tokens to skip symbols/-//)
-                                for _, dir in ipairs({-1, 1}) do
-                                    for offset = 1, 4 do
-                                        local nw = get_relative_word(dir * offset, false)
-                                        if not nw then break end
-                                        
-                                        local nw_clean = utf8_to_lower(nw:gsub("[%p%s]", ""))
-                                        if nw_clean ~= "" then
-                                            -- Check if this specific neighbor exists in the context sentence
-                                            if ctx_lower:find(nw_clean, 1, true) then
-                                                has_neighbor = true
-                                            end
-                                            -- Found a word; stop searching this direction
-                                            break
-                                        end
-                                    end
-                                    if has_neighbor then break end
-                                end
-
-                                if not has_neighbor and #words > 1 then
-                                    -- Bypass neighbor check for labels [...] and common units/short tokens
-                                    local is_exempt = target_word:match("^%b[]$")
-                                    if not is_exempt then
-                                        local tw_strip = utf8_to_lower(target_word:gsub("[%p%s]", ""))
-                                        if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
-                                           tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
-                                            is_exempt = true
-                                        end
-                                    end
-                                    
-                                    if not is_exempt then
+                if #target_offsets > 0 then
+                    local any_sequence = false
+                    for _, term_offset in ipairs(target_offsets) do
+                        local sequence_match = true
+                        
+                        -- Phase 1: Local Sequence Match via Logical Indices
+                        if #term_clean > 1 then
+                            for k = 1, #term_clean do
+                                if k ~= term_offset then
+                                    local rw_text = get_relative_word_text(k - term_offset)
+                                    if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
                                         sequence_match = false
+                                        break
                                     end
                                 end
-                            end
-
-                            if sequence_match then
-                                any_sequence = true
-                                break
                             end
                         end
 
-                        if any_sequence then
-                            match_found = true
-                            if #term_words > 1 then has_phrase = true end
-                        elseif #term_words > 1 then
-                            local split_match = false
-                            -- Cache valid (sub_idx, word_idx) combinations for optimal split term matching
-                            if not subs[sub_idx].__split_valid_indices then
-                                subs[sub_idx].__split_valid_indices = {}
+                        -- Phase 2: Context Match
+                        local needs_strict = Options.anki_context_strict or (#term_clean == 1)
+                        if sequence_match and needs_strict and not Options.anki_global_highlight then
+                            local match_count = 0
+                            local neighbors_found = 0
+                            for _, dir in ipairs({-1, 1}) do
+                                for offset = 1, 4 do
+                                    local nw_text = get_relative_word_text(dir * offset)
+                                    if not nw_text then break end
+                                    local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
+                                    if nw_clean ~= "" then
+                                        neighbors_found = neighbors_found + 1
+                                        if data.__ctx_lower:find(nw_clean, 1, true) then 
+                                            match_count = match_count + 1 
+                                        end
+                                        break
+                                    end
+                                end
                             end
-                                
-                                local valid_set = subs[sub_idx].__split_valid_indices[term_key]
-                                if valid_set == nil then
-                                    valid_set = false
-                                    local ctx_list = {}
-                                    -- Generous scan radius (equivalent to roughly 30 seconds of speech) 
-                                    -- necessary for split terms spanning multiple subtitle blocks
-                                    for scan_i = math.max(1, sub_idx - 15), math.min(#subs, sub_idx + 15) do
-                                        local scan_words = get_sub_words(subs[scan_i])
-                                        if scan_words then
-                                            for scan_w_idx, w in ipairs(scan_words) do
-                                                local cw = utf8_to_lower(w:gsub("[%p%s]", ""))
-                                                if cw ~= "" then
-                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, w_i=scan_w_idx})
-                                                end
-                                            end
-                                        end
-                                    end
-                                    
-                                    local occs = {}
-                                    local all_present = true
-                                    for i, tc in ipairs(term_clean) do
-                                        occs[i] = {}
-                                        for c_idx, cw_obj in ipairs(ctx_list) do
-                                            if cw_obj.cw == tc then
-                                                table.insert(occs[i], c_idx)
-                                            end
-                                        end
-                                        if #occs[i] == 0 then
-                                            all_present = false
-                                            break
-                                        end
-                                    end
-
-                                    if all_present then
-                                        local best_tuple = nil
-                                        local min_span = 999999
-                                        
-                                        local function search(term_idx, current_tuple)
-                                            if term_idx > #term_clean then
-                                                local span = current_tuple[#current_tuple] - current_tuple[1]
-                                                if span < min_span then
-                                                    min_span = span
-                                                    best_tuple = {}
-                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
-                                                end
-                                                return
-                                            end
-                                            
-                                            local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
-                                            for _, c_idx in ipairs(occs[term_idx]) do
-                                                if c_idx > prev_idx then
-                                                    current_tuple[term_idx] = c_idx
-                                                    search(term_idx + 1, current_tuple)
-                                                end
-                                            end
-                                        end
-                                        
-                                        search(1, {})
-                                        
-                                        if best_tuple then
-                                            valid_set = {}
-                                            for _, c_idx in ipairs(best_tuple) do
-                                                local cw_obj = ctx_list[c_idx]
-                                                valid_set[cw_obj.s_i .. "-" .. cw_obj.w_i] = true
-                                            end
-                                        end
-                                    end
-                                    subs[sub_idx].__split_valid_indices[term_key] = valid_set
-                                end
-                                
-                                if valid_set and type(valid_set) == "table" then
-                                    if valid_set[sub_idx .. "-" .. word_idx] then
-                                        split_match = true
-                                    end
-                                end
                             
-                                if split_match then
-                                    match_found = true
-                                    term_is_split = true
+                            local context_satisfied = (match_count > 0)
+                            if #term_clean == 1 then
+                                if neighbors_found >= 2 then
+                                    context_satisfied = (match_count >= 2)
                                 end
                             end
+
+                            -- Absolute Targeted Index grounding: If TSV provides an index, it MUST match exactly.
+                            if data.index and data.index ~= -1 then
+                                if math.abs(data.time - sub_start) < 0.01 then
+                                    local expected_start = target_l_idx - term_offset + 1
+                                    if expected_start ~= data.index then
+                                        sequence_match = false
+                                    else
+                                        context_satisfied = true
+                                        match_count = 2
+                                    end
+                                end
+                            end
+
+                            if not context_satisfied and term_clean and #term_clean > 1 then
+                                local is_exempt = target_word_text:match("^%b[]$")
+                                if not is_exempt then
+                                    local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
+                                    if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
+                                       tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
+                                        is_exempt = true
+                                    end
+                                end
+                                if not is_exempt then sequence_match = false end
+                            end
+                        end
+
+                        if sequence_match then
+                            any_sequence = true
+                            break
+                        end
+                    end
+
+                    if any_sequence then
+                        match_found = true
+                        if #term_clean > 1 then has_phrase = true end
+                    elseif #term_clean > 1 then
+                        local origin_sub_idx = get_center_index(subs, data.time)
+                        if not subs[sub_idx].__split_valid_indices then
+                            subs[sub_idx].__split_valid_indices = {}
+                        end
+                        local valid_set = subs[sub_idx].__split_valid_indices[term_key]
+                        
+                        if valid_set == nil then
+                            valid_set = false
+                            local ctx_list = {}
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 3)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 3)
+
+                            for scan_i = s_start, s_end do
+                                local scan_tokens = get_sub_tokens(subs[scan_i])
+                                if scan_tokens then
+                                    local gap = math.abs(subs[scan_i].start_time - data.time)
+                                    if gap < 5.0 then
+                                        for t_i, t in ipairs(scan_tokens) do
+                                            if t.is_word then
+                                                local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                                                if cw ~= "" then
+                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                            
+                            local occs = {}
+                            local all_present = true
+                            for i_c, tc in ipairs(term_clean) do
+                                occs[i_c] = {}
+                                for c_idx, cw_obj in ipairs(ctx_list) do
+                                    if cw_obj.cw == tc then table.insert(occs[i_c], c_idx) end
+                                end
+                                if #occs[i_c] == 0 then all_present = false break end
+                            end
+
+                            if all_present then
+                                local best_tuple = nil
+                                local min_span = 999999
+                                local function search(term_idx, current_tuple)
+                                    if term_idx > #term_clean then
+                                        local valid_timing = true
+                                        local has_anchor = (not data.index) or (origin_sub_idx == -1)
+                                        for m_idx = 1, #current_tuple do
+                                            local m = ctx_list[current_tuple[m_idx]]
+                                            if m_idx > 1 then
+                                                local prev_m = ctx_list[current_tuple[m_idx-1]]
+                                                if math.abs(m.start - prev_m.start) > 2.0 then
+                                                    valid_timing = false; break
+                                                end
+                                            end
+                                            if data.index and m.s_i == origin_sub_idx and m.l_i == data.index then
+                                                has_anchor = true
+                                            end
+                                        end
+                                        if valid_timing and has_anchor then
+                                            local span = current_tuple[#current_tuple] - current_tuple[1]
+                                            if span < min_span then
+                                                min_span = span
+                                                best_tuple = {}
+                                                for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                            end
+                                        end
+                                        return
+                                    end
+                                    local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
+                                    for _, c_idx in ipairs(occs[term_idx]) do
+                                        if c_idx > prev_idx then
+                                            current_tuple[term_idx] = c_idx
+                                            search(term_idx + 1, current_tuple)
+                                        end
+                                    end
+                                end
+                                search(1, {})
+                                if best_tuple then
+                                    valid_set = {}
+                                    for _, c_idx in ipairs(best_tuple) do
+                                        local cw_obj = ctx_list[c_idx]
+                                        valid_set[cw_obj.s_i .. "-" .. cw_obj.t_i] = true
+                                    end
+                                end
+                            end
+                            subs[sub_idx].__split_valid_indices[term_key] = valid_set
+                        end
+                        
+                        if valid_set and valid_set[sub_idx .. "-" .. token_idx] then
+                            match_found = true
+                            term_is_split = true
                         end
                     end
                 end
+            end
+
             if match_found then
-                if term_is_split then
-                    purple_stack = purple_stack + 1
-                else
-                    orange_stack = orange_stack + 1
-                end
+                if term_is_split then purple_stack = purple_stack + 1
+                else orange_stack = orange_stack + 1 end
                 matched_terms[term_key] = true
             end
         end
@@ -1308,12 +1317,14 @@ local function load_anki_tsv(force)
     local term_cols = {}
     local ctx_cols = {}
     local time_col = 3
+    local index_col = -1
     if #config.fields > 0 then
         for i, fld in ipairs(config.fields) do
             local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
             if src == "source_word" then table.insert(term_cols, i)
             elseif src == "source_sentence" then table.insert(ctx_cols, i)
-            elseif src == "time" then time_col = i end
+            elseif src == "time" then time_col = i
+            elseif src == "source_index" then index_col = i end
         end
     end
     if #term_cols == 0 then table.insert(term_cols, 1) end
@@ -1411,9 +1422,11 @@ local function load_anki_tsv(force)
                     time_val = time_val or 0
                 end
                 
+                local idx_val = (index_col > 0) and tonumber(fields[index_col]) or nil
+                
                 local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
                 if t and t ~= "" and not is_header then
-                    table.insert(new_highlights, { term = t, context = c, time = time_val })
+                    table.insert(new_highlights, { term = t, context = c, time = time_val, index = idx_val })
                 end
             end
         end
@@ -1423,7 +1436,7 @@ local function load_anki_tsv(force)
     FSM.ANKI_HIGHLIGHTS = new_highlights
 end
 
-local function save_anki_tsv_row(term, context, time_pos)
+local function save_anki_tsv_row(term, context, time_pos, item_index)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
 
@@ -1502,14 +1515,14 @@ local function save_anki_tsv_row(term, context, time_pos)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts))
+            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts, item_index))
         end
     end
     
     f:write(table.concat(row_data, "\t") .. "\n")
     f:close()
 
-    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos })
+    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos, index = item_index })
 end
 
 local function show_osd(msg, dur)
@@ -1770,11 +1783,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
 
         local formatted_parts = {}
         for j, t in ipairs(tokens) do
-            local l_idx = visual_to_logical[j]
-            local h_color = base_color
-            
             if l_idx then
-                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, l_idx, t_pos)
+                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
+
                 
                 if orange_stack > 0 and purple_stack > 0 then
                     local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
@@ -2002,7 +2013,8 @@ local function draw_dw(subs, view_center, active_idx)
 
                 if l_idx then
                     local sub_t = subs[i]
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, l_idx, sub_t.start_time)
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+
                     local h_color = color
                     
                     if orange_stack > 0 and purple_stack > 0 then
@@ -2477,13 +2489,13 @@ local function dw_anki_export_selection()
         
         local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
         local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+        local p1_l, p1_w, p2_l, p2_w = -1, -1, -1, -1
         local term = ""
         local context_line = ""
         local time_pos = 0
         local is_sentence_boundary = false
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            local p1_l, p1_w, p2_l, p2_w
             if al < cl or (al == cl and aw <= cw) then
                 p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
             else
@@ -2491,18 +2503,25 @@ local function dw_anki_export_selection()
             end
             
             if not subs[p1_l] or not subs[p2_l] then return end
-
+            
             local parts = {}
             for i = p1_l, p2_l do
-                local text = (subs[i].text:gsub("\n", " "))
-                local words = build_word_list(text)
+                local tokens = get_sub_tokens(subs[i])
                 local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or #words
-                for j = s_w, e_w do 
-                    if words[j] then table.insert(parts, words[j]) end
+                local e_w = (i == p2_l) and p2_w or (subs[i].word_count or 0)
+                
+                local logical_ptr = 0
+                for _, t in ipairs(tokens) do
+                    if t.is_word then
+                        logical_ptr = logical_ptr + 1
+                        if logical_ptr >= s_w and logical_ptr <= e_w then
+                            table.insert(parts, t.text)
+                        end
+                    end
                 end
             end
             term = compose_term_smart(parts)
+            
             local ctx_parts = {}
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
@@ -2513,16 +2532,24 @@ local function dw_anki_export_selection()
             time_pos = subs[p1_l].start_time
 
             -- Check if selection starts at a boundary
-            if p1_w == 1 then
-                is_sentence_boundary = true
-            else
-                local first_words = build_word_list(subs[p1_l].text:gsub("\n", " "))
-                if first_words[p1_w - 1] and first_words[p1_w - 1]:match("[.!?]$") then
+            is_sentence_boundary = (p1_w == 1)
+            if not is_sentence_boundary then
+                local first_tokens = get_sub_tokens(subs[p1_l])
+                local prev_text = nil
+                local ptr = 0
+                for _, t in ipairs(first_tokens) do
+                    if t.is_word then
+                        ptr = ptr + 1
+                        if ptr == p1_w then break end
+                        prev_text = t.text
+                    end
+                end
+                if prev_text and prev_text:match("[.!?]$") then
                     is_sentence_boundary = true
                 end
             end
         elseif cl ~= -1 and subs[cl] then
-            local sub = subs[cl]
+            local target_sub = subs[cl]
             local ctx_parts = {}
             for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
@@ -2530,18 +2557,31 @@ local function dw_anki_export_selection()
                 end
             end
             context_line = table.concat(ctx_parts, " ")
-            time_pos = sub.start_time
+            time_pos = target_sub.start_time
+            p1_w = cw
+            p1_l = cl
+            
             if cw ~= -1 then
-                local line_words = build_word_list(sub.text:gsub("\n", " "))
-                term = line_words[cw] or (sub.text:gsub("\n", " "))
+                local tokens = get_sub_tokens(target_sub)
+                local ptr = 0
+                local prev_text = nil
+                for _, t in ipairs(tokens) do
+                    if t.is_word then
+                        ptr = ptr + 1
+                        if ptr == cw then
+                            term = t.text
+                            break
+                        end
+                        prev_text = t.text
+                    end
+                end
+                term = term or target_sub.text
                 -- Check for boundary
-                if cw == 1 then
-                    is_sentence_boundary = true
-                elseif line_words[cw - 1] and line_words[cw - 1]:match("[.!?]$") then
+                if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
                     is_sentence_boundary = true
                 end
             else
-                term = sub.text:gsub("\n", " ")
+                term = target_sub.text
                 is_sentence_boundary = true
             end
         end
@@ -2582,8 +2622,9 @@ local function dw_anki_export_selection()
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit)
-            save_anki_tsv_row(term, extracted_context, time_pos)
+            save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
             show_osd("Anki Highlight Saved: " .. term)
+
             
             -- Force reload of TSV to pick up the new highlight and clear selection to show it
             load_anki_tsv(true)
