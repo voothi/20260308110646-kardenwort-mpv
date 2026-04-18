@@ -993,7 +993,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         end
 
                                         if valid_timing and has_anchor then
-                                            local span = current_tuple[#current_tuple] - current_tuple[1]
+                                            local m_first = ctx_list[current_tuple[1]]
+                                            local m_last = ctx_list[current_tuple[#current_tuple]]
+                                            -- Use a combined metric: Subtitle Index * 1000 + Token Index to find most compact span
+                                            local span = (m_last.s_i * 1000 + m_last.t_i) - (m_first.s_i * 1000 + m_first.t_i)
                                             if span < min_span then
                                                 min_span = span
                                                 best_tuple = {}
@@ -2013,29 +2016,46 @@ local function draw_dw(subs, view_center, active_idx)
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
+            local active_phrase_color = nil
+            
+            -- Selection indices for this line/segment
+            local s_v, e_v = -1, -1
+            if has_selection then
+                if i > p1_l and i < p2_l then 
+                    s_v, e_v = 1, #entry.tokens
+                elseif i == p1_l and i == p2_l then
+                    s_v = entry.logical_to_visual[p1_w] or -1
+                    e_v = entry.logical_to_visual[p2_w] or -1
+                elseif i == p1_l then
+                    s_v = entry.logical_to_visual[p1_w] or -1
+                    e_v = #entry.tokens
+                elseif i == p2_l then
+                    s_v = 1
+                    e_v = entry.logical_to_visual[p2_w] or -1
+                end
+            end
+
             for _, j in ipairs(vl_indices) do
                 local t = entry.tokens[j]
                 local l_idx = t.logical_idx
+                local token_text = t.text
                 
+                -- Priority 1: Ctrl-Selection (Pale Yellow)
                 local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
                 if ctrl_member then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, t.text, color))
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, token_text, color))
+                    active_phrase_color = nil
                     goto next_token
                 end
 
-                local selected = false
-                if has_selection and l_idx then
-                    if i > p1_l and i < p2_l then selected = true
-                    elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                    elseif i == p1_l then selected = (l_idx >= p1_w)
-                    elseif i == p2_l then selected = (l_idx <= p2_w) end
+                -- Priority 2: Visual Selection Range (Yellow Background - inclusive of spaces)
+                if s_v ~= -1 and j >= s_v and j <= e_v then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, token_text, color))
+                    active_phrase_color = nil
+                    goto next_token
                 end
                 
-                if selected then
-                    -- Primary/Manual Selection: Radiant/Persistent Yellow (High Priority)
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, t.text, color))
-                    goto next_token
-                elseif t.is_word then
+                if t.is_word then
                     -- Secondary Priority: Vocabulary database highlights (Orange/Purple/Brick)
                     local sub_t = subs[i]
                     local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
@@ -2057,17 +2077,28 @@ local function draw_dw(subs, view_center, active_idx)
                     end
 
                     if h_color ~= color then
-                        table.insert(formatted_words, format_highlighted_word(t.text, h_color, color, is_phrase, "0", false))
+                        table.insert(formatted_words, format_highlighted_word(token_text, h_color, color, is_phrase, "0", false))
+                        active_phrase_color = is_phrase and h_color or nil
                         goto next_token
                     end
 
-                    -- Tertiary Priority: Transient cursor-based hover (Only if no database match)
+                    -- Tertiary Priority: Transient cursor-based hover (Vibrant Yellow)
                     if i == cl and l_idx == cw then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, t.text, color))
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, token_text, color))
+                        active_phrase_color = nil
                         goto next_token
                     end
+                    active_phrase_color = nil
+                else
+                    -- Greedy Phrase Coloring: Apply phrase color to punctuation/space if it follows a phrase word
+                    if active_phrase_color then
+                        -- Check if there's a following word of the same phrase? 
+                        -- Simplifying: if we are in a phrase, color everything until we hit a non-matching word.
+                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", active_phrase_color, token_text, color))
+                    else
+                        table.insert(formatted_words, token_text)
+                    end
                 end
-                table.insert(formatted_words, t.text)
                 ::next_token::
             end
             local line_ass = ""
@@ -2516,11 +2547,10 @@ local function dw_anki_export_selection()
         local term = ""
         local context_line = ""
         local time_pos = 0
-        local p1_w = nil
         local is_sentence_boundary = false
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            local p1_l, p2_l, p2_w
+            local p2_l, p2_w
             if al < cl or (al == cl and aw <= cw) then
                 p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
             else
@@ -2644,13 +2674,15 @@ local function dw_anki_export_selection()
             -- Clean capture: Remove leading/trailing punctuation (including hyphens and slashes)
             local pre = term:match("^[%p%s]*")
             local suf = term:match("[%p%s]*$")
-            local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
+            -- Check if the LAST subtitle in the selection ends with terminal punctuation
+            local last_sub_text = subs[p2_l] and subs[p2_l].text or ""
+            local sub_had_terminal = last_sub_text:match("[.!?][%s%p]*$") ~= nil
+            
             if #pre < #term then
                 term = term:sub(#pre + 1, #term - #suf)
             end
-            -- If the selection starts at a boundary AND original subtitle ended with a period (or ! or ?) AND
-            -- the cleaned term starts with an uppercase letter AND contains spaces (multi-word), restore the period.
-            if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
+            -- If selection starts at boundary, ends where a sub ends, and that sub had a period, restore it for multi-word phrases.
+            if is_sentence_boundary and sub_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
                 term = term .. "."
             end
             
