@@ -4162,7 +4162,7 @@ function cmd_dw_copy()
     local final_text = ""
     
     if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-        -- Range selection
+        -- 1. Range Selection: Reconstruct from sub-tokens
         local p1_l, p1_w, p2_l, p2_w
         if al < cl or (al == cl and aw <= cw) then
             p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
@@ -4187,37 +4187,40 @@ function cmd_dw_copy()
             end
         end
         final_text = compose_term_smart(parts)
-    else
-        -- Single point or line fallback
-        if FSM.DW_CURSOR_WORD > 0 then
-            local tokens = get_sub_tokens(subs[FSM.DW_CURSOR_LINE])
-            local ptr = 0
+    elseif cl ~= -1 and subs[cl] then
+        -- 2. Cursor Fallback (Single Word or Line)
+        local tokens = get_sub_tokens(subs[cl])
+        if cw > 0 then
+            -- Single specific word
+            local logical_ptr = 0
             for _, t in ipairs(tokens) do
                 if t.is_word then
-                    ptr = ptr + 1
-                    if ptr == FSM.DW_CURSOR_WORD then
+                    logical_ptr = logical_ptr + 1
+                    if logical_ptr == cw then
                         final_text = t.text
                         break
                     end
                 end
             end
-            final_text = final_text ~= "" and final_text or subs[FSM.DW_CURSOR_LINE].text
         else
-            final_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+            -- Full line reconstruction using smart joiner
+            -- (Preserves continuity and handles multi-line/disjointed text if it were present)
+            local line_parts = {}
+            for _, t in ipairs(tokens) do
+                if t.is_word then
+                    table.insert(line_parts, t.text)
+                end
+            end
+            final_text = compose_term_smart(line_parts)
         end
     end
     
     if final_text ~= "" then
+        -- Standard Clean: remove ASS tags
         final_text = final_text:gsub("{[^}]+}", "")
-        -- Clean capture: Remove trailing/leading punctuation/spaces
-        local pre = final_text:match("^[%p%s]*")
-        local suf = final_text:match("[%p%s]*$")
-        if #pre < #final_text then
-            final_text = final_text:sub(#pre + 1, #final_text - #suf)
-        end
         
         set_clipboard(final_text)
-        show_osd("DW Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
+        show_osd("DW Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""), 1)
     end
 end
 
