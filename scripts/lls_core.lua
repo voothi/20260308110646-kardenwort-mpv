@@ -2858,13 +2858,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     
     dw_osd:update()
 end
-    -- Clear selection pointer to immediately show the new highlight color
-    FSM.DW_ANCHOR_LINE = -1
-    FSM.DW_ANCHOR_WORD = -1
-    FSM.DW_CURSOR_WORD = -1
-    
-    dw_osd:update()
-end
+
 
 
 local function make_mouse_handler(is_shift, on_up_callback)

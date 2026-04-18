@@ -10,5 +10,5 @@ Previous branch, where it worked as it should and at what state of the code I ma
 20260418160107 It was a failed attempt.
 20260418160754 accept
 20260418161014 accept
-
-
+20260418161302 The window w does not open, there are no elements.
+20260418161449 Now it opens, but selecting and adding subtitles when selecting several lines does not work as before.
