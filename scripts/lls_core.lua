@@ -1678,6 +1678,9 @@ end
 -- =========================================================================
 
 local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c)
+    if type(word) == "table" then word = word.text end
+    if not word then return "" end
+    
     local c_tag = use_1c and "1c" or "c"
     local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
     local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state or "0") or ""
@@ -1709,6 +1712,9 @@ end
 
 -- Helper to estimate the width of a proportional string
 local function dw_get_str_width(str)
+    if type(str) == "table" then str = str.text end
+    if not str then return 0 end
+    
     local char_w = Options.dw_font_size * Options.dw_char_width
     if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
         local len = 0
@@ -1783,9 +1789,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
 
         local formatted_parts = {}
         for j, t in ipairs(tokens) do
+            local l_idx = visual_to_logical[j]
             if l_idx then
                 local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
-
+                local h_color = base_color
                 
                 if orange_stack > 0 and purple_stack > 0 then
                     local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
@@ -1805,10 +1812,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 if h_color ~= base_color then
                     table.insert(formatted_parts, format_highlighted_word(t, h_color, base_color, is_phrase, bold_state, true))
                 else
-                    table.insert(formatted_parts, t)
+                    table.insert(formatted_parts, t.text)
                 end
             else
-                table.insert(formatted_parts, t)
+                table.insert(formatted_parts, t.text)
             end
         end
 
@@ -2001,13 +2008,13 @@ local function draw_dw(subs, view_center, active_idx)
                 local is_focus_point = (i == cl and l_idx == cw)
                 
                 if selected or is_focus_point then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w.text, color))
                     goto next_token
                 end
 
                 local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
                 if ctrl_member then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w.text, color))
                     goto next_token
                 end
 
@@ -2038,11 +2045,11 @@ local function draw_dw(subs, view_center, active_idx)
                     if h_color ~= color then
                         table.insert(formatted_words, format_highlighted_word(w, h_color, color, is_phrase, "0", false))
                     else
-                        table.insert(formatted_words, w)
+                        table.insert(formatted_words, w.text)
                     end
                 else
                     -- It's a filler token (space), just add it as is
-                    table.insert(formatted_words, w)
+                    table.insert(formatted_words, w.text)
                 end
                 ::next_token::
             end
