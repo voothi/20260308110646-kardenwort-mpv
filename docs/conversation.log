@@ -18,5 +18,5 @@
 20260418170555 Make a hybrid of the two versions to make it work. Doesn't work properly. Make it a hybrid version. I have general specifications. There is a version of the code with working adding words, when using indexes and the lute v3 parser it was possible to add die in a normal way. Now this is a problem again. But in this version, adding multi-line selections works. On the other side. There is another version of the code in which, on the contrary, adding multi-line highlights (several subtitles) works, but adding individual words does not work normally. First version 4cbe0c411ed31827c490b2392aec120e6a3a55a0 Second current version a045309c1f381345dd1d6c550b31b622348c5b07
 20260418172017 Accept.
 20260418172611 Error.
-
+20260418173028 The window appeared, but now it does not highlight anything in bright yellow.
 

@@ -532,7 +532,10 @@ end
 
 
 local function is_word_token(t)
-    if not t or #t == 0 then return false end
+    if not t then return false end
+    if type(t) == "table" then return t.is_word == true end
+    -- Fallback for string tokens (if any)
+    if #t == 0 then return false end
     return not t:match("^%s+$")
 end
 
