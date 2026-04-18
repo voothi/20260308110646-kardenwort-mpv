@@ -21,5 +21,5 @@ If I clicked on fНalsch, then in this highlighted yellow color only minus gleic
 20260418164055 It is necessary to check the implementation of the current version of the codebase in accordance with the specification we wrote so that everything works as expected. openspec\specs\window-highlighting-spec; openspec\changes\archive\20260418074913-window-mode-highlighting-spec
 20260418165107 Accept.
 20260418165316 The window does not appear drum w.
-
+20260418165856 Is this really supposed to work in the current implementation? - Global Mode Hardening: Implemented mandatory neighborhood verification for Global Mode highlights. This prevents "highlight bleed" for common functional words (like "the" or "die") by requiring at least one matching neighbor from the original capture context.
 
