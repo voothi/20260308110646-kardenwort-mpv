@@ -793,6 +793,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             
             -- Performance: Lazy-cache processed term data
             if not data.__term_clean then
+                data.__is_elliptical = term_key:find(" ... ", 1, true) ~= nil
                 local term_tokens = build_word_list_internal(utf8_to_lower(term_key), false)
                 data.__term_clean = {}
                 for _, t in ipairs(term_tokens) do
@@ -835,7 +836,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         local sequence_match = true
                         
                         -- Phase 1: Local Sequence Match via Logical Indices
-                        if #term_clean > 1 then
+                        if data.__is_elliptical then
+                            sequence_match = false
+                        elseif #term_clean > 1 then
                             for k = 1, #term_clean do
                                 if k ~= term_offset then
                                     local rw_text = get_relative_word_text(k - term_offset)
@@ -2790,27 +2793,55 @@ local function ctrl_commit_set(line_idx, word_idx)
         return a.word < b.word
     end)
     
-    -- Compose the term
+    -- Compose the term with adaptive gap detection
     local subs = Tracks.pri.subs
-    local words = {}
+    local term = ""
+    local last_m = nil
+    
     for _, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
             if not sub.words then sub.words = build_word_list(sub.text) end
             local w = sub.words[m.word]
             if w then
-                -- Multi-word select: preserve content of bracketed tags if explicitly selected
                 local clean_w = w
                 if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
                     clean_w = clean_w:gsub("[%[%]]", "")
                 end
-                table.insert(words, clean_w)
+
+                if last_m then
+                    local is_gap = (m.line > last_m.line) or (m.word > last_m.word + 1)
+                    if is_gap then
+                        -- Inject space-padded ellipsis for non-contiguous selections
+                        term = term .. " ... "
+                    else
+                        -- Use smart joiner logic for contiguous words
+                        local next_w = clean_w
+                        local prev_w = term:match("%S+$") or ""
+                        
+                        local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
+                                              or next_w:match("^[/-]$") 
+                                              or next_w:match("^\226\128\147$") 
+                                              or next_w:match("^\226\128\148$") 
+                                              or next_w:match("^[\"']$")
+                        
+                        local no_space_after = prev_w:match("^[/-]$") 
+                                             or prev_w:match("^\226\128\147$") 
+                                             or prev_w:match("^\226\128\148$") 
+                                             or prev_w:match("^[%[%({¿¡«„“]$")
+                                             or prev_w:match("^[\"']$")
+                        
+                        if not (no_space_before or no_space_after) then
+                            term = term .. " "
+                        end
+                    end
+                end
+                term = term .. clean_w
+                last_m = m
             end
         end
     end
-    
-    if #words == 0 then return end
-    local term = compose_term_smart(words)
+    if term == "" then return end
     
     -- Use the earliest selected word's line for timestamp (document-natural start)
     local time_pos = subs[members[1].line].start_time
