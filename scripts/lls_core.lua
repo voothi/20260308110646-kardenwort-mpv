@@ -876,17 +876,14 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 end
                             end
 
-                            -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
-                            if data.index and target_l_idx then
+                            -- Absolute Targeted Index grounding: If TSV provides an index, it MUST match exactly.
+                            if data.index and data.index ~= -1 then
                                 local expected_start = target_l_idx - term_offset + 1
-                                if expected_start == data.index then
-                                    context_satisfied = true
-                                    match_count = 2
+                                if expected_start ~= data.index then
+                                    sequence_match = false
                                 else
-                                    -- Only strictly fail if they are in the same segment
-                                    if expected_start > 0 then
-                                        context_satisfied = false
-                                    end
+                                    context_satisfied = true
+                                    match_count = 2 -- Force valid
                                 end
                             end
 
