@@ -878,13 +878,18 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             -- Absolute Targeted Index grounding: If TSV provides an index, it MUST match exactly.
                             if data.index and data.index ~= -1 then
-                                local expected_start = target_l_idx - term_offset + 1
-                                if expected_start ~= data.index then
-                                    sequence_match = false
-                                else
-                                    context_satisfied = true
-                                    match_count = 2 -- Force valid
+                                -- Check if this record belongs to the current subtitle (by timestamp)
+                                -- Since timestamps might have slight drifts, we check within a very small tolerance (10ms)
+                                if math.abs(data.time - sub_start) < 0.01 then
+                                    local expected_start = target_l_idx - term_offset + 1
+                                    if expected_start ~= data.index then
+                                        sequence_match = false
+                                    else
+                                        context_satisfied = true
+                                        match_count = 2
+                                    end
                                 end
+                                -- If we are in a non-anchor subtitle, we fall through to normal sequence matching
                             end
 
                             if not context_satisfied and term_clean and #term_clean > 1 then
@@ -2515,16 +2520,14 @@ local function dw_anki_export_selection()
         
         local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
         local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-        local p1_l, p1_w = -1, -1
+        local p1_l, p1_w, p2_l, p2_w = -1, -1, -1, -1
         local ctx_target_anchor = 1
         local term = ""
         local context_line = ""
         local time_pos = 0
-        local p1_w = nil
         local is_sentence_boundary = false
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            local p1_l, p2_l, p2_w
             if al < cl or (al == cl and aw <= cw) then
                 p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
             else

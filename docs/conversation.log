@@ -13,7 +13,7 @@ Previous branch, where it worked as it should and at what state of the code I ma
 20260418161302 The window w does not open, there are no elements.
 20260418161449 Now it opens, but selecting and adding subtitles when selecting several lines does not work as before.
 20260418161741 Accept.
-
-
+20260418162119 I can’t add a fragment of several subtitles highlighted in bright yellow to a file. I click MMB and only the word that I clicked within this selection is added, and not the entire selection.
+20260418162408 Accept.
 
 
