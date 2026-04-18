@@ -2,11 +2,13 @@
 
 ## Purpose
 This specification provides a formal, exhaustive description of word highlighting behaviors within the "Window Mode" (Drum Window). It serves as a strict directive for the rendering engine to ensure consistent visual feedback. This document focuses on the expected behavioral and visual output, independent of specific technical implementation or parsing architecture.
-
 ## Requirements
-
 ### Requirement: Tri-Palette System
 The rendering engine SHALL utilize three distinct color palettes, each with three levels of depth (intensity), to indicate match complexity.
+
+#### Scenario: Palette Assignment
+- **WHEN** the engine identifies a database match
+- **THEN** it SHALL assign Orange for contiguous, Purple for split, or Brick for intersection according to the match type.
 
 - **Palette 1: Contiguous (Orange)**: Used for exact word sequence matches found in the user's database.
 - **Palette 2: Split (Purple)**: Used for multi-word terms where constituent words are present in the same context but arranged non-contiguously.
@@ -109,13 +111,24 @@ For split (non-contiguous) terms, the engine SHALL scan a widened cluster of sub
 - **THEN** it SHALL scan up to **±15 subtitle segments** (approximately 30 seconds of context) to locate all constituent words.
 
 ### Requirement: Strict Context Neighbor Verification
-When strict context matching is enabled, matches MUST be anchored by their recorded neighbors.
+When strict context matching is enabled, matches MUST be anchored by their recorded indices or neighbors.
+
+- **Index Grounding**: If a record contains a `SentenceSourceIndex`, the engine SHALL verify that the word's current logical position exactly matches the recorded index.
+- **Neighbor Fallback**: If no index is present (legacy records), the engine SHALL look past up to **4 consecutive symbols/separators** to find the nearest word and verify it against the recorded context.
+
+#### Scenario: Index Matching vs. Bleed
+- **GIVEN** a database record has `SentenceSourceIndex: 6` for the word `die`.
+- **AND** the current segment has a `die` at index 3 and a `die` at index 6.
+- **THEN** the engine SHALL only highlight the `die` at index 6.
 
 #### Scenario: Symbol-Agnostic Neighbor Detection
-- **WHEN** searching for neighbors to verify context.
+- **WHEN** searching for neighbors to verify context (for legacy records missing an index).
 - **THEN** the engine SHALL look past up to **4 consecutive symbols/separators** to find the nearest word.
 
-#### Scenario: Highlighting Exemptions
+### Requirement: Highlighting Exemptions
+The engine SHALL exempt specific tokens from strict neighbor verification.
+
+#### Scenario: Exempt Labels
 - **GIVEN** a potential match is a bracketed label (e.g., `[musik]`) or a common unit/adjective (e.g., `km`, `kg`, `ca`).
 - **THEN** the engine SHALL exempt these from strict neighbor verification.
 
@@ -129,6 +142,10 @@ The engine SHALL strictly control which individual word instances are colored wh
 
 ### Requirement: Highlight Rendering Scope (Global vs. Local)
 The rendering engine SHALL support two distinct modes of evaluation.
+
+#### Scenario: Mode Availability
+- **WHEN** the engine evaluates a record
+- **THEN** it SHALL support Local Highlighting (anchored by timestamp) and Global Highlighting (context-verified).
 
 - **Local Highlighting**: Highlights are strictly anchored to the original capture context by matching the record's timestamp.
 - **Global Highlighting**: Highlights are applied across the entire timeline, provided they pass strict neighborhood verification.
@@ -144,6 +161,9 @@ The Drum Window SHALL respond to mouse and keyboard inputs with deterministic vi
 - **AND** this selection SHALL persist even if the user scrolls the window.
 - **AND** the selection SHALL only reset when the user clicks a different word, moving the focus point.
 
+### Requirement: Split-Pair Selection (Ctrl+LMB)
+The system SHALL support manual selection of non-contiguous word pairs.
+
 #### Scenario: Split-Pair Selection (Ctrl + LMB)
 - **WHEN** a user holds Ctrl and clicks words.
 - **THEN** they SHALL be highlighted in **Beige/Pale Yellow** (Split candidates).
@@ -152,11 +172,17 @@ The Drum Window SHALL respond to mouse and keyboard inputs with deterministic vi
 - **AND** if the user clicks a Beige word with Ctrl again (Deselection), the engine MUST **unmask and restore** the word's precise underlying state (e.g., reverting to its database color, active white, or drag yellow).
 - **AND** if two *adjacent* words are saved via this mode, the engine SHALL automatically transition them to **Orange** palette rendering (Adjacent-Split Fallback).
 
+### Requirement: Export Shortcuts (MMB)
+The engine SHALL provide immediate visual feedback during mouse-driven exports.
+
 #### Scenario: Export Shortcuts (MMB)
 - **WHEN** a user holds MMB on a word.
 - **THEN** the word SHALL immediately turn Vibrant Yellow (Preview Focus).
 - **WHEN** the user releases MMB.
 - **THEN** the word/selection SHALL be exported to the database and transition to **Orange** (or secondary depth).
+
+### Requirement: Book Mode Navigation
+The system SHALL support synchronized media seeking when navigating via Book Mode.
 
 #### Scenario: Book Mode Navigation
 - **GIVEN** "Book Mode" is enabled.
@@ -167,6 +193,10 @@ The Drum Window SHALL respond to mouse and keyboard inputs with deterministic vi
 
 ### Requirement: Color Intersection and Engulfment Logic
 The engine SHALL dynamically determine the final color of a word when it is affected by multiple overlapping term types.
+
+#### Scenario: Intersection Evaluation
+- **WHEN** a word is targeted by multiple highlight palettes
+- **THEN** the engine SHALL apply the highest priority color or intersection brick as defined by the hierarchy.
 
 #### Scenario: Engulfing (Orange covering Purple)
 - **GIVEN** a word is already highlighted as **Purple** (Split match).
@@ -195,7 +225,7 @@ The system SHALL support selecting and exporting word sequences that span across
 - **THEN** the engine SHALL append a period `.` to the saved term.
 
 ### Requirement: ASS Mode Restrictions
-Advanced ASS styling is subject to restrictions to prevent visual corruption.
+Advanced ASS styling SHALL be subject to restrictions to prevent visual corruption.
 
 #### Scenario: Complex Positioning and Draw Commands
 - **GIVEN** a segment uses complex positioning (`\pos`) or drawing commands (`\p1`).
