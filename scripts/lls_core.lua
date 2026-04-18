@@ -2173,12 +2173,9 @@ local function dw_hit_test(osd_x, osd_y)
         local last = layout[#layout]
         local last_line = last.vlines[#last.vlines]
         local v_idx = last_line[#last_line]
+        
+        -- Map to logical word, or last word count if punctuation
         return last.sub_idx, last.visual_to_logical[v_idx] or (subs[last.sub_idx].word_count or 1)
-    end
-    if osd_y >= block_top + total_height then
-        local last = layout[#layout]
-        local last_vl = last.vlines[#last.vlines]
-        return last.sub_idx, last_vl[#last_vl]
     end
 
     local y_pos = block_top
@@ -2699,15 +2696,59 @@ local function ctrl_discard_set()
     dw_osd:update()
 end
 
-local function ctrl_toggle_word(line_idx, word_idx)
+local function ctrl_toggle_word(line_idx, word_idx, force_mode)
     if line_idx < 1 or word_idx < 1 then return end
     
     local key = string.format("%d:%d", line_idx, word_idx)
-    if FSM.DW_CTRL_PENDING_SET[key] then
+    if force_mode == "ON" then
+        FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
+    elseif force_mode == "OFF" then
         FSM.DW_CTRL_PENDING_SET[key] = nil
     else
-        FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
+        -- Toggle
+        if FSM.DW_CTRL_PENDING_SET[key] then
+            FSM.DW_CTRL_PENDING_SET[key] = nil
+        else
+            FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
+        end
     end
+    dw_osd:update()
+end
+
+local function dw_ctrl_add_selection_to_set()
+    local subs = Tracks.pri.subs
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return end
+    
+    local p1_l, p1_w, p2_l, p2_w
+    if al < cl or (al == cl and aw <= cw) then
+        p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+    else
+        p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+    end
+    
+    for i = p1_l, p2_l do
+        local tokens = get_sub_tokens(subs[i])
+        local s_word = (i == p1_l) and p1_w or 1
+        local e_word = (i == p2_l) and p2_w or (subs[i].word_count or 0)
+        
+        local ptr = 0
+        for _, t in ipairs(tokens) do
+            if t.is_word then
+                ptr = ptr + 1
+                if ptr >= s_word and ptr <= e_word then
+                    ctrl_toggle_word(i, ptr, "ON")
+                end
+            end
+        end
+    end
+    
+    -- Clear standard range anchor/cursor after committing to multi-set
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_CURSOR_LINE = -1
+    FSM.DW_CURSOR_WORD = -1
     dw_osd:update()
 end
 
@@ -2739,15 +2780,21 @@ local function ctrl_commit_set(line_idx, word_idx)
     for _, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
-            if not sub.words then sub.words = build_word_list(sub.text) end
-            local w = sub.words[m.word]
-            if w then
-                -- Multi-word select: preserve content of bracketed tags if explicitly selected
-                local clean_w = w
-                if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
-                    clean_w = clean_w:gsub("[%[%]]", "")
+            local tokens = get_sub_tokens(sub)
+            local ptr = 0
+            for _, t in ipairs(tokens) do
+                if t.is_word then
+                    ptr = ptr + 1
+                    if ptr == m.word then
+                        -- Multi-word select: preserve content of bracketed tags if explicitly selected
+                        local clean_w = t.text
+                        if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
+                            clean_w = clean_w:gsub("[%[%]]", "")
+                        end
+                        table.insert(words, clean_w)
+                        break
+                    end
                 end
-                table.insert(words, clean_w)
             end
         end
     end
@@ -2818,54 +2865,32 @@ local function make_mouse_handler(is_shift, on_up_callback)
             if line_idx and word_idx then
                 if is_shift then
                     if FSM.DW_ANCHOR_LINE == -1 then
-                        -- Start shift selection from the current cursor position
                         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
                         FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
                     end
-                    -- Extend selection to the clicked word
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
-                    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-                elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
-                    -- Preserve existing selection for 'SCM' commit (Middle-click committed existing range)
                 else
-                    -- Normal click: set both anchor and cursor (starts new selection)
+                    -- Standard or Ctrl start
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
                     FSM.DW_ANCHOR_LINE = line_idx
                     FSM.DW_ANCHOR_WORD = word_idx
-                    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                 end
                 
                 FSM.DW_MOUSE_DRAGGING = true
-                
-                -- Fast-tracking on mouse move
                 mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-
-                -- Start a repeating timer for auto-scroll near edges
-                if FSM.DW_MOUSE_SCROLL_TIMER then
-                    FSM.DW_MOUSE_SCROLL_TIMER:kill()
-                end
+                if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
                 FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
-                
-                -- Force immediate update to show Red selection highlight on down
-                drum_osd:update()
-                if dw_osd then dw_osd:update() end
+                dw_sync_cursor_to_mouse()
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
-            
-            -- Lock suppression to the line where the interaction ended
-            local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, _ = dw_hit_test(osd_x, osd_y)
-            FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
-
             mp.remove_key_binding("dw-mouse-drag")
             if FSM.DW_MOUSE_SCROLL_TIMER then
                 FSM.DW_MOUSE_SCROLL_TIMER:kill()
                 FSM.DW_MOUSE_SCROLL_TIMER = nil
             end
-
             if on_up_callback then on_up_callback(tbl) end
         end
     end
@@ -3343,12 +3368,7 @@ local function manage_dw_bindings(enable)
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
             if t.event == "up" then ctrl_discard_set() end
         end, complex = true},
-        {key = "Ctrl+MBTN_LEFT", name = "dw-ctrl-lmb", fn = function(t)
-            if t.event ~= "down" then return end
-            local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
-            if line_idx then ctrl_toggle_word(line_idx, word_idx) end
-        end, complex = true},
+        {key = "Ctrl+MBTN_LEFT", name = "dw-ctrl-lmb", fn = make_mouse_handler(false, dw_ctrl_add_selection_to_set), complex = true},
         {key = "Ctrl+MBTN_MID", name = "dw-ctrl-mmb", fn = function(t)
             if t.event ~= "down" then return end
             local osd_x, osd_y = dw_get_mouse_osd()
