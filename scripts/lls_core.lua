@@ -1976,6 +1976,9 @@ local function draw_dw(subs, view_center, active_idx)
         for _, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
             for _, j in ipairs(vl_indices) do
+                local w = entry.words[j]
+                local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
+
                 local selected = false
                 if has_selection and l_idx then
                     if i > p1_l and i < p2_l then selected = true
