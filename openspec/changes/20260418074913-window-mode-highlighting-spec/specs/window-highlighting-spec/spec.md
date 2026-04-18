@@ -121,6 +121,49 @@ The rendering engine SHALL support two distinct modes of evaluation.
 - **Local Highlighting**: Highlights are strictly anchored to the original capture context by matching the record's timestamp.
 - **Global Highlighting**: Highlights are applied across the entire timeline, provided they pass strict neighborhood verification.
 
+### Requirement: Interaction, Input, and State Transitions
+The Drum Window SHALL respond to mouse and keyboard inputs with deterministic visual feedback and navigation.
+
+#### Scenario: Vibrant Yellow Selection (LMB)
+- **WHEN** a user clicks LMB on a word.
+- **THEN** it SHALL be highlighted in **Vibrant Yellow** (Current Focus).
+- **WHEN** a user clicks and drags LMB.
+- **THEN** a contiguous range SHALL be highlighted in Vibrant Yellow.
+- **AND** this selection SHALL persist even if the user scrolls the window.
+- **AND** the selection SHALL only reset when the user clicks a different word, moving the focus point.
+
+#### Scenario: Split-Pair Selection (Ctrl + LMB)
+- **WHEN** a user holds Ctrl and clicks words.
+- **THEN** they SHALL be highlighted in **Beige/Pale Yellow** (Split candidates).
+- **AND** these selections SHALL carry higher visual priority than automated highlights but lower than the Vibrant Yellow Focus point.
+- **AND** if a word already has Vibrant Yellow focus, the Beige color MUST visually overlap/indicator the "paired" state.
+
+#### Scenario: Export Shortcuts (MMB)
+- **WHEN** a user holds MMB on a word.
+- **THEN** the word SHALL immediately turn Vibrant Yellow (Preview Focus).
+- **WHEN** the user releases MMB.
+- **THEN** the word/selection SHALL be exported to the database and transition to **Orange** (or secondary depth).
+
+#### Scenario: Book Mode Navigation
+- **GIVEN** "Book Mode" is enabled.
+- **WHEN** a user jumps to a subtitle (Double-click/Enter).
+- **THEN** the media player SHALL seek to that time.
+- **AND** the active line SHALL be highlighted in white.
+- **BUT** the engine SHALL NOT force the text to re-center vertically on the active line, preserving the user's current scroll position.
+
+### Requirement: Color Intersection and Engulfment Logic
+The engine SHALL dynamically determine the final color of a word when it is affected by multiple overlapping term types.
+
+#### Scenario: Engulfing (Orange covering Purple)
+- **GIVEN** a word is already highlighted as **Purple** (Split match).
+- **WHEN** an **Orange** (Contiguous) range is defined that includes this word (Engulfing).
+- **THEN** the word SHALL transition to **Brick Color**.
+- **AND** its intensity SHALL reflect the total number of overlapping matches (Orange count + Purple count).
+
+#### Scenario: Inter-Palette Depth Increasing
+- **WHEN** a word belongs to multiple terms of the same color (e.g., two overlapping Purple terms).
+- **THEN** its intensity SHALL increase (deeper purple) to represent the nesting level, up to the third depth level.
+
 ### Requirement: Multi-Line Selection and Saving
 The system SHALL support selecting and exporting word sequences that span across multiple subtitle segments.
 
