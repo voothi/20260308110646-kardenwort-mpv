@@ -1070,14 +1070,14 @@ local function starts_with_uppercase(str)
     return false
 end
 
-local function extract_anki_context(full_line, selected_term, max_words_override)
+local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos)
     if not full_line or full_line == "" then return "" end
     
-    -- 1. Try to find the occurrence closest to the center of the provided context block.
+    -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
     -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
-    local center = #full_line / 2
+    local center = pivot_pos or (#full_line / 2)
     local start_pos, end_pos = nil, nil
     local best_dist = math.huge
     local search_from = 1
@@ -2646,9 +2646,23 @@ local function dw_anki_export_selection()
             term = table.concat(parts, " ")
             
             local ctx_parts = {}
-            for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do
+            local pivot_pos = 0
+            local start_k = math.max(1, p1_l - Options.anki_context_lines)
+            for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
-                    table.insert(ctx_parts, subs[k].text)
+                    local text = subs[k].text
+                    table.insert(ctx_parts, text)
+                    if k < p1_l then
+                        local cleaned = text:gsub("{[^}]+}", "")
+                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
+                        cleaned = cleaned:gsub("%s+", " ")
+                        pivot_pos = pivot_pos + #cleaned + 1
+                    elseif k == p1_l then
+                        local cleaned = text:gsub("{[^}]+}", "")
+                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
+                        cleaned = cleaned:gsub("%s+", " ")
+                        pivot_pos = pivot_pos + (#cleaned / 2)
+                    end
                 end
             end
             context_line = table.concat(ctx_parts, " ")
@@ -2674,9 +2688,23 @@ local function dw_anki_export_selection()
         elseif cl ~= -1 and subs[cl] then
             local target_sub = subs[cl]
             local ctx_parts = {}
-            for k = math.max(1, cl - Options.anki_context_lines), math.min(#subs, cl + Options.anki_context_lines) do
+            local pivot_pos = 0
+            local start_k = math.max(1, cl - Options.anki_context_lines)
+            for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
-                    table.insert(ctx_parts, subs[k].text)
+                    local text = subs[k].text
+                    table.insert(ctx_parts, text)
+                    if k < cl then
+                        local cleaned = text:gsub("{[^}]+}", "")
+                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
+                        cleaned = cleaned:gsub("%s+", " ")
+                        pivot_pos = pivot_pos + #cleaned + 1
+                    elseif k == cl then
+                        local cleaned = text:gsub("{[^}]+}", "")
+                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
+                        cleaned = cleaned:gsub("%s+", " ")
+                        pivot_pos = pivot_pos + (#cleaned / 2)
+                    end
                 end
             end
             context_line = table.concat(ctx_parts, " ")
@@ -2744,7 +2772,7 @@ local function dw_anki_export_selection()
             context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-            local extracted_context = extract_anki_context(context_line, term, effective_limit)
+            local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos)
             save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
             show_osd("Anki Highlight Saved: " .. term)
 
@@ -2880,7 +2908,21 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     local term_words = build_word_list(term)
     local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
+    local pivot_pos = 0
+    local current_offset = 0
+    for i = ctx_start, ctx_end do
+        local line_text = subs[i].text:gsub("{[^}]+}", "")
+        if Options.anki_strip_metadata then line_text = line_text:gsub("%b[]", " ") end
+        line_text = line_text:gsub("%s+", " ")
+        
+        if i < members[1].line then
+            pivot_pos = pivot_pos + #line_text + 1
+        elseif i == members[1].line then
+            pivot_pos = pivot_pos + (#line_text / 2)
+        end
+    end
+
+    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
     save_anki_tsv_row(term, extracted_context, time_pos)
     show_osd("Anki Highlight Saved (Multi): " .. term)
