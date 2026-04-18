@@ -1797,7 +1797,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local token_meta = {}
         for j, t in ipairs(tokens) do
             local l_idx = visual_to_logical[j]
-            local meta = { text = t.text, color = base_color, is_phrase = false, priority = 0 }
+            local meta = { text = t.text, color = base_color, is_word = t.is_word, is_phrase = false, priority = 0 }
             
             -- Level 1: Persistent Selection
             local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", sub_idx, l_idx)] or nil
@@ -1845,12 +1845,12 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         -- Pass 2: Semantic Punctuation Coloring
         for j, t in ipairs(tokens) do
             local meta = token_meta[j]
-            if meta.priority == 0 and not is_word_token({text = meta.text}) then
+            if meta.priority == 0 and not meta.is_word then
                 local prev_meta = token_meta[j-1]
                 local next_meta = token_meta[j+1]
 
                 if prev_meta and prev_meta.priority == 2 and prev_meta.is_phrase then
-                    if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not is_word_token({text = next_meta.text})) then
+                    if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
                         meta.color = prev_meta.color
                         meta.is_phrase = true
                     end
@@ -2045,16 +2045,13 @@ local function draw_dw(subs, view_center, active_idx)
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
-            for _, j in ipairs(vl_indices) do
-                local w = entry.words[j]
-                local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
 
             -- Level 1 & 2: Base Highlighting (First Pass)
             local token_meta = {}
             for _, j in ipairs(vl_indices) do
                 local w = entry.words[j]
                 local l_idx = entry.visual_to_logical[j]
-                local meta = { text = w.text, color = color, is_phrase = false, priority = 0 }
+                local meta = { text = w.text, color = color, is_word = w.is_word, is_phrase = false, priority = 0 }
                 
                 -- Level 1: Persistent Selection
                 local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
@@ -2109,7 +2106,7 @@ local function draw_dw(subs, view_center, active_idx)
             -- Pass 2: Semantic Punctuation Coloring
             for m, j in ipairs(vl_indices) do
                 local meta = token_meta[j]
-                if meta.priority == 0 and not is_word_token({text = meta.text}) then
+                if meta.priority == 0 and not meta.is_word then
                     local prev_j = vl_indices[m-1]
                     local next_j = vl_indices[m+1]
                     local prev_meta = prev_j and token_meta[prev_j]
@@ -2117,7 +2114,7 @@ local function draw_dw(subs, view_center, active_idx)
 
                     -- If internal punctuation within a phrase OR trailing a phrase and not followed by a word
                     if prev_meta and prev_meta.priority == 2 and prev_meta.is_phrase then
-                        if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not is_word_token({text = next_meta.text})) then
+                        if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
                             meta.color = prev_meta.color
                             meta.is_phrase = true
                         end
@@ -2136,7 +2133,6 @@ local function draw_dw(subs, view_center, active_idx)
                 else
                     table.insert(formatted_words, meta.text)
                 end
-            end
             end
             local line_ass = ""
             for idx, fw in ipairs(formatted_words) do
