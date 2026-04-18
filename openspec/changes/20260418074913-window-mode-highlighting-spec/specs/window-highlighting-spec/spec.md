@@ -128,6 +128,39 @@ The engine SHALL strictly control which instances of common words are colored wh
 - **THEN** the engine SHALL calculate the **shortest sequential span** that contains all words in their original order.
 - **AND** only the word instances within that optimal shortest span SHALL be highlighted.
 
+### Requirement: Multi-Line Selection and Saving
+The Drum Window SHALL support selecting and exporting word sequences that span across multiple sequential subtitle segments.
+
+#### Scenario: Multi-segment selection capture
+- **WHEN** a user creates a selection range starting in Subtitle A and ending in Subtitle B
+- **AND** the export (MBTN_MID) is triggered
+- **THEN** the engine SHALL collect all word tokens between the start and end indices across all involved segments.
+- **AND** the tokens SHALL be joined into a single, space-normalized "Term" string.
+- **AND** the "Term" SHALL be cleaned of leading/trailing non-word characters.
+
+#### Scenario: Timestamp Anchoring
+- **WHEN** a multi-line selection is saved to the flashcard database
+- **THEN** the entry SHALL be anchored to the **start_time of the first subtitle segment** in the selection range.
+
+#### Scenario: Broad Context Capture
+- **WHEN** a multi-line selection is saved
+- **THEN** the context extraction engine SHALL scan a window of `anki_context_lines` (e.g., ±6) around the entire selection range.
+- **AND** the resulting context SHALL accurately encircle all sentences touched by the multi-line term.
+
+### Requirement: Smart Punctuation and Metadata Stripping
+During the export process, the engine SHALL ensure the saved term remains clean and idiomatic.
+
+#### Scenario: Punctuation and Metadata Cleanup
+- **WHEN** exporting a term containing bracketed metadata (e.g., `[musik] Hallo`)
+- **AND** `anki_strip_metadata` is enabled
+- **THEN** the metadata SHALL be removed from the saved term.
+- **AND** leading/trailing punctuation SHALL be stripped (e.g., `.Hallo,` becomes `Hallo`).
+
+#### Scenario: Automatic Period Restoration
+- **WHEN** a multi-word selection starts at a sentence boundary and is capitalized
+- **AND** the original sequence ended with terminal punctuation (e.g., `.`, `!`, `?`)
+- **THEN** the engine SHALL append a period `.` to the saved term to maintain grammatical integrity for phrase study.
+
 
 ### Requirement: ASS Mode Restrictions
 The "Window Mode" high-recall highlighting engine is strictly optimized for linear, plain-text subtitle formats (SRT). Advanced ASS styling (Advanced Substation Alpha) is subject to the following formal restrictions:
