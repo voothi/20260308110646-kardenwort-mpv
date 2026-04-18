@@ -47,8 +47,8 @@ The intensity level for any color SHALL be determined by the cumulative number o
 
 #### Scenario: Determining brick palette level
 - **WHEN** a word is matched by $O$ Contiguous terms AND $S$ Split terms (where $O > 0$ and $S > 0$).
-- **THEN** the total intensity $L$ SHALL be calculated as $L = \text{clamp}(O + S, 1, 3)$.
-- **AND** the word SHALL be rendered using the $L$ intensity level of the **Brick Color** palette.
+- **THEN** the base level of intersection (1 Contiguous + 1 Split) SHALL be rendered as **Intensity Level 1** of the Brick Color palette.
+- **AND** the total intensity $L$ for higher-order overlaps SHALL be calculated as $L = \text{clamp}(O + S - 1, 1, 3)$.
 
 #### Scenario: Complex Combination (Brick Nesting)
 - **WHEN** a word is simultaneously part of 1 contiguous term and 2 split terms.
@@ -137,6 +137,8 @@ The Drum Window SHALL respond to mouse and keyboard inputs with deterministic vi
 - **THEN** they SHALL be highlighted in **Beige/Pale Yellow** (Split candidates).
 - **AND** these selections SHALL carry higher visual priority than automated highlights but lower than the Vibrant Yellow Focus point.
 - **AND** if a word already has Vibrant Yellow focus, the Beige color MUST visually overlap/indicator the "paired" state.
+- **AND** if the user clicks a Beige word with Ctrl again (Deselection), the engine MUST **unmask and restore** the word's precise underlying state (e.g., reverting to its database color, active white, or drag yellow).
+- **AND** if two *adjacent* words are saved via this mode, the engine SHALL automatically transition them to **Orange** palette rendering (Adjacent-Split Fallback).
 
 #### Scenario: Export Shortcuts (MMB)
 - **WHEN** a user holds MMB on a word.
@@ -196,8 +198,11 @@ The Drum Window SHALL allow rapid navigation to any visible subtitle segment usi
 
 #### Scenario: Jump to Segment (Double-Click / Enter)
 - **GIVEN** the Drum Window is open and displaying multiple segments.
-- **WHEN** a user double-clicks a non-active (gray) subtitle segment OR presses Enter while it is highlighted.
-- **THEN** the engine SHALL immediately set that segment as the "Active" segment (changing its color to white/primary color).
+- **WHEN** a user performs the FIRST click of a double-click on a word.
+- **THEN** the word SHALL momentarily turn **Vibrant Yellow** (Focus Indicator).
+- **WHEN** the user performs the SECOND click.
+- **THEN** the engine SHALL immediately clear any transient Vibrant Yellow highlight.
+- **AND** it SHALL set that segment as the "Active" segment (immediately turning the text white).
 - **AND** the media player SHALL jump to the start time of the newly activated segment.
 
 ### Requirement: Interaction and State Transitions
