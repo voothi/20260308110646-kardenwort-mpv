@@ -719,7 +719,8 @@ end
 local function get_sub_tokens(s)
     if not s then return nil end
     if not s.tokens then 
-        s.tokens = build_word_list_internal(s.text, Options.dw_original_spacing)
+        local text = (s.text or ""):gsub("\n", " ")
+        s.tokens = build_word_list_internal(text, Options.dw_original_spacing)
         local wc = 0
         for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
         s.word_count = wc
@@ -785,6 +786,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     local purple_stack = 0
     local has_phrase = false
     local matched_terms = {}
+
     for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
         local term_key = data.term
         if not matched_terms[term_key] then
@@ -803,6 +805,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
             end
             local term_clean = data.__term_clean
+            if #term_clean == 0 then goto next_record end
             
             local window = Options.anki_local_fuzzy_window
             if #term_clean > 10 then window = window + (#term_clean * 0.5) end
@@ -834,65 +837,65 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     for _, term_offset in ipairs(target_offsets) do
                         local sequence_match = true
                         
-                        -- Phase 1: Local Sequence Match via Logical Indices
-                        if #term_clean > 1 then
-                            for k = 1, #term_clean do
-                                if k ~= term_offset then
-                                    local rw_text = get_relative_word_text(k - term_offset)
-                                    if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
-                                        sequence_match = false
-                                        break
-                                    end
+                        -- Phase 1: Local Sequence Match via Logical Indices (±3 Neighborhood Anchoring)
+                        local check_start = math.max(1, term_offset - 3)
+                        local check_end = math.min(#term_clean, term_offset + 3)
+                        for k = check_start, check_end do
+                            if k ~= term_offset then
+                                local rw_text = get_relative_word_text(k - term_offset)
+                                if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
+                                    sequence_match = false
+                                    break
                                 end
                             end
                         end
 
-                        -- Phase 2: Context Match
-                        local needs_strict = Options.anki_context_strict or (#term_clean == 1)
-                        if sequence_match and needs_strict and not Options.anki_global_highlight then
-                            local match_count = 0
-                            local neighbors_found = 0
-                            for _, dir in ipairs({-1, 1}) do
-                                for offset = 1, 4 do
-                                    local nw_text = get_relative_word_text(dir * offset)
-                                    if not nw_text then break end
-                                    local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
-                                    if nw_clean ~= "" then
-                                        neighbors_found = neighbors_found + 1
-                                        if data.__ctx_lower:find(nw_clean, 1, true) then 
-                                            match_count = match_count + 1 
-                                        end
-                                        break
-                                    end
-                                end
-                            end
-                            
-                            local context_satisfied = (match_count > 0)
-                            if #term_clean == 1 then
-                                -- For single words, require higher evidence (matching neighbors on both sides if available)
-                                if neighbors_found >= 2 then
-                                    context_satisfied = (match_count >= 2)
-                                end
-                            end
+                        -- Phase 2: Context Match (Fuzzy Neighborhood fallback if no index)
+                        if sequence_match and not Options.anki_global_highlight then
+                            local context_satisfied = false
 
-                            -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
+                            -- R-1: Index-Driven Targeting (Primary)
                             if data.index and target_l_idx then
-                                context_satisfied = (data.index == target_l_idx)
-                                -- If we have an absolute index match, we skip the fuzzy neighbor check!
-                                if context_satisfied then match_count = 2 end 
-                            end
-
-                            if not context_satisfied and #tokens > 1 then
-                                local is_exempt = target_word_text:match("^%b[]$")
-                                if not is_exempt then
-                                    local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
-                                    if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
-                                       tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
-                                        is_exempt = true
+                                context_satisfied = (data.index == target_l_idx - term_offset + 1)
+                            else
+                                -- Fallback: Strict Neighborhood Verification (±4 words in context sentence)
+                                local match_count = 0
+                                local neighbors_found = 0
+                                for _, dir in ipairs({-1, 1}) do
+                                    for offset = 1, 4 do
+                                        local nw_text = get_relative_word_text(dir * offset)
+                                        if not nw_text then break end
+                                        local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
+                                        if nw_clean ~= "" then
+                                            neighbors_found = neighbors_found + 1
+                                            if data.__ctx_lower:find(nw_clean, 1, true) then 
+                                                match_count = match_count + 1 
+                                            end
+                                            break
+                                        end
                                     end
                                 end
-                                if not is_exempt then sequence_match = false end
+                                
+                                context_satisfied = (match_count > 0)
+                                if #term_clean == 1 and neighbors_found >= 2 then
+                                    context_satisfied = (match_count >= 1) -- One neighbor is sufficient for isolation
+                                end
+                                
+                                -- Exemption for labels and common markers
+                                if not context_satisfied then
+                                    local is_exempt = target_word_text:match("^%b[]$")
+                                    if not is_exempt then
+                                        local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
+                                        if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
+                                           tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
+                                            is_exempt = true
+                                        end
+                                    end
+                                    if is_exempt then context_satisfied = true end
+                                end
                             end
+
+                            if not context_satisfied then sequence_match = false end
                         end
 
                         if sequence_match then
@@ -905,27 +908,24 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         match_found = true
                         if #term_clean > 1 then has_phrase = true end
                     elseif #term_clean > 1 then
+                        -- Phase 3: Split Matching (Deterministic Index & Shortest Span)
                         local origin_sub_idx = get_center_index(subs, data.time)
-                        -- Phase 3: Split Matching (Deterministic Index Targeting)
-                        if not subs[sub_idx].__split_valid_indices then
-                            subs[sub_idx].__split_valid_indices = {}
-                        end
+                        if not subs[sub_idx].__split_valid_indices then subs[sub_idx].__split_valid_indices = {} end
                         local valid_set = subs[sub_idx].__split_valid_indices[term_key]
                         
                         if valid_set == nil then
                             valid_set = false
                             local ctx_list = {}
                             
-                            -- Stricter scan window for splits: ±3 segments from either current or origin,
-                            -- and must fall within a 10s temporal window of the export.
-                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 3)
-                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 3)
+                            -- R-5: Peek Radius (±3 segments, 5s temporal window)
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 5)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 5)
 
                             for scan_i = s_start, s_end do
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if gap < 5.0 then -- 5s search radius around export time
+                                    if gap < 10.0 then
                                         for t_idx, t in ipairs(scan_tokens) do
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
@@ -953,7 +953,6 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 local min_span = 999999
                                 local function search(term_idx, current_tuple)
                                     if term_idx > #term_clean then
-                                        -- Verify Logic Contiguity
                                         local valid_timing = true
                                         local has_anchor = (not data.index) or (origin_sub_idx == -1)
                                         
@@ -961,12 +960,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
                                                 local prev_m = ctx_list[current_tuple[m_idx-1]]
-                                                -- Components of a split phrase must be within 2s of each other
-                                                if math.abs(m.start - prev_m.start) > 2.0 then
+                                                -- R-6: Inter-segment Timing (1.5s max gap)
+                                                if math.abs(m.start - prev_m.start) > 1.5 then
                                                     valid_timing = false; break
                                                 end
                                             end
-                                            -- If an index anchor was provided, it MUST be part of the tuple
                                             if data.index and m.s_i == origin_sub_idx and m.t_i == data.index then
                                                 has_anchor = true
                                             end
@@ -1016,9 +1014,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 matched_terms[term_key] = true
             end
         end
+        ::next_record::
     end
     return orange_stack, purple_stack, has_phrase
 end
+
 
 local function get_word_boundary(q_table, pos, direction)
     -- direction: -1 (left), 1 (right)
@@ -1798,19 +1798,15 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             if t.is_word then
                 local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
                 
-                if orange_stack > 0 and purple_stack > 0 then
-                    local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
-                    if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                    elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                    elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
-                elseif orange_stack > 0 then
-                    if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
-                    elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
-                    elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                elseif purple_stack > 0 then
-                    if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                    elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                    elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                local total_stack = orange_stack + purple_stack
+                if total_stack >= 2 then
+                    local depth = math.min(total_stack, 3)
+                    if depth == 2 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                    elseif depth >= 3 then h_color = Options.anki_mix_depth_2 or "3636A8" end
+                elseif orange_stack == 1 then
+                    h_color = Options.anki_highlight_depth_1
+                elseif purple_stack == 1 then
+                    h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                 end
 
                 if h_color ~= base_color then
@@ -2022,19 +2018,15 @@ local function draw_dw(subs, view_center, active_idx)
                     local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
                     local h_color = color
                     
-                    if orange_stack > 0 and purple_stack > 0 then
-                        local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
-                        if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                        elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                        elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "202078" end
-                    elseif orange_stack > 0 then
-                        if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
-                        elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
-                        elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                    elseif purple_stack > 0 then
-                        if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                        elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                        elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                    local total_stack = orange_stack + purple_stack
+                    if total_stack >= 2 then
+                        local depth = math.min(total_stack, 3)
+                        if depth == 2 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                        elseif depth >= 3 then h_color = Options.anki_mix_depth_2 or "3636A8" end
+                    elseif orange_stack == 1 then
+                        h_color = Options.anki_highlight_depth_1
+                    elseif purple_stack == 1 then
+                        h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                     end
 
                     if h_color ~= color then
