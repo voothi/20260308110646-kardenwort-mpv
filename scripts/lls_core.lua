@@ -2614,6 +2614,7 @@ local function dw_anki_export_selection()
         local context_line = ""
         local time_pos = 0
         local is_sentence_boundary = false
+        local pivot_pos = 0
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
             if al < cl or (al == cl and aw <= cw) then
@@ -2649,7 +2650,7 @@ local function dw_anki_export_selection()
             term = table.concat(parts, " ")
             
             local ctx_parts = {}
-            local pivot_pos = 0
+            pivot_pos = 0
             local start_k = math.max(1, p1_l - Options.anki_context_lines)
             for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
@@ -2695,7 +2696,7 @@ local function dw_anki_export_selection()
         elseif cl ~= -1 and subs[cl] then
             local target_sub = subs[cl]
             local ctx_parts = {}
-            local pivot_pos = 0
+            pivot_pos = 0
             local start_k = math.max(1, cl - Options.anki_context_lines)
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
