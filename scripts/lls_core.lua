@@ -2606,17 +2606,23 @@ local function dw_anki_export_selection()
                 local s_w = (i == p1_l) and p1_w or 1
                 local e_w = (i == p2_l) and p2_w or (subs[i].word_count or 0)
                 
-                local logical_ptr = 0
+                local line_parts = {}
+                local in_range = false
                 for _, t in ipairs(tokens) do
                     if t.is_word then
-                        logical_ptr = logical_ptr + 1
-                        if logical_ptr >= s_w and logical_ptr <= e_w then
-                            table.insert(parts, t.text)
-                        end
+                        if t.logical_idx == s_w then in_range = true end
+                        if in_range then table.insert(line_parts, t.text) end
+                        if t.logical_idx == e_w then in_range = false break end
+                    elseif in_range then
+                        table.insert(line_parts, t.text)
                     end
                 end
+                
+                if #line_parts > 0 then
+                    table.insert(parts, table.concat(line_parts, ""))
+                end
             end
-            term = compose_term_smart(parts)
+            term = table.concat(parts, " ")
             
             local ctx_parts = {}
             for k = math.max(1, p1_l - Options.anki_context_lines), math.min(#subs, p2_l + Options.anki_context_lines) do

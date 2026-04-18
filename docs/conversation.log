@@ -27,6 +27,7 @@
 20260418185410 x Divide does not work again.
 20260418190027 Update the documents you used if necessary. 20260418183126-finalize-window-mode-stabilization window-highlighting-spec
 20260418190735 o Let's fix the formatting when copying Ctrl C after introducing the lute v3 parser. The point is that now the selection `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind` копируется так Entscheiden Sie beim Hören ob die Aussagen 41 bis 45 richtig oder falsch sind
+20260418191856 The fact is that you also need to add it to the file as in the original, so that the parts contain a comma.
 
 
 
