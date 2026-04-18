@@ -41,6 +41,7 @@
 20260418194830 o Why, when highlighting in paired selection mode (purple), did other Sie hören also stand out?
 20260418195321 opsx-propose 20260418194830
 20260418195701 Think about what is better, what is really required and will not affect other parts of the code. There is also a solution to add ellipses in the spaces between added words when saving in pairs, if they are not adjacent.
+20260418200528 The result should be a record like this, with spaces, this is important, specify these spaces explicitly, Sie... Hören?
 
 
 

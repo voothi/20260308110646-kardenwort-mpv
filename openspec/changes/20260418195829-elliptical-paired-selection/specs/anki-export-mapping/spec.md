@@ -9,4 +9,4 @@ The export system SHALL detect if a multi-word selection is non-contiguous in th
 
 #### Scenario: Split selection save
 - **WHEN** a user selection contains words with a gap in their `logical_idx` values (e.g. 1, 4).
-- **THEN** the system SHALL join them using an ellipsis surrounded by spaces (e.g. "word1 ... word4") for the `source_word` field.
+- **THEN** the system SHALL join them using a space-padded ellipsis (exact string: ` ... `) for the `source_word` field (e.g. "word1 ... word4").

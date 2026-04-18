@@ -4,7 +4,7 @@ When users highlight/study non-adjacent words as a "paired selection," the syste
 
 ## What Changes
 
-- **Adaptive Paired Saving**: When a multi-word selection is saved, the system checks if the words were contiguous in the source subtitle. If they were split by other words or punctuation, it automatically joins them with an ellipsis (`...`) in the WordSource field.
+- **Adaptive Paired Saving**: When a multi-word selection is saved, the system checks if the words were contiguous in the source subtitle. If they were split by other words or punctuation, it automatically joins them with a space-padded ellipsis (exact string: ` ... `) in the WordSource field (e.g., `Sie ... Hören`).
 - **Split-Aware Highlighting**: The highlighting engine will recognize terms containing ellipses as "Split-Only" records. 
 - **Matching Logic Refinement**: 
     - Terms with ellipses will be ignored by Phase 1 (Contiguous) matching to prevent "orange bleed" on adjacent phrases.

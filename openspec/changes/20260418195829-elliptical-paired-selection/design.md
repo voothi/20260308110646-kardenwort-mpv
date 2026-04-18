@@ -20,9 +20,9 @@ The Kardenwort-mpv highlighting engine uses a three-phase approach: Contiguous (
 - **Decision**: Modify the multi-word range extraction logic in `lls_core.lua` to compare the `logical_idx` of each word in a selection.
 - **Rationale**: The `logical_idx` established during subtitle tokenization ensures that we can distinguish between adjacent words and words separated by punctuation or spaces. If `logical_idx[n+1] != logical_idx[n] + 1`, a gap exists.
 
-### 2. Lexical Marker (`...`)
-- **Decision**: Join split words with ` ... ` (space-padded ellipsis).
-- **Rationale**: This is a standard linguistic convention for truncated text. It is easily detectable via `string.find` in Lua without complex regex, and it provides immediate visual feedback to the user in their Anki browser.
+### 2. Lexical Marker (` ... `)
+- **Decision**: Join split words with a literal space-padded ellipsis: ` ... ` (space, three dots, space).
+- **Rationale**: This is a standard linguistic convention for truncated text and provides "plural spaces" for clear visual separation. It is easily detectable via `string.find(term, " ... ", 1, true)` in Lua.
 
 ### 3. Highlighter Logic Gating
 - **Decision**: Introduce a conditional bypass in `calculate_highlight_stack`. If `term:find("...", 1, true)`, Phase 1 & 2 (Contiguous/Contextual) logic is skipped.
