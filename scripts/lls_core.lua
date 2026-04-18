@@ -875,7 +875,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             -- Absolute Targeted Index grounding: If TSV provides an index, it MUST match exactly.
                             if data.index and data.index ~= -1 then
-                                if math.abs(data.time - sub_start) < 0.01 then
+                                if math.abs(data.time - sub_start) < 0.05 then
                                     local expected_start = target_l_idx - term_offset + 1
                                     if expected_start ~= data.index then
                                         sequence_match = false
@@ -886,7 +886,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 end
                             end
 
-                            if not context_satisfied and term_clean and #term_clean > 1 then
+                            if not context_satisfied then
                                 local is_exempt = target_word_text:match("^%b[]$")
                                 if not is_exempt then
                                     local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
@@ -895,7 +895,14 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         is_exempt = true
                                     end
                                 end
-                                if not is_exempt then sequence_match = false end
+                                
+                                -- If context failed and it's not a multi-word phrase (which provide their own context), 
+                                -- or if it's a small common word in global mode, we invalidate the match.
+                                if not is_exempt then
+                                    if #term_clean == 1 or not Options.anki_global_highlight then
+                                        sequence_match = false
+                                    end
+                                end
                             end
                         end
 
