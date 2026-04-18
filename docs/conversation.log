@@ -62,7 +62,8 @@
 20260418212404 Sync now.
 20260418212958 o Let's now figure out why, when selecting `41 bis 45`, we see all the occurrences on the screen, and not just this specific one in Anki Global OFF mode?
 20260418213707 It seems to have worked. Let's create opsx-propose 20260418212958
-
+20260418214211 
+opsx-apply
 
 
 
