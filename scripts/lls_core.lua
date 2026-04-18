@@ -268,7 +268,7 @@ mapping = {},
 
     for line in f:lines() do
         local clean_line = line:match("^%s*(.-)%s*$")
-        if clean_line ~= "" and not clean_line:match("^#") then
+        if clean_line ~= "" and not clean_line:match("^#") and not clean_line:match("^;") then
             local header = clean_line:match("^%[(.+)%]$")
             if header then
                 section = header:lower()
