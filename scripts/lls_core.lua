@@ -537,7 +537,8 @@ end
 local function get_sub_tokens(s)
     if not s then return nil end
     if not s.tokens then 
-        s.tokens = build_word_list_internal(s.text, Options.dw_original_spacing)
+        local raw_text = s.text:gsub("\n", " ")
+        s.tokens = build_word_list_internal(raw_text, Options.dw_original_spacing)
         local wc = 0
         for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
         s.word_count = wc
