@@ -2015,7 +2015,7 @@ local function draw_dw(subs, view_center, active_idx)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
-            local formatted_words = {}
+            local line_ass = ""
             local active_phrase_color = nil
             
             -- Selection indices for this line/segment
@@ -2035,30 +2035,24 @@ local function draw_dw(subs, view_center, active_idx)
                 end
             end
 
-            for _, j in ipairs(vl_indices) do
+            for idx, j in ipairs(vl_indices) do
                 local t = entry.tokens[j]
                 local l_idx = t.logical_idx
                 local token_text = t.text
+                local fw = token_text -- Formatted Word buffer
                 
                 -- Priority 1: Ctrl-Selection (Pale Yellow)
                 local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
                 if ctrl_member then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, token_text, color))
+                    fw = string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, token_text, color)
                     active_phrase_color = nil
-                    goto next_token
-                end
-
                 -- Priority 2: Visual Selection Range (Yellow Background - inclusive of spaces)
-                if s_v ~= -1 and j >= s_v and j <= e_v then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, token_text, color))
+                elseif s_v ~= -1 and j >= s_v and j <= e_v then
+                    fw = string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, token_text, color)
                     active_phrase_color = nil
-                    goto next_token
-                end
-                
-                if t.is_word then
+                elseif t.is_word then
                     -- Secondary Priority: Vocabulary database highlights (Orange/Purple/Brick)
-                    local sub_t = subs[i]
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, sub_t.start_time)
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
                     if orange_stack > 0 and purple_stack > 0 then
@@ -2077,43 +2071,30 @@ local function draw_dw(subs, view_center, active_idx)
                     end
 
                     if h_color ~= color then
-                        table.insert(formatted_words, format_highlighted_word(token_text, h_color, color, is_phrase, "0", false))
+                        fw = format_highlighted_word(token_text, h_color, color, is_phrase, "0", false)
                         active_phrase_color = is_phrase and h_color or nil
-                        goto next_token
-                    end
-
-                    -- Tertiary Priority: Transient cursor-based hover (Vibrant Yellow)
-                    if i == cl and l_idx == cw then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, token_text, color))
+                    elseif i == cl and l_idx == cw then
+                        -- Tertiary Priority: Transient cursor-based hover (Only if no database match)
+                        fw = string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, token_text, color)
                         active_phrase_color = nil
-                        goto next_token
+                    else
+                        active_phrase_color = nil
                     end
-                    active_phrase_color = nil
                 else
                     -- Greedy Phrase Coloring: Apply phrase color to punctuation/space if it follows a phrase word
                     if active_phrase_color then
-                        -- Check if there's a following word of the same phrase? 
-                        -- Simplifying: if we are in a phrase, color everything until we hit a non-matching word.
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", active_phrase_color, token_text, color))
-                    else
-                        table.insert(formatted_words, token_text)
+                        fw = string.format("{\\c&H%s&}%s{\\c&H%s&}", active_phrase_color, token_text, color)
                     end
                 end
-                ::next_token::
-            end
-            local line_ass = ""
-            for idx, fw in ipairs(formatted_words) do
-                local t_idx = vl_indices[idx]
-                local t_token = entry.tokens[t_idx]
-                local next_v_idx = vl_indices[idx+1]
-                local next_t_token = next_v_idx and entry.tokens[next_v_idx] or nil
-                
+
                 line_ass = line_ass .. fw
                 
-                if next_t_token and not Options.dw_original_spacing then
-                    -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
-                    local t_text = t_token.text
-                    local next_t_text = next_t_token.text
+                -- Joiner Logic (Matching original robust behavior)
+                local next_v_idx = vl_indices[idx+1]
+                local next_token = next_v_idx and entry.tokens[next_v_idx] or nil
+                if next_token and not Options.dw_original_spacing then
+                    local t_text = token_text
+                    local next_t_text = next_token.text
                     if t_text:match("^[/-]$") or t_text:match("^\226\128\147$") or t_text:match("^\226\128\148$") or t_text:match("^[%[%]%(%){}]$") or
                        next_t_text:match("^[/-]$") or next_t_text:match("^\226\128\147$") or next_t_text:match("^\226\128\148$") or next_t_text:match("^[%[%]%(%){}]$") then
                         -- Join without space
@@ -2130,8 +2111,8 @@ local function draw_dw(subs, view_center, active_idx)
     
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
+    -- Removed \q2 for rendering stability (prevent vertical column collapse)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\fs%d}%s", 
         Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
     return ass
