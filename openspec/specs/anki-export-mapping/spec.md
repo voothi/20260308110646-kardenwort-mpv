@@ -2,7 +2,9 @@
 
 ## Purpose
 Decouple Anki TSV export structure from the core logic using a dynamic, position-based INI configuration.
+
 ## Requirements
+
 ### Requirement: Ordered Unified Field Mapping
 The system SHALL support unified field mapping blocks (e.g., `[fields_mapping.word]`) where each line defines both the field name (key) and its data source (value) in a single assignment. The order of these assignments SHALL determine the TSV column sequence.
 
@@ -40,7 +42,6 @@ The system SHALL support `tts_source_[lang]` (matches primary track) and `tts_de
 - **WHEN** the row is exported
 - **THEN** that field SHALL contains "1" in the TSV output.
 
-
 ### Requirement: Natural Context Extraction
 The Anki export system SHALL prioritize using the original subtitle spacing for the `SentenceSource` context field.
 
@@ -51,3 +52,27 @@ The Anki export system SHALL prioritize using the original subtitle spacing for 
 #### Scenario: Metadata cleaning with natural space preservation
 - **WHEN** ASS tags or metadata brackets are removed from the context
 - **THEN** trailing/leading spaces from tokens SHALL NOT be doubled or introduced in a way that breaks punctuation spacing.
+
+### Requirement: Elliptical Paired Selection
+The export system SHALL support non-contiguous selections by injecting ellipsis markers at logical gaps.
+
+#### Scenario: Split selection save
+- **WHEN** a user selection contains words with a gap in their `logical_idx` values (e.g. 1, 4).
+- **THEN** the system SHALL join them using a space-padded ellipsis (exact string: ` ... `) for the `source_word` field (e.g. "word1 ... word4").
+
+#### Scenario: Multi-Word Fragment Save
+- **WHEN** a user selects a single word, skips several, and then selects two adjacent words.
+- **THEN** the system SHALL detect the gap after the first word and inject ` ... `, but join the adjacent pair with a space.
+- **RESULT**: `Word1 ... Word2 Word3`
+
+#### Scenario: Triple-Split Save
+- **WHEN** a user selects three words with gaps between each.
+- **THEN** the system SHALL inject ellipses at every gap.
+- **RESULT**: `Word1 ... Word2 ... Word3`
+
+### Highlighting Example (Concrete Case)
+- **Source Text**: `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.`
+- **Saved Term (1+2 Split)**: `Aussagen ... richtig oder`
+  - **Result**: `Aussagen` (Purple), `richtig` (Purple), `oder` (Purple).
+- **Saved Term (3-Way Split)**: `Entscheiden ... beim ... ob`
+  - **Result**: `Entscheiden` (Purple), `beim` (Purple), `ob` (Purple).

@@ -230,3 +230,32 @@ Rendering of highlights SHALL be independent of mouse activity to ensure immedia
 ![Visual State 20260418123301](../../assets/window-highlighting-spec/screenshot_20260418123301.png)
 
 ![Visual State 20260418123343](../../assets/window-highlighting-spec/screenshot_20260418123343.png)
+
+### Requirement: Elliptical Split Matching
+The system SHALL support non-contiguous word matching by identifying explicit ellipsis markers in the database term.
+
+#### Scenario: Enforcing Split Match for Elliptical Terms
+- **WHEN** the engine encounters a term with the ` ... ` marker.
+- **THEN** it SHALL bypass Phase 1 (Contiguous) and Phase 2 (Contextual) evaluations.
+- **AND** it SHALL initiate Phase 3 (Split Match) to identify the component words within the scan cluster.
+
+#### Scenario: Multi-Part Split Highlighting
+- **GIVEN** a term contains multiple ellipses (e.g., `Entscheiden ... beim ... ob`).
+- **WHEN** the highlighter evaluates the term.
+- **THEN** it SHALL identify all three components (`Entscheiden`, `beim`, `ob`) across the scan radius.
+- **AND** it SHALL highlight all involved words in the **Purple** palette.
+
+#### Scenario: Partial Contiguity within Split Terms
+- **GIVEN** a term contains mixed contiguity (e.g., `Aussagen ... richtig oder`).
+- **WHEN** the highlighter evaluates the term.
+- **THEN** it SHALL treat the entire term as Split-Only due to the presence of ` ... `.
+- **AND** it SHALL highlight the single word (`Aussagen`) and the contiguous pair (`richtig`, `oder`) together in the purple palette when found in the same context.
+
+### Highlighting Example (Concrete Case)
+- **Source Context**: `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.`
+- **Database Term**: `Aussagen ... richtig oder`
+  - **Match Logic**: Skips Orange/Phase 1. Finds `Aussagen`, `richtig`, and `oder` within the 2.0s window.
+  - **Visual**: `Aussagen` (Purple), `richtig` (Purple), `oder` (Purple).
+- **Database Term**: `Entscheiden ... beim ... ob`
+  - **Match Logic**: Skips Orange/Phase 1. Finds `Entscheiden`, `beim`, and `ob` within the 2.0s window.
+  - **Visual**: `Entscheiden` (Purple), `beim` (Purple), `ob` (Purple).
