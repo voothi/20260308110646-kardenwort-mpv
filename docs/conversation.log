@@ -18,7 +18,7 @@ Previous branch, where it worked as it should and at what state of the code I ma
 20260418162640 Now, when selected, only part of the line before the word on which I press MMB is added in this subtitle and other selected parts are not added.
 
 If I clicked on fНalsch, then in this highlighted yellow color only minus gleich falsch will be added, it will turn orange.
-
+20260418164055 It is necessary to check the implementation of the current version of the codebase in accordance with the specification we wrote so that everything works as expected. openspec\specs\window-highlighting-spec; openspec\changes\archive\20260418074913-window-mode-highlighting-spec
 
 
 
