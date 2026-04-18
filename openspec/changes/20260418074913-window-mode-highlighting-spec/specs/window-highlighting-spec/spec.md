@@ -10,7 +10,24 @@ The rendering engine SHALL utilize three distinct color palettes, each with thre
 
 - **Palette 1: Contiguous (Standard)**: Used for exact string matches found in the user's database. Defined by `anki_depth_1`, `anki_depth_2`, `anki_depth_3`. Default hues: Orange.
 - **Palette 2: Split (Non-Contiguous)**: Used for multi-word terms where constituent words are present in the same context but arranged non-contiguously. Defined by `anki_split_depth_1`, `anki_split_depth_2`, `anki_split_depth_3`. Default hues: Purple.
-- **Palette 3: Mixed (Intersection)**: Used when a single word is simultaneously a member of at least one Contiguous term and at least one Split term. Defined by `anki_mix_depth_1`, `anki_mix_depth_2`, `anki_mix_depth_3`. Default hues: Blended/distinct third color.
+- **Palette 3: Brick Color (Intersection)**: Used when a single word is simultaneously a member of at least one Contiguous (Orange) term and at least one Split (Purple) term. Defined by `anki_mix_depth_1`, `anki_mix_depth_2`, `anki_mix_depth_3`. This represents a logical intersection.
+
+### Requirement: Interaction and Selection Priority
+The rendering engine SHALL resolve overlaps between manual user selections and automated highlighting according to a strict priority hierarchy.
+
+- **Primary Priority**: Multi-word persistent selections (Ctrl + LMB). Rendered in **Pale Yellow** (`dw_ctrl_select_color`).
+- **Secondary Priority**: Vocabulary database highlights (Anki Orange/Purple/Mixed).
+- **Tertiary Priority**: Transient cursor-based hover highlighting. Rendered in **Vibrant Yellow** (`dw_highlight_color`).
+
+#### Scenario: Selection vs. Hover
+- **GIVEN** a word is currently part of a persistent multi-word selection (Pale Yellow)
+- **WHEN** the user hovers the mouse cursor over that word
+- **THEN** the word SHALL remain Pale Yellow to preserve the selection's visual integrity.
+
+#### Scenario: Selection vs. Anki Highlight
+- **GIVEN** a word is a saved Anki term (e.g., Orange)
+- **WHEN** the user includes this word in a manual Ctrl+Selection (Pale Yellow)
+- **THEN** the Pale Yellow SHALL override the Orange highlight.
 
 ### Requirement: Depth Calculation and Selection
 The Intensity Level (1, 2, or 3) for any word SHALL be determined by its "stack depth" – the number of unique overlapping terms assigned to that word.
@@ -23,6 +40,14 @@ The Intensity Level (1, 2, or 3) for any word SHALL be determined by its "stack 
 - **WHEN** a word is matched by $O$ Contiguous terms AND $S$ Split terms (where $O > 0$ and $S > 0$)
 - **THEN** the index $L$ SHALL be calculated as $L = \text{clamp}(O + S, 1, 3)$
 - **AND** the word SHALL be rendered using `anki_mix_depth_L`.
+
+#### Scenario: Brick Color Identification (Orange + Purple)
+- **WHEN** the highlighting engine calculates the status of a specific word token
+- **AND** the token is identified as part of an active Contiguous phrase (Orange matching pass)
+- **AND** the token is simultaneously identified as part of an active Split phrase (Purple matching pass)
+- **THEN** it SHALL be designated as a "Brick Color" intersection match.
+- **AND** the total intensity SHALL be the clamped sum of both types of matches, selecting from the `anki_mix_depth_X` palette.
+- **AND** this Brick Color (Violet/Brown-Red) SHALL carry absolute priority over pure Orange or pure Purple rendering for that token.
 
 ### Requirement: Semantic Punctuation Coloring
 The engine SHALL dynamically determine whether trailing or internal punctuation is colored based on the nature of the match.

@@ -17,7 +17,7 @@ The highlighting engine for the Drum Window (Mode W) has evolved from simple str
 ## Decisions
 
 - **Hierarchy of Rendering:** The engine will prioritize "Phrase Continuity" over "Single-Word Isolation" when determining punctuation colors. This ensures that multi-word terms always appear as a solid visual block.
-- **Unified Mixed State:** To avoid color-count explosion, all intersections (regardless of the specific mix of contiguous and split terms) are collapsed into a single "Mixed" palette. The depth within this palette is the sum of total matches, capped at 3.
+- **Unified Brick state:** To avoid color-count explosion, all intersections (regardless of the specific mix of contiguous and split terms) are collapsed into a single "Brick Color" palette. The depth within this palette is the sum of total matches, capped at 3.
 - **Strict Neighborhood Anchoring:** To solve the "common word bleed" issue in global mode, any match must be verified against its recorded neighborhood. This logic is chosen over simple timestamp matching to allow users to see their saved terms in new contexts while ensuring accuracy.
 
 ## Risks / Trade-offs
