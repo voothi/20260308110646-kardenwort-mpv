@@ -49,7 +49,8 @@
 20260418202234 o Let's deal with adding `die` to TSV from the sentence `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.` Now when you click on it, it is on it, and not on the previous `die` in the sentence `Dazu sollen Sie fünf Aufgaben lösen. Sie hören die Nachrichtensendung nur einmal.`, Such a record is saved in the TSV file and this is not correct. Apparently, he took `die` from the sentence `Sie hören die Nachrichtensendung nur einmal.`, which comes first. At the same time, this first `die` was also highlighted in orange, and not just the second, which I expected.
 20260418203703 Now it’s the other way around. When you click on the first die, it is added with the offer from the second.
 20260418203845 Our indexes were supposed to solve this problem. Why doesn't this work? Check, do we use indexes at all now?
-20260418204639 This format looks like an error
+20260418204639 This format looks like an error.
+20260418204950 Look now. How is the index calculated? Is it really a sentence index or a word index?
 
 
 

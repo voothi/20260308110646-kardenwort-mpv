@@ -2652,21 +2652,21 @@ local function dw_anki_export_selection()
                 if subs[k] then 
                     local text = subs[k].text
                     table.insert(ctx_parts, text)
+                    
+                    local cleaned = text:gsub("{[^}]+}", "")
+                    if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
+                    cleaned = cleaned:gsub("%s+", " ")
+                    
                     if k < p1_l then
-                        local cleaned = text:gsub("{[^}]+}", "")
-                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                        cleaned = cleaned:gsub("%s+", " ")
                         pivot_pos = pivot_pos + #cleaned + 1
                     elseif k == p1_l then
-                        local cleaned = text:gsub("{[^}]+}", "")
-                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                        cleaned = cleaned:gsub("%s+", " ")
                         pivot_pos = pivot_pos + (#cleaned / 2)
                     end
                 end
             end
             context_line = table.concat(ctx_parts, " ")
             time_pos = subs[p1_l].start_time
+            print(string.format("[LLS] Export Range: Lines %d-%d, Word Index: %d, Pivot: %.1f", p1_l, p2_l, p1_w, pivot_pos))
 
             -- Check if selection starts at a boundary
             is_sentence_boundary = (p1_w == 1)
@@ -2694,15 +2694,14 @@ local function dw_anki_export_selection()
                 if subs[k] then 
                     local text = subs[k].text
                     table.insert(ctx_parts, text)
+                    
+                    local cleaned = text:gsub("{[^}]+}", "")
+                    if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
+                    cleaned = cleaned:gsub("%s+", " ")
+                    
                     if k < cl then
-                        local cleaned = text:gsub("{[^}]+}", "")
-                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                        cleaned = cleaned:gsub("%s+", " ")
                         pivot_pos = pivot_pos + #cleaned + 1
                     elseif k == cl then
-                        local cleaned = text:gsub("{[^}]+}", "")
-                        if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                        cleaned = cleaned:gsub("%s+", " ")
                         pivot_pos = pivot_pos + (#cleaned / 2)
                     end
                 end
@@ -2711,6 +2710,7 @@ local function dw_anki_export_selection()
             time_pos = target_sub.start_time
             p1_w = cw
             p1_l = cl
+            print(string.format("[LLS] Export Point: Line %d, Word Index: %d, Pivot: %.1f", cl, cw, pivot_pos))
             
             if cw ~= -1 then
                 local tokens = get_sub_tokens(target_sub)
