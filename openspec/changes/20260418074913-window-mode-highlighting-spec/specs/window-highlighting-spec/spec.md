@@ -112,6 +112,21 @@ Window Mode rendering SHALL support additional visual emphasized states.
 - **WHEN** `anki_highlight_bold` is enabled
 - **THEN** all highlighted spans in the Drum Window SHALL be wrapped in ASS bold tags `{\b1}` and `{\b0}`.
 
+### Requirement: Highlight Rendering Scope (Global vs. Local)
+The rendering engine SHALL support two distinct modes of evaluation for database-driven highlights, toggled by the `h` key (default).
+
+#### Scenario: Local Highlighting (Standard Mode)
+- **GIVEN** `anki_global_highlight` is disabled (Local Mode)
+- **WHEN** evaluating a subtitle segment
+- **THEN** the engine SHALL ONLY apply highlights to terms whose original export timestamp matches the segment's current timeline position (within a small temporal fuzzy window).
+- **AND** the engine SHALL skip expensive neighborhood verification, as the timestamp match provides sufficient anchoring.
+
+#### Scenario: Global Highlighting (High-Recall Mode)
+- **GIVEN** `anki_global_highlight` is enabled (Global Mode)
+- **WHEN** evaluating a subtitle segment
+- **THEN** the engine SHALL "burn" highlights for every occurrence of a saved term across the entire media timeline.
+- **AND** the engine MUST perform the strict **High-Recall Sequence Verification** (neighbor checking) for every potential match to prevent false-positives on common words.
+
 #### Scenario: Compound Word Partial Highlighting
 - **WHEN** a subtitle word contains separators like slashes, hyphens, or dashes (e.g., "Netto/Globus" or "20–25")
 - **AND** a saved term matches only one constituent part (e.g., "Netto")
