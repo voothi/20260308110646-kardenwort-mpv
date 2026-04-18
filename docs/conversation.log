@@ -15,6 +15,7 @@
 20260418165107 Accept.
 20260418165316 The window does not appear drum w.
 20260418165856 Is this really supposed to work in the current implementation? - Global Mode Hardening: Implemented mandatory neighborhood verification for Global Mode highlights. This prevents "highlight bleed" for common functional words (like "the" or "die") by requiring at least one matching neighbor from the original capture context.
+20260418170510 o Stabilizing Hybrid Subtitle Selection
 20260418170555 Make a hybrid of the two versions to make it work. Doesn't work properly. Make it a hybrid version. I have general specifications. There is a version of the code with working adding words, when using indexes and the lute v3 parser it was possible to add die in a normal way. Now this is a problem again. But in this version, adding multi-line selections works. On the other side. There is another version of the code in which, on the contrary, adding multi-line highlights (several subtitles) works, but adding individual words does not work normally. First version 4cbe0c411ed31827c490b2392aec120e6a3a55a0 Second current version a045309c1f381345dd1d6c550b31b622348c5b07
 20260418172017 Accept.
 20260418172611 Error.
@@ -25,9 +26,7 @@
 20260418185234 Why did the second die stand out again? After all, this was the whole point of introducing indexes.
 20260418185410 x Divide does not work again.
 20260418190027 Update the documents you used if necessary. 20260418183126-finalize-window-mode-stabilization window-highlighting-spec
-  
-
-
+20260418190735 o Let's fix the formatting when copying Ctrl C after introducing the lute v3 parser. The point is that now the selection `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind` копируется так Entscheiden Sie beim Hören ob die Aussagen 41 bis 45 richtig oder falsch sind
 
 
 

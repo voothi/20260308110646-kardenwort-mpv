@@ -4219,16 +4219,31 @@ function cmd_dw_copy()
         local parts = {}
         for i = p1_l, p2_l do
             local text = subs[i].text:gsub("\n", " ")
-            local words = build_word_list(text)
-            local line_words = {}
-            local s_w = (i == p1_l) and p1_w or 1
-            local e_w = (i == p2_l) and p2_w or #words
+            local tokens = build_word_list_internal(text, true)
             
-            for j = s_w, e_w do
-                table.insert(line_words, words[j])
+            local s_w = (i == p1_l) and p1_w or 1
+            local e_w = (i == p2_l) and p2_w or nil
+            
+            if not e_w then
+                local wc = 0
+                for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
+                e_w = wc
             end
-            if #line_words > 0 then
-                table.insert(parts, table.concat(line_words, " "))
+            
+            local line_parts = {}
+            local in_range = false
+            for _, t in ipairs(tokens) do
+                if t.is_word then
+                    if t.logical_idx == s_w then in_range = true end
+                    if in_range then table.insert(line_parts, t.text) end
+                    if t.logical_idx == e_w then in_range = false break end
+                elseif in_range then
+                    table.insert(line_parts, t.text)
+                end
+            end
+            
+            if #line_parts > 0 then
+                table.insert(parts, table.concat(line_parts, ""))
             end
         end
         final_text = table.concat(parts, " ")
