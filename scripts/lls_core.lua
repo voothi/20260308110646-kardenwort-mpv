@@ -1812,8 +1812,17 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             if ctrl_member then
                 meta.color = Options.dw_ctrl_select_color
                 meta.priority = 1
-            elseif l_idx then
-                -- Level 2: Database Highlights
+            -- Level 2: Selection/Hover (Focus Point)
+            if l_idx then
+                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
+                if is_focus_point then
+                    meta.color = Options.dw_highlight_color
+                    meta.priority = 2
+                end
+            end
+            
+            -- Level 3: Database Highlights
+            if meta.priority == 0 and l_idx then
                 local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
                 local h_color = base_color
                 
@@ -1835,15 +1844,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 if h_color ~= base_color then
                     meta.color = h_color
                     meta.is_phrase = is_phrase
-                    meta.priority = 2
-                end
-            end
-            
-            -- Level 3: Selection/Hover (Optional for drum list, but good for consistency)
-            if meta.priority == 0 and l_idx then
-                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
-                if is_focus_point then
-                    meta.color = Options.dw_highlight_color
                     meta.priority = 3
                 end
             end
@@ -1857,8 +1857,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 local prev_meta = token_meta[j-1]
                 local next_meta = token_meta[j+1]
 
-                if prev_meta and prev_meta.priority == 2 and prev_meta.is_phrase then
-                    if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
+                if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
+                    if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
                         meta.color = prev_meta.color
                         meta.is_phrase = true
                     end
@@ -1870,9 +1870,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         local formatted_parts = {}
         for j, t in ipairs(tokens) do
             local meta = token_meta[j]
-            if meta.priority == 2 or (meta.priority == 0 and meta.is_phrase) then
+            if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
                 table.insert(formatted_parts, format_highlighted_word({text = meta.text}, meta.color, base_color, meta.is_phrase, bold_state, true))
-            elseif meta.priority == 1 or meta.priority == 3 then
+            elseif meta.priority == 1 or meta.priority == 2 then
                 table.insert(formatted_parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, base_color))
             else
                 table.insert(formatted_parts, meta.text)
@@ -2066,8 +2066,24 @@ local function draw_dw(subs, view_center, active_idx)
                 if ctrl_member then
                     meta.color = Options.dw_ctrl_select_color
                     meta.priority = 1
-                elseif l_idx then
-                    -- Level 2: Database Highlights
+                -- Level 2: Selection/Hover Focus
+                if l_idx then
+                    local selected = false
+                    if has_selection then
+                        if i > p1_l and i < p2_l then selected = true
+                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
+                        elseif i == p1_l then selected = (l_idx >= p1_w)
+                        elseif i == p2_l then selected = (l_idx <= p2_w) end
+                    end
+                    local is_focus_point = (i == cl and l_idx == cw)
+                    if selected or is_focus_point then
+                        meta.color = Options.dw_highlight_color
+                        meta.priority = 2
+                    end
+                end
+
+                -- Level 3: Database Highlights
+                if meta.priority == 0 and l_idx then
                     local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
@@ -2089,22 +2105,6 @@ local function draw_dw(subs, view_center, active_idx)
                     if h_color ~= color then
                         meta.color = h_color
                         meta.is_phrase = is_phrase
-                        meta.priority = 2
-                    end
-                end
-                
-                -- Level 3: Hover/Selection Focus
-                if meta.priority == 0 and l_idx then
-                    local selected = false
-                    if has_selection then
-                        if i > p1_l and i < p2_l then selected = true
-                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                        elseif i == p1_l then selected = (l_idx >= p1_w)
-                        elseif i == p2_l then selected = (l_idx <= p2_w) end
-                    end
-                    local is_focus_point = (i == cl and l_idx == cw)
-                    if selected or is_focus_point then
-                        meta.color = Options.dw_highlight_color
                         meta.priority = 3
                     end
                 end
@@ -2121,8 +2121,8 @@ local function draw_dw(subs, view_center, active_idx)
                     local next_meta = next_j and token_meta[next_j]
 
                     -- If internal punctuation within a phrase OR trailing a phrase and not followed by a word
-                    if prev_meta and prev_meta.priority == 2 and prev_meta.is_phrase then
-                        if (next_meta and next_meta.priority == 2 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
+                    if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
+                        if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
                             meta.color = prev_meta.color
                             meta.is_phrase = true
                         end
@@ -2134,9 +2134,9 @@ local function draw_dw(subs, view_center, active_idx)
             local formatted_words = {}
             for _, j in ipairs(vl_indices) do
                 local meta = token_meta[j]
-                if meta.priority == 2 or (meta.priority == 0 and meta.is_phrase) then
+                if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
                     table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", false))
-                elseif meta.priority == 1 or meta.priority == 3 then
+                elseif meta.priority == 1 or meta.priority == 2 then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, color))
                 else
                     table.insert(formatted_words, meta.text)
