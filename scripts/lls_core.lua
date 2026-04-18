@@ -447,6 +447,21 @@ local function is_word_char(c)
     return false
 end
 
+local function get_center_index(subs, time_pos)
+    if not subs or #subs == 0 then return -1 end
+    for i = 1, #subs do
+        local sub = subs[i]
+        if time_pos >= sub.start_time and time_pos <= sub.end_time then return i end
+        if time_pos < sub.start_time then
+            if i > 1 then
+                local prev = subs[i-1]
+                if (time_pos - prev.end_time) < (sub.start_time - time_pos) then return i - 1 else return i end
+            else return 1 end
+        end
+    end
+    return #subs
+end
+
 local function build_word_list_internal(text, keep_spaces)
     local tokens = {}
     if not text then return tokens end
@@ -1535,20 +1550,6 @@ local function show_osd(msg, dur)
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
 end
 
-local function get_center_index(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
-    for i = 1, #subs do
-        local sub = subs[i]
-        if time_pos >= sub.start_time and time_pos <= sub.end_time then return i end
-        if time_pos < sub.start_time then
-            if i > 1 then
-                local prev = subs[i-1]
-                if (time_pos - prev.end_time) < (sub.start_time - time_pos) then return i - 1 else return i end
-            else return 1 end
-        end
-    end
-    return #subs
-end
 
 -- =========================================================================
 -- FSM INTERNAL LOGIC
