@@ -713,6 +713,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false end
     
     local tokens = get_sub_tokens(subs[sub_idx])
+    if not tokens then return 0, 0, false end
+    
     local target_token = tokens[token_idx]
     if not target_token or not target_token.is_word then return 0, 0, false end
     
@@ -750,10 +752,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if target_logical_idx > wc then
                 target_logical_idx = target_logical_idx - wc
                 curr_s_idx = curr_s_idx + 1
-                if not subs[curr_s_idx] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 1.5) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 1.5) then return nil end
             elseif target_logical_idx < 1 then
                 curr_s_idx = curr_s_idx - 1
-                if not subs[curr_s_idx] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 1.5) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 1.5) then return nil end
                 get_sub_tokens(subs[curr_s_idx]) -- Ensure word_count is cached
                 target_logical_idx = target_logical_idx + (subs[curr_s_idx].word_count or 0)
             else
