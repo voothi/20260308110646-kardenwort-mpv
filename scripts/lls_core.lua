@@ -250,7 +250,8 @@ local function load_anki_mapping_ini()
     
     local path = mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
     local f = io.open(path, "r")
-        local config = {
+    
+    local config = {
         fields = {},
 mapping = {},
         mapping_word = {},
@@ -877,12 +878,19 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             -- Absolute Targeted Index override: If TSV provides an index, it MUST match exactly.
                             if data.index and target_l_idx then
-                                context_satisfied = (data.index == target_l_idx)
-                                -- If we have an absolute index match, we skip the fuzzy neighbor check!
-                                if context_satisfied then match_count = 2 end 
+                                local expected_start = target_l_idx - term_offset + 1
+                                if expected_start == data.index then
+                                    context_satisfied = true
+                                    match_count = 2
+                                else
+                                    -- Only strictly fail if they are in the same segment
+                                    if expected_start > 0 then
+                                        context_satisfied = false
+                                    end
+                                end
                             end
 
-                            if not context_satisfied and #tokens > 1 then
+                            if not context_satisfied and term_clean and #term_clean > 1 then
                                 local is_exempt = target_word_text:match("^%b[]$")
                                 if not is_exempt then
                                     local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
@@ -930,7 +938,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
                                                 if cw ~= "" then
-                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_idx, start=subs[scan_i].start_time})
+                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_idx, l_i=t.logical_idx, start=subs[scan_i].start_time})
                                                 end
                                             end
                                         end
@@ -967,7 +975,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                 end
                                             end
                                             -- If an index anchor was provided, it MUST be part of the tuple
-                                            if data.index and m.s_i == origin_sub_idx and m.t_i == data.index then
+                                            if data.index and m.s_i == origin_sub_idx and m.l_i == data.index then
                                                 has_anchor = true
                                             end
                                         end
@@ -2156,8 +2164,16 @@ local function dw_hit_test(osd_x, osd_y)
     local block_top = 540 - total_height / 2
 
     -- Clamp vertically to the first/last word if outside the entire block
-    if osd_y <= block_top or osd_y >= block_top + total_height then
-        return -1, -1
+    if osd_y <= block_top then
+        local first = layout[1]
+        local v_idx = first.vlines[1][1]
+        return first.sub_idx, first.visual_to_logical[v_idx] or 1
+    end
+    if osd_y >= block_top + total_height then
+        local last = layout[#layout]
+        local last_line = last.vlines[#last.vlines]
+        local v_idx = last_line[#last_line]
+        return last.sub_idx, last.visual_to_logical[v_idx] or (subs[last.sub_idx].word_count or 1)
     end
     if osd_y >= block_top + total_height then
         local last = layout[#layout]
@@ -2186,8 +2202,24 @@ local function dw_hit_test(osd_x, osd_y)
             local vl_left = 960 - vl_width / 2
 
             local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or #entry.tokens end
+            if cx < 0 then 
+                local target = entry.visual_to_logical[vl_indices[1]]
+                if not target then
+                    for _, v in ipairs(vl_indices) do
+                        if entry.visual_to_logical[v] then target = entry.visual_to_logical[v]; break end
+                    end
+                end
+                return entry.sub_idx, target or 1 
+            end
+            if cx >= vl_width then 
+                local target = entry.visual_to_logical[vl_indices[#vl_indices]]
+                if not target then
+                    for i = #vl_indices, 1, -1 do
+                        if entry.visual_to_logical[vl_indices[i]] then target = entry.visual_to_logical[vl_indices[i]]; break end
+                    end
+                end
+                return entry.sub_idx, target or (subs[entry.sub_idx].word_count or 1) 
+            end
 
             local centers = {}
             local pos = 0
