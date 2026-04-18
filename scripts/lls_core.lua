@@ -2018,7 +2018,8 @@ local function draw_dw(subs, view_center, active_idx)
                 end
                 
                 if selected then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, t.text, color))
+                    local s_color = FSM.DW_CTRL_HELD and Options.dw_ctrl_select_color or Options.dw_highlight_color
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", s_color, t.text, color))
                     goto next_token
                 elseif t.is_word then
                     if i == cl and l_idx == cw then
@@ -2800,14 +2801,31 @@ local function ctrl_commit_set(line_idx, word_idx)
     end
     
     if #words == 0 then return end
-    local term = compose_term_smart(words)
+
+    -- Check for continuity to decide between Orange (Contiguous) and Purple (Split)
+    local contiguous = true
+    if #members > 1 then
+        for i = 2, #members do
+            local prev = members[i-1]
+            local curr = members[i]
+            if curr.line ~= prev.line then
+                -- Check if it's end-of-subtitle to start-of-next (must be logical word 1)
+                if curr.word ~= 1 or prev.word ~= (subs[prev.line].word_count or 0) then
+                    contiguous = false; break
+                end
+            elseif curr.word ~= prev.word + 1 then
+                contiguous = false; break
+            end
+        end
+    end
+
+    local term = table.concat(words, contiguous and " " or " || ")
     
-    -- Use the earliest selected word's line for timestamp (document-natural start)
+    -- Use the earliest selected word's line for timestamp
     local time_pos = subs[members[1].line].start_time
+    local start_word_idx = members[1].word
     
-    -- Gather context lines spanning the full selection (earliest → latest member line),
-    -- padded by anki_context_lines on each side.  This ensures the composed term
-    -- always appears verbatim inside the context block passed to extract_anki_context.
+    -- Gather context lines
     local ctx_start = math.max(1, members[1].line - Options.anki_context_lines)
     local ctx_end = math.min(#subs, members[#members].line + Options.anki_context_lines)
     local ctx_parts = {}
@@ -2816,7 +2834,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     end
     local full_ctx_text = table.concat(ctx_parts, " ")
     
-    -- Clean context: remove ASS tags and metadata
+    -- Clean context
     full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
     if Options.anki_strip_metadata then
         full_ctx_text = full_ctx_text:gsub("%b[]", " ")
@@ -2827,16 +2845,19 @@ local function ctrl_commit_set(line_idx, word_idx)
     local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit)
     
-    local start_word_idx = members[1] and members[1].word or -1
     save_anki_tsv_row(term, extracted_context, time_pos, start_word_idx)
-    show_osd(string.format("Anki Highlight Saved (Multi): %s (Idx: %d)", term, start_word_idx))
+    show_osd(string.format("Anki Highlight Saved (%s): %s", contiguous and "Orange" or "Purple", term))
     
-    -- Force reload of TSV to pick up the new highlight
+    -- Force reload and clear
     load_anki_tsv(true)
-    
-    -- Clear set
     FSM.DW_CTRL_PENDING_SET = {}
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_CURSOR_LINE = -1
+    FSM.DW_CURSOR_WORD = -1
     
+    dw_osd:update()
+end
     -- Clear selection pointer to immediately show the new highlight color
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
@@ -2870,8 +2891,10 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     end
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
+                elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
+                    -- Preserve existing selection for 'SCM' commit or range export
                 else
-                    -- Standard or Ctrl start
+                    -- Normal click: set both anchor and cursor (starts new selection)
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
                     FSM.DW_ANCHOR_LINE = line_idx
@@ -3366,7 +3389,6 @@ local function manage_dw_bindings(enable)
         -- Ctrl Multi-select
         {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-            if t.event == "up" then ctrl_discard_set() end
         end, complex = true},
         {key = "Ctrl+MBTN_LEFT", name = "dw-ctrl-lmb", fn = make_mouse_handler(false, dw_ctrl_add_selection_to_set), complex = true},
         {key = "Ctrl+MBTN_MID", name = "dw-ctrl-mmb", fn = function(t)
