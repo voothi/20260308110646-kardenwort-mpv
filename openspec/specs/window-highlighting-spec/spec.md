@@ -25,8 +25,8 @@ The highlighting engine MUST evaluate potential matches in a specific order to e
 Manual user selections SHALL always carry higher visual priority than automated database highlights.
 
 - **Primary Priority**: Multi-word persistent selections (e.g., Ctrl + LMB). Rendered in **Pale Yellow**.
-- **Secondary Priority**: Vocabulary database highlights (Orange/Purple/Brick Color).
-- **Tertiary Priority**: Transient cursor-based hover. Rendered in **Vibrant Yellow**.
+- **Secondary Priority**: Transient cursor-based hover / focus range. Rendered in **Vibrant Yellow**.
+- **Tertiary Priority**: Vocabulary database highlights (Orange/Purple/Brick Color).
 
 #### Scenario: Selection vs. Hover
 - **GIVEN** a word is currently part of a persistent multi-word selection (Pale Yellow).
@@ -37,6 +37,18 @@ Manual user selections SHALL always carry higher visual priority than automated 
 - **GIVEN** a word is a saved vocabulary term (e.g., Orange).
 - **WHEN** the user includes it in a manual persistent selection.
 - **THEN** the selection color (Pale Yellow) SHALL override the automated highlight.
+
+#### Scenario: Focus Overwhelming Database Highlight
+- **GIVEN** a word is rendered in the Orange or Purple palette due to a database match.
+- **WHEN** the user hovers the cursor over that word (Transient Focus).
+- **THEN** the word SHALL immediately transition to **Vibrant Yellow**.
+- **AND** the automated highlight SHALL be restored when the cursor moves away.
+
+#### Scenario: Selection Range Overwhelming Database Highlight
+- **GIVEN** a range of words includes automated Orange highlights.
+- **WHEN** the user defines a selection range (LMB Drag) covering those words.
+- **THEN** all words within the range SHALL transition to **Vibrant Yellow**.
+- **AND** the automated highlights SHALL be unmasked only when the selection range is cleared or moved.
 
 ### Requirement: Depth Calculation and Intensity
 The intensity level for any color SHALL be determined by the cumulative number of unique overlapping matches assigned to that specific word.
