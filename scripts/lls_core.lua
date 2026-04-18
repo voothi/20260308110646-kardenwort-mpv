@@ -1082,16 +1082,19 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local best_dist = math.huge
     local search_from = 1
     
+    print(string.format("[LLS] Search Pivot: %.1f | Term: '%s' | Text Len: %d", center, selected_term, #full_line))
     while true do
         local s, e = full_lower:find(term_lower, search_from, true)
         if not s then break end
         local dist = math.abs((s + e) / 2 - center)
+        print(string.format("  - Candidate at %d-%d | Dist: %.1f", s, e, dist))
         if dist < best_dist then
             best_dist = dist
             start_pos, end_pos = s, e
         end
         search_from = e + 1
     end
+    if start_pos then print(string.format("  - Selected match at index %d", start_pos)) end
     
     -- Non-contiguous term fallback: the composed term can't be found verbatim
     -- (words were skipped between picks, or picks span sentence boundaries).
