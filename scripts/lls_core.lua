@@ -2667,6 +2667,10 @@ local function dw_anki_export_selection()
             context_line = table.concat(ctx_parts, " ")
             time_pos = subs[p1_l].start_time
             print(string.format("[LLS] Export Range: Lines %d-%d, Word Index: %d, Pivot: %.1f", p1_l, p2_l, p1_w, pivot_pos))
+            local tokens = get_sub_tokens(subs[p1_l])
+            local words = {}
+            for _, t in ipairs(tokens) do if t.is_word then table.insert(words, t.text) end end
+            print("[LLS] Word List: " .. table.concat(words, " | ", 1, math.min(10, #words)))
 
             -- Check if selection starts at a boundary
             is_sentence_boundary = (p1_w == 1)
@@ -2711,6 +2715,10 @@ local function dw_anki_export_selection()
             p1_w = cw
             p1_l = cl
             print(string.format("[LLS] Export Point: Line %d, Word Index: %d, Pivot: %.1f", cl, cw, pivot_pos))
+            local tokens = get_sub_tokens(target_sub)
+            local words = {}
+            for _, t in ipairs(tokens) do if t.is_word then table.insert(words, t.text) end end
+            print("[LLS] Word List: " .. table.concat(words, " | ", 1, math.min(10, #words)))
             
             if cw ~= -1 then
                 local tokens = get_sub_tokens(target_sub)

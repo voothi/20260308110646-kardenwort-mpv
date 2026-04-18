@@ -51,6 +51,8 @@
 20260418203845 Our indexes were supposed to solve this problem. Why doesn't this work? Check, do we use indexes at all now?
 20260418204639 This format looks like an error.
 20260418204950 Look now. How is the index calculated? Is it really a sentence index or a word index?
+20260418205546 I opened the console and see this.
+20260418205804 I also clicked on the first die and this is the message I see in the console.
 
 
 
