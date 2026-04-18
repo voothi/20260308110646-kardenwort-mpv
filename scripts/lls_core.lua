@@ -4172,28 +4172,38 @@ function cmd_dw_copy()
         
         local parts = {}
         for i = p1_l, p2_l do
-            local text = subs[i].text:gsub("\n", " ")
-            local words = build_word_list(text)
-            local line_words = {}
+            local tokens = get_sub_tokens(subs[i])
             local s_w = (i == p1_l) and p1_w or 1
-            local e_w = (i == p2_l) and p2_w or #words
+            local e_w = (i == p2_l) and p2_w or (subs[i].word_count or 0)
             
-            for j = s_w, e_w do
-                table.insert(line_words, words[j])
-            end
-            if #line_words > 0 then
-                table.insert(parts, table.concat(line_words, " "))
+            local logical_ptr = 0
+            for _, t in ipairs(tokens) do
+                if t.is_word then
+                    logical_ptr = logical_ptr + 1
+                    if logical_ptr >= s_w and logical_ptr <= e_w then
+                        table.insert(parts, t.text)
+                    end
+                end
             end
         end
-        final_text = table.concat(parts, " ")
+        final_text = compose_term_smart(parts)
     else
         -- Single point or line fallback
-        local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
         if FSM.DW_CURSOR_WORD > 0 then
-            local words = build_word_list(text)
-            final_text = words[FSM.DW_CURSOR_WORD] or text
+            local tokens = get_sub_tokens(subs[FSM.DW_CURSOR_LINE])
+            local ptr = 0
+            for _, t in ipairs(tokens) do
+                if t.is_word then
+                    ptr = ptr + 1
+                    if ptr == FSM.DW_CURSOR_WORD then
+                        final_text = t.text
+                        break
+                    end
+                end
+            end
+            final_text = final_text ~= "" and final_text or subs[FSM.DW_CURSOR_LINE].text
         else
-            final_text = text
+            final_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
         end
     end
     
