@@ -1,0 +1,80 @@
+# window-highlighting-spec
+
+## Purpose
+This specification provides a formal, exhaustive description of word highlighting behaviors within the "Window Mode" (Drum Window) of Kardenwort-mpv. It serves as a strict directive for the rendering engine to ensure consistent visual feedback during language study.
+
+## Requirements
+
+### Requirement: Tri-Palette System
+The rendering engine SHALL utilize three distinct color palettes, each with three levels of depth (intensity), specifically for SRT subtitle rendering in the Drum Window.
+
+- **Palette 1: Contiguous (Standard)**: Used for exact string matches found in the user's database. Defined by `anki_depth_1`, `anki_depth_2`, `anki_depth_3`. Default hues: Orange.
+- **Palette 2: Split (Non-Contiguous)**: Used for multi-word terms where constituent words are present in the same context but arranged non-contiguously. Defined by `anki_split_depth_1`, `anki_split_depth_2`, `anki_split_depth_3`. Default hues: Purple.
+- **Palette 3: Mixed (Intersection)**: Used when a single word is simultaneously a member of at least one Contiguous term and at least one Split term. Defined by `anki_mix_depth_1`, `anki_mix_depth_2`, `anki_mix_depth_3`. Default hues: Blended/distinct third color.
+
+### Requirement: Depth Calculation and Selection
+The Intensity Level (1, 2, or 3) for any word SHALL be determined by its "stack depth" – the number of unique overlapping terms assigned to that word.
+
+#### Scenario: Determining pure palette level
+- **WHEN** a word is matched by 2 Contiguous terms and 0 Split terms
+- **THEN** it SHALL be rendered using `anki_depth_2`.
+
+#### Scenario: Determining mixed palette level
+- **WHEN** a word is matched by $O$ Contiguous terms AND $S$ Split terms (where $O > 0$ and $S > 0$)
+- **THEN** the index $L$ SHALL be calculated as $L = \text{clamp}(O + S, 1, 3)$
+- **AND** the word SHALL be rendered using `anki_mix_depth_L`.
+
+### Requirement: Semantic Punctuation Coloring
+The engine SHALL dynamically determine whether trailing or internal punctuation is colored based on the nature of the match.
+
+#### Scenario: Single-word isolation
+- **GIVEN** a word is only matched as a single-word term (e.g., "Haus" in "das Haus.")
+- **THEN** the punctuation (the period) SHALL NOT be highlighted, maintaining a clean dictionary-style interface.
+
+#### Scenario: Phrase continuity
+- **GIVEN** a word is part of a multi-word phrase match (e.g., "Haus" in "im Haus.")
+- **THEN** all internal and trailing punctuation within the phrase span SHALL inherit the highlight color to ensure visual blocks are contiguous.
+
+#### Scenario: Phrase priority in mixed states
+- **GIVEN** a word belongs to an intersection where one match is a single-word and another is a phrase
+- **THEN** the Phrase Continuity logic SHALL take precedence, and punctuation SHALL be colored.
+
+### Requirement: High-Recall Sequence Verification
+To prevent false-positive coloration (bleed) of common words (e.g., "der", "die", "und"), the engine MUST verify the local neighborhood of any potential match.
+
+#### Scenario: Neighborhood check
+- **WHEN** evaluating a match candidate in Global Mode
+- **THEN** the engine MUST verify that at least one neighboring word (within a ±3 word window) matches the original recorded context from the database.
+- **AND** symbol-only tokens (dashes, slashes, brackets) SHALL be skipped/ignored during this check.
+
+### Requirement: Inter-Segment Continuity
+Highlighting SHALL persist across subtitle segment boundaries if strict temporal and sequential constraints are met.
+
+#### Scenario: Bridging segments
+- **WHEN** a multi-word term is split between Subtitle A and Subtitle B
+- **AND** the gap between Subtitle A's end and Subtitle B's start is ≤ 1.5 seconds
+- **THEN** the engine SHALL highlight the respective parts in both segments.
+- **AND** the engine SHALL recursively check up to 5 adjacent segments to find the full term.
+
+### Requirement: Window Mode Visual Modifiers
+Window Mode rendering SHALL support additional visual emphasized states.
+
+#### Scenario: Bold highlighting
+- **WHEN** `anki_highlight_bold` is enabled
+- **THEN** all highlighted spans in the Drum Window SHALL be wrapped in ASS bold tags `{\b1}` and `{\b0}`.
+
+### Requirement: ASS Mode Restrictions
+The "Window Mode" high-recall highlighting engine is strictly optimized for linear, plain-text subtitle formats (SRT). Advanced ASS styling (Advanced Substation Alpha) is subject to the following formal restrictions:
+
+#### Scenario: ASS Tag Interference
+- **GIVEN** a subtitle segment contains internal ASS override tags (e.g., `{\i1}word{\i0}`)
+- **THEN** the tokenization engine SHALL treat symbols inside the curly braces as metadata.
+- **AND** highlighting MAY fail to apply if the tag splits a multi-word sequence logically.
+
+#### Scenario: Complex Positioning and Draw Commands
+- **GIVEN** an ASS segment uses complex positioning (`\pos`, `\move`) or vector drawing commands (`\p1`)
+- **THEN** highlighting SHALL be automatically disabled for that segment to prevent visual artifacts and OSD positioning corruption in the Drum Window.
+
+#### Scenario: Pre-colored ASS text
+- **GIVEN** an ASS segment has hardcoded colors (e.g., `\c&H0000FF&`)
+- **THEN** the high-recall highlighter SHALL prioritize its own palette colors (Orange/Purple/Mixed), which MAY result in a loss of the original subtitle styling.
