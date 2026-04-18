@@ -36,10 +36,25 @@ The Intensity Level (1, 2, or 3) for any word SHALL be determined by its "stack 
 - **WHEN** a word is matched by 2 Contiguous terms and 0 Split terms
 - **THEN** it SHALL be rendered using `anki_depth_2`.
 
-#### Scenario: Determining mixed palette level
+#### Scenario: Determining brick palette level
 - **WHEN** a word is matched by $O$ Contiguous terms AND $S$ Split terms (where $O > 0$ and $S > 0$)
 - **THEN** the index $L$ SHALL be calculated as $L = \text{clamp}(O + S, 1, 3)$
 - **AND** the word SHALL be rendered using `anki_mix_depth_L`.
+
+#### Scenario: Nested Pure Orange Intensity
+- **WHEN** a word is a member of multiple overlapping contiguous terms (e.g., a word inside a phrase which is inside a longer sentence)
+- **THEN** the `orange_stack` SHALL increment for each unique term.
+- **AND** the intensity `anki_depth_X` SHALL increase (clamped at 3) to visually represent the depth of the nesting.
+
+#### Scenario: Nested Pure Purple Intensity
+- **WHEN** a word is a member of multiple overlapping split (non-contiguous) terms
+- **THEN** the `purple_stack` SHALL increment for each unique term.
+- **AND** the intensity `anki_split_depth_X` SHALL increase (clamped at 3).
+
+#### Scenario: Complex Combination (Brick Nesting)
+- **WHEN** a word is simultaneously part of 1 contiguous term and 2 split terms (or vice versa)
+- **THEN** the engine SHALL identify it as Brick Color ($O > 0, S > 0$).
+- **AND** the combined stack depth ($O + S = 3$) SHALL dictate the maximum intensity for the Brick palette (`anki_mix_depth_3`).
 
 #### Scenario: Brick Color Identification (Orange + Purple)
 - **WHEN** the highlighting engine calculates the status of a specific word token
