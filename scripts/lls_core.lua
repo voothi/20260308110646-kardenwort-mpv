@@ -1812,8 +1812,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             if ctrl_member then
                 meta.color = Options.dw_ctrl_select_color
                 meta.priority = 1
+            end
+
             -- Level 2: Selection/Hover (Focus Point)
-            if l_idx then
+            if meta.priority == 0 and l_idx then
                 local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
                 if is_focus_point then
                     meta.color = Options.dw_highlight_color
@@ -2066,8 +2068,10 @@ local function draw_dw(subs, view_center, active_idx)
                 if ctrl_member then
                     meta.color = Options.dw_ctrl_select_color
                     meta.priority = 1
+                end
+
                 -- Level 2: Selection/Hover Focus
-                if l_idx then
+                if meta.priority == 0 and l_idx then
                     local selected = false
                     if has_selection then
                         if i > p1_l and i < p2_l then selected = true
