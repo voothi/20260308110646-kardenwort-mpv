@@ -1,0 +1,25 @@
+/opsx-propose.md 20260418143225 I documented the behavior of the program in cases of text selection in openspec\changes\archive\20260418074913-window-mode-highlighting-spec and  
+
+window-highlighting-spec
+I need to check and implement according to the specs.
+
+Previous branch, where it worked as it should and at what state of the code I made 20260418074913-window-mode-highlighting-spec - commit efb3792a7f37ca1cc4deea386297e17a31e3748b
+20260418153101 Multi-line mode does not work. Check the implementation again using the specs.
+20260418154509 Accept.
+20260418154854 It seems to work, but only within one subtitle, that is, I can’t add such a bright yellow SCM highlight. 
+20260418160107 It was a failed attempt.
+20260418160754 Accept.
+20260418161014 Accept.
+20260418161302 The window w does not open, there are no elements.
+20260418161449 Now it opens, but selecting and adding subtitles when selecting several lines does not work as before.
+20260418161741 Accept.
+20260418162119 I can’t add a fragment of several subtitles highlighted in bright yellow to a file. I click MMB and only the word that I clicked within this selection is added, and not the entire selection.
+20260418162408 Accept.
+20260418162640 Now, when selected, only part of the line before the word on which I press MMB is added in this subtitle and other selected parts are not added.
+
+If I clicked on fНalsch, then in this highlighted yellow color only minus gleich falsch will be added, it will turn orange.
+
+
+
+
+
