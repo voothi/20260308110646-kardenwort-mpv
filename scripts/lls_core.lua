@@ -879,13 +879,38 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             -- Absolute Targeted Index grounding: If TSV provides an index, it MUST match exactly.
                             if data.index and data.index ~= -1 then
-                                if math.abs(data.time - sub_start) < 0.05 then
-                                    local expected_start = target_l_idx - term_offset + 1
-                                    if expected_start ~= data.index then
-                                        sequence_match = false
-                                    else
-                                        context_satisfied = true
-                                        match_count = 2
+                                local is_grounded = false
+                                if term_offset == 1 then
+                                    if math.abs(data.time - sub_start) < 0.05 and target_l_idx == data.index then
+                                        is_grounded = true
+                                    end
+                                else
+                                    -- Continuation word: Trace back to see if phrase started at anchor
+                                    local check_s, check_l = sub_idx, target_l_idx - term_offset + 1
+                                    while check_l < 1 and check_s > 1 do
+                                        check_s = check_s - 1
+                                        get_sub_tokens(subs[check_s])
+                                        local wc = subs[check_s].word_count or 0
+                                        if wc == 0 then break end
+                                        check_l = check_l + wc
+                                        if (subs[check_s+1].start_time - subs[check_s].end_time) > 1.5 then break end
+                                    end
+                                    if math.abs(data.time - subs[check_s].start_time) < 0.05 and check_l == data.index then
+                                        is_grounded = true
+                                    end
+                                end
+
+                                if not is_grounded and not Options.anki_global_highlight then
+                                    sequence_match = false
+                                elseif is_grounded then
+                                    context_satisfied = true
+                                    match_count = 2
+                                else
+                                    -- Global mode: check if anchor sub exists but doesn't match this candidate
+                                    -- (Prevents highlighting same record twice on the anchor subtitle)
+                                    if math.abs(data.time - sub_start) < 0.05 then
+                                        local expected_start = target_l_idx - term_offset + 1
+                                        if expected_start ~= data.index then sequence_match = false end
                                     end
                                 end
                             end
