@@ -699,23 +699,25 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
 
 
     -- Helper to get a word relative to current word_idx across segment boundaries
-    local function get_relative_word(rel_offset)
+    local function get_relative_word(rel_offset, skip_symbols)
         local curr_sub_idx = sub_idx
         local current_words = get_sub_words(subs[curr_sub_idx])
         if not current_words then return nil end
-        local target_rel_idx = word_idx + rel_offset
+        
+        local target_rel_idx = word_idx
+        local remaining = math.abs(rel_offset)
+        local step = (rel_offset > 0) and 1 or -1
         
         local safety = 0
-        while safety < 5 do
+        while remaining > 0 and safety < 10 do
             safety = safety + 1
-            if target_rel_idx >= 1 and target_rel_idx <= #current_words then
-                return current_words[target_rel_idx]
-            end
+            target_rel_idx = target_rel_idx + step
             
+            -- Boundary check and segment jumping
             if target_rel_idx > #current_words then
                 local next_sub_idx = curr_sub_idx + 1
                 if subs[next_sub_idx] and (subs[next_sub_idx].start_time - subs[curr_sub_idx].end_time < 1.5) then
-                    target_rel_idx = target_rel_idx - #current_words
+                    target_rel_idx = 1
                     curr_sub_idx = next_sub_idx
                     current_words = get_sub_words(subs[curr_sub_idx])
                     if not current_words then return nil end
@@ -727,15 +729,23 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                 if subs[prev_sub_idx] and (subs[curr_sub_idx].start_time - subs[prev_sub_idx].end_time < 1.5) then
                     local prev_words = get_sub_words(subs[prev_sub_idx])
                     if not prev_words then return nil end
-                    target_rel_idx = target_rel_idx + #prev_words
+                    target_rel_idx = #prev_words
                     curr_sub_idx = prev_sub_idx
                     current_words = prev_words
                 else
                     return nil
                 end
             end
+            
+            local w = current_words[target_rel_idx]
+            if w then
+                local is_sym = not is_word_char(w:match("^([%z\1-\127\194-\244][\128-\191]*)"))
+                if not skip_symbols or not is_sym then
+                    remaining = remaining - 1
+                end
+            end
         end
-        return nil
+        return current_words[target_rel_idx]
     end
     
     local orange_stack = 0
@@ -800,31 +810,37 @@ local function calculate_highlight_stack(subs, sub_idx, word_idx, time_pos)
                     if #target_offsets > 0 then
                         local any_sequence = false
                         for _, term_offset in ipairs(target_offsets) do
-                            local sequence_match = true
+                            local sequence_match = false
                             
-                            -- Phase 1: Local Sequence Match (verify ±3 words of context around the match)
+                            -- Phase 1: Local Sequence Match (verify sequence continuity)
                             if #term_words > 1 then
-                                local check_start = math.max(1, term_offset - 3)
-                                local check_end = math.min(#term_words, term_offset + 3)
-                                for k = check_start, check_end do
-                                    if k ~= term_offset then
-                                        local rw = get_relative_word(k - term_offset)
-                                        if not rw or term_clean[k] ~= utf8_to_lower(rw:gsub("[%p%s]", "")) then
-                                            sequence_match = false
+                                -- Requirement: High-Recall Sequence Verification - At least one neighbor must match 
+                                -- within a short window, skipping symbols to maintain phrase-logical continuity.
+                                for _, offset in ipairs({-1, 1}) do
+                                    local rw = get_relative_word(offset, true)
+                                    local term_neighbor_idx = term_offset + offset
+                                    if rw and term_clean[term_neighbor_idx] then
+                                        if term_clean[term_neighbor_idx] == utf8_to_lower(rw:gsub("[%p%s]", "")) then
+                                            sequence_match = true
                                             break
                                         end
                                     end
                                 end
+                            else
+                                -- Single word terms are always considered a sequence match, 
+                                -- but they still must pass neighborhood/context checks if Global Mode is on.
+                                sequence_match = true
                             end
 
-                            -- Phase 2: Context Match
-                            if sequence_match and Options.anki_context_strict and not Options.anki_global_highlight then
+                            -- Phase 2: Context/Neighborhood Verification
+                            -- Requirement: High-Recall Sequence Verification for Global Mode
+                            if sequence_match and (Options.anki_context_strict or Options.anki_global_highlight) then
                                 local has_neighbor = false
                                 
                                 -- Check neighbors in both directions (expand search up to 4 tokens to skip symbols/-//)
                                 for _, dir in ipairs({-1, 1}) do
                                     for offset = 1, 4 do
-                                        local nw = get_relative_word(dir * offset)
+                                        local nw = get_relative_word(dir * offset, false)
                                         if not nw then break end
                                         
                                         local nw_clean = utf8_to_lower(nw:gsub("[%p%s]", ""))
@@ -1960,15 +1976,6 @@ local function draw_dw(subs, view_center, active_idx)
         for _, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
             for _, j in ipairs(vl_indices) do
-                local w = entry.words[j]
-                local l_idx = entry.visual_to_logical[j] -- Convert visual token index to logical word index
-                
-                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
-                if ctrl_member then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
-                    goto next_token
-                end
-
                 local selected = false
                 if has_selection and l_idx then
                     if i > p1_l and i < p2_l then selected = true
@@ -1977,15 +1984,20 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif i == p2_l then selected = (l_idx <= p2_w) end
                 end
                 
-                if selected then
+                local is_focus_point = (i == cl and l_idx == cw)
+                
+                if selected or is_focus_point then
                     table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
                     goto next_token
-                elseif l_idx then
-                    if i == cl and l_idx == cw then
-                        table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_highlight_color, w, color))
-                        goto next_token
-                    end
+                end
 
+                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
+                if ctrl_member then
+                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", Options.dw_ctrl_select_color, w, color))
+                    goto next_token
+                end
+
+                if l_idx then
                     local sub_t = subs[i]
                     local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, l_idx, sub_t.start_time)
                     local h_color = color

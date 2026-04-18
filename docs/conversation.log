@@ -19,7 +19,7 @@ Previous branch, where it worked as it should and at what state of the code I ma
 
 If I clicked on fНalsch, then in this highlighted yellow color only minus gleich falsch will be added, it will turn orange.
 20260418164055 It is necessary to check the implementation of the current version of the codebase in accordance with the specification we wrote so that everything works as expected. openspec\specs\window-highlighting-spec; openspec\changes\archive\20260418074913-window-mode-highlighting-spec
-
-
+20260418165107 Accept.
+20260418165316 The window does not appear drum w.
 
 
