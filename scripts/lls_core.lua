@@ -2885,21 +2885,25 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     end
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
+                    FSM.DW_MOUSE_DRAGGING = true
                 elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
                     -- Preserve existing selection for 'SCM' commit or range export
+                    FSM.DW_MOUSE_DRAGGING = false
                 else
                     -- Normal click: set both anchor and cursor (starts new selection)
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
                     FSM.DW_ANCHOR_LINE = line_idx
                     FSM.DW_ANCHOR_WORD = word_idx
+                    FSM.DW_MOUSE_DRAGGING = true
                 end
                 
-                FSM.DW_MOUSE_DRAGGING = true
-                mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-                if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
-                FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
-                dw_sync_cursor_to_mouse()
+                if FSM.DW_MOUSE_DRAGGING then
+                    mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
+                    if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
+                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+                    dw_sync_cursor_to_mouse()
+                end
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false

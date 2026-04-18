@@ -15,5 +15,11 @@ Previous branch, where it worked as it should and at what state of the code I ma
 20260418161741 Accept.
 20260418162119 I can’t add a fragment of several subtitles highlighted in bright yellow to a file. I click MMB and only the word that I clicked within this selection is added, and not the entire selection.
 20260418162408 Accept.
+20260418162640 Now, when selected, only part of the line before the word on which I press MMB is added in this subtitle and other selected parts are not added.
+
+If I clicked on falsch, then in this highlighted yellow color only minus gleich falsch will be added, it will turn orange.
+20260418162843 Accept.
+
+
 
 
