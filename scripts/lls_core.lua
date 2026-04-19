@@ -3740,10 +3740,10 @@ end
 local function manage_dw_bindings(enable)
     local function nav(fn, key_name)
         return function(t)
-            -- Ignore modifiers (Ctrl, Shift, Alt) as shield-triggers so combos like Shift+Click work.
+            -- Ignore modifiers (Ctrl, Shift, Alt, Meta) as shield-triggers so combos like Shift+Click work.
             -- Navigation/Action keys (Arrows, Enter, etc.) still trigger the 150ms mouse lockout.
             local key = (t and t.key) or key_name or ""
-            if not (key == "Ctrl" or key == "Shift" or key == "Alt") then
+            if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.150
             end
             return fn(t)

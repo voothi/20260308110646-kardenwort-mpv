@@ -159,8 +159,8 @@
 20260419235137 I checked your corrections in another chat to synchronize the work and this is what he gave, let me know if you accept everything and if there are any errors. Check the implementation in the code to see if there are any errors and whether it contradicts your changes in this thread.
 20260419235553 Check these anchors again 20260419223523 20260419231358 20260419231810 20260419233258 20260419235137
 20260420000155 Check if these changes were necessary - Global Mouse Shield? Won't they slow down the work with the keyboard, the response to the keys of the keyboard and remote control?
-
-
+20260420001055 I received the report and improvements from another chat, the code has been changed. Check the changes, their necessity, purity, consistency with your changes, absence of regression.
+20260420001524 But my remote control cannot shake, I only control the mouse. The question is regarding the universality of the changes, is there nothing hardwired there? How about keyboard shortcuts that can be changed by the user through the config, have you taken this into account? The user can put any combination.
 
 
 
