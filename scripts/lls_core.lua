@@ -948,76 +948,56 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
                         end
 
-                        -- Phase 2: Context Match
-                        local needs_strict = Options.anki_context_strict or (#term_clean == 1)
-                        if sequence_match then
-                            -- For large blocks with multi-pivot data, verify grounding for ALL points
-                            if data.__pivots and #data.__pivots > 1 and not Options.anki_global_highlight then
-                                local all_pivots_grounded = true
-                                local origin_l = get_center_index(subs, data.time)
-                                if origin_l == -1 then all_pivots_grounded = false
-                                else
-                                    for _, g in ipairs(data.__pivots) do
-                                        local rel_s = g.l_off
-                                        local target_s = origin_l + rel_s
-                                        local target_sub = subs[target_s]
-                                        if not target_sub then all_pivots_grounded = false; break end
-                                        
-                                        local t_tokens = get_sub_tokens(target_sub)
-                                        local found = false
-                                        for _, t in ipairs(t_tokens) do
-                                            if t.is_word and t.logical_idx == g.p_idx then
-                                                found = true; break
-                                            end
-                                        end
-                                        if not found then all_pivots_grounded = false; break end
+                        -- Phase 2: Context Grounding
+                        local context_satisfied = false
+                        
+                        if Options.anki_global_highlight then
+                            local needs_strict = Options.anki_context_strict or (#term_clean == 1)
+                            if needs_strict then
+                                -- Fuzzy neighbor check for Global Mode
+                                local match_count = 0
+                                local scan_pad = Options.anki_neighbor_window or 5
+                                for s_off = -scan_pad, scan_pad do
+                                    local scan_sub = subs[sub_idx + s_off]
+                                    if scan_sub then
+                                        local s_text = utf8_to_lower(scan_sub.text:gsub("{[^}]+}", ""))
+                                        if data.__ctx_lower:find(s_text, 1, true) then match_count = match_count + 1 end
                                     end
                                 end
-                                
-                                if all_pivots_grounded then
-                                    any_sequence = true
-                                    break
+                                context_satisfied = (match_count >= 1)
+                            else
+                                context_satisfied = true
+                            end
+                        else
+                            -- Local Mode (Global OFF): MUST be grounded if pivots exist
+                            if data.__pivots and #data.__pivots > 0 then
+                                local origin_l = get_center_index(subs, data.time)
+                                if origin_l ~= -1 then
+                                    -- Verify the specific pivot corresponding to this word part
+                                    local g = data.__pivots[term_offset]
+                                    if g and sub_idx == origin_l + g.l_off and target_l_idx == g.p_idx then
+                                        context_satisfied = true
+                                    end
                                 end
                             else
-                                -- Basic grounding (one pivot or global mode)
-                                local context_satisfied = (not needs_strict)
-                                if not context_satisfied then
-                                    -- Check if current word (term_offset) is grounded
-                                    if data.__pivots and #data.__pivots > 0 and not Options.anki_global_highlight then
-                                        local g = data.__pivots[1]
-                                        local origin_l = get_center_index(subs, data.time)
-                                        if sub_idx == origin_l + g.l_off and target_l_idx == g.p_idx then
-                                            context_satisfied = true
-                                        end
-                                    end
-                                    
-                                    if not context_satisfied and (Options.anki_global_highlight or not (data.__pivots and #data.__pivots > 0)) then
-                                        -- Fuzzy context check
-                                        local match_count = 0
-                                        local scan_pad = Options.anki_neighbor_window or 5
-                                        for s_off = -scan_pad, scan_pad do
-                                            local scan_sub = subs[sub_idx + s_off]
-                                            if scan_sub then
-                                                local s_text = utf8_to_lower(scan_sub.text:gsub("{[^}]+}", ""))
-                                                if data.__ctx_lower:find(s_text, 1, true) then match_count = match_count + 1 end
-                                            end
-                                        end
-                                        context_satisfied = (match_count >= 1)
-                                    end
-                                end
-
-                                if context_satisfied then
-                                    any_sequence = true
-                                    break
-                                end
+                                -- Legacy records or no index: tight time window already satisfied by Phase 0 loop
+                                context_satisfied = true
                             end
+                        end
+
+                        if context_satisfied then
+                            any_sequence = true
+                            break
                         end
                     end
 
                     if any_sequence then
                         match_found = true
                         if #term_clean > 1 then has_phrase = true end
-                    elseif #term_clean > 1 then
+                    end
+
+                    -- Phase 3: Split Matching (Only if not already matched as contiguous, and is multi-word)
+                    if not match_found and #term_clean > 1 then
                         local origin_sub_idx = get_center_index(subs, data.time)
                         if not subs[sub_idx].__split_valid_indices then
                             subs[sub_idx].__split_valid_indices = {}
@@ -1115,9 +1095,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 end
                                 search(1, {})
                                 
-                                -- Fallback to unanchored match if ground-truth coordinate check failed
+                                -- Fallback to unanchored match only if Global Mode is ON or no ground-truth available
                                 if not best_tuple and best_unanchored_tuple then
-                                    best_tuple = best_unanchored_tuple
+                                    if Options.anki_global_highlight or not (data.__pivots and #data.__pivots > 0) then
+                                        best_tuple = best_unanchored_tuple
+                                    end
                                 end
                                 
                                 if best_tuple then
