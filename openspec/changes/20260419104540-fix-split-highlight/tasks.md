@@ -7,6 +7,8 @@
 
 ## 2. Export & UI Sync
 
-- [x] 2.1 Update `ctrl_commit_set` to correctly anchor exports using `members[1].word`.
+- [x] 2.1 Update `ctrl_commit_set` and `dw_anki_export_selection` to export advanced pivot coordinates (`L_OFF:W_IDX:T_POS`).
+- [x] 2.2 Implement multi-segment Pivot Grounding in both Phase 1 (Contiguous) and Phase 2 (Split) search engines.
+- [x] 2.3 Verify fix by toggling the Drum Window and checking console for `Pivot Grounding` messages.
+- [x] 2.4 Hardened "Large Chunk" lookup by increasing segment safety (20) and gap (10s) limits.
 - [x] 2.2 Clean up indentation in `load_anki_mapping_ini`.
-- [x] 2.3 Verify fix by toggling the Drum Window (refreshes TSV and applies new logic).

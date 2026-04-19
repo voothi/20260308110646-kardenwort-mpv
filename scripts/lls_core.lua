@@ -887,6 +887,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     local l_off, p_idx, t_pos = tostring(data.index):match("^([%-+]?%d+):(%d+):(%d+)$")
                     if l_off then
                         data.__pivot = {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)}
+                        print(string.format("[LLS] Pivot Grounding: '%s' anchored at Word %d (Index %d, Offset %d)", 
+                            term_key, data.__pivot.t_pos, data.__pivot.p_idx, data.__pivot.l_off))
                     elseif type(data.index) == "number" or tostring(data.index):match("^%-?%d+$") then
                         data.__pivot = {l_off = 0, p_idx = tonumber(data.index), t_pos = 1}
                     end
@@ -966,41 +968,43 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 end
                             end
 
-                            -- Absolute Targeted Index grounding: If TSV provides an index, it MUST match exactly.
-                            if data.index and data.index ~= -1 then
+                            -- Multi-segment Pivot Grounding: Verify word positions across boundaries
+                            if data.__pivot and not Options.anki_global_highlight then
                                 local is_grounded = false
-                                if term_offset == 1 then
-                                    if math.abs(data.time - sub_start) < 0.05 and target_l_idx == data.index then
-                                        is_grounded = true
+                                local g = data.__pivot
+                                local origin_l = get_center_index(subs, data.time)
+                                
+                                if origin_l ~= -1 then
+                                    local check_s, check_l = sub_idx, target_l_idx + (g.t_pos - term_offset)
+                                    local safety = 0
+                                    while safety < 10 do
+                                        safety = safety + 1
+                                        if check_l < 1 and check_s > 1 then
+                                            check_s = check_s - 1
+                                            get_sub_tokens(subs[check_s])
+                                            local wc = subs[check_s].word_count or 0
+                                            check_l = check_l + wc
+                                            if (subs[check_s+1].start_time - subs[check_s].end_time) > 10.0 then break end
+                                        elseif check_s < #subs and check_l > (subs[check_s].word_count or 0) then
+                                            local wc = subs[check_s].word_count or 0
+                                            check_l = check_l - wc
+                                            check_s = check_s + 1
+                                            if (subs[check_s].start_time - subs[check_s-1].end_time) > 10.0 then break end
+                                        else
+                                            break
+                                        end
                                     end
-                                else
-                                    -- Continuation word: Trace back to see if phrase started at anchor
-                                    local check_s, check_l = sub_idx, target_l_idx - term_offset + 1
-                                    while check_l < 1 and check_s > 1 do
-                                        check_s = check_s - 1
-                                        get_sub_tokens(subs[check_s])
-                                        local wc = subs[check_s].word_count or 0
-                                        if wc == 0 then break end
-                                        check_l = check_l + wc
-                                        if (subs[check_s+1].start_time - subs[check_s].end_time) > 1.5 then break end
-                                    end
-                                    if math.abs(data.time - subs[check_s].start_time) < 0.05 and check_l == data.index then
+                                    
+                                    if check_s == origin_l + g.l_off and check_l == g.p_idx then
                                         is_grounded = true
                                     end
                                 end
 
-                                if not is_grounded and not Options.anki_global_highlight then
+                                if not is_grounded then
                                     sequence_match = false
-                                elseif is_grounded then
+                                else
                                     context_satisfied = true
                                     match_count = 2
-                                else
-                                    -- Global mode: check if anchor sub exists but doesn't match this candidate
-                                    -- (Prevents highlighting same record twice on the anchor subtitle)
-                                    if math.abs(data.time - sub_start) < 0.05 then
-                                        local expected_start = target_l_idx - term_offset + 1
-                                        if expected_start ~= data.index then sequence_match = false end
-                                    end
                                 end
                             end
 
