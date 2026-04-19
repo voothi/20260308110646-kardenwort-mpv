@@ -333,6 +333,68 @@ local function extract_subtitle_metadata(path)
     return base, ""
 end
 
+local SOURCE_URL_CACHE = nil
+local LAST_PATH_FOR_URL = nil
+
+local function find_source_url()
+    local path = mp.get_property("path")
+    if not path or path == "" then return "" end
+    
+    -- Cache check: only re-scan if the media path changed
+    if path == LAST_PATH_FOR_URL and SOURCE_URL_CACHE ~= nil then 
+        return SOURCE_URL_CACHE 
+    end
+
+    LAST_PATH_FOR_URL = path
+    SOURCE_URL_CACHE = "" -- Default fallback
+
+    local dir, filename = utils.split_path(path)
+    if not dir or dir == "" then return "" end
+    
+    local base_name = filename:gsub("%.[^.]+$", "")
+
+    local function parse_url_file(target_path)
+        local f = io.open(target_path, "r")
+        if not f then return nil end
+        for line in f:lines() do
+            local clean = line:gsub("^\xEF\xBB\xBF", ""):match("^%s*(.-)%s*$")
+            local url = clean:match("^[Uu][Rr][Ll]%s*=%s*(https?://%S+)")
+            if url then
+                f:close()
+                return url
+            end
+        end
+        f:close()
+        return nil
+    end
+
+    -- 1. Try specific filename matches (base_name.url, base_name.txt, etc)
+    local extensions = { ".url", ".txt", ".md" }
+    for _, ext in ipairs(extensions) do
+        local url = parse_url_file(utils.join_path(dir, base_name .. ext))
+        if url then
+            SOURCE_URL_CACHE = url
+            return url
+        end
+    end
+
+    -- 2. Fallback: Search for any .url file in the directory
+    local files = utils.readdir(dir, "files")
+    if files then
+        for _, f_name in ipairs(files) do
+            if f_name:lower():match("%.url$") then
+                local url = parse_url_file(utils.join_path(dir, f_name))
+                if url then
+                    SOURCE_URL_CACHE = url
+                    return url
+                end
+            end
+        end
+    end
+
+    return SOURCE_URL_CACHE
+end
+
 local function escape_tsv(str)
     if type(str) ~= "string" then return tostring(str or "") end
     return (str:gsub("\t", " "):gsub("\n", " "))
@@ -350,6 +412,7 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     if source == "source_word" then return escape_tsv(term) end
     if source == "source_sentence" then return escape_tsv(context) end
     if source == "source_index" then return tostring(item_index or "") end
+    if source == "source_url" then return escape_tsv(find_source_url()) end
     if source == "time" then return string.format("%.3f", time_pos) end
     if source == "deck_name" then return escape_tsv(deck_name) end
 

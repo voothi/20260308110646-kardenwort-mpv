@@ -64,7 +64,8 @@
 20260418213707 It seems to have worked. Let's create opsx-propose 20260418212958
 20260418214211 opsx-apply
 20260418214256 opsx-archive and sync.
-
+20260419093216 o # Why is the SourceURL field of the TSV file filled with the stub value `Source`? ## Description I did not give such a task.
+20260419094245 Okay, but how can we modify the mechanism so that if in the directory with the media file there is an Internet Shortcut link file as a separate file or a simple file with the same name and extension, for example, txt or md and inside with the following line URL=https://www.youtube.com/watch?v=3NAmt9AAehY. Do you need to parse? Then you need to be able to set SourceURL=source_url or something similar.
 
 
 
