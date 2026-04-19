@@ -112,11 +112,11 @@ local Options = {
     seek_hold_rate = 10,
 
     -- Anki Highlighter
-    dw_export_key = "MBTN_MID",
-    dw_add_key = "r",
-    dw_add_key_ru = "к",
-    dw_mark_pink_key = "t",
-    dw_mark_pink_key_ru = "е",
+    dw_mouse_add = "MBTN_MID",
+    dw_key_add = "r",
+    dw_key_add_ru = "к",
+    dw_key_pair = "t",
+    dw_key_pair_ru = "е",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -3696,8 +3696,8 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
-        {key = Options.dw_export_key, name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
-        {key = Options.dw_add_key, name = "dw-add-key", fn = cmd_dw_add_smart},
+        {key = Options.dw_mouse_add, name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
+        {key = Options.dw_key_add, name = "dw-add-key", fn = cmd_dw_add_smart},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Multi-select
@@ -3711,13 +3711,13 @@ local function manage_dw_bindings(enable)
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             if line_idx then ctrl_toggle_word(line_idx, word_idx) end
         end, complex = true},
-        {key = "Ctrl+" .. Options.dw_export_key, name = "dw-ctrl-mmb", fn = function(t)
+        {key = "Ctrl+" .. Options.dw_mouse_add, name = "dw-ctrl-mmb", fn = function(t)
             if t.event ~= "down" then return end
             local osd_x, osd_y = dw_get_mouse_osd()
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             if line_idx then ctrl_commit_set(line_idx, word_idx) end
         end, complex = true},
-        {key = Options.dw_mark_pink_key, name = "dw-mark-pink-key", fn = cmd_dw_toggle_pink},
+        {key = Options.dw_key_pair, name = "dw-mark-pink-key", fn = cmd_dw_toggle_pink},
         -- Tooltip Bindings
         {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = Options.tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
@@ -3743,8 +3743,8 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
-        {key = Options.dw_mark_pink_key_ru, name = "dw-mark-pink-key-ru", fn = cmd_dw_toggle_pink},
-        {key = Options.dw_add_key_ru, name = "dw-add-key-ru", fn = cmd_dw_add_smart},
+        {key = Options.dw_key_pair_ru, name = "dw-mark-pink-key-ru", fn = cmd_dw_toggle_pink},
+        {key = Options.dw_key_add_ru, name = "dw-add-key-ru", fn = cmd_dw_add_smart},
         {key = Options.tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
         {key = Options.dw_tooltip_toggle_key_ru, name = "dw-tooltip-toggle-ru", fn = cmd_dw_tooltip_toggle},
         
