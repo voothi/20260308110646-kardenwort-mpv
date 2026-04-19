@@ -127,6 +127,34 @@
 20260419193906 Okay, since all 9 tasks are completed successfully, let's complete it opsx-archive
 20260419194101 Sync and Archive
 20260419195326 Think about whether what you deleted is correct ### Highlighting Example (Concrete Case) in openspec\specs\anki-export-mapping\spec.md
+20260419195837 Pull the change back from the archive U:\voothi\20260308110646-kardenwort-mpv\openspec\changes\archive\20260419191638-unify-drum-mining-shortcuts. Something doesn't work when selecting via Ctrl+MBTN_LEFT
+20260419200533 Continue.
+20260419200939 Now I can highlight in pink, but it doesn’t work the same as it did before. Now the mechanism selects the word at the last position of the yellow pointer, without taking into account the new position of the mouse pointer. This may be a consequence of adding the t key for selection. But we need to make it so that, with one click on a new word while holding Ctrl, it can immediately go to it (for a moment turning yellow) and be marked pink. So that you do not need to first click with the left mouse button on a word, and then click on it again with Ctrl held down. 
+20260419201956 It didn't work. I rolled back the code to the previous version 9489e1b886370a6a3f85509dda6becf35637f8f0. Look again and try to implement it so that it works by clicking with the left mouse button while holding down Ctrl on an arbitrary word and highlighting it in pink. Consider dialogue anchors
+20260419202629 I reset your version, it didn't work as it should. Think again. We have two pointers to consider. Mouse pointer over word, past position of yellow word, pointer. Now the mouse pointer does not seem to be taken into account, and the selection occurs according to the yellow pointer when I left-click on a word while holding down Ctrl.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

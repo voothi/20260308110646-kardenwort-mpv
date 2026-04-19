@@ -3225,9 +3225,13 @@ local function cmd_dw_add_smart()
     ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
 end
 
-local function cmd_dw_toggle_pink(tbl)
+local function cmd_dw_toggle_pink(tbl, was_mouse)
+    -- If it's a complex binding, only trigger on down
+    if tbl and tbl.event == "up" then return end
+    
     local line, word
-    if tbl and tbl.key and (tbl.key:match("^MBTN_") or tbl.key:match("^WHEEL_")) then
+    -- Use explicit was_mouse flag from parse_and_bind, or fallback to patterns
+    if was_mouse or (tbl and tbl.key and (tbl.key:find("MBTN_") or tbl.key:find("WHEEL_"))) then
         local osd_x, osd_y = dw_get_mouse_osd()
         line, word = dw_hit_test(osd_x, osd_y)
     else
@@ -3235,6 +3239,14 @@ local function cmd_dw_toggle_pink(tbl)
     end
     
     if line and line ~= -1 and word and word ~= -1 then
+        -- Sync cursor and anchor state to the interaction point
+        -- This ensures the "yellow" focus jumps to the "pink" target immediately
+        FSM.DW_CURSOR_LINE = line
+        FSM.DW_CURSOR_WORD = word
+        FSM.DW_ANCHOR_LINE = line
+        FSM.DW_ANCHOR_WORD = word
+        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+        
         ctrl_toggle_word(line, word)
     end
 end
@@ -3696,6 +3708,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = function() cmd_dw_scroll(-1) end},
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = function() cmd_dw_scroll(1) end},
         {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
+        {key = "Ctrl+ESC", name = "dw-pair-discard", fn = ctrl_discard_set},
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
@@ -3703,7 +3716,7 @@ local function manage_dw_bindings(enable)
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-            if t.event == "up" then ctrl_discard_set() end
+            -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
         end, complex = true},
     }
 
@@ -3713,10 +3726,11 @@ local function manage_dw_bindings(enable)
         for key in key_string:gmatch("[^%s,;]+") do
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
+                local action = is_mouse and mouse_fn or key_fn
                 table.insert(keys, {
                     key = key,
                     name = base_name .. "-" .. i,
-                    fn = is_mouse and mouse_fn or key_fn,
+                    fn = function(t) action(t, is_mouse) end,
                     complex = is_mouse
                 })
                 i = i + 1
