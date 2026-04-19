@@ -103,6 +103,7 @@
 20260419134209 Sync now and Archive.
 20260419134510 o The darkest shades of brick (for intersection) and orange (for normal highlighting) seem to be very close and barely distinguishable. See the screenshot and the word `USO`.
 20260419135053 Look at the mpv.conf file. There settings may overlap those in the code.
+20260419135455 Okay, it's better, let's leave it like that, the next question is can we change the color of the selection with the cursor - a bright yellow selection and a pale yellow selection (which, when saved, changes color to purple, normally, in a simple case, without overlays)? If so, then let's think about whether we can replace this pale yellow color with a color of the same saturation as yellow, but violet. So that the color match is similar in gamma - the current bright yellow for the highlight, which changes to orange (first level) and on the other hand, at the same distance between the colors, so that there is a pair (suggested color) and purple of the first level. I don’t know if it will be pink or something else, I don’t really understand how colors are mixed.
 
 
 
