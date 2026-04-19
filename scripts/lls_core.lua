@@ -113,6 +113,10 @@ local Options = {
 
     -- Anki Highlighter
     dw_export_key = "MBTN_MID",
+    dw_add_key = "r",
+    dw_add_key_ru = "к",
+    dw_mark_pink_key = "t",
+    dw_mark_pink_key_ru = "е",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -3206,7 +3210,31 @@ end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
-local cmd_dw_export_anki = make_mouse_handler(false, dw_anki_export_selection)
+local function dw_anki_export_smart_callback()
+    local starts_pink = false
+    if FSM.DW_ANCHOR_LINE ~= -1 then
+        local a_key = string.format("%d:%d", FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD)
+        if FSM.DW_CTRL_PENDING_SET[a_key] then starts_pink = true end
+    end
+    
+    if starts_pink then
+        ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
+    else
+        dw_anki_export_selection()
+    end
+end
+
+local cmd_dw_export_anki = make_mouse_handler(false, dw_anki_export_smart_callback)
+
+local function cmd_dw_add_smart()
+    ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
+end
+
+local function cmd_dw_toggle_pink()
+    if FSM.DW_CURSOR_LINE ~= -1 and FSM.DW_CURSOR_WORD ~= -1 then
+        ctrl_toggle_word(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
+    end
+end
 
 local function cmd_dw_double_click()
     local subs = Tracks.pri.subs
@@ -3668,7 +3696,8 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
-        {key = "MBTN_MID", name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
+        {key = Options.dw_export_key, name = "dw-anki-export", fn = cmd_dw_export_anki, complex = true},
+        {key = Options.dw_add_key, name = "dw-add-key", fn = cmd_dw_add_smart},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Multi-select
@@ -3682,12 +3711,13 @@ local function manage_dw_bindings(enable)
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             if line_idx then ctrl_toggle_word(line_idx, word_idx) end
         end, complex = true},
-        {key = "Ctrl+MBTN_MID", name = "dw-ctrl-mmb", fn = function(t)
+        {key = "Ctrl+" .. Options.dw_export_key, name = "dw-ctrl-mmb", fn = function(t)
             if t.event ~= "down" then return end
             local osd_x, osd_y = dw_get_mouse_osd()
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             if line_idx then ctrl_commit_set(line_idx, word_idx) end
         end, complex = true},
+        {key = Options.dw_mark_pink_key, name = "dw-mark-pink-key", fn = cmd_dw_toggle_pink},
         -- Tooltip Bindings
         {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = Options.tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover},
@@ -3713,6 +3743,8 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
+        {key = Options.dw_mark_pink_key_ru, name = "dw-mark-pink-key-ru", fn = cmd_dw_toggle_pink},
+        {key = Options.dw_add_key_ru, name = "dw-add-key-ru", fn = cmd_dw_add_smart},
         {key = Options.tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
         {key = Options.dw_tooltip_toggle_key_ru, name = "dw-tooltip-toggle-ru", fn = cmd_dw_tooltip_toggle},
         
