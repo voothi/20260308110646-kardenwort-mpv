@@ -127,6 +127,8 @@ local Options = {
     anki_sync_period = 5,
     anki_context_lines = 6,
     anki_local_fuzzy_window = 10.0,
+    anki_split_search_window = 35,      -- Line search window for paired words (+/- segments)
+    anki_split_gap_limit = 60.0,        -- Max temporal gap between paired words (seconds)
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
@@ -987,12 +989,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             get_sub_tokens(subs[check_s])
                                             local wc = subs[check_s].word_count or 0
                                             check_l = check_l + wc
-                                            if (subs[check_s+1].start_time - subs[check_s].end_time) > 30.0 then break end
+                                            if (subs[check_s+1].start_time - subs[check_s].end_time) > Options.anki_split_gap_limit then break end
                                         elseif check_s < #subs and check_l > (subs[check_s].word_count or 0) then
                                             local wc = subs[check_s].word_count or 0
                                             check_l = check_l - wc
                                             check_s = check_s + 1
-                                            if (subs[check_s].start_time - subs[check_s-1].end_time) > 30.0 then break end
+                                            if (subs[check_s].start_time - subs[check_s-1].end_time) > Options.anki_split_gap_limit then break end
                                         else
                                             break
                                         end
@@ -1050,14 +1052,14 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set == nil then
                             valid_set = false
                             local ctx_list = {}
-                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 35)
-                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 35)
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - Options.anki_split_search_window)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + Options.anki_split_search_window)
 
                             for scan_i = s_start, s_end do
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if gap < 60.0 then
+                                    if gap < Options.anki_split_gap_limit then
                                         for t_i, t in ipairs(scan_tokens) do
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
@@ -1094,7 +1096,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
                                                 local prev_m = ctx_list[current_tuple[m_idx-1]]
-                                                if math.abs(m.start - prev_m.start) > 60.0 then
+                                                if math.abs(m.start - prev_m.start) > Options.anki_split_gap_limit then
                                                     valid_timing = false; break
                                                 end
                                             end
