@@ -3148,7 +3148,7 @@ local function ctrl_commit_set(line_idx, word_idx)
 end
 
 
-local function make_mouse_handler(is_shift, on_up_callback, on_down_callback)
+local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
     return function(tbl)
         -- Shield logic: ignore mouse events if a keyboard command was just triggered
         if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
@@ -3172,7 +3172,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback)
                 if on_down_callback then on_down_callback(tbl) end
 
                 -- Phase 2: Selection Logic (Only for words)
-                if word_idx then
+                if word_idx and updates_selection ~= false then
                     if is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
                             -- Start shift selection from the current cursor position
@@ -3195,7 +3195,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback)
                     end
                     
                     -- Phase 3: Dragging (Only for Standard/Shift selection, not for tooltips/pins)
-                    if not on_down_callback or is_shift then
+                    if (not on_down_callback or is_shift) and updates_selection ~= false then
                         FSM.DW_MOUSE_DRAGGING = true
                         
                         -- Fast-tracking on mouse move
@@ -3782,7 +3782,7 @@ local function manage_dw_bindings(enable)
         end, complex = true},
     }
 
-    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn)
+    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection)
         if not key_string or key_string == "" then return end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
@@ -3793,7 +3793,8 @@ local function manage_dw_bindings(enable)
                     -- We pass mouse_fn to BOTH down and up phases to support pins (down) and toggles (up)
                     local m_fn = make_mouse_handler(false, 
                         function(t) mouse_fn(t, true) end, -- up
-                        function(t) mouse_fn(t, true) end  -- down
+                        function(t) mouse_fn(t, true) end, -- down
+                        updates_selection
                     )
                     table.insert(keys, {
                         key = key,
@@ -3818,12 +3819,12 @@ local function manage_dw_bindings(enable)
         end
     end
 
-    parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart)
-    parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink)
-    parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end) -- Keyboard select not implemented yet
-    parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin)
-    parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover)
-    parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle)
+    parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
+    parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
+    parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
+    parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
+    parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
+    parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
 
     -- Extra Layout & Search
     local extra = {
