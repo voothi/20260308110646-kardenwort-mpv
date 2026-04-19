@@ -164,8 +164,9 @@
 20260420002147 It’s good that this is a universal mechanism and there is no hardcode, but explain why I see specific keyboard shortcuts here, is this normal, this is not a hardcode, is it overridden in the configs? lls_core.lua#L3760-3770
 20260420002715 Okay, create it opsx-propose для reflect changes in documentation and specifications.
 20260420003310 Okay, do it opsx-apply
-
-
+20260420003543 
+opsx-archive
+20260420003628 Sync now
 
 
 

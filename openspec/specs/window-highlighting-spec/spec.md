@@ -160,7 +160,17 @@ The rendering engine SHALL support two distinct modes of evaluation.
 - **Global Highlighting (Global ON)**: Highlights are applied across the entire timeline, provided they pass strict neighborhood verification. Anchored matches take priority if multiple candidates exist in the same subtitle.
 
 ### Requirement: Interaction, Input, and State Transitions
-The Drum Window SHALL respond to mouse and keyboard inputs with deterministic visual feedback and navigation.
+The Drum Window SHALL respond to mouse and keyboard inputs with deterministic visual feedback and navigation. The engine SHALL strictly isolate informational actions from state-changing selection actions.
+
+#### Scenario: RMB Pinned Tooltip
+- **WHEN** the user clicks RMB (Action: Tooltip Pin)
+- **THEN** it SHALL NOT update the logical `DW_CURSOR_LINE/WORD` or `DW_ANCHOR_LINE/WORD`.
+- **AND** the existing yellow selection cursor SHALL remain at its previous location.
+
+#### Scenario: Selection Dragging Exclusion
+- **GIVEN** a mouse interaction is flagged as informational (e.g., RMB Pin, Tooltip Toggle).
+- **WHEN** the user presses and holds the button and moves the mouse.
+- **THEN** the system SHALL NOT enter the `DRAGGING` state and SHALL NOT update the selection range.
 
 #### Scenario: Vibrant Yellow Selection (LMB)
 - **WHEN** a user clicks LMB on a word.
