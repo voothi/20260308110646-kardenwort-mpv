@@ -3261,12 +3261,15 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         -- Clear yellow selection after it "turns pink"
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-        mp.remove_key_binding("dw-mouse-drag") -- Ensure drag state is cleared
+        -- Only clear the drag binding if we were actually interacting with the mouse
+        if was_mouse then
+            mp.remove_key_binding("dw-mouse-drag")
+        end
         drum_osd:update()
         dw_osd:update()
     else
         -- Fallback to single word toggle (standard behavior)
-        if was_mouse or (tbl and tbl.key and (tbl.key:find("MBTN_") or tbl.key:find("WHEEL_"))) then
+        if was_mouse then
             local osd_x, osd_y = dw_get_mouse_osd()
             line, word = dw_hit_test(osd_x, osd_y)
         else
