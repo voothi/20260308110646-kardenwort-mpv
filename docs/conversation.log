@@ -161,8 +161,8 @@
 20260420000155 Check if these changes were necessary - Global Mouse Shield? Won't they slow down the work with the keyboard, the response to the keys of the keyboard and remote control?
 20260420001055 I received the report and improvements from another chat, the code has been changed. Check the changes, their necessity, purity, consistency with your changes, absence of regression.
 20260420001524 But my remote control cannot shake, I only control the mouse. The question is regarding the universality of the changes, is there nothing hardwired there? How about keyboard shortcuts that can be changed by the user through the config, have you taken this into account? The user can put any combination.
-
-
+20260420002147 It’s good that this is a universal mechanism and there is no hardcode, but explain why I see specific keyboard shortcuts here, is this normal, this is not a hardcode, is it overridden in the configs? lls_core.lua#L3760-3770
+20260420002715 Okay, create it opsx-propose для reflect changes in documentation and specifications.
 
 
 
