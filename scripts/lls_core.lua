@@ -950,97 +950,67 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                         -- Phase 2: Context Match
                         local needs_strict = Options.anki_context_strict or (#term_clean == 1)
-                        if sequence_match and needs_strict and not Options.anki_global_highlight then
-                            local match_count = 0
-                            local neighbors_found = 0
-                            for _, dir in ipairs({-1, 1}) do
-                                for offset = 1, 4 do
-                                    local nw_text = get_relative_word_text(dir * offset)
-                                    if not nw_text then break end
-                                    local nw_clean = utf8_to_lower(nw_text:gsub("[%p%s]", ""))
-                                    if nw_clean ~= "" then
-                                        neighbors_found = neighbors_found + 1
-                                        if data.__ctx_lower:find(nw_clean, 1, true) then 
-                                            match_count = match_count + 1 
+                        if sequence_match then
+                            -- For large blocks with multi-pivot data, verify grounding for ALL points
+                            if data.__pivots and #data.__pivots > 1 and not Options.anki_global_highlight then
+                                local all_pivots_grounded = true
+                                local origin_l = get_center_index(subs, data.time)
+                                if origin_l == -1 then all_pivots_grounded = false
+                                else
+                                    for _, g in ipairs(data.__pivots) do
+                                        local rel_s = g.l_off
+                                        local target_s = origin_l + rel_s
+                                        local target_sub = subs[target_s]
+                                        if not target_sub then all_pivots_grounded = false; break end
+                                        
+                                        local t_tokens = get_sub_tokens(target_sub)
+                                        local found = false
+                                        for _, t in ipairs(t_tokens) do
+                                            if t.is_word and t.logical_idx == g.p_idx then
+                                                found = true; break
+                                            end
                                         end
-                                        break
+                                        if not found then all_pivots_grounded = false; break end
                                     end
                                 end
-                            end
-                            
-                            local context_satisfied = (match_count > 0)
-                            if #term_clean == 1 then
-                                if neighbors_found >= 2 then
-                                    context_satisfied = (match_count >= 2)
-                                end
-                            end
-
-                            -- Multi-segment Pivot Grounding: Verify word positions across boundaries
-                            if #data.__pivots > 0 and not Options.anki_global_highlight then
-                                local is_grounded = false
-                                local origin_l = get_center_index(subs, data.time)
                                 
-                                if origin_l ~= -1 then
-                                    -- For contiguous Phase 1, we typically only need to check the first pivot (usually the only one stored)
-                                    local g = data.__pivots[1]
-                                    local check_s, check_l = sub_idx, target_l_idx + (g.t_pos - term_offset)
-                                    local safety = 0
-                                    local safety_limit = (Options.anki_split_search_window or 35) * 2
-                                    while safety < safety_limit do
-                                        safety = safety + 1
-                                        if check_l < 1 and check_s > 1 then
-                                            check_s = check_s - 1
-                                            get_sub_tokens(subs[check_s])
-                                            local wc = subs[check_s].word_count or 0
-                                            check_l = check_l + wc
-                                            if (subs[check_s+1].start_time - subs[check_s].end_time) > Options.anki_split_gap_limit then break end
-                                        elseif check_s < #subs and check_l > (subs[check_s].word_count or 0) then
-                                            local wc = subs[check_s].word_count or 0
-                                            check_l = check_l - wc
-                                            check_s = check_s + 1
-                                            if (subs[check_s].start_time - subs[check_s-1].end_time) > Options.anki_split_gap_limit then break end
-                                        else
-                                            break
+                                if all_pivots_grounded then
+                                    any_sequence = true
+                                    break
+                                end
+                            else
+                                -- Basic grounding (one pivot or global mode)
+                                local context_satisfied = (not needs_strict)
+                                if not context_satisfied then
+                                    -- Check if current word (term_offset) is grounded
+                                    if data.__pivots and #data.__pivots > 0 and not Options.anki_global_highlight then
+                                        local g = data.__pivots[1]
+                                        local origin_l = get_center_index(subs, data.time)
+                                        if sub_idx == origin_l + g.l_off and target_l_idx == g.p_idx then
+                                            context_satisfied = true
                                         end
                                     end
                                     
-                                    if check_s == origin_l + g.l_off and check_l == g.p_idx then
-                                        is_grounded = true
+                                    if not context_satisfied then
+                                        -- Fuzzy context check
+                                        local match_count = 0
+                                        local scan_pad = Options.anki_neighbor_window or 5
+                                        for s_off = -scan_pad, scan_pad do
+                                            local scan_sub = subs[sub_idx + s_off]
+                                            if scan_sub then
+                                                local s_text = utf8_to_lower(scan_sub.text:gsub("{[^}]+}", ""))
+                                                if data.__ctx_lower:find(s_text, 1, true) then match_count = match_count + 1 end
+                                            end
+                                        end
+                                        context_satisfied = (match_count >= 1)
                                     end
                                 end
 
-                                if not is_grounded then
-                                    sequence_match = false
-                                else
-                                    context_satisfied = true
-                                    -- For phrases, grounding on even one word is high-confidence
-                                    if #term_clean > 1 then match_count = 2 end
+                                if context_satisfied then
+                                    any_sequence = true
+                                    break
                                 end
                             end
-
-                            if not context_satisfied then
-                                local is_exempt = target_word_text:match("^%b[]$")
-                                if not is_exempt then
-                                    local tw_strip = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
-                                    if tw_strip == "ca" or tw_strip == "km" or tw_strip == "cm" or tw_strip == "mm" or tw_strip == "kg" or tw_strip == "m" or
-                                       tw_strip == "große" or tw_strip == "großer" or tw_strip == "großes" or tw_strip == "zb" then
-                                        is_exempt = true
-                                    end
-                                end
-                                
-                                -- If context failed and it's not a multi-word phrase (which provide their own context), 
-                                -- or if it's a small common word in global mode, we invalidate the match.
-                                if not is_exempt then
-                                    if #term_clean == 1 or not Options.anki_global_highlight then
-                                        sequence_match = false
-                                    end
-                                end
-                            end
-                        end
-
-                        if sequence_match then
-                            any_sequence = true
-                            break
                         end
                     end
 
@@ -1105,7 +1075,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                     valid_timing = false; break
                                                 end
                                             end
-                                            if #data.__pivots > 0 then
+                                            if data.__pivots and #data.__pivots > 0 then
                                                 local all_pivots_matched = true
                                                 for _, g in ipairs(data.__pivots) do
                                                     local m = ctx_list[current_tuple[g.t_pos]]
@@ -2787,6 +2757,7 @@ local function dw_anki_export_selection()
         local time_pos = 0
         local is_sentence_boundary = false
         local pivot_pos = 0
+        local advanced_index = nil
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
             if al < cl or (al == cl and aw <= cw) then
@@ -2829,7 +2800,7 @@ local function dw_anki_export_selection()
                 end
             end
             term = table.concat(parts, " ")
-            local advanced_index = table.concat(indices, ",")
+            advanced_index = table.concat(indices, ",")
             
             local ctx_parts = {}
             pivot_pos = 0
