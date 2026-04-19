@@ -1,8 +1,29 @@
-# Release Notes - v1.42.4 (Strict Grounding Enforcement)
+# Release Notes - v1.44.2 (Hardened Interaction & Unified Mining)
 
 **Date**: 2026-04-19
-**Version**: v1.42.4
-**Implementation ZIDs**: 20260419151640
+**Version**: v1.44.2
+**Implementation ZIDs**: 20260419191638, 20260419211035, 20260419215300
+
+## Highlights
+
+### 🚄 **Unified Interaction Engine & Multi-Layout Support**
+- **Multi-Delimiter Shortcut Lists**: Massive refactoring of the input system. Every Drum Window command (Add, Pair, Select, Seek, etc.) now supports space, comma, or semicolon separated lists. Map `t`, `е`, and `MBTN_LEFT` to the same action simultaneously in `mpv.conf`.
+- **Remote Control Optimization**: Tailored specifically for minimalist controllers (e.g., 8BitDo Zero 2). All interaction logic has been unified to provide parity between mouse and keyboard triggers.
+- **Smart Context-Aware Export**: Mining triggers are now context-aware. Interacting with any member of a "Paired Selection Set" (Pink) automatically commits the entire set, eliminating the need for complex modifier combinations.
+
+### 🛡️ **Hardware Jitter Resilience & Focus Stability**
+- **Mouse Interaction Shield**: Introduced a 150ms "interaction shield" that ignores incoming mouse button signals immediately following a keyboard/remote command. This eliminates "ghost clicks" and "pointer jumps" caused by hardware-level mapper conflicts (e.g., JoyToKey jitter).
+- **Strict Context Isolation**: Hardened the interaction engine to ensure keyboard commands never query native mouse position properties, resulting in 100% stable focus during remote-only use.
+- **Coordinate-Precise Sync**: Standardized hit-testing logic to ensure the Drum Window focus (Yellow) and Anchor always jump to the exact pixel-perfect word under the mouse pointer before any action is executed.
+
+### 🎨 **Advanced Range-Aware Pairing & Persistence**
+- **Drag-to-Pair (Range Conversion)**: High-performance mining upgrade. Contiguous yellow selection ranges can now be converted into discrete paired selection sets (Pink) in a single action via keyboard (`t`) or Ctrl+Drag.
+- **Persistent Selection Mode**: Decoupled the Paired Selection Set from modifier-key release. Pink highlights now persist indefinitely until explicitly committed or discarded (`Ctrl+ESC`), allowing for precise, multi-step curation of complex non-contiguous phrases.
+- **Improved Visual Depth**: Standardized the use of "Gold" (#00CCFF) for contiguous selection cursors and "Neon Pink" (#FF88FF) for paired selection paths.
+
+---
+
+# Release Notes - v1.42.4 (Strict Grounding Enforcement)
 
 ## Highlights
 

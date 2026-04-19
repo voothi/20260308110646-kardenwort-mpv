@@ -143,9 +143,9 @@
 20260419214213 It didn't work. It seems that the problem is that the cursor wakes up because a click with the left mouse button is triggered. What could be his trigger? Also, I inform you that I have rolled back the code to version bad9c9cce6cadc649d5f2368e5572a67a774ca30 a step back.
 20260419214743 I realized that the problem was not in the code, but in the setup of the JoyToKey mapper, I mistakenly left the left mouse button in it in combination with t.
 20260419215229 Okay, I accept your modification of Mouse Shield. This seems to work too.
-
-
-
+20260419215702 Have you taken into account all the anchors? 20260419212539 20260419214213 20260419214743 20260419215229
+20260419215816 Okay, thanks, create a release create-release-2 v1.44.2 20260419191638-unify-drum-mining-shortcuts 20260419211035-harden-drum-mining-interaction 20260419215300-harden-interaction-and-shield
+20260419220036 Update README.md
 
 
 

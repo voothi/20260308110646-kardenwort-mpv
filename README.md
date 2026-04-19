@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.42.4-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.42.4) 
+[![Version](https://img.shields.io/badge/version-v1.44.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.44.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -80,6 +80,8 @@ This suite solves problems that standard video players and generic scripts ignor
 14. **Selection Priority**: Persistent multi-word selections (Ctrl + LMB) now take visual precedence over transient cursor highlights.
 15. **Dynamic Source Discovery**: Automatically extracts YouTube/Source URLs from local metadata files (`.url`, `.txt`, `.md`) for zero-touch Anki metadata population.
 16. **Chromatic Selection Theme**: Implements a "Warm vs. Cool" workflow using Gold for contiguous and Neon Pink for split-phrase selections.
+17. **Hardware Interaction Shielding**: A bulletproof 150ms "interaction shield" that ignores mouse jitter and "ghost clicks" from remote control software (JoyToKey, etc.) immediately after keyboard commands.
+18. **Multi-Layout Shortcut Lists**: All major command parameters now support space, comma, or semicolon separated lists. Map `t`, `е`, and `MBTN_LEFT` to the same action simultaneously in `mpv.conf`.
 
 [Return to Top](#table-of-contents)
 
@@ -134,6 +136,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Contextual Tooltips**: Press **`e`** or **Right-Click** on any line to instantly see a translation hint. In "Hover Mode" (`n`), hints appear automatically as you scan the text.
 - **Static Viewport**: The viewport remains stable while navigating via arrows, providing a flicker-free environment for reading and selection.
 - **Boundary-Aware Sliding Window**: The viewport intelligently shifts at track edges to maintain consistent line density and vertical positioning.
+- **Interaction Shielding & Stability**: Features a 150ms shield that silences the mouse arrow following keyboard navigation, preventing accidental pointer "jumps" when using remote controls.
 - **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
 - **Toggle**: `W` (English) or `Ц` (Russian).
 
@@ -148,6 +151,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
   - `Ctrl + LMB`: Accumulate individual words into a yellow pending selection.
   - `MMB`: Commit the selected set as a highlight and export it to your TSV database.
 - **Automatic Sanitization**: Strips leading/trailing punctuation and bracketed metadata (e.g. `[Musik]`) to ensure cards are optimized for dictionary matching. Smart joiners preserve hyphens/slashes in German compounds.
+- **Drag-to-Pair (Range Conversion)**: High-performance mining upgrade. Contiguous yellow selection ranges can now be converted into discrete paired selection sets (Pink) in a single action via keyboard (`t`) or Ctrl+Drag.
 - **Dynamic Context**: The engine intelligently scans surrounding lines to capture grammatically complete sentences for your flashcards.
 - **Instant Record Access**: Press **`o`** within the Drum Window to instantly open your active TSV database in your default editor.
 - **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
@@ -259,7 +263,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.42.4 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.44.2 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -268,7 +272,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~806 Commits (v1.42.4)
+- **Current Maturity**: ~815 Commits (v1.44.2)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
