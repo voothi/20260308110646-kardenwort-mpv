@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Unified Mining Interaction Model
 The Drum Window SHALL implement a unified mining interaction model where a single "Smart Add" action automatically distinguishes between contiguous selections and paired set commits based on the word context.

@@ -2,9 +2,7 @@
 
 ## Purpose
 Decouple Anki TSV export structure from the core logic using a dynamic, position-based INI configuration.
-
 ## Requirements
-
 ### Requirement: Ordered Unified Field Mapping
 The system SHALL support unified field mapping blocks (e.g., `[fields_mapping.word]`) where each line defines both the field name (key) and its data source (value) in a single assignment. The order of these assignments SHALL determine the TSV column sequence.
 
@@ -70,20 +68,25 @@ The export system SHALL support non-contiguous selections by injecting ellipsis 
 - **THEN** the system SHALL inject ellipses at every gap.
 - **RESULT**: `Word1 ... Word2 ... Word3`
 
-### Requirement: Anki Data Source Resolution
-The system SHALL support the following additional keyword in `anki_mapping.ini` to resolve TSV field values:
+### Requirement: Smart Joiner for TSV Composition
+TSV export MUST use a smart joiner that preserves the visual spacing of the source text for hyphenated or slashed terms, preventing both space injection and character stripping.
 
-- **keyword**: `source_url`
-- **resolution**: The dynamic URL discovered via the `source-url-discovery` mechanism. If no URL is discovered, it SHALL resolve to an empty string.
+#### Scenario: Exporting Marken-Discount
+- **WHEN** Exporting "Marken", "-", and "Discount" together
+- **THEN** The resulting term MUST be "Marken-Discount" (no spaces around the dash).
+
+### Requirement: Anki Data Source Resolution
+The system SHALL support the keyword `source_url` in `anki_mapping.ini` to resolve TSV field values from the dynamic URL discovery mechanism.
 
 #### Scenario: Mapping to source_url
 - **WHEN** an entry in `[fields_mapping.*]` is set to `source_url`
 - **AND** a valid URL has been discovered in the media directory
 - **THEN** that URL SHALL be populated in the corresponding TSV column during export.
 
-### Highlighting Example (Concrete Case)
-- **Source Text**: `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.`
-- **Saved Term (1+2 Split)**: `Aussagen ... richtig oder`
-  - **Result**: `Aussagen` (Purple), `richtig` (Purple), `oder` (Purple).
-- **Saved Term (3-Way Split)**: `Entscheiden ... beim ... ob`
-  - **Result**: `Entscheiden` (Purple), `beim` (Purple), `ob` (Purple).
+### Requirement: Multi-Layout Export Triggering
+The export mapping logic SHALL support multiple physical keys and layouts mapped to the same logical export action.
+
+#### Scenario: Unified mining list configuration
+- **WHEN** the `dw_key_add` configuration contains multiple keys (e.g., `MBTN_MID r к`)
+- **THEN** any of these keys SHALL trigger the export mapping logic identically.
+

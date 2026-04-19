@@ -124,7 +124,8 @@
 20260419192019 Okay, I see that you have compiled the documents, let's add, if possible, one clarification regarding the display mode of the pink selection (paired selection by dw_key_pair) and the yellow selection (left mouse button) when they intersect. What is now defined in the current version of the code is the correct solution, visually I see this as a situation where the pink selection overlaps the yellow and some other selection until I remove it, or until it is removed by itself after adding. Check my description with the code and specify it in the documents for further synchronization and addition of specifications on this topic.
 20260419193223 Okay, also check that if I swap the colors yellow and pink, suddenly it occurs to me or I use it, then the documentation will remain relevant, because it will not be based only on the current color representation, but also on the purpose and function.
 20260419193745 Okay, now that you've added the color in brackets to the specs, I'd like to move on to opsx-apply
-
+20260419193906 Okay, since all 9 tasks are completed successfully, let's complete it opsx-archive
+20260419194101 Sync and Archive
 
 
 

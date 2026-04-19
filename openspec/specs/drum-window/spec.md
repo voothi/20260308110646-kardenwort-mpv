@@ -1,7 +1,12 @@
-## MODIFIED Requirements
+# Drum Window (Mode W)
+
+## Purpose
+Provide a high-precision, index-based interface for subtitle reading, selection, and mining with persistent highlight feedback.
+
+## Requirements
 
 ### Requirement: Drum Window Unified Styling
-The Drum Window SHALL allow explicit control over its appearance (font name, size, weight/boldness, and background transparency) via script options, matching the parameters of other rendering modes (SRT, Drum, Tooltip).
+The Drum Window SHALL allow explicit control over its appearance (font name, size, weight/boldness, and background transparency) via script options.
 
 #### Scenario: Background Opacity Alignment
 - **WHEN** the `dw_bg_opacity` and `dw_text_opacity` configurations are adjusted
@@ -13,6 +18,8 @@ The Drum Window SHALL allow explicit control over its appearance (font name, siz
 
 #### Scenario: Unified Font and Weight
 - **WHEN** the user configures `dw_font_name` or `dw_font_bold`
+- **THEN** the Drum Window SHALL apply these font and weight settings to the text rendering, ensuring a consistent aesthetic across all mpv UI layers.
+
 ### Requirement: Scroll-Aware Selection Continuity
 The Drum Window SHALL ensure that any active text selection or word-highlight state is preserved and correctly synchronized when the viewport is scrolled using the mouse wheel.
 
