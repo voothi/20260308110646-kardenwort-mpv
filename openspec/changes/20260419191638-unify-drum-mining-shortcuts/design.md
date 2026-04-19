@@ -6,7 +6,7 @@ The Drum Window (Mode W) is the primary subtitle mining interface. Current inter
 
 **Goals:**
 - Provide 100% parity between mouse and keyboard mining actions.
-- Implement "Smart Add" logic that automatically handles yellow (contiguous) and pink (paired) selections.
+- Implement "Smart Add" logic that automatically handles contiguous and paired selections.
 - Decouple configuration from UI colors and layout names.
 - Support multiple inputs per action via flexible, multi-delimiter lists.
 

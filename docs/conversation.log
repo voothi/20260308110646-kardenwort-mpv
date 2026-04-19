@@ -122,6 +122,7 @@
 20260419190814 Okay, I like it, then let's leave the current version of the parser, which allows you to use one of three delimiters, and switch in the code and in the config to use a space as a delimiter. Check line 115 of the script file. It's good that you corrected the tooltip parameters. Check the config that there are no longer any old representations of keyboard shortcuts left.
 20260419191448 Okay, I see that you updated the comments in this config, let's create opsx-propose according to the conversation anchors so as not to forget anything
 20260419192019 Okay, I see that you have compiled the documents, let's add, if possible, one clarification regarding the display mode of the pink selection (paired selection by dw_key_pair) and the yellow selection (left mouse button) when they intersect. What is now defined in the current version of the code is the correct solution, visually I see this as a situation where the pink selection overlaps the yellow and some other selection until I remove it, or until it is removed by itself after adding. Check my description with the code and specify it in the documents for further synchronization and addition of specifications on this topic.
+20260419193223 Okay, also check that if I swap the colors yellow and pink, suddenly it occurs to me or I use it, then the documentation will remain relevant, because it will not be based only on the current color representation, but also on the purpose and function.
 
 
 
