@@ -954,14 +954,26 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if Options.anki_global_highlight then
                             local needs_strict = Options.anki_context_strict or (#term_clean == 1)
                             if needs_strict then
-                                -- Fuzzy neighbor check for Global Mode
+                                -- Robust neighbor check for Global Mode
                                 local match_count = 0
                                 local scan_pad = Options.anki_neighbor_window or 5
                                 for s_off = -scan_pad, scan_pad do
                                     local scan_sub = subs[sub_idx + s_off]
                                     if scan_sub then
-                                        local s_text = utf8_to_lower(scan_sub.text:gsub("{[^}]+}", ""))
-                                        if data.__ctx_lower:find(s_text, 1, true) then match_count = match_count + 1 end
+                                        local s_tokens = get_sub_tokens(scan_sub)
+                                        if s_tokens then
+                                            for _, t in ipairs(s_tokens) do
+                                                if t.is_word then
+                                                    local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                                                    -- Match if a meaningful word from scan segment is found in Anki context
+                                                    if #cw >= 2 and data.__ctx_lower:find(cw, 1, true) then
+                                                        match_count = match_count + 1
+                                                        break
+                                                    end
+                                                end
+                                            end
+                                        end
+                                        if match_count >= 1 then break end
                                     end
                                 end
                                 context_satisfied = (match_count >= 1)
@@ -998,7 +1010,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                     -- Phase 3: Split Matching (Only if not already matched as contiguous, and is multi-word)
                     if not match_found and #term_clean > 1 then
-                        local origin_sub_idx = get_center_index(subs, data.time)
+                        local origin_sub_idx = Options.anki_global_highlight and sub_idx or get_center_index(subs, data.time)
                         if not subs[sub_idx].__split_valid_indices then
                             subs[sub_idx].__split_valid_indices = {}
                         end
@@ -1014,7 +1026,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if gap < Options.anki_split_gap_limit then
+                                    if Options.anki_global_highlight or gap < Options.anki_split_gap_limit then
                                         for t_i, t in ipairs(scan_tokens) do
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
