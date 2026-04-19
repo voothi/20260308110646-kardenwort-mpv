@@ -980,19 +980,19 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     local g = data.__pivots[1]
                                     local check_s, check_l = sub_idx, target_l_idx + (g.t_pos - term_offset)
                                     local safety = 0
-                                    while safety < 10 do
+                                    while safety < 50 do
                                         safety = safety + 1
                                         if check_l < 1 and check_s > 1 then
                                             check_s = check_s - 1
                                             get_sub_tokens(subs[check_s])
                                             local wc = subs[check_s].word_count or 0
                                             check_l = check_l + wc
-                                            if (subs[check_s+1].start_time - subs[check_s].end_time) > 10.0 then break end
+                                            if (subs[check_s+1].start_time - subs[check_s].end_time) > 30.0 then break end
                                         elseif check_s < #subs and check_l > (subs[check_s].word_count or 0) then
                                             local wc = subs[check_s].word_count or 0
                                             check_l = check_l - wc
                                             check_s = check_s + 1
-                                            if (subs[check_s].start_time - subs[check_s-1].end_time) > 10.0 then break end
+                                            if (subs[check_s].start_time - subs[check_s-1].end_time) > 30.0 then break end
                                         else
                                             break
                                         end
@@ -1050,14 +1050,14 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set == nil then
                             valid_set = false
                             local ctx_list = {}
-                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 10)
-                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 10)
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 35)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 35)
 
                             for scan_i = s_start, s_end do
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if gap < 12.0 then
+                                    if gap < 60.0 then
                                         for t_i, t in ipairs(scan_tokens) do
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
@@ -1094,7 +1094,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
                                                 local prev_m = ctx_list[current_tuple[m_idx-1]]
-                                                if math.abs(m.start - prev_m.start) > 10.0 then
+                                                if math.abs(m.start - prev_m.start) > 60.0 then
                                                     valid_timing = false; break
                                                 end
                                             end

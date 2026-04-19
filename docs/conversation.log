@@ -80,8 +80,7 @@
 20260419112414 You didn't implement it in the code, check it.
 20260419112819 I hope you didn't break anything. It seems to be working. I discovered a new case that doesn't work. I also want to understand whether the advanced index allows me to abandon the hybrid approach to adding multi-line selections correctly. The same entries now appear in the console every few seconds. Check it out. See screenshots.
 20260419113754 Let's check. Paired words are still highlighted incorrectly. Check that you changed the code correctly. That he didn’t add anything extra and didn’t affect the working parts. The spam continues to flow. Now for all cases only the approach with indexes is used or are there cases when we solve this problem using regex (for multi-line selections)?
-
-
+20260419114953 Check the selection of paired words again, in case they are far from each other. We can't seem to overcome this. It seems that the spam has stopped coming. Try to solve this in a targeted, minimally invasive way. Change the code if necessary.
 
 
 
