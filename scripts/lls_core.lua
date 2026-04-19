@@ -340,8 +340,8 @@ local function find_source_url()
     local path = mp.get_property("path")
     if not path or path == "" then return "" end
     
-    -- Cache check: only re-scan if the media path changed
-    if path == LAST_PATH_FOR_URL and SOURCE_URL_CACHE ~= nil then 
+    -- Cache check: only re-scan if the media path changed OR if we haven't found a URL yet
+    if path == LAST_PATH_FOR_URL and SOURCE_URL_CACHE ~= nil and SOURCE_URL_CACHE ~= "" then 
         return SOURCE_URL_CACHE 
     end
 
@@ -4799,6 +4799,7 @@ end)
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
         local ok, err = xpcall(function()
+            find_source_url()
             load_anki_tsv(true)
             drum_osd:update()
             if dw_osd then dw_osd:update() end
