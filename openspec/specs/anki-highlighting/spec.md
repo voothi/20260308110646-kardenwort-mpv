@@ -39,6 +39,12 @@ The identifies engine MUST anchor mining records using a multi-pivot coordinate 
 - **AND** `anki_global_highlight` is disabled
 - **THEN** the system MUST use the L:W:T coordinates to highlight ONLY the specific word occurrence associated with the mining record.
 
+#### Scenario: Strict Grounding Enforcement
+- **WHEN** a record contains a valid index anchor
+- **AND** `anki_global_highlight` is disabled
+- **THEN** the engine MUST bypass any fuzzy context fallbacks if the strict index check fails.
+- **AND** it MUST NOT highlight alternative instances of the same word in the same segment.
+
 #### Scenario: Resiliency to index mismatch
 - **WHEN** a subtitle file is modified, causing a stored index to point to an incorrect coordinate
 - **THEN** the engine SHALL fallback to a neighboring context check for contiguous terms and a "Shortest Sequential Span" search for split terms to re-locate and highlight the phrase.
