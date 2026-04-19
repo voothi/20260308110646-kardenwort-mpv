@@ -70,7 +70,7 @@
 20260419100038 But if the file that was registered as a URL source turns out to be deleted or it is not found (renamed), then you need to delete the entry and not link to it, and re-read the new file and take it from it.
 20260419100352 Why is the periodicity 30 seconds instead of the current parameter of 5 seconds, is it some other parameter?
 20260419101025 opsx-propose
-
+20260419101409 opsx-apply
 
 
 

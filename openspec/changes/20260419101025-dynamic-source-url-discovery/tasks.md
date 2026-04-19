@@ -13,4 +13,4 @@
 ## 3. Configuration & Defaults
 
 - [x] 3.1 Map `SourceURL` to `source_url` in `anki_mapping.ini` for both `.word` and `.sentence` profiles.
-- [ ] 3.2 (Cleanup) Remove any lingering stub mappings in `anki_mapping.ini` that might have been introduced during previous iterations.
+- [x] 3.2 (Cleanup) Remove any lingering stub mappings in `anki_mapping.ini` and update the default `anki_sync_period` to 5 seconds.
