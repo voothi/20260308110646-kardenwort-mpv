@@ -883,12 +883,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
 
                 -- Parse string indices (if not already parsed during load)
-                if data.index and not data.__pivot then
-                    local l_off, p_idx, t_pos = tostring(data.index):match("^([%-+]?%d+):(%d+):(%d+)$")
-                    if l_off then
-                        data.__pivot = {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)}
-                    elseif type(data.index) == "number" or tostring(data.index):match("^%-?%d+$") then
-                        data.__pivot = {l_off = 0, p_idx = tonumber(data.index), t_pos = 1}
+                if data.index and not data.__pivots then
+                    data.__pivots = {}
+                    for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
+                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+):(%d+)$")
+                        if l_off then
+                            table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
+                        else
+                            local single = tonumber(part)
+                            if single then table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) end
+                        end
                     end
                 end
             end
@@ -967,12 +971,13 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
 
                             -- Multi-segment Pivot Grounding: Verify word positions across boundaries
-                            if data.__pivot and not Options.anki_global_highlight then
+                            if #data.__pivots > 0 and not Options.anki_global_highlight then
                                 local is_grounded = false
-                                local g = data.__pivot
                                 local origin_l = get_center_index(subs, data.time)
                                 
                                 if origin_l ~= -1 then
+                                    -- For contiguous Phase 1, we typically only need to check the first pivot (usually the only one stored)
+                                    local g = data.__pivots[1]
                                     local check_s, check_l = sub_idx, target_l_idx + (g.t_pos - term_offset)
                                     local safety = 0
                                     while safety < 10 do
@@ -1093,12 +1098,15 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                     valid_timing = false; break
                                                 end
                                             end
-                                            if not has_anchor and data.__pivot then
-                                                local g = data.__pivot
-                                                local m = ctx_list[current_tuple[g.t_pos]]
-                                                if m and m.s_i == origin_sub_idx + g.l_off and m.l_i == g.p_idx then
-                                                    has_anchor = true
+                                            if #data.__pivots > 0 then
+                                                local all_pivots_matched = true
+                                                for _, g in ipairs(data.__pivots) do
+                                                    local m = ctx_list[current_tuple[g.t_pos]]
+                                                    if not (m and m.s_i == origin_sub_idx + g.l_off and m.l_i == g.p_idx) then
+                                                        all_pivots_matched = false; break
+                                                    end
                                                 end
+                                                if all_pivots_matched then has_anchor = true end
                                             end
                                         end
                                         
@@ -1618,15 +1626,17 @@ local function load_anki_tsv(force)
                 local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
                 if t and t ~= "" and not is_header then
                     local data = { term = t, context = c, time = time_val, index = idx_val }
-                    -- Pre-parse Advanced Pivot Grounding coordinates
+                    -- Pre-parse Advanced Pivot Grounding coordinates (Multi-Anchor support)
                     if idx_val then
-                        local l_off, p_idx, t_pos = tostring(idx_val):match("^([%-+]?%d+):(%d+):(%d+)$")
-                        if l_off then
-                            data.__pivot = {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)}
-                            print(string.format("[LLS] Pivot Grounding Loaded: '%s' anchored at Word %d (Index %d, Offset %d)", 
-                                t, data.__pivot.t_pos, data.__pivot.p_idx, data.__pivot.l_off))
-                        elseif type(idx_val) == "number" or tostring(idx_val):match("^%-?%d+$") then
-                            data.__pivot = {l_off = 0, p_idx = tonumber(idx_val), t_pos = 1}
+                        data.__pivots = {}
+                        for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
+                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+):(%d+)$")
+                            if l_off then
+                                table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
+                            else
+                                local single = tonumber(part)
+                                if single then table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) end
+                            end
                         end
                     end
                     table.insert(new_highlights, data)
@@ -3092,17 +3102,13 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
-    -- Advanced Pivot Grounding: Identify which word of the term was clicked to resolve identity ambiguity.
-    local pivot_l_off = line_idx - members[1].line
-    local pivot_w_idx = word_idx
-    local pivot_t_pos = 1
+    -- Advanced Multi-Pivot Grounding: Identify coordinates for ALL words to achieve 100% split-phrase precision.
+    local indices = {}
     for i, m in ipairs(members) do
-        if m.line == line_idx and m.word == word_idx then
-            pivot_t_pos = i
-            break
-        end
+        local l_off = m.line - members[1].line
+        table.insert(indices, string.format("%d:%d:%d", l_off, m.word, i))
     end
-    local advanced_index = string.format("%d:%d:%d", pivot_l_off, pivot_w_idx, pivot_t_pos)
+    local advanced_index = table.concat(indices, ",")
 
     save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
     show_osd("Anki Highlight Saved (Multi): " .. term)
