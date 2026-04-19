@@ -148,6 +148,7 @@
 20260419220036 Update README.md
 20260419221657 Showing tooltip by key and by pressing the right mouse button stopped working. This may have something to do with the keyboard shortcut refactoring, I haven't checked since then.
 20260419222152 Instead of the tooltip window being shown by holding RMB, I see that it works like the left mouse button, highlighting the text in yellow.
+20260419223523 Okay, it looks like the current version now works with tooltip via RMB and e. There was another problem that I forgot to turn on the second subtitles using the j key. Make them turn on automatically, change the config. Please check that we have not added or changed anything unnecessary in this regard. Compare with version 3fb3e585cc3da12d312a9f67de0a27ab7f6dc2d2
 
 
 
