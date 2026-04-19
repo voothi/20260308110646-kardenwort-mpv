@@ -112,8 +112,8 @@ local Options = {
     seek_hold_rate = 10,
 
     -- Anki Highlighter
-    dw_key_add = "MBTN_MID,r,к",
-    dw_key_pair = "t,е",
+    dw_key_add = "MBTN_MID,Ctrl+MBTN_MID,r,к",
+    dw_key_pair = "t,е,Ctrl+MBTN_LEFT",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -3703,16 +3703,10 @@ local function manage_dw_bindings(enable)
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
-        -- Ctrl Multi-select
+        -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
             if t.event == "up" then ctrl_discard_set() end
-        end, complex = true},
-        {key = "Ctrl+MBTN_LEFT", name = "dw-ctrl-lmb", fn = function(t)
-            if t.event ~= "down" then return end
-            local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
-            if line_idx then ctrl_toggle_word(line_idx, word_idx) end
         end, complex = true},
     }
 
@@ -3721,7 +3715,7 @@ local function manage_dw_bindings(enable)
         for k in key_string:gmatch("([^,]+)") do
             local key = k:match("^%s*(.-)%s*$")
             if key ~= "" then
-                local is_mouse = key:match("^MBTN_") or key:match("^WHEEL_")
+                local is_mouse = key:match("MBTN_") or key:match("WHEE")
                 table.insert(keys, {
                     key = key,
                     name = base_name .. "-" .. i,
@@ -3735,20 +3729,6 @@ local function manage_dw_bindings(enable)
 
     parse_and_bind(Options.dw_key_add, "dw-add-key", cmd_dw_export_anki, cmd_dw_add_smart)
     parse_and_bind(Options.dw_key_pair, "dw-mark-key", cmd_dw_toggle_pink, cmd_dw_toggle_pink)
-
-    -- Dynamic Ctrl shortcut based on primary mouse button
-    local primary_mbtn = "MBTN_MID"
-    for k in Options.dw_key_add:gmatch("([^,]+)") do
-        local key = k:match("^%s*(.-)%s*$")
-        if key:match("^MBTN_") then primary_mbtn = key; break end
-    end
-
-    table.insert(keys, {key = "Ctrl+" .. primary_mbtn, name = "dw-ctrl-mmb", fn = function(t)
-        if t.event ~= "down" then return end
-        local osd_x, osd_y = dw_get_mouse_osd()
-        local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
-        if line_idx then ctrl_commit_set(line_idx, word_idx) end
-    end, complex = true})
 
     -- Tooltip Bindings
     table.insert(keys, {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true})

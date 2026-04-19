@@ -116,6 +116,11 @@
 20260419183804 This works, but you need to change the name dw_mark_pink_key because it is associated with a color that can change over time. It is also necessary to coordinate these parameters and their names with each other, eliminating duplication and ambiguity. script-opts-append=lls-dw_export_key=MBTN_MID script-opts-append=lls-dw_add_key=r script-opts-append=lls-dw_add_key_ru=к script-opts-append=lls-dw_mark_pink_key=t script-opts-append=lls-dw_mark_pink_key_ru=е
 20260419184743 Okay, but is it possible to give one name for script-opts-append=lls-dw_mouse_add=MBTN_MID script-opts-append=lls-dw_key_add=r, because they perform the same function, but write different values ​​in two lines, or will they conflict?
 20260419185141 Okay, I see that you combined dw_key_add and dw_key_pair into lists. But I don’t see where in our description or in the config it is explicitly stated that we can still use the combination Ctrl + middle mouse key?
+20260419185412 Okay, but I see that you just added a description in the comment, and it would be better if it stood as an explicit value, so that if necessary, I could remove this combination without editing the code. Now this is hardwired into the code, I think.
+
+
+
+
 
 
 
