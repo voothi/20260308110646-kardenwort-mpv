@@ -90,3 +90,11 @@ The export mapping logic SHALL support multiple physical keys and layouts mapped
 - **WHEN** the `dw_key_add` configuration contains multiple keys (e.g., `MBTN_MID r к`)
 - **THEN** any of these keys SHALL trigger the export mapping logic identically.
 
+### Highlighting Example (Concrete Case)
+- **Source Text**: `Entscheiden Sie beim Hören, ob die Aussagen 41 bis 45 richtig oder falsch sind.`
+- **Saved Term (1+2 Split)**: `Aussagen ... richtig oder`
+  - **Result**: `Aussagen` (Database Highlight / Purple), `richtig` (Database Highlight / Purple), `oder` (Database Highlight / Purple).
+- **Saved Term (3-Way Split)**: `Entscheiden ... beim ... ob`
+  - **Result**: `Entscheiden` (Database Highlight / Purple), `beim` (Database Highlight / Purple), `ob` (Database Highlight / Purple).
+
+
