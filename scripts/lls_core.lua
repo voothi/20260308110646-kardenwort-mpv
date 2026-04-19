@@ -2597,7 +2597,8 @@ local function cmd_dw_tooltip_pin(tbl)
     end
 end
 
-local function cmd_toggle_dw_tooltip_hover()
+local function cmd_toggle_dw_tooltip_hover(tbl)
+    if tbl and tbl.event == "up" then return end
     FSM.DW_TOOLTIP_MODE = (FSM.DW_TOOLTIP_MODE == "CLICK") and "HOVER" or "CLICK"
     show_osd("DW Translation: " .. FSM.DW_TOOLTIP_MODE)
     if FSM.DW_TOOLTIP_MODE == "CLICK" then
@@ -2608,7 +2609,8 @@ local function cmd_toggle_dw_tooltip_hover()
     end
 end
 
-local function cmd_dw_tooltip_toggle()
+local function cmd_dw_tooltip_toggle(tbl)
+    if tbl and tbl.event == "up" then return end
     if FSM.DRUM_WINDOW == "OFF" then return end
     
     -- If already forced ON, always toggle OFF regardless of current target match
@@ -3226,8 +3228,12 @@ local function cmd_dw_add_smart()
 end
 
 local function cmd_dw_toggle_pink(tbl)
+    -- If it's a complex binding, only trigger on down
+    if tbl and tbl.event == "up" then return end
+    
     local line, word
-    if tbl and tbl.key and (tbl.key:match("^MBTN_") or tbl.key:match("^WHEEL_")) then
+    -- Check if key contains MBTN_ or if it's a mouse click event
+    if tbl and tbl.key and (tbl.key:find("MBTN_") or tbl.key:find("WHEEL_")) then
         local osd_x, osd_y = dw_get_mouse_osd()
         line, word = dw_hit_test(osd_x, osd_y)
     else
@@ -3696,6 +3702,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = function() cmd_dw_scroll(-1) end},
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = function() cmd_dw_scroll(1) end},
         {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
+        {key = "Ctrl+ESC", name = "dw-pair-discard", fn = ctrl_discard_set},
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
@@ -3703,7 +3710,7 @@ local function manage_dw_bindings(enable)
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-            if t.event == "up" then ctrl_discard_set() end
+            -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
         end, complex = true},
     }
 
