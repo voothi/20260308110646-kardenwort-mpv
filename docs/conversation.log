@@ -95,6 +95,8 @@
 20260419131114 Check that our code also does not have any outdated parts related to regular expression checks, which may be redundant or outdated after a complete transition in all modes (word, phrase and orange, purple highlight) to the approach with advanced indexes.
 20260419131436 Check that our solution is optimized for speed and reliability for our modes. That Anki Global OFF/ON mode works. That this will not affect the speed of scrolling, changing subtitles during playback, the speed of adding records and their highlighting.
 20260419132439 Can we update our current OpenSpec feature-bug, update it in accordance with the current code and details, according to the following discussion anchors? To be prepared for archiving and synchronizing specifications?
+20260419133037 Did you forget about the file openspec\changes\20260419104540-fix-split-highlight\specs\anki-highlighting\spec.md? And look how it fits in with other specifications, are there any contradictions or deviations from the existing ones? To understand how we will synchronize them and what could be implemented in the code as part of the current revision not based on existing cases (word highlighting and others).
+20260419133539 Do I understand correctly that if the file is partially changed, then the mechanism, due to the built-in intelligent self-repair system, will work with existing indexes that could be outdated?
 
 
 
