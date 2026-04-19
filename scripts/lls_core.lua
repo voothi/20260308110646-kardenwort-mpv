@@ -3149,7 +3149,8 @@ end
 
 
 local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
-    return function(tbl)
+    if updates_selection == nil then updates_selection = true end
+    local handler = function(tbl)
         -- Shield logic: ignore mouse events if a keyboard command was just triggered
         if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
         
@@ -3172,7 +3173,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 if on_down_callback then on_down_callback(tbl) end
 
                 -- Phase 2: Selection Logic (Only for words)
-                if word_idx and updates_selection ~= false then
+                if word_idx and updates_selection then
                     if is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
                             -- Start shift selection from the current cursor position
@@ -3195,7 +3196,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     end
                     
                     -- Phase 3: Dragging (Only for Standard/Shift selection, not for tooltips/pins)
-                    if (not on_down_callback or is_shift) and updates_selection ~= false then
+                    if updates_selection or is_shift then
                         FSM.DW_MOUSE_DRAGGING = true
                         
                         -- Fast-tracking on mouse move
@@ -3216,10 +3217,11 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             
-            -- Lock suppression to the line where the interaction ended
-            local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, _ = dw_hit_test(osd_x, osd_y)
-            FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
+            -- Lock suppression only if this was a selection action
+            local line_idx, _ = dw_hit_test(dw_get_mouse_osd())
+            if updates_selection then
+                FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
+            end
 
             mp.remove_key_binding("dw-mouse-drag")
             if FSM.DW_MOUSE_SCROLL_TIMER then
@@ -3230,6 +3232,8 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             if on_up_callback then on_up_callback(tbl) end
         end
     end
+    handler._is_mouse_handler = true
+    return handler
 end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
@@ -3789,19 +3793,28 @@ local function manage_dw_bindings(enable)
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
-                    -- Mouse keys get the full drag/drop treatment via make_mouse_handler
-                    -- We pass mouse_fn to BOTH down and up phases to support pins (down) and toggles (up)
-                    local m_fn = make_mouse_handler(false, 
-                        function(t) mouse_fn(t, true) end, -- up
-                        function(t) mouse_fn(t, true) end, -- down
-                        updates_selection
-                    )
-                    table.insert(keys, {
-                        key = key,
-                        name = base_name .. "-" .. i,
-                        fn = m_fn,
-                        complex = true
-                    })
+                    -- Detect if the handler is already a mouse handler to avoid redundant wrapping
+                    if mouse_fn and mouse_fn._is_mouse_handler then
+                        table.insert(keys, {
+                            key = key,
+                            name = base_name .. "-" .. i,
+                            fn = mouse_fn,
+                            complex = true
+                        })
+                    else
+                        -- Mouse keys get the full drag/drop treatment via make_mouse_handler
+                        local m_fn = make_mouse_handler(false, 
+                            function(t) mouse_fn(t, true) end, -- up
+                            function(t) mouse_fn(t, true) end, -- down
+                            updates_selection
+                        )
+                        table.insert(keys, {
+                            key = key,
+                            name = base_name .. "-" .. i,
+                            fn = m_fn,
+                            complex = true
+                        })
+                    end
                 else
                     table.insert(keys, {
                         key = key,
