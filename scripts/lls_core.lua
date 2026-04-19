@@ -2969,6 +2969,20 @@ local function ctrl_discard_set()
     dw_osd:update()
 end
 
+local function get_dw_selection_bounds()
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    
+    if al == -1 or aw == -1 or cl == -1 or cw == -1 then return nil end
+    if al == cl and aw == cw then return nil end -- Single word is not a "range selection" in this context
+    
+    if al < cl or (al == cl and aw <= cw) then
+        return al, aw, cl, cw
+    else
+        return cl, cw, al, aw
+    end
+end
+
 local function ctrl_toggle_word(line_idx, word_idx)
     if line_idx < 1 or word_idx < 1 then return end
     
@@ -3230,24 +3244,48 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
     if tbl and tbl.event == "up" then return end
     
     local line, word
-    -- Use explicit was_mouse flag from parse_and_bind, or fallback to patterns
-    if was_mouse or (tbl and tbl.key and (tbl.key:find("MBTN_") or tbl.key:find("WHEEL_"))) then
-        local osd_x, osd_y = dw_get_mouse_osd()
-        line, word = dw_hit_test(osd_x, osd_y)
-    else
-        line, word = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    end
+    local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
     
-    if line and line ~= -1 and word and word ~= -1 then
-        -- Sync cursor and anchor state to the interaction point
-        -- This ensures the "yellow" focus jumps to the "pink" target immediately
-        FSM.DW_CURSOR_LINE = line
-        FSM.DW_CURSOR_WORD = word
-        FSM.DW_ANCHOR_LINE = line
-        FSM.DW_ANCHOR_WORD = word
-        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+    if p1_l then
+        -- Toggle the entire yellow range into the pink set
+        local subs = Tracks.pri.subs
+        if not subs then return end
         
-        ctrl_toggle_word(line, word)
+        for i = p1_l, p2_l do
+            local sub = subs[i]
+            if sub then
+                local s_w = (i == p1_l) and p1_w or 1
+                local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
+                for w = s_w, e_w do
+                    ctrl_toggle_word(i, w)
+                end
+            end
+        end
+        -- Clear yellow selection after it "turns pink"
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+        mp.remove_key_binding("dw-mouse-drag") -- Ensure drag state is cleared
+        drum_osd:update()
+        dw_osd:update()
+    else
+        -- Fallback to single word toggle (standard behavior)
+        if was_mouse or (tbl and tbl.key and (tbl.key:find("MBTN_") or tbl.key:find("WHEEL_"))) then
+            local osd_x, osd_y = dw_get_mouse_osd()
+            line, word = dw_hit_test(osd_x, osd_y)
+        else
+            line, word = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+        end
+        
+        if line and line ~= -1 and word and word ~= -1 then
+            -- Sync cursor and anchor state for mouse-based toggle
+            if was_mouse then
+                FSM.DW_CURSOR_LINE = line
+                FSM.DW_CURSOR_WORD = word
+                FSM.DW_ANCHOR_LINE = line
+                FSM.DW_ANCHOR_WORD = word
+            end
+            ctrl_toggle_word(line, word)
+        end
     end
 end
 
@@ -3726,13 +3764,23 @@ local function manage_dw_bindings(enable)
         for key in key_string:gmatch("[^%s,;]+") do
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
-                local action = is_mouse and mouse_fn or key_fn
-                table.insert(keys, {
-                    key = key,
-                    name = base_name .. "-" .. i,
-                    fn = function(t) action(t, is_mouse) end,
-                    complex = is_mouse
-                })
+                if is_mouse then
+                    -- Mouse keys get the full drag/drop treatment via make_mouse_handler
+                    local m_fn = make_mouse_handler(false, function(t) mouse_fn(t, true) end)
+                    table.insert(keys, {
+                        key = key,
+                        name = base_name .. "-" .. i,
+                        fn = m_fn,
+                        complex = true
+                    })
+                else
+                    table.insert(keys, {
+                        key = key,
+                        name = base_name .. "-" .. i,
+                        fn = function(t) key_fn(t, false) end,
+                        complex = false
+                    })
+                end
                 i = i + 1
             end
         end
