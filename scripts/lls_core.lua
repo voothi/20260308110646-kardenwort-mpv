@@ -3240,9 +3240,6 @@ local function cmd_dw_add_smart()
 end
 
 local function cmd_dw_toggle_pink(tbl, was_mouse)
-    -- If it's a complex binding, only trigger on down
-    if tbl and tbl.event == "up" then return end
-    
     local line, word
     local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
     
