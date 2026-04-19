@@ -3738,40 +3738,47 @@ local function cmd_seek_with_repeat(dir, table)
 end
 
 local function manage_dw_bindings(enable)
+    local function nav(fn)
+        return function(...)
+            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.150
+            return fn(...)
+        end
+    end
+
     local keys = {
-        {key = "LEFT", name = "dw-word-left", fn = function() cmd_dw_word_move(-1, false) end},
-        {key = "RIGHT", name = "dw-word-right", fn = function() cmd_dw_word_move(1, false) end},
-        {key = "UP", name = "dw-line-up", fn = function() cmd_dw_line_move(-1, false) end},
-        {key = "DOWN", name = "dw-line-down", fn = function() cmd_dw_line_move(1, false) end},
-        {key = "Shift+UP", name = "dw-line-up-shift", fn = function() cmd_dw_line_move(-1, true) end},
-        {key = "Shift+DOWN", name = "dw-line-down-shift", fn = function() cmd_dw_line_move(1, true) end},
-        {key = "a", name = "dw-seek-back", fn = function(t) cmd_seek_with_repeat(-1, t) end, complex = true},
-        {key = "d", name = "dw-seek-fwd", fn = function(t) cmd_seek_with_repeat(1, t) end, complex = true},
-        {key = "ENTER", name = "dw-enter", fn = function() cmd_dw_seek_selected() end},
-        {key = "KP_ENTER", name = "dw-enter-kp", fn = function() cmd_dw_seek_selected() end},
-        {key = "Shift+LEFT", name = "dw-word-left-shift", fn = function() cmd_dw_word_move(-1, true) end},
-        {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = function() cmd_dw_word_move(1, true) end},
-        {key = "Ctrl+LEFT", name = "dw-word-left-ctrl", fn = function() cmd_dw_word_move(-5, false) end},
-        {key = "Ctrl+RIGHT", name = "dw-word-right-ctrl", fn = function() cmd_dw_word_move(5, false) end},
-        {key = "Ctrl+Shift+LEFT", name = "dw-word-left-ctrl-shift", fn = function() cmd_dw_word_move(-5, true) end},
-        {key = "Ctrl+Shift+RIGHT", name = "dw-word-right-ctrl-shift", fn = function() cmd_dw_word_move(5, true) end},
-        {key = "Ctrl+Shift+UP", name = "dw-line-up-ctrl-shift", fn = function() cmd_dw_line_move(-5, true) end},
-        {key = "Ctrl+Shift+DOWN", name = "dw-line-down-ctrl-shift", fn = function() cmd_dw_line_move(5, true) end},
+        {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end)},
+        {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end)},
+        {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end)},
+        {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end)},
+        {key = "Shift+UP", name = "dw-line-up-shift", fn = nav(function() cmd_dw_line_move(-1, true) end)},
+        {key = "Shift+DOWN", name = "dw-line-down-shift", fn = nav(function() cmd_dw_line_move(1, true) end)},
+        {key = "a", name = "dw-seek-back", fn = nav(function(t) cmd_seek_with_repeat(-1, t) end), complex = true},
+        {key = "d", name = "dw-seek-fwd", fn = nav(function(t) cmd_seek_with_repeat(1, t) end), complex = true},
+        {key = "ENTER", name = "dw-enter", fn = nav(function() cmd_dw_seek_selected() end)},
+        {key = "KP_ENTER", name = "dw-enter-kp", fn = nav(function() cmd_dw_seek_selected() end)},
+        {key = "Shift+LEFT", name = "dw-word-left-shift", fn = nav(function() cmd_dw_word_move(-1, true) end)},
+        {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = nav(function() cmd_dw_word_move(1, true) end)},
+        {key = "Ctrl+LEFT", name = "dw-word-left-ctrl", fn = nav(function() cmd_dw_word_move(-5, false) end)},
+        {key = "Ctrl+RIGHT", name = "dw-word-right-ctrl", fn = nav(function() cmd_dw_word_move(5, false) end)},
+        {key = "Ctrl+Shift+LEFT", name = "dw-word-left-ctrl-shift", fn = nav(function() cmd_dw_word_move(-5, true) end)},
+        {key = "Ctrl+Shift+RIGHT", name = "dw-word-right-ctrl-shift", fn = nav(function() cmd_dw_word_move(5, true) end)},
+        {key = "Ctrl+Shift+UP", name = "dw-line-up-ctrl-shift", fn = nav(function() cmd_dw_line_move(-5, true) end)},
+        {key = "Ctrl+Shift+DOWN", name = "dw-line-down-ctrl-shift", fn = nav(function() cmd_dw_line_move(5, true) end)},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
-        {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = function() cmd_dw_scroll(-1) end},
-        {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = function() cmd_dw_scroll(1) end},
-        {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
-        {key = "Ctrl+ESC", name = "dw-pair-discard", fn = ctrl_discard_set},
-        {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
+        {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = nav(function() cmd_dw_scroll(-1) end)},
+        {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end)},
+        {key = "ESC", name = "dw-close", fn = nav(function() cmd_toggle_drum_window() end)},
+        {key = "Ctrl+ESC", name = "dw-pair-discard", fn = nav(ctrl_discard_set)},
+        {key = "Ctrl+c", name = "dw-copy", fn = nav(function() cmd_dw_copy() end)},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
-        {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
+        {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
             -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
-        end, complex = true},
+        end), complex = true},
     }
 
     local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection)
