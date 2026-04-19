@@ -5,7 +5,8 @@ The Drum Window (Mode W) implements a complex tri-palette highlighting system:
 - **Purple**: Split (non-contiguous) database matches.
 - **Brick**: Intersections (Contiguous + Split).
 
-Currently, the third-depth (highest intensity) levels of the Orange and Brick palettes are too similar, causing words in heavy intersections to look indistinguishable from standard contiguous phrases. Furthermore, the manual selection stage used a "Pale Yellow" for all multi-word selections, providing no visual indication that a Ctrl+LMB selection would results in a "Cool" (Purple) split match.
+Currently, the third-depth (highest intensity) levels of the Orange and Brick palettes are too similar, causing words in heavy intersections to look indistinguishable from standard contiguous phrases. 
+Furthermore, the manual selection stage used a **"Pale Yellow"** (#66E0FF) and **"Bright Yellow"** (#00FFFF) for all multi-word selections, providing no visual indication that a selection would results in a "Cool" (Purple) split match or a "Warm" (Orange) contiguous match. This legacy theme also suffered from low distinguishability against gray/white in dimmed environments.
 
 ## Goals / Non-Goals
 

@@ -9,6 +9,14 @@ The Drum Window highlighting engine suffered from visual ambiguity at high inten
 - **Configuration Synchronization**: Aligned the default internal script settings in `lls_core.lua` with the user-facing overrides in `mpv.conf`.
 - **Documentation Fix**: Corrected misleading comments in `mpv.conf` that incorrectly described the orange/gold palette as "green."
 
+## Historical Context
+
+This change represents a deliberate transition from the legacy "Yellow-Centric" selection theme to a modern "Chromatically Paired" theme:
+- **Legacy "Bright Yellow"** (#00FFFF) $\rightarrow$ **New "Gold"** (#00CCFF)
+- **Legacy "Pale Yellow"** (#66E0FF) $\rightarrow$ **New "Neon Pink"** (#FF88FF) (via brief "Vivid Violet" #FF00FF phase)
+
+The transition aims to improve distinguishability from white/gray and provide clear visual feedback for the Warm/Cool match paths.
+
 ## Capabilities
 
 ### New Capabilities
