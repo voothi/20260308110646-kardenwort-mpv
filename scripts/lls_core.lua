@@ -205,6 +205,7 @@ local FSM = {
     DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
+    DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -3147,6 +3148,9 @@ end
 
 local function make_mouse_handler(is_shift, on_up_callback)
     return function(tbl)
+        -- Shield logic: ignore mouse events if a keyboard command was just triggered
+        if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
+        
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
 
@@ -3173,7 +3177,7 @@ local function make_mouse_handler(is_shift, on_up_callback)
                     FSM.DW_CURSOR_WORD = word_idx
                     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                 elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
-                    -- Preserve existing selection for 'SCM' commit (Middle-click committed existing range)
+                    -- Preserve existing selection for 'SCM' commit
                 else
                     -- Normal click: set both anchor and cursor (starts new selection)
                     FSM.DW_CURSOR_LINE = line_idx
@@ -3241,6 +3245,9 @@ end
 
 local function cmd_dw_toggle_pink(tbl, was_mouse)
     local line, word
+    -- Canonical context check
+    local is_mouse = (was_mouse == true)
+    
     local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
     
     if p1_l then
@@ -3261,12 +3268,15 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         -- Clear yellow selection after it "turns pink"
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-        mp.remove_key_binding("dw-mouse-drag") -- Ensure drag state is cleared
+        -- Only clear drag-binding if we were actually interacting with the mouse
+        if is_mouse then
+            mp.remove_key_binding("dw-mouse-drag")
+        end
         drum_osd:update()
         dw_osd:update()
     else
         -- Fallback to single word toggle (standard behavior)
-        if was_mouse or (tbl and tbl.key and (tbl.key:find("MBTN_") or tbl.key:find("WHEEL_"))) then
+        if is_mouse then
             local osd_x, osd_y = dw_get_mouse_osd()
             line, word = dw_hit_test(osd_x, osd_y)
         else
@@ -3274,8 +3284,8 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         end
         
         if line and line ~= -1 and word and word ~= -1 then
-            -- Sync cursor and anchor state for mouse-based toggle
-            if was_mouse then
+            -- Sync cursor and anchor state ONLY for mouse-based interaction
+            if is_mouse then
                 FSM.DW_CURSOR_LINE = line
                 FSM.DW_CURSOR_WORD = word
                 FSM.DW_ANCHOR_LINE = line
@@ -3774,7 +3784,11 @@ local function manage_dw_bindings(enable)
                     table.insert(keys, {
                         key = key,
                         name = base_name .. "-" .. i,
-                        fn = function(t) key_fn(t, false) end,
+                        fn = function(t) 
+                            -- Shield the mouse from ghost clicks for 150ms when a key is pressed
+                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.150
+                            key_fn(t, false) 
+                        end,
                         complex = false
                     })
                 end

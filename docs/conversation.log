@@ -139,7 +139,9 @@
 20260419211557 opsx-apply
 20260419211623 opsx-archive with sync
 20260419211753 opsx-archive
-
+20260419212539 A peculiarity was discovered when, when working in remote control mode, when you press t, the mouse cursor (arrow on the screen in the mpv window/w window) wakes up after selection and the yellow word pointer moves to its area, to its level, and jumps. It is necessary to ensure that, firstly, the pointer wakes up, and secondly, and more importantly, that the last position of the yellow pointer does not change when selected from the remote control.
+20260419214213 It didn't work. It seems that the problem is that the cursor wakes up because a click with the left mouse button is triggered. What could be his trigger? Also, I inform you that I have rolled back the code to version bad9c9cce6cadc649d5f2368e5572a67a774ca30 a step back.
+20260419214743 I realized that the problem was not in the code, but in the setup of the JoyToKey mapper, I mistakenly left the left mouse button in it in combination with t.
 
 
 
