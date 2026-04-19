@@ -1,10 +1,10 @@
 ## Why
 
-To support minimalist hardware like the 8BitDo Zero 2 remote control, the Drum Window's word selection and mining mechanism must be unified. Previously, paired (non-contiguous) word addition was tied to a specific color and required the Ctrl key, creating cognitive friction and hardware limitations. This change unifies these actions into context-aware "smart" triggers that work seamlessly across mouse and keyboard inputs.
+To support minimalist hardware like the 8BitDo Zero 2 remote control, the Drum Window's word selection and mining mechanism must be unified. Previously, paired (non-contiguous) word addition was tied to a specific color (Pink) and required the Ctrl key, creating cognitive friction and hardware limitations. This change unifies these actions into context-aware "smart" triggers that work seamlessly across mouse and keyboard inputs.
 
 ## What Changes
 
-- **Smart Export Mechanism**: Refactored the selection triggers to automatically detect the selection context. Interacting with a member of a "Paired Selection Set" now commits the entire set without requiring extra modifier keys.
+- **Smart Export Mechanism**: Refactored the selection triggers to automatically detect the selection context. Interacting with a member of a "Paired Selection Set" (Pink) now commits the entire set without requiring extra modifier keys.
 - **Unified Shortcut Schema**: Replaced disparate, color-coupled configuration parameters with a coordinated `dw_key_...` naming system based on function (Add, Pair, Select).
 - **Multi-Delimiter Input Lists**: Implemented support for space, comma, or semicolon separated lists for all Drum Window shortcuts, allowing users to map multiple keys (EN, RU, Mouse) to a single action.
 - **Explicit Interaction Mapping**: Moved all hardcoded modifier shortcuts into the configuration file to ensure full user control regardless of UI color settings.

@@ -9,5 +9,5 @@ Additionally, the system SHALL check if the drag operation started on a paired (
 - **THEN** the phrase SHALL be saved to Anki (green highlight) immediately according to the dynamic mapping specified in `anki_mapping.ini`.
 
 #### Scenario: Drag release on paired word commit
-- **WHEN** the user release MMB over a word that was already part of a pending paired set
+- **WHEN** the user release MMB over a word that was already part of a pending paired set (Pink)
 - **THEN** the system SHALL commit the entire set (`ctrl_commit_set`) upon release.

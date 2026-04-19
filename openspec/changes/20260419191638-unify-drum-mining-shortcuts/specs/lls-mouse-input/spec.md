@@ -25,7 +25,7 @@ Additionally, the system SHALL support explicit key/button mapping for the commi
 
 #### Scenario: Smart MMB/Key add for paired words
 - **WHEN** the user presses a key defined in `dw_key_add` (e.g., `MBTN_MID` or `r`)
-- **AND** the word under focus is already highlighted as part of a pending paired set
+- **AND** the word under focus is already highlighted as part of a pending paired set (Pink)
 - **THEN** the system SHALL automatically trigger a paired commit (`ctrl_commit_set`) for the entire set.
 - **AND** this SHALL work without holding the Ctrl key.
 
