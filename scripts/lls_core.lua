@@ -101,19 +101,17 @@ local Options = {
     tooltip_font_bold = false,
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
-    tooltip_pin_key = "MBTN_RIGHT",
-    tooltip_hover_key = "n",
-    tooltip_hover_key_ru = "т",
-    dw_tooltip_toggle_key = "e",
-    dw_tooltip_toggle_key_ru = "у",
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
     seek_hold_rate = 10,
 
     -- Anki Highlighter
-    dw_key_add = "MBTN_MID,Ctrl+MBTN_MID,r,к",
-    dw_key_pair = "t,е,Ctrl+MBTN_LEFT",
+    dw_key_add = "MBTN_MID Ctrl+MBTN_MID r к",
+    dw_key_pair = "t е Ctrl+MBTN_LEFT",
+    dw_key_tooltip_pin = "MBTN_RIGHT",
+    dw_key_tooltip_hover = "n т",
+    dw_key_tooltip_toggle = "e у",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -141,8 +139,7 @@ local Options = {
     
     -- Colors
     dw_split_select_color = "FF88B0",
-
-    -- Sentence Threshold
+    book_mode = false,
     sentence_word_threshold = 3
 }
 options.read_options(Options, "lls")
@@ -3711,11 +3708,11 @@ local function manage_dw_bindings(enable)
     }
 
     local function parse_and_bind(key_string, base_name, mouse_fn, key_fn)
+        if not key_string or key_string == "" then return end
         local i = 1
-        for k in key_string:gmatch("([^,]+)") do
-            local key = k:match("^%s*(.-)%s*$")
+        for key in key_string:gmatch("[^%s,;]+") do
             if key ~= "" then
-                local is_mouse = key:match("MBTN_") or key:match("WHEE")
+                local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 table.insert(keys, {
                     key = key,
                     name = base_name .. "-" .. i,
@@ -3727,15 +3724,13 @@ local function manage_dw_bindings(enable)
         end
     end
 
-    parse_and_bind(Options.dw_key_add, "dw-add-key", cmd_dw_export_anki, cmd_dw_add_smart)
-    parse_and_bind(Options.dw_key_pair, "dw-mark-key", cmd_dw_toggle_pink, cmd_dw_toggle_pink)
+    parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart)
+    parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink)
+    parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin)
+    parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover)
+    parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle)
 
-    -- Tooltip Bindings
-    table.insert(keys, {key = Options.tooltip_pin_key, name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true})
-    table.insert(keys, {key = Options.tooltip_hover_key, name = "dw-tooltip-hover", fn = cmd_toggle_dw_tooltip_hover})
-    table.insert(keys, {key = Options.dw_tooltip_toggle_key, name = "dw-tooltip-toggle", fn = cmd_dw_tooltip_toggle})
-
-    -- RU Layout & Search
+    -- Extra Layout & Search
     local extra = {
         {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
@@ -3757,8 +3752,6 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-5, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(5, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
-        {key = Options.tooltip_hover_key_ru, name = "dw-tooltip-hover-ru", fn = cmd_toggle_dw_tooltip_hover},
-        {key = Options.dw_tooltip_toggle_key_ru, name = "dw-tooltip-toggle-ru", fn = cmd_dw_tooltip_toggle},
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
         {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
     }
