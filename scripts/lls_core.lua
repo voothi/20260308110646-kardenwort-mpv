@@ -4037,7 +4037,7 @@ local function draw_search_ui()
     local q_table = utf8_to_table(FSM.SEARCH_QUERY)
     
     if #q_table == 0 then
-        display_query = "{\\1a&HAA&}Search...{\\1a&H00&}|"
+        display_query = "|{\\1a&HAA&}Search...{\\1a&H00&}"
     else
         local cur = FSM.SEARCH_CURSOR
         local anc = FSM.SEARCH_ANCHOR
