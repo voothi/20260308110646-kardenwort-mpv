@@ -97,7 +97,7 @@
 20260419132439 Can we update our current OpenSpec feature-bug, update it in accordance with the current code and details, according to the following discussion anchors? To be prepared for archiving and synchronizing specifications?
 20260419133037 Did you forget about the file openspec\changes\20260419104540-fix-split-highlight\specs\anki-highlighting\spec.md? And look how it fits in with other specifications, are there any contradictions or deviations from the existing ones? To understand how we will synchronize them and what could be implemented in the code as part of the current revision not based on existing cases (word highlighting and others).
 20260419133539 Do I understand correctly that if the file is partially changed, then the mechanism, due to the built-in intelligent self-repair system, will work with existing indexes that could be outdated?
-
+20260419133900 Okay, did you write this down in the feature documentation? Is this available in specs?
 
 
 
