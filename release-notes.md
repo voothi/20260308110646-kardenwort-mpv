@@ -1,3 +1,18 @@
+# Release Notes - v1.42.4 (Strict Grounding Enforcement)
+
+**Date**: 2026-04-19
+**Version**: v1.42.4
+**Implementation ZIDs**: 20260419151640
+
+## Highlights
+
+### 🎯 **Strict Grounding Enforcement**
+- **Eliminated Highlight Bleed**: Resolved a bug where multiple identical words in a single subtitle (e.g., the second "gleich" in a sentence) would incorrectly share the same highlight. The engine now strictly adheres to index-based grounding, ensuring only the exact user-selected occurrence is marked.
+- **Single-Word Grounding Automation**: Updated the Drum Window (Mode W) to automatically generate and store precise grounding coordinates (`0:Index:1`) for single-word clicks. This transitions single-click exports into "New Generation" grounded records that are immune to contextual drift.
+- **Gated Fuzzy Fallback**: Hardened the rendering logic in `calculate_highlight_stack` to block fuzzy context fallbacks for any record that contains valid grounding metadata, while maintaining compatibility for legacy cards.
+
+---
+
 # Release Notes - v1.42.2 (Dynamic Discovery & Precision Grounding)
 
 **Date**: 2026-04-19
