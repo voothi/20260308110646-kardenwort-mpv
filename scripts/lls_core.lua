@@ -910,8 +910,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if Options.anki_global_highlight or (data.time >= sub_start - window and data.time <= sub_end + window) then
                 in_window = true
             elseif #term_clean > 1 then
-                local min_scan = math.max(1, sub_idx - 15)
-                local max_scan = math.min(#subs, sub_idx + 15)
+                local scan_padding = Options.anki_split_search_window or 15
+                local min_scan = math.max(1, sub_idx - scan_padding)
+                local max_scan = math.min(#subs, sub_idx + scan_padding)
                 if data.time >= (subs[min_scan].start_time - window) and data.time <= (subs[max_scan].end_time + window) then
                     in_window = true
                 end

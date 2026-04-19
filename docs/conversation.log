@@ -83,9 +83,7 @@
 20260419114953 Check the selection of paired words again, in case they are far from each other. We can't seem to overcome this. It seems that the spam has stopped coming. Try to solve this in a targeted, minimally invasive way. Change the code if necessary.
 20260419120012 It seems to have worked. See screenshot. Can you make this configurable from mpv.conf? Please also add a description in the comments.
 20260419120350 Now update mpv.conf with comments about what it is and how it works.
-
-
-
+20260419120907 At the moment, it seems that the problems have been resolved. Check that all these parameters make sense in the current implementation. That they are not contradictory and not redundant. script-opts-append=lls-anki_local_fuzzy_window=1 script-opts-append=lls-anki_split_search_window=35 script-opts-append=lls-anki_split_gap_limit=60.0 script-opts-append=lls-anki_context_strict=yes
 
 
 
