@@ -106,6 +106,7 @@
 20260419135455 Okay, it's better, let's leave it like that, the next question is can we change the color of the selection with the cursor - a bright yellow selection and a pale yellow selection (which, when saved, changes color to purple, normally, in a simple case, without overlays)? If so, then let's think about whether we can replace this pale yellow color with a color of the same saturation as yellow, but violet. So that the color match is similar in gamma - the current bright yellow for the highlight, which changes to orange (first level) and on the other hand, at the same distance between the colors, so that there is a pair (suggested color) and purple of the first level. I don’t know if it will be pink or something else, I don’t really understand how colors are mixed.
 20260419140330 Ok, let's do an ospx-propose with the given discussion anchors below.
 20260419141534 Okay, this suits me even better. Implement it.
+20260419141733 Okay, will it be recorded somewhere that we made a transit, a transition from the colors that were there, indicating what we called them earlier, in order to improve the search and continuity of documentation, historicity? We had the terms bright yellow, pale yellow.
 
 
 
