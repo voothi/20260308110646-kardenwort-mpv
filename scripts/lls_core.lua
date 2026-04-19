@@ -250,9 +250,9 @@ local function load_anki_mapping_ini()
     
     local path = mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
     local f = io.open(path, "r")
-        local config = {
+    local config = {
         fields = {},
-mapping = {},
+        mapping = {},
         mapping_word = {},
         mapping_sentence = {},
         tts = {},
@@ -872,7 +872,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             
             -- Performance: Lazy-cache processed term data
             if not data.__term_clean then
-                data.__is_elliptical = term_key:find(" ... ", 1, true) ~= nil
+                data.__is_elliptical = term_key:find("...", 1, true) ~= nil
                 local term_tokens = build_word_list_internal(utf8_to_lower(term_key), false)
                 data.__term_clean = {}
                 for _, t in ipairs(term_tokens) do
@@ -1033,14 +1033,14 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set == nil then
                             valid_set = false
                             local ctx_list = {}
-                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 3)
-                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 3)
+                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - 10)
+                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + 10)
 
                             for scan_i = s_start, s_end do
                                 local scan_tokens = get_sub_tokens(subs[scan_i])
                                 if scan_tokens then
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if gap < 5.0 then
+                                    if gap < 12.0 then
                                         for t_i, t in ipairs(scan_tokens) do
                                             if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
@@ -1066,10 +1066,13 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             if all_present then
                                 local best_tuple = nil
                                 local min_span = 999999
+                                local best_unanchored_tuple = nil
+                                local min_unanchored_span = 999999
+                                
                                 local function search(term_idx, current_tuple)
                                     if term_idx > #term_clean then
                                         local valid_timing = true
-                                        local has_anchor = (not data.index) or (origin_sub_idx == -1)
+                                        local has_anchor = (not data.index) or (data.index == -1) or (origin_sub_idx == -1)
                                         for m_idx = 1, #current_tuple do
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
@@ -1078,16 +1081,25 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                     valid_timing = false; break
                                                 end
                                             end
-                                            if data.index and m.s_i == origin_sub_idx and m.l_i == data.index then
+                                            if not has_anchor and data.index and m.s_i == origin_sub_idx and m.l_i == data.index then
                                                 has_anchor = true
                                             end
                                         end
-                                        if valid_timing and has_anchor then
+                                        
+                                        if valid_timing then
                                             local span = current_tuple[#current_tuple] - current_tuple[1]
-                                            if span < min_span then
-                                                min_span = span
-                                                best_tuple = {}
-                                                for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                            if has_anchor then
+                                                if span < min_span then
+                                                    min_span = span
+                                                    best_tuple = {}
+                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                                end
+                                            else
+                                                if span < min_unanchored_span then
+                                                    min_unanchored_span = span
+                                                    best_unanchored_tuple = {}
+                                                    for k,v in ipairs(current_tuple) do best_unanchored_tuple[k] = v end
+                                                end
                                             end
                                         end
                                         return
@@ -1101,6 +1113,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     end
                                 end
                                 search(1, {})
+                                
+                                -- Fallback to unanchored match if ground-truth coordinate check failed
+                                if not best_tuple and best_unanchored_tuple then
+                                    best_tuple = best_unanchored_tuple
+                                end
+                                
                                 if best_tuple then
                                     valid_set = {}
                                     for _, c_idx in ipairs(best_tuple) do
