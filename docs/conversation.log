@@ -168,8 +168,7 @@
 20260420003628 Sync now
 20260420003934 o It is necessary to fix in the search field the carriage symbol hanging in the air after the information inscription in the `Search...|` field box itself. It would be more logical to move it to the beginning, and make the inscription after it, if it is possible to do so in a minimally invasive way (`|Search...` or `|`).
 20260420004613 opsx-propose
- 
-
+20260420004859 opsx-apply
 
 
 
