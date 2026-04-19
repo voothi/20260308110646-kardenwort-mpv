@@ -22,15 +22,16 @@ Currently, the third-depth (highest intensity) levels of the Orange and Brick pa
 ## Decisions
 
 ### Chromatic "Warm vs Cool" Pairing
-The selection theme for manual split matches (Ctrl+LMB) will be changed from **Pale Yellow** to **Vivid Violet** (#FF00FF). 
-- **Rationale**: This creates a logical UI split. Warm colors (Yellow/Orange) signify contiguous, "simple" matches. Cool colors (Violet/Purple) signify split, "complex" matches. 
-- **Gamma Matching**: Magenta (#FF00FF) is the chromatic partner to Yellow (#00FFFF). They share similar perceived intensity and saturation, ensuring the selection cursor feels equally "active" in both modes.
+The selection theme for manual split matches (Ctrl+LMB) will be changed from **Pale Yellow** to **Neon Pink** (#FF88FF). 
+- **Rationale**: This creates a logical UI split. Warm colors (Gold/Orange) signify contiguous matches. Cool colors (Pink/Purple) signify split matches. 
+- **Intensity Matching**: Neon Pink (#FF88FF) is calibrated to match the perceptual intensity of Gold (#00CCFF). By adding light Green/White to the violet base, we ensure the "Cool" selection doesn't look too dark or muddy compared to the main highlight.
 
 ### Level 3 Hex Calibration
-We are shifting the High-Intensity (Level 3) colors to expand the RGB distance:
-- **Orange D3**: Updated from `003A70` (R:112, G:58) to **`003C88`** (R:136, G:60). This increases vibrancy and "warmth".
-- **Brick D3**: Updated from `202078` (R:120, G:32, B:32) to **`151578`** (R:120, G:21, B:21). This purifies the red, removing green/blue muddying.
-- **Rationale**: The new delta ($16R, 39G, 21B$) is significantly larger than the previous delta ($8R, 26G, 32B$) and shifts the intersection toward a deeper "Brick" while keeping Orange distinctively "Gold".
+We are shifting the High-Intensity (Level 3) colors to expand the RGB distance and pull selections away from pure White:
+- **LMB Focus**: Updated from Yellow (#00FFFF) to **Gold (#00CCFF)** to prevent confusion with white in dimmed environments.
+- **Orange D3**: Updated from `003A70` to **`003C88`**.
+- **Brick D3**: Updated from `202078` to **`151578`**.
+- **Rationale**: The shift ensures that the most intense selections and matches occupy distinct, well-separated areas of the color spectrum even at low luminosity.
 
 ### Synchronization of Fault-Tolerant Fallbacks
 The rendering loops in `lls_core.lua` use hardcoded string literals as late-stage fallbacks if `Options` are missing. 
