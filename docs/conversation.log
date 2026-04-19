@@ -151,6 +151,7 @@
 20260419223523 Okay, it looks like the current version now works with tooltip via RMB and e. There was another problem that I forgot to turn on the second subtitles using the j key. Make them turn on automatically, change the config. Please check that we have not added or changed anything unnecessary in this regard. Compare with version 3fb3e585cc3da12d312a9f67de0a27ab7f6dc2d2
 20260419224333 This did not work if save-position-on-quit=yes
 20260419224623 Repeat the change to mpv.conf.
+20260419225005 I'm not sure if this works, but let it be?
 
 
 
