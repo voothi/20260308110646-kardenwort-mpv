@@ -334,12 +334,25 @@ local function extract_subtitle_metadata(path)
 end
 
 local SOURCE_URL_CACHE = nil
+local SOURCE_URL_FILE_PATH = nil
 local LAST_PATH_FOR_URL = nil
 
 local function find_source_url()
     local path = mp.get_property("path")
     if not path or path == "" then return "" end
     
+    -- Cache validation: if we have a file path, verify it still exists
+    if path == LAST_PATH_FOR_URL and SOURCE_URL_FILE_PATH then
+        local f = io.open(SOURCE_URL_FILE_PATH, "r")
+        if f then
+            f:close()
+        else
+            -- File was deleted or renamed, invalidate cache
+            SOURCE_URL_CACHE = nil
+            SOURCE_URL_FILE_PATH = nil
+        end
+    end
+
     -- Cache check: only re-scan if the media path changed OR if we haven't found a URL yet
     if path == LAST_PATH_FOR_URL and SOURCE_URL_CACHE ~= nil and SOURCE_URL_CACHE ~= "" then 
         return SOURCE_URL_CACHE 
@@ -347,6 +360,7 @@ local function find_source_url()
 
     LAST_PATH_FOR_URL = path
     SOURCE_URL_CACHE = "" -- Default fallback
+    SOURCE_URL_FILE_PATH = nil
 
     local dir, filename = utils.split_path(path)
     if not dir or dir == "" then return "" end
@@ -361,7 +375,7 @@ local function find_source_url()
             local url = clean:match("^[Uu][Rr][Ll]%s*=%s*(https?://%S+)")
             if url then
                 f:close()
-                return url
+                return url, target_path
             end
         end
         f:close()
@@ -371,9 +385,10 @@ local function find_source_url()
     -- 1. Try specific filename matches (base_name.url, base_name.txt, etc)
     local extensions = { ".url", ".txt", ".md" }
     for _, ext in ipairs(extensions) do
-        local url = parse_url_file(utils.join_path(dir, base_name .. ext))
+        local url, f_path = parse_url_file(utils.join_path(dir, base_name .. ext))
         if url then
             SOURCE_URL_CACHE = url
+            SOURCE_URL_FILE_PATH = f_path
             return url
         end
     end
@@ -383,9 +398,10 @@ local function find_source_url()
     if files then
         for _, f_name in ipairs(files) do
             if f_name:lower():match("%.url$") then
-                local url = parse_url_file(utils.join_path(dir, f_name))
+                local url, f_path = parse_url_file(utils.join_path(dir, f_name))
                 if url then
                     SOURCE_URL_CACHE = url
+                    SOURCE_URL_FILE_PATH = f_path
                     return url
                 end
             end
