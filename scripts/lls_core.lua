@@ -3167,44 +3167,52 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback)
                 dw_tooltip_osd:update()
             end
 
-            if line_idx and word_idx then
-                if is_shift then
-                    if FSM.DW_ANCHOR_LINE == -1 then
-                        -- Start shift selection from the current cursor position
-                        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-                        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
-                    end
-                    -- Extend selection to the clicked word
-                    FSM.DW_CURSOR_LINE = line_idx
-                    FSM.DW_CURSOR_WORD = word_idx
-                    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-                elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
-                    -- Preserve existing selection for 'SCM' commit
-                else
-                    -- Normal click: set both anchor and cursor (starts new selection)
-                    FSM.DW_CURSOR_LINE = line_idx
-                    FSM.DW_CURSOR_WORD = word_idx
-                    FSM.DW_ANCHOR_LINE = line_idx
-                    FSM.DW_ANCHOR_WORD = word_idx
-                    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-                end
-                
-                FSM.DW_MOUSE_DRAGGING = true
-                
-                -- Fast-tracking on mouse move
-                mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
+            if line_idx then
+                -- Phase 1: Custom Actions (Tooltips, Pins, etc.)
+                if on_down_callback then on_down_callback(tbl) end
 
-                -- Start a repeating timer for auto-scroll near edges
-                if FSM.DW_MOUSE_SCROLL_TIMER then
-                    FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                -- Phase 2: Selection Logic (Only for words)
+                if word_idx then
+                    if is_shift then
+                        if FSM.DW_ANCHOR_LINE == -1 then
+                            -- Start shift selection from the current cursor position
+                            FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+                            FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
+                        end
+                        -- Extend selection to the clicked word
+                        FSM.DW_CURSOR_LINE = line_idx
+                        FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+                    elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
+                        -- Preserve existing selection for 'SCM' commit
+                    else
+                        -- Normal click: set both anchor and cursor (starts new selection)
+                        FSM.DW_CURSOR_LINE = line_idx
+                        FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_ANCHOR_LINE = line_idx
+                        FSM.DW_ANCHOR_WORD = word_idx
+                        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+                    end
+                    
+                    -- Phase 3: Dragging (Only for Standard/Shift selection, not for tooltips/pins)
+                    if not on_down_callback or is_shift then
+                        FSM.DW_MOUSE_DRAGGING = true
+                        
+                        -- Fast-tracking on mouse move
+                        mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
+
+                        -- Start a repeating timer for auto-scroll near edges
+                        if FSM.DW_MOUSE_SCROLL_TIMER then
+                            FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                        end
+                        FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+                    end
+                    
+                    -- Force immediate update to show Red selection highlight on down
+                    drum_osd:update()
+                    if dw_osd then dw_osd:update() end
                 end
-                FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
-                
-                -- Force immediate update to show Red selection highlight on down
-                drum_osd:update()
-                if dw_osd then dw_osd:update() end
             end
-            if on_down_callback then on_down_callback(tbl) end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             
