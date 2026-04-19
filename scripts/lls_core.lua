@@ -109,6 +109,7 @@ local Options = {
     -- Anki Highlighter
     dw_key_add = "MBTN_MID Ctrl+MBTN_MID r к",
     dw_key_pair = "t е Ctrl+MBTN_LEFT",
+    dw_key_select = "MBTN_LEFT",
     dw_key_tooltip_pin = "MBTN_RIGHT",
     dw_key_tooltip_hover = "n т",
     dw_key_tooltip_toggle = "e у",
@@ -3697,7 +3698,6 @@ local function manage_dw_bindings(enable)
         {key = "ESC", name = "dw-close", fn = function() cmd_toggle_drum_window() end},
         {key = "Ctrl+c", name = "dw-copy", fn = function() cmd_dw_copy() end},
         -- Mouse selection & Suppression
-        {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_mouse_select, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
@@ -3726,6 +3726,7 @@ local function manage_dw_bindings(enable)
 
     parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart)
     parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink)
+    parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end) -- Keyboard select not implemented yet
     parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin)
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle)
