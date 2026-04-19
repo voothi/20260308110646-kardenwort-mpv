@@ -68,6 +68,7 @@
 20260419094245 Okay, but how can we modify the mechanism so that if in the directory with the media file there is an Internet Shortcut link file as a separate file or a simple file with the same name and extension, for example, txt or md and inside with the following line URL=https://www.youtube.com/watch?v=3NAmt9AAehY. Do you need to parse? Then you need to be able to set SourceURL=source_url or something similar.
 20260419095616 We need to add this to the periodic synchronization mechanism so that it is possible to put such a file after opening the video and for the mechanism of adding a URL to the file to work, there is no need to restart the video after this. 
 20260419100038 But if the file that was registered as a URL source turns out to be deleted or it is not found (renamed), then you need to delete the entry and not link to it, and re-read the new file and take it from it.
+20260419100352 Why is the periodicity 30 seconds instead of the current parameter of 5 seconds, is it some other parameter?
 
 
 
