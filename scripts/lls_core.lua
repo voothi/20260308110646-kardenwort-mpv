@@ -2840,7 +2840,8 @@ local function dw_anki_export_selection()
                 end
             end
             context_line = table.concat(ctx_parts, " ")
-            time_pos = subs[p1_l].start_time
+            -- Add small epsilon (1ms) to ensure get_center_index lands inside this segment and not the end of the previous one
+            time_pos = subs[p1_l].start_time + 0.001
             print(string.format("[LLS] Export Range: Lines %d-%d, Word Index: %d, Pivot: %.1f", p1_l, p2_l, p1_w, pivot_pos))
             local tokens = get_sub_tokens(subs[p1_l])
             local words = {}
@@ -2886,7 +2887,8 @@ local function dw_anki_export_selection()
                 end
             end
             context_line = table.concat(ctx_parts, " ")
-            time_pos = target_sub.start_time
+            -- Add small epsilon (1ms) to ensure grounding lands inside this segment
+            time_pos = target_sub.start_time + 0.001
             p1_w = cw
             p1_l = cl
             print(string.format("[LLS] Export Point: Line %d, Word Index: %d, Pivot: %.1f", cl, cw, pivot_pos))
@@ -3036,7 +3038,19 @@ local function ctrl_commit_set(line_idx, word_idx)
                 end
 
                 if last_m then
-                    local is_gap = (m.line > last_m.line) or (m.word > last_m.word + 1)
+                    local is_gap = false
+                    if m.line > last_m.line then
+                        -- Bridging line boundary: It's a gap if we skipped words at end of last_m.line 
+                        -- or words at start of m.line. But simple sets (Ctrl+MMB) are almost always gaps.
+                        -- However, for the contiguous engine to recognize it, we must join with space.
+                        local last_line_wc = subs[last_m.line].word_count or 0
+                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
+                            is_gap = true
+                        end
+                    elseif m.word > last_m.word + 1 then
+                        is_gap = true
+                    end
+
                     if is_gap then
                         -- Inject space-padded ellipsis for non-contiguous selections
                         term = term .. " ... "
@@ -3108,15 +3122,16 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
-    -- Advanced Multi-Pivot Grounding: Identify coordinates for ALL words to achieve 100% split-phrase precision.
+    -- Advanced Multi-Pivot Grounding: Identify coordinates for ALL words
     local indices = {}
+    local start_time = members[1].time or time_pos
     for i, m in ipairs(members) do
         local l_off = m.line - members[1].line
         table.insert(indices, string.format("%d:%d:%d", l_off, m.word, i))
     end
     local advanced_index = table.concat(indices, ",")
 
-    save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
+    save_anki_tsv_row(term, extracted_context, start_time + 0.001, advanced_index)
     show_osd("Anki Highlight Saved (Multi): " .. term)
     
     -- Force reload of TSV to pick up the new highlight
