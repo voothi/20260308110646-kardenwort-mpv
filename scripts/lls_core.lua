@@ -882,13 +882,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 end
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
 
-                -- Parse Pivot Grounding if present
-                if data.index then
+                -- Parse string indices (if not already parsed during load)
+                if data.index and not data.__pivot then
                     local l_off, p_idx, t_pos = tostring(data.index):match("^([%-+]?%d+):(%d+):(%d+)$")
                     if l_off then
                         data.__pivot = {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)}
-                        print(string.format("[LLS] Pivot Grounding: '%s' anchored at Word %d (Index %d, Offset %d)", 
-                            term_key, data.__pivot.t_pos, data.__pivot.p_idx, data.__pivot.l_off))
                     elseif type(data.index) == "number" or tostring(data.index):match("^%-?%d+$") then
                         data.__pivot = {l_off = 0, p_idx = tonumber(data.index), t_pos = 1}
                     end
@@ -1619,7 +1617,19 @@ local function load_anki_tsv(force)
                 
                 local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
                 if t and t ~= "" and not is_header then
-                    table.insert(new_highlights, { term = t, context = c, time = time_val, index = idx_val })
+                    local data = { term = t, context = c, time = time_val, index = idx_val }
+                    -- Pre-parse Advanced Pivot Grounding coordinates
+                    if idx_val then
+                        local l_off, p_idx, t_pos = tostring(idx_val):match("^([%-+]?%d+):(%d+):(%d+)$")
+                        if l_off then
+                            data.__pivot = {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)}
+                            print(string.format("[LLS] Pivot Grounding Loaded: '%s' anchored at Word %d (Index %d, Offset %d)", 
+                                t, data.__pivot.t_pos, data.__pivot.p_idx, data.__pivot.l_off))
+                        elseif type(idx_val) == "number" or tostring(idx_val):match("^%-?%d+$") then
+                            data.__pivot = {l_off = 0, p_idx = tonumber(idx_val), t_pos = 1}
+                        end
+                    end
+                    table.insert(new_highlights, data)
                 end
             end
         end

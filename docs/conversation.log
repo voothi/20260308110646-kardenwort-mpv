@@ -78,6 +78,7 @@
 20260419110021 I rolled back to the previous step, it didn't work (Multi-Index Grounding). As far as I understand, this problem can only be solved by writing an advanced index to a TSV file. Think about it. In a simple case, we can record exactly the index of the word at which I call saving Ctrl + MMB, although it may already work that way. This could resolve this uncertainty. Also, this may be a different question, but I'm still having trouble selecting a large chunk of text that was added to a TSV. It is possible that these are related tasks. 
 20260419112205 It seems to have worked. A couple of words are correctly highlighted in purple. The console also has some information, but not very detailed (correct?).
 20260419112414 You didn't implement it in the code, check it.
+20260419112819 I hope you didn't break anything. It seems to be working. I discovered a new case that doesn't work. I also want to understand whether the advanced index allows me to abandon the hybrid approach to adding multi-line selections correctly. The same entries now appear in the console every few seconds. Check it out. See screenshots.
 
 
 
