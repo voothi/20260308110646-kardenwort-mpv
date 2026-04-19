@@ -3241,6 +3241,13 @@ local function cmd_dw_toggle_pink(tbl)
     end
     
     if line and line ~= -1 and word and word ~= -1 then
+        -- Update state tracker so the cursor "jumps" to the mouse click
+        FSM.DW_CURSOR_LINE = line
+        FSM.DW_CURSOR_WORD = word
+        FSM.DW_ANCHOR_LINE = line
+        FSM.DW_ANCHOR_WORD = word
+        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+        
         ctrl_toggle_word(line, word)
     end
 end
