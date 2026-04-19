@@ -1013,7 +1013,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     sequence_match = false
                                 else
                                     context_satisfied = true
-                                    match_count = 2
+                                    -- For phrases, grounding on even one word is high-confidence
+                                    if #term_clean > 1 then match_count = 2 end
                                 end
                             end
 
@@ -2797,28 +2798,38 @@ local function dw_anki_export_selection()
             if not subs[p1_l] or not subs[p2_l] then return end
             
             local parts = {}
+            local indices = {}
+            local pivot_idx = 1
             for i = p1_l, p2_l do
-                local tokens = get_sub_tokens(subs[i])
-                local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or (subs[i].word_count or 0)
-                
-                local line_parts = {}
-                local in_range = false
-                for _, t in ipairs(tokens) do
-                    if t.is_word then
-                        if t.logical_idx == s_w then in_range = true end
-                        if in_range then table.insert(line_parts, t.text) end
-                        if t.logical_idx == e_w then in_range = false break end
-                    elseif in_range then
-                        table.insert(line_parts, t.text)
+                local sub = subs[i]
+                if sub then
+                    local tokens = get_sub_tokens(sub)
+                    local s_w = (i == p1_l) and p1_w or 1
+                    local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
+                    
+                    local line_parts = {}
+                    local in_range = false
+                    for _, t in ipairs(tokens) do
+                        if t.is_word then
+                            if t.logical_idx == s_w then in_range = true end
+                            if in_range then 
+                                table.insert(line_parts, t.text) 
+                                table.insert(indices, string.format("%d:%d:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                pivot_idx = pivot_idx + 1
+                            end
+                            if t.logical_idx == e_w then in_range = false break end
+                        elseif in_range then
+                            table.insert(line_parts, t.text)
+                        end
                     end
-                end
-                
-                if #line_parts > 0 then
-                    table.insert(parts, table.concat(line_parts, ""))
+                    
+                    if #line_parts > 0 then
+                        table.insert(parts, table.concat(line_parts, ""))
+                    end
                 end
             end
             term = table.concat(parts, " ")
+            local advanced_index = table.concat(indices, ",")
             
             local ctx_parts = {}
             pivot_pos = 0
@@ -2958,7 +2969,7 @@ local function dw_anki_export_selection()
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos)
-            local advanced_index = string.format("0:%d:1", p1_w)
+            -- Use the multi-index generated above
             save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
             show_osd("Anki Highlight Saved: " .. term)
 

@@ -87,7 +87,7 @@
 20260419121224 Okay, but I still see that in the code you provided there are still some hard-coded  values ​​​​that should have been included in the config, so as not to touch the code when fine-tuning this mechanism.
 20260419121709 All hard-coded values ​​in the code of this mechanism remained default, as a fallback? And are they consistent and equal to what is currently in mpv.conf?
 20260419122357 Okay, let's look at the following case, which I came across while highlighting multi-line blocks in the text. I highlighted this in bright yellow and added it by clicking on it with the middle mouse button. This piece changes color to purple, but it should be orange. I press the middle mouse button without holding down the Ctrl key. This is the case, in most similar cases, the text is highlighted in orange, which is by first selecting it in bright yellow and clicking on it, or by immediately selecting it with the middle mouse button, dragging it between the lines and releasing the mouse button.
-
+20260419123538 I don't know what you did, but it didn't work. I hope there is no regression on working functions. Try again. Why is there such an index here 0:4:1? Is this enough?
 
 
 
