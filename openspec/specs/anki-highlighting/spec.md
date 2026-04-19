@@ -1,7 +1,7 @@
 # anki-highlighting Specification
 
 ## Purpose
-TBD - created by archiving change 20260412184520-anki-highlighter. Update Purpose after archive.
+This specification defines the high-precision grounding and rendering architecture for subtitle-locked highlights in the Drum Window. It ensures mining records are anchored to their exact scene context using a multi-coordinate system, providing flicker-free visual feedback across contiguous and non-contiguous phrases.
 ## Requirements
 ### Requirement: TSV Highlight Capture
 The application SHALL allow the user to extract the currently selected text inside the Drum Window and commit it to a localized TSV database matching the media's base filename.
@@ -31,8 +31,20 @@ The application SHALL periodically re-synchronize the in-memory highlight dictio
 - **WHEN** the user or an external process modifies the TSV database file
 - **THEN** within a configurable interval (5s), the player system reloads the file atomically (using `pcall` for safety) and refreshes all active subtitle viewports (Drum and Timeline) to reflect the new state.
 
+### Requirement: Multi-Pivot Grounding & Resiliency
+The identifies engine MUST anchor mining records using a multi-pivot coordinate system (`LineOffset:WordIndex:TermPos`) for every word in a selection. The system SHALL prioritize absolute scene-locking based on these coordinates but MUST implement "Fuzzy Healing" fallbacks to maintain visual persistence if a subtitle index becomes outdated (e.g., due to file edits). To prevent coordinate drift at segment boundaries, a mandatory temporal epsilon of +1ms SHALL be applied to all exported timestamps.
+
+#### Scenario: Absolute scene-locking with identical words
+- **WHEN** multiple identical words appear in an episode
+- **AND** `anki_global_highlight` is disabled
+- **THEN** the system MUST use the L:W:T coordinates to highlight ONLY the specific word occurrence associated with the mining record.
+
+#### Scenario: Resiliency to index mismatch
+- **WHEN** a subtitle file is modified, causing a stored index to point to an incorrect coordinate
+- **THEN** the engine SHALL fallback to a neighboring context check for contiguous terms and a "Shortest Sequential Span" search for split terms to re-locate and highlight the phrase.
+
 ### Requirement: Split-Term Multi-Word Highlighting
-The visual highlighting system SHALL support non-contiguous subset matching for multi-word terms imported from the TSV database (e.g., terms that contain spaces). If the constituent words of a registered multi-word term are detected scattered but fully present within a specific localized context boundary (such as the same subtitle element/line), those words SHALL be highlighted with a distinctive "split select color" to signify their association. The system MUST evaluate local inclusion by projecting the term's timestamp against the FULL span of the subtitle (`start_time` to `end_time`) rather than a single point to prevent failures on long or multi-line subtitles. The contextual validation (`Options.anki_context_strict`) MUST use strict, word-bounded analysis to prevent substring false positives, and sequence matching MUST abort safely if expected words are entirely missing. Additionally, the system SHALL calculate the nesting depth of split-terms independently from contiguous terms. When a word overlaps with both contiguous and split terms simultaneously, it SHALL be rendered using a distinct "mixed" color palette (`anki_mix_depth_1/2/3`) representing the intersection.
+The visual highlighting system SHALL support non-contiguous subset matching for multi-word terms imported from the TSV database (e.g., terms that contain spaces). If the constituent words of a registered multi-word term are detected scattered but fully present within a specific localized context boundary, those words SHALL be highlighted with a distinctive "split select color" to signify their association. The system MUST evaluate local inclusion by projecting the term's timestamp against the FULL span of the subtitle (`start_time` to `end_time`) rather than a single point to prevent failures on long or multi-line subtitles. The contextual validation (`Options.anki_context_strict`) MUST use strict, word-bounded analysis to prevent substring false positives, and sequence matching MUST abort safely if expected words are entirely missing. Additionally, the system SHALL calculate the nesting depth of split-terms independently from contiguous terms. When a word overlaps with both contiguous and split terms simultaneously, it SHALL be rendered using a distinct "mixed" color palette (`anki_mix_depth_1/2/3`) representing the intersection.
 
 #### Scenario: Contiguous highlighting takes precedence when pure
 - **WHEN** a multi-word TSV term exists that can be matched as a single exact, contiguous string within the text
@@ -65,8 +77,8 @@ The visual highlighting system SHALL support non-contiguous subset matching for 
 
 #### Scenario: Split phrase synchronization across wide clusters
 - **WHEN** a split multi-word term bridges an extremely long span of dialogue over many subtitle events (e.g. "Beruf ... da")
-- **THEN** the system SHALL securely scan a sufficient window of surrounding subtitle chunks (e.g. `[-15, +15]`) to capture scattered components.
-- **AND** the system SHALL automatically augment the fuzzy temporal validity constraint to span exactly that outer limit natively, to ensure that words located at the far extremities of the phrase correctly inherit the temporal validity initially recorded for the first word.
+- **THEN** the system SHALL securely scan a configurable window of surrounding subtitle chunks (default `+/- 35 lines`) to capture scattered components.
+- **AND** the system SHALL automatically augment the temporal validity constraint up to a configurable limit (default `60.0s`) to ensure scattered components are correctly unified.
 
 ### Requirement: Configurable Split Selection Color
 The user SHALL be able to configure the specific hex color used for split-term highlighting via their player configuration.
