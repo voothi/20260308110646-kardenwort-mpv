@@ -831,7 +831,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         local target_logical_idx = target_l_idx + rel_logical_offset
         
         local safety = 0
-        while safety < 5 do
+        while safety < 20 do
             safety = safety + 1
             local c_tokens = get_sub_tokens(subs[curr_s_idx])
             if not c_tokens then return nil end
@@ -847,10 +847,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if target_logical_idx > wc then
                 target_logical_idx = target_logical_idx - wc
                 curr_s_idx = curr_s_idx + 1
-                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 1.5) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 10.0) then return nil end
             elseif target_logical_idx < 1 then
                 curr_s_idx = curr_s_idx - 1
-                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 1.5) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 10.0) then return nil end
                 get_sub_tokens(subs[curr_s_idx]) -- Ensure word_count is cached
                 target_logical_idx = target_logical_idx + (subs[curr_s_idx].word_count or 0)
             else
@@ -881,6 +881,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     end
                 end
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
+
+                -- Parse Pivot Grounding if present
+                if data.index then
+                    local l_off, p_idx, t_pos = tostring(data.index):match("^([%-+]?%d+):(%d+):(%d+)$")
+                    if l_off then
+                        data.__pivot = {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)}
+                    elseif type(data.index) == "number" or tostring(data.index):match("^%-?%d+$") then
+                        data.__pivot = {l_off = 0, p_idx = tonumber(data.index), t_pos = 1}
+                    end
+                end
             end
             local term_clean = data.__term_clean
             
@@ -1081,8 +1091,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                     valid_timing = false; break
                                                 end
                                             end
-                                            if not has_anchor and data.index and m.s_i == origin_sub_idx and m.l_i == data.index then
-                                                has_anchor = true
+                                            if not has_anchor and data.__pivot then
+                                                local g = data.__pivot
+                                                local m = ctx_list[current_tuple[g.t_pos]]
+                                                if m and m.s_i == origin_sub_idx + g.l_off and m.l_i == g.p_idx then
+                                                    has_anchor = true
+                                                end
                                             end
                                         end
                                         
@@ -1592,7 +1606,12 @@ local function load_anki_tsv(force)
                     time_val = time_val or 0
                 end
                 
-                local idx_val = (index_col > 0) and tonumber(fields[index_col]) or nil
+                local idx_val = (index_col > 0) and fields[index_col] or nil
+                if idx_val == "" then idx_val = nil end
+                -- Try to convert to number only if it's a simple integer; otherwise keep as grounding string
+                if idx_val and idx_val:match("^%-?%d+$") then
+                    idx_val = tonumber(idx_val)
+                end
                 
                 local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
                 if t and t ~= "" and not is_header then
@@ -2907,7 +2926,8 @@ local function dw_anki_export_selection()
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos)
-            save_anki_tsv_row(term, extracted_context, time_pos, p1_w)
+            local advanced_index = string.format("0:%d:1", p1_w)
+            save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
             show_osd("Anki Highlight Saved: " .. term)
 
             
@@ -3058,7 +3078,19 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
-    save_anki_tsv_row(term, extracted_context, time_pos, members[1].word)
+    -- Advanced Pivot Grounding: Identify which word of the term was clicked to resolve identity ambiguity.
+    local pivot_l_off = line_idx - members[1].line
+    local pivot_w_idx = word_idx
+    local pivot_t_pos = 1
+    for i, m in ipairs(members) do
+        if m.line == line_idx and m.word == word_idx then
+            pivot_t_pos = i
+            break
+        end
+    end
+    local advanced_index = string.format("%d:%d:%d", pivot_l_off, pivot_w_idx, pivot_t_pos)
+
+    save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
     show_osd("Anki Highlight Saved (Multi): " .. term)
     
     -- Force reload of TSV to pick up the new highlight
