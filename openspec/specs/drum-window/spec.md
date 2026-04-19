@@ -2,9 +2,7 @@
 
 ## Purpose
 Provide a high-precision, index-based interface for subtitle reading, selection, and mining with persistent highlight feedback.
-
 ## Requirements
-
 ### Requirement: Drum Window Unified Styling
 The Drum Window SHALL allow explicit control over its appearance (font name, size, weight/boldness, and background transparency) via script options.
 
@@ -21,7 +19,7 @@ The Drum Window SHALL allow explicit control over its appearance (font name, siz
 - **THEN** the Drum Window SHALL apply these font and weight settings to the text rendering, ensuring a consistent aesthetic across all mpv UI layers.
 
 ### Requirement: Scroll-Aware Selection Continuity
-The Drum Window SHALL ensure that any active text selection or word-highlight state is preserved and correctly synchronized when the viewport is scrolled using the mouse wheel.
+The Drum Window SHALL ensure that any active text selection, word-highlight, or the focus cursor position is preserved and correctly synchronized when the viewport is scrolled or when interacting with different input layouts.
 
 #### Scenario: Wheel Scroll Selection Stability
 - **WHEN** the user is actively dragging the mouse to select text (MBTN_LEFT down)
@@ -29,11 +27,10 @@ The Drum Window SHALL ensure that any active text selection or word-highlight st
 - **THEN** the system SHALL immediately update the selection range to include the word now under the mouse cursor at its new viewport position.
 - **AND** the selection SHALL NOT be cleared or disrupted by the scroll event.
 
-#### Scenario: Stationary Active Highlight
-- **WHEN** the Drum Window is scrolled via mouse wheel while NOT dragging
-- **THEN** the system SHALL maintain the highlight on the specific text index previously selected.
-- **AND** the highlight SHALL NOT snap to the word currently under the mouse pointer.
-- **AND** the cursor state (`FSM.DW_CURSOR_WORD`) SHALL NOT be reset to an invalid state.
+#### Scenario: Visual Cursor Sync (Pointer Jump)
+- **WHEN** a mouse-based interaction occurs (e.g., clicking on a word with a pairing modifier)
+- **THEN** the system SHALL immediately synchronize the Drum Window cursor (Yellow Highlight) and the anchor point to the word under the mouse pointer.
+- **AND** this synchronization SHALL occur before the specific action logic (e.g., toggling) is executed.
 
 ### Requirement: Exclusive UI Visibility
 The Drum Window SHALL maintain exclusive visibility over the active subtitle information, ensuring that native mpv subtitles do not overlap or leak through the UI regardless of media state changes or external property resets.
@@ -71,3 +68,29 @@ The Drum Window SHALL open and render subtitle content normally even when no `.t
 - **THEN** the window SHALL open in `DOCKED` state
 - **AND** subtitle lines SHALL render without any saved-word highlights
 - **AND** all Drum Window key bindings SHALL be active and functional
+
+### Requirement: Multi-Input Pairing Persistence
+The Drum Window SHALL maintain a persistent "Paired Selection" set (indicated by Pink highlight) that persists across multiple interaction events and is independent of the standard Yellow selection range.
+
+#### Scenario: Persistence Across Modifier Release
+- **WHEN** words are added to the paired selection set while holding a modifier key (e.g., Ctrl)
+- **AND** the user releases the modifier key
+- **THEN** the paired selection set (Pink highlights) SHALL NOT be cleared.
+
+#### Scenario: Explicit Paired Set Discard
+- **WHEN** the user triggers the explicit discard command (e.g., Ctrl+ESC)
+- **THEN** the entire pending paired selection set SHALL be cleared immediately.
+
+### Requirement: Range-Aware Paired Selection
+The Drum Window SHALL allow a contiguous yellow selection range to be converted into a discrete paired selection set in a single action.
+
+#### Scenario: Drag-to-Pair (Mouse)
+- **WHEN** the user drags a selection using a mouse-based pairing shortcut (e.g., Ctrl+MBTN_LEFT)
+- **THEN** the system SHALL render a standard yellow selection range during the drag.
+- **AND** upon release, the system SHALL convert every word in that range into the pink paired selection set and clear the temporary yellow selection.
+
+#### Scenario: Select-then-Toggle (Keyboard)
+- **WHEN** a yellow selection range is active
+- **AND** the user triggers the pairing toggle command (e.g., `t`)
+- **THEN** the system SHALL convert the entire yellow range into the pink paired selection set.
+
