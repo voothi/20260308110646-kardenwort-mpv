@@ -1074,7 +1074,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
                                                 local prev_m = ctx_list[current_tuple[m_idx-1]]
-                                                if math.abs(m.start - prev_m.start) > 2.0 then
+                                                if math.abs(m.start - prev_m.start) > 10.0 then
                                                     valid_timing = false; break
                                                 end
                                             end
@@ -3040,7 +3040,7 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
-    save_anki_tsv_row(term, extracted_context, time_pos)
+    save_anki_tsv_row(term, extracted_context, time_pos, members[1].word)
     show_osd("Anki Highlight Saved (Multi): " .. term)
     
     -- Force reload of TSV to pick up the new highlight
