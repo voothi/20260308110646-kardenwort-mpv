@@ -155,7 +155,7 @@
 20260419223523 o Check for regression. Compare with version f1aa3f0ffeb1a0803ad3531a42ef6cba6bded9bb (v1.42.4). I had a problem with the right key, which was supposed to call the tooltip. It works now, but not quite the same as in this version. I noticed that when I press RMB, the word under the mouse pointer is highlighted in yellow at the point where I clicked. This was not the case in the previous version. See the docs\conversation.log file for defining anchors and project development. You can also see changes in the openspec directory, they also have ZIDs and timestamps. Can you match the story.
 20260419231358 Go through and check the specifications now, it’s not working as it should.
 20260419231810 There are no elements, window w does not open.
-
+20260419233258 I checked for regression in another thread and edited the code in the current version. I need to go through this discussion thread and check the current version of the code for the following anchors
 
 
 

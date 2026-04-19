@@ -3163,33 +3163,31 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             local osd_x, osd_y = dw_get_mouse_osd()
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             
-            FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
-            if FSM.DW_TOOLTIP_LINE ~= -1 then
-                FSM.DW_TOOLTIP_LINE = -1
-                dw_tooltip_osd.data = ""
-                dw_tooltip_osd:update()
-            end
-
             if line_idx then
+                FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
+
+                if FSM.DW_TOOLTIP_LINE ~= -1 then
+                    FSM.DW_TOOLTIP_LINE = -1
+                    dw_tooltip_osd.data = ""
+                    dw_tooltip_osd:update()
+                end
+
                 -- Phase 1: Custom Actions (Tooltips, Pins, etc.)
                 if on_down_callback then on_down_callback(tbl) end
 
-                -- Phase 2: Selection Logic (Only for words)
+                -- Phase 2: Selection Logic (Only for words, if enabled)
                 if word_idx and updates_selection then
                     if is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
-                            -- Start shift selection from the current cursor position
                             FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
                             FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
                         end
-                        -- Extend selection to the clicked word
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
-                        -- Preserve existing selection for 'SCM' commit
+                        -- Preserve selection for commit
                     else
-                        -- Normal click: set both anchor and cursor (starts new selection)
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
                         FSM.DW_ANCHOR_LINE = line_idx
@@ -3197,21 +3195,12 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     end
                     
-                    -- Phase 3: Dragging (Only for Standard/Shift selection, not for tooltips/pins)
-                    if updates_selection or is_shift then
-                        FSM.DW_MOUSE_DRAGGING = true
-                        
-                        -- Fast-tracking on mouse move
-                        mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-
-                        -- Start a repeating timer for auto-scroll near edges
-                        if FSM.DW_MOUSE_SCROLL_TIMER then
-                            FSM.DW_MOUSE_SCROLL_TIMER:kill()
-                        end
-                        FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
-                    end
+                    -- Phase 3: Dragging (Only for selection/shift)
+                    FSM.DW_MOUSE_DRAGGING = true
+                    mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
+                    if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
+                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
                     
-                    -- Force immediate update to show Red selection highlight on down
                     drum_osd:update()
                     if dw_osd then dw_osd:update() end
                 end
@@ -3219,7 +3208,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             
-            -- Lock suppression only if this was a selection action
+            -- Release suppression release lock if we were dragging
             local line_idx, _ = dw_hit_test(dw_get_mouse_osd())
             if updates_selection then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
@@ -3240,6 +3229,7 @@ end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
+
 local function dw_anki_export_smart_callback(tbl)
     -- Only trigger on release (Standard export behavior)
     if tbl and tbl.event ~= "up" then return end
@@ -3299,7 +3289,7 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         dw_osd:update()
     else
         -- Fallback to single word toggle (standard behavior)
-        if is_mouse then
+        if was_mouse then
             local osd_x, osd_y = dw_get_mouse_osd()
             line, word = dw_hit_test(osd_x, osd_y)
         else
@@ -3307,17 +3297,13 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         end
         
         if line and line ~= -1 and word and word ~= -1 then
-            -- Sync cursor and anchor state ONLY for mouse-based interaction
-            if is_mouse then
-                FSM.DW_CURSOR_LINE = line
-                FSM.DW_CURSOR_WORD = word
-                FSM.DW_ANCHOR_LINE = line
-                FSM.DW_ANCHOR_WORD = word
-            end
+            -- NEVER update cursor/anchor during a toggle-pink action if it was triggered via mouse.
+            -- This ensures that RMB (context) or toggle actions don't move the selector.
             ctrl_toggle_word(line, word)
         end
     end
 end
+
 
 local function cmd_dw_double_click()
     local subs = Tracks.pri.subs
@@ -4544,10 +4530,13 @@ function cmd_toggle_drum_window()
         show_osd("Drum Window: No subtitles loaded")
         return
     end
-    if not Tracks.pri.path then
-        show_osd("Drum Window: Requires external subtitle files")
+    -- Support both external (path-based) and internal (loaded into memory) tracks.
+    -- If no subs are in memory and no path exists, we truly can't open.
+    if not Tracks.pri.path and #Tracks.pri.subs == 0 then
+        show_osd("Drum Window: requires loaded subtitles")
         return
     end
+
 
     if FSM.DRUM_WINDOW == "OFF" then
         print("[LLS] OPENING DRUM WINDOW...")
