@@ -129,6 +129,7 @@ local Options = {
     anki_local_fuzzy_window = 10.0,
     anki_split_search_window = 35,      -- Line search window for paired words (+/- segments)
     anki_split_gap_limit = 60.0,        -- Max temporal gap between paired words (seconds)
+    anki_neighbor_window = 5,           -- Context window for neighbor identification (+/- segments)
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
@@ -833,7 +834,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         local target_logical_idx = target_l_idx + rel_logical_offset
         
         local safety = 0
-        while safety < 20 do
+        local safety_limit = Options.anki_split_search_window or 20
+        while safety < safety_limit do
             safety = safety + 1
             local c_tokens = get_sub_tokens(subs[curr_s_idx])
             if not c_tokens then return nil end
@@ -983,7 +985,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     local g = data.__pivots[1]
                                     local check_s, check_l = sub_idx, target_l_idx + (g.t_pos - term_offset)
                                     local safety = 0
-                                    while safety < 50 do
+                                    local safety_limit = (Options.anki_split_search_window or 35) * 2
+                                    while safety < safety_limit do
                                         safety = safety + 1
                                         if check_l < 1 and check_s > 1 then
                                             check_s = check_s - 1
