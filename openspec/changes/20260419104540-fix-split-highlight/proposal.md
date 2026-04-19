@@ -7,6 +7,7 @@ Split-term (purple) highlights in the Drum Window fail when constituent words sp
 - **Increased Temporal Tolerance**: Expand the split-phrase search window to 10 lines and 12 seconds.
 - **Improved Grounding**: Implement anchor-independent fallback for split-terms to handle inaccurate TSV indices (e.g., index drift or manual edits).
 - **Export Consistency**: Fix the anchor index propagation in multi-word `Ctrl+Select` exports.
+- **Ambiguity Resolution**: Implement multi-index grounding (offset:index) for split-terms to distinguish between identical words in the same context.
 - **Indentation Refinement**: Standardize indentation in `load_anki_mapping_ini`.
 
 ## Capabilities

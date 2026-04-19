@@ -881,6 +881,25 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     end
                 end
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
+                
+                -- Parse multi-index requirements for precise grounding
+                if data.index then
+                    local reqs = {}
+                    if type(data.index) == "number" then
+                        table.insert(reqs, {s_off = 0, l_idx = data.index})
+                    else
+                        for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
+                            local s_off, l_idx = part:match("^([%-+]?%d+):(%d+)$")
+                            if s_off and l_idx then
+                                table.insert(reqs, {s_off = tonumber(s_off), l_idx = tonumber(l_idx)})
+                            else
+                                local single = tonumber(part)
+                                if single then table.insert(reqs, {s_off = 0, l_idx = single}) end
+                            end
+                        end
+                    end
+                    data.__index_reqs = reqs
+                end
             end
             local term_clean = data.__term_clean
             
@@ -1064,15 +1083,19 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
 
                             if all_present then
-                                local best_tuple = nil
-                                local min_span = 999999
+                                local best_precise_tuple = nil
+                                local min_precise_span = 999999
+                                local best_partial_tuple = nil
+                                local min_partial_span = 999999
                                 local best_unanchored_tuple = nil
                                 local min_unanchored_span = 999999
                                 
                                 local function search(term_idx, current_tuple)
                                     if term_idx > #term_clean then
                                         local valid_timing = true
-                                        local has_anchor = (not data.index) or (data.index == -1) or (origin_sub_idx == -1)
+                                        local matched_req_count = 0
+                                        local reqs = data.__index_reqs or {}
+                                        
                                         for m_idx = 1, #current_tuple do
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
@@ -1081,18 +1104,34 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                     valid_timing = false; break
                                                 end
                                             end
-                                            if not has_anchor and data.index and m.s_i == origin_sub_idx and m.l_i == data.index then
-                                                has_anchor = true
+                                            
+                                            local req = reqs[m_idx]
+                                            if req and origin_sub_idx ~= -1 then
+                                                if m.s_i == origin_sub_idx + req.s_off and m.l_i == req.l_idx then
+                                                    matched_req_count = matched_req_count + 1
+                                                end
                                             end
                                         end
                                         
                                         if valid_timing then
                                             local span = current_tuple[#current_tuple] - current_tuple[1]
-                                            if has_anchor then
-                                                if span < min_span then
-                                                    min_span = span
-                                                    best_tuple = {}
-                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                            local g_level = 0
+                                            if #reqs > 0 then
+                                                if matched_req_count == #reqs then g_level = 2
+                                                elseif matched_req_count > 0 then g_level = 1 end
+                                            end
+                                            
+                                            if g_level == 2 then
+                                                if span < min_precise_span then
+                                                    min_precise_span = span
+                                                    best_precise_tuple = {}
+                                                    for k,v in ipairs(current_tuple) do best_precise_tuple[k] = v end
+                                                end
+                                            elseif g_level == 1 then
+                                                if span < min_partial_span then
+                                                    min_partial_span = span
+                                                    best_partial_tuple = {}
+                                                    for k,v in ipairs(current_tuple) do best_partial_tuple[k] = v end
                                                 end
                                             else
                                                 if span < min_unanchored_span then
@@ -1114,10 +1153,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 end
                                 search(1, {})
                                 
-                                -- Fallback to unanchored match if ground-truth coordinate check failed
-                                if not best_tuple and best_unanchored_tuple then
-                                    best_tuple = best_unanchored_tuple
-                                end
+                                local best_tuple = best_precise_tuple or best_partial_tuple or best_unanchored_tuple
                                 
                                 if best_tuple then
                                     valid_set = {}
@@ -1592,7 +1628,11 @@ local function load_anki_tsv(force)
                     time_val = time_val or 0
                 end
                 
-                local idx_val = (index_col > 0) and tonumber(fields[index_col]) or nil
+                local idx_val = (index_col > 0) and fields[index_col] or nil
+                if idx_val == "" then idx_val = nil end
+                if idx_val and idx_val:match("^%-?%d+$") then
+                    idx_val = tonumber(idx_val)
+                end
                 
                 local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
                 if t and t ~= "" and not is_header then
@@ -3058,7 +3098,20 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
-    save_anki_tsv_row(term, extracted_context, time_pos, members[1].word)
+    local index_val
+    if #members == 1 then
+        index_val = members[1].word
+    else
+        local idx_parts = {}
+        local first_line = members[1].line
+        for _, m in ipairs(members) do
+            local s_off = m.line - first_line
+            table.insert(idx_parts, string.format("%d:%d", s_off, m.word))
+        end
+        index_val = table.concat(idx_parts, ",")
+    end
+
+    save_anki_tsv_row(term, extracted_context, time_pos, index_val)
     show_osd("Anki Highlight Saved (Multi): " .. term)
     
     -- Force reload of TSV to pick up the new highlight

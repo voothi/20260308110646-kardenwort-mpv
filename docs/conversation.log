@@ -74,6 +74,7 @@
 20260419101529 opsx-archive
 20260419102718 o # Why is sind not highlighted in purple in the paired selection, see TSV and screenshot?
 20260419103509 Look, it hasn't changed. I hope nothing else is broken.
-
+20260419104826 o Let's look at the next edge case in highlighting paired words (purple highlight). If in the text between these words there are two identical words `gleich`, then the first one is highlighted, and not specifically the one you highlighted. There is a solution to highlight both, but this is not correct. It is necessary that only those pairs that have been selected are highlighted. We need to make sure nothing else breaks. I have specifications written in OpenSpec to prevent regression.
+ 
 
 
