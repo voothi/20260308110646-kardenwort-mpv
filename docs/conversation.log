@@ -91,7 +91,9 @@
 20260419124301 Error in the console. 
 20260419124510 The error has been resolved, but the problem with the purple highlight is not present. Is there a problem with the TSV file format?
 20260419125922 The indexes seem to be saved now. Check also the TSV format. But it doesn't change the essence of the case. In this particular case, the selection remains purple.
-
+20260419130800 Okay, we finally solved this problem, now it is highlighted in orange and the other one seems to work correctly. Let's go through the code and check that there are no more of the same inconsistencies.
+20260419131114 Check that our code also does not have any outdated parts related to regular expression checks, which may be redundant or outdated after a complete transition in all modes (word, phrase and orange, purple highlight) to the approach with advanced indexes.
+20260419131436 Check that our solution is optimized for speed and reliability for our modes. That Anki Global OFF/ON mode works. That this will not affect the speed of scrolling, changing subtitles during playback, the speed of adding records and their highlighting.
 
 
 

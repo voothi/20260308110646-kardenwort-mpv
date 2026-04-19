@@ -1066,7 +1066,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 local function search(term_idx, current_tuple)
                                     if term_idx > #term_clean then
                                         local valid_timing = true
-                                        local has_anchor = (not data.index) or (data.index == -1) or (origin_sub_idx == -1)
+                                        local has_anchor = (not data.index) or (data.index == -1) or (origin_sub_idx == -1) or Options.anki_global_highlight
                                         for m_idx = 1, #current_tuple do
                                             local m = ctx_list[current_tuple[m_idx]]
                                             if m_idx > 1 then
