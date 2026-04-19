@@ -120,9 +120,7 @@
 20260419185701 Okay, I see that you explicitly specified combinations as values. Let's think, we have a similar interface, is there an approach somewhere in our config in this form, when we list the values ​​separated by commas? I have a feeling that even if there was such a solution for a clear declaration of keyboard shortcuts, it is not very suitable, because a comma itself can be a sign and a key. 
 20260419190252 You made a solution with this view dw_key_add = "MBTN_MID Ctrl+MBTN_MID r to", dw_key_pair = "t e Ctrl+MBTN_LEFT", dw_key_tooltip_pin = "MBTN_RIGHT", dw_key_tooltip_hover = "n t", dw_key_tooltip_toggle = "e y", was it possible to make several identical configuration parameters, but with different combinations on separate lines of the config? Or is only one allowed?
 20260419190814 Okay, I like it, then let's leave the current version of the parser, which allows you to use one of three delimiters, and switch in the code and in the config to use a space as a delimiter. Check line 115 of the script file. It's good that you corrected the tooltip parameters. Check the config that there are no longer any old representations of keyboard shortcuts left.
-
-
-
+20260419191448 Okay, I see that you updated the comments in this config, let's create opsx-propose according to the conversation anchors so as not to forget anything
 
 
 
