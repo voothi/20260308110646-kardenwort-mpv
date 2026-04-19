@@ -1,14 +1,21 @@
-## 1. Engine Hardening
+## 1. Engine Hardening & Precision
 
-- [x] 1.1 Expand split-phrase search window to +/- 10 lines in `calculate_highlight_stack`.
-- [x] 1.2 Increase per-subtitle temporal gap limit to 12.0 seconds.
-- [x] 1.3 Implement `best_unanchored_tuple` fallback for inaccuracies in TSV `SentenceSourceIndex`.
-- [x] 1.4 Generalize ellipsis detection to match `...` with or without whitespace.
+- [x] 1.1 Complete transition from Single-Pivot to Multi-Pivot grounding system.
+- [x] 1.2 Implement `L:W:T` tri-coordinate parsing in `calculate_highlight_stack`.
+- [x] 1.3 Add temporal epsilon (+1ms) to all Anki exporter timestamps to prevent boundary drift.
+- [x] 1.4 Refactor Phase 1 (Orange) identifier to prioritize grounded anchors over fuzzy context.
+- [x] 1.5 Eliminate 10s hardcoded gap limit in the word-traverser; link to `anki_split_gap_limit`.
 
-## 2. Export & UI Sync
+## 2. Configuration & Integration
 
-- [x] 2.1 Update `ctrl_commit_set` and `dw_anki_export_selection` to export advanced pivot coordinates (`L_OFF:W_IDX:T_POS`).
-- [x] 2.2 Implement multi-segment Pivot Grounding in both Phase 1 (Contiguous) and Phase 2 (Split) search engines.
-- [x] 2.3 Verify fix by toggling the Drum Window and checking console for `Pivot Grounding` messages.
-- [x] 2.4 Hardened "Large Chunk" lookup by increasing segment safety (20) and gap (10s) limits.
-- [x] 2.2 Clean up indentation in `load_anki_mapping_ini`.
+- [x] 2.1 Expose all search windows and gap limits to `mpv.conf` with detailed documentation.
+- [x] 2.2 Synchronize default fallbacks in `lls_core.lua` with `mpv.conf` initial values.
+- [x] 2.3 Ensure "Anki Global" toggle compatibility across all identification phases.
+- [x] 2.4 Fix coordinate scope bug in `dw_anki_export_selection` causing missing indices.
+
+## 3. Optimization & Validation
+
+- [x] 3.1 Implement recursive result caching on subtitle tokens to maintain 144fps rendering speed.
+- [x] 3.2 Add lazy-caching for `term_clean` and `__pivots` parsing.
+- [x] 3.3 Verify 100% precision for large (40+ word) range selections spans lines.
+- [x] 3.4 Audit code for legacy regex-find patterns; convert all to plain-string or word-iterators.
