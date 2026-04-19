@@ -90,7 +90,7 @@
 20260419123538 I don't know what you did, but it didn't work. I hope there is no regression on working functions. Try again. Why is there such an index here 0:4:1? Is this enough?
 20260419124301 Error in the console. 
 20260419124510 The error has been resolved, but the problem with the purple highlight is not present. Is there a problem with the TSV file format?
-
+20260419125922 The indexes seem to be saved now. Check also the TSV format. But it doesn't change the essence of the case. In this particular case, the selection remains purple.
 
 
 

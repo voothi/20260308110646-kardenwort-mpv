@@ -851,10 +851,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if target_logical_idx > wc then
                 target_logical_idx = target_logical_idx - wc
                 curr_s_idx = curr_s_idx + 1
-                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > 10.0) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > (Options.anki_split_gap_limit or 10.0)) then return nil end
             elseif target_logical_idx < 1 then
                 curr_s_idx = curr_s_idx - 1
-                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > 10.0) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > (Options.anki_split_gap_limit or 10.0)) then return nil end
                 get_sub_tokens(subs[curr_s_idx]) -- Ensure word_count is cached
                 target_logical_idx = target_logical_idx + (subs[curr_s_idx].word_count or 0)
             else
