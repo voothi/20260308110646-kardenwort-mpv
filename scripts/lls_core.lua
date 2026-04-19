@@ -3148,6 +3148,8 @@ local function ctrl_commit_set(line_idx, word_idx)
 end
 
 
+local MOUSE_HANDLERS = {}
+
 local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
     if updates_selection == nil then updates_selection = true end
     local handler = function(tbl)
@@ -3232,7 +3234,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             if on_up_callback then on_up_callback(tbl) end
         end
     end
-    handler._is_mouse_handler = true
+    MOUSE_HANDLERS[handler] = true
     return handler
 end
 
@@ -3794,7 +3796,7 @@ local function manage_dw_bindings(enable)
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
                     -- Detect if the handler is already a mouse handler to avoid redundant wrapping
-                    if mouse_fn and mouse_fn._is_mouse_handler then
+                    if mouse_fn and MOUSE_HANDLERS[mouse_fn] then
                         table.insert(keys, {
                             key = key,
                             name = base_name .. "-" .. i,
