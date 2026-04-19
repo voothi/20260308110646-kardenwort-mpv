@@ -108,8 +108,8 @@
 20260419141534 Okay, this suits me even better. Implement it.
 20260419141733 Okay, will it be recorded somewhere that we made a transit, a transition from the colors that were there, indicating what we called them earlier, in order to improve the search and continuity of documentation, historicity? We had the terms bright yellow, pale yellow.
 20260419142006 Ok let's do it opsx-apply, opsx-archive
-
-
+20260419142524 o /create-release-2 v1.42.2 20260419101025-dynamic-source-url-discovery 20260419104540-fix-split-highlight 20260419140508-fix-highlight-contrast-and-selection-theme
+20260419151640 o Another implementation error has been discovered, a bug. When you click on the second `gleich` in a sentence, it is added and marked in orange, but the first one is marked along with it, although it is not in the file and I did not touch it, and Anki Global mode is in the OFF state.
 
 
 

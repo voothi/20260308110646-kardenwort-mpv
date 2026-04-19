@@ -991,7 +991,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         end
                                     end
                                     
-                                    if not context_satisfied then
+                                    if not context_satisfied and (Options.anki_global_highlight or not (data.__pivots and #data.__pivots > 0)) then
                                         -- Fuzzy context check
                                         local match_count = 0
                                         local scan_pad = Options.anki_neighbor_window or 5
@@ -2894,6 +2894,7 @@ local function dw_anki_export_selection()
                     end
                 end
                 term = term or target_sub.text
+                advanced_index = string.format("0:%d:1", cw)
                 -- Check for boundary
                 if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
                     is_sentence_boundary = true
