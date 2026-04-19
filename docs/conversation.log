@@ -85,6 +85,7 @@
 20260419120350 Now update mpv.conf with comments about what it is and how it works.
 20260419120907 At the moment, it seems that the problems have been resolved. Check that all these parameters make sense in the current implementation. That they are not contradictory and not redundant. script-opts-append=lls-anki_local_fuzzy_window=1 script-opts-append=lls-anki_split_search_window=35 script-opts-append=lls-anki_split_gap_limit=60.0 script-opts-append=lls-anki_context_strict=yes
 20260419121224 Okay, but I still see that in the code you provided there are still some hard-coded  values ​​​​that should have been included in the config, so as not to touch the code when fine-tuning this mechanism.
+20260419121709 All hard-coded values ​​in the code of this mechanism remained default, as a fallback? And are they consistent and equal to what is currently in mpv.conf?
 
 
 
