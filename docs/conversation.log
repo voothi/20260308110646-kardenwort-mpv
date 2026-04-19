@@ -146,6 +146,7 @@
 20260419215702 Have you taken into account all the anchors? 20260419212539 20260419214213 20260419214743 20260419215229
 20260419215816 Okay, thanks, create a release create-release-2 v1.44.2 20260419191638-unify-drum-mining-shortcuts 20260419211035-harden-drum-mining-interaction 20260419215300-harden-interaction-and-shield
 20260419220036 Update README.md
+20260419221657 Showing tooltip by key and by pressing the right mouse button stopped working. This may have something to do with the keyboard shortcut refactoring, I haven't checked since then.
 
 
 

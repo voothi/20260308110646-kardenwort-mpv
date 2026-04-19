@@ -2641,12 +2641,14 @@ local function cmd_dw_tooltip_toggle()
         print("[LLS] TOOLTIP TOGGLE: ON")
         FSM.DW_TOOLTIP_FORCE = true
         FSM.DW_TOOLTIP_LINE = line_idx
-        -- Only draw if visible to prevent off-screen blinking artifacts
+        -- Use mapped Y if available, otherwise find it or fallback to a reasonable offset
         local y = FSM.DW_LINE_Y_MAP[line_idx]
-        if y then
-            dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
-            dw_tooltip_osd:update()
+        if not y then
+            -- Force a redraw or use a midpoint if we're desperate
+            y = 540 -- center of 1080p OSD
         end
+        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
+        dw_tooltip_osd:update()
     end
 end
 
@@ -3146,7 +3148,7 @@ local function ctrl_commit_set(line_idx, word_idx)
 end
 
 
-local function make_mouse_handler(is_shift, on_up_callback)
+local function make_mouse_handler(is_shift, on_up_callback, on_down_callback)
     return function(tbl)
         -- Shield logic: ignore mouse events if a keyboard command was just triggered
         if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
@@ -3202,6 +3204,7 @@ local function make_mouse_handler(is_shift, on_up_callback)
                 drum_osd:update()
                 if dw_osd then dw_osd:update() end
             end
+            if on_down_callback then on_down_callback(tbl) end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             
@@ -3223,7 +3226,10 @@ end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
-local function dw_anki_export_smart_callback()
+local function dw_anki_export_smart_callback(tbl)
+    -- Only trigger on release (Standard export behavior)
+    if tbl and tbl.event ~= "up" then return end
+    
     local starts_pink = false
     if FSM.DW_ANCHOR_LINE ~= -1 then
         local a_key = string.format("%d:%d", FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD)
@@ -3244,6 +3250,9 @@ local function cmd_dw_add_smart()
 end
 
 local function cmd_dw_toggle_pink(tbl, was_mouse)
+    -- Only trigger mouse buttons on release to avoid double-toggle
+    if was_mouse and tbl and tbl.event ~= "up" then return end
+    
     local line, word
     -- Canonical context check
     local is_mouse = (was_mouse == true)
@@ -3773,7 +3782,11 @@ local function manage_dw_bindings(enable)
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
                     -- Mouse keys get the full drag/drop treatment via make_mouse_handler
-                    local m_fn = make_mouse_handler(false, function(t) mouse_fn(t, true) end)
+                    -- We pass mouse_fn to BOTH down and up phases to support pins (down) and toggles (up)
+                    local m_fn = make_mouse_handler(false, 
+                        function(t) mouse_fn(t, true) end, -- up
+                        function(t) mouse_fn(t, true) end  -- down
+                    )
                     table.insert(keys, {
                         key = key,
                         name = base_name .. "-" .. i,
