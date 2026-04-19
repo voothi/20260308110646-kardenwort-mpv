@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.40.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.40.2) 
+[![Version](https://img.shields.io/badge/version-v1.42.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.42.2) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -73,11 +73,13 @@ This suite solves problems that standard video players and generic scripts ignor
 7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
 8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
 9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
-10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session. Implements strict index-based grounding to prevent highlight bleed for common words.
+10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session. Implements **Multi-Pivot Grounding** (`Line:Word:TermPos`) to mathematically eliminate highlight bleed.
 11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
 12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
 13. **Smart Stacking Engine**: Unified layout coordination for dual-track subtitles that restores manual positioning control while preventing visual overlap by default.
-14. **Selection Priority**: Persistent multi-word selections (Ctrl + LMB) now take visual precedence over transient cursor highlights, ensuring continuous feedback during complex vocabulary mining.
+14. **Selection Priority**: Persistent multi-word selections (Ctrl + LMB) now take visual precedence over transient cursor highlights.
+15. **Dynamic Source Discovery**: Automatically extracts YouTube/Source URLs from local metadata files (`.url`, `.txt`, `.md`) for zero-touch Anki metadata population.
+16. **Chromatic Selection Theme**: Implements a "Warm vs. Cool" workflow using Gold for contiguous and Neon Pink for split-phrase selections.
 
 [Return to Top](#table-of-contents)
 
@@ -141,12 +143,14 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
   - **Orange**: Contiguous word sequences.
   - **Purple**: Split-word constructs (e.g., separable verbs).
   - **Mixed**: Blended colors for overlapping terms.
+- **Precision Grounding**: Uses a comprehensive coordinate system (`Line:Word:TermPos`) to anchor highlights to specific scenes, preventing common words from bleeding across unrelated segments.
 - **Multi-Word Selection**: 
   - `Ctrl + LMB`: Accumulate individual words into a yellow pending selection.
   - `MMB`: Commit the selected set as a highlight and export it to your TSV database.
 - **Automatic Sanitization**: Strips leading/trailing punctuation and bracketed metadata (e.g. `[Musik]`) to ensure cards are optimized for dictionary matching. Smart joiners preserve hyphens/slashes in German compounds.
 - **Dynamic Context**: The engine intelligently scans surrounding lines to capture grammatically complete sentences for your flashcards.
 - **Instant Record Access**: Press **`o`** within the Drum Window to instantly open your active TSV database in your default editor.
+- **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
 A sophisticated extraction tool that supports substring and multi-line range selection.
@@ -255,7 +259,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.40.2 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.42.2 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -264,7 +268,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~612 Commits (v1.40.2)
+- **Current Maturity**: ~619 Commits (v1.42.2)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
