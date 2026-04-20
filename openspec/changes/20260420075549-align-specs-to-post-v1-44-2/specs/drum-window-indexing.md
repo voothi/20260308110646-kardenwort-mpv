@@ -6,10 +6,10 @@ Ensure 100% precise, scene-locked highlighting and context extraction by impleme
 ## Requirements
 
 ### Requirement: Logical Word Indexing (Token Atomization)
-The system SHALL assign a unique 1-indexed logical position to every word-character token within a subtitle segment.
-- **Non-Word Tokens**: Punctuation, symbols, and whitespace SHALL be tokenized but SHALL NOT increment the logical index.
-- **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence.
-- **Square Brackets**: Content within `[]` SHALL NOT be atomized, allowing granular selection of internal words and punctuation.
+The system SHALL assign a unique 1-indexed logical position to every non-space character/token within a subtitle segment (including words, punctuation, and symbols).
+- **Logical Words**: Every token identified by the scanner (words, periods, brackets, commas, etc.) SHALL increment the logical index, making every character a selectable and highlightable unit.
+- **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence; they do NOT receive logical indices.
+- **Square Brackets**: Content within `[]` (and the brackets themselves) SHALL be treated as individual logical words to allow granular selection of internal metadata or punctuation.
 
 ### Requirement: Multi-Pivot Grounding Map
 To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.
@@ -39,6 +39,6 @@ The highlight engine SHALL use the coordinate map to perform strict existence ch
 
 ### Requirement: Logical Hit-Test Snapping
 The hit-testing engine SHALL implement logical word snapping for all mouse interactions.
-- **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces, punctuation, line gaps) SHALL be snapped to the nearest valid logical word index.
+- **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces or line gaps) SHALL be snapped to the nearest valid logical word index. Punctuation and brackets are now valid logical indices and do NOT trigger snapping.
 - **Margin Snap**: Mouse coordinates outside the active text block SHALL be clamped to the first/last logical word of the nearest visible subtitle line.
 - **Consistency**: This mapping SHALL be identical for both Contiguous (LMB) and Paired (Ctrl+Click) selection paths.

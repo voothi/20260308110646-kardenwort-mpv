@@ -71,13 +71,14 @@ The engine SHALL verify word neighbors against both the original `SentenceSource
 - **Multi-Match Priority**: **Phrase Continuity Mode** SHALL take precedence.
 
 ### Requirement: Clean Boundary Capture
-Leading and trailing punctuation/whitespace SHALL be stripped from clipboard and Anki exports. Internal punctuation SHALL be preserved.
+Leading and trailing punctuation/whitespace SHALL be stripped from clipboard and Anki exports unless they are explicitly selected as defining tokens (e.g., brackets `[]` or trailing periods). 
+- **Preservation Rule**: Square brackets `[` and `]` SHALL be preserved even at boundaries to respect manually defined metadata selections.
 
 ### Requirement: Metadata-Tolerant Context Matching
-The highlight engine SHALL ignore or skip metadata tags (e.g., `[musik]`) during context matching if `anki_strip_metadata` is set to `yes`.
+The highlight engine SHALL ignore or skip metadata tags (e.g., `[musik]`) during automated context matching if `anki_strip_metadata` is set to `yes`.
 - **Term Stripping**: For the exported Term, brackets SHALL ONLY be stripped if the entire selection consists of a single bracketed block (e.g., `[musik]` -> `musik`).
-- **Phrase Integrity**: Brackets within a multi-token phrase (e.g., `Ende [musik]`) SHALL be preserved to maintain user-intent for explicit selections.
-- **Context Stripping**: Metadata inside the `SentenceSource` (context) field SHALL remain aggressively stripped to ensure search stability.
+- **Phrase Integrity**: Brackets within a multi-token phrase (e.g., `Ende [musik]`) SHALL be preserved as literal text.
+- **Smart Context Stripping**: Metadata inside the `SentenceSource` (context) field SHALL be stripped UNLESS it intersects with the exported Term (Smart Stripping), ensuring context grounding remains stable while preserving user-intent.
 
 ### Requirement: High-Fidelity Range Reconstruction
 The reconstruction engine MUST preserve the exact character sequence, including internal punctuation and original whitespace tokens, when a range of contiguous words is selected.
