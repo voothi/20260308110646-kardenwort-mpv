@@ -2017,7 +2017,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             local meta = { text = t.text, color = base_color, is_word = t.is_word, is_phrase = false, priority = 0 }
             
             -- Level 1: Persistent Selection
-            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", sub_idx, l_idx)] or nil
+            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", sub_idx, l_idx)] or nil
             if ctrl_member then
                 meta.color = Options.dw_ctrl_select_color
                 meta.priority = 1
@@ -2274,7 +2274,7 @@ local function draw_dw(subs, view_center, active_idx)
                 local meta = { text = w.text, color = color, is_word = w.is_word, is_phrase = false, priority = 0 }
                 
                 -- Level 1: Persistent Selection
-                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
+                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", i, l_idx)] or nil
                 if ctrl_member then
                     meta.color = Options.dw_ctrl_select_color
                     meta.priority = 1
@@ -3081,7 +3081,7 @@ end
 
 local function ctrl_commit_set(line_idx, word_idx)
     -- Check if cursor word is in set
-    local key = string.format("%d:%d", line_idx, word_idx)
+    local key = string.format("%d:%g", line_idx, word_idx)
     if not FSM.DW_CTRL_PENDING_SET[key] then
         -- Fallback to plain MMB single-click export
         dw_anki_export_selection()
@@ -3109,8 +3109,17 @@ local function ctrl_commit_set(line_idx, word_idx)
     for _, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
-            if not sub.words then sub.words = build_word_list(sub.text) end
-            local w = sub.words[m.word]
+            local w = nil
+            local tokens = get_sub_tokens(sub)
+            if tokens then
+                for _, t in ipairs(tokens) do
+                    if logical_cmp(t.logical_idx, m.word) then
+                        w = t.text
+                        break
+                    end
+                end
+            end
+            
             if w then
                 local clean_w = w
                 if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
@@ -3207,7 +3216,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     local start_time = members[1].time or time_pos
     for i, m in ipairs(members) do
         local l_off = m.line - members[1].line
-        table.insert(indices, string.format("%d:%d:%d", l_off, m.word, i))
+        table.insert(indices, string.format("%d:%g:%d", l_off, m.word, i))
     end
     local advanced_index = table.concat(indices, ",")
 
@@ -3328,7 +3337,7 @@ local function dw_anki_export_smart_callback(tbl)
     
     local starts_pink = false
     if FSM.DW_ANCHOR_LINE ~= -1 then
-        local a_key = string.format("%d:%d", FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD)
+        local a_key = string.format("%d:%g", FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD)
         if FSM.DW_CTRL_PENDING_SET[a_key] then starts_pink = true end
     end
     
@@ -3363,11 +3372,19 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         for i = p1_l, p2_l do
             local sub = subs[i]
             if sub then
-                if not sub.words then sub.words = build_word_list(sub.text) end
-                local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or #sub.words
-                for w = s_w, e_w do
-                    ctrl_toggle_word(i, w)
+                local s_w = (i == p1_l) and p1_w or -1
+                local e_w = (i == p2_l) and p2_w or 999999
+                local in_range = (i > p1_l)
+                
+                local tokens = get_sub_tokens(sub)
+                if tokens then
+                    for _, t in ipairs(tokens) do
+                        if logical_cmp(t.logical_idx, s_w) then in_range = true end
+                        if in_range then
+                            ctrl_toggle_word(i, t.logical_idx)
+                        end
+                        if logical_cmp(t.logical_idx, e_w) then in_range = false break end
+                    end
                 end
             end
         end
