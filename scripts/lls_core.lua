@@ -141,7 +141,7 @@ local Options = {
     -- Colors
     dw_split_select_color = "FF88B0",
     book_mode = false,
-    dw_mouse_shield_ms = 50,      -- Ghost-click suppression window after keyboard commands (ms)
+    dw_mouse_shield_ms = 150,      -- Ghost-click suppression window after keyboard commands (ms)
     sentence_word_threshold = 3
 }
 options.read_options(Options, "lls")
@@ -917,7 +917,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             local term_clean = data.__term_clean
             
             local window = Options.anki_local_fuzzy_window
-            if #term_clean > 10 then window = window + (#term_clean * 0.5) end
+            if #term_clean > 10 then window = window + ((#term_clean - 10) * 0.5) end
 
             local sub_start = subs[sub_idx].start_time
             local sub_end = subs[sub_idx].end_time
@@ -3787,7 +3787,7 @@ local function manage_dw_bindings(enable)
             -- Navigation/Action keys (Arrows, Enter, etc.) still trigger the 150ms mouse lockout.
             local key = (t and t.key) or key_name or ""
             if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
-                FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.150
+                FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
             end
             return fn(t)
         end
@@ -3863,8 +3863,11 @@ local function manage_dw_bindings(enable)
                         key = key,
                         name = base_name .. "-" .. i,
                         fn = function(t) 
-                            -- Shield the mouse from ghost clicks after a key is pressed
-                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
+                            -- Shield the mouse from ghost clicks after a key is pressed (excluding modifiers)
+                            local key = (t and t.key) or ""
+                            if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
+                                FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
+                            end
                             key_fn(t, false) 
                         end,
                         complex = false
