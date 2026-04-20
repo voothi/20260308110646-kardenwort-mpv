@@ -15,6 +15,11 @@ The highlighter engine SHALL be capable of verifying word sequences that are spl
 - **AND** Subtitle 2 starts 5.0 seconds after Subtitle 1 ends.
 - **THEN** BOTH words SHALL remain highlighted as a unified phrase.
 
+### Requirement: Local Timestamp Graceful Fallback
+When evaluating a record at its original timestamp center, the highlighter SHALL prioritize Multi-Pivot grounding but MUST fallback to high-recall context matching (Word-Token Intersection) if coordinates are mismatched.
+- **Rationale**: Prevents "highlight vanish" caused by minor coordinate drift (e.g., from punctuation handling changes) or subtitle index shifts on the original subtitle line.
+- **Scope**: Applied only when the evaluation context sits at the record's original `start_time`.
+
 ### Requirement: Precision Neighborhood Verification (Token Intersection)
 When Global Highlighting is active, the system SHALL perform a word-token intersection check against neighboring segments to ensure contextual validity.
 - **Mechanism**: The engine SHALL scan neighboring segments (+/- `anki_neighbor_window`, default 5 lines).

@@ -13,10 +13,7 @@ The system SHALL assign a unique 1-indexed logical position to every word-charac
 ### Requirement: Multi-Pivot Grounding Map
 To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.
 - **Format**: `LineOffset:WordIndex:TermPos` (e.g., `0:4:1`).
-- **Composition**:
-    - `LineOffset`: Integer offset from the export's primary timestamp line (usually 0).
-    - `WordIndex`: The logical 1-indexed word position within that line.
-    - `TermPos`: The 1-indexed position of the word within the composed multi-word term.
+- **Resilience**: Coordinates SHALL be treated as the primary anchor. However, for matches sitting at the record's original time, the system SHALL fallback to context-verified fuzzy matching if grounding is broken, ensuring continuity for newly-added terms.
 
 #### Scenario: Exporting a Multi-Word Coordinate Map
 - **WHEN** a user exports a three-word selection spanning two lines.
