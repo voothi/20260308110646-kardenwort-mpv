@@ -245,7 +245,7 @@
 20260420125137 Why is this not in the config and not included in Options - 50ms Interaction Shield / Pointer Jump Sync.
 20260420125249 Check mpv.conf.
 20260420125330 Are you sure this is the correct value for script-opts-append=lls-dw_mouse_shield_ms=150?
-
+20260420125436 Add description of script-opts-append=lls-dw_mouse_shield_ms to the comment in mpv.conf.
 
 
 
