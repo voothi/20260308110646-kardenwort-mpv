@@ -628,20 +628,24 @@ local function get_sub_tokens(s)
     return s.tokens
 end
 
-local function verify_neighborhood(subs, center_idx, context_lower)
+local function verify_neighborhood(subs, center_idx, t_idx, context_lower)
     local scan_pad = Options.anki_neighbor_window or 5
     local match_count = 0
     for s_off = -scan_pad, scan_pad do
-        local scan_sub = subs[center_idx + s_off]
+        local curr_s_idx = center_idx + s_off
+        local scan_sub = subs[curr_s_idx]
         if scan_sub then
             local s_tokens = get_sub_tokens(scan_sub)
             if s_tokens then
-                for _, t in ipairs(s_tokens) do
-                    if t.is_word then
-                        local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                        if #cw >= 2 and context_lower:find(cw, 1, true) then
-                            match_count = match_count + 1
-                            break
+                for current_t_idx, t in ipairs(s_tokens) do
+                    -- Skip the exact word being evaluated to ensure neighborhood context
+                    if not (curr_s_idx == center_idx and current_t_idx == t_idx) then
+                        if t.is_word then
+                            local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                            if #cw >= 1 and context_lower:find(cw, 1, true) then
+                                match_count = match_count + 1
+                                break
+                            end
                         end
                     end
                 end
@@ -1003,7 +1007,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         elseif #term_clean > 1 then
                             for k = 1, #term_clean do
                                 if k ~= term_offset then
-                                    local rw_text = get_relative_word_text(k - term_offset, 1.5)
+                                    local rw_text = get_relative_word_text(k - term_offset, 2.5)
                                     if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
                                         sequence_match = false
                                         break
@@ -1018,7 +1022,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if Options.anki_global_highlight then
                             local needs_strict = Options.anki_context_strict or (#term_clean == 1)
                             if needs_strict then
-                                context_satisfied = verify_neighborhood(subs, sub_idx, data.__ctx_lower)
+                                context_satisfied = verify_neighborhood(subs, sub_idx, token_idx, data.__ctx_lower)
                             else
                                 context_satisfied = true
                             end
@@ -1037,7 +1041,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         -- 2. Gated Fuzzy Healing (Requirement 50)
                                         -- Allows highlights to survive minor subtitle line shifts while maintaining precision.
                                         if not context_satisfied and math.abs(sub_idx - (origin_l + g.l_off)) <= 1 then
-                                             context_satisfied = verify_neighborhood(subs, sub_idx, data.__ctx_lower)
+                                             context_satisfied = verify_neighborhood(subs, sub_idx, token_idx, data.__ctx_lower)
                                         end
                                     end
                                 end
@@ -3580,6 +3584,7 @@ end
 
 local function cmd_toggle_anki_global()
     Options.anki_global_highlight = not Options.anki_global_highlight
+    clear_highlight_caches()
     show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
     drum_osd:update()
     if dw_osd then dw_osd:update() end
