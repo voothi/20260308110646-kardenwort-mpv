@@ -2799,25 +2799,60 @@ local function dw_anki_export_selection()
             advanced_index = table.concat(indices, ",")
             
             local ctx_parts = {}
-            pivot_pos = 0
+            local pivot_parts = {}
             local start_k = math.max(1, p1_l - Options.anki_context_lines)
             for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
                     local text = subs[k].text
                     table.insert(ctx_parts, text)
                     
-                    local cleaned = text:gsub("{[^}]+}", "")
-                    if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                    cleaned = cleaned:gsub("%s+", " ")
-                    
-                    if k < p1_l then
-                        pivot_pos = pivot_pos + #cleaned + 1
-                    elseif k == p1_l then
-                        pivot_pos = pivot_pos + (#cleaned / 2)
+                    -- Task 1.1: Inject marker for precise anchoring
+                    if k == p1_l then
+                        local tokens = get_sub_tokens(subs[k])
+                        local marked_parts = {}
+                        for _, t in ipairs(tokens) do
+                            if t.is_word and t.logical_idx == p1_w then
+                                table.insert(marked_parts, "___PIVOT_MARKER___")
+                            else
+                                table.insert(marked_parts, t.text)
+                            end
+                        end
+                        table.insert(pivot_parts, table.concat(marked_parts, ""))
+                    else
+                        table.insert(pivot_parts, text)
                     end
                 end
             end
             context_line = table.concat(ctx_parts, " ")
+            local pivot_line = table.concat(pivot_parts, " ")
+            
+            -- Helper for consistent cleaning
+            local function clean_ctx(s)
+                s = s:gsub("{[^}]+}", "")
+                if Options.anki_strip_metadata then s = s:gsub("%b[]", " ") end
+                s = s:gsub("%s+", " ")
+                return s
+            end
+            
+            local pivot_clean = clean_ctx(pivot_line)
+            local marker_start = pivot_clean:find("___PIVOT_MARKER___", 1, true)
+            if marker_start then
+                local target_word = ""
+                local tokens = get_sub_tokens(subs[p1_l])
+                for _, t in ipairs(tokens) do
+                    if t.is_word and t.logical_idx == p1_w then
+                        target_word = t.text:gsub("{[^}]+}", "")
+                        if Options.anki_strip_metadata then target_word = target_word:gsub("%b[]", " ") end
+                        break
+                    end
+                end
+                pivot_pos = marker_start + (#target_word / 2)
+                print(string.format("[LLS] Precise Pivot Calculated: %.1f (at '%s')", pivot_pos, target_word))
+            else
+                pivot_pos = #clean_ctx(context_line) / 2
+            end
+            
+            context_line = clean_ctx(context_line)
             -- Add small epsilon (1ms) to ensure get_center_index lands inside this segment and not the end of the previous one
             time_pos = subs[p1_l].start_time + 0.001
             print(string.format("[LLS] Export Range: Lines %d-%d, Word Index: %d, Pivot: %.1f", p1_l, p2_l, p1_w, pivot_pos))
@@ -2846,25 +2881,57 @@ local function dw_anki_export_selection()
         elseif cl ~= -1 and subs[cl] then
             local target_sub = subs[cl]
             local ctx_parts = {}
-            pivot_pos = 0
+            local pivot_parts = {}
             local start_k = math.max(1, cl - Options.anki_context_lines)
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
                     local text = subs[k].text
                     table.insert(ctx_parts, text)
                     
-                    local cleaned = text:gsub("{[^}]+}", "")
-                    if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                    cleaned = cleaned:gsub("%s+", " ")
-                    
-                    if k < cl then
-                        pivot_pos = pivot_pos + #cleaned + 1
-                    elseif k == cl then
-                        pivot_pos = pivot_pos + (#cleaned / 2)
+                    if k == cl then
+                        local tokens = get_sub_tokens(subs[k])
+                        local marked_parts = {}
+                        for _, t in ipairs(tokens) do
+                            if t.is_word and t.logical_idx == cw then
+                                table.insert(marked_parts, "___PIVOT_MARKER___")
+                            else
+                                table.insert(marked_parts, t.text)
+                            end
+                        end
+                        table.insert(pivot_parts, table.concat(marked_parts, ""))
+                    else
+                        table.insert(pivot_parts, text)
                     end
                 end
             end
             context_line = table.concat(ctx_parts, " ")
+            local pivot_line = table.concat(pivot_parts, " ")
+            
+            local function clean_ctx(s)
+                s = s:gsub("{[^}]+}", "")
+                if Options.anki_strip_metadata then s = s:gsub("%b[]", " ") end
+                s = s:gsub("%s+", " ")
+                return s
+            end
+            
+            local pivot_clean = clean_ctx(pivot_line)
+            local marker_start = pivot_clean:find("___PIVOT_MARKER___", 1, true)
+            if marker_start then
+                local target_word = ""
+                local tokens = get_sub_tokens(subs[cl])
+                for _, t in ipairs(tokens) do
+                    if t.is_word and t.logical_idx == cw then
+                        target_word = t.text:gsub("{[^}]+}", "")
+                        if Options.anki_strip_metadata then target_word = target_word:gsub("%b[]", " ") end
+                        break
+                    end
+                end
+                pivot_pos = marker_start + (#target_word / 2)
+            else
+                pivot_pos = #clean_ctx(context_line) / 2
+            end
+            
+            context_line = clean_ctx(context_line)
             -- Add small epsilon (1ms) to ensure grounding lands inside this segment
             time_pos = target_sub.start_time + 0.001
             p1_w = cw
@@ -2928,12 +2995,6 @@ local function dw_anki_export_selection()
                 term = term .. "."
             end
             
-            -- Clean context: remove ASS tags
-            context_line = context_line:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then
-                context_line = context_line:gsub("%b[]", " ")
-            end
-            context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos)
@@ -3085,34 +3146,57 @@ local function ctrl_commit_set(line_idx, word_idx)
     local ctx_start = math.max(1, members[1].line - Options.anki_context_lines)
     local ctx_end = math.min(#subs, members[#members].line + Options.anki_context_lines)
     local ctx_parts = {}
+    local pivot_parts = {}
     for i = ctx_start, ctx_end do
-        table.insert(ctx_parts, subs[i].text)
+        local text = subs[i].text
+        table.insert(ctx_parts, text)
+        
+        if i == members[1].line then
+            local tokens = get_sub_tokens(subs[i])
+            local marked_parts = {}
+            for _, t in ipairs(tokens) do
+                if t.is_word and t.logical_idx == members[1].word then
+                    table.insert(marked_parts, "___PIVOT_MARKER___")
+                else
+                    table.insert(marked_parts, t.text)
+                end
+            end
+            table.insert(pivot_parts, table.concat(marked_parts, ""))
+        else
+            table.insert(pivot_parts, text)
+        end
     end
-    local full_ctx_text = table.concat(ctx_parts, " ")
     
-    -- Clean context: remove ASS tags and metadata
-    full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
-    if Options.anki_strip_metadata then
-        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
+    local function clean_ctx(s)
+        s = s:gsub("{[^}]+}", "")
+        if Options.anki_strip_metadata then s = s:gsub("%b[]", " ") end
+        s = s:gsub("%s+", " ")
+        return s
     end
-    full_ctx_text = full_ctx_text:gsub("%s+", " ")
+    
+    local full_ctx_text = clean_ctx(table.concat(ctx_parts, " "))
+    local pivot_line = clean_ctx(table.concat(pivot_parts, " "))
+    
+    local pivot_pos = 0
+    local marker_start = pivot_line:find("___PIVOT_MARKER___", 1, true)
+    if marker_start then
+        local target_word = ""
+        local tokens = get_sub_tokens(subs[members[1].line])
+        for _, t in ipairs(tokens) do
+            if t.is_word and t.logical_idx == members[1].word then
+                target_word = t.text:gsub("{[^}]+}", "")
+                if Options.anki_strip_metadata then target_word = target_word:gsub("%b[]", " ") end
+                break
+            end
+        end
+        pivot_pos = marker_start + (#target_word / 2)
+        print(string.format("[LLS] Precise Pivot Calculated (Set): %.1f (at '%s')", pivot_pos, target_word))
+    else
+        pivot_pos = #full_ctx_text / 2
+    end
 
     local term_words = build_word_list(term)
     local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-    local pivot_pos = 0
-    local current_offset = 0
-    for i = ctx_start, ctx_end do
-        local line_text = subs[i].text:gsub("{[^}]+}", "")
-        if Options.anki_strip_metadata then line_text = line_text:gsub("%b[]", " ") end
-        line_text = line_text:gsub("%s+", " ")
-        
-        if i < members[1].line then
-            pivot_pos = pivot_pos + #line_text + 1
-        elseif i == members[1].line then
-            pivot_pos = pivot_pos + (#line_text / 2)
-        end
-    end
-
     local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
     
     -- Advanced Multi-Pivot Grounding: Identify coordinates for ALL words
