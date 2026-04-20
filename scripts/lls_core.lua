@@ -3207,7 +3207,14 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
                 -- Phase 2: Selection Logic (Only for words, if enabled)
                 if word_idx and updates_selection then
-                    if is_shift then
+                    -- Standard click (no Shift): reset anchor & cursor unless clicking inside existing range
+                    if not is_shift and not (on_up_callback and is_inside_dw_selection(line_idx, word_idx)) then
+                        FSM.DW_ANCHOR_LINE = line_idx
+                        FSM.DW_ANCHOR_WORD = word_idx
+                        FSM.DW_CURSOR_LINE = line_idx
+                        FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+                    elseif is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
                             FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
                             FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
@@ -3215,17 +3222,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-                    elseif on_up_callback and is_inside_dw_selection(line_idx, word_idx) then
-                        -- Preserve selection for commit
-                    else
-                        FSM.DW_CURSOR_LINE = line_idx
-                        FSM.DW_CURSOR_WORD = word_idx
-                        FSM.DW_ANCHOR_LINE = line_idx
-                        FSM.DW_ANCHOR_WORD = word_idx
-                        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     end
                     
-                    -- Phase 3: Dragging (Only for selection/shift)
+                    -- Always start dragging on valid word-click to allow resizing/pulling
                     FSM.DW_MOUSE_DRAGGING = true
                     mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
                     if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
@@ -3850,8 +3849,8 @@ local function manage_dw_bindings(enable)
                         key = key,
                         name = base_name .. "-" .. i,
                         fn = function(t) 
-                            -- Shield the mouse from ghost clicks for 150ms when a key is pressed
-                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.150
+                            -- Shield the mouse from ghost clicks for 50ms when a key is pressed
+                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.050
                             key_fn(t, false) 
                         end,
                         complex = false
