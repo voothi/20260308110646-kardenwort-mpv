@@ -2990,6 +2990,15 @@ local function ctrl_discard_set()
     dw_osd:update()
 end
 
+-- Context-Aware Escape: Clear selection if active, otherwise close window
+local function cmd_dw_esc()
+    if next(FSM.DW_CTRL_PENDING_SET) or FSM.DW_ANCHOR_LINE ~= -1 then
+        ctrl_discard_set()
+    else
+        cmd_toggle_drum_window(false)
+    end
+end
+
 local function get_dw_selection_bounds()
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
@@ -3881,6 +3890,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
         {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
+        {key = "ESC", name = "dw-esc", fn = function() cmd_dw_esc() end},
     }
     for _, k in ipairs(extra) do table.insert(keys, k) end
 

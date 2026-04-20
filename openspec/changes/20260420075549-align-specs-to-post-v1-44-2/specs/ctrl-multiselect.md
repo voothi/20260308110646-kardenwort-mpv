@@ -1,58 +1,36 @@
+# Ctrl-Multiselect (Paired Selections)
+
 ## Purpose
-Enable multi-word selection across non-contiguous subtitle segments and lines, facilitating the creation of complex Anki flashcards for split phrases or multi-word expressions.
+Enable the user to create non-contiguous mining records by pairing multiple subtitle segments or words into a single Anki export. Supports minimalist remote controllers (e.g., 8BitDo Zero 2) by decoupling selection persistence from physical modifier-key states.
 
 ## Requirements
 
-### Requirement: Paired Word Accumulation (Cool Path)
-The Drum Window SHALL accumulate individually-clicked words or ranges into a persistent "Paired Selection Set" (`ctrl_pending_set`). Interaction logic MUST support multiple input devices via the coordinated-input-system.
+### Requirement: Selection Range Feedback
+The system SHALL provide immediate visual feedback during "Cool Path" (Pink) selections.
+- **Color**: **Neon Pink (#FF88FF)**.
+- **State**: Persistent until explicitly additive commit (MMB/Add) or explicit discard (ESC).
 
-#### Scenario: Word accumulation via pairing key
-- **WHEN** the user triggers the "Pair" action (e.g., `t`, `е`, or `Ctrl+LMB`) on a word that is not already in the pending set
-- **THEN** the word SHALL be added to the `ctrl_pending_set` accumulator.
-- **AND** it SHALL be rendered in the "Cool Path" pending color (**Neon Pink #FF88FF**).
+### Requirement: Modifier-Decoupled Persistence
+Selected items in the `ctrl_pending_set` SHALL NOT be cleared when the `Ctrl` or `Shift` modifier key is released.
+- This allows users to build complex selections using single-button clicks on specialized remote profiles.
 
-#### Scenario: Persistence across modifier release
-- **WHEN** the user releases the `Ctrl` key or other modifier used for pairing
-- **THEN** the `ctrl_pending_set` SHALL NOT be cleared; the Pink highlights MUST remain visible to support remote controllers and focused curation.
+### Requirement: Context-Aware Escape Mechanism
+The system MUST provide an intuitive escape mechanism using the `ESC` key to gracefully clear selections before closing the window.
 
-#### Scenario: Selection toggle
-- **WHEN** the user triggers the "Pair" action on a word already in the `ctrl_pending_set`
-- **THEN** the word SHALL be removed from the accumulator and its Pink highlight SHALL disappear.
+#### Scenario: Context-Aware ESC Behavior
+- **WHEN** the user presses `ESC`
+- **IF** there is an active selection (either `ctrl_pending_set` has items OR there is a contiguous selection anchor)
+- **THEN** the system SHALL clear all active selection sets and anchors immediately.
+- **ELSE** (if no selection exists), the system SHALL close the Drum Window.
 
-### Requirement: Cool Path Visual Feedback
-Words in the `ctrl_pending_set` SHALL be rendered with a distinct Neon Pink pending-highlight, visually isolated from the Gold focus indicators and Orange/Purple saved highlights.
+### Requirement: Multiselect Joining Logic
+When multiple distinct ranges or words are paired, the system SHALL use the `Smart Joiner Service` to combine them into a single `WordSource` and `SentenceSource`.
+- Contiguous words SHALL be joined with original spacing.
+- Non-contiguous segments SHALL be joined using the **Elliptical Joiner (` ... `)**.
 
-#### Scenario: Neon Pink pending color applied
-- **WHEN** one or more words are in `ctrl_pending_set`
-- **THEN** each such word SHALL be wrapped in the ASS color tag corresponding to `ctrl_select_color` (default `#FF88FF`) during the render pass.
+#### Scenario: Joining split lines
+- **User selects**: "Hello" (Line 1), "World" (Line 5).
+- **Export Result**: `Hello ... World`.
 
-### Requirement: Smart Multi-Word Commit
-The system SHALL commit the accumulated `ctrl_pending_set` to Anki when the user triggers the "Add" action (e.g., `r`, `к`, or `Ctrl+MMB`) on any word already in the set.
-
-#### Scenario: Successful commit of a split phrase
-- **WHEN** `ctrl_pending_set` contains two or more non-contiguous words
-- **AND** the user triggers the "Add" action on a member of the set
-- **THEN** the system SHALL sort the accumulated words in document order (line index, then word index).
-- **AND** it SHALL join them using the smart-joiner-service (injecting ellipses ` ... ` for gaps).
-- **AND** it SHALL generate a Multi-Pivot coordinate string for the `SentenceSourceIndex` field in the format `LineOffset:WordIndex:TermPos` for every word.
-- **AND** the export timestamp SHALL be set to the `start_time` of the earliest-selected line + 0.001s.
-- **AND** `ctrl_pending_set` SHALL be cleared.
-
-### Requirement: Explicit Discard Gesture
-The system MUST provide a high-priority escape mechanism to clear the persistent selection set.
-
-#### Scenario: Discard via Ctrl+ESC
-- **WHEN** the user presses `Ctrl+ESC`
-- **THEN** both the `ctrl_pending_set` and all active selection anchors SHALL be cleared immediately.
-
-### Requirement: Punctuation Preservation
-Composed terms from multi-word selections MUST preserve all internal punctuation (e.g., dashes, slashes), only stripping symbols from the extreme boundaries of the final string.
-
-#### Scenario: Preserving middle-word dashes
-- **WHEN** composing a term from tokens "Marken", "-", and "Discount"
-- **THEN** the resulting term MUST be "Marken-Discount".
-
-### Requirement: Configurable Palette
-The system SHALL allow user overrides for all terminal colors in the "Warm vs. Cool" system.
-- `ctrl_select_color`: Default `#FF88FF` (Neon Pink)
-- `focus_range_color`: Default `#00CCFF` (Gold)
+### Requirement: Highlight Stability
+Selections in the "Cool Path" (Neon Pink) SHALL maintain their visibility and logical anchoring even if the user scrolls the Drum Window or performs a seek operation, up until the moment of export or discard.
