@@ -3306,8 +3306,9 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         for i = p1_l, p2_l do
             local sub = subs[i]
             if sub then
+                if not sub.words then sub.words = build_word_list(sub.text) end
                 local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
+                local e_w = (i == p2_l) and p2_w or #sub.words
                 for w = s_w, e_w do
                     ctrl_toggle_word(i, w)
                 end
