@@ -278,8 +278,7 @@
 20260420161008 Take the important fixes in version d5ece2f03eee643b8e59b7e16d6b9aa2c79dee69 and transfer them to version f15e060ee04a156163b226bcc38027307b478bb0
 20260420165405 Continue.
 20260420165949 This doesn't work. Model 3 lite failed.
-
-
+20260420174931 Revert to the version 20260420133535 without [], but with word highlighting working reliably, as it seems.
 
 
 
