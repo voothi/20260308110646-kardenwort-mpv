@@ -4364,6 +4364,19 @@ local function manage_search_bindings(enable)
         mp.add_forced_key_binding("ESC", "search-esc", function()
             cmd_toggle_search()
         end)
+
+        mp.add_forced_key_binding("WHEEL_UP", "search-wheel-up", function()
+            if #FSM.SEARCH_RESULTS > 0 then
+                FSM.SEARCH_SEL_IDX = math.max(1, FSM.SEARCH_SEL_IDX - 1)
+                render_search()
+            end
+        end)
+        mp.add_forced_key_binding("WHEEL_DOWN", "search-wheel-down", function()
+            if #FSM.SEARCH_RESULTS > 0 then
+                FSM.SEARCH_SEL_IDX = math.min(#FSM.SEARCH_RESULTS, FSM.SEARCH_SEL_IDX + 1)
+                render_search()
+            end
+        end)
         
         local function paste_from_clipboard()
             local clipboard_txt = get_clipboard()
@@ -4529,6 +4542,8 @@ local function manage_search_bindings(enable)
         mp.remove_key_binding("search-down")
         mp.remove_key_binding("search-enter")
         mp.remove_key_binding("search-esc")
+        mp.remove_key_binding("search-wheel-up")
+        mp.remove_key_binding("search-wheel-down")
         mp.remove_key_binding("search-paste")
         mp.remove_key_binding("search-paste-ru")
         mp.remove_key_binding("search-select-all")
