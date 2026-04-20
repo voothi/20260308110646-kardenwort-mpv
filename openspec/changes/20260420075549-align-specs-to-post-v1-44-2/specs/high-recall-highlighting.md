@@ -34,8 +34,8 @@ To maintain maximum recall for core vocabulary, the proximity grounding system S
 - **Phrase Match**: Multi-word phrases SHALL remain subject to strict neighborhood verification to prevent coincidental matching across unrelated scenes.
 
 ### Requirement: Cloze-Aware Context Grounding
-The context cleaning engine SHALL prioritize the preservation of textual content within Anki cloze deletions.
-- **Behavior**: While standard ASS tags and square-bracket metadata (e.g. `[Musik]`) are stripped, content inside `{{c#::...}}` tags MUST be preserved as searchable tokens.
+The context cleaning engine SHALL prioritize the preservation of textual content within Anki cloze deletions during neighborhood verification.
+- **Behavior**: While standard ASS tags and square-bracket metadata (e.g. `[Musik]`) are stripped from context dictionaries, content inside `{{c#::...}}` tags MUST be extracted and preserved as searchable tokens.
 - **Rationale**: Ensures that clozed words remain effective anchors for neighborhood verification, preventing "vanishing highlights" for highly clozed cards.
 
 #### Scenario: Contextual Anchor found
@@ -75,6 +75,9 @@ Leading and trailing punctuation/whitespace SHALL be stripped from clipboard and
 
 ### Requirement: Metadata-Tolerant Context Matching
 The highlight engine SHALL ignore or skip metadata tags (e.g., `[musik]`) during context matching if `anki_strip_metadata` is set to `yes`.
+- **Term Stripping**: For the exported Term, brackets SHALL ONLY be stripped if the entire selection consists of a single bracketed block (e.g., `[musik]` -> `musik`).
+- **Phrase Integrity**: Brackets within a multi-token phrase (e.g., `Ende [musik]`) SHALL be preserved to maintain user-intent for explicit selections.
+- **Context Stripping**: Metadata inside the `SentenceSource` (context) field SHALL remain aggressively stripped to ensure search stability.
 
 ### Requirement: High-Fidelity Range Reconstruction
 The reconstruction engine MUST preserve the exact character sequence, including internal punctuation and original whitespace tokens, when a range of contiguous words is selected.

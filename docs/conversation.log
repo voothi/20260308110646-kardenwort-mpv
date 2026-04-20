@@ -251,6 +251,7 @@
 20260420131826 I received a review from another system, have a look
 20260420132222 Let's make it so that I can add such content to [] and it will be displayed correctly, for example `... zum Ende [musik, meine Radiostation] Neu werde...` so that I can add `musik` `musik, meine Radiostation` `Ende [musik, meine Radiostation] Neu` `Ende [musik` `Radiostation] Neu` `meine` `Radiostation`
 20260420132851 I duplicate the task, let's make it so that I can add such content to [] and it will be displayed correctly, for example `... zum Ende [musik, meine Radiostation] Neu werde...` so that I can add `musik` `musik, meine Radiostation` `Ende [musik, meine Radiostation] Neu` `Ende [musik` `Radiostation] Neu` `meine` `Radiostation`
+20260420133349 Look at the specifications 20260420075549-align-specs-to-post-v1-44-2
 
 
 

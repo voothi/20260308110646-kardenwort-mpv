@@ -9,6 +9,7 @@ Ensure 100% precise, scene-locked highlighting and context extraction by impleme
 The system SHALL assign a unique 1-indexed logical position to every word-character token within a subtitle segment.
 - **Non-Word Tokens**: Punctuation, symbols, and whitespace SHALL be tokenized but SHALL NOT increment the logical index.
 - **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence.
+- **Square Brackets**: Content within `[]` SHALL NOT be atomized, allowing granular selection of internal words and punctuation.
 
 ### Requirement: Multi-Pivot Grounding Map
 To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.
