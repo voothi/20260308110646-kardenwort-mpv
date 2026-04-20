@@ -300,6 +300,7 @@
 20260420225419 Check the recommendations for the problem as a pro model.
 20260420230158 Take into account the review about the models.
 20260420230501 Check the implementation as a pro model.
+20260420234159 We still need to complete such a case with adding words by clicking with the middle mouse button on the highlighted one (yellow). Now, when I click on a multi-line selection from top to bottom with the yellow color and click not on the last word, but on the one that comes before the end (for example, Straßen in the screenshot), it is added to me with the end trimmed at the bottom. If you select from bottom to top, then vice versa from above, I no longer show this in the screenshots. This worked in the version 15df44adcae6768e460121e504364079f85b524c 20260420020025
 
 
 
