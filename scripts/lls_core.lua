@@ -2007,12 +2007,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         -- Build logical word map to ensure parity with calculate_highlight_stack
         local logical_to_visual = {}
         local visual_to_logical = {}
-        local logic_count = 0
         for j, t in ipairs(tokens) do
-            if is_word_token(t) then
-                logic_count = logic_count + 1
-                logical_to_visual[logic_count] = j
-                visual_to_logical[j] = logic_count
+            if is_word_token(t) and t.logical_idx then
+                logical_to_visual[t.logical_idx] = j
+                visual_to_logical[j] = t.logical_idx
             end
         end
 
@@ -2181,15 +2179,14 @@ local function dw_build_layout(subs, view_center)
         if #tokens == 0 then tokens = {""} end
 
         local logical_words = {}
-        local visual_to_logical = {} -- tokens[j] -> index in logical_words
-        local logical_to_visual = {} -- logical_words[k] -> index in tokens
+        local visual_to_logical = {} -- tokens[j] -> logical_idx
+        local logical_to_visual = {} -- logical_idx -> visual tokens[j]
         
         for j, t in ipairs(tokens) do
-            if is_word_token(t) then
+            if is_word_token(t) and t.logical_idx then
                 table.insert(logical_words, t)
-                local l_idx = #logical_words
-                visual_to_logical[j] = l_idx
-                logical_to_visual[l_idx] = j
+                visual_to_logical[j] = t.logical_idx
+                logical_to_visual[t.logical_idx] = j
             end
         end
 
@@ -2844,8 +2841,17 @@ local function dw_anki_export_selection()
                 local sub = subs[i]
                 if sub then
                     local tokens = get_sub_tokens(sub)
-                    local s_w = (i == p1_l) and p1_w or 1
-                    local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
+                    local s_w = (i == p1_l) and p1_w or 0
+                    local e_w = (i == p2_l) and p2_w or nil
+                    
+                    if not e_w then
+                        for _, t in ipairs(tokens) do 
+                            if t.is_word and t.logical_idx then 
+                                e_w = math.max(e_w or 0, t.logical_idx) 
+                            end 
+                        end
+                        e_w = e_w or 1
+                    end
                     
                     local line_parts = {}
                     local in_range = false
@@ -3679,11 +3685,21 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     if not shift then
-        FSM.DW_CURSOR_WORD = 1
+        local target_sub = subs[FSM.DW_CURSOR_LINE]
+        local tks = target_sub and get_sub_tokens(target_sub) or {}
+        for _, t in ipairs(tks) do
+            if t.is_word and t.logical_idx then FSM.DW_CURSOR_WORD = t.logical_idx; break end
+        end
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
-        if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
+        if FSM.DW_CURSOR_WORD == -1 then
+            local target_sub = subs[FSM.DW_CURSOR_LINE]
+            local tks = target_sub and get_sub_tokens(target_sub) or {}
+            for _, t in ipairs(tks) do
+                if t.is_word and t.logical_idx then FSM.DW_CURSOR_WORD = t.logical_idx; break end
+            end
+        end
     end
 end
 
@@ -3695,40 +3711,69 @@ local function cmd_dw_word_move(dir, shift)
     
     local raw_sub = subs[FSM.DW_CURSOR_LINE]
     if not raw_sub then return end
-    local text = raw_sub.text:gsub("\n", " ")
-    local words = build_word_list(text)
+    
+    local tokens = get_sub_tokens(raw_sub)
+    local logicals = {}
+    for _, t in ipairs(tokens) do
+        if t.is_word and t.logical_idx then table.insert(logicals, t.logical_idx) end
+    end
+    if #logicals == 0 then logicals = {1} end
+    
+    local original_word = FSM.DW_CURSOR_WORD
     
     if FSM.DW_CURSOR_WORD == -1 then
-        FSM.DW_CURSOR_WORD = (dir > 0) and 1 or #words
+        FSM.DW_CURSOR_WORD = (dir > 0) and logicals[1] or logicals[#logicals]
     else
-        FSM.DW_CURSOR_WORD = FSM.DW_CURSOR_WORD + dir
+        local current_idx = 1
+        for i, l_val in ipairs(logicals) do
+            if l_val >= FSM.DW_CURSOR_WORD then
+                current_idx = i
+                -- If we landed between tokens, shift bias based on direction
+                if l_val > FSM.DW_CURSOR_WORD and dir < 0 then
+                    current_idx = math.max(1, i - 1)
+                end
+                break
+            end
+        end
+        
+        local next_idx = current_idx + dir
+        if next_idx < 1 then
+            if FSM.DW_CURSOR_LINE > 1 then
+                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
+                local prev_tks = get_sub_tokens(subs[FSM.DW_CURSOR_LINE])
+                local p_logicals = {}
+                for _, t in ipairs(prev_tks) do
+                    if t.is_word and t.logical_idx then table.insert(p_logicals, t.logical_idx) end
+                end
+                FSM.DW_CURSOR_WORD = p_logicals[#p_logicals] or 1
+            else
+                FSM.DW_CURSOR_WORD = logicals[1]
+            end
+        elseif next_idx > #logicals then
+            if FSM.DW_CURSOR_LINE < #subs then
+                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
+                local next_tks = get_sub_tokens(subs[FSM.DW_CURSOR_LINE])
+                local n_logicals = {}
+                for _, t in ipairs(next_tks) do
+                    if t.is_word and t.logical_idx then table.insert(n_logicals, t.logical_idx) end
+                end
+                FSM.DW_CURSOR_WORD = n_logicals[1] or 1
+            else
+                FSM.DW_CURSOR_WORD = logicals[#logicals]
+            end
+        else
+            FSM.DW_CURSOR_WORD = logicals[next_idx]
+        end
     end
-    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
-    if FSM.DW_CURSOR_WORD < 1 then
-        if FSM.DW_CURSOR_LINE > 1 then
-            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
-            local next_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-            local next_words = build_word_list(next_text)
-            FSM.DW_CURSOR_WORD = #next_words
-        else
-            FSM.DW_CURSOR_WORD = 1
-        end
-    elseif FSM.DW_CURSOR_WORD > #words then
-        if FSM.DW_CURSOR_LINE < #subs then
-            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
-            FSM.DW_CURSOR_WORD = 1
-        else
-            FSM.DW_CURSOR_WORD = #words
-        end
-    end
+    FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
     if not shift then
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     elseif FSM.DW_ANCHOR_WORD == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD - dir 
+        FSM.DW_ANCHOR_WORD = original_word ~= -1 and original_word or FSM.DW_CURSOR_WORD
     end
 end
 
@@ -4739,13 +4784,16 @@ function cmd_dw_copy()
             local text = subs[i].text:gsub("\n", " ")
             local tokens = build_word_list_internal(text, true)
             
-            local s_w = (i == p1_l) and p1_w or 1
+            local s_w = (i == p1_l) and p1_w or 0
             local e_w = (i == p2_l) and p2_w or nil
             
             if not e_w then
-                local wc = 0
-                for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
-                e_w = wc
+                for _, t in ipairs(tokens) do 
+                    if t.is_word and t.logical_idx then 
+                        e_w = math.max(e_w or 0, t.logical_idx) 
+                    end 
+                end
+                e_w = e_w or 1
             end
             
             local line_parts = {}
