@@ -566,12 +566,14 @@ local function build_word_list_internal(text, keep_spaces)
             token.text = table.concat(chars, "", start, i)
             i = i + 1
             
-        -- 2. Handle Metadata Brackets (Atomize)
-        elseif c == "[" then
-            local start = i
-            while i <= n and chars[i] ~= "]" do i = i + 1 end
-            token.text = table.concat(chars, "", start, i)
-            i = i + 1
+        -- 2. Handle Metadata Brackets (Disabled Atomization to allow internal selection)
+        -- Brackets will now be treated as regular punctuation, allowing words inside to be tokenized.
+        -- elseif c == "[" then
+        --     local start = i
+        --     while i <= n and chars[i] ~= "]" do i = i + 1 end
+        --     token.text = table.concat(chars, "", start, i)
+        --     i = i + 1
+
             
         -- 3. Handle Whitespace
         elseif c:match("^%s$") then
@@ -2939,11 +2941,8 @@ local function dw_anki_export_selection()
             -- Clean term: remove ASS tags and trim whitespace
             term = term:gsub("{[^}]+}", "")
             if Options.anki_strip_metadata then
-                local stripped = term:gsub("%b[]", " ")
-                if stripped:match("%S") then
-                    term = stripped
-                else
-                    -- It's all bracketed. Preserve content but strip brackets.
+                -- Only strip if the term is purely a bracketed expression (ignoring spaces)
+                if term:match("^%s*%b[]%s*$") then
                     term = term:gsub("[%[%]]", "")
                 end
             end
