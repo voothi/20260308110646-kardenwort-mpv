@@ -2581,7 +2581,7 @@ local function dw_sync_cursor_to_mouse()
         -- Selection & Hover Protection: ONLY update logical cursor if we ARE dragging.
         -- This prevents the active highlight from snapping to the mouse while scrolling
         -- unless the user is consciously selecting something.
-        if FSM.DW_MOUSE_DRAGGING then
+        if FSM.DW_MOUSE_DRAGGING and not FSM.DW_PROTECTED_SELECTION then
             FSM.DW_CURSOR_LINE = line_idx
             FSM.DW_CURSOR_WORD = word_idx
         end
@@ -3258,8 +3258,11 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
                 -- Phase 2: Selection Logic (Only for words, if enabled)
                 if word_idx and updates_selection then
+                    local is_inside = on_up_callback and is_inside_dw_selection(line_idx, word_idx)
+                    FSM.DW_PROTECTED_SELECTION = is_inside and not is_shift
+                    
                     -- Standard click (no Shift): reset anchor & cursor unless clicking inside existing range
-                    if not is_shift and not (on_up_callback and is_inside_dw_selection(line_idx, word_idx)) then
+                    if not is_shift and not is_inside then
                         FSM.DW_ANCHOR_LINE = line_idx
                         FSM.DW_ANCHOR_WORD = word_idx
                         FSM.DW_CURSOR_LINE = line_idx
@@ -3294,10 +3297,14 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             
             if line_idx and word_idx and updates_selection then
-                FSM.DW_CURSOR_LINE = line_idx
-                FSM.DW_CURSOR_WORD = word_idx
+                if not FSM.DW_PROTECTED_SELECTION then
+                    FSM.DW_CURSOR_LINE = line_idx
+                    FSM.DW_CURSOR_WORD = word_idx
+                end
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
             end
+            
+            FSM.DW_PROTECTED_SELECTION = false
 
             mp.remove_key_binding("dw-mouse-drag")
             if FSM.DW_MOUSE_SCROLL_TIMER then
