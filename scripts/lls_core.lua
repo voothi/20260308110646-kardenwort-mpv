@@ -626,6 +626,9 @@ local function build_word_list_internal(text, keep_spaces)
         -- 5. Handle Punctuation/Misc (Atomic Separator)
         else
             token.text = c
+            token.is_word = true -- Treat punctuation as selectable words
+            token.logical_idx = curr_logical_idx
+            curr_logical_idx = curr_logical_idx + 1
             i = i + 1
         end
 
@@ -2969,17 +2972,11 @@ local function dw_anki_export_selection()
         if term and term ~= "" then
             -- Clean term: remove ASS tags and trim whitespace
             term = term:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then
-                -- Only strip if the term is purely a bracketed expression (ignoring spaces)
-                if term:match("^%s*%b[]%s*$") then
-                    term = term:gsub("[%[%]]", "")
-                end
-            end
             term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
             
-            -- Clean capture: Remove leading/trailing punctuation (including hyphens and slashes)
-            local pre = term:match("^[%p%s]*")
-            local suf = term:match("[%p%s]*$")
+            -- Clean capture: Remove leading/trailing punctuation (excluding brackets [ ])
+            local pre = term:match("^[^%w\128-\255%[%]]*")
+            local suf = term:match("[^%w\128-\255%[%]]*$")
             local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
             if #pre < #term then
                 term = term:sub(#pre + 1, #term - #suf)
@@ -3097,10 +3094,7 @@ local function ctrl_commit_set(line_idx, word_idx)
             local w = sub.words[m.word]
             if w then
                 local clean_w = w
-                if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
-                    clean_w = clean_w:gsub("[%[%]]", "")
-                end
-
+                
                 if last_m then
                     local is_gap = false
                     if m.line > last_m.line then
