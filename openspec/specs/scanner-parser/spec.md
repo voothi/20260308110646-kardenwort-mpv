@@ -11,12 +11,12 @@ The tokenizer must recognize German and English characters as word-formers, ensu
 - **WHEN** text contains "Häuser-Besitzer!"
 - **THEN** it should tokenize into: `["Häuser", "-", "Besitzer", "!"]`
 
-### Requirement: Metadata Protection
-Bracketed content (often used for speaker names or sound effects like `[ Music ]`) should be atomized so that the inner text is treatable as one unit for metadata-aware stripping.
+### Requirement: Granular Bracket Tokenization (Metadata Granularity)
+Bracketed content (often used for speaker names or sound effects like `[ Music ]`) MUST NOT be atomized into a single massive token. Brackets (`[` and `]`) MUST be treated as regular, individual punctuation tokens. This allows users to accurately target and select individual words residing inside metadata blocks.
 
-#### Scenario: Bracketed tag atomization
+#### Scenario: Granular metadata selection
 - **WHEN** text contains "[Speaker] Hello"
-- **THEN** it should tokenize into: `["[Speaker]", " ", "Hello"]`
+- **THEN** it should tokenize into: `["[", "Speaker", "]", " ", "Hello"]` (allowing "Speaker" to be individually selected and highlighted).
 
 ### Requirement: ASS Tag Transparency
 ASS tags like `{\pos(40,40)}` MUST be preserved as single tokens and ignored by any logic that counts "Visible Words," ensuring that they don't corrupt the index of the text it surrounds.

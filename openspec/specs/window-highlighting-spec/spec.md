@@ -37,21 +37,21 @@ The rendering engine SHALL evaluate every word against the database using a tier
 - **Goal**: Highlight "Perfect" matches that exist exactly as saved.
 
 #### Phase 2: Local Fuzzy Match (Green)
-- **Condition**: Contextually grounded but fails Sequential Adjacency; term exists as a single word or partial sequence on the current line.
+- **Condition**: Contextually grounded but fails Sequential Adjacency; term exists as a single word OR as a partial, non-contiguous sequence that is *entirely localized to the current subtitle line*.
 - **Visual**: **Green (#00FF00)**.
-- **Goal**: Highlight single-word cards or slightly modified phrase matches on the origin line.
+- **Goal**: Highlight single-word cards or slightly modified phrase matches on the origin line, avoiding the heavier Global Split rendering for purely local scatter.
 
 #### Phase 3: Global Split Match (Purple)
-- **Condition**: Contextually grounded via high-recall neighborhoods in Global mode, but words are fragmented across segments or non-adjacent.
+- **Condition**: Contextually grounded via high-recall neighborhoods, but words are fragmented and bridge across *multiple adjacent subtitle segments*.
 - **Visual**: **Purple (#AA88FF)**.
-- **Goal**: Highlight "Cool Path" pair-selected phrases or high-recall vocabulary.
+- **Goal**: Highlight "Cool Path" pair-selected phrases or high-recall vocabulary spread over time.
 
 ### Requirement: Match Integrity Conjunction
 The rendering engine SHALL NOT assign the Orange (Contiguous) palette to any word unless BOTH sequential adjacency and contextual grounding are met.
-- **Fall-back**: If a term is contextually grounded but lacks sequential adjacency, the engine MUST proceed to Phase 3 evaluation.
+- **Fall-back**: If a term is contextually grounded but lacks sequential adjacency, the engine MUST proceed to Phase 2 (Local Split/Fuzzy) or Phase 3 (Global Split) evaluation depending on segment boundaries.
 
 ### Highlighting Example (Concrete Case Refinement)
 - **Database Term**: `Aussagen ... richtig oder`
-    - **Match Logic**: Skips Orange/Phase 1. Finds `Aussagen`, `richtig`, and `oder` within the 10.0s window. Assigns Purple.
+    - **Match Logic**: Skips Orange/Phase 1. Finds `Aussagen`, `richtig`, and `oder` within the 10.0s window spanning multiple lines. Assigns Purple.
 - **Database Term**: `Entscheiden ... beim ... ob`
-    - **Match Logic**: Skips Orange/Phase 1. Finds `Entscheiden`, `beim`, and `ob` within the 10.0s window. Assigns Purple.
+    - **Match Logic**: Skips Orange/Phase 1. Finds `Entscheiden`, `beim`, and `ob` within the 10.0s window spanning multiple lines. Assigns Purple.

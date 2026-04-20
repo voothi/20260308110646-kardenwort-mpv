@@ -2,11 +2,13 @@
 
 ## Purpose
 TBD - created by archiving change 20260413224742-add-period-to-favorites. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Automatic Sentence Punctuation Recovery in source_word
 The Anki export system SHALL preserve terminal punctuation (`.`, `!`, `?`) in the `source_word` field for sentence-level exports.
 
-When the original subtitle text ends with terminal punctuation **and** the cleaned term starts with an uppercase letter, the system SHALL restore a period at the end of the term after the punctuation-stripping cleanup step.
+When the original subtitle text ends with terminal punctuation **and** the cleaned term starts with an uppercase letter **and** consists of multiple words (contains a space), the system SHALL restore a period at the end of the term after the punctuation-stripping cleanup step.
 
 #### Scenario: Preserving period in capitalized subtitle sentence
 - **GIVEN** a subtitle segment that contains `Die Luftfahrtbranche befindet sich im Umbruch.`
@@ -28,11 +30,10 @@ When the original subtitle text ends with terminal punctuation **and** the clean
 
 #### Scenario: Single capitalized word — no period
 - **GIVEN** a subtitle segment containing only `Umbruch.`
-- **WHEN** the user saves the word `Umbruch`
-- **THEN** the `source_word` field SHALL contain `Umbruch` (without the period).
+- **WHEN** the user saves the single word `Umbruch`
+- **THEN** the `source_word` field SHALL contain `Umbruch` (without the period, because it is not a multi-word phrase).
 
 #### Scenario: Capitalized phrase in the middle of a sentence — no period (German nouns)
 - **GIVEN** a subtitle segment `Sie haben dazu 30 Sekunden Zeit.`
 - **WHEN** the user saves the phrase `Sekunden Zeit`
 - **THEN** the `source_word` field SHALL contain `Sekunden Zeit` (no period added, as it did not start the sentence).
-

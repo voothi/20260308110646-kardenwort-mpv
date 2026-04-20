@@ -1,10 +1,24 @@
 # Anki Export Mapping
 
 ## Purpose
-Decouple Anki TSV export structure from the core logic using a dynamic, position-based INI configuration.
+Decouple Anki TSV export structure from the core logic using a dynamic, position-based INI configuration and allow contextual layout switching based on term length.
+
 ## Requirements
+
+### Requirement: Threshold-Based Dynamic Field Mapping
+The export system SHALL dynamically select between word-level and sentence-level field mapping profiles based on the total word count of the selected term.
+- Profiles are defined in `anki_mapping.ini` as `[fields_mapping.word]` and `[fields_mapping.sentence]`.
+- The threshold is controlled by the `sentence_word_threshold` setting (default: 3).
+
+#### Scenario: Selecting mapping profile based on length
+- **GIVEN** `sentence_word_threshold` is set to 3
+- **WHEN** the user exports the term "Haus" (1 word)
+- **THEN** the system SHALL apply the `[fields_mapping.word]` mapping layout.
+- **WHEN** the user exports the term "Das ist gut" (3 words)
+- **THEN** the system SHALL apply the `[fields_mapping.sentence]` mapping layout.
+
 ### Requirement: Ordered Unified Field Mapping
-The system SHALL support unified field mapping blocks (e.g., `[fields_mapping.word]`) where each line defines both the field name (key) and its data source (value) in a single assignment. The order of these assignments SHALL determine the TSV column sequence.
+The system SHALL support unified field mapping blocks where each line defines both the field name (key) and its data source (value) in a single assignment. The order of these assignments SHALL determine the TSV column sequence.
 
 #### Scenario: Defining a unified field list
 - **WHEN** `anki_mapping.ini` contains:
@@ -96,4 +110,3 @@ The export mapping logic SHALL support multiple physical keys and layouts mapped
 - **AND** the current word belongs to a persistent paired (Pink) set
 - **THEN** the system SHALL export all members of that set using elliptical joiners where necessary.
 - **ELSE** the system SHALL export the contiguous yellow selection range.
-

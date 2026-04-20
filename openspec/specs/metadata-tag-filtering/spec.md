@@ -2,13 +2,15 @@
 
 ## Purpose
 TBD - created by archiving change 20260413213102-fix-anki-context-truncation. Update Purpose after archive.
-## Requirements
-### Requirement: Automated Metadata Tag Filtering
-The Anki export system SHALL automatically remove technical subtitle metadata tags enclosed in square brackets (e.g., `[musik]`, `[Lachen]`) from exported terms and sentences.
 
-#### Scenario: Cleaning up sound effect tags
+## Requirements
+
+### Requirement: Automated Metadata Tag Filtering
+The Anki export system SHALL automatically remove technical subtitle metadata tags enclosed in square brackets (e.g., `[musik]`, `[Lachen]`) from exported terms and sentences context.
+
+#### Scenario: Cleaning up sound effect tags in context
 - **WHEN** a subtitle block containing the text `[musik] Die Luftfahrt` is processed for export
-- **THEN** both the exported term and the resulting context sentence exclude the `[musik]` tag.
+- **THEN** the resulting context sentence excludes the `[musik]` tag.
 
 ### Requirement: Configurable Tag Filtering
 The system SHALL provide a configuration option to toggle metadata filtering.
@@ -18,17 +20,15 @@ The system SHALL provide a configuration option to toggle metadata filtering.
 - **THEN** tags are stripped during export.
 - **WHEN** set to `no`, tags are preserved.
 
-### Requirement: Selective Metadata Filtering for primary terms
-When the system is set to strip metadata tags (e.g., `[musik]`), it SHALL NOT strip the content of the ONLY remaining tag in the exported term. Instead, it SHALL only strip the brackets themselves.
+### Requirement: Exact Granular Stripping for Primary Terms
+When the system is set to strip metadata tags (e.g., `[musik]`), it SHALL NOT strip brackets from a multi-word or mixed selection containing brackets. The brackets SHALL ONLY be stripped from the `source_word` field if the *entire selection* consists of exactly one bracketed tag.
 
-#### Scenario: Exporting a word in brackets
+#### Scenario: Exporting a purely bracketed word
 - **GIVEN** `anki_strip_metadata` is set to `yes`
-- **WHEN** the user selects the word `[UMGEBUNG]`
+- **WHEN** the user explicitly selects only `[UMGEBUNG]`
 - **THEN** the exported term SHALL be `UMGEBUNG`.
 
-#### Scenario: Stripping secondary metadata
+#### Scenario: Exporting mixed text containing brackets
 - **GIVEN** `anki_strip_metadata` is set to `yes`
-- **WHEN** the user selects `[musik] Die Luftfahrt`
-- **THEN** the exported term SHALL be `Die Luftfahrt`.
-
-
+- **WHEN** the user selects a range spanning `Ende [musik] Neu`
+- **THEN** the exported term SHALL be `Ende [musik] Neu` (brackets are preserved to honor the exact user selection boundaries).
