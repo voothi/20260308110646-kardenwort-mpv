@@ -229,6 +229,8 @@
 20260420102240 This did not work, please consider reviewing the problem from another system. I roll back the code to the previous step.
 20260420103757 Scrolling with the mouse wheel in the search results list has stopped working.
 20260420104158 It seems that you may have removed something necessary from the specification in commit 1006dca496e9f3bfe117773409a86e6ee4b57edb
+20260420104434 Are you sure you didn’t forget to transfer anything else?
+20260420104500 It's good that everything is synchronized, but we need to figure out why not all `dies` are highlighted in Anki Global ON mode. I created a new thread.
 
 
 
