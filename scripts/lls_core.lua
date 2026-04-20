@@ -2286,13 +2286,14 @@ local function draw_dw(subs, view_center, active_idx)
                 -- Level 2: Selection/Hover Focus
                 if meta.priority == 0 and l_idx then
                     local selected = false
+                    local eps = 0.0001
                     if has_selection then
                         if i > p1_l and i < p2_l then selected = true
-                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                        elseif i == p1_l then selected = (l_idx >= p1_w)
-                        elseif i == p2_l then selected = (l_idx <= p2_w) end
+                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w - eps and l_idx <= p2_w + eps)
+                        elseif i == p1_l then selected = (l_idx >= p1_w - eps)
+                        elseif i == p2_l then selected = (l_idx <= p2_w + eps) end
                     end
-                    local is_focus_point = (i == cl and l_idx == cw)
+                    local is_focus_point = (i == cl and math.abs(l_idx - cw) < eps)
                     if selected or is_focus_point then
                         meta.color = Options.dw_highlight_color
                         meta.priority = 2
@@ -2571,9 +2572,10 @@ local function is_inside_dw_selection(l, w)
         p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
     end
     
+    local eps = 0.0001
     if l < p1_l or l > p2_l then return false end
-    if l == p1_l and w < p1_w then return false end
-    if l == p2_l and w > p2_w then return false end
+    if l == p1_l and w < p1_w - eps then return false end
+    if l == p2_l and w > p2_w + eps then return false end
     return true
 end
 
@@ -2856,15 +2858,16 @@ local function dw_anki_export_selection()
                     
                     local line_parts = {}
                     local in_range = false
+                    local eps = 0.0001
                     for _, t in ipairs(tokens) do
                         if t.logical_idx ~= nil then
-                            if t.logical_idx >= s_w and not in_range then in_range = true end
+                            if t.logical_idx >= s_w - eps and not in_range then in_range = true end
                             if in_range then 
                                 table.insert(line_parts, t.text) 
                                 table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
-                            if t.logical_idx >= e_w then in_range = false break end
+                            if t.logical_idx >= e_w - eps then in_range = false break end
                         elseif in_range then
                             table.insert(line_parts, t.text)
                         end
@@ -2958,9 +2961,10 @@ local function dw_anki_export_selection()
             if cw ~= -1 then
                 local tokens = get_sub_tokens(target_sub)
                 local prev_text = nil
+                local eps = 0.0001
                 for _, t in ipairs(tokens) do
                     if t.logical_idx ~= nil then
-                        if t.logical_idx == cw then
+                        if math.abs(t.logical_idx - cw) < eps then
                             term = t.text
                             break
                         end
@@ -3103,17 +3107,16 @@ local function ctrl_commit_set(line_idx, word_idx)
         local sub = subs[m.line]
         if sub then
             local tokens = get_sub_tokens(sub)
-            local w = nil
+            local clean_w = nil
+            local eps = 0.0001
             for _, t in ipairs(tokens) do
-                if t.logical_idx ~= nil and t.logical_idx == m.word then
-                    w = t.text
+                if t.logical_idx ~= nil and math.abs(t.logical_idx - m.word) < eps then
+                    clean_w = t.text
                     break
                 end
             end
             
-            if w then
-                local clean_w = w
-                
+            if clean_w then
                 if last_m then
                     local is_gap = false
                     if m.line > last_m.line then
@@ -3121,10 +3124,10 @@ local function ctrl_commit_set(line_idx, word_idx)
                         -- or words at start of m.line. But simple sets (Ctrl+MMB) are almost always gaps.
                         -- However, for the contiguous engine to recognize it, we must join with space.
                         local last_line_wc = subs[last_m.line].word_count or 0
-                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
+                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc - eps) or (m.word > 1 + eps) then
                             is_gap = true
                         end
-                    elseif m.word > last_m.word + 1 then
+                    elseif m.word > last_m.word + 1 + eps then
                         is_gap = true
                     end
 
@@ -4816,11 +4819,12 @@ function cmd_dw_copy()
             
             local line_parts = {}
             local in_range = false
+            local eps = 0.0001
             for _, t in ipairs(tokens) do
                 if t.logical_idx ~= nil then
-                    if t.logical_idx >= s_w and not in_range then in_range = true end
+                    if t.logical_idx >= s_w - eps and not in_range then in_range = true end
                     if in_range then table.insert(line_parts, t.text) end
-                    if t.logical_idx >= e_w then in_range = false break end
+                    if t.logical_idx >= e_w - eps then in_range = false break end
                 elseif in_range then
                     table.insert(line_parts, t.text)
                 end
