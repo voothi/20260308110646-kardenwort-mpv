@@ -5,11 +5,11 @@ Ensure 100% precise, scene-locked highlighting and context extraction by impleme
 
 ## Requirements
 
-### Requirement: Logical Word Indexing (Token Atomization)
-The system SHALL assign a unique 1-indexed logical position to every non-space character/token within a subtitle segment (including words, punctuation, and symbols).
-- **Logical Words**: Every token identified by the scanner (words, periods, brackets, commas, etc.) SHALL increment the logical index, making every character a selectable and highlightable unit.
-- **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence; they do NOT receive logical indices.
-- **Square Brackets**: Content within `[]` (and the brackets themselves) SHALL be treated as individual logical words to allow granular selection of internal metadata or punctuation.
+### Requirement: Logical Word Indexing (Hybrid Fractional Model)
+The system SHALL assign a unique logical position to every non-space character/token within a subtitle segment to enable granular selection and stable grounding.
+- **Words (Integers)**: Alpha-numeric word tokens SHALL increment the integer part of the logical index (e.g., `1, 2, 3`). This ensures backward compatibility for all automated context matching logic.
+- **Punctuation (Fractions)**: Punctuation, symbols, and brackets SHALL receive fractional offsets relative to the preceding word (e.g., `1.001, 1.002`). This makes them manually selectable without shifting word-index coordinates.
+- **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped; they do NOT receive logical indices.
 
 ### Requirement: Multi-Pivot Grounding Map
 To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.

@@ -583,6 +583,7 @@ local function build_word_list_internal(text, keep_spaces)
     local n = #chars
     local curr_logical_idx = 1
     local curr_visual_idx = 1
+    local fraction = 0.001
     
     while i <= n do
         local c = chars[i]
@@ -595,13 +596,7 @@ local function build_word_list_internal(text, keep_spaces)
             token.text = table.concat(chars, "", start, i)
             i = i + 1
             
-        -- 2. Handle Metadata Brackets (Disabled Atomization to allow internal selection)
-        -- Brackets will now be treated as regular punctuation, allowing words inside to be tokenized.
-        elseif c == "[" or c == "]" then
-            token.text = c
-            i = i + 1
-            
-        -- 3. Handle Whitespace
+        -- 2. Handle Whitespace
         elseif c:match("^%s$") then
             local start = i
             while i <= n and chars[i]:match("^%s$") do i = i + 1 end
@@ -611,7 +606,7 @@ local function build_word_list_internal(text, keep_spaces)
                 token = nil
             end
             
-        -- 4. Handle Word Characters (Scanning contiguous blocks)
+        -- 3. Handle Word Characters (Scanning contiguous blocks)
         elseif is_word_char(c) then
             local start = i
             while i <= n and is_word_char(chars[i]) do i = i + 1 end
@@ -619,11 +614,14 @@ local function build_word_list_internal(text, keep_spaces)
             token.is_word = true
             token.logical_idx = curr_logical_idx
             curr_logical_idx = curr_logical_idx + 1
+            fraction = 0.001
             
-        -- 5. Handle Punctuation/Misc (Atomic Separator)
+        -- 4. Handle Brackets/Punctuation/Misc (Fractional logic index makes it selectable)
         else
             token.text = c
-            token.is_word = false -- MUST be false! True breaks Multi-Pivot coordinate alignment.
+            token.is_word = true
+            token.logical_idx = (curr_logical_idx - 1) + fraction
+            fraction = fraction + 0.001
             i = i + 1
         end
 
@@ -639,7 +637,7 @@ local function build_word_list(text)
     local tokens = build_word_list_internal(text, false)
     local words = {}
     for _, t in ipairs(tokens) do
-        if t.is_word then
+        if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
             table.insert(words, t.text)
         end
     end
@@ -651,9 +649,13 @@ local function get_sub_tokens(s)
     if not s.tokens then 
         local raw_text = s.text:gsub("\n", " ")
         s.tokens = build_word_list_internal(raw_text, Options.dw_original_spacing)
-        local wc = 0
-        for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
-        s.word_count = wc
+        local max_int = 0
+        for _, t in ipairs(s.tokens) do 
+            if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+                max_int = math.max(max_int, t.logical_idx)
+            end 
+        end
+        s.word_count = max_int
     end
     return s.tokens
 end
@@ -931,7 +933,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 if data.index and not data.__pivots then
                     data.__pivots = {}
                     for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
-                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+):(%d+)$")
+                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):([%d%.]+):(%d+)$")
                         if l_off then
                             table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
                         else
@@ -1007,7 +1009,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         local s_tokens = get_sub_tokens(scan_sub)
                                         if s_tokens then
                                             for _, t in ipairs(s_tokens) do
-                                                if t.is_word then
+                                                if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
                                                     local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
                                                     -- Match if a meaningful context word is found (exact match, excluding the search term itself)
                                                     if #cw >= 2 and data.__ctx_words[cw] then
@@ -1082,7 +1084,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
                                     if Options.anki_global_highlight or gap < Options.anki_split_gap_limit then
                                         for t_i, t in ipairs(scan_tokens) do
-                                            if t.is_word then
+                                            if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
                                                 if cw ~= "" then
                                                     table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
@@ -1658,7 +1660,7 @@ local function load_anki_tsv(force)
                     if idx_val then
                         data.__pivots = {}
                         for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
-                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+):(%d+)$")
+                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):([%d%.]+):(%d+)$")
                             if l_off then
                                 table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
                             else
@@ -2021,7 +2023,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             local meta = { text = t.text, color = base_color, is_word = t.is_word, is_phrase = false, priority = 0 }
             
             -- Level 1: Persistent Selection
-            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", sub_idx, l_idx)] or nil
+            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", sub_idx, l_idx)] or nil
             if ctrl_member then
                 meta.color = Options.dw_ctrl_select_color
                 meta.priority = 1
@@ -2277,7 +2279,7 @@ local function draw_dw(subs, view_center, active_idx)
                 local meta = { text = w.text, color = color, is_word = w.is_word, is_phrase = false, priority = 0 }
                 
                 -- Level 1: Persistent Selection
-                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
+                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", i, l_idx)] or nil
                 if ctrl_member then
                     meta.color = Options.dw_ctrl_select_color
                     meta.priority = 1
@@ -2453,6 +2455,14 @@ local function dw_get_mouse_osd()
     return osd_x, osd_y
 end
 
+local function get_first_logical(entry)
+    return entry.logical_words[1] and entry.logical_words[1].logical_idx or 1
+end
+
+local function get_last_logical(entry)
+    return entry.logical_words[#entry.logical_words] and entry.logical_words[#entry.logical_words].logical_idx or 1
+end
+
 local function dw_hit_test(osd_x, osd_y)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return nil, nil end
@@ -2469,13 +2479,13 @@ local function dw_hit_test(osd_x, osd_y)
     if osd_y <= block_top then
         local first = layout[1]
         local v_idx = first.vlines[1][1]
-        return first.sub_idx, first.visual_to_logical[v_idx] or 1
+        return first.sub_idx, first.visual_to_logical[v_idx] or get_first_logical(first)
     end
     if osd_y >= block_top + total_height then
         local last = layout[#layout]
         local last_vl = last.vlines[#last.vlines]
         local v_idx = last_vl[#last_vl]
-        return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+        return last.sub_idx, last.visual_to_logical[v_idx] or get_last_logical(last)
     end
 
     local y_pos = block_top
@@ -2500,8 +2510,8 @@ local function dw_hit_test(osd_x, osd_y)
             local vl_left = 960 - vl_width / 2
 
             local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or math.max(1, #entry.logical_words) end
+            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or get_first_logical(entry) end
+            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or get_last_logical(entry) end
 
             -- Build word center positions for snap-to-nearest logic
             local centers = {}
@@ -2844,7 +2854,7 @@ local function dw_anki_export_selection()
                             if t.logical_idx == s_w then in_range = true end
                             if in_range then 
                                 table.insert(line_parts, t.text) 
-                                table.insert(indices, string.format("%d:%d:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
                             if t.logical_idx == e_w then in_range = false break end
@@ -2953,7 +2963,7 @@ local function dw_anki_export_selection()
                     end
                 end
                 term = term or target_sub.text
-                advanced_index = string.format("0:%d:1", cw)
+                advanced_index = string.format("0:%g:1", cw)
                 -- Check for boundary
                 if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
                     is_sentence_boundary = true
@@ -3046,7 +3056,7 @@ end
 local function ctrl_toggle_word(line_idx, word_idx)
     if line_idx < 1 or word_idx < 1 then return end
     
-    local key = string.format("%d:%d", line_idx, word_idx)
+    local key = string.format("%d:%g", line_idx, word_idx)
     if FSM.DW_CTRL_PENDING_SET[key] then
         FSM.DW_CTRL_PENDING_SET[key] = nil
     else
@@ -3057,7 +3067,7 @@ end
 
 local function ctrl_commit_set(line_idx, word_idx)
     -- Check if cursor word is in set
-    local key = string.format("%d:%d", line_idx, word_idx)
+    local key = string.format("%d:%g", line_idx, word_idx)
     if not FSM.DW_CTRL_PENDING_SET[key] then
         -- Fallback to plain MMB single-click export
         dw_anki_export_selection()
@@ -3178,7 +3188,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     local start_time = members[1].time or time_pos
     for i, m in ipairs(members) do
         local l_off = m.line - members[1].line
-        table.insert(indices, string.format("%d:%d:%d", l_off, m.word, i))
+        table.insert(indices, string.format("%d:%g:%d", l_off, m.word, i))
     end
     local advanced_index = table.concat(indices, ",")
 
