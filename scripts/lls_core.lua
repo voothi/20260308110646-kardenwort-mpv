@@ -961,7 +961,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         local context_satisfied = false
                         
                         if Options.anki_global_highlight then
-                            local needs_strict = Options.anki_context_strict or (#term_clean == 1)
+                            -- In Global Mode, single words should highlight with high recall.
+                            -- Neighborhood verification is prioritized for multi-word phrases
+                            -- to prevent coincidental cross-scene matching.
+                            local needs_strict = Options.anki_context_strict and (#term_clean > 1)
                             if needs_strict then
                                 -- Robust neighbor check for Global Mode
                                 local match_count = 0
