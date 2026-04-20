@@ -2067,9 +2067,16 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 local prev_meta = token_meta[j-1]
                 local next_meta = token_meta[j+1]
 
+                -- Right-sided (Trailing/Internal)
                 if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
                     if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
                         meta.color = prev_meta.color
+                        meta.is_phrase = true
+                    end
+                -- Left-sided (Leading)
+                elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
+                    if not prev_meta or not prev_meta.is_word then
+                        meta.color = next_meta.color
                         meta.is_phrase = true
                     end
                 end
@@ -2337,10 +2344,16 @@ local function draw_dw(subs, view_center, active_idx)
                     local prev_meta = prev_j and token_meta[prev_j]
                     local next_meta = next_j and token_meta[next_j]
 
-                    -- If internal punctuation within a phrase OR trailing a phrase and not followed by a word
+                    -- Right-sided (Trailing/Internal)
                     if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
                         if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
                             meta.color = prev_meta.color
+                            meta.is_phrase = true
+                        end
+                    -- Left-sided (Leading)
+                    elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
+                        if not prev_meta or not prev_meta.is_word then
+                            meta.color = next_meta.color
                             meta.is_phrase = true
                         end
                     end
@@ -3067,7 +3080,7 @@ local function get_dw_selection_bounds()
 end
 
 local function ctrl_toggle_word(line_idx, word_idx)
-    if line_idx < 1 or word_idx < 1 then return end
+    if line_idx < 1 or word_idx < 0 then return end
     
     local key = string.format("%d:%g", line_idx, word_idx)
     if FSM.DW_CTRL_PENDING_SET[key] then
