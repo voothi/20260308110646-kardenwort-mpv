@@ -2001,15 +2001,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         
         local tokens = build_word_list_internal(text, Options.dw_original_spacing)
         
-        -- Build logical word map to ensure parity with calculate_highlight_stack
-        local logical_to_visual = {}
+        -- Build logical word map to ensure parity with real fractional t.logical_idx
         local visual_to_logical = {}
-        local logic_count = 0
         for j, t in ipairs(tokens) do
-            if is_word_token(t) then
-                logic_count = logic_count + 1
-                logical_to_visual[logic_count] = j
-                visual_to_logical[j] = logic_count
+            if t.logical_idx then
+                visual_to_logical[j] = t.logical_idx
             end
         end
 
