@@ -885,7 +885,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
                     end
                 end
-                data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
+                -- First extract cloze content (e.g., {{c1::hello}} -> hello), THEN strip standard ASS tags {...}
+                local cleaned_ctx = data.context:gsub("{{c%d+::(.-)}}", "%1"):gsub("{[^}]+}", "")
+                data.__ctx_lower = utf8_to_lower(cleaned_ctx)
                 
                 -- Tokenize context for exact neighbor matching (prevents substring bleed)
                 data.__ctx_words = {}

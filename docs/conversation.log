@@ -247,10 +247,10 @@
 20260420125330 Are you sure this is the correct value for script-opts-append=lls-dw_mouse_shield_ms=150?
 20260420125436 Add description of script-opts-append=lls-dw_mouse_shield_ms to the comment in mpv.conf.
 20260420125817 o Check for regression and the correctness and validity of the changes made between the previous and current versions, we have fixed the pink highlight color and the cursor getting stuck in multi-line selection, it seems. 6262cddf03fa641ebb95f709424ae40346eb627e 8992f32a990bd59a144839d6fd13c827b3556e83
-20260420130700 I duplicate the task, check for regression and the correctness and validity of the changes made between the previous and current versions, we have fixed the pink highlight color and the cursor getting stuck in multi-line selection, it seems. 6262cddf03fa641ebb95f709424ae40346eb627e 8992f32a990bd59a144839d6fd13c827b3556e83
-
-
-
+20260420130700 I duplicate the task, check for regression and the correctness and validity of the changes made between the previous and current versions, we have fixed the pink highlight color and the cursor getting stuck in multi-line selection, it seems.
+20260420131826 I received a review from another system, have a look
+20260420132222 Let's make it so that I can add such content to [] and it will be displayed correctly, for example `... zum Ende [musik, meine Radiostation] Neu werde...` so that I can add `musik` `musik, meine Radiostation` `Ende [musik, meine Radiostation] Neu` `Ende [musik` `Radiostation] Neu` `meine` `Radiostation`
+20260420132851 I duplicate the task, let's make it so that I can add such content to [] and it will be displayed correctly, for example `... zum Ende [musik, meine Radiostation] Neu werde...` so that I can add `musik` `musik, meine Radiostation` `Ende [musik, meine Radiostation] Neu` `Ende [musik` `Radiostation] Neu` `meine` `Radiostation`
 
 
 
