@@ -583,6 +583,7 @@ local function build_word_list_internal(text, keep_spaces)
     local n = #chars
     local curr_logical_idx = 1
     local curr_visual_idx = 1
+    local fraction = 0.001
     
     while i <= n do
         local c = chars[i]
@@ -595,16 +596,7 @@ local function build_word_list_internal(text, keep_spaces)
             token.text = table.concat(chars, "", start, i)
             i = i + 1
             
-        -- 2. Handle Metadata Brackets (Disabled Atomization to allow internal selection)
-        -- Brackets will now be treated as regular punctuation, allowing words inside to be tokenized.
-        -- elseif c == "[" then
-        --     local start = i
-        --     while i <= n and chars[i] ~= "]" do i = i + 1 end
-        --     token.text = table.concat(chars, "", start, i)
-        --     i = i + 1
-
-            
-        -- 3. Handle Whitespace
+        -- 2. Handle Whitespace
         elseif c:match("^%s$") then
             local start = i
             while i <= n and chars[i]:match("^%s$") do i = i + 1 end
@@ -614,7 +606,7 @@ local function build_word_list_internal(text, keep_spaces)
                 token = nil
             end
             
-        -- 4. Handle Word Characters (Scanning contiguous blocks)
+        -- 3. Handle Word Characters (Scanning contiguous blocks)
         elseif is_word_char(c) then
             local start = i
             while i <= n and is_word_char(chars[i]) do i = i + 1 end
@@ -622,13 +614,14 @@ local function build_word_list_internal(text, keep_spaces)
             token.is_word = true
             token.logical_idx = curr_logical_idx
             curr_logical_idx = curr_logical_idx + 1
+            fraction = 0.001
             
-        -- 5. Handle Punctuation/Misc (Atomic Separator)
+        -- 4. Handle Brackets/Punctuation/Misc (Fractional logic index makes it selectable)
         else
             token.text = c
-            token.is_word = true -- Treat punctuation as selectable words
-            token.logical_idx = curr_logical_idx
-            curr_logical_idx = curr_logical_idx + 1
+            token.is_word = false
+            token.logical_idx = (curr_logical_idx - 1) + fraction
+            fraction = fraction + 0.001
             i = i + 1
         end
 
@@ -875,8 +868,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             local c_tokens = get_sub_tokens(subs[curr_s_idx])
             if not c_tokens then return nil end
             
+            local eps = 0.0001
             for _, t in ipairs(c_tokens) do
-                if t.logical_idx == target_logical_idx then
+                if t.logical_idx ~= nil and math.abs(t.logical_idx - target_logical_idx) < eps then
                     return t.text
                 end
             end
@@ -2010,12 +2004,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         -- Build logical word map to ensure parity with calculate_highlight_stack
         local logical_to_visual = {}
         local visual_to_logical = {}
-        local logic_count = 0
         for j, t in ipairs(tokens) do
-            if is_word_token(t) then
-                logic_count = logic_count + 1
-                logical_to_visual[logic_count] = j
-                visual_to_logical[j] = logic_count
+            if is_word_token(t) and t.logical_idx then
+                logical_to_visual[t.logical_idx] = j
+                visual_to_logical[j] = t.logical_idx
             end
         end
 
@@ -2026,7 +2018,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             local meta = { text = t.text, color = base_color, is_word = t.is_word, is_phrase = false, priority = 0 }
             
             -- Level 1: Persistent Selection
-            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", sub_idx, l_idx)] or nil
+            local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", sub_idx, l_idx)] or nil
             if ctrl_member then
                 meta.color = Options.dw_ctrl_select_color
                 meta.priority = 1
@@ -2034,7 +2026,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
 
             -- Level 2: Selection/Hover (Focus Point)
             if meta.priority == 0 and l_idx then
-                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
+                local eps = 0.0001
+                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and math.abs(l_idx - FSM.DW_CURSOR_WORD) < eps)
                 if is_focus_point then
                     meta.color = Options.dw_highlight_color
                     meta.priority = 2
@@ -2282,7 +2275,7 @@ local function draw_dw(subs, view_center, active_idx)
                 local meta = { text = w.text, color = color, is_word = w.is_word, is_phrase = false, priority = 0 }
                 
                 -- Level 1: Persistent Selection
-                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%d", i, l_idx)] or nil
+                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", i, l_idx)] or nil
                 if ctrl_member then
                     meta.color = Options.dw_ctrl_select_color
                     meta.priority = 1
@@ -2291,13 +2284,14 @@ local function draw_dw(subs, view_center, active_idx)
                 -- Level 2: Selection/Hover Focus
                 if meta.priority == 0 and l_idx then
                     local selected = false
+                    local eps = 0.0001
                     if has_selection then
                         if i > p1_l and i < p2_l then selected = true
-                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                        elseif i == p1_l then selected = (l_idx >= p1_w)
-                        elseif i == p2_l then selected = (l_idx <= p2_w) end
+                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w - eps and l_idx <= p2_w + eps)
+                        elseif i == p1_l then selected = (l_idx >= p1_w - eps)
+                        elseif i == p2_l then selected = (l_idx <= p2_w + eps) end
                     end
-                    local is_focus_point = (i == cl and l_idx == cw)
+                    local is_focus_point = (i == cl and math.abs(l_idx - cw) < eps)
                     if selected or is_focus_point then
                         meta.color = Options.dw_highlight_color
                         meta.priority = 2
@@ -2568,9 +2562,10 @@ local function is_inside_dw_selection(l, w)
         p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
     end
     
+    local eps = 0.0001
     if l < p1_l or l > p2_l then return false end
-    if l == p1_l and w < p1_w then return false end
-    if l == p2_l and w > p2_w then return false end
+    if l == p1_l and w < p1_w - eps then return false end
+    if l == p2_l and w > p2_w + eps then return false end
     return true
 end
 
@@ -2844,15 +2839,16 @@ local function dw_anki_export_selection()
                     
                     local line_parts = {}
                     local in_range = false
+                    local eps = 0.0001
                     for _, t in ipairs(tokens) do
-                        if t.is_word then
-                            if t.logical_idx == s_w then in_range = true end
+                        if t.logical_idx ~= nil then
+                            if t.logical_idx >= s_w - eps and not in_range then in_range = true end
                             if in_range then 
                                 table.insert(line_parts, t.text) 
-                                table.insert(indices, string.format("%d:%d:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
-                            if t.logical_idx == e_w then in_range = false break end
+                            if t.logical_idx >= e_w - eps then in_range = false break end
                         elseif in_range then
                             table.insert(line_parts, t.text)
                         end
@@ -2945,12 +2941,11 @@ local function dw_anki_export_selection()
             
             if cw ~= -1 then
                 local tokens = get_sub_tokens(target_sub)
-                local ptr = 0
                 local prev_text = nil
+                local eps = 0.0001
                 for _, t in ipairs(tokens) do
-                    if t.is_word then
-                        ptr = ptr + 1
-                        if ptr == cw then
+                    if t.logical_idx ~= nil then
+                        if math.abs(t.logical_idx - cw) < eps then
                             term = t.text
                             break
                         end
@@ -2958,7 +2953,7 @@ local function dw_anki_export_selection()
                     end
                 end
                 term = term or target_sub.text
-                advanced_index = string.format("0:%d:1", cw)
+                advanced_index = string.format("0:%g:1", cw)
                 -- Check for boundary
                 if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
                     is_sentence_boundary = true
@@ -3090,10 +3085,17 @@ local function ctrl_commit_set(line_idx, word_idx)
     for _, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
-            if not sub.words then sub.words = build_word_list(sub.text) end
-            local w = sub.words[m.word]
-            if w then
-                local clean_w = w
+            local tokens = get_sub_tokens(sub)
+            local clean_w = nil
+            local eps = 0.0001
+            for _, t in ipairs(tokens) do
+                if t.logical_idx ~= nil and math.abs(t.logical_idx - m.word) < eps then
+                    clean_w = t.text
+                    break
+                end
+            end
+            
+            if clean_w then
                 
                 if last_m then
                     local is_gap = false
@@ -3102,10 +3104,10 @@ local function ctrl_commit_set(line_idx, word_idx)
                         -- or words at start of m.line. But simple sets (Ctrl+MMB) are almost always gaps.
                         -- However, for the contiguous engine to recognize it, we must join with space.
                         local last_line_wc = subs[last_m.line].word_count or 0
-                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
+                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc - eps) or (m.word > 1 + eps) then
                             is_gap = true
                         end
-                    elseif m.word > last_m.word + 1 then
+                    elseif m.word > last_m.word + 1 + eps then
                         is_gap = true
                     end
 
@@ -4745,11 +4747,12 @@ function cmd_dw_copy()
             
             local line_parts = {}
             local in_range = false
+            local eps = 0.0001
             for _, t in ipairs(tokens) do
-                if t.is_word then
-                    if t.logical_idx == s_w then in_range = true end
+                if t.logical_idx ~= nil then
+                    if t.logical_idx >= s_w - eps and not in_range then in_range = true end
                     if in_range then table.insert(line_parts, t.text) end
-                    if t.logical_idx == e_w then in_range = false break end
+                    if t.logical_idx >= e_w - eps then in_range = false break end
                 elseif in_range then
                     table.insert(line_parts, t.text)
                 end

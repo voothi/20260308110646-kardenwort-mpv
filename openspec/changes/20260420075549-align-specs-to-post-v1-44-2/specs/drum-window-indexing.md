@@ -42,3 +42,10 @@ The hit-testing engine SHALL implement logical word snapping for all mouse inter
 - **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces or line gaps) SHALL be snapped to the nearest valid logical word index. Punctuation and brackets are now valid logical indices and do NOT trigger snapping.
 - **Margin Snap**: Mouse coordinates outside the active text block SHALL be clamped to the first/last logical word of the nearest visible subtitle line.
 - **Consistency**: This mapping SHALL be identical for both Contiguous (LMB) and Paired (Ctrl+Click) selection paths.
+
+### Requirement: Floating-Point Comparison Stability (Epsilon Guard)
+The system SHALL use a mandatory tolerance buffer when performing comparisons on logical indices to prevent interaction instability caused by floating-point jitter.
+- **Epsilon Value**: `0.0001`.
+- **Implementation**: Equality checks (`==`) SHALL be performed as `math.abs(a - b) < eps`. Inequality checks (`>=`, `<=`) SHALL include the epsilon offset (e.g., `val >= target - eps`).
+- **Scope**: Mandatory for all hit-testing, selection-range verification, and export boundary detection.
+
