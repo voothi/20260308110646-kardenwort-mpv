@@ -1,22 +1,23 @@
-## 1. Interface Synchronization
+## 1. Fractional Indexing Hardening (Gap 3)
 
-- [ ] 1.1 Update `extract_anki_context` signature to replace `pivot_pos` with `coord_map`.
-- [ ] 1.2 Update the call site in `dw_anki_export_selection` to pass `advanced_index`.
-- [ ] 1.3 Ensure the single-word export path also passes the correctly formatted `0:W:1` index string.
+- [x] 1.1 Update `build_word_list_internal` to implement `0.1` incremental indexing for non-word tokens.
+- [x] 1.2 Implement `0.0001` epsilon buffer for all logical index comparisons (hit-testing, selection).
+- [x] 1.3 Update `dw_hit_test` to support fractional word selection.
 
-## 2. Logical Pivot Parsing
+## 2. Phase 2 Highlighting (Gap 2)
 
-- [ ] 2.1 Implement a helper to parse the first `LineOffset:WordIndex:TermPos` from the coordinate map string.
-- [ ] 2.2 Add logical-to-byte offset mapping logic within the context search loop for current candidates.
+- [x] 2.1 Update `calculate_highlight_stack` to include `green_stack` tracking.
+- [x] 2.2 Implement same-segment detection for fragmented phrase matches.
+- [x] 2.3 Integrate `anki_highlight_depth_local` (Green) palette into `draw_dw`.
 
-## 3. Hardened Marker Search
+## 3. Marker-Injection Anchoring (Gap 1)
 
-- [ ] 3.1 Update the `extract_anki_context` search loop to prioritize logical index verification if `coord_map` is present.
-- [ ] 3.2 Implement `+/- 1` segment drift tolerance when resolving the origin line relative to the current context line.
-- [ ] 3.3 Preserve geometric midpoint calculation as a conditional fallback for legacy records.
+- [x] 3.1 Update `extract_anki_context` to prioritize `coord_map` over geometric `pivot_pos`.
+- [x] 3.2 Update `dw_anki_export_selection` call-sites.
+- [x] 3.3 Implement `+/- 1` segment drift tolerance in logical anchor resolution.
 
-## 4. Verification & Regression
+## 4. Verification
 
-- [ ] 4.1 Test "Scene-Locked" extraction on segments with identical term repetition.
-- [ ] 4.2 Verify that multi-sub-segment selections still correctly bridge and anchor via the Multi-Pivot map.
-- [ ] 4.3 Confirm total compatibility with legacy `.tsv` records missing logical grounding.
+- [ ] 4.1 Verify bracket/punctuation selection precision.
+- [ ] 4.2 Validate Green highlights on single-line fragmented matches.
+- [ ] 4.3 Test "Scene-Locked" extraction on segments with repeated terms.

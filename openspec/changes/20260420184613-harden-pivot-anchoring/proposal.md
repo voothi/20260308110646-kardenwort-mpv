@@ -1,12 +1,16 @@
 ## Why
 
-The current Anki context extraction engine uses geometric midpoint proximity to resolve ambiguous term occurrences when multiple instances of a word exist in the context window. This leads to "research drift" and context bleed, where the wrong occurrence is highlighted or extracted. We need to transition to precise logical anchoring using the Multi-Pivot grounding maps that the system already generates during export.
+The current Anki interaction and highlighting engine exhibits three critical technical gaps:
+1. **Marker-Injection Anchoring**: Context extraction uses geometric midpoint "guessing" instead of the logical Multi-Pivot maps, leading to research drift.
+2. **Three-Phase Highlighting**: The visual engine lacks the Phase 2 (Green) palette, causing local fragmented matches to be incorrectly rendered as Phase 3 (Purple).
+3. **Fractional Indexing**: Punctuation and brackets currently skip logical indexing, preventing granular selection and leading to "snapping" artifacts during mouse interaction.
 
 ## What Changes
 
-- **Logical Anchoring Integration**: Refactor the context extraction engine to ingest and prioritize the `advanced_index` (Multi-Pivot map) for word localization.
-- **Geometric Fallback Deprecation**: Remove geometric midpoint calculations for all records where logical grounding data is available.
-- **Export Flow Synchronization**: Update the Drum Window export handler to pass the logical coordinate string directly to the mapping resolver.
+- **Logical Anchoring**: Refactor `extract_anki_context` to utilize the Multi-Pivot logical coordinate map.
+- **Phase 2 Implementation**: Add "Local Fuzzy Match" detection to the highlighter, rendering single-line fragmented matches in **Green (#00FF00)**.
+- **Fractional Indexing**: Update the tokenizer to assign decimal logical indices (e.g., 1.1) to punctuation and brackets, enabling precise hit-testing and selection.
+- **Selection Protection**: (Refinement) Ensure Pointer Jump Sync does not collapse active ranges when interacting with multiple gaps.
 
 ## Capabilities
 
@@ -14,9 +18,10 @@ The current Anki context extraction engine uses geometric midpoint proximity to 
 - None
 
 ### Modified Capabilities
-- `drum-window-indexing`: Refine the Marker-Injection requirement to mandate the use of logical coordinate maps for context extraction, replacing geometric proximity matching.
+- `drum-window-indexing`: Refine Marker-Injection to mandate logical coordinate search; update Token Atomization to include non-word tokens via fractional indices.
+- `window-highlighting-spec`: Fully implement the Three-Phase Match Evaluation, including the Phase 2 (Green) local match palette.
 
 ## Impact
 
-- **Affected Code**: `scripts/lls_core.lua` (specifically `extract_anki_context` and `dw_anki_export_selection`).
-- **Data Integrity**: Increased reliability for Anki records containing common or repeated terms in a single subtitle segment.
+- **Affected Code**: `scripts/lls_core.lua`.
+- **User Interface**: Sub-word selection precision and improved highlighting accuracy.

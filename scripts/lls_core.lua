@@ -553,6 +553,7 @@ local function build_word_list_internal(text, keep_spaces)
     local i = 1
     local n = #chars
     local curr_logical_idx = 1
+    local curr_sub_idx = 0.1
     local curr_visual_idx = 1
     
     while i <= n do
@@ -581,6 +582,8 @@ local function build_word_list_internal(text, keep_spaces)
             while i <= n and chars[i]:match("^%s$") do i = i + 1 end
             if keep_spaces then
                 token.text = table.concat(chars, "", start, i - 1)
+                token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
+                curr_sub_idx = curr_sub_idx + 0.1
             else
                 token = nil
             end
@@ -593,10 +596,13 @@ local function build_word_list_internal(text, keep_spaces)
             token.is_word = true
             token.logical_idx = curr_logical_idx
             curr_logical_idx = curr_logical_idx + 1
+            curr_sub_idx = 0.1
             
         -- 5. Handle Punctuation/Misc (Atomic Separator)
         else
             token.text = c
+            token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
+            curr_sub_idx = curr_sub_idx + 0.1
             i = i + 1
         end
 
@@ -810,19 +816,24 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
+local function logical_cmp(a, b)
+    if not a or not b then return false end
+    return math.abs(a - b) < 0.0001
+end
+
 local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
-    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false end
+    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, 0, false end
     
     local tokens = get_sub_tokens(subs[sub_idx])
-    if not tokens then return 0, 0, false end
+    if not tokens then return 0, 0, 0, false end
     
     local target_token = tokens[token_idx]
-    if not target_token or not target_token.is_word then return 0, 0, false end
+    if not target_token or not target_token.is_word then return 0, 0, 0, false end
     
     local target_l_idx = target_token.logical_idx
     local target_word_text = target_token.text
     local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
-    if target_lower_full == "" then return 0, 0, false end
+    if target_lower_full == "" then return 0, 0, 0, false end
 
     -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
     local target_subsets = { [target_lower_full] = true }
@@ -844,7 +855,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if not c_tokens then return nil end
             
             for _, t in ipairs(c_tokens) do
-                if t.logical_idx == target_logical_idx then
+                if logical_cmp(t.logical_idx, target_logical_idx) then
                     return t.text
                 end
             end
@@ -868,6 +879,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     end
 
     local orange_stack = 0
+    local green_stack = 0
     local purple_stack = 0
     local has_phrase = false
     local matched_terms = {}
@@ -876,6 +888,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         if not matched_terms[term_key] then
             local match_found = false
             local term_is_split = false
+            local term_is_local_split = false
             
             -- Performance: Lazy-cache processed term data
             if not data.__term_clean then
@@ -1143,33 +1156,42 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     end
                                 end
                                 
-                                if best_tuple then
-                                    valid_set = {}
+                                 if best_tuple then
+                                    local is_all_local = true
+                                    for _, c_idx in ipairs(best_tuple) do
+                                        if ctx_list[c_idx].s_i ~= sub_idx then
+                                            is_all_local = false; break
+                                        end
+                                    end
+                                    valid_set = { is_local = is_all_local, indices = {} }
                                     for _, c_idx in ipairs(best_tuple) do
                                         local cw_obj = ctx_list[c_idx]
-                                        valid_set[cw_obj.s_i .. "-" .. cw_obj.t_i] = true
+                                        valid_set.indices[cw_obj.s_i .. "-" .. cw_obj.t_i] = true
                                     end
                                 end
                             end
                             subs[sub_idx].__split_valid_indices[term_key] = valid_set
                         end
                         
-                        if valid_set and valid_set[sub_idx .. "-" .. token_idx] then
+                        if valid_set and valid_set.indices[sub_idx .. "-" .. token_idx] then
                             match_found = true
                             term_is_split = true
+                            term_is_local_split = valid_set.is_local
                         end
                     end
                 end
             end
 
             if match_found then
-                if term_is_split then purple_stack = purple_stack + 1
+                if term_is_split then
+                    if term_is_local_split then green_stack = green_stack + 1
+                    else purple_stack = purple_stack + 1 end
                 else orange_stack = orange_stack + 1 end
                 matched_terms[term_key] = true
             end
         end
     end
-    return orange_stack, purple_stack, has_phrase
+    return orange_stack, green_stack, purple_stack, has_phrase
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -1216,11 +1238,12 @@ local function starts_with_uppercase(str)
     return false
 end
 
-local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos)
+local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos, coord_map)
     if not full_line or full_line == "" then return "" end
     
     -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
     -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
+    -- If coord_map is provided (Gap 1 compliance), we prioritize logical grounding.
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
     local center = pivot_pos or (#full_line / 2)
@@ -2011,7 +2034,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             
             -- Level 3: Database Highlights
             if meta.priority == 0 and l_idx then
-                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
+                local orange_stack, green_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
                 local h_color = base_color
                 
                 if orange_stack > 0 and purple_stack > 0 then
@@ -2156,11 +2179,12 @@ local function dw_build_layout(subs, view_center)
         local logical_to_visual = {} -- logical_words[k] -> index in tokens
         
         for j, t in ipairs(tokens) do
+            if t.logical_idx then
+                visual_to_logical[j] = t.logical_idx
+                logical_to_visual[t.logical_idx] = j
+            end
             if is_word_token(t) then
                 table.insert(logical_words, t)
-                local l_idx = #logical_words
-                visual_to_logical[j] = l_idx
-                logical_to_visual[l_idx] = j
             end
         end
 
@@ -2274,11 +2298,11 @@ local function draw_dw(subs, view_center, active_idx)
 
                 -- Level 3: Database Highlights
                 if meta.priority == 0 and l_idx then
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
+                    local orange_stack, green_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
-                    if orange_stack > 0 and purple_stack > 0 then
-                        local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
+                    if (orange_stack > 0 or green_stack > 0) and purple_stack > 0 then
+                        local mix_depth = math.min((orange_stack + green_stack + purple_stack) - 1, 3)
                         if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                         elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                         elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
@@ -2286,6 +2310,10 @@ local function draw_dw(subs, view_center, active_idx)
                         if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                         elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                    elseif green_stack > 0 then
+                        if green_stack == 1 then h_color = Options.anki_highlight_depth_local_1 or "00FF00"
+                        elseif green_stack == 2 then h_color = Options.anki_highlight_depth_local_2 or "00CC00"
+                        elseif green_stack >= 3 then h_color = Options.anki_highlight_depth_local_3 or "009900" end
                     elseif purple_stack > 0 then
                         if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                         elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
@@ -2814,13 +2842,13 @@ local function dw_anki_export_selection()
                     local in_range = false
                     for _, t in ipairs(tokens) do
                         if t.is_word then
-                            if t.logical_idx == s_w then in_range = true end
+                            if logical_cmp(t.logical_idx, s_w) then in_range = true end
                             if in_range then 
                                 table.insert(line_parts, t.text) 
-                                table.insert(indices, string.format("%d:%d:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
-                            if t.logical_idx == e_w then in_range = false break end
+                            if logical_cmp(t.logical_idx, e_w) then in_range = false break end
                         elseif in_range then
                             table.insert(line_parts, t.text)
                         end
@@ -2835,24 +2863,31 @@ local function dw_anki_export_selection()
             advanced_index = table.concat(indices, ",")
             
             local ctx_parts = {}
-            pivot_pos = 0
+            local char_offset = 0
+            pivot_pos = -1
             local start_k = math.max(1, p1_l - Options.anki_context_lines)
             for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
-                    local text = subs[k].text
-                    table.insert(ctx_parts, text)
+                    local text = subs[k].text:gsub("{[^}]+}", "")
+                    if Options.anki_strip_metadata then text = text:gsub("%b[]", " ") end
+                    text = text:gsub("%s+", " ")
                     
-                    local cleaned = text:gsub("{[^}]+}", "")
-                    if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                    cleaned = cleaned:gsub("%s+", " ")
-                    
-                    if k < p1_l then
-                        pivot_pos = pivot_pos + #cleaned + 1
-                    elseif k == p1_l then
-                        pivot_pos = pivot_pos + (#cleaned / 2)
+                    if k == p1_l then
+                        -- Precision Anchor: Find the first word's position in this segment
+                        local first_word = parts[1] or ""
+                        local s = text:find(first_word, 1, true)
+                        if s then
+                            pivot_pos = char_offset + s + (#first_word / 2)
+                        else
+                            pivot_pos = char_offset + (#text / 2)
+                        end
                     end
+                    
+                    table.insert(ctx_parts, text)
+                    char_offset = char_offset + #text + 1
                 end
             end
+            if pivot_pos == -1 then pivot_pos = char_offset / 2 end
             context_line = table.concat(ctx_parts, " ")
             -- Add small epsilon (1ms) to ensure get_center_index lands inside this segment and not the end of the previous one
             time_pos = subs[p1_l].start_time + 0.001
@@ -2880,26 +2915,31 @@ local function dw_anki_export_selection()
                 end
             end
         elseif cl ~= -1 and subs[cl] then
-            local target_sub = subs[cl]
             local ctx_parts = {}
-            pivot_pos = 0
+            local char_offset = 0
+            pivot_pos = -1
             local start_k = math.max(1, cl - Options.anki_context_lines)
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
-                    local text = subs[k].text
-                    table.insert(ctx_parts, text)
+                    local text = subs[k].text:gsub("{[^}]+}", "")
+                    if Options.anki_strip_metadata then text = text:gsub("%b[]", " ") end
+                    text = text:gsub("%s+", " ")
                     
-                    local cleaned = text:gsub("{[^}]+}", "")
-                    if Options.anki_strip_metadata then cleaned = cleaned:gsub("%b[]", " ") end
-                    cleaned = cleaned:gsub("%s+", " ")
-                    
-                    if k < cl then
-                        pivot_pos = pivot_pos + #cleaned + 1
-                    elseif k == cl then
-                        pivot_pos = pivot_pos + (#cleaned / 2)
+                    if k == cl then
+                        local word_text = term or ""
+                        local s = text:find(word_text, 1, true)
+                        if s then
+                            pivot_pos = char_offset + s + (#word_text / 2)
+                        else
+                            pivot_pos = char_offset + (#text / 2)
+                        end
                     end
+                    
+                    table.insert(ctx_parts, text)
+                    char_offset = char_offset + #text + 1
                 end
             end
+            if pivot_pos == -1 then pivot_pos = char_offset / 2 end
             context_line = table.concat(ctx_parts, " ")
             -- Add small epsilon (1ms) to ensure grounding lands inside this segment
             time_pos = target_sub.start_time + 0.001
@@ -2926,7 +2966,7 @@ local function dw_anki_export_selection()
                     end
                 end
                 term = term or target_sub.text
-                advanced_index = string.format("0:%d:1", cw)
+                advanced_index = string.format("0:%g:1", cw)
                 -- Check for boundary
                 if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
                     is_sentence_boundary = true
@@ -2969,7 +3009,7 @@ local function dw_anki_export_selection()
             context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-            local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos)
+            local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos, advanced_index)
             -- Use the multi-index generated above
             save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
             show_osd("Anki Highlight Saved: " .. term)
@@ -4731,9 +4771,9 @@ function cmd_dw_copy()
             local in_range = false
             for _, t in ipairs(tokens) do
                 if t.is_word then
-                    if t.logical_idx == s_w then in_range = true end
+                    if logical_cmp(t.logical_idx, s_w) then in_range = true end
                     if in_range then table.insert(line_parts, t.text) end
-                    if t.logical_idx == e_w then in_range = false break end
+                    if logical_cmp(t.logical_idx, e_w) then in_range = false break end
                 elseif in_range then
                     table.insert(line_parts, t.text)
                 end
