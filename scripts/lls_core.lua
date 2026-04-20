@@ -888,7 +888,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     end
                 end
                 -- First extract cloze content (e.g., {{c1::hello}} -> hello), THEN strip standard ASS tags {...}
-                local cleaned_ctx = data.context:gsub("{{c%d+::(.-)}}", "%1"):gsub("{[^}]+}", "")
+                local cleaned_ctx = smart_strip_metadata(data.context:gsub("{{c%d+::(.-)}}", "%1"):gsub("{[^}]+}", ""), data.term)
                 data.__ctx_lower = utf8_to_lower(cleaned_ctx)
                 
                 -- Tokenize context for exact neighbor matching (prevents substring bleed)
@@ -1345,6 +1345,35 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     for i = context_start, context_end do table.insert(context_words, words[i]) end
     
     return compose_term_smart(context_words):match("^%s*(.-)%s*$")
+end
+
+local function smart_strip_metadata(text, term)
+    if not Options.anki_strip_metadata then return text end
+    if not term or term == "" then return text:gsub("%b[]", " ") end
+    
+    local term_l = utf8_to_lower(term)
+    return text:gsub("%b[]", function(match)
+        local inner = utf8_to_lower(match:sub(2, -2))
+        
+        -- If term contains brackets, keep metadata to be safe
+        if term_l:find("%[") or term_l:find("%]") then return match end
+        
+        -- If term intersects any word in the metadata, keep it
+        for w in inner:gmatch("[%w\128-\255]+") do
+            if term_l:find(w, 1, true) then
+                return match
+            end
+        end
+        
+        -- Special case: check if the whole match exists in the term (stripping spaces)
+        local clean_m = utf8_to_lower(match:gsub("[%p%s]", ""))
+        local clean_t = utf8_to_lower(term:gsub("[%p%s]", ""))
+        if clean_t:find(clean_m, 1, true) or clean_m:find(clean_t, 1, true) then
+            return match
+        end
+        
+        return " "
+    end)
 end
 
 local function load_sub(path, is_ass)
@@ -2963,9 +2992,7 @@ local function dw_anki_export_selection()
             
             -- Clean context: remove ASS tags
             context_line = context_line:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then
-                context_line = context_line:gsub("%b[]", " ")
-            end
+            context_line = smart_strip_metadata(context_line, term)
             context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
@@ -3136,9 +3163,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     
     -- Clean context: remove ASS tags and metadata
     full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
-    if Options.anki_strip_metadata then
-        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
-    end
+    full_ctx_text = smart_strip_metadata(full_ctx_text, term)
     full_ctx_text = full_ctx_text:gsub("%s+", " ")
 
     local term_words = build_word_list(term)
@@ -3147,7 +3172,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     local current_offset = 0
     for i = ctx_start, ctx_end do
         local line_text = subs[i].text:gsub("{[^}]+}", "")
-        if Options.anki_strip_metadata then line_text = line_text:gsub("%b[]", " ") end
+        line_text = smart_strip_metadata(line_text, term)
         line_text = line_text:gsub("%s+", " ")
         
         if i < members[1].line then
