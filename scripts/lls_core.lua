@@ -207,6 +207,7 @@ local FSM = {
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
+    DW_PROTECTED_SELECTION = false,  -- True if a click occurred inside an existing selection
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -3265,6 +3266,10 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+                        FSM.DW_PROTECTED_SELECTION = false
+                    elseif not is_shift then
+                        -- Click inside selection: Protect it from collapsing during the Sync phase on release
+                        FSM.DW_PROTECTED_SELECTION = true
                     elseif is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
                             FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
@@ -3273,6 +3278,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+                        FSM.DW_PROTECTED_SELECTION = false
                     end
                     
                     -- Always start dragging on valid word-click to allow resizing/pulling
@@ -3293,7 +3299,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             local osd_x, osd_y = dw_get_mouse_osd()
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             
-            if line_idx and word_idx and updates_selection then
+            if line_idx and word_idx and updates_selection and not FSM.DW_PROTECTED_SELECTION then
                 FSM.DW_CURSOR_LINE = line_idx
                 FSM.DW_CURSOR_WORD = word_idx
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
@@ -3306,6 +3312,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             end
 
             if on_up_callback then on_up_callback(tbl) end
+            FSM.DW_PROTECTED_SELECTION = false
         end
     end
     MOUSE_HANDLERS[handler] = true
