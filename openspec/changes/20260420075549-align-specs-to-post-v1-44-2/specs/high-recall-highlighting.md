@@ -1,14 +1,62 @@
-## ADDED Requirements
+# High-Recall Highlighting
+
+## Purpose
+Ensure that saved vocabulary and phrases are accurately and persistently highlighted across all playback modes, utilizing deep contextual anchoring (Word-Token Intersection) to prevent spurious matches while maintaining high recall for fragmented subtitles.
+
+## Requirements
 
 ### Requirement: Generous Inter-Segment Bridging
-The temporal gap tolerance for joining adjacent subtitle segments into a single phrase match SHALL be expanded to support slow media speech.
-- **Tolerance**: **10.0 seconds**.
-- **Behavior**: If the gap between sequential match components is <= 10s, they SHALL be rendered as a unified phrase.
+The highlighter engine SHALL be capable of verifying word sequences that are split across adjacent subtitle segments, even during slow speech patterns.
+- **Temporal Threshold**: The system SHALL treat segments as contiguous for phrase matching if the temporal gap between them is less than or equal to **10.0 seconds**.
+- **Rationale**: Accommodates natural speaker pauses in media (e.g., news reading) where a single phrase may span multiple technical subtitle boundaries.
+
+#### Scenario: 10s Gap Tolerance
+- **WHEN** the term "falsch sind" is saved.
+- **AND** Subtitle 2 starts 5.0 seconds after Subtitle 1 ends.
+- **THEN** BOTH words SHALL remain highlighted as a unified phrase.
 
 ### Requirement: Precision Neighborhood Verification (Token Intersection)
-When Global Highlighting is active, the engine SHALL verify the contextual "neighbor" tokens to prevent spurious matches on common words.
-- **Anchor Requirement**: A highlight is ONLY rendered if at least one meaningful word (length >= 2, stripped of punctuation) from the neighboring +/- 5 segments exists in the record's stored context.
+When Global Highlighting is active, the system SHALL perform a word-token intersection check against neighboring segments to ensure contextual validity.
+- **Mechanism**: The engine SHALL scan neighboring segments (+/- `anki_neighbor_window`, default 5 lines).
+- **Token Filtering**: It SHALL extract all word-character tokens of length >= 2, stripping punctuation.
+- **Match Threshold**: A highlight SHALL ONLY be rendered if at least one meaningful word from the neighborhood exists within the record's stored `SentenceSource` (context).
 
-### Requirement: Deep Segment Peeking & Adaptive Window
-- **Peeking**: The engine SHALL scan up to 5 adjacent segments to verify long phrase continuity.
-- **Adaptive Window**: The fuzzy matching window SHALL grow by +0.5s for every word beyond the 10th word in a saved term to accommodate long paragraph segments.
+#### Scenario: Contextual Anchor found
+- **WHEN** `anki_global_highlight` is enabled.
+- **AND** a textual match is found in a segment.
+- **THEN** the engine scans +/- 5 neighbor lines.
+- **IF** any word from those neighbors exists in the Anki context.
+- **THEN** the highlight SHALL be rendered.
+
+#### Scenario: Contextual Anchor NOT found
+- **WHEN** no words from the neighborhood match the stored context.
+- **THEN** the highlight SHALL NOT be rendered, preventing "common-word bleed" in unrelated scenes.
+
+### Requirement: Deep Segment Peeking
+The engine SHALL recursively traverse up to 5 adjacent subtitle segments to verify a phrase match.
+- This ensures continuity for paragraphs that are heavily fragmented into single-word or short-phrase subtitles.
+
+### Requirement: Adaptive Temporal Highlight Window
+The engine SHALL calculate the fuzzy matching window dynamically based on the length of the saved term.
+- Base window: `anki_local_fuzzy_window` (default 10s).
+- Growth: +0.5 seconds for every word beyond the 10th word.
+
+### Requirement: Performance Caching
+The engine SHALL cache word lists and cleaned text for all highlight terms on first access to ensure rendering latency stays within acceptable OSD limits even with hundreds of active terms.
+
+### Requirement: Self-Contextualization
+The engine SHALL verify word neighbors against both the original `SentenceSource` (context) and the `WordSource` (term) itself.
+
+### Requirement: Adaptive Punctuation Rendering
+- **Single-Word Mode**: Punctuation marks SHALL remain uncolored to provide a clean study interface.
+- **Phrase Continuity Mode**: Internal punctuation marks SHALL be colored to maintain visual flow.
+- **Multi-Match Priority**: **Phrase Continuity Mode** SHALL take precedence.
+
+### Requirement: Clean Boundary Capture
+Leading and trailing punctuation/whitespace SHALL be stripped from clipboard and Anki exports. Internal punctuation SHALL be preserved.
+
+### Requirement: Metadata-Tolerant Context Matching
+The highlight engine SHALL ignore or skip metadata tags (e.g., `[musik]`) during context matching if `anki_strip_metadata` is set to `yes`.
+
+### Requirement: High-Fidelity Range Reconstruction
+The reconstruction engine MUST preserve the exact character sequence, including internal punctuation and original whitespace tokens, when a range of contiguous words is selected.
