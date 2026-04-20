@@ -1,4 +1,30 @@
+# Release Notes - v1.44.4 (Hardened Grounding & Precise Verification)
+
+**Date**: 2026-04-20
+**Version**: v1.44.4
+**Implementation ZIDs**: 20260420002846, 20260420003934, 20260420015008, 20260420075549, 20260420181519
+
+## Highlights
+
+### 🛡️ **Hardened Interaction & Resilience**
+- **Systemic Interaction Shield**: Standardized a 150ms "interaction shield" across all navigation and keyboard actions. This suppresses hardware-level jitter and "ghost clicks" from remote controls and touchpads immediately after a command.
+- **Surgical RMB Isolation**: Hardened the Right-Mouse Button (RMB) behavior to exclusively pin tooltips. RMB actions no longer alter the yellow selection cursor or trigger accidental focus jumps.
+- **Responsive Modifier Handling**: Refined the shield logic to ignore modifier keys (Ctrl, Shift, Alt, Meta), ensuring that complex mouse-keyboard combinations remain responsive and fluid.
+
+### 🎯 **Precision Verification & Global Highlighting**
+- **Word-Token Intersection**: Replaced fragile literal string matching with a robust word-tokenized check for Global Mode neighbors. Verification now succeeds through punctuation and formatting differences, ensuring 100% stable vocabulary highlighting.
+- **Un-grounded Global Split Matching**: Refactored detection for non-contiguous terms (Purple) to be segment-relative. These now highlight correctly across the entire timeline, regardless of the original record's timestamp.
+- **Corrected Adaptive Windows**: Rectified the mathematical logic for long-phrase temporal windows. The word-count growth factor is now correctly applied, stabilizing highlights for complex, sentence-length captures.
+
+### 📦 **Expanded Media Support & UI Refinement**
+- **Embedded Subtitle Support**: Relaxed initialization constraints to enable the Drum Window (Mode W) for internal/embedded subtitles in MKV files, expanding accessibility beyond external SRT/ASS tracks.
+- **Logical Search Cursor**: Repositioned the search field cursor to the beginning (`|Search...`), providing a more intuitive and familiar input experience in the global search overlay.
+- **Formal Spec Synchronization**: Synchronized all project specifications with the current architectural ground truth, formally adopting Multi-Pivot Grounding and the Unified Punctuation Spacing Rule (UPSR).
+
+---
+
 # Release Notes - v1.44.2 (Hardened Interaction & Unified Mining)
+
 
 **Date**: 2026-04-19
 **Version**: v1.44.2
