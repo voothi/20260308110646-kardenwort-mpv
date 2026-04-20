@@ -11,10 +11,26 @@ The system SHALL assign a unique 1-indexed logical position to every word-charac
 - **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence.
 - **Square Brackets**: Content within `[]` SHALL NOT be atomized, allowing granular selection of internal words and punctuation.
 
+#### Scenario: Word count in simple sentence
+- **GIVEN** a subtitle segment: `Sie hören die Nachrichtensendung nur einmal.`
+- **THEN** matching logical indices SHALL be:
+  - `Sie`: 1
+  - `hören`: 2
+  - `die`: 3
+  - `Nachrichtensendung`: 4
+  - `nur`: 5
+  - `einmal`: 6
+
+#### Scenario: Metadata and Punctuation Skipping
+- **GIVEN** a subtitle segment: `{\pos(10,20)}Hallo, Welt!`
+- **THEN** matching logical indices SHALL be:
+  - `Hallo`: 1
+  - `, Welt`: `Hallo` remains 1, the space and comma skip, `Welt` becomes 2.
+
 ### Requirement: Multi-Pivot Grounding Map
 To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.
 - **Format**: `LineOffset:WordIndex:TermPos` (e.g., `0:4:1`).
-- **Resilience**: Coordinates SHALL be treated as the primary anchor. However, for matches sitting at the record's original time, the system SHALL fallback to context-verified fuzzy matching if grounding is broken, ensuring continuity for newly-added terms.
+- **Resilience**: Coordinates SHALL be treated as the primary anchor. However, for matches sitting at the record's original time, the system SHALL fallback to context-verified fuzzy matching if grounding is broken.
 
 #### Scenario: Exporting a Multi-Word Coordinate Map
 - **WHEN** a user exports a three-word selection spanning two lines.
@@ -35,10 +51,8 @@ Exports SHALL include a mandatory temporal offset to ensure the recorded timesta
 The highlight engine SHALL use the coordinate map to perform strict existence checks during render.
 - **Grounded Highlighting**: When `anki_global_highlight` is disabled, the engine SHALL only highlight tokens whose logical position matches the stored mapping.
 - **Segment Drift Tolerance**: The system SHALL allow a `+/- 1` subtitle segment drift when resolving origin lines to account for temporal epsilon boundaries (`+1ms`).
-- **Fuzzy Bypass**: Records with valid Multi-Pivot metadata MUST bypass literal context healing loops in favor of coordinate-perfect matching.
 
 ### Requirement: Logical Hit-Test Snapping
 The hit-testing engine SHALL implement logical word snapping for all mouse interactions.
 - **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces, punctuation, line gaps) SHALL be snapped to the nearest valid logical word index.
 - **Margin Snap**: Mouse coordinates outside the active text block SHALL be clamped to the first/last logical word of the nearest visible subtitle line.
-- **Consistency**: This mapping SHALL be identical for both Contiguous (LMB) and Paired (Ctrl+Click) selection paths.
