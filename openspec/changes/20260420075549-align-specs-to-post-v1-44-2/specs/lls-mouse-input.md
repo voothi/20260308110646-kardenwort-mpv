@@ -1,21 +1,14 @@
 ## DEPRECATED Requirements
 
 ### Requirement: Ctrl-Set Discard on Modifier Release
-The requirement to discard the `ctrl_pending_set` upon release of the `Ctrl` key is **REMOVED** to support minimalist input devices.
+The requirement to automatically discard selection accumulators on `Ctrl` key release is **REMOVED** to support persistent curation on minimalist remotes.
 
 ## ADDED Requirements
 
-### Requirement: Global Interaction Shield
-The system SHALL implement a 150ms temporal suppression window to filter hardware-level ghost clicks during rapid navigation.
+### Requirement: Global Interaction Shield (Hardware Jitter Filter)
+The system SHALL implement a **150ms** suppression window following any keyboard or remote navigation command.
+- **Behavior**: All mouse button/scroll signals SHALL be ignored while the lock is active to filter hardware-level ghost clicks.
 
-#### Scenario: Navigation Shield Activation
-- **WHEN** a keyboard or remote navigation command (e.g., Seek, Add, Pair) is executed
-- **THEN** the system SHALL ignore all incoming mouse button signals for the next **150ms**.
-
-### Requirement: Coordinate-Precise Sync
-The system SHALL ensure the focus cursor and selection anchor are updated to the exact coordinate under the pointer immediately prior to action dispatch.
-
-#### Scenario: Pointer Jump Sync
-- **WHEN** any mouse-based action is triggered
-- **THEN** the system SHALL synchronize the virtual focus to the physical coordinate under the pointer.
-- **AND** this sync SHALL occur before the action's logic is processed.
+### Requirement: Pointer Jump Sync
+The system SHALL synchronize the logical focus (hit-test) to the exact coordinate under the pointer *immediately prior* to dispatching any mouse action.
+- **Rationale**: Prevents actions from being applied to stale coordinates during rapid pointer movement or hardware latency.

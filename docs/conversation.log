@@ -198,7 +198,13 @@
 20260420081736 Did you rename 20260420075549-align-specs-to-v1-44-2?
 20260420081808 Rename this.
 20260420081925 I received artifacts from another openspec system, check them and add if necessary.
-20260420082300 Accept proposals for updating specifications from another system that did the review. Be critical. Update.
+20260420082300 Accept proposals for updating specifications from another system that did the review. Be critical. Update openspec\changes\20260420075549-align-specs-to-post-v1-44-2.
+20260420083841 I actually didn't ask you to update directly in openspec\specs. This was prohibited. I moved back one commit. Let's take everything we changed in commit 3bd4bf4faf11e815a1a4e7d2263ba75b494d6709 and bring it to the current codebase, only as a proposal for change within the current open process openspec\changes\20260420075549-align-specs-to-post-v1-44-2, so that when archiving, at my command, we could transfer this to openspec\specs, but not directly. We need to have continuity through the transfer project.
+20260420083939 You did not change any files on the disk, repeat.
+
+
+
+
 
 
 

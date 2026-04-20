@@ -1,23 +1,14 @@
 ## ADDED Requirements
 
 ### Requirement: Generous Inter-Segment Bridging
-The temporal gap tolerance for joining adjacent subtitle segments into a single phrase match SHALL be expanded to support slow speech.
-
-#### Scenario: 10s Gap Tolerance
-- **WHEN** two segments contain sequential components of a saved term
-- **AND** the temporal gap between the segments is less than or equal to **10.0 seconds**
-- **THEN** the system SHALL treat the segments as contiguous for highlight rendering.
+The temporal gap tolerance for joining adjacent subtitle segments into a single phrase match SHALL be expanded to support slow media speech.
+- **Tolerance**: **10.0 seconds**.
+- **Behavior**: If the gap between sequential match components is <= 10s, they SHALL be rendered as a unified phrase.
 
 ### Requirement: Precision Neighborhood Verification (Token Intersection)
-When Global Highlighting is active, the system SHALL verify that the current subtitle scene is contextually related to the original Anki record before rendering a highlight.
+When Global Highlighting is active, the engine SHALL verify the contextual "neighbor" tokens to prevent spurious matches on common words.
+- **Anchor Requirement**: A highlight is ONLY rendered if at least one meaningful word (length >= 2, stripped of punctuation) from the neighboring +/- 5 segments exists in the record's stored context.
 
-#### Scenario: Contextual Anchor found
-- **WHEN** `anki_global_highlight` is enabled
-- **AND** the engine finds a textual match for a saved term
-- **THEN** it SHALL scan neighboring segments (+/- 5 lines).
-- **IF** any word of length >= 2 in those segments is found in the record's stored context (minus punctuation)
-- **THEN** the highlight SHALL be rendered.
-
-#### Scenario: Contextual Anchor NOT found
-- **WHEN** no words from the neighborhood (excluding punctuation) match the stored context
-- **THEN** the highlight SHALL NOT be rendered, even if the literal term matches.
+### Requirement: Deep Segment Peeking & Adaptive Window
+- **Peeking**: The engine SHALL scan up to 5 adjacent segments to verify long phrase continuity.
+- **Adaptive Window**: The fuzzy matching window SHALL grow by +0.5s for every word beyond the 10th word in a saved term to accommodate long paragraph segments.

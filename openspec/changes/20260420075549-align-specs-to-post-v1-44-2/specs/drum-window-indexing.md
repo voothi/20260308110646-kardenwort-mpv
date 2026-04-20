@@ -1,17 +1,14 @@
 ## ADDED Requirements
 
-### Requirement: Multi-Pivot Coordinate Grounding
-The system SHALL identify and store unique logical coordinates for every word in a selection to ensure absolute scene-locking regardless of identical terms in the context.
+### Requirement: Multi-Pivot Grounding Map
+The system SHALL replace single-integer logical indexing with a comprehensive coordinate string for every word in a mining record.
+- **Format**: `LineOffset:WordIndex:TermPos` (e.g., `0:4:1`).
+- **Rationale**: Ensures 100% unique scene-locking for identical terms by storing exact document offsets instead of geometric line centers.
 
-#### Scenario: Exporting Multi-Word Coordinates
-- **WHEN** a user exports a selection
-- **THEN** the system SHALL generate a coordinate string in the format `LineOffset:WordIndex:TermPos` for every word.
-- **AND** this string SHALL be persisted in the `SentenceSourceIndex` field (or equivalent).
+### Requirement: Marker-Injection Pivot Anchoring
+The system SHALL anchor the focus pivot to a specific logical coordinate coordinate to eliminate search drift in variable-font environments.
 
-### Requirement: Index-Bounded Highlight Verification
-The highlight engine SHALL use the multi-pivot coordinate string to perform strict existence checks during render.
-
-#### Scenario: Grounded Highlighting
-- **WHEN** `anki_global_highlight` is disabled
-- **THEN** the engine SHALL only highlight tokens whose document position matches the `LineOffset` and `WordIndex` stored in the record.
-- **AND** it SHALL bypass fuzzy context healing for records containing valid coordinate metadata.
+### Requirement: Temporal Epsilon Guard
+Anki export timestamps SHALL include a mandatory temporal offset to ensure reliable window positioning.
+- **Offset**: `+0.001s` (1ms).
+- **Rule**: The export timestamp MUST be `line.start_time + 0.001`.

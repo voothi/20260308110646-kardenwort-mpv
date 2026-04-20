@@ -1,8 +1,13 @@
 ## ADDED Requirements
 
-### Requirement: Elliptical Joiner Support
-The smart joiner engine SHALL support the injection of ellipses when reconstructing non-contiguous (split) phrases for display or clipboard export.
+### Requirement: Unified Punctuation Spacing Rule (UPSR)
+The smart joiner engine MUST preserve compound word visual formatting and follow standard spacing rules.
+- **Rule**: NO space SHALL be inserted before or after symbols: `/`, `-`.
+- **Rationle**: Prevents "Marken - Discount" and ensures "Marken-Discount".
 
-#### Scenario: Split Phrase Reconstruction
-- **WHEN** a term is flagged as a "split" selection
-- **THEN** the system SHALL join the non-contiguous fragments using a standardized ellipsis separator (` ... `).
+### Requirement: Elliptical Joiner Support
+The engine SHALL inject space-padded ellipses (` ... `) when joining non-contiguous fragments into a single term.
+- **Trigger**: Detected via gaps in logical word indices.
+
+### Requirement: Punctuation Preservation
+The service MUST preserve the exact character sequence of internal punctuation (commas, dashes) while only stripping boundaries for dictionary accuracy.

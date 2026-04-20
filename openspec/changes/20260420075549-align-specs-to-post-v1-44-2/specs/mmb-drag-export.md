@@ -1,14 +1,10 @@
 ## ADDED Requirements
 
-### Requirement: Chromatic Alignment (v1.44.2)
-MMB-triggered selections SHALL align with the unified "Warm vs. Cool" color system.
+### Requirement: Chromatic Path Alignment (Warm Path)
+MMB-triggered interactions SHALL align with the unified "Warm Path" visual feedback.
+- **Pending/Drag Color**: **Gold (#00CCFF)**.
+- **Post-Commit Style**: Contiguous saved terms SHALL transition to **Orange**.
 
-#### Scenario: Drag-Selection Color
-- **WHEN** the user drags with MMB (without pairing modifiers)
-- **THEN** the active range SHALL be rendered in **Gold (#00CCFF)**.
-
-#### Scenario: Post-Commit Color
-- **WHEN** the selection is committed (released)
-- **THEN** the words SHALL transition to the appropriate saved color:
-    - **Orange** for contiguous spans.
-    - **Purple** for fragments identified as split terms.
+### Requirement: MMB Auto-Export on Release
+The Middle Mouse Button SHALL automatically trigger the Anki export pipeline upon release of a selection range.
+- **Fall-back**: If no range is active, MMB single-click SHALL export the word under the focus cursor.

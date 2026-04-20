@@ -1,9 +1,5 @@
 ## ADDED Requirements
 
-### Requirement: Anki Metadata Mapping
-Discovered media source URLs SHALL be made available to the Anki export engine via a standardized keyword.
-
-#### Scenario: source_url Field Mapping
-- **WHEN** a media source URL is successfully discovered and cached
-- **AND** the `anki_mapping.ini` contains a field mapped to the `source_url` keyword
-- **THEN** the system SHALL populate that field with the discovered URL during every export.
+### Requirement: source_url Anki Field Mapping
+Discovered media source URLs SHALL be made available for Anki exports via a standardized `source_url` keyword.
+- **Behavior**: The exporter MUST populate the mapped Anki field with the discovered URL (if cached) during minden row generation.
