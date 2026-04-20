@@ -1938,6 +1938,9 @@ local function dw_get_str_width(str)
     if type(str) == "table" then str = str.text end
     if not str then return 0 end
     
+    -- Strip ASS tags before calculating physical width
+    str = str:gsub("{[^}]+}", "")
+    
     local char_w = Options.dw_font_size * Options.dw_char_width
     if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
         local len = 0
@@ -3070,7 +3073,7 @@ end
 local function ctrl_toggle_word(line_idx, word_idx)
     if line_idx < 1 or word_idx < 1 then return end
     
-    local key = string.format("%d:%d", line_idx, word_idx)
+    local key = string.format("%d:%g", line_idx, word_idx)
     if FSM.DW_CTRL_PENDING_SET[key] then
         FSM.DW_CTRL_PENDING_SET[key] = nil
     else
