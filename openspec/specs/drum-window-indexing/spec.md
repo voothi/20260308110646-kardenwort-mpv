@@ -1,48 +1,39 @@
 # drum-window-indexing Specification
 
 ## Purpose
-TBD - created by archiving change 20260418211727-fix-drum-window-highlight-anchoring. Update Purpose after archive.
+Ensure 100% precise, scene-locked highlighting and context extraction by implementing a robust multi-coordinate grounding system that survives changes in subtitle layout or identical term repetition.
+
 ## Requirements
-### Requirement: Logical Word Indexing
+
+### Requirement: Logical Word Indexing (Token Atomization)
 The system SHALL assign a unique 1-indexed logical position to every word-character token within a subtitle segment.
-
 - **Non-Word Tokens**: Punctuation, symbols, and whitespace SHALL be tokenized but SHALL NOT increment the logical index.
-- **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be completely ignored for indexing purposes.
+- **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence.
 
-#### Scenario: Word count in simple sentence
-- **GIVEN** a subtitle segment: `Sie hören die Nachrichtensendung nur einmal.`
-- **THEN** matching logical indices SHALL be:
-  - `Sie`: 1
-  - `hören`: 2
-  - `die`: 3
-  - `Nachrichtensendung`: 4
-  - `nur`: 5
-  - `einmal`: 6
+### Requirement: Multi-Pivot Grounding Map
+To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.
+- **Format**: `LineOffset:WordIndex:TermPos` (e.g., `0:4:1`).
+- **Composition**:
+    - `LineOffset`: Integer offset from the export's primary timestamp line (usually 0).
+    - `WordIndex`: The logical 1-indexed word position within that line.
+    - `TermPos`: The 1-indexed position of the word within the composed multi-word term.
 
-#### Scenario: Metadata and Punctuation Skipping
-- **GIVEN** a subtitle segment: `{\pos(10,20)}Hallo, Welt!`
-- **THEN** matching logical indices SHALL be:
-  - `Hallo`: 1
-  - `, Welt`: `Hallo` remains 1, the space and comma skip, `Welt` becomes 2.
+#### Scenario: Exporting a Multi-Word Coordinate Map
+- **WHEN** a user exports a three-word selection spanning two lines.
+- **THEN** the `SentenceSourceIndex` field in the TSV SHALL contain a comma-separated list of coordinates:
+    - Example: `0:15:1,0:16:2,1:1:3` (Covers word 15 & 16 of current line, and word 1 of next line).
 
-### Requirement: Pivot-Point Anchoring
-During context extraction and search, the system SHALL calculate a character-offset "Pivot" based on the user's focus point to eliminate search drift.
+### Requirement: Marker-Injection Pivot Anchoring
+The system SHALL anchor the focus pivot to a specific logical coordinate rather than a geometric midpoint to eliminate search drift in variable-font environments.
+- **Constraint**: The context search engine MUST use the Multi-Pivot map to uniquely identify the exact word occurrence in the subtitle database.
+- **Fallack**: If no Multi-Pivot map is present (legacy records), the system SHALL fallback to geometric proximity matching.
 
-- **Pivot Calculation**: For single-click exports, the pivot SHALL be the middle character index of the clicked word within the cleaned (tag-free) context block.
-- **Pivot Proximity**: The context search engine SHALL identify all candidate occurrences of a term and select the one with the smallest absolute distance between its midpoint and the calculated Pivot.
+### Requirement: Temporal Epsilon Guard
+Exports SHALL include a mandatory temporal offset to ensure the recorded timestamp sits reliably within the subtitle's active window.
+- **Offset**: `+0.001s` (1ms).
+- **Rule**: The Anki export timestamp SHALL be `primary_line.start_time + 0.001`.
 
-#### Scenario: Resolving Ambiguous Words
-- **GIVEN** a context block containing two sentences: `[S1] Sie hören die Nachricht. [S2] Entscheiden Sie, ob die Aussagen richtig sind.`
-- **WHEN** a user clicks on `die` in [S1].
-- **THEN** the system SHALL calculate a pivot within the [S1] range.
-- **AND** the search engine SHALL select the first `die` because it is closer to the pivot than the `die` in [S2].
-
-### Requirement: Index Persistence
-The logical word index SHALL be persisted in the exported database record via the `SentenceSourceIndex` field.
-
-#### Scenario: Exporting a selection record
-- **WHEN** a user exports a word selection from the Drum Window.
-- **THEN** the record exported to the TSV SHALL include:
-  - **SentenceSource**: The text of the subtitle segment containing the selection.
-  - **SentenceSourceIndex**: The 1-indexed logical position of the first word of the selection within that segment.
-
+### Requirement: Index-Bounded Highlight Verification
+The highlight engine SHALL use the coordinate map to perform strict existence checks during render.
+- **Grounded Highlighting**: When `anki_global_highlight` is disabled, the engine SHALL only highlight tokens whose logical position matches the stored mapping.
+- **Fuzzy Bypass**: Records with valid Multi-Pivot metadata MUST bypass literal context healing loops in favor of coordinate-perfect matching.

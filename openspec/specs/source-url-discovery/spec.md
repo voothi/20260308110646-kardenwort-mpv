@@ -6,26 +6,19 @@ Automate the discovery and extraction of media source URLs from external sidecar
 ## Requirements
 
 ### Requirement: Automatic Source Discovery
-The system SHALL search the media directory for sidecar files containing URL metadata whenever an Anki export is requested or during periodic synchronization.
+The system SHALL search the media directory for sidecar files containing URL metadata.
+- **Matched Files**: `<media_base_name>.<ext>` (ext: `.url`, `.txt`, `.md`).
+- **Patterns**: Lines matching `URL=<url>`.
 
-#### Scenario: Base Name Match
-- **WHEN** a file named `<media_base_name>.<ext>` exists (where ext is `.url`, `.txt`, or `.md`)
-- **AND** the file contains a line matching `URL=<url>`
-- **THEN** the system SHALL extract the URL and associate it with the current media session.
+### Requirement: Anki Metadata Mapping
+Discovered media source URLs SHALL be made available to the Anki export engine via a standardized keyword to ensure metadata accessibility in the resulting flashcards.
 
-#### Scenario: Fallback Scoped Search
-- **WHEN** no base-name-matched file is found
-- **AND** at least one `.url` file exists in the media directory
-- **THEN** the system SHALL attempt to extract the URL from the first `.url` file found alphabetically.
+#### Scenario: source_url Field Mapping
+- **WHEN** a media source URL is successfully discovered and cached.
+- **AND** the `anki_mapping.ini` configuration contains a field mapped to the `source_url` keyword.
+- **THEN** the system SHALL populate that field with the discovered URL during every export.
 
 ### Requirement: Discovery Resilience
-The system SHALL ensure the URL metadata remains accurate even if files are modified, renamed, or deleted during a playback session.
-
-#### Scenario: Cache Validation
-- **WHEN** a URL is cached from a source file
-- **AND** that source file is deleted or renamed
-- **THEN** the system SHALL invalidate the cache and re-trigger discovery.
-
-#### Scenario: Periodic Synchronization
-- **WHEN** `anki_sync_period` is greater than 0
-- **THEN** the system SHALL re-trigger discovery at every sync interval if no URL is currently cached, supporting files added after the video was opened.
+The system SHALL ensure the URL metadata remains accurate throughout the playback session.
+- **Cache Invalidation**: If the source file is deleted or renamed, the cache MUST be invalidated.
+- **Periodic Sync**: Triggers discovery every `anki_sync_period` seconds to support files added after media initialization.
