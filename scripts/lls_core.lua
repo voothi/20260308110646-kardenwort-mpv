@@ -141,6 +141,7 @@ local Options = {
     -- Colors
     dw_split_select_color = "FF88B0",
     book_mode = false,
+    dw_mouse_shield_ms = 50,      -- Ghost-click suppression window after keyboard commands (ms)
     sentence_word_threshold = 3
 }
 options.read_options(Options, "lls")
@@ -3243,10 +3244,15 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             
-            -- Release suppression release lock if we were dragging
-            local line_idx, _ = dw_hit_test(dw_get_mouse_osd())
-            if updates_selection then
-                FSM.DW_TOOLTIP_LOCKED_LINE = line_idx or -1
+            -- POINTER JUMP SYNC: Perform a final hit-test on release to ensure actions 
+            -- are applied to the exact coordinate where the button was released.
+            local osd_x, osd_y = dw_get_mouse_osd()
+            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            
+            if line_idx and word_idx and updates_selection then
+                FSM.DW_CURSOR_LINE = line_idx
+                FSM.DW_CURSOR_WORD = word_idx
+                FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
             end
 
             mp.remove_key_binding("dw-mouse-drag")
@@ -3856,8 +3862,8 @@ local function manage_dw_bindings(enable)
                         key = key,
                         name = base_name .. "-" .. i,
                         fn = function(t) 
-                            -- Shield the mouse from ghost clicks for 50ms when a key is pressed
-                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + 0.050
+                            -- Shield the mouse from ghost clicks after a key is pressed
+                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
                             key_fn(t, false) 
                         end,
                         complex = false

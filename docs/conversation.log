@@ -242,7 +242,9 @@
 20260420123235 Window w does not open.
 20260420123508 No longer correctly highlighted in pink for multi-line selection. Specification?
 20260420123901 Selection now works and the cursor no longer gets stuck during multi-line selection. Check the final solution and consistency with the specifications openspec\changes\20260420075549-align-specs-to-post-v1-44-2. 
-
+20260420125137 Why is this not in the config and not included in Options - 50ms Interaction Shield / Pointer Jump Sync.
+20260420125249 Check mpv.conf.
+20260420125330 Are you sure this is the correct value for script-opts-append=lls-dw_mouse_shield_ms=150?
 
 
 
