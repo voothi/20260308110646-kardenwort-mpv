@@ -616,6 +616,33 @@ local function build_word_list(text)
     return words
 end
 
+local function verify_neighborhood(subs, center_idx, t_idx, context_lower)
+    local scan_pad = Options.anki_neighbor_window or 5
+    local match_count = 0
+    for s_off = -scan_pad, scan_pad do
+        local curr_s_idx = center_idx + s_off
+        local scan_sub = subs[curr_s_idx]
+        if scan_sub then
+            local s_tokens = get_sub_tokens(scan_sub)
+            if s_tokens then
+                for current_t_idx, t in ipairs(s_tokens) do
+                    -- Skip the exact word being evaluated
+                    if not (curr_s_idx == center_idx and current_t_idx == t_idx) then
+                        if t.is_word then
+                            local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                            if #cw >= 2 and context_lower:find(cw, 1, true) then
+                                match_count = match_count + 1
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            if match_count >= 1 then return true end
+        end
+    end
+    return false
+end
 local function get_sub_tokens(s)
     if not s then return nil end
     if not s.tokens then 
@@ -829,7 +856,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     end
 
     -- Helper to get a word by relative LOGICAL offset
-    local function get_relative_word_text(rel_logical_offset)
+    local function get_relative_word_text(rel_logical_offset, max_gap)
         local curr_s_idx = sub_idx
         local target_logical_idx = target_l_idx + rel_logical_offset
         
@@ -851,10 +878,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if target_logical_idx > wc then
                 target_logical_idx = target_logical_idx - wc
                 curr_s_idx = curr_s_idx + 1
-                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > (Options.anki_split_gap_limit or 10.0)) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx-1] or (subs[curr_s_idx].start_time - subs[curr_s_idx-1].end_time > (max_gap or Options.anki_split_gap_limit or 10.0)) then return nil end
             elseif target_logical_idx < 1 then
                 curr_s_idx = curr_s_idx - 1
-                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > (Options.anki_split_gap_limit or 10.0)) then return nil end
+                if not subs[curr_s_idx] or not subs[curr_s_idx+1] or (subs[curr_s_idx+1].start_time - subs[curr_s_idx].end_time > (max_gap or Options.anki_split_gap_limit or 10.0)) then return nil end
                 get_sub_tokens(subs[curr_s_idx]) -- Ensure word_count is cached
                 target_logical_idx = target_logical_idx + (subs[curr_s_idx].word_count or 0)
             else
@@ -863,6 +890,27 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         end
         return nil
     end
+
+    -- PERFORMANCE: Build shared context buffer for split-phrase matching
+    local shared_ctx_list = {}
+    local split_win = Options.anki_split_search_window or 35
+    local s_start = math.max(1, sub_idx - split_win)
+    local s_end = math.min(#subs, sub_idx + split_win)
+    for scan_i = s_start, s_end do
+        local scan_tokens = get_sub_tokens(subs[scan_i])
+        if scan_tokens then
+            for t_i, t in ipairs(scan_tokens) do
+                if t.is_word then
+                    local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                    if cw ~= "" then
+                        table.insert(shared_ctx_list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
+                    end
+                end
+            end
+        end
+    end
+
+
 
     local orange_stack = 0
     local purple_stack = 0
@@ -939,7 +987,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         elseif #term_clean > 1 then
                             for k = 1, #term_clean do
                                 if k ~= term_offset then
-                                    local rw_text = get_relative_word_text(k - term_offset)
+                                    local rw_text = get_relative_word_text(k - term_offset, 1.5)
                                     if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
                                         sequence_match = false
                                         break
@@ -954,41 +1002,27 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if Options.anki_global_highlight then
                             local needs_strict = Options.anki_context_strict or (#term_clean == 1)
                             if needs_strict then
-                                -- Robust neighbor check for Global Mode
-                                local match_count = 0
-                                local scan_pad = Options.anki_neighbor_window or 5
-                                for s_off = -scan_pad, scan_pad do
-                                    local scan_sub = subs[sub_idx + s_off]
-                                    if scan_sub then
-                                        local s_tokens = get_sub_tokens(scan_sub)
-                                        if s_tokens then
-                                            for _, t in ipairs(s_tokens) do
-                                                if t.is_word then
-                                                    local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                                                    -- Match if a meaningful word from scan segment is found in Anki context
-                                                    if #cw >= 2 and data.__ctx_lower:find(cw, 1, true) then
-                                                        match_count = match_count + 1
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                        end
-                                        if match_count >= 1 then break end
-                                    end
-                                end
-                                context_satisfied = (match_count >= 1)
+                                context_satisfied = verify_neighborhood(subs, sub_idx, token_idx, data.__ctx_lower)
                             else
                                 context_satisfied = true
                             end
                         else
                             -- Local Mode (Global OFF): MUST be grounded if pivots exist
                             if data.__pivots and #data.__pivots > 0 then
-                                local origin_l = get_center_index(subs, data.time)
-                                if origin_l ~= -1 then
-                                    -- Verify the specific pivot corresponding to this word part
-                                    local g = data.__pivots[term_offset]
-                                    if g and sub_idx == origin_l + g.l_off and target_l_idx == g.p_idx then
-                                        context_satisfied = true
+                                local g = data.__pivots[term_offset]
+                                if g then
+                                    local origin_l = get_center_index(subs, data.time)
+                                    if origin_l ~= -1 then
+                                        -- 1. Strict Check
+                                        if sub_idx == origin_l + g.l_off and target_l_idx == g.p_idx then
+                                            context_satisfied = true
+                                        end
+                                        
+                                        -- 2. Gated Fuzzy Healing (Requirement 50)
+                                        -- Allow highlights to survive minor subtitle line shifts while maintaining precision.
+                                        if not context_satisfied and math.abs(sub_idx - (origin_l + g.l_off)) <= 1 then
+                                             context_satisfied = verify_neighborhood(subs, sub_idx, token_idx, data.__ctx_lower)
+                                        end
                                     end
                                 end
                             else
@@ -1019,22 +1053,15 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set == nil then
                             valid_set = false
                             local ctx_list = {}
-                            local s_start = math.max(1, math.min(sub_idx, origin_sub_idx) - Options.anki_split_search_window)
-                            local s_end = math.min(#subs, math.max(sub_idx, origin_sub_idx) + Options.anki_split_search_window)
+                            local gap_limit = Options.anki_split_gap_limit or 10.0
 
-                            for scan_i = s_start, s_end do
-                                local scan_tokens = get_sub_tokens(subs[scan_i])
-                                if scan_tokens then
-                                    local gap = math.abs(subs[scan_i].start_time - data.time)
-                                    if Options.anki_global_highlight or gap < Options.anki_split_gap_limit then
-                                        for t_i, t in ipairs(scan_tokens) do
-                                            if t.is_word then
-                                                local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                                                if cw ~= "" then
-                                                    table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
-                                                end
-                                            end
-                                        end
+                            -- Filter shared context by temporal gap (only relevant for Local Mode)
+                            if Options.anki_global_highlight then
+                                ctx_list = shared_ctx_list
+                            else
+                                for _, cw_obj in ipairs(shared_ctx_list) do
+                                    if math.abs(cw_obj.start - data.time) < gap_limit then
+                                        table.insert(ctx_list, cw_obj)
                                     end
                                 end
                             end
@@ -1069,11 +1096,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             end
                                             if data.__pivots and #data.__pivots > 0 then
                                                 local all_pivots_matched = true
-                                                for _, g in ipairs(data.__pivots) do
-                                                    local m = ctx_list[current_tuple[g.t_pos]]
-                                                    if not (m and m.s_i == origin_sub_idx + g.l_off and m.l_i == g.p_idx) then
-                                                        all_pivots_matched = false; break
+                                                local card_origin = get_center_index(subs, data.time)
+                                                if card_origin ~= -1 then
+                                                    for _, g in ipairs(data.__pivots) do
+                                                        local pm = ctx_list[current_tuple[g.t_pos]]
+                                                        if not (pm and pm.s_i == (card_origin + g.l_off) and pm.l_i == g.p_idx) then
+                                                            all_pivots_matched = false; break
+                                                        end
                                                     end
+                                                else
+                                                    all_pivots_matched = false
                                                 end
                                                 if all_pivots_matched then has_anchor = true end
                                             end
@@ -1102,6 +1134,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         if c_idx > prev_idx then
                                             current_tuple[term_idx] = c_idx
                                             search(term_idx + 1, current_tuple)
+                                            if best_tuple and min_span <= #term_clean then break end -- Early exit on perfect sequential match
                                         end
                                     end
                                 end
