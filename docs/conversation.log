@@ -275,8 +275,7 @@
 20260420150709 As an older model, check the code. There is a problem with displaying the added selection in gold. Also, when I clicked on the selection, it began to be cut off by the word on which I pressed the middle key. Print the modified code sections and description for the 3 lite model.
 20260420152528 Implement these changes from the older model.
 20260420152911 As an older model, check the code. There is a problem with displaying the added selection in gold. Also, when I clicked on the selection, it began to be cut off by the word on which I pressed the middle key. Print the modified code sections and description for the 3 lite model.
-20260420153752 Implement these changes from the senior model.
-
+20260420161008 Take the important fixes in version d5ece2f03eee643b8e59b7e16d6b9aa2c79dee69 and transfer them to version f15e060ee04a156163b226bcc38027307b478bb0
 
 
 
