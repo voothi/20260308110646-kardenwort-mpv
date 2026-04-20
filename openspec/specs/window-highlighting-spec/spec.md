@@ -80,12 +80,12 @@ Highlighting SHALL include trailing or internal punctuation only when it is part
 - **THEN** all internal and trailing punctuation within that phrase span SHALL be highlighted.
 
 ### Requirement: High-Recall Sequence Verification
-To prevent false-positive highlights of common words, the engine MUST verify the local context of every match in Global Mode.
+To prevent false-positive highlights of common words, the engine MUST verify the local context of every match in Global Mode. **This verification SHALL be punctuation-agnostic and robust to variation in subtitle segmentation.**
 
-#### Scenario: Neighborhood check
+#### Scenario: Word-Based Neighborhood Verification
 - **WHEN** evaluating a match in Global Mode.
-- **THEN** the engine MUST verify that at least one neighboring word (within a ±3 word window) matches the original recorded context.
-- **AND** symbol-only tokens SHALL be ignored during this verification.
+- **THEN** the engine SHALL verify the context by checking if at least one meaningful word (non-symbol) from neighbor segments (within a ±3 segment window) exists within the recorded Anki category/context. 
+- **AND** this check SHALL ignore differences in punctuation, case, and formatting tags to ensure high recall for saved vocabulary.
 
 ### Requirement: Inter-Segment Continuity
 Highlighting SHALL persist across subtitle segment boundaries if strict temporal and sequential constraints are met.
@@ -109,6 +109,14 @@ For split (non-contiguous) terms, the engine SHALL scan a widened cluster of sub
 #### Scenario: Subtitle segment scan cluster
 - **GIVEN** the engine is evaluating a potential split match.
 - **THEN** it SHALL scan up to **±15 subtitle segments** (approximately 30 seconds of context) to locate all constituent words.
+
+### Requirement: Global Temporal Un-grounding
+Multi-word split phrases (containing ellipses) SHALL NOT be restricted by the original record's absolute timestamp in Global Mode.
+
+#### Scenario: Global Context Discovery for Split Pairs
+- **WHEN** Global Highlighting is enabled.
+- **THEN** the engine SHALL anchor the search for phrase components relative to the currently rendered subtitle segment (`sub_idx`).
+- **AND** it SHALL enforce the `anki_split_gap_limit` (temporal gap between words) locally within the current timeline, ignoring the distance from the original card creation time.
 
 ### Requirement: Strict Context Neighbor Verification
 When strict context matching is enabled, matches MUST be anchored by their recorded indices or neighbors.
