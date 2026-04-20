@@ -32,5 +32,14 @@ When multiple distinct ranges or words are paired, the system SHALL use the `Sma
 - **User selects**: "Hello" (Line 1), "World" (Line 5).
 - **Export Result**: `Hello ... World`.
 
+#### Scenario: Preserving middle-word dashes
+- **WHEN** composing a term from tokens "Marken", "-", and "Discount".
+- **THEN** the resulting term MUST be "Marken-Discount".
+
 ### Requirement: Highlight Stability
 Selections in the "Cool Path" (Neon Pink) SHALL maintain their visibility and logical anchoring even if the user scrolls the Drum Window or performs a seek operation, up until the moment of export or discard.
+
+### Requirement: Configurable Palette
+The system SHALL allow user overrides for all terminal colors in the "Warm vs. Cool" system.
+- `ctrl_select_color`: Default `#FF88FF` (Neon Pink).
+- `focus_range_color`: Default `#00CCFF` (Gold).
