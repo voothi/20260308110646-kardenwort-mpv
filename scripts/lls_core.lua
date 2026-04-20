@@ -997,7 +997,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             end
                         end
 
-                        if context_satisfied then
+                        if sequence_match and context_satisfied then
                             any_sequence = true
                             break
                         end

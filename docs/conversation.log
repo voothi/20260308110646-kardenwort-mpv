@@ -212,6 +212,7 @@
 20260420091544 Our purple highlight broke after adding it to the file. The addition itself works in this case. The last version when this still worked was on commit 2abc916523530b1e8670712c9d7179c3d145e0f4
 Apparently something was missing in the current specifications that allowed this to happen. If you have suggestions for updating the specifications, do it in isolation in openspec\changes\20260420075549-align-specs-to-post-v1-44-2
 20260420091741 Try implementing this fix in code so we can check it.
+20260420091945 It didn't work.
 
 
 

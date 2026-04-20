@@ -15,8 +15,8 @@ Manual user selections SHALL always carry higher visual priority than automated 
 - **WHEN** a user holds MMB on a word.
 - **THEN** the word SHALL immediately turn **Gold** (Preview Focus).
 
-### Highlighting Example (Concrete Case Refinement)
-- **Database Term**: `Aussagen ... richtig oder`
-    - **Match Logic**: Skips Orange/Phase 1. Finds `Aussagen`, `richtig`, and `oder` within the **10.0s window** (expanded from legacy 1.5s/2.0s).
-- **Database Term**: `Entscheiden ... beim ... ob`
-    - **Match Logic**: Skips Orange/Phase 1. Finds `Entscheiden`, `beim`, and `ob` within the **10.0s window**.
+### Requirement: Match Integrity Conjunction
+The rendering engine SHALL NOT assign the Orange (Contiguous) palette to any word unless BOTH of the following conditions are met simultaneously:
+1.  **Sequential Adjacency**: The word is part of an exact, adjacent word sequence matching the database term within the current line.
+2.  **Contextual Grounding**: The match satisfies its Multi-Pivot or neighborhood verification requirements.
+- **Fall-back**: If a term is contextually grounded but lacks sequential adjacency, the engine MUST proceed to Phase 3 (Split Match) evaluation to assign the Purple palette.
