@@ -295,8 +295,8 @@
 20260420205633 Update the specs following this code version. Please do not suggest changes to the code. Do it well, in detail. Check it several times before changing. Check that you have not deleted the necessary entries.
 20260420205922 Look what I sent about the model. Will we add this to the specs - openspec\specs?
 20260420210423 create-release-2 v1.44.4 20260420002846-finalize-interaction-hardening 20260420003934-fix-search-cursor 20260420015008-fix-global-highlighting-precision 20260420075549-align-specs-to-post-v1-44-2 20260420181519-harden-grounding-and-interaction
-
-
+20260420220653 opsx-explore The problem is that the t key does not work to add a word after moving it through the text not with the mouse, but with the arrows. If you click the mouse, do by t is added. Also added by the middle mouse button. Do it invasively.
+20260420224754 Yes, create a proposal.
 
 
 
