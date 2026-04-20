@@ -885,6 +885,15 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     end
                 end
                 data.__ctx_lower = utf8_to_lower(data.context:gsub("{[^}]+}", ""))
+                
+                -- Tokenize context for exact neighbor matching (prevents substring bleed)
+                data.__ctx_words = {}
+                local ctx_tokens = build_word_list_internal(data.__ctx_lower, false)
+                for _, t in ipairs(ctx_tokens) do
+                    if t.is_word then
+                        data.__ctx_words[utf8_to_lower(t.text:gsub("[%p%s]", ""))] = true
+                    end
+                end
 
                 -- Parse string indices (if not already parsed during load)
                 if data.index and not data.__pivots then
@@ -965,10 +974,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             for _, t in ipairs(s_tokens) do
                                                 if t.is_word then
                                                     local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                                                    -- Match if a meaningful word from scan segment is found in Anki context
-                                                    if #cw >= 2 and data.__ctx_lower:find(cw, 1, true) then
-                                                        match_count = match_count + 1
-                                                        break
+                                                    -- Match if a meaningful context word is found (exact match, excluding the search term itself)
+                                                    if #cw >= 2 and data.__ctx_words[cw] then
+                                                        local is_term = false
+                                                        for _, tw in ipairs(term_clean) do
+                                                            if tw == cw then is_term = true; break end
+                                                        end
+                                                        if not is_term then
+                                                            match_count = match_count + 1
+                                                            break
+                                                        end
                                                     end
                                                 end
                                             end

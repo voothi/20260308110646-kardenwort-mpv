@@ -24,7 +24,9 @@ When evaluating a record at its original timestamp center, the highlighter SHALL
 When Global Highlighting is active, the system SHALL perform a word-token intersection check against neighboring segments to ensure contextual validity.
 - **Mechanism**: The engine SHALL scan neighboring segments (+/- `anki_neighbor_window`, default 5 lines).
 - **Token Filtering**: It SHALL extract all word-character tokens of length >= 2, stripped of punctuation.
-- **Match Threshold**: A highlight SHALL ONLY be rendered if at least one meaningful word from the neighborhood exists within the record's stored `SentenceSource` (context).
+- **Match Threshold**: A highlight SHALL ONLY be rendered if at least one meaningful word from the neighborhood exists within the record's stored context (Word-Token Dictionary).
+- **Match Integrity**: The matching process MUST use exact whole-word comparison (dictionary-based) to prevent substring collisions.
+- **Self-Exclusion Rule**: The target term itself SHALL be explicitly excluded from the neighborhood check. A highlight requires at least one **additional** context word to be present in the neighborhood to establish validity.
 
 #### Scenario: Contextual Anchor found
 - **WHEN** `anki_global_highlight` is enabled.
