@@ -1173,10 +1173,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             subs[sub_idx].__split_valid_indices[term_key] = valid_set
                         end
                         
-                        if valid_set and valid_set.indices[sub_idx .. "-" .. token_idx] then
+                        if type(valid_set) == "table" and valid_set.indices[sub_idx .. "-" .. token_idx] then
                             match_found = true
                             term_is_split = true
                             term_is_local_split = valid_set.is_local
+                            if #term_clean > 1 then has_phrase = true end
                         end
                     end
                 end
@@ -2037,8 +2038,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 local orange_stack, green_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
                 local h_color = base_color
                 
-                if orange_stack > 0 and purple_stack > 0 then
-                    local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
+                if (orange_stack > 0 or green_stack > 0) and purple_stack > 0 then
+                    local mix_depth = math.min((orange_stack + green_stack + purple_stack) - 1, 3)
                     if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                     elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                     elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
@@ -2046,6 +2047,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                     if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                elseif green_stack > 0 then
+                    if green_stack == 1 then h_color = Options.anki_highlight_depth_local_1 or "00FF00"
+                    elseif green_stack == 2 then h_color = Options.anki_highlight_depth_local_2 or "00CC00"
+                    elseif green_stack >= 3 then h_color = Options.anki_highlight_depth_local_3 or "009900" end
                 elseif purple_stack > 0 then
                     if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                     elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
