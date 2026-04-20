@@ -2030,7 +2030,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
 
             -- Level 2: Selection/Hover (Focus Point)
             if meta.priority == 0 and l_idx then
-                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
+                local eps = 0.0001
+                local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and math.abs(l_idx - FSM.DW_CURSOR_WORD) < eps)
                 if is_focus_point then
                     meta.color = Options.dw_highlight_color
                     meta.priority = 2
