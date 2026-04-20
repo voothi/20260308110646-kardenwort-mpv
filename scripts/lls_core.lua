@@ -2436,12 +2436,14 @@ local function dw_hit_test(osd_x, osd_y)
     -- Clamp vertically to the first/last word if outside the entire block
     if osd_y <= block_top then
         local first = layout[1]
-        return first.sub_idx, first.vlines[1][1]
+        local v_idx = first.vlines[1][1]
+        return first.sub_idx, first.visual_to_logical[v_idx] or 1
     end
     if osd_y >= block_top + total_height then
         local last = layout[#layout]
         local last_vl = last.vlines[#last.vlines]
-        return last.sub_idx, last_vl[#last_vl]
+        local v_idx = last_vl[#last_vl]
+        return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
     end
 
     local y_pos = block_top
@@ -2467,7 +2469,7 @@ local function dw_hit_test(osd_x, osd_y)
 
             local cx = osd_x - vl_left
             if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or #entry.words end
+            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or math.max(1, #entry.logical_words) end
 
             -- Build word center positions for snap-to-nearest logic
             local centers = {}
@@ -2513,7 +2515,8 @@ local function dw_hit_test(osd_x, osd_y)
     -- Fallback safety, should never be reached due to the >= check at the top
     local last = layout[#layout]
     local last_vl = last.vlines[#last.vlines]
-    return last.sub_idx, last_vl[#last_vl]
+    local v_idx = last_vl[#last_vl]
+    return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
 end
 
 local function is_inside_dw_selection(l, w)
@@ -2590,6 +2593,9 @@ local function dw_mouse_auto_scroll()
         -- Force re-evaluate mouse position on new scroll anchor
         dw_mouse_update_selection()
     end
+    
+    -- ALWAYS update selection to guarantee smooth dragging even if OS drops mouse_move events
+    dw_mouse_update_selection()
 end
 
 local function cmd_dw_tooltip_pin(tbl)

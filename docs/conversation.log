@@ -236,7 +236,9 @@
 20260420110656 Here is the answer from the model, review. Check it out.
 20260420112106 Okay, I checked `die` and `41 bis 45`, it works fine in both Anki Global modes, check the specs and let's move on to the next question, there is a bug in text selection now, and it applies to both left and middle mouse button selection. The thing is that now I can't in some cases unobstructedly press the left key and pulling from this word, highlighted in gold color, start to capture by selection the neighboring area, that within the current line, that between the lines, I click the mouse, pull, but the text is not selected. What from bottom to top, what vice versa if you try to select, what to the left, what to the right. It is possible that some kind of protection is triggered.
 20260420112903 Duplicate question, оkay, I checked die and 41 bis 45, it works fine in both Anki Global modes, check the specs and let's move on to the next question, there is a bug in text selection now, and it applies to both left and middle mouse button selection. The thing is that now I can't in some cases unobstructedly press the left key and pulling from this word, highlighted in gold color, start to capture by selection the neighboring area, that within the current line, that between the lines, I click the mouse, pull, but the text is not selected. What from bottom to top, what vice versa if you try to select, what to the left, what to the right. It is possible that some kind of protection is triggered.
-
+20260420122554 Check that you have applied the settings.
+20260420122755 Check, you changed the files?
+20260420122941 Look what the older model answered
 
 
 
