@@ -638,11 +638,12 @@ local function verify_neighborhood(subs, center_idx, t_idx, context_lower)
             local s_tokens = get_sub_tokens(scan_sub)
             if s_tokens then
                 for current_t_idx, t in ipairs(s_tokens) do
-                    -- Skip the exact word being evaluated to ensure neighborhood context
+                    -- Must match a different token than the target or a different line
                     if not (curr_s_idx == center_idx and current_t_idx == t_idx) then
                         if t.is_word then
                             local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                            if #cw >= 1 and context_lower:find(cw, 1, true) then
+                            -- Context clue must be at least 2 chars to be meaningful for common words
+                            if #cw >= 2 and context_lower:find(cw, 1, true) then
                                 match_count = match_count + 1
                                 break
                             end
@@ -657,20 +658,7 @@ local function verify_neighborhood(subs, center_idx, t_idx, context_lower)
 end
 
 local function clear_highlight_caches()
-    if Tracks then
-        if Tracks.pri and Tracks.pri.subs then
-            for i = 1, #Tracks.pri.subs do 
-                Tracks.pri.subs[i].__shared_ctx_cache = nil 
-                Tracks.pri.subs[i].__split_valid_indices = nil
-            end
-        end
-        if Tracks.sec and Tracks.sec.subs then
-            for i = 1, #Tracks.sec.subs do 
-                Tracks.sec.subs[i].__shared_ctx_cache = nil 
-                Tracks.sec.subs[i].__split_valid_indices = nil
-            end
-        end
-    end
+    -- Caching removed from subs to prevent stale state bugs
 end
 
 
@@ -872,29 +860,6 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         if csw ~= "" then target_subsets[csw] = true end
     end
 
-    -- PERFORMANCE: Build shared context buffer for split-phrase matching
-    if not subs[sub_idx].__shared_ctx_cache then
-        local split_win = Options.anki_split_search_window or 35
-        local s_start = math.max(1, sub_idx - split_win)
-        local s_end = math.min(#subs, sub_idx + split_win)
-        local list = {}
-        for scan_i = s_start, s_end do
-            local scan_tokens = get_sub_tokens(subs[scan_i])
-            if scan_tokens then
-                for t_i, t in ipairs(scan_tokens) do
-                    if t.is_word then
-                        local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
-                        if cw ~= "" then
-                            table.insert(list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
-                        end
-                    end
-                end
-            end
-        end
-        subs[sub_idx].__shared_ctx_cache = list
-    end
-    local shared_ctx_list = subs[sub_idx].__shared_ctx_cache
-
     -- Helper to get a word by relative LOGICAL offset
     local function get_relative_word_text(rel_logical_offset, max_gap)
         local curr_s_idx = sub_idx
@@ -930,6 +895,25 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             end
         end
         return nil
+    end
+
+    -- PERFORMANCE: Build word context once for all phrases in this word evaluation
+    local ctx_list = {}
+    local split_win = Options.anki_split_search_window or 35
+    local s_start = math.max(1, sub_idx - split_win)
+    local s_end = math.min(#subs, sub_idx + split_win)
+    for scan_i = s_start, s_end do
+        local scan_tokens = get_sub_tokens(subs[scan_i])
+        if scan_tokens then
+            for t_i, t in ipairs(scan_tokens) do
+                if t.is_word then
+                    local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                    if cw ~= "" then
+                        table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
+                    end
+                end
+            end
+        end
     end
 
     local orange_stack = 0
@@ -1007,7 +991,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         elseif #term_clean > 1 then
                             for k = 1, #term_clean do
                                 if k ~= term_offset then
-                                    local rw_text = get_relative_word_text(k - term_offset, 2.5)
+                                    local rw_text = get_relative_word_text(k - term_offset, 10.0)
                                     if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
                                         sequence_match = false
                                         break
@@ -1065,116 +1049,103 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     -- Phase 3: Split Matching (Only if not already matched as contiguous, and is multi-word)
                     if not match_found and #term_clean > 1 then
                         local origin_sub_idx = Options.anki_global_highlight and sub_idx or get_center_index(subs, data.time)
-                        if not subs[sub_idx].__split_valid_indices then
-                            subs[sub_idx].__split_valid_indices = {}
+                        local gap_limit = Options.anki_split_gap_limit or 60.0
+
+                        -- Build phrase-specific token subset from window
+                        local p_ctx = {}
+                        if Options.anki_global_highlight then
+                            p_ctx = ctx_list
+                        else
+                            for _, m in ipairs(ctx_list) do
+                                if math.abs(m.start - data.time) < gap_limit then table.insert(p_ctx, m) end
+                            end
                         end
-                        local valid_set = subs[sub_idx].__split_valid_indices[term_key]
-                        
-                        if valid_set == nil then
-                            valid_set = false
-                            local ctx_list = {}
-                            local gap_limit = Options.anki_split_gap_limit or 60.0
 
-                            -- Filter shared context by temporal gap (only relevant for Local Mode)
-                            if Options.anki_global_highlight then
-                                ctx_list = shared_ctx_list
-                            else
-                                for _, cw_obj in ipairs(shared_ctx_list) do
-                                    if math.abs(cw_obj.start - data.time) < gap_limit then
-                                        table.insert(ctx_list, cw_obj)
-                                    end
-                                end
+                        local occs = {}
+                        local all_present = true
+                        for i_c, tc in ipairs(term_clean) do
+                            occs[i_c] = {}
+                            for c_idx, cw_obj in ipairs(p_ctx) do
+                                if cw_obj.cw == tc then table.insert(occs[i_c], c_idx) end
                             end
-
-                            local occs = {}
-                            local all_present = true
-                            for i_c, tc in ipairs(term_clean) do
-                                occs[i_c] = {}
-                                for c_idx, cw_obj in ipairs(ctx_list) do
-                                    if cw_obj.cw == tc then table.insert(occs[i_c], c_idx) end
-                                end
-                                if #occs[i_c] == 0 then all_present = false break end
-                            end
-
-                            if all_present then
-                                local best_tuple = nil
-                                local min_span = 999999
-                                local best_unanchored_tuple = nil
-                                local min_unanchored_span = 999999
-                                
-                                local function search(term_idx, current_tuple)
-                                    if term_idx > #term_clean then
-                                        local valid_timing = true
-                                        local has_anchor = (not data.index) or (data.index == -1) or (origin_sub_idx == -1) or Options.anki_global_highlight
-                                        for m_idx = 1, #current_tuple do
-                                            local m = ctx_list[current_tuple[m_idx]]
-                                            if m_idx > 1 then
-                                                local prev_m = ctx_list[current_tuple[m_idx-1]]
-                                                if math.abs(m.start - prev_m.start) > Options.anki_split_gap_limit then
-                                                    valid_timing = false; break
-                                                end
-                                            end
-                                            if data.__pivots and #data.__pivots > 0 then
-                                                local all_pivots_matched = true
-                                                for _, g in ipairs(data.__pivots) do
-                                                    local m = ctx_list[current_tuple[g.t_pos]]
-                                                    if not (m and m.s_i == origin_sub_idx + g.l_off and m.l_i == g.p_idx) then
-                                                        all_pivots_matched = false; break
-                                                    end
-                                                end
-                                                if all_pivots_matched then has_anchor = true end
-                                            end
-                                        end
-                                        
-                                        if valid_timing then
-                                            local span = current_tuple[#current_tuple] - current_tuple[1]
-                                            if has_anchor then
-                                                if span < min_span then
-                                                    min_span = span
-                                                    best_tuple = {}
-                                                    for k,v in ipairs(current_tuple) do best_tuple[k] = v end
-                                                end
-                                            else
-                                                if span < min_unanchored_span then
-                                                    min_unanchored_span = span
-                                                    best_unanchored_tuple = {}
-                                                    for k,v in ipairs(current_tuple) do best_unanchored_tuple[k] = v end
-                                                end
-                                            end
-                                        end
-                                        return
-                                    end
-                                    local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
-                                    for _, c_idx in ipairs(occs[term_idx]) do
-                                        if c_idx > prev_idx then
-                                            current_tuple[term_idx] = c_idx
-                                            search(term_idx + 1, current_tuple)
-                                        end
-                                    end
-                                end
-                                search(1, {})
-                                
-                                -- Fallback to unanchored match only if Global Mode is ON or no ground-truth available
-                                if not best_tuple and best_unanchored_tuple then
-                                    if Options.anki_global_highlight or not (data.__pivots and #data.__pivots > 0) then
-                                        best_tuple = best_unanchored_tuple
-                                    end
-                                end
-                                
-                                if best_tuple then
-                                    valid_set = {}
-                                    for _, c_idx in ipairs(best_tuple) do
-                                        local cw_obj = ctx_list[c_idx]
-                                        valid_set[cw_obj.s_i .. "-" .. cw_obj.t_i] = true
-                                    end
-                                end
-                            end
-                            subs[sub_idx].__split_valid_indices[term_key] = valid_set
+                            if #occs[i_c] == 0 then all_present = false break end
                         end
-                        
-                        if valid_set and valid_set[sub_idx .. "-" .. token_idx] then
-                            match_found = true
-                            term_is_split = true
+
+                        if all_present then
+                            local best_tuple = nil
+                            local min_span = 999999
+                            local best_unanchored_tuple = nil
+                            local min_unanchored_span = 999999
+                            
+                            local function search(term_idx, current_tuple)
+                                if term_idx > #term_clean then
+                                    local valid_timing = true
+                                    local has_anchor = (not data.index) or (data.index == -1) or (origin_sub_idx == -1) or Options.anki_global_highlight
+                                    for m_idx = 1, #current_tuple do
+                                        local m = p_ctx[current_tuple[m_idx]]
+                                        if m_idx > 1 then
+                                            local prev_m = p_ctx[current_tuple[m_idx-1]]
+                                            if math.abs(m.start - prev_m.start) > Options.anki_split_gap_limit then
+                                                valid_timing = false; break
+                                            end
+                                        end
+                                        if data.__pivots and #data.__pivots > 0 then
+                                            local all_pivots_matched = true
+                                            for _, g in ipairs(data.__pivots) do
+                                                local pm = p_ctx[current_tuple[g.t_pos]]
+                                                if not (pm and pm.s_i == (get_center_index(subs, data.time) + g.l_off) and pm.l_i == g.p_idx) then
+                                                    all_pivots_matched = false; break
+                                                end
+                                            end
+                                            if all_pivots_matched then has_anchor = true end
+                                        end
+                                    end
+                                    
+                                    if valid_timing then
+                                        local span = current_tuple[#current_tuple] - current_tuple[1]
+                                        if has_anchor then
+                                            if span < min_span then
+                                                min_span = span
+                                                best_tuple = {}
+                                                for k,v in ipairs(current_tuple) do best_tuple[k] = v end
+                                            end
+                                        else
+                                            if span < min_unanchored_span then
+                                                min_unanchored_span = span
+                                                best_unanchored_tuple = {}
+                                                for k,v in ipairs(current_tuple) do best_unanchored_tuple[k] = v end
+                                            end
+                                        end
+                                    end
+                                    return
+                                end
+                                local prev_idx = (term_idx == 1) and 0 or current_tuple[term_idx - 1]
+                                for _, c_idx in ipairs(occs[term_idx]) do
+                                    if c_idx > prev_idx then
+                                        current_tuple[term_idx] = c_idx
+                                        search(term_idx + 1, current_tuple)
+                                        if best_tuple and min_span < #term_clean + 2 then break end -- Early exit on perfect span
+                                    end
+                                end
+                            end
+                            search(1, {})
+
+                            if not best_tuple and best_unanchored_tuple then
+                                if Options.anki_global_highlight or not (data.__pivots and #data.__pivots > 0) then
+                                    best_tuple = best_unanchored_tuple
+                                end
+                            end
+
+                            if best_tuple then
+                                for _, c_idx in ipairs(best_tuple) do
+                                    local cw_obj = p_ctx[c_idx]
+                                    if cw_obj.s_i == sub_idx and cw_obj.t_i == token_idx then
+                                        match_found = true
+                                        term_is_split = true
+                                        break
+                                    end
+                                end
+                            end
                         end
                     end
                 end
