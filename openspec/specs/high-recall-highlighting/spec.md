@@ -37,15 +37,17 @@ The engine SHALL recursively traverse up to 5 adjacent subtitle segments to veri
 - **WHEN** matching long phrases
 - **THEN** up to 5 segments are checked
 
-### Requirement: Adaptive Temporal Highlight Window
-The engine SHALL calculate the fuzzy matching window dynamically based on the length of the saved term.
-- Base window: `lls-anki_local_fuzzy_window` (e.g., 10s).
-- Growth: +0.5 seconds for every word beyond the 10th word.
-- Goal: Ensure long paragraphs stay highlighted for the duration of their reading time.
+### Requirement: Weighted Temporal Highlight Expansion
+The highlight engine MUST apply temporal window expansion using a surplus-only weighted formula to ensure stability for long phrases without excessive buffer bloat.
+- **Base Buffer**: `anki_local_fuzzy_window` (e.g. 10.0s).
+- **Expansion Rate**: 0.5s per word.
+- **Application Threshold**: Expansion applies ONLY to words beyond the 10th word in a term.
+- **Formula**: `Window = Base + (max(0, WordCount - 10) * ExpansionRate)`.
 
-#### Scenario: Dynamic window calculation
-- **WHEN** term length increases
-- **THEN** fuzzy window grows accordingly
+#### Scenario: Expanding window for a long phrase
+- **WHEN** a 12-word phrase is rendered
+- **THEN** the highlight window SHALL be `Base + (2 * 0.5) = Base + 1.0s`.
+- **AND** a 10-word phrase SHALL have NO expansion (`Base + 0.0s`).
 
 ### Requirement: Performance Caching
 The engine SHALL cache word lists and cleaned text for all highlight terms on first access.
