@@ -225,7 +225,8 @@
 20260420101525 It’s good that we synchronized the specifications for the project openspec\changes\20260420075549-align-specs-to-post-v1-44-2. And we improved the code.
 20260420101653 opsx-apply 20260420075549-align-specs-to-post-v1-44-2
 20260420101812 Well, it’s true, this Ctrl+ESC key combination does not work for me, window w does not intercept this shortcut and window w closes using the global Esc, apparently.  1.3 Selection Persistence: Verified Ctrl+ESC cleanup and Pink set persistence.
-
+20260420102005 See why the Ctrl+ESC combination to deselect may not work. 1.3 Selection Persistence: Verified Ctrl+ESC cleanup and Pink set persistence.
+20260420102240 This did not work, please consider reviewing the problem from another system. I roll back the code to the previous step.
 
 
 
