@@ -619,7 +619,7 @@ local function build_word_list_internal(text, keep_spaces)
         -- 4. Handle Brackets/Punctuation/Misc (Fractional logic index makes it selectable)
         else
             token.text = c
-            token.is_word = true
+            token.is_word = false
             token.logical_idx = (curr_logical_idx - 1) + fraction
             fraction = fraction + 0.001
             i = i + 1
@@ -637,7 +637,7 @@ local function build_word_list(text)
     local tokens = build_word_list_internal(text, false)
     local words = {}
     for _, t in ipairs(tokens) do
-        if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+        if t.is_word and t.logical_idx and math.floor(t.logical_idx) == t.logical_idx then
             table.insert(words, t.text)
         end
     end
@@ -651,7 +651,7 @@ local function get_sub_tokens(s)
         s.tokens = build_word_list_internal(raw_text, Options.dw_original_spacing)
         local max_int = 0
         for _, t in ipairs(s.tokens) do 
-            if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+            if t.is_word and t.logical_idx and math.floor(t.logical_idx) == t.logical_idx then
                 max_int = math.max(max_int, t.logical_idx)
             end 
         end
@@ -663,7 +663,7 @@ end
 
 local function is_word_token(t)
     if not t then return false end
-    if type(t) == "table" then return t.is_word == true end
+    if type(t) == "table" then return t.logical_idx ~= nil end
     -- Fallback for string tokens (if any)
     if #t == 0 then return false end
     return not t:match("^%s+$")
@@ -1009,7 +1009,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         local s_tokens = get_sub_tokens(scan_sub)
                                         if s_tokens then
                                             for _, t in ipairs(s_tokens) do
-                                                if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+                                                if t.is_word then
                                                     local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
                                                     -- Match if a meaningful context word is found (exact match, excluding the search term itself)
                                                     if #cw >= 2 and data.__ctx_words[cw] then
@@ -1084,7 +1084,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     local gap = math.abs(subs[scan_i].start_time - data.time)
                                     if Options.anki_global_highlight or gap < Options.anki_split_gap_limit then
                                         for t_i, t in ipairs(scan_tokens) do
-                                            if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+                                            if t.is_word then
                                                 local cw = utf8_to_lower(t.text:gsub("[%p%s]", ""))
                                                 if cw ~= "" then
                                                     table.insert(ctx_list, {cw=cw, s_i=scan_i, t_i=t_i, l_i=t.logical_idx, start=subs[scan_i].start_time})
@@ -2846,7 +2846,7 @@ local function dw_anki_export_selection()
                     
                     if not e_w then
                         for _, t in ipairs(tokens) do 
-                            if t.is_word and t.logical_idx then 
+                            if t.logical_idx ~= nil then 
                                 e_w = math.max(e_w or 0, t.logical_idx) 
                             end 
                         end
@@ -2856,14 +2856,14 @@ local function dw_anki_export_selection()
                     local line_parts = {}
                     local in_range = false
                     for _, t in ipairs(tokens) do
-                        if t.is_word then
-                            if t.logical_idx == s_w then in_range = true end
+                        if t.logical_idx ~= nil then
+                            if t.logical_idx >= s_w and not in_range then in_range = true end
                             if in_range then 
                                 table.insert(line_parts, t.text) 
                                 table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
-                            if t.logical_idx == e_w then in_range = false break end
+                            if t.logical_idx >= e_w then in_range = false break end
                         elseif in_range then
                             table.insert(line_parts, t.text)
                         end
@@ -2910,12 +2910,12 @@ local function dw_anki_export_selection()
             if not is_sentence_boundary then
                 local first_tokens = get_sub_tokens(subs[p1_l])
                 local prev_text = nil
-                local ptr = 0
                 for _, t in ipairs(first_tokens) do
-                    if t.is_word then
-                        ptr = ptr + 1
-                        if ptr == p1_w then break end
-                        prev_text = t.text
+                    if t.logical_idx ~= nil then
+                        if t.logical_idx == p1_w then break end
+                        if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+                            prev_text = t.text
+                        end
                     end
                 end
                 if prev_text and prev_text:match("[.!?]$") then
@@ -2956,16 +2956,16 @@ local function dw_anki_export_selection()
             
             if cw ~= -1 then
                 local tokens = get_sub_tokens(target_sub)
-                local ptr = 0
                 local prev_text = nil
                 for _, t in ipairs(tokens) do
-                    if t.is_word then
-                        ptr = ptr + 1
-                        if ptr == cw then
+                    if t.logical_idx ~= nil then
+                        if t.logical_idx == cw then
                             term = t.text
                             break
                         end
-                        prev_text = t.text
+                        if t.is_word and math.floor(t.logical_idx) == t.logical_idx then
+                            prev_text = t.text
+                        end
                     end
                 end
                 term = term or target_sub.text
@@ -3101,8 +3101,15 @@ local function ctrl_commit_set(line_idx, word_idx)
     for _, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
-            if not sub.words then sub.words = build_word_list(sub.text) end
-            local w = sub.words[m.word]
+            local tokens = get_sub_tokens(sub)
+            local w = nil
+            for _, t in ipairs(tokens) do
+                if t.logical_idx ~= nil and t.logical_idx == m.word then
+                    w = t.text
+                    break
+                end
+            end
+            
             if w then
                 local clean_w = w
                 
@@ -3343,11 +3350,13 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         for i = p1_l, p2_l do
             local sub = subs[i]
             if sub then
-                if not sub.words then sub.words = build_word_list(sub.text) end
-                local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or #sub.words
-                for w = s_w, e_w do
-                    ctrl_toggle_word(i, w)
+                local tokens = get_sub_tokens(sub)
+                local s_w = (i == p1_l) and p1_w or -1
+                local e_w = (i == p2_l) and p2_w or 999999
+                for _, t in ipairs(tokens) do
+                    if t.logical_idx ~= nil and t.logical_idx >= s_w and t.logical_idx <= e_w then
+                        ctrl_toggle_word(i, t.logical_idx)
+                    end
                 end
             end
         end
@@ -3688,7 +3697,7 @@ local function cmd_dw_line_move(dir, shift)
         local target_sub = subs[FSM.DW_CURSOR_LINE]
         local tks = target_sub and get_sub_tokens(target_sub) or {}
         for _, t in ipairs(tks) do
-            if t.is_word and t.logical_idx then FSM.DW_CURSOR_WORD = t.logical_idx; break end
+            if t.logical_idx ~= nil then FSM.DW_CURSOR_WORD = t.logical_idx; break end
         end
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
@@ -3697,7 +3706,7 @@ local function cmd_dw_line_move(dir, shift)
             local target_sub = subs[FSM.DW_CURSOR_LINE]
             local tks = target_sub and get_sub_tokens(target_sub) or {}
             for _, t in ipairs(tks) do
-                if t.is_word and t.logical_idx then FSM.DW_CURSOR_WORD = t.logical_idx; break end
+                if t.logical_idx ~= nil then FSM.DW_CURSOR_WORD = t.logical_idx; break end
             end
         end
     end
@@ -3715,7 +3724,7 @@ local function cmd_dw_word_move(dir, shift)
     local tokens = get_sub_tokens(raw_sub)
     local logicals = {}
     for _, t in ipairs(tokens) do
-        if t.is_word and t.logical_idx then table.insert(logicals, t.logical_idx) end
+        if t.logical_idx ~= nil then table.insert(logicals, t.logical_idx) end
     end
     if #logicals == 0 then logicals = {1} end
     
@@ -4789,7 +4798,7 @@ function cmd_dw_copy()
             
             if not e_w then
                 for _, t in ipairs(tokens) do 
-                    if t.is_word and t.logical_idx then 
+                    if t.logical_idx ~= nil then 
                         e_w = math.max(e_w or 0, t.logical_idx) 
                     end 
                 end
@@ -4799,10 +4808,10 @@ function cmd_dw_copy()
             local line_parts = {}
             local in_range = false
             for _, t in ipairs(tokens) do
-                if t.is_word then
-                    if t.logical_idx == s_w then in_range = true end
+                if t.logical_idx ~= nil then
+                    if t.logical_idx >= s_w and not in_range then in_range = true end
                     if in_range then table.insert(line_parts, t.text) end
-                    if t.logical_idx == e_w then in_range = false break end
+                    if t.logical_idx >= e_w then in_range = false break end
                 elseif in_range then
                     table.insert(line_parts, t.text)
                 end
@@ -4817,8 +4826,14 @@ function cmd_dw_copy()
         -- Single point or line fallback
         local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
         if FSM.DW_CURSOR_WORD > 0 then
-            local words = build_word_list(text)
-            final_text = words[FSM.DW_CURSOR_WORD] or text
+            local tokens = get_sub_tokens(subs[FSM.DW_CURSOR_LINE])
+            for _, t in ipairs(tokens) do
+                if t.logical_idx ~= nil and t.logical_idx == FSM.DW_CURSOR_WORD then
+                    final_text = t.text
+                    break
+                end
+            end
+            if final_text == "" then final_text = text end
         else
             final_text = text
         end
