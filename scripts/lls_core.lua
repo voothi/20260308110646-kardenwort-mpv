@@ -1107,9 +1107,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 end
                                 search(1, {})
                                 
-                                -- Fallback to unanchored match only if Global Mode is ON or no ground-truth available
+                                -- Fallback to unanchored match only if Global Mode is ON, at original time, or no ground-truth available
                                 if not best_tuple and best_unanchored_tuple then
-                                    if Options.anki_global_highlight or not (data.__pivots and #data.__pivots > 0) then
+                                    if Options.anki_global_highlight or (origin_sub_idx ~= -1) or not (data.__pivots and #data.__pivots > 0) then
                                         best_tuple = best_unanchored_tuple
                                     end
                                 end
