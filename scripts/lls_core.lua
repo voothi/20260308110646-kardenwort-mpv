@@ -514,6 +514,35 @@ local function utf8_to_lower(str)
     return res
 end
 
+local function smart_strip_metadata(text, term)
+    if not Options.anki_strip_metadata then return text end
+    if not term or term == "" then return text:gsub("%b[]", " ") end
+    
+    local term_l = utf8_to_lower(term)
+    return text:gsub("%b[]", function(match)
+        local inner = utf8_to_lower(match:sub(2, -2))
+        
+        -- If term contains brackets, keep metadata to be safe
+        if term_l:find("%[") or term_l:find("%]") then return match end
+        
+        -- If term intersects any word in the metadata, keep it
+        for w in inner:gmatch("[%w\128-\255]+") do
+            if term_l:find(w, 1, true) then
+                return match
+            end
+        end
+        
+        -- Special case: check if the whole match exists in the term (stripping spaces)
+        local clean_m = utf8_to_lower(match:gsub("[%p%s]", ""))
+        local clean_t = utf8_to_lower(term:gsub("[%p%s]", ""))
+        if clean_t:find(clean_m, 1, true) or clean_m:find(clean_t, 1, true) then
+            return match
+        end
+        
+        return " "
+    end)
+end
+
 local function has_cyrillic(str)
     if not str then return false end
     return str:find("[\208\209]") ~= nil
@@ -1345,35 +1374,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     for i = context_start, context_end do table.insert(context_words, words[i]) end
     
     return compose_term_smart(context_words):match("^%s*(.-)%s*$")
-end
-
-local function smart_strip_metadata(text, term)
-    if not Options.anki_strip_metadata then return text end
-    if not term or term == "" then return text:gsub("%b[]", " ") end
-    
-    local term_l = utf8_to_lower(term)
-    return text:gsub("%b[]", function(match)
-        local inner = utf8_to_lower(match:sub(2, -2))
-        
-        -- If term contains brackets, keep metadata to be safe
-        if term_l:find("%[") or term_l:find("%]") then return match end
-        
-        -- If term intersects any word in the metadata, keep it
-        for w in inner:gmatch("[%w\128-\255]+") do
-            if term_l:find(w, 1, true) then
-                return match
-            end
-        end
-        
-        -- Special case: check if the whole match exists in the term (stripping spaces)
-        local clean_m = utf8_to_lower(match:gsub("[%p%s]", ""))
-        local clean_t = utf8_to_lower(term:gsub("[%p%s]", ""))
-        if clean_t:find(clean_m, 1, true) or clean_m:find(clean_t, 1, true) then
-            return match
-        end
-        
-        return " "
-    end)
 end
 
 local function load_sub(path, is_ass)
