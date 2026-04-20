@@ -16,11 +16,13 @@ The Drum Window (DW) in Kardenwort-mpv relies on a hybrid indexing system (integ
 ## Decisions
 
 - **Decision: Local definition of `target_sub`**: In the `elseif cl ~= -1` block of `dw_anki_export_selection`, explicitly define `local target_sub = subs[cl]`.
-  - *Rationale*: This is the missing link causing the crash. It provides the necessary segment context for time-position calculation and token extraction.
-- **Decision: Intelligent Word Seeking in `cmd_dw_line_move`**: Instead of `FSM.DW_CURSOR_WORD = 1`, use a helper to find the first valid logical word index.
-  - *Rationale*: This ensures the cursor always lands on a selectable word, even if the line starts with spaces or metadata tags.
-- **Decision: Explicit OSD Sync in `cmd_dw_toggle_pink`**: Call `dw_osd:update()` at the end of the toggle callback.
-  - *Rationale*: Ensures the UI refresh is decoupled from internal hit-test logic, providing better responsiveness for keyboard users.
+  - *Rationale*: This is the missing link causing the script to crash during keyboard-driven exports.
+- **Decision: Intelligent Word Synchronization via Helper**: Implement `get_first_valid_word_idx(sub)` to scan for the first token with `is_word = true`.
+  - *Rationale*: This ensures `FSM.DW_CURSOR_WORD` always points to a valid logical index that exists in the rendering/toggle logic, even if the line starts with metadata or punctuation.
+- **Decision: Hardened Keyboard Navigation in `cmd_dw_line_move`**: 
+  - If not shifting, set `DW_CURSOR_WORD` using the helper and clear the anchor.
+  - If shifting, use the helper only if the current cursor word is `-1`.
+  - *Rationale*: Maintains selection integrity during range expansion while ensuring a valid starting point for new line moves.
 
 ## Risks / Trade-offs
 

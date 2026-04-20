@@ -2915,9 +2915,37 @@ local function dw_anki_export_selection()
                 end
             end
         elseif cl ~= -1 and subs[cl] then
+            local target_sub = subs[cl]
             local ctx_parts = {}
             local char_offset = 0
             pivot_pos = -1
+            
+            -- Extract term first so we can use it for pivot anchoring
+            if cw ~= -1 then
+                local tokens = get_sub_tokens(target_sub)
+                local ptr = 0
+                local prev_text = nil
+                for _, t in ipairs(tokens) do
+                    if t.is_word then
+                        ptr = ptr + 1
+                        if ptr == cw then
+                            term = t.text
+                            break
+                        end
+                        prev_text = t.text
+                    end
+                end
+                term = term or target_sub.text
+                advanced_index = string.format("0:%g:1", cw)
+                -- Check for boundary
+                if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
+                    is_sentence_boundary = true
+                end
+            else
+                term = target_sub.text
+                is_sentence_boundary = true
+            end
+
             local start_k = math.max(1, cl - Options.anki_context_lines)
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
@@ -2950,31 +2978,6 @@ local function dw_anki_export_selection()
             local words = {}
             for _, t in ipairs(tokens) do if t.is_word then table.insert(words, t.text) end end
             print("[LLS] Word List: " .. table.concat(words, " | ", 1, math.min(10, #words)))
-            
-            if cw ~= -1 then
-                local tokens = get_sub_tokens(target_sub)
-                local ptr = 0
-                local prev_text = nil
-                for _, t in ipairs(tokens) do
-                    if t.is_word then
-                        ptr = ptr + 1
-                        if ptr == cw then
-                            term = t.text
-                            break
-                        end
-                        prev_text = t.text
-                    end
-                end
-                term = term or target_sub.text
-                advanced_index = string.format("0:%g:1", cw)
-                -- Check for boundary
-                if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
-                    is_sentence_boundary = true
-                end
-            else
-                term = target_sub.text
-                is_sentence_boundary = true
-            end
         end
 
         if term and term ~= "" then
@@ -3670,6 +3673,17 @@ local function cmd_dw_scroll(dir)
 end
 
 
+local function get_first_valid_word_idx(sub)
+    if not sub then return -1 end
+    local tokens = get_sub_tokens(sub)
+    if not tokens then return -1 end
+    for _, t in ipairs(tokens) do
+        if t.is_word then return t.logical_idx end
+    end
+    return -1
+end
+
+
 local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
@@ -3678,7 +3692,8 @@ local function cmd_dw_line_move(dir, shift)
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or 1
+        local start_word = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
+        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or (start_word > 0 and start_word or 1)
     end
     
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
@@ -3695,11 +3710,13 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     if not shift then
-        FSM.DW_CURSOR_WORD = 1
+        FSM.DW_CURSOR_WORD = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
-        if FSM.DW_CURSOR_WORD == -1 then FSM.DW_CURSOR_WORD = 1 end
+        if FSM.DW_CURSOR_WORD == -1 then 
+            FSM.DW_CURSOR_WORD = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE]) 
+        end
     end
 end
 
