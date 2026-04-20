@@ -7,7 +7,7 @@ Provide a robust, high-precision mouse interaction model for the Drum Window tha
 
 ### Requirement: Global Interaction Shield
 To support remote control mappers (e.g., JoyToKey/8BitDo) that produce hardware-level jitter, the system SHALL implement a temporal suppression layer for mouse events.
-- **Suppression Window**: 150ms.
+- **Suppression Window**: 50ms.
 - **Trigger**: Any keyboard or remote navigation command (Seek, Add, Pair, Arrows, ESC).
 - **Behavior**: All incoming mouse events (down/up/move/scroll) SHALL be discarded while the lock is active.
 - **Exemption**: Standalone modifier key presses (Ctrl/Shift) SHALL NOT trigger the shield.
@@ -15,6 +15,15 @@ To support remote control mappers (e.g., JoyToKey/8BitDo) that produce hardware-
 ### Requirement: Coordinate-Precise Sync (Pointer Jump Sync)
 The system SHALL ensure the logical focus and highlight anchor are synchronized to the exact pixel-perfect word under the mouse pointer immediately *before* any action is dispatched.
 - **Rationale**: Prevents actions from being applied to a previously "hovered" word if the pointer has jumped due to hardware latency.
+
+### Requirement: Zero-Collapse Clamping
+The hit-testing engine SHALL implement logical index clamping for all margin and whitespace areas.
+- **Boundary Behavior**: Dragging outside the text block, into line gaps, or past line ends SHALL snap the selection to the nearest boundary word's logical index.
+- **Goal**: Prevent selection "collapse" or "breakage" caused by returning non-selectable visual token indices.
+
+### Requirement: Selection Refresh Polling
+During active dragging operations, the system SHALL poll the selection state at 20FPS (50ms interval).
+- **Behavior**: The selection boundary SHALL be re-evaluated on a timer to ensure smooth tracking even if OS-level mouse movement events are dropped or delayed by system load.
 
 ### Requirement: Persistent Ctrl Modifier Tracking
 The system SHALL track the state of the `Ctrl` key to route gestures between contiguous (Warm) and paired (Cool) selection paths.

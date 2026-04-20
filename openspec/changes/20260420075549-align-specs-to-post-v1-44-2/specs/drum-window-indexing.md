@@ -35,3 +35,9 @@ The highlight engine SHALL use the coordinate map to perform strict existence ch
 - **Grounded Highlighting**: When `anki_global_highlight` is disabled, the engine SHALL only highlight tokens whose logical position matches the stored mapping.
 - **Segment Drift Tolerance**: The system SHALL allow a `+/- 1` subtitle segment drift when resolving origin lines to account for temporal epsilon boundaries (`+1ms`).
 - **Fuzzy Bypass**: Records with valid Multi-Pivot metadata MUST bypass literal context healing loops in favor of coordinate-perfect matching.
+
+### Requirement: Logical Hit-Test Snapping
+The hit-testing engine SHALL implement logical word snapping for all mouse interactions.
+- **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces, punctuation, line gaps) SHALL be snapped to the nearest valid logical word index.
+- **Margin Snap**: Mouse coordinates outside the active text block SHALL be clamped to the first/last logical word of the nearest visible subtitle line.
+- **Consistency**: This mapping SHALL be identical for both Contiguous (LMB) and Paired (Ctrl+Click) selection paths.

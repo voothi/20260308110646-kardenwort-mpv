@@ -28,6 +28,16 @@ When Global Highlighting is active, the system SHALL perform a word-token inters
 - **Match Integrity**: The matching process MUST use exact whole-word comparison (dictionary-based) to prevent substring collisions.
 - **Self-Exclusion Rule**: The target term itself SHALL be explicitly excluded from the neighborhood check. A highlight requires at least one **additional** context word to be present in the neighborhood to establish validity.
 
+### Requirement: Single-Word Global Recall Exemption
+To maintain maximum recall for core vocabulary, the proximity grounding system SHALL implement a hybrid strictness model.
+- **Single-Word Match**: Terms consisting of only one logical word SHALL be exempt from strict neighborhood verification when `anki_context_strict` is disabled.
+- **Phrase Match**: Multi-word phrases SHALL remain subject to strict neighborhood verification to prevent coincidental matching across unrelated scenes.
+
+### Requirement: Cloze-Aware Context Grounding
+The context cleaning engine SHALL prioritize the preservation of textual content within Anki cloze deletions.
+- **Behavior**: While standard ASS tags and square-bracket metadata (e.g. `[Musik]`) are stripped, content inside `{{c#::...}}` tags MUST be preserved as searchable tokens.
+- **Rationale**: Ensures that clozed words remain effective anchors for neighborhood verification, preventing "vanishing highlights" for highly clozed cards.
+
 #### Scenario: Contextual Anchor found
 - **WHEN** `anki_global_highlight` is enabled.
 - **AND** a textual match is found in a segment.
@@ -37,6 +47,7 @@ When Global Highlighting is active, the system SHALL perform a word-token inters
 
 #### Scenario: Contextual Anchor NOT found
 - **WHEN** no words from the neighborhood match the stored context.
+- **AND** the word is NOT an exempted single-word.
 - **THEN** the highlight SHALL NOT be rendered, preventing "common-word bleed" in unrelated scenes.
 
 ### Requirement: Deep Segment Peeking
