@@ -597,12 +597,9 @@ local function build_word_list_internal(text, keep_spaces)
             
         -- 2. Handle Metadata Brackets (Disabled Atomization to allow internal selection)
         -- Brackets will now be treated as regular punctuation, allowing words inside to be tokenized.
-        -- elseif c == "[" then
-        --     local start = i
-        --     while i <= n and chars[i] ~= "]" do i = i + 1 end
-        --     token.text = table.concat(chars, "", start, i)
-        --     i = i + 1
-
+        elseif c == "[" or c == "]" then
+            token.text = c
+            i = i + 1
             
         -- 3. Handle Whitespace
         elseif c:match("^%s$") then
@@ -626,9 +623,7 @@ local function build_word_list_internal(text, keep_spaces)
         -- 5. Handle Punctuation/Misc (Atomic Separator)
         else
             token.text = c
-            token.is_word = true -- Treat punctuation as selectable words
-            token.logical_idx = curr_logical_idx
-            curr_logical_idx = curr_logical_idx + 1
+            token.is_word = false -- MUST be false! True breaks Multi-Pivot coordinate alignment.
             i = i + 1
         end
 
