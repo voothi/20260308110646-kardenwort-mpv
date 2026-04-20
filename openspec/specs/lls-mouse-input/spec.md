@@ -6,9 +6,10 @@ Provide a robust, high-precision mouse interaction model for the Drum Window tha
 ## Requirements
 
 ### Requirement: Systemic Interaction Shield Lockout
-The interaction engine SHALL enforce a uniform 150ms lockout for all mouse events following a keyboard-based interaction, governed by a single configurable parameter.
-- All navigational and input handlers (Arrows, Enter, a/d, etc.) MUST utilize `Options.dw_mouse_shield_ms`.
-- Hardcoded constants for lockout durations are STRONGLY DISCOURAGED.
+The interaction engine SHALL enforce a uniform 150ms lockout for all mouse events following a keyboard-based interaction, governed by a single configurable parameter (`Options.dw_mouse_shield_ms`).
+- **Interaction Shielding**: All navigational and input handlers (Arrows, Enter, a/d, etc.) MUST set `FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)`.
+- **Efficacy**: Mouse button events (press, up, drag) SHALL be ignored if the current time is less than `FSM.DW_MOUSE_LOCK_UNTIL`.
+- **Hardcoded Constants**: Hardcoded durations for lockout are STRONGLY DISCOURAGED.
 
 #### Scenario: Keyboard command triggers shield
 - **WHEN** the user presses 'Arrow Down'
@@ -25,9 +26,16 @@ The system SHALL ensure the logical focus and highlight anchor are synchronized 
 - **Rationale**: Prevents actions from being applied to a previously "hovered" word if the pointer has jumped due to hardware latency.
 
 ### Requirement: Zero-Collapse Clamping
-The hit-testing engine SHALL implement logical index clamping for all margin and whitespace areas.
-- **Boundary Behavior**: Dragging outside the text block, into line gaps, or past line ends SHALL snap the selection to the nearest boundary word's logical index.
+The hit-testing engine SHALL implement logical index clamping for margin and line gap areas.
+- **Boundary Behavior**: Dragging into line gaps or past line ends SHALL snap the selection to the nearest boundary word's logical index.
+- **Punctuation Support**: Clicks on punctuation or spaces SHALL NOT trigger "clamping" to a word if they have their own unique fractional logical index; they SHALL be selectable as discrete tokens.
 - **Goal**: Prevent selection "collapse" or "breakage" caused by returning non-selectable visual token indices.
+
+### Requirement: Range-Locked Selection Protection
+The system SHALL implement a "Protected Selection" state to prevent accidental collapse of existing multi-word selections during mouse interaction.
+- **State Flag**: `FSM.DW_PROTECTED_SELECTION` (boolean).
+- **Protection Logic**: When a mouse button press is initiated inside an already active selection range, the system SHALL set `FSM.DW_PROTECTED_SELECTION = true`.
+- **Export Consistency**: If the protection flag is set, subsequent MMB release events SHALL commit the *existing* selection range to Anki, even if the mouse pointer has moved slightly.
 
 ### Requirement: Stream-Agnostic Initialization
 Drum Window activation SHALL support internal and embedded subtitle streams that lack local file paths, provided subtitle segments are loaded in the engine's memory.

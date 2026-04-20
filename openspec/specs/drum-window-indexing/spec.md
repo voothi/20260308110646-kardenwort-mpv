@@ -7,7 +7,7 @@ Ensure 100% precise, scene-locked highlighting and context extraction by impleme
 
 ### Requirement: Logical Word Indexing (Token Atomization)
 The system SHALL assign a unique 1-indexed logical position to every word-character token within a subtitle segment.
-- **Non-Word Tokens**: Punctuation, symbols, and whitespace SHALL be tokenized but SHALL NOT increment the logical index.
+- **Non-Word Tokens**: Punctuation, symbols, and whitespace SHALL be tokenized and SHALL be assigned a unique, stable **fractional logical index** (e.g., `word_index - 1 + sub_offset`) to enable granular interaction.
 - **ASS Tags**: Metadata blocks (e.g., `{\pos(x,y)}`) SHALL be atomized and stripped from the indexing sequence.
 - **Square Brackets**: Content within `[]` SHALL NOT be atomized, allowing granular selection of internal words and punctuation.
 
@@ -21,11 +21,14 @@ The system SHALL assign a unique 1-indexed logical position to every word-charac
   - `nur`: 5
   - `einmal`: 6
 
-#### Scenario: Metadata and Punctuation Skipping
-- **GIVEN** a subtitle segment: `{\pos(10,20)}Hallo, Welt!`
+#### Scenario: Punctuation Indexing
+- **GIVEN** a subtitle segment: `Hallo, Welt!`
 - **THEN** matching logical indices SHALL be:
   - `Hallo`: 1
-  - `, Welt`: `Hallo` remains 1, the space and comma skip, `Welt` becomes 2.
+  - `,`: 1.1
+  - ` `: 1.2
+  - `Welt`: 2
+  - `!`: 2.1
 
 ### Requirement: Multi-Pivot Grounding Map
 To eliminate "highlight bleed" on identical terms, the system SHALL generate a comprehensive coordinate map for every word in a selection.
@@ -53,6 +56,7 @@ The highlight engine SHALL use the coordinate map to perform strict existence ch
 - **Segment Drift Tolerance**: The system SHALL allow a `+/- 1` subtitle segment drift when resolving origin lines to account for temporal epsilon boundaries (`+1ms`).
 
 ### Requirement: Logical Hit-Test Snapping
-The hit-testing engine SHALL implement logical word snapping for all mouse interactions.
-- **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces, punctuation, line gaps) SHALL be snapped to the nearest valid logical word index.
-- **Margin Snap**: Mouse coordinates outside the active text block SHALL be clamped to the first/last logical word of the nearest visible subtitle line.
+The hit-testing engine SHALL implement logical token snapping for all mouse interactions.
+- **Visual-to-Logical Mapping**: Clicks or drags landing on non-word tokens (spaces, punctuation) SHALL be identified by their unique fractional logical index.
+- **Margin Snap**: Mouse coordinates outside the active text block (line gaps or margins) SHALL be clamped to the first/last logical word of the nearest visible subtitle line.
+- **Precision**: The system SHALL use a 0.0001 epsilon for all logical index comparisons to ensure stability across floating-point coordinates.

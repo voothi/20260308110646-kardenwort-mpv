@@ -99,6 +99,6 @@ The system SHALL prioritize explicit keyboard navigation over implicit mouse act
 
 #### Scenario: Mouse Interaction Shielding
 - **WHEN** any keyboard-bound Drum Window shortcut (e.g., `t`) is triggered
-- **THEN** the system SHALL activate an interaction shield that ignores all incoming mouse button events for a duration of at least 150ms.
+- **THEN** the system SHALL activate an interaction shield (`FSM.DW_MOUSE_LOCK_UNTIL`) that ignores all incoming mouse button events for a duration defined by `Options.dw_mouse_shield_ms` (Default: 150ms).
 - **AND** this shield SHALL prevent accidental hardware "ghost clicks" from moving the yellow focus cursor or disrupting the active selection.
 

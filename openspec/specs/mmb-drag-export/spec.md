@@ -19,11 +19,18 @@ Upon release of the MMB, the active selection SHALL be automatically committed t
 - **Saved Colors**:
     - **Orange**: Applied if the selection is contiguous (Standard).
     - **Purple**: Applied if the engine identifies the term as a "Split" phrase (fragmented).
+- **Selection Protection**: If `FSM.DW_PROTECTED_SELECTION` is true, the export engine SHALL ignore subsequent mouse movement during the click and use the pre-existing anchor and cursor boundaries for the commitment.
 
 #### Scenario: Auto-export on release
 - **WHEN** the user releases MMB after selecting a phrase.
 - **THEN** the phrase SHALL be saved to Anki.
 - **AND** the highlight SHALL immediately transition from Gold to Orange (or Purple).
+
+#### Scenario: Preserving Selection on Click
+- **WHEN** a multi-word selection is already active.
+- **AND** the user clicks MMB *inside* that selection.
+- **THEN** the system SHALL enter the "Protected Selection" state.
+- **AND** upon release, the entire original selection SHALL be exported, preventing it from collapsing to a single word.
 
 ### Requirement: Single-Word MMB Export Consistency
 A single click of the MMB (no drag) over non-selected text SHALL export the word under focus.
