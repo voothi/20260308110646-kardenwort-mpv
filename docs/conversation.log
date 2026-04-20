@@ -305,10 +305,10 @@
 20260421001232 ph Why now, when multi-line selection along the boundaries of the middle of the lower and upper subtitles (for example), there is a situation that the mechanism either greedily takes the entire line to the end, part of which I did not select (at the end of the selection, for example) or, on the contrary, lazily does not select a piece of the subtitle line that I captured with a yellow selection (for example, starting to select from the top). In the TSV file, I see a truncated line, which is completely bad.
 20260421002752 Ok, it seems to work, but the speed is not very good, it freezes even on a large number of multi-line selections. We read a file every 5 seconds.
 20260421004123 Now I discovered a problem with highlighting in purple, with the addition of paired words. Between the lines. The situation is somewhat similar to the one above (anchor 20260420234159). I highlight it in pink. Next, I press the middle mouse button and either nothing is added, or only part of the words are added and highlighted.
-
-
-
-
+20260421004757 This is how it turns out, there is a problem.
+20260421010725 Okay, let's now understand what the problem is, that after adding only one of the two brackets stood out.
+20260421012117 Unfortunately this did not solve the problem. The left bracket is still white. 
+20260421013113 Okay, but now explain what this green highlight means, how could it appear? Something is broken, it seems, based on the TSV.
 
 
 

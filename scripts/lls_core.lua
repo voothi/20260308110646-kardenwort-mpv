@@ -577,9 +577,9 @@ local function build_word_list_internal(text, keep_spaces)
 
             
         -- 3. Handle Whitespace
-        elseif c:match("^%s$") then
+        elseif c:match("^%s$") or c == "\194\160" then
             local start = i
-            while i <= n and chars[i]:match("^%s$") do i = i + 1 end
+            while i <= n and (chars[i]:match("^%s$") or chars[i] == "\194\160") do i = i + 1 end
             if keep_spaces then
                 token.text = table.concat(chars, "", start, i - 1)
                 token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
@@ -3393,7 +3393,9 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
                     for _, t in ipairs(tokens) do
                         if logical_cmp(t.logical_idx, s_w) then in_range = true end
                         if in_range then
-                            ctrl_toggle_word(i, t.logical_idx)
+                            if not t.text:match("^%s*$") then
+                                ctrl_toggle_word(i, t.logical_idx)
+                            end
                         end
                         if logical_cmp(t.logical_idx, e_w) then in_range = false break end
                     end
