@@ -987,8 +987,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                 if origin_l ~= -1 then
                                     -- Verify the specific pivot corresponding to this word part
                                     local g = data.__pivots[term_offset]
-                                    if g and sub_idx == origin_l + g.l_off and target_l_idx == g.p_idx then
-                                        context_satisfied = true
+                                    if g then
+                                        -- Apply +/- 1 segment drift tolerance to absorb +1ms temporal epsilon boundaries
+                                        local line_match = math.abs(sub_idx - (origin_l + g.l_off)) <= 1
+                                        if line_match and target_l_idx == g.p_idx then
+                                            context_satisfied = true
+                                        end
                                     end
                                 end
                             else
@@ -1071,7 +1075,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                 local all_pivots_matched = true
                                                 for _, g in ipairs(data.__pivots) do
                                                     local m = ctx_list[current_tuple[g.t_pos]]
-                                                    if not (m and m.s_i == origin_sub_idx + g.l_off and m.l_i == g.p_idx) then
+                                                    -- Apply +/- 1 segment drift tolerance
+                                                    local line_match = m and math.abs(m.s_i - (origin_sub_idx + g.l_off)) <= 1
+                                                    if not (line_match and m.l_i == g.p_idx) then
                                                         all_pivots_matched = false; break
                                                     end
                                                 end
@@ -1588,6 +1594,7 @@ local function load_anki_tsv(force)
                 end
                 
                 local idx_val = (index_col > 0) and fields[index_col] or nil
+                if type(idx_val) == "string" then idx_val = idx_val:gsub("\r", "") end
                 if idx_val == "" then idx_val = nil end
                 -- Try to convert to number only if it's a simple integer; otherwise keep as grounding string
                 if idx_val and idx_val:match("^%-?%d+$") then

@@ -33,4 +33,5 @@ Exports SHALL include a mandatory temporal offset to ensure the recorded timesta
 ### Requirement: Index-Bounded Highlight Verification
 The highlight engine SHALL use the coordinate map to perform strict existence checks during render.
 - **Grounded Highlighting**: When `anki_global_highlight` is disabled, the engine SHALL only highlight tokens whose logical position matches the stored mapping.
+- **Segment Drift Tolerance**: The system SHALL allow a `+/- 1` subtitle segment drift when resolving origin lines to account for temporal epsilon boundaries (`+1ms`).
 - **Fuzzy Bypass**: Records with valid Multi-Pivot metadata MUST bypass literal context healing loops in favor of coordinate-perfect matching.
