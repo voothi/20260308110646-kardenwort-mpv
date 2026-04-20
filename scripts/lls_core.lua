@@ -2841,17 +2841,17 @@ local function dw_anki_export_selection()
                     local line_parts = {}
                     local in_range = false
                     for _, t in ipairs(tokens) do
-                        if t.is_word then
-                            if logical_cmp(t.logical_idx, s_w) then in_range = true end
-                            if in_range then 
-                                table.insert(line_parts, t.text) 
+                        if logical_cmp(t.logical_idx, s_w) then in_range = true end
+                        
+                        if in_range then 
+                            table.insert(line_parts, t.text) 
+                            if t.is_word then
                                 table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
-                            if logical_cmp(t.logical_idx, e_w) then in_range = false break end
-                        elseif in_range then
-                            table.insert(line_parts, t.text)
                         end
+                        
+                        if logical_cmp(t.logical_idx, e_w) then in_range = false break end
                     end
                     
                     if #line_parts > 0 then
@@ -4794,13 +4794,13 @@ function cmd_dw_copy()
             local line_parts = {}
             local in_range = false
             for _, t in ipairs(tokens) do
-                if t.is_word then
-                    if logical_cmp(t.logical_idx, s_w) then in_range = true end
-                    if in_range then table.insert(line_parts, t.text) end
-                    if logical_cmp(t.logical_idx, e_w) then in_range = false break end
-                elseif in_range then
-                    table.insert(line_parts, t.text)
+                if logical_cmp(t.logical_idx, s_w) then in_range = true end
+                
+                if in_range then 
+                    table.insert(line_parts, t.text) 
                 end
+                
+                if logical_cmp(t.logical_idx, e_w) then in_range = false break end
             end
             
             if #line_parts > 0 then
