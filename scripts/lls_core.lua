@@ -917,7 +917,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 if data.index and not data.__pivots then
                     data.__pivots = {}
                     for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
-                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+):(%d+)$")
+                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
                         if l_off then
                             table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
                         else
@@ -1654,7 +1654,7 @@ local function load_anki_tsv(force)
                     if idx_val then
                         data.__pivots = {}
                         for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
-                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+):(%d+)$")
+                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
                             if l_off then
                                 table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
                             else
