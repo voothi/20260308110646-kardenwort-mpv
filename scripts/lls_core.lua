@@ -3881,6 +3881,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
         {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
         {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
+        {key = "Ctrl+ESC", name = "dw-ctrl-discard", fn = function() ctrl_discard_set() end},
     }
     for _, k in ipairs(extra) do table.insert(keys, k) end
 
