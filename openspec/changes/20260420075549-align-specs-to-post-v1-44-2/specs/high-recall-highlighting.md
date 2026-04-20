@@ -7,8 +7,8 @@ Ensure that saved vocabulary and phrases are accurately and persistently highlig
 
 ### Requirement: Generous Inter-Segment Bridging
 The highlighter engine SHALL be capable of verifying word sequences that are split across adjacent subtitle segments, even during slow speech patterns.
-- **Temporal Threshold**: The system SHALL treat segments as contiguous for phrase matching if the temporal gap between them is less than or equal to **10.0 seconds**.
-- **Rationale**: Accommodates natural speaker pauses in media (e.g., news reading) where a single phrase may span multiple technical subtitle boundaries.
+- **Temporal Threshold**: The system SHALL treat segments as contiguous for phrase matching if the temporal gap between them is less than or equal to **60.0 seconds**.
+- **Rationale**: Accommodates natural speaker pauses and topical continuity in media, matching the `anki_split_gap_limit` configuration.
 
 #### Scenario: 10s Gap Tolerance
 - **WHEN** the term "falsch sind" is saved.
@@ -23,7 +23,7 @@ When evaluating a record at its original timestamp center, the highlighter SHALL
 ### Requirement: Precision Neighborhood Verification (Token Intersection)
 When Global Highlighting is active, the system SHALL perform a word-token intersection check against neighboring segments to ensure contextual validity.
 - **Mechanism**: The engine SHALL scan neighboring segments (+/- `anki_neighbor_window`, default 5 lines).
-- **Token Filtering**: It SHALL extract all word-character tokens of length >= 2, stripping punctuation.
+- **Token Filtering**: It SHALL extract all word-character tokens of length >= 2, stripped of punctuation.
 - **Match Threshold**: A highlight SHALL ONLY be rendered if at least one meaningful word from the neighborhood exists within the record's stored `SentenceSource` (context).
 
 #### Scenario: Contextual Anchor found

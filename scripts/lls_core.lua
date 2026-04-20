@@ -2968,8 +2968,10 @@ end
 
 
 local function ctrl_discard_set()
-    if not next(FSM.DW_CTRL_PENDING_SET) then return end
+    -- Reset both the persistent pending set (Pink) and any active selection range anchors (Gold)
     FSM.DW_CTRL_PENDING_SET = {}
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
     dw_osd:update()
 end
 

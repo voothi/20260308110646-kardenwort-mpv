@@ -15,7 +15,7 @@ The formal project specifications have drifted significantly from the actual imp
 ## Capabilities
 
 ### Modified Capabilities
-- `high-recall-highlighting`: **MAJOR UPDATE**: Incorporate **Precision Neighborhood Verification** (Token Intersection) and update temporal bridging to **10.0s**.
+- `high-recall-highlighting`: **MAJOR UPDATE**: Incorporate **Precision Neighborhood Verification** (Token Intersection) and update temporal bridging to **60.0s**.
 - `ctrl-multiselect`: Update for selection persistence (Pink set stays), colors (Gold/Pink), and coordinated input.
 - `mmb-drag-export`: Align visual feedback (Gold) and automatic commit logic.
 - `drum-window-indexing`: Transition to **Multi-Pivot Grounding** and add **Temporal Epsilon (+1ms)**.

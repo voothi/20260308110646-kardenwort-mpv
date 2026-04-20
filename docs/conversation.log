@@ -218,4 +218,58 @@ Apparently something was missing in the current specifications that allowed this
 20260420093220 Okay, check if the specifications in openspec\changes\20260420075549-align-specs-to-post-v1-44-2 are synchronized with the current code, its behavior?
 20260420093322 Okay, check if the specifications in openspec\changes\20260420075549-align-specs-to-post-v1-44-2 are synchronized with the current code, its behavior?
 20260420093626 Review the older model, do we need to implement this or is it lagging behind?
+20260420094300 I recreated the TSV file and it seems to work, with the new \r case, let's check what another system wrote to us in the review, which is already a little behind the current version of the code.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -7,8 +7,8 @@ Provide a central, robust logic engine for reconstructing natural-language strin
 
 ### Requirement: Unified Punctuation Spacing Rule (UPSR)
 The system SHALL accept a list of word/punctuation tokens and reconstruct a single natural-language string with correct spacing.
-- **No Space Before**: No space SHALL be inserted before tokens: `, . ! ? : ; ) ] } … » ” / -`.
-- **No Space After**: No space SHALL be inserted after tokens: `( [ { ¿ ¡ « “ / -`.
+- **No Space Before**: No space SHALL be inserted before tokens: `, . ! ? : ; ) ] } … » ” / - " '`.
+- **No Space After**: No space SHALL be inserted after tokens: `( [ { ¿ ¡ « „ “ / - " '`.
 - **Default**: A single space SHALL be inserted between word tokens.
 
 #### Scenario: Preserving compound words
