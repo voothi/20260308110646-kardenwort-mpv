@@ -13,7 +13,8 @@ The Middle Mouse Button (MMB) in the Drum Window SHALL support hold-and-drag sel
 - **THEN** a Gold highlight SHALL follow the mouse cursor dynamically.
 
 ### Requirement: MMB Release-to-Export
-Upon release of the MMB, the active selection SHALL be automatically committed to Anki and transitioned to long-term storage highlighting.
+Upon release of the MMB, the active selection SHALL be automatically committed to Anki and transitioned to long-term storage highlighting, provided the selection contains valid text content.
+- **Content Validation**: The engine MUST verify that the term contains at least one non-tag, non-whitespace character before proceeding to export.
 - **Saved Colors**:
     - **Orange**: Applied if the selection is contiguous (Standard).
     - **Purple**: Applied if the engine identifies the term as a "Split" phrase (fragmented).
@@ -29,6 +30,12 @@ Upon release of the MMB, the active selection SHALL be automatically committed t
 - **AND** the user clicks MMB *inside* that selection.
 - **THEN** the system SHALL enter the "Protected Selection" state.
 - **AND** upon release, the entire original selection SHALL be exported, preventing it from collapsing to a single word.
+
+#### Scenario: Clicking on empty space (No Export)
+- **WHEN** the user middle-clicks on a line containing only tags or spaces.
+- **THEN** the system SHALL detect that the resulting term is empty.
+- **AND** no export operation SHALL be initiated.
+- **AND** the system SHALL remain responsive.
 
 ### Requirement: Single-Word MMB Export Consistency
 A single click of the MMB (no drag) over non-selected text, OR a keyboard-triggered export (e.g., 'r' key) without an active range selection, SHALL export the token under focus.
