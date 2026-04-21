@@ -182,6 +182,10 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_LMB_DOWN = false,           -- True while LMB is physically held
+    DW_RMB_DOWN = false,           -- True while RMB is physically held
+    DW_RMB_GESTURE_LAST_TIME = 0,  -- Timestamp of last pink gesture commit (debounce)
+
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
     DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
@@ -2800,7 +2804,34 @@ end
 
 local function cmd_dw_tooltip_pin(tbl)
     if FSM.DRUM_WINDOW == "OFF" then return end
-    
+
+    -- Track physical RMB state FIRST, before any guard
+    if tbl.event == "down" then
+        FSM.DW_RMB_DOWN = true
+    elseif tbl.event == "up" then
+        FSM.DW_RMB_DOWN = false
+    end
+
+    -- GESTURE: If LMB is held while RMB is released, trigger pink highlight
+    if tbl.event == "up" and FSM.DW_LMB_DOWN then
+        local now = mp.get_time()
+        if (now - FSM.DW_RMB_GESTURE_LAST_TIME) > 0.05 then
+            FSM.DW_RMB_GESTURE_LAST_TIME = now
+            -- Reset drag state before toggle to avoid ghost behavior
+            FSM.DW_MOUSE_DRAGGING = false
+            cmd_dw_toggle_pink(tbl, true)
+        end
+        FSM.DW_LMB_DOWN = false
+        FSM.DW_RMB_DOWN = false
+        return
+    end
+
+    -- SUPPRESS tooltip opening if LMB is held (gesture mode)
+    if tbl.event == "down" and FSM.DW_LMB_DOWN then
+        return -- RMB_DOWN already set above; tooltip suppressed
+    end
+
+    -- Standard tooltip-pin behavior (unchanged from baseline)
     if tbl.event == "down" then
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_HOLDING = true
@@ -2822,6 +2853,7 @@ local function cmd_dw_tooltip_pin(tbl)
         FSM.DW_TOOLTIP_HOLDING = false
     end
 end
+
 
 local function cmd_toggle_dw_tooltip_hover()
     FSM.DW_TOOLTIP_MODE = (FSM.DW_TOOLTIP_MODE == "CLICK") and "HOVER" or "CLICK"
@@ -3506,6 +3538,40 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
+
+-- LMB wrapper: tracks DW_LMB_DOWN and intercepts RMB+LMB pink gesture on release
+local function cmd_dw_lmb_select(tbl)
+    -- Track physical LMB state FIRST, before any guard
+    if tbl.event == "down" then
+        FSM.DW_LMB_DOWN = true
+    elseif tbl.event == "up" then
+        FSM.DW_LMB_DOWN = false
+    end
+
+    -- GESTURE: If RMB is held while LMB is released, trigger pink highlight
+    if tbl.event == "up" and FSM.DW_RMB_DOWN then
+        local now = mp.get_time()
+        if (now - FSM.DW_RMB_GESTURE_LAST_TIME) > 0.05 then
+            FSM.DW_RMB_GESTURE_LAST_TIME = now
+            -- Clean up drag state
+            FSM.DW_MOUSE_DRAGGING = false
+            mp.remove_key_binding("dw-mouse-drag")
+            if FSM.DW_MOUSE_SCROLL_TIMER then
+                FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                FSM.DW_MOUSE_SCROLL_TIMER = nil
+            end
+            FSM.DW_PROTECTED_SELECTION = false
+            cmd_dw_toggle_pink(tbl, true)
+        end
+        FSM.DW_LMB_DOWN = false
+        FSM.DW_RMB_DOWN = false
+        return
+    end
+
+    -- Standard LMB selection behavior
+    cmd_dw_mouse_select(tbl)
+end
+
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
 
 local function dw_anki_export_smart_callback(tbl)
@@ -4080,7 +4146,9 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+ESC", name = "dw-pair-discard", fn = nav(ctrl_discard_set, "Ctrl+ESC")},
         {key = "Ctrl+c", name = "dw-copy", fn = nav(function() cmd_dw_copy() end, "Ctrl+c")},
         -- Mouse selection & Suppression
+        {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_lmb_select, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
@@ -4191,7 +4259,11 @@ local function manage_dw_bindings(enable)
     -- Clean up mouse and window state
     if not enable then
         FSM.DW_MOUSE_DRAGGING = false
+        FSM.DW_LMB_DOWN = false
+        FSM.DW_RMB_DOWN = false
+        FSM.DW_RMB_GESTURE_LAST_TIME = 0
         mp.remove_key_binding("dw-mouse-drag")
+
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
