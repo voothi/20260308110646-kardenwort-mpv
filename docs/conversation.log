@@ -361,10 +361,10 @@
 20260421173557 Yes, this is the desired behavior.
 20260421173716 Continue.
 20260421174043 Didn't work, tooktip appears, yellow highlight doesn't change.
-
-
-
-
+20260421175225 It doesn't work, let me simplify the description, you need to do as it works now with Ctrl and right key for pink selection, but only Ctrl is replaced by right click. Try it first, from code version a1d1a0c8ca376e717e6100e83c979e44d3df6241
+20260421180020 Answers When you say "Ctrl and right key", do you mean the Ctrl + Left Mouse Button combination that currently toggles pink highlighting? Yes, that's exactly what I meant. Does the right mouse button normally trigger a tooltip for you, or is it bound to something else in your specific configuration? Yes, that's how it works now.
+20260421180550 I would like to clarify that releasing the right mouse button at this moment should also select the mouse immediately, as well as releasing the left mouse button or releasing both at the same time.
+20260421180835 Continue.
 
 
 

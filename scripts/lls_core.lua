@@ -184,6 +184,7 @@ local FSM = {
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
     DW_LMB_DOWN = false,       -- True while LMB is held
     DW_RMB_DOWN = false,       -- True while RMB is held
+    DW_MOUSE_GESTURE_LAST_TIME = 0, -- Timestamp of last pink gesture trigger
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
     DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
@@ -3424,6 +3425,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
     if updates_selection == nil then updates_selection = true end
     local handler = function(tbl)
         local key = tbl.key or ""
+        local now = mp.get_time()
+        
+        -- Robust state tracking (Always runs, even if shielded)
         if key:upper():find("LEFT") then
             if tbl.event == "down" then FSM.DW_LMB_DOWN = true
             elseif tbl.event == "up" then FSM.DW_LMB_DOWN = false end
@@ -3432,8 +3436,25 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             elseif tbl.event == "up" then FSM.DW_RMB_DOWN = false end
         end
 
-        -- Shield logic: ignore mouse events if a keyboard command was just triggered
-        if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
+        -- SYMMETRIC PINK GESTURE TRIGGERS
+        -- Trigger if either key is released while the other is held
+        local is_l_up = (key:upper():find("LEFT") and tbl.event == "up")
+        local is_r_up = (key:upper():find("RIGHT") and tbl.event == "up")
+        local trigger_pink = false
+        
+        if is_l_up and FSM.DW_RMB_DOWN then trigger_pink = true end
+        if is_r_up and FSM.DW_LMB_DOWN then trigger_pink = true end
+        
+        if trigger_pink then
+            -- 50ms guard against simultaneous release triggering twice
+            if (now - FSM.DW_MOUSE_GESTURE_LAST_TIME) > 0.05 then
+                FSM.DW_MOUSE_GESTURE_LAST_TIME = now
+                cmd_dw_toggle_pink(tbl, true)
+            end
+        end
+
+        -- Shield logic: ignore mouse interaction actions if a keyboard command was just triggered
+        if now < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
         
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
@@ -3508,11 +3529,6 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             if FSM.DW_MOUSE_SCROLL_TIMER then
                 FSM.DW_MOUSE_SCROLL_TIMER:kill()
                 FSM.DW_MOUSE_SCROLL_TIMER = nil
-            end
-
-            -- GESTURE: Release LMB while RMB is held -> trigger pink
-            if key:upper():find("LEFT") and FSM.DW_RMB_DOWN then
-                cmd_dw_toggle_pink(tbl, true)
             end
 
             if on_up_callback then on_up_callback(tbl) end
@@ -4210,6 +4226,7 @@ local function manage_dw_bindings(enable)
         FSM.DW_MOUSE_DRAGGING = false
         FSM.DW_LMB_DOWN = false
         FSM.DW_RMB_DOWN = false
+        FSM.DW_MOUSE_GESTURE_LAST_TIME = 0
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
