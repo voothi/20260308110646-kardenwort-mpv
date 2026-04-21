@@ -564,14 +564,14 @@ local function build_word_list_internal(text, keep_spaces)
         if c == "{" then
             local start = i
             while i <= n and chars[i] ~= "}" do i = i + 1 end
-            token.text = table.concat(chars, "", start, i)
+            token.text = table.concat(chars, "", start, math.min(i, n))
             i = i + 1
             
         -- 2. Handle Metadata Brackets
         elseif c == "[" then
             local start = i
             while i <= n and chars[i] ~= "]" do i = i + 1 end
-            token.text = table.concat(chars, "", start, i)
+            token.text = table.concat(chars, "", start, math.min(i, n))
             token.is_word = true
             token.logical_idx = curr_logical_idx
             curr_logical_idx = curr_logical_idx + 1
