@@ -311,6 +311,7 @@
 20260421013113 Okay, but now explain what this green highlight means, how could it appear? Something is broken, it seems, based on the TSV.
 20260421014804 Okay, how could such a record come about and why is it green again?.
 20260421074547 Add the ability to override the green highlight color (#00FF00) using a parameter in mpv.conf.
+20260421075059 Are you sure that we have the logic of three levels of green or did you just, like other parameters, thoughtlessly carry out the change? Did I understand correctly that green is needed to indicate those words or combinations that are already in the TSV file in some form, so that they do not need to be added again?
 
 
 
