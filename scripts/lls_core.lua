@@ -2857,7 +2857,8 @@ local function dw_anki_export_selection()
             for i = p1_l, p2_l do
                 local sub = subs[i]
                 if sub then
-                    local tokens = get_sub_tokens(sub)
+                    local raw_text = sub.text:gsub("\n", " ")
+                    local tokens = build_word_list_internal(raw_text, true)
                     local s_w = (i == p1_l) and p1_w or 1
                     local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
                     
@@ -3134,7 +3135,8 @@ local function ctrl_commit_set(line_idx, word_idx)
         local sub = subs[m.line]
         if sub then
             local w = nil
-            local tokens = get_sub_tokens(sub)
+            local raw_text = sub.text:gsub("\n", " ")
+            local tokens = build_word_list_internal(raw_text, true)
             if tokens then
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, m.word) then
