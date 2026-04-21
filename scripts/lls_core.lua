@@ -341,26 +341,33 @@ end
 
 local SOURCE_URL_CACHE = nil
 local SOURCE_URL_FILE_PATH = nil
+local SOURCE_URL_FILE_MTIME = 0
+local SOURCE_URL_FILE_SIZE = 0
 local LAST_PATH_FOR_URL = nil
 
 local function find_source_url()
     local path = mp.get_property("path")
     if not path or path == "" then return "" end
     
-    -- Cache validation: if we have a file path, verify it still exists
+    -- Cache validation: if we have a file path, check if it changed
     if path == LAST_PATH_FOR_URL and SOURCE_URL_FILE_PATH then
-        local f = io.open(SOURCE_URL_FILE_PATH, "r")
-        if f then
-            f:close()
+        local info = utils.file_info(SOURCE_URL_FILE_PATH)
+        if info then
+            if info.mtime == SOURCE_URL_FILE_MTIME and info.size == SOURCE_URL_FILE_SIZE and SOURCE_URL_CACHE and SOURCE_URL_CACHE ~= "" then
+                -- File unchanged and we have a valid URL cached, skip scan
+                return SOURCE_URL_CACHE
+            end
+            -- File exists but changed, proceed to re-parse (Step 1 below will handle it)
         else
             -- File was deleted or renamed, invalidate cache
             SOURCE_URL_CACHE = nil
             SOURCE_URL_FILE_PATH = nil
+            SOURCE_URL_FILE_MTIME = 0
+            SOURCE_URL_FILE_SIZE = 0
         end
-    end
-
-    -- Cache check: only re-scan if the media path changed OR if we haven't found a URL yet
-    if path == LAST_PATH_FOR_URL and SOURCE_URL_CACHE ~= nil and SOURCE_URL_CACHE ~= "" then 
+    elseif path == LAST_PATH_FOR_URL and SOURCE_URL_CACHE ~= nil and SOURCE_URL_CACHE ~= "" then 
+        -- We have a cached URL but no path (e.g. was found by directory scan loop but not recorded path?)
+        -- Actually SOURCE_URL_FILE_PATH should always be set if found.
         return SOURCE_URL_CACHE 
     end
 
@@ -395,6 +402,11 @@ local function find_source_url()
         if url then
             SOURCE_URL_CACHE = url
             SOURCE_URL_FILE_PATH = f_path
+            local info = utils.file_info(f_path)
+            if info then
+                SOURCE_URL_FILE_MTIME = info.mtime
+                SOURCE_URL_FILE_SIZE = info.size
+            end
             return url
         end
     end
