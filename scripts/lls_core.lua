@@ -951,6 +951,24 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             end
 
             if in_window then
+                -- Global Footprint Shadow Check (Nesting & Background Intersections)
+                if data.__min_l then
+                    local t_center = data.__cached_anchor_sub
+                    if not t_center or data.__cached_time ~= data.time then
+                        t_center = get_center_index(subs, data.time)
+                        data.__cached_anchor_sub = t_center
+                        data.__cached_time = data.time
+                    end
+                    if t_center ~= -1 then
+                        local t_start = (t_center + data.__min_l) * 1000 + data.__min_w
+                        local t_end = (t_center + data.__max_l) * 1000 + data.__max_w
+                        local t_total = sub_idx * 1000 + target_l_idx
+                        if t_total >= t_start and t_total <= t_end then
+                            purple_depth = purple_depth + 1
+                        end
+                    end
+                end
+
                 local target_offsets = {}
                 for term_offset, tw_clean in ipairs(term_clean) do
                     if target_subsets[tw_clean] then
@@ -1191,7 +1209,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                             local t_total = sub_idx * 1000 + target_l_idx
                             if t_total >= valid_set.min_idx and t_total <= valid_set.max_idx then
-                                purple_depth = purple_depth + 1
+                                -- Handled by unified shadow check above
                             end
                         end
                     end
@@ -1672,15 +1690,38 @@ local function load_anki_tsv(force)
                     -- Pre-parse Advanced Pivot Grounding coordinates (Multi-Anchor support)
                     if idx_val then
                         data.__pivots = {}
+                        local min_l = math.huge
+                        local max_l = -math.huge
+                        local min_w = 1000
+                        local max_w = 0
+                        
                         for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
                             local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
                             if l_off then
-                                table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
+                                local r_l = tonumber(l_off)
+                                local r_w = tonumber(p_idx)
+                                table.insert(data.__pivots, {l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos)})
+                                
+                                if r_l < min_l then min_l = r_l; min_w = r_w
+                                elseif r_l == min_l then if r_w < min_w then min_w = r_w end end
+                                
+                                if r_l > max_l then max_l = r_l; max_w = r_w
+                                elseif r_l == max_l then if r_w > max_w then max_w = r_w end end
                             else
                                 local single = tonumber(part)
-                                if single then table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) end
+                                if single then 
+                                    table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) 
+                                    if 0 < min_l then min_l = 0; min_w = single end
+                                    if 0 > max_l then max_l = 0; max_w = single end
+                                    if single < min_w and min_l == 0 then min_w = single end
+                                    if single > max_w and max_l == 0 then max_w = single end
+                                end
                             end
                         end
+                        data.__min_l = (min_l == math.huge) and 0 or min_l
+                        data.__max_l = (max_l == -math.huge) and 0 or max_l
+                        data.__min_w = min_w
+                        data.__max_w = max_w
                     end
                     table.insert(new_highlights, data)
                 end
