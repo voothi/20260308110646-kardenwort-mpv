@@ -818,9 +818,11 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
+local L_EPSILON = 0.0001
+
 local function logical_cmp(a, b)
     if not a or not b then return false end
-    return math.abs(a - b) < 0.0001
+    return math.abs(a - b) < L_EPSILON
 end
 
 local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
@@ -2978,12 +2980,12 @@ local function dw_anki_export_selection()
                     for _, t in ipairs(tokens) do
                         if t.logical_idx then
                             -- Break if we have moved beyond the selection boundary (End)
-                            if t.logical_idx > e_w + 0.0001 then
+                            if t.logical_idx > e_w + L_EPSILON then
                                 break
                             end
 
                             -- Include token if it falls within the fractional range (Start to End)
-                            if t.logical_idx >= s_w - 0.0001 then
+                            if t.logical_idx >= s_w - L_EPSILON then
                                 table.insert(line_parts, t.text) 
                                 if t.is_word then
                                     table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))

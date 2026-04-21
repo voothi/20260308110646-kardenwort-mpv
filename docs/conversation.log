@@ -332,6 +332,7 @@
 20260421131817 This will not remove any other selections, intervals other than those required?
 20260421135322 Why is the comma visually highlighted with this selection, since it is not included in the overlay? `Punkt, letzte` and `Neutralität ... Punkt`.
 20260421141721 Why, when selecting `Nummer 59` with the left mouse button in this way, is `Nummer 59.` added to the file and selected, with a dot? 20260421142343 Continue.
+20260421143003 Does this look like hardcode?                             if t.logical_idx > e_w + 0.0001 then
 
 
 
