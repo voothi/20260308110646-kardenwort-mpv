@@ -357,17 +357,20 @@
 20260421162445 opsx-archive and sync
 20260421163155 opsx-archive 20260420224919-fix-keyboard-navigation-word-add
 20260421163614 create-release-2 v1.48.0 20260421151234-drum-window-precision-hardening 20260421153053-tsv-loading-optimization
-
-
-
-
-
-
-
-
-
-
-
+20260421170517 o In addition to the existing options for highlighting in pink, make it possible to select by simultaneously holding down two mouse keys. It should work in such a way that the user lowers the left mouse button and drags, then without releasing this key, he can at any time simultaneously lower the right mouse button and upon releasing the left key, with the right one pressed at that moment, this selected text is marked pink, this works by analogy with the combination Ctrl + left mouse button, when when it is released while Ctrl is held down, the same thing now happens. This is necessary to be able to work with only the mouse for the process of highlighting in yellow and pink and adding to a file and saving. Now for pink highlighting you need the Ctrl key on the keyboard or the t key, which also works from the remote control. But most of the time, we can only work with the main functionality of the program with one mouse. This allows you to use it as a remote control. To avoid overlapping the tooltip, which is also called by the right mouse button, we must not call this window while the left mouse button remains pressed and until the right key is pressed separately again.
+20260421173557 Yes, this is the desired behavior.
+20260421173716 Continue.
+20260421174043 Didn't work, tooktip appears, yellow highlight doesn't change.
+20260421175225 It doesn't work, let me simplify the description, you need to do as it works now with Ctrl and right key for pink selection, but only Ctrl is replaced by right click. Try it first, from code version a1d1a0c8ca376e717e6100e83c979e44d3df6241
+20260421180020 Answers When you say "Ctrl and right key", do you mean the Ctrl + Left Mouse Button combination that currently toggles pink highlighting? Yes, that's exactly what I meant. Does the right mouse button normally trigger a tooltip for you, or is it bound to something else in your specific configuration? Yes, that's how it works now.
+20260421180550 I would like to clarify that releasing the right mouse button at this moment should also select the mouse immediately, as well as releasing the left mouse button or releasing both at the same time.
+20260421180835 Continue.
+20260421181109 It doesn’t work, apparently, on the first word, when I hold down the LMB and hold down the RMB, the tooltip pops up and interferes with the selection.
+20260421181608 You, as a pro-model, help me implement the functionality of two mouse buttons for pink highlighting. Output in blocks the code that needs to be changed. Give your comments on the solution and implementation.
+20260421182330 Try to look at the pro-model's proposals for a solution.
+20260421182524 Continue.
+20260421182748 Doesn't work. Look at the solution from the pro model.
+20260421183915 The new approach doesn’t work either, moreover, what worked was broken. Taking a step back.
 
 
 
