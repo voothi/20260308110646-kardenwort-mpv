@@ -379,6 +379,7 @@
 20260421203340 o opsx-apply openspec\changes\20260421200820-purple-nesting-clarity
 20260421203711 Look at mpv.conf.
 20260421204112 You misunderstood, you shouldn’t have removed the mix color, but you should have dealt with the nesting of the purple highlight. Rollback to v1.48.0.
+20260421205619 Change the t key to r and r to t. Just check that `h р` used for Anki Global.
 
 
 
