@@ -1572,17 +1572,9 @@ local function load_anki_tsv(force)
         fingerprint_match = false
     end
 
-    -- If the file hasn't changed and we already have highlights, skip expensive parsing.
-    -- This applies even if 'force' is true (e.g. from periodic sync), as re-parsing 
-    -- identical content is wasteful.
-    if fingerprint_match and next(FSM.ANKI_HIGHLIGHTS) ~= nil then
-        print("[LLS] TSV Fingerprint Match: skipping reload")
+    if fingerprint_match and not force and next(FSM.ANKI_HIGHLIGHTS) ~= nil then
+        -- Fingerprint matches and we have data: skip expensive reload
         return 
-    end
-
-    if info then
-        FSM.ANKI_DB_MTIME = info.mtime
-        FSM.ANKI_DB_SIZE = info.size
     end
 
     -- Load config before attempting file open so the auto-created header
@@ -1752,6 +1744,13 @@ local function load_anki_tsv(force)
     f:close()
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
+    
+    -- Update fingerprint for next time after successful load
+    if info then
+        FSM.ANKI_DB_MTIME = info.mtime
+        FSM.ANKI_DB_SIZE = info.size
+    end
+    print(string.format("[LLS] TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
 end
 
 local function save_anki_tsv_row(term, context, time_pos, item_index)
