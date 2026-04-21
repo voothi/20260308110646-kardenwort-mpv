@@ -365,6 +365,7 @@
 20260421180020 Answers When you say "Ctrl and right key", do you mean the Ctrl + Left Mouse Button combination that currently toggles pink highlighting? Yes, that's exactly what I meant. Does the right mouse button normally trigger a tooltip for you, or is it bound to something else in your specific configuration? Yes, that's how it works now.
 20260421180550 I would like to clarify that releasing the right mouse button at this moment should also select the mouse immediately, as well as releasing the left mouse button or releasing both at the same time.
 20260421180835 Continue.
+20260421181109 It doesn’t work, apparently, on the first word, when I hold down the LMB and hold down the RMB, the tooltip pops up and interferes with the selection.
 
 
 

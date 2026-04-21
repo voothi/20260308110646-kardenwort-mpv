@@ -2805,7 +2805,7 @@ local function cmd_dw_tooltip_pin(tbl)
     if FSM.DRUM_WINDOW == "OFF" then return end
     
     if tbl.event == "down" then
-        if FSM.DW_LMB_DOWN then return end
+        if FSM.DW_LMB_DOWN or FSM.DW_MOUSE_DRAGGING or FSM.DW_PROTECTED_SELECTION then return end
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_HOLDING = true
         local subs = Tracks.pri.subs
