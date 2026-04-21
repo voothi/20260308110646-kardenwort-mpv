@@ -347,7 +347,8 @@
 20260421153053 o It is necessary to take from my other project./20251206123938-intellifiller-ai-addon-for-anki (backup config functionality) and implement the approach of checking the TSV file for the time of change, by hash, before attempting to update, to reduce the load on the processor, the requirements for which increased after the introduction of indexes, especially after the introduction of an advanced index. Think about the feasibility of this feature. 20260421154246 I need to minimize dependencies. Only lua so it works on supported platforms. 20260421154405 Okay, it will suit us to store only in memory. 20260421154859 Yes, this is suitable if there is no hash support.
 20260421155258 No subtitles, window does not open w, message in photo.
 20260421160230 When opening, the data from the file is not loaded, the selections are not visible, although there is data in the file.
-
+20260421160651 Do I understand correctly that this mechanism for optimizing the CPU is more useful for reading data from a file (periodically) than for writing to it?
+20260421160837 If I always have this file open in VSCode, but I only view it, will this affect its reading?
 
 
 
