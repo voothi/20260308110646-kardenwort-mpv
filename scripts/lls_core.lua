@@ -824,18 +824,18 @@ local function logical_cmp(a, b)
 end
 
 local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
-    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, 0, false end
+    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false, {} end
     
     local tokens = get_sub_tokens(subs[sub_idx])
     if not tokens then return 0, 0, 0, false end
     
     local target_token = tokens[token_idx]
-    if not target_token or not target_token.is_word then return 0, 0, 0, false end
+    if not target_token or not target_token.is_word then return 0, 0, false, {} end
     
     local target_l_idx = target_token.logical_idx
     local target_word_text = target_token.text
     local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
-    if target_lower_full == "" then return 0, 0, 0, false end
+    if target_lower_full == "" then return 0, 0, false, {} end
 
     -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
     local target_subsets = { [target_lower_full] = true }
@@ -884,6 +884,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     local purple_stack = 0
     local has_phrase = false
     local matched_terms = {}
+    local matching_source_terms = {}
     for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
         local term_key = data.term
         if not matched_terms[term_key] then
@@ -1186,10 +1187,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 if term_is_split then purple_stack = purple_stack + 1
                 else orange_stack = orange_stack + 1 end
                 matched_terms[term_key] = true
+                table.insert(matching_source_terms, data.term)
             end
         end
     end
-    return orange_stack, purple_stack, has_phrase
+    return orange_stack, purple_stack, has_phrase, matching_source_terms
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -2302,7 +2304,7 @@ local function draw_dw(subs, view_center, active_idx)
 
                 -- Level 3: Database Highlights
                 if meta.priority == 0 and l_idx then
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
+                    local orange_stack, purple_stack, is_phrase, matching_terms = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
                     if orange_stack > 0 and purple_stack > 0 then
@@ -2323,6 +2325,7 @@ local function draw_dw(subs, view_center, active_idx)
                     if h_color ~= color then
                         meta.color = h_color
                         meta.is_phrase = is_phrase
+                        meta.matching_terms = matching_terms
                         meta.priority = 3
                     end
                 end
@@ -2340,15 +2343,29 @@ local function draw_dw(subs, view_center, active_idx)
 
                     -- Right-sided (Trailing/Internal)
                     if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
-                        if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
-                            meta.color = prev_meta.color
-                            meta.is_phrase = true
+                        local term_match = false
+                        for _, term in ipairs(prev_meta.matching_terms or {}) do
+                            if term:find(meta.text, 1, true) then term_match = true; break end
+                        end
+                        if term_match then
+                            if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
+                                meta.color = prev_meta.color
+                                meta.is_phrase = true
+                                meta.matching_terms = prev_meta.matching_terms -- Flow terms to next punctuation
+                            end
                         end
                     -- Left-sided (Leading)
                     elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
-                        if not prev_meta or not prev_meta.is_word then
-                            meta.color = next_meta.color
-                            meta.is_phrase = true
+                        local term_match = false
+                        for _, term in ipairs(next_meta.matching_terms or {}) do
+                            if term:find(meta.text, 1, true) then term_match = true; break end
+                        end
+                        if term_match then
+                            if not prev_meta or not prev_meta.is_word then
+                                meta.color = next_meta.color
+                                meta.is_phrase = true
+                                meta.matching_terms = next_meta.matching_terms
+                            end
                         end
                     end
                 end
@@ -2989,11 +3006,12 @@ local function dw_anki_export_selection()
         if term and term ~= "" then
             -- Clean term: remove ASS tags and trim whitespace
             term = term:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then
-                -- Only strip if the term is purely a bracketed expression (ignoring spaces)
-                if term:match("^%s*%b[]%s*$") then
-                    term = term:gsub("[%[%]]", "")
-                end
+            -- Context-Aware Bracket Stripping:
+            -- Remove brackets if and only if they wrap the entire selection.
+            -- This preserves brackets inside phrases (e.g. "kann [musik]") 
+            -- but strips them for individual metadata picks (e.g. "[musik]" -> "musik").
+            if term:match("^%b[]$") then
+                term = term:sub(2, -2)
             end
             term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
             
