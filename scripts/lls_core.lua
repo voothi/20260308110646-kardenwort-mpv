@@ -2367,7 +2367,7 @@ local function draw_dw(subs, view_center, active_idx)
                     local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
-                    if orange_stack > 0 and purple_depth > 0 then
+                    if orange_stack > 0 and purple_stack > 0 then
                         local mix_depth = math.min((orange_stack + purple_depth) - 1, 3)
                         if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                         elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
