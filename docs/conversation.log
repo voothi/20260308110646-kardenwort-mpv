@@ -349,6 +349,9 @@
 20260421160230 When opening, the data from the file is not loaded, the selections are not visible, although there is data in the file.
 20260421160651 Do I understand correctly that this mechanism for optimizing the CPU is more useful for reading data from a file (periodically) than for writing to it?
 20260421160837 If I always have this file open in VSCode, but I only view it, will this affect its reading?
+20260421161119 How will the mechanism for checking the URL file on disk work?
+20260421161229 Does the URL file continue to be searched every given minutes?
+20260421161318 What parameter determines the frequency?
 
 
 
