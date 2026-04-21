@@ -3419,38 +3419,36 @@ local function ctrl_commit_set(line_idx, word_idx)
 end
 
 
-local MOUSE_HANDLERS = {}
-
-local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
-    if updates_selection == nil then updates_selection = true end
-    local handler = function(tbl)
-        local key = (tbl and (tbl.key_name or tbl.key)) or ""
+local function create_mouse_wrapper(bound_key, is_shift, on_action, updates_sel)
+    if updates_sel == nil then updates_sel = true end
+    return function(tbl)
+        local key = bound_key:upper()
         local now = mp.get_time()
         
-        -- Robust state tracking (Always runs, even if shielded)
-        if key:upper():find("LEFT") then
+        -- Exact hardware state tracking strictly using the bound identity
+        if key:find("LEFT") then
             if tbl.event == "down" then FSM.DW_LMB_DOWN = true
             elseif tbl.event == "up" then FSM.DW_LMB_DOWN = false end
-        elseif key:upper():find("RIGHT") then
+        elseif key:find("RIGHT") then
             if tbl.event == "down" then FSM.DW_RMB_DOWN = true
             elseif tbl.event == "up" then FSM.DW_RMB_DOWN = false end
         end
 
         -- SYMMETRIC PINK GESTURE TRIGGERS
-        -- Trigger if either key is released while the other is held
-        local is_l_up = (key:upper():find("LEFT") and tbl.event == "up")
-        local is_r_up = (key:upper():find("RIGHT") and tbl.event == "up")
         local trigger_pink = false
-        
-        if is_l_up and FSM.DW_RMB_DOWN then trigger_pink = true end
-        if is_r_up and FSM.DW_LMB_DOWN then trigger_pink = true end
+        if key:find("LEFT") and tbl.event == "up" and FSM.DW_RMB_DOWN then trigger_pink = true end
+        if key:find("RIGHT") and tbl.event == "up" and FSM.DW_LMB_DOWN then trigger_pink = true end
         
         if trigger_pink then
-            -- 50ms guard against simultaneous release triggering twice
             if (now - FSM.DW_MOUSE_GESTURE_LAST_TIME) > 0.05 then
                 FSM.DW_MOUSE_GESTURE_LAST_TIME = now
                 cmd_dw_toggle_pink(tbl, true)
+                -- Because a pink trigger consumed this click sequence, forcefully drop physical dragging state to prevent ghost behavior
+                FSM.DW_MOUSE_DRAGGING = false
+                FSM.DW_LMB_DOWN = false
+                FSM.DW_RMB_DOWN = false
             end
+            return -- Escape early! Do not process standard selection bounds or tooltips on a consumed gesture release.
         end
 
         -- Shield logic: ignore mouse interaction actions if a keyboard command was just triggered
@@ -3473,11 +3471,11 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 end
 
                 -- Phase 1: Custom Actions (Tooltips, Pins, etc.)
-                if on_down_callback then on_down_callback(tbl) end
+                if on_action then on_action(tbl) end
 
                 -- Phase 2: Selection Logic (Only for words, if enabled)
-                if word_idx and updates_selection then
-                    local is_inside = on_up_callback and is_inside_dw_selection(line_idx, word_idx)
+                if word_idx and updates_sel then
+                    local is_inside = is_inside_dw_selection(line_idx, word_idx)
                     FSM.DW_PROTECTED_SELECTION = is_inside and not is_shift
                     
                     -- Standard click (no Shift): reset anchor & cursor unless clicking inside existing range
@@ -3508,14 +3506,14 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 end
             end
         elseif tbl.event == "up" then
-            FSM.DW_MOUSE_DRAGGING = false
+            if updates_sel then FSM.DW_MOUSE_DRAGGING = false end
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release to ensure actions 
             -- are applied to the exact coordinate where the button was released.
             local osd_x, osd_y = dw_get_mouse_osd()
             local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
             
-            if line_idx and word_idx and updates_selection then
+            if line_idx and word_idx and updates_sel then
                 if not FSM.DW_PROTECTED_SELECTION then
                     FSM.DW_CURSOR_LINE = line_idx
                     FSM.DW_CURSOR_WORD = word_idx
@@ -3525,21 +3523,18 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             
             FSM.DW_PROTECTED_SELECTION = false
 
-            mp.remove_key_binding("dw-mouse-drag")
-            if FSM.DW_MOUSE_SCROLL_TIMER then
-                FSM.DW_MOUSE_SCROLL_TIMER:kill()
-                FSM.DW_MOUSE_SCROLL_TIMER = nil
+            if updates_sel then
+                mp.remove_key_binding("dw-mouse-drag")
+                if FSM.DW_MOUSE_SCROLL_TIMER then
+                    FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                    FSM.DW_MOUSE_SCROLL_TIMER = nil
+                end
             end
 
-            if on_up_callback then on_up_callback(tbl) end
+            if on_action then on_action(tbl) end
         end
     end
-    MOUSE_HANDLERS[handler] = true
-    return handler
 end
-
-local cmd_dw_mouse_select = make_mouse_handler(false)
-local cmd_dw_mouse_select_shift = make_mouse_handler(true)
 
 local function dw_anki_export_smart_callback(tbl)
     -- Only trigger on release (Standard export behavior)
@@ -3557,8 +3552,6 @@ local function dw_anki_export_smart_callback(tbl)
         dw_anki_export_selection()
     end
 end
-
-local cmd_dw_export_anki = make_mouse_handler(false, dw_anki_export_smart_callback)
 
 local function cmd_dw_add_smart()
     ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
@@ -4113,12 +4106,11 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+ESC", name = "dw-pair-discard", fn = nav(ctrl_discard_set, "Ctrl+ESC")},
         {key = "Ctrl+c", name = "dw-copy", fn = nav(function() cmd_dw_copy() end, "Ctrl+c")},
         -- Mouse selection & Suppression
-        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = create_mouse_wrapper("Shift+MBTN_LEFT", true, nil, true), complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-            -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
         end, "Ctrl"), complex = true},
     }
 
@@ -4129,34 +4121,20 @@ local function manage_dw_bindings(enable)
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
-                    -- Detect if the handler is already a mouse handler to avoid redundant wrapping
-                    if mouse_fn and MOUSE_HANDLERS[mouse_fn] then
-                        table.insert(keys, {
-                            key = key,
-                            name = base_name .. "-" .. i,
-                            fn = mouse_fn,
-                            complex = true
-                        })
-                    else
-                        -- Mouse keys get the full drag/drop treatment via make_mouse_handler
-                        local m_fn = make_mouse_handler(false, 
-                            function(t) mouse_fn(t, true) end, -- up
-                            function(t) mouse_fn(t, true) end, -- down
-                            updates_selection
-                        )
-                        table.insert(keys, {
-                            key = key,
-                            name = base_name .. "-" .. i,
-                            fn = m_fn,
-                            complex = true
-                        })
-                    end
+                    local is_shift = key:find("Shift") ~= nil
+                    -- Generate pure hardware-locked wrappers dynamically
+                    local m_fn = create_mouse_wrapper(key, is_shift, function(t) if mouse_fn then mouse_fn(t, true) end end, updates_selection)
+                    table.insert(keys, {
+                        key = key,
+                        name = base_name .. "-" .. i,
+                        fn = m_fn,
+                        complex = true
+                    })
                 else
                     table.insert(keys, {
                         key = key,
                         name = base_name .. "-" .. i,
                         fn = function(t) 
-                            -- Shield the mouse from ghost clicks after a key is pressed (excluding modifiers)
                             local eval_key = (t and (t.key_name or t.key)) or key
                             if not (eval_key == "Ctrl" or eval_key == "Shift" or eval_key == "Alt" or eval_key == "Meta") then
                                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
@@ -4171,9 +4149,9 @@ local function manage_dw_bindings(enable)
         end
     end
 
-    parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
+    parse_and_bind(Options.dw_key_add, "dw-add", dw_anki_export_smart_callback, cmd_dw_add_smart, true)
     parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
-    parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
+    parse_and_bind(Options.dw_key_select, "dw-select", nil, function() end, true)
     parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
