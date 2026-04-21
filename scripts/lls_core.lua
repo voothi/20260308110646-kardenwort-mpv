@@ -123,7 +123,6 @@ local Options = {
     anki_mix_depth_1 = "4A4AD3",
     anki_mix_depth_2 = "3636A8",
     anki_mix_depth_3 = "151578",
-    anki_highlight_color_local = "00FF00",
     anki_global_highlight = false,
     anki_sync_period = 5,
     anki_context_lines = 6,
@@ -880,7 +879,6 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     end
 
     local orange_stack = 0
-    local green_stack = 0
     local purple_stack = 0
     local has_phrase = false
     local matched_terms = {}
@@ -1183,18 +1181,13 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             end
 
             if match_found then
-                local is_local = (data.index and data.index == FSM.ANKI_ITEM_FOCUS_INDEX)
-                if is_local then
-                    green_stack = green_stack + 1
-                else
-                    if term_is_split then purple_stack = purple_stack + 1
-                    else orange_stack = orange_stack + 1 end
-                end
+                if term_is_split then purple_stack = purple_stack + 1
+                else orange_stack = orange_stack + 1 end
                 matched_terms[term_key] = true
             end
         end
     end
-    return orange_stack, green_stack, purple_stack, has_phrase
+    return orange_stack, purple_stack, has_phrase
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -2036,11 +2029,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             
             -- Level 3: Database Highlights
             if meta.priority == 0 and l_idx then
-                local orange_stack, green_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
+                local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, sub_idx, j, t_pos)
                 local h_color = base_color
                 
-                if (orange_stack > 0 or green_stack > 0) and purple_stack > 0 then
-                    local mix_depth = math.min((orange_stack + green_stack + purple_stack) - 1, 3)
+                if orange_stack > 0 and purple_stack > 0 then
+                    local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
                     if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                     elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                     elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
@@ -2048,8 +2041,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                     if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                elseif green_stack > 0 then
-                    h_color = Options.anki_highlight_color_local
                 elseif purple_stack > 0 then
                     if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                     elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
@@ -2309,11 +2300,11 @@ local function draw_dw(subs, view_center, active_idx)
 
                 -- Level 3: Database Highlights
                 if meta.priority == 0 and l_idx then
-                    local orange_stack, green_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
-                    if (orange_stack > 0 or green_stack > 0) and purple_stack > 0 then
-                        local mix_depth = math.min((orange_stack + green_stack + purple_stack) - 1, 3)
+                    if orange_stack > 0 and purple_stack > 0 then
+                        local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
                         if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                         elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                         elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
@@ -2321,8 +2312,6 @@ local function draw_dw(subs, view_center, active_idx)
                         if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                         elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                    elseif green_stack > 0 then
-                        h_color = Options.anki_highlight_color_local
                     elseif purple_stack > 0 then
                         if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                         elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"

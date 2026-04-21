@@ -28,7 +28,7 @@ Manual user selections SHALL always carry higher visual priority than automated 
 - **THEN** a contiguous range SHALL be highlighted in **Gold**.
 - *Note*: This replaces the legacy "Vibrant Yellow" selection and aligns with the standardized "Warm Path" visuals.
 
-### Requirement: Three-Phase Match Evaluation
+### Requirement: Two-Phase Match Evaluation
 The rendering engine SHALL evaluate every word against the database using a tiered integrity model to determine the correct highlight palette.
 
 #### Phase 1: Contiguous Adjacency (Orange)
@@ -36,19 +36,14 @@ The rendering engine SHALL evaluate every word against the database using a tier
 - **Visual**: **Orange (#FF8800)**.
 - **Goal**: Highlight "Perfect" matches that exist exactly as saved.
 
-#### Phase 2: Local Fuzzy Match (Green)
-- **Condition**: Contextually grounded but fails Sequential Adjacency; term exists as a single word OR as a partial, non-contiguous sequence that is *entirely localized to the current subtitle line*.
-- **Visual**: **Green (#00FF00)**.
-- **Goal**: Highlight single-word cards or slightly modified phrase matches on the origin line, avoiding the heavier Global Split rendering for purely local scatter.
-
-#### Phase 3: Global Split Match (Purple)
-- **Condition**: Contextually grounded via high-recall neighborhoods, but words are fragmented and bridge across *multiple adjacent subtitle segments*.
+#### Phase 2: Split Match (Purple)
+- **Condition**: Contextually grounded via high-recall neighborhoods, but words are fragmented and lack strict sequence adjancency.
 - **Visual**: **Purple (#AA88FF)**.
-- **Goal**: Highlight "Cool Path" pair-selected phrases or high-recall vocabulary spread over time.
+- **Goal**: Highlight "Cool Path" pair-selected phrases or high-recall single vocabulary words scattered in a segment.
 
 ### Requirement: Match Integrity Conjunction
 The rendering engine SHALL NOT assign the Orange (Contiguous) palette to any word unless BOTH sequential adjacency and contextual grounding are met.
-- **Fall-back**: If a term is contextually grounded but lacks sequential adjacency, the engine MUST proceed to Phase 2 (Local Split/Fuzzy) or Phase 3 (Global Split) evaluation depending on segment boundaries.
+- **Fall-back**: If a term is contextually grounded but lacks sequential adjacency, the engine MUST proceed to Phase 2 (Split) evaluation.
 
 ### Highlighting Example (Concrete Case Refinement)
 - **Database Term**: `Aussagen ... richtig oder`

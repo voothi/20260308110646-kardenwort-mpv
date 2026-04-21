@@ -100,7 +100,7 @@ The engine SHALL surgically isolate word bodies from their surrounding punctuati
 #### Scenario: Word overlapped by a phrase
 - **WHEN** the term "ehrlich," exists in Anki as a single-word card
 - **AND** the term "Mal ehrlich," exists in Anki as a multi-word phrase
-- **THEN** both terms SHALL be aggregated, and the comma after "ehrlich" SHALL be colored green (Phrase Continuity Mode).
+- **THEN** both terms SHALL be aggregated, and the comma after "ehrlich" SHALL be highlighted (Phrase Continuity Mode).
 
 ### Requirement: Clean Boundary Capture
 The capture engine SHALL automatically strip leading and trailing punctuation/whitespace from any text copied to the clipboard or exported to Anki tags.

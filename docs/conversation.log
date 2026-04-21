@@ -313,8 +313,7 @@
 20260421074547 Add the ability to override the green highlight color (#00FF00) using a parameter in mpv.conf.
 20260421075059 Are you sure that we have the logic of three levels of green or did you just, like other parameters, thoughtlessly carry out the change? Did I understand correctly that green is needed to indicate those words or combinations that are already in the TSV file in some form, so that they do not need to be added again?
 20260421080733 Update the mpv.conf config - lls-anki_highlight_color_local=00FF00, add a comment that explains in simple language for the average user what this is for and what it means.
-
-
+20260421081429 If earlier I saw this green color, now it is not in the text. 20260421080507 I don’t understand why the green flag functionality is needed, can we carefully cut it out of the code.lua, conf and specifications openspec\specs?
 
 
 
