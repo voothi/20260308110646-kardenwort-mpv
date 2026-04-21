@@ -182,6 +182,8 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_LMB_DOWN = false,       -- True while LMB is held
+    DW_RMB_DOWN = false,       -- True while RMB is held
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
     DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
@@ -2802,6 +2804,7 @@ local function cmd_dw_tooltip_pin(tbl)
     if FSM.DRUM_WINDOW == "OFF" then return end
     
     if tbl.event == "down" then
+        if FSM.DW_LMB_DOWN then return end
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_HOLDING = true
         local subs = Tracks.pri.subs
@@ -3424,6 +3427,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
         
         if tbl.event == "down" then
+            if tbl.key == "MBTN_LEFT" then FSM.DW_LMB_DOWN = true end
+            if tbl.key == "MBTN_RIGHT" then FSM.DW_RMB_DOWN = true end
+
             FSM.DW_FOLLOW_PLAYER = false
 
             -- Dismiss tooltip on click and lock suppression for the current focus
@@ -3475,6 +3481,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 end
             end
         elseif tbl.event == "up" then
+            if tbl.key == "MBTN_LEFT" then FSM.DW_LMB_DOWN = false end
+            if tbl.key == "MBTN_RIGHT" then FSM.DW_RMB_DOWN = false end
+
             FSM.DW_MOUSE_DRAGGING = false
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release to ensure actions 
@@ -3496,6 +3505,11 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             if FSM.DW_MOUSE_SCROLL_TIMER then
                 FSM.DW_MOUSE_SCROLL_TIMER:kill()
                 FSM.DW_MOUSE_SCROLL_TIMER = nil
+            end
+
+            -- GESTURE: Release LMB while RMB is held -> trigger pink
+            if tbl.key == "MBTN_LEFT" and FSM.DW_RMB_DOWN then
+                cmd_dw_toggle_pink(tbl, true)
             end
 
             if on_up_callback then on_up_callback(tbl) end
