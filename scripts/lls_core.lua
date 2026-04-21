@@ -3168,24 +3168,26 @@ local function ctrl_commit_set(line_idx, word_idx)
                         if is_gap then
                             term = term .. " ... "
                         else
-                            local next_w = clean_w
-                            local prev_w = term:match("%S+$") or ""
-                            
-                            local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
-                                                  or next_w:match("^[/-]$") 
-                                                  or next_w:match("^\226\128\147$") 
-                                                  or next_w:match("^\226\128\148$") 
-                                                  or next_w:match("^[\"']$")
-                            
-                            local no_space_after = prev_w:match("^[/-]$") 
-                                                 or prev_w:match("^\226\128\147$") 
-                                                 or prev_w:match("^\226\128\148$") 
-                                                 or prev_w:match("^[%[%({¿¡«„“]$")
-                                                 or prev_w:match("^[\"']$")
-                            
-                            if not (no_space_before or no_space_after) then
-                                term = term .. " "
+                            local interstitial = ""
+                            if m.line == last_m.line then
+                                for _, t in ipairs(tokens) do
+                                    if t.logical_idx > last_m.word and t.logical_idx < m.word then
+                                        interstitial = interstitial .. t.text
+                                    end
+                                end
+                            else
+                                local trail = ""
+                                local last_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
+                                for _, t in ipairs(last_tokens) do
+                                    if t.logical_idx > last_m.word then trail = trail .. t.text end
+                                end
+                                local lead = ""
+                                for _, t in ipairs(tokens) do
+                                    if t.logical_idx < m.word then lead = lead .. t.text end
+                                end
+                                interstitial = trail .. " " .. lead
                             end
+                            term = term .. interstitial
                         end
                     end
                     term = term .. clean_w
