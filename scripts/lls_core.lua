@@ -567,14 +567,16 @@ local function build_word_list_internal(text, keep_spaces)
             token.text = table.concat(chars, "", start, i)
             i = i + 1
             
-        -- 2. Handle Metadata Brackets (Disabled Atomization to allow internal selection)
-        -- Brackets will now be treated as regular punctuation, allowing words inside to be tokenized.
-        -- elseif c == "[" then
-        --     local start = i
-        --     while i <= n and chars[i] ~= "]" do i = i + 1 end
-        --     token.text = table.concat(chars, "", start, i)
-        --     i = i + 1
-
+        -- 2. Handle Metadata Brackets
+        elseif c == "[" then
+            local start = i
+            while i <= n and chars[i] ~= "]" do i = i + 1 end
+            token.text = table.concat(chars, "", start, i)
+            token.is_word = true
+            token.logical_idx = curr_logical_idx
+            curr_logical_idx = curr_logical_idx + 1
+            curr_sub_idx = 0.1
+            i = i + 1
             
         -- 3. Handle Whitespace
         elseif c:match("^%s$") or c == "\194\160" then

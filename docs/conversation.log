@@ -316,7 +316,7 @@
 20260421081429 If earlier I saw this green color, now it is not in the text. 20260421080507 I don’t understand why the green flag functionality is needed, can we carefully cut it out of the code.lua, conf and specifications openspec\specs?
 20260421083506 Ok, so far it works, it seems, let's look at why in some cases records with a space at the beginning could be added, see the examples below from the TSV. Why could ... go before the paired highlight (it should not, by design, even if the highlight does not start at the beginning of the sentence). Or have we already solved this problem?
 20260421085928 Why is there now such a selection of the saved text, mixed, from orange and purple colors, when it should be orange in this case?
-
+20260421092050 Well, why can’t we add words in square brackets (and similar cases) to the selection text if we have perfected this mechanism for working with tokens in the modes of regular (golden color) and paired (pink color) selection and their display (orange and purple with shades + brick color at the intersection) based on the TSV file? Without complicating or changing the current mechanism (strongly, invasively)? Now, it seems, I can add even one  bracket separately.
 
 
 
