@@ -31,6 +31,7 @@ The Drum Window SHALL ensure that any active text selection, word-highlight, or 
 - **WHEN** a mouse-based interaction occurs (e.g., clicking on a word with a pairing modifier)
 - **THEN** the system SHALL immediately synchronize the Drum Window cursor (Yellow Highlight) and the anchor point to the word under the mouse pointer.
 - **AND** this synchronization SHALL occur before the specific action logic (e.g., toggling) is executed.
+- **AND** the sticky horizontal navigation anchor (`FSM.DW_CURSOR_X`) SHALL be reset to ensure the next keyboard movement re-anchors to the new cursor position.
 
 ### Requirement: Exclusive UI Visibility
 The Drum Window SHALL maintain exclusive visibility over the active subtitle information, ensuring that native mpv subtitles do not overlap or leak through the UI regardless of media state changes or external property resets.
