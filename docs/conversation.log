@@ -377,5 +377,5 @@
 20260421202913 Doesn't work selection by LMB+RMB. Tooltip pops up.
 20260421203206 Doesn't work, the sonnet model didn't help.
 20260421203340 o opsx-apply openspec\changes\20260421200820-purple-nesting-clarity
-
-
+20260421203711 Look at mpv.conf.
+20260421204112 You misunderstood, you shouldn’t have removed the mix color, but you should have dealt with the nesting of the purple highlight. Rollback to v1.48.0.
