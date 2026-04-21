@@ -324,8 +324,8 @@
 20260421110528 Okay, but there are more details, is it possible to make it so that the points and existing characters that may be in the TSV file are added to a meaningful field? Then they will be displayed and there will be no feeling of gaps in the selection (white dot) and awkwardness. Now it's like that ``` kann [musik] aufgenommen werden kann. [musik] Ende des Tests. Hör ``` Required like this ``` kann. [musik] aufgenommen werden kann. [musik] Ende des Tests. Hör ```
 20260421112015 You, as a pro model, look at the changes and fix it, it doesn’t work as it should, see the attached data. I don't see any dots in the file.
 20260421113619 Okay, but why is the dot between, for example, `kann [musik]` not visible in TSV now? And the dot is white, see photo.
-
-
+20260421114807 Okay, but there is a note about highlighting the last point (I say this for reference from the photo), when there is no point in the file, but it is highlighted in the text.
+20260421115502 Okay, with the orange highlight, I hope it’s decided, what to do now with this option, when in a paired addition with pink, when choosing three words as a pair of one and two adjacent words, between which there is a dot (or another, if important), when adding this construction, it is saved and highlighted in purple so that the dot between that pair of adjacent words remains white? It would be logical to make it purple in this case too.
 
 
 

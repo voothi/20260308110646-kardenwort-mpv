@@ -1184,8 +1184,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             end
 
             if match_found then
-                if term_is_split then purple_stack = purple_stack + 1
-                else orange_stack = orange_stack + 1 end
+                if term_is_split then 
+                    purple_stack = purple_stack + 1
+                    if #term_clean > 1 then has_phrase = true end
+                else 
+                    orange_stack = orange_stack + 1 
+                end
                 matched_terms[term_key] = true
                 table.insert(matching_source_terms, data.term)
             end
@@ -2344,8 +2348,9 @@ local function draw_dw(subs, view_center, active_idx)
                     -- Right-sided (Trailing/Internal)
                     if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
                         local term_match = false
+                        local p_txt = (prev_meta.text .. meta.text):lower()
                         for _, term in ipairs(prev_meta.matching_terms or {}) do
-                            if term:find(meta.text, 1, true) then term_match = true; break end
+                            if term:lower():find(p_txt, 1, true) then term_match = true; break end
                         end
                         if term_match then
                             if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
@@ -2357,8 +2362,9 @@ local function draw_dw(subs, view_center, active_idx)
                     -- Left-sided (Leading)
                     elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
                         local term_match = false
+                        local n_txt = (meta.text .. next_meta.text):lower()
                         for _, term in ipairs(next_meta.matching_terms or {}) do
-                            if term:find(meta.text, 1, true) then term_match = true; break end
+                            if term:lower():find(n_txt, 1, true) then term_match = true; break end
                         end
                         if term_match then
                             if not prev_meta or not prev_meta.is_word then
