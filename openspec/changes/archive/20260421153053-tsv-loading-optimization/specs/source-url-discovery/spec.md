@@ -1,5 +1,14 @@
 ## MODIFIED Requirements
 
+### Requirement: Automatic Source Discovery
+The system SHALL search the media directory for sidecar files containing URL metadata.
+- **Matched Files**: `<media_base_name>.<ext>` (ext: `.url`, `.txt`, `.md`).
+- **Patterns**: Lines matching `URL=<url>`.
+
+#### Scenario: Valid .url file found
+- **WHEN** a file named `video.url` exists with content `URL=https://example.com`
+- **THEN** the system SHALL extract and cache the URL.
+
 ### Requirement: Discovery Resilience
 The system SHALL ensure the URL metadata remains accurate throughout the playback session while minimizing filesystem interrogation.
 - **Cache Invalidation**: If the source file is deleted or renamed, the cache MUST be invalidated.

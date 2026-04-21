@@ -25,11 +25,17 @@ The application SHALL bind `h` (and `р` for RU layout) to toggle the visual re-
 - **THEN** the rendering engine swaps between evaluating the TSV terms globally across all timeline elements and locally strictly to the original export timestamp.
 
 ### Requirement: Periodic Database Sync
-The application SHALL periodically re-synchronize the in-memory highlight dictionary with the state of the physical TSV file.
+The application SHALL periodically re-synchronize the in-memory highlight dictionary with the state of the physical TSV file. To minimize CPU utilization, the system MUST implement a change-detection fingerprinting mechanism.
 
 #### Scenario: Real-time update from file edit
 - **WHEN** the user or an external process modifies the TSV database file
-- **THEN** within a configurable interval (5s), the player system reloads the file atomically (using `pcall` for safety) and refreshes all active subtitle viewports (Drum and Timeline) to reflect the new state.
+- **THEN** within a configurable interval (5s), the player system detects the modified fingerprint.
+- **AND** it reloads the file atomically (using `pcall` for safety) and refreshes all active subtitle viewports (Drum and Timeline) to reflect the new state.
+
+#### Scenario: Optimized idempotent sync
+- **WHEN** the periodic sync trigger occurs
+- **AND** the TSV file fingerprint matches the current in-memory state
+- **THEN** the system SHALL skip the parse operation to conserve CPU resources.
 
 ### Requirement: Multi-Pivot Grounding & Resiliency
 The identifies engine MUST anchor mining records using a multi-pivot coordinate system (`LineOffset:WordIndex:TermPos`) for every word in a selection. The system SHALL prioritize absolute scene-locking based on these coordinates but MUST implement "Fuzzy Healing" fallbacks to maintain visual persistence if a subtitle index becomes outdated (e.g., due to file edits). To prevent coordinate drift at segment boundaries, a mandatory temporal epsilon of +1ms SHALL be applied to all exported timestamps.
