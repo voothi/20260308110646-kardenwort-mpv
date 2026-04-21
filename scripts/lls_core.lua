@@ -4065,7 +4065,9 @@ local function cmd_dw_line_move(dir, shift)
     
     FSM.DW_FOLLOW_PLAYER = false
     
-    if shift and FSM.DW_ANCHOR_LINE == -1 then
+    local is_selecting = shift or FSM.DW_CTRL_HELD
+    
+    if is_selecting and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         local start_word = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
         FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or (start_word > 0 and start_word or 1)
@@ -4090,7 +4092,7 @@ local function cmd_dw_line_move(dir, shift)
         FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_CURSOR_LINE - half)
     end
     
-    if not shift then
+    if not is_selecting then
         -- Navigate to the closest word under the sticky horizontal position.
         FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X)
         FSM.DW_ANCHOR_LINE = -1
@@ -4108,6 +4110,20 @@ local function cmd_dw_word_move(dir, shift)
     
     FSM.DW_FOLLOW_PLAYER = false
     
+    local is_selecting = shift or FSM.DW_CTRL_HELD
+    
+    -- Capture anchor before moving if we are starting a selection
+    if is_selecting and FSM.DW_ANCHOR_LINE == -1 then
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+        if FSM.DW_CURSOR_WORD == -1 then
+            local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
+            local words = build_word_list(text)
+            FSM.DW_ANCHOR_WORD = (dir > 0) and 1 or #words
+        else
+            FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
+        end
+    end
+
     local raw_sub = subs[FSM.DW_CURSOR_LINE]
     if not raw_sub then return end
     local text = raw_sub.text:gsub("\n", " ")
@@ -4138,16 +4154,11 @@ local function cmd_dw_word_move(dir, shift)
         end
     end
     
-    -- Horizontal move: update sticky X to the new word's center so subsequent
-    -- up/down navigation remembers this column.
     FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
 
-    if not shift then
+    if not is_selecting then
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-    elseif FSM.DW_ANCHOR_WORD == -1 then
-        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD - dir 
     end
 end
 

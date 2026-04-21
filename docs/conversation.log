@@ -393,6 +393,7 @@
 20260421233044 opsx-apply
 20260421234425 Seems ok opsx-archive Sync
 20260421234655 create-release-2 v1.48.8 20260421231238-fix-export-freeze-and-harden-stability
+20260422001214 It is necessary to make sure that in window mode w, yellow highlighting works between the last word of the current subtitle line and the first word of the next one below the subtitle, using the arrow keys on the keyboard while holding down the Ctrl or Ctrl+Shift key for mass selection. Now this does not work between such words on the sides, diagonally from the text. This is kind of an edge case that I came across. Perform it minimally invasively. Now the workaround is to step back one word from the end and, while holding down the Ctrl key, select the word that was not highlighted and continue pressing right to go to the next line and highlight the first word on it and further if necessary. But I can’t select only 2 words from the keyboard in this way - the last and the first on the next line. There is also an option on the other side, respectively, in the current line I am on the first word on the left, I press Ctrl and hold it while pressing the left arrow to move to the previous word, which is on the line above, and with this transition I now highlight this last word in the line above, but I lose the lower, first word highlighted in yellow. 
 
 
 
