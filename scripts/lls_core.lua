@@ -3216,13 +3216,31 @@ local function ctrl_discard_set()
     dw_osd:update()
 end
 
--- Context-Aware Escape: Clear selection if active, otherwise close window
+-- Context-Aware Escape: 3-step cancel then close window
+-- Step 1: Clear pink (ctrl pending set) and multi-line yellow selection anchor
+-- Step 2: Clear single-word yellow pointer; syncs cursor to active subtitle so
+--         the next arrow keypress places the pointer at the first active word
+-- Step 3: Close the Drum Window
 local function cmd_dw_esc()
+    -- Step 1: pink set OR multi-line yellow anchor present → discard both
     if next(FSM.DW_CTRL_PENDING_SET) or FSM.DW_ANCHOR_LINE ~= -1 then
         ctrl_discard_set()
-    else
-        cmd_toggle_drum_window(false)
+        dw_osd:update()
+        return
     end
+    -- Step 2: single-word yellow cursor pointer present → hide it
+    if FSM.DW_CURSOR_WORD ~= -1 then
+        FSM.DW_CURSOR_WORD = -1
+        -- Sync cursor line to the currently active (white) subtitle so that the
+        -- next arrow navigation re-materialises the pointer at the right position
+        if FSM.DW_ACTIVE_LINE ~= -1 then
+            FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
+        end
+        dw_osd:update()
+        return
+    end
+    -- Step 3: nothing left to clear → close the window
+    cmd_toggle_drum_window(false)
 end
 
 local function get_dw_selection_bounds()

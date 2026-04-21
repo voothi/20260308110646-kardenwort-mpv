@@ -380,8 +380,7 @@
 20260421203711 Look at mpv.conf.
 20260421204112 You misunderstood, you shouldn’t have removed the mix color, but you should have dealt with the nesting of the purple highlight. Rollback to v1.48.0.
 20260421205619 Change the t key to r and r to t. Just check that `h р` used for Anki Global.
-
-
+20260421210703 o Make it so that pressing Esc in window w mode will cancel the pink and yellow highlighting in single-word and multi-line form, and the second press will close window w (this is the case now). ## Description It needs to be completed so that the yellow multi-line highlighting and single-word highlighting are cleared. First we clear the multiline. After the second click, remove the yellow word (pointer). It should then appear when you start navigating through the text using arrows in the position of the first active word (white subtitle). 20260421170009 Make it so that pressing Esc in window w mode will cancel the pink and yellow highlighting in single-word and multi-line form, and the second press will close window w (this is the case now). It needs to be completed so that the yellow multi-line highlighting and single-word highlighting are cleared. First we clear the multiline. After the second click, remove the yellow word (pointer). It should then appear when you start navigating through the text using arrows in the position of the first active word (white subtitle).
 
 
 
