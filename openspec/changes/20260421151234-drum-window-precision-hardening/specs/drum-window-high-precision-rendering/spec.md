@@ -24,3 +24,26 @@ The Anki export engine must use fractional logical indices with an epsilon guard
 #### Scenario: Multi-Line Selection Continuity
 - **WHEN** A user selects multiple lines
 - **THEN** Trailing punctuation on all non-terminal lines must be automatically included in the `WordSource`.
+
+## Dialogue Test Cases (Baseline Anchors)
+
+### Case: nummer-59-dot (Anchor 20260421141721)
+- **CONTEXT**: `[musik] Nummer 59.`
+- **USER ACTION**: Highlighting "Nummer 59" with mouse-drag, avoiding the dot.
+- **REQUIREMENT**: The exported `WordSource` MUST be `Nummer 59`. The trailing dot must stay white/neutral.
+
+### Case: multi-line-erreichbar (Anchor 20260421145226)
+- **CONTEXT**: Subtitle 1: `...erreichbar.` / Subtitle 2: `Hinterlassen...`
+- **USER ACTION**: Selecting a phrase that spans both lines.
+- **REQUIREMENT**: The exported `WordSource` MUST contain the dot (`erreichbar.`). The Drum Window must display the dot in full capture color (no "white hole" at the line break).
+
+### Case: punkt-letzte-comma (Anchor 20260421135322)
+- **CONTEXT**: `Punkt, letzte`
+- **USER ACTION**: Intersection of Orange (`Punkt`) and Purple (`letzte`) selections.
+- **REQUIREMENT**: The comma `,` must NOT turn Brick (intersection color) unless it is geometrically and logically part of the intersection of both records. It must independently recalculate its highlight stack.
+
+### Case: nested-purple-gradient (Anchor 20260421124025)
+- **CONTEXT**: `dieses Jahr...hoffen, dass` (Overlapping purple records).
+- **USER ACTION**: Rendering overlapping split-selections in the Drum Window.
+- **REQUIREMENT**: The intersection area must be visually darker (Purple Depth 2 or 3) to represent the nesting of the footprint shadows.
+
