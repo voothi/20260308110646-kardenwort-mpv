@@ -3130,47 +3130,44 @@ local function ctrl_commit_set(line_idx, word_idx)
                     clean_w = clean_w:gsub("[%[%]]", "")
                 end
 
-                if last_m then
-                    local is_gap = false
-                    if m.line > last_m.line then
-                        -- Bridging line boundary: It's a gap if we skipped words at end of last_m.line 
-                        -- or words at start of m.line. But simple sets (Ctrl+MMB) are almost always gaps.
-                        -- However, for the contiguous engine to recognize it, we must join with space.
-                        local last_line_wc = subs[last_m.line].word_count or 0
-                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
+                if not clean_w:match("^%s*$") then
+                    if last_m then
+                        local is_gap = false
+                        if m.line > last_m.line then
+                            local last_line_wc = subs[last_m.line].word_count or 0
+                            if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
+                                is_gap = true
+                            end
+                        elseif m.word > last_m.word + 1 then
                             is_gap = true
                         end
-                    elseif m.word > last_m.word + 1 then
-                        is_gap = true
-                    end
 
-                    if is_gap then
-                        -- Inject space-padded ellipsis for non-contiguous selections
-                        term = term .. " ... "
-                    else
-                        -- Use smart joiner logic for contiguous words
-                        local next_w = clean_w
-                        local prev_w = term:match("%S+$") or ""
-                        
-                        local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
-                                              or next_w:match("^[/-]$") 
-                                              or next_w:match("^\226\128\147$") 
-                                              or next_w:match("^\226\128\148$") 
-                                              or next_w:match("^[\"']$")
-                        
-                        local no_space_after = prev_w:match("^[/-]$") 
-                                             or prev_w:match("^\226\128\147$") 
-                                             or prev_w:match("^\226\128\148$") 
-                                             or prev_w:match("^[%[%({¿¡«„“]$")
-                                             or prev_w:match("^[\"']$")
-                        
-                        if not (no_space_before or no_space_after) then
-                            term = term .. " "
+                        if is_gap then
+                            term = term .. " ... "
+                        else
+                            local next_w = clean_w
+                            local prev_w = term:match("%S+$") or ""
+                            
+                            local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
+                                                  or next_w:match("^[/-]$") 
+                                                  or next_w:match("^\226\128\147$") 
+                                                  or next_w:match("^\226\128\148$") 
+                                                  or next_w:match("^[\"']$")
+                            
+                            local no_space_after = prev_w:match("^[/-]$") 
+                                                 or prev_w:match("^\226\128\147$") 
+                                                 or prev_w:match("^\226\128\148$") 
+                                                 or prev_w:match("^[%[%({¿¡«„“]$")
+                                                 or prev_w:match("^[\"']$")
+                            
+                            if not (no_space_before or no_space_after) then
+                                term = term .. " "
+                            end
                         end
                     end
+                    term = term .. clean_w
+                    last_m = m
                 end
-                term = term .. clean_w
-                last_m = m
             end
         end
     end
