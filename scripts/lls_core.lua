@@ -4148,7 +4148,7 @@ local function manage_dw_bindings(enable)
         -- Mouse selection & Suppression
         {key = "MBTN_LEFT", name = "dw-mouse-select", fn = cmd_dw_lmb_select, complex = true},
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-
+        {key = "MBTN_RIGHT", name = "dw-tooltip-pin", fn = cmd_dw_tooltip_pin, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
@@ -4208,8 +4208,9 @@ local function manage_dw_bindings(enable)
 
     parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
     parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
-    parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
-    parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
+    -- dw_key_select and dw_key_tooltip_pin are handled by static entries in the keys table above
+    -- (cmd_dw_lmb_select and cmd_dw_tooltip_pin) to ensure correct gesture routing.
+    -- parse_and_bind would overwrite them with wrappers that break LMB+RMB gesture detection.
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
 
