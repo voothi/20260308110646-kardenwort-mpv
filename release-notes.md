@@ -1,3 +1,24 @@
+# Release Notes - v1.48.0 (Precision Hardening & Performance)
+
+**Date**: 2026-04-21
+**Version**: v1.48.0
+**Implementation ZIDs**: 20260421151234, 20260421153053
+
+## Highlights
+
+### 🎯 **Footprint-based Precision Hardening**
+- **Surgical Punctuation Discipline**: Overhauled the rendering engine to use independent coordinate verification for punctuation. Symbols (commas, periods, brackets) no longer "bleed" into the colors of their neighbors, ensuring crystal-clear visual boundaries between terms.
+- **Advanced Nesting Gradients**: Introduced expanded 3-tier visual depth for overlapping split-phrase (Purple) matching sets, providing superior hierarchical context for complex sentence patterns.
+- **Pixel-Perfect Export Logic**: Migrated the Anki export engine to a strict fractional-index-based selection loop. This mathematically guarantees that trailing periods or leading brackets are only exported if explicitly highlighted by the user.
+- **Continuous Multi-line Selections**: Implemented refined "Tail-Capture" logic for multi-line dragging, ensuring that line-traversing highlights are fully captured without "holes" or visual gaps at line boundaries.
+
+### ⚡ **High-Performance "Zero-Overhead" Sync**
+- **TSV Fingerprinting**: Implemented a pure-Lua fingerprinting system (`mtime` + `size`) for the Anki database. The script now intelligently skips the expensive parsing and index-rebuilding cycle if the file hasn't been modified on disk.
+- **URL Discovery Optimization**: Extended the fingerprinting architecture to `.url`, `.txt`, and `.md` sidecar files. Directory scanning and file interrogation are now bypassed during periodic syncs if the source metadata remains unchanged.
+- **Seamless Interaction**: Significantly reduced CPU spikes and UI micro-stutter during background sync iterations (default 5s), ensuring a fluid reading experience even with thousands of active mining records.
+
+---
+
 # Release Notes - v1.44.4 (Hardened Grounding & Precise Verification)
 
 **Date**: 2026-04-20

@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.44.4-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.44.4) 
+[![Version](https://img.shields.io/badge/version-v1.48.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.48.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -84,6 +84,8 @@ This suite solves problems that standard video players and generic scripts ignor
 18. **Multi-Layout Shortcut Lists**: All major command parameters now support space, comma, or semicolon separated lists. Map `t`, `е`, and `MBTN_LEFT` to the same action simultaneously in `mpv.conf`.
 19. **Precision Context Verification**: Implements word-tokenized intersection for vocabulary matches, ensuring highlights persist through punctuation and formatting differences.
 20. **Embedded Subtitle Support**: The Drum Window (Mode W) now supports internal/embedded subtitle tracks in MKV files, providing a consistent experience across all media formats.
+21. **Footprint-based Precision Rendering**: Overhauled punctuation discipline with sub-token stack recalculation and 3-tier nesting gradients for superior visual hierarchical context.
+22. **Zero-Overhead Periodic Sync**: Implements `mtime` + `size` fingerprinting to bypass expensive parsing and filesystem scanning for TSV and URL sidecars when data is unchanged.
 
 [Return to Top](#table-of-contents)
 
@@ -265,7 +267,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.44.4 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.48.0 settings.
 
 [Return to Top](#table-of-contents)
 
