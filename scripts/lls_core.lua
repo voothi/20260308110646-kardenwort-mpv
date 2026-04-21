@@ -3424,7 +3424,7 @@ local MOUSE_HANDLERS = {}
 local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
     if updates_selection == nil then updates_selection = true end
     local handler = function(tbl)
-        local key = tbl.key or ""
+        local key = (tbl and (tbl.key_name or tbl.key)) or ""
         local now = mp.get_time()
         
         -- Robust state tracking (Always runs, even if shielded)
@@ -4078,7 +4078,7 @@ local function manage_dw_bindings(enable)
         return function(t)
             -- Ignore modifiers (Ctrl, Shift, Alt, Meta) as shield-triggers so combos like Shift+Click work.
             -- Navigation/Action keys (Arrows, Enter, etc.) still trigger the 150ms mouse lockout.
-            local key = (t and t.key) or key_name or ""
+            local key = (t and (t.key_name or t.key)) or key_name or ""
             if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
             end
@@ -4157,8 +4157,8 @@ local function manage_dw_bindings(enable)
                         name = base_name .. "-" .. i,
                         fn = function(t) 
                             -- Shield the mouse from ghost clicks after a key is pressed (excluding modifiers)
-                            local key = (t and t.key) or ""
-                            if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
+                            local eval_key = (t and (t.key_name or t.key)) or key
+                            if not (eval_key == "Ctrl" or eval_key == "Shift" or eval_key == "Alt" or eval_key == "Meta") then
                                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
                             end
                             key_fn(t, false) 

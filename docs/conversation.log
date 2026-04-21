@@ -366,8 +366,9 @@
 20260421180550 I would like to clarify that releasing the right mouse button at this moment should also select the mouse immediately, as well as releasing the left mouse button or releasing both at the same time.
 20260421180835 Continue.
 20260421181109 It doesn’t work, apparently, on the first word, when I hold down the LMB and hold down the RMB, the tooltip pops up and interferes with the selection.
-
-
+20260421181608 You, as a pro-model, help me implement the functionality of two mouse buttons for pink highlighting. Output in blocks the code that needs to be changed. Give your comments on the solution and implementation.
+20260421182330 Try to look at the pro-model's proposals for a solution.
+20260421182524 Continue.
 
 
 
