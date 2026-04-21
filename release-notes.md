@@ -1,4 +1,21 @@
+# Release Notes - v1.48.2 (Sticky Navigation & UX Refinement)
+
+**Date**: 2026-04-21
+**Version**: v1.48.2
+**Implementation ZIDs**: 20260421220419
+
+## Highlights
+
+### 🥁 **Sticky Column Navigation (VSCode Style)**
+- **Horizontal Position Persistence**: Implemented a "sticky column" logic for vertical movement in the Drum Window (Mode W). Arrowing Up/Down now preserves your horizontal OSD position, snapping to the closest word on the target line. This provides a professional, editor-like navigation experience.
+- **Lazy Anchor Initialization**: The navigation engine now intelligently initializes the sticky anchor. If the cursor is fresh or has been cleared (ESC/Mouse), the first vertical move anchors to the current word's center as a sensible baseline.
+- **Horizontal Synchronization**: Manual horizontal movement (Left/Right) now dynamically updates the sticky column anchor, ensuring your next vertical leap starts from your new manual focus.
+- **Navigation Economy**: Significant improvements to word-targeting logic for wrapped subtitle lines. Selecting specific words in long, multi-line blocks is now significantly faster and more intuitive.
+
+---
+
 # Release Notes - v1.48.0 (Precision Hardening & Performance)
+
 
 **Date**: 2026-04-21
 **Version**: v1.48.0
