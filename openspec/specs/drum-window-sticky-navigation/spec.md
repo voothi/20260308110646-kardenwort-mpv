@@ -26,3 +26,12 @@ The Drum Window SHALL implement a "sticky column" behavior for vertical keyboard
 - **THEN** the system SHALL reset the sticky X-coordinate to `nil`
 - **AND** the next vertical movement SHALL re-anchor the sticky X-coordinate based on the current word's center (or the line's midpoint if no word is selected)
 
+### Requirement: Line Boundary Selection
+The Drum Window SHALL maintain a continuous selection range when moving the cursor between subtitle lines using arrow keys with the Shift modifier.
+
+#### Scenario: Selecting across line break
+- **WHEN** the cursor is on the last word of line N and `Shift+RIGHT` is pressed.
+- **THEN** the system SHALL move the cursor to the first word of line N+1.
+- **AND** both the last word of line N and the first word of line N+1 SHALL remain highlighted in yellow as part of a contiguous range.
+
+

@@ -103,3 +103,11 @@ The system SHALL prioritize explicit keyboard navigation over implicit mouse act
 - **THEN** the system SHALL activate an interaction shield (`FSM.DW_MOUSE_LOCK_UNTIL`) that ignores all incoming mouse button events for a duration defined by `Options.dw_mouse_shield_ms` (Default: 150ms).
 - **AND** this shield SHALL prevent accidental hardware "ghost clicks" from moving the yellow focus cursor or disrupting the active selection.
 
+### Requirement: Configurable Jump Distances
+The Drum Window SHALL allow users to customize the jump distances for boosted navigation (Ctrl+Arrows) via script options.
+
+#### Scenario: Custom Jump Increments
+- **WHEN** the user configures `dw_jump_words` or `dw_jump_lines` in `mpv.conf`
+- **THEN** the system SHALL apply these increments to the corresponding keyboard navigation commands.
+- **AND** a `Ctrl+RIGHT` press SHALL move the cursor by the number of words specified in `dw_jump_words`.
+
