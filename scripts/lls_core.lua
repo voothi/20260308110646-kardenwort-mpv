@@ -2997,9 +2997,9 @@ local function dw_anki_export_selection()
             end
             term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
             
-            -- Clean capture: Remove leading/trailing punctuation (including hyphens and slashes)
-            local pre = term:match("^[%p%s]*")
-            local suf = term:match("[%p%s]*$")
+            -- Clean capture: Remove leading/trailing punctuation (excluding brackets/parentheses)
+            local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
+            local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
             local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
             if #pre < #term then
                 term = term:sub(#pre + 1, #term - #suf)

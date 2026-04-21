@@ -318,7 +318,8 @@
 20260421085928 Why is there now such a selection of the saved text, mixed, from orange and purple colors, when it should be orange in this case?
 20260421092050 Well, why can’t we add words in square brackets (and similar cases) to the selection text if we have perfected this mechanism for working with tokens in the modes of regular (golden color) and paired (pink color) selection and their display (orange and purple with shades + brick color at the intersection) based on the TSV file? Without complicating or changing the current mechanism (strongly, invasively)? Now, it seems, I can add even one  bracket separately.
 20260421094935 In general, it has become better, but there is an error on the screen when adding, see the one highlighted in yellow in the picture. There is also a flaw when I add something else in brackets and next to it, but the file is saved without one bracket, see TSV file. If we highlight inside the brackets (one word, as a special case), it now works correctly.
-
+20260421100013 Even better, let's look at the results, I see that the only flaw left is the missing second bracket in the borderline cases `musik] Ende des Tests`, `kann [musik`.
+20260421101818 You again did not update the file, did not make changes to it.
 
 
 
