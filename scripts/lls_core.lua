@@ -123,9 +123,7 @@ local Options = {
     anki_mix_depth_1 = "4A4AD3",
     anki_mix_depth_2 = "3636A8",
     anki_mix_depth_3 = "151578",
-    anki_highlight_depth_local_1 = "00FF00",
-    anki_highlight_depth_local_2 = "00CC00",
-    anki_highlight_depth_local_3 = "009900",
+    anki_highlight_color_local = "00FF00",
     anki_global_highlight = false,
     anki_sync_period = 5,
     anki_context_lines = 6,
@@ -1179,17 +1177,19 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set and valid_set.indices[sub_idx .. "-" .. token_idx] then
                             match_found = true
                             term_is_split = true
-                            term_is_local_split = valid_set.is_local
                         end
                     end
                 end
             end
 
             if match_found then
-                if term_is_split then
-                    if term_is_local_split then green_stack = green_stack + 1
-                    else purple_stack = purple_stack + 1 end
-                else orange_stack = orange_stack + 1 end
+                local is_local = (data.index and data.index == FSM.ANKI_ITEM_FOCUS_INDEX)
+                if is_local then
+                    green_stack = green_stack + 1
+                else
+                    if term_is_split then purple_stack = purple_stack + 1
+                    else orange_stack = orange_stack + 1 end
+                end
                 matched_terms[term_key] = true
             end
         end
@@ -2049,9 +2049,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                     elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                 elseif green_stack > 0 then
-                    if green_stack == 1 then h_color = Options.anki_highlight_depth_local_1
-                    elseif green_stack == 2 then h_color = Options.anki_highlight_depth_local_2
-                    elseif green_stack >= 3 then h_color = Options.anki_highlight_depth_local_3 end
+                    h_color = Options.anki_highlight_color_local
                 elseif purple_stack > 0 then
                     if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                     elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
@@ -2324,9 +2322,7 @@ local function draw_dw(subs, view_center, active_idx)
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                         elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                     elseif green_stack > 0 then
-                        if green_stack == 1 then h_color = Options.anki_highlight_depth_local_1
-                        elseif green_stack == 2 then h_color = Options.anki_highlight_depth_local_2
-                        elseif green_stack >= 3 then h_color = Options.anki_highlight_depth_local_3 end
+                        h_color = Options.anki_highlight_color_local
                     elseif purple_stack > 0 then
                         if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                         elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
