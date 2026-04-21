@@ -388,6 +388,7 @@
 20260421220156 Isn't this bad NULL practice? 20260421220340 opsx-propose Anchors 20260421213533 20260421220008 20260421220156
 20260421220815 opsx-archive Sync.
 20260421221954 create-release-2 v1.48.2 20260421220419-refining-drum-window-navigation
+20260421230154 Look at why the application may freeze when I press the middle mouse button and add the selected word to a file. I suspect that when I press this button, I can hit the mouse pointer in the space between the words. I provided a photo of the console at the moment when the program stopped responding. Conduct a general review of the code, identify weaknesses and make suggestions for quality improvement for better stability and performance of the utility.
 
 
 
