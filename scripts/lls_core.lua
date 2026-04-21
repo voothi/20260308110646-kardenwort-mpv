@@ -2129,18 +2129,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
                 local h_color = base_color
                 
                 if orange_stack > 0 and purple_stack > 0 then
-                    local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
-                    if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                    elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                    elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
+                    h_color = Options.anki_mix_depth_1 or "4A4AD3"
                 elseif orange_stack > 0 then
                     if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                     elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                     elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                 elseif purple_stack > 0 then
-                    if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                    elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                    elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                    h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                 end
 
                 if h_color ~= base_color then
@@ -2397,22 +2392,17 @@ local function draw_dw(subs, view_center, active_idx)
                 -- Level 3: Database Highlights
                 if meta.priority == 0 and l_idx then
                     local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, i, j, subs[i].start_time)
-                    meta.purple_depth = purple_depth -- Save for neighbor derivation
+                    meta.purple_depth = purple_depth -- Retained for potential future use; not used for color selection
                     local h_color = color
                     
                     if orange_stack > 0 and purple_stack > 0 then
-                        local mix_depth = math.min((orange_stack + purple_depth) - 1, 3)
-                        if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                        elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                        elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
+                        h_color = Options.anki_mix_depth_1 or "4A4AD3"
                     elseif orange_stack > 0 then
                         if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                         elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                     elseif purple_stack > 0 then
-                        if purple_depth == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                        elseif purple_depth == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                        elseif purple_depth >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                        h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                     end
 
                     if h_color ~= color then
@@ -2451,20 +2441,14 @@ local function draw_dw(subs, view_center, active_idx)
                                 -- Determine specific punctuation color based on ITS OWN stack
                                 local p_color = prev_meta.color
                                 if p_orange > 0 and p_purple > 0 then
-                                    local mix_depth = math.min((p_orange + (prev_meta.purple_depth or 0)) - 1, 3)
-                                    if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
-                                    elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
-                                    elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
+                                    p_color = Options.anki_mix_depth_1 or "4A4AD3"
                                 elseif p_orange > 0 then
                                     local o_depth = math.min(p_orange, 3)
                                     if o_depth == 1 then p_color = Options.anki_highlight_depth_1
                                     elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
                                     else p_color = Options.anki_highlight_depth_3 end
                                 elseif p_purple > 0 then
-                                    local p_depth = math.min(prev_meta.purple_depth or 1, 3)
-                                    if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                                    elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
-                                    else p_color = Options.anki_split_depth_3 or "B3607C" end
+                                    p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                                 end
 
                                 meta.color = p_color
@@ -2489,20 +2473,14 @@ local function draw_dw(subs, view_center, active_idx)
                             if not prev_meta or not prev_meta.is_word then
                                 local p_color = next_meta.color
                                 if p_orange > 0 and p_purple > 0 then
-                                    local mix_depth = math.min((p_orange + (next_meta.purple_depth or 0)) - 1, 3)
-                                    if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
-                                    elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
-                                    elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
+                                    p_color = Options.anki_mix_depth_1 or "4A4AD3"
                                 elseif p_orange > 0 then
                                     local o_depth = math.min(p_orange, 3)
                                     if o_depth == 1 then p_color = Options.anki_highlight_depth_1
                                     elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
                                     else p_color = Options.anki_highlight_depth_3 end
                                 elseif p_purple > 0 then
-                                    local p_depth = math.min(next_meta.purple_depth or 1, 3)
-                                    if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                                    elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
-                                    else p_color = Options.anki_split_depth_3 or "B3607C" end
+                                    p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                                 end
 
                                 meta.color = p_color
