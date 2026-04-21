@@ -2865,6 +2865,10 @@ local function dw_anki_export_selection()
                     local line_parts = {}
                     local in_range = false
                     for _, t in ipairs(tokens) do
+                        if t.is_word and t.logical_idx > e_w then
+                            break
+                        end
+
                         if logical_cmp(t.logical_idx, s_w) then in_range = true end
                         
                         if in_range then 
@@ -2874,8 +2878,6 @@ local function dw_anki_export_selection()
                                 pivot_idx = pivot_idx + 1
                             end
                         end
-                        
-                        if logical_cmp(t.logical_idx, e_w) then in_range = false break end
                     end
                     
                     if #line_parts > 0 then
