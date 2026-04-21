@@ -824,18 +824,18 @@ local function logical_cmp(a, b)
 end
 
 local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
-    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false, {} end
+    if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false, {}, 0 end
     
     local tokens = get_sub_tokens(subs[sub_idx])
     if not tokens then return 0, 0, 0, false end
     
     local target_token = tokens[token_idx]
-    if not target_token or not target_token.is_word then return 0, 0, false, {} end
+    if not target_token or not target_token.is_word then return 0, 0, false, {}, 0 end
     
     local target_l_idx = target_token.logical_idx
     local target_word_text = target_token.text
     local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
-    if target_lower_full == "" then return 0, 0, false, {} end
+    if target_lower_full == "" then return 0, 0, false, {}, 0 end
 
     -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
     local target_subsets = { [target_lower_full] = true }
@@ -882,6 +882,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
     local orange_stack = 0
     local purple_stack = 0
+    local purple_depth = 0
     local has_phrase = false
     local matched_terms = {}
     local matching_source_terms = {}
@@ -1166,18 +1167,32 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                         end
                                     end
                                     valid_set = { is_local = is_all_local, indices = {} }
+                                    local min_idx = math.huge
+                                    local max_idx = 0
                                     for _, c_idx in ipairs(best_tuple) do
                                         local cw_obj = ctx_list[c_idx]
                                         valid_set.indices[cw_obj.s_i .. "-" .. cw_obj.t_i] = true
+                                        local total_val = cw_obj.s_i * 1000 + cw_obj.l_i
+                                        if total_val < min_idx then min_idx = total_val end
+                                        if total_val > max_idx then max_idx = total_val end
                                     end
+                                    valid_set.min_idx = min_idx
+                                    valid_set.max_idx = max_idx
                                 end
                             end
                             subs[sub_idx].__split_valid_indices[term_key] = valid_set
                         end
                         
-                        if valid_set and valid_set.indices[sub_idx .. "-" .. token_idx] then
-                            match_found = true
-                            term_is_split = true
+                        if valid_set then
+                            if valid_set.indices[sub_idx .. "-" .. token_idx] then
+                                match_found = true
+                                term_is_split = true
+                            end
+
+                            local t_total = sub_idx * 1000 + target_l_idx
+                            if t_total >= valid_set.min_idx and t_total <= valid_set.max_idx then
+                                purple_depth = purple_depth + 1
+                            end
                         end
                     end
                 end
@@ -1195,7 +1210,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             end
         end
     end
-    return orange_stack, purple_stack, has_phrase, matching_source_terms
+    return orange_stack, purple_stack, has_phrase, matching_source_terms, purple_depth
 end
 
 local function get_word_boundary(q_table, pos, direction)
@@ -2308,11 +2323,11 @@ local function draw_dw(subs, view_center, active_idx)
 
                 -- Level 3: Database Highlights
                 if meta.priority == 0 and l_idx then
-                    local orange_stack, purple_stack, is_phrase, matching_terms = calculate_highlight_stack(subs, i, j, subs[i].start_time)
+                    local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, i, j, subs[i].start_time)
                     local h_color = color
                     
-                    if orange_stack > 0 and purple_stack > 0 then
-                        local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
+                    if orange_stack > 0 and purple_depth > 0 then
+                        local mix_depth = math.min((orange_stack + purple_depth) - 1, 3)
                         if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
                         elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
                         elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
@@ -2321,9 +2336,9 @@ local function draw_dw(subs, view_center, active_idx)
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
                         elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
                     elseif purple_stack > 0 then
-                        if purple_stack == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                        elseif purple_stack == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                        elseif purple_stack >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                        if purple_depth == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                        elseif purple_depth == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                        elseif purple_depth >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
                     end
 
                     if h_color ~= color then
