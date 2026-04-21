@@ -2975,19 +2975,20 @@ local function dw_anki_export_selection()
                     local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
                     
                     local line_parts = {}
-                    local in_range = false
                     for _, t in ipairs(tokens) do
-                        if t.is_word and t.logical_idx > e_w then
-                            break
-                        end
+                        if t.logical_idx then
+                            -- Break if we have moved beyond the selection boundary (End)
+                            if t.logical_idx > e_w + 0.0001 then
+                                break
+                            end
 
-                        if logical_cmp(t.logical_idx, s_w) then in_range = true end
-                        
-                        if in_range then 
-                            table.insert(line_parts, t.text) 
-                            if t.is_word then
-                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
-                                pivot_idx = pivot_idx + 1
+                            -- Include token if it falls within the fractional range (Start to End)
+                            if t.logical_idx >= s_w - 0.0001 then
+                                table.insert(line_parts, t.text) 
+                                if t.is_word then
+                                    table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                    pivot_idx = pivot_idx + 1
+                                end
                             end
                         end
                     end
