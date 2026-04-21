@@ -2973,19 +2973,19 @@ local function dw_anki_export_selection()
                 if sub then
                     local raw_text = sub.text:gsub("\n", " ")
                     local tokens = build_word_list_internal(raw_text, true)
-                    local s_w = (i == p1_l) and p1_w or 1
-                    local e_w = (i == p2_l) and p2_w or (sub.word_count or 0)
+                    local is_first_line = (i == p1_l)
+                    local is_last_line = (i == p2_l)
                     
                     local line_parts = {}
                     for _, t in ipairs(tokens) do
                         if t.logical_idx then
-                            -- Break if we have moved beyond the selection boundary (End)
-                            if t.logical_idx > e_w + L_EPSILON then
+                            -- Strict boundary check only applies to the final line where the drag ended
+                            if is_last_line and t.logical_idx > p2_w + L_EPSILON then
                                 break
                             end
 
-                            -- Include token if it falls within the fractional range (Start to End)
-                            if t.logical_idx >= s_w - L_EPSILON then
+                            -- Include token if it's on a middle/last line OR if it's past the start anchor on the first line
+                            if not is_first_line or t.logical_idx >= p1_w - L_EPSILON then
                                 table.insert(line_parts, t.text) 
                                 if t.is_word then
                                     table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
