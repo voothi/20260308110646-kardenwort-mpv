@@ -360,7 +360,7 @@
 20260421170517 o In addition to the existing options for highlighting in pink, make it possible to select by simultaneously holding down two mouse keys. It should work in such a way that the user lowers the left mouse button and drags, then without releasing this key, he can at any time simultaneously lower the right mouse button and upon releasing the left key, with the right one pressed at that moment, this selected text is marked pink, this works by analogy with the combination Ctrl + left mouse button, when when it is released while Ctrl is held down, the same thing now happens. This is necessary to be able to work with only the mouse for the process of highlighting in yellow and pink and adding to a file and saving. Now for pink highlighting you need the Ctrl key on the keyboard or the t key, which also works from the remote control. But most of the time, we can only work with the main functionality of the program with one mouse. This allows you to use it as a remote control. To avoid overlapping the tooltip, which is also called by the right mouse button, we must not call this window while the left mouse button remains pressed and until the right key is pressed separately again.
 20260421173557 Yes, this is the desired behavior.
 20260421173716 Continue.
-
+20260421174043 Didn't work, tooktip appears, yellow highlight doesn't change.
 
 
 

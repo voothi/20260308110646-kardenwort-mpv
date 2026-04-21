@@ -3423,13 +3423,19 @@ local MOUSE_HANDLERS = {}
 local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
     if updates_selection == nil then updates_selection = true end
     local handler = function(tbl)
+        local key = tbl.key or ""
+        if key:upper():find("LEFT") then
+            if tbl.event == "down" then FSM.DW_LMB_DOWN = true
+            elseif tbl.event == "up" then FSM.DW_LMB_DOWN = false end
+        elseif key:upper():find("RIGHT") then
+            if tbl.event == "down" then FSM.DW_RMB_DOWN = true
+            elseif tbl.event == "up" then FSM.DW_RMB_DOWN = false end
+        end
+
         -- Shield logic: ignore mouse events if a keyboard command was just triggered
         if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
         
         if tbl.event == "down" then
-            if tbl.key == "MBTN_LEFT" then FSM.DW_LMB_DOWN = true end
-            if tbl.key == "MBTN_RIGHT" then FSM.DW_RMB_DOWN = true end
-
             FSM.DW_FOLLOW_PLAYER = false
 
             -- Dismiss tooltip on click and lock suppression for the current focus
@@ -3481,9 +3487,6 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 end
             end
         elseif tbl.event == "up" then
-            if tbl.key == "MBTN_LEFT" then FSM.DW_LMB_DOWN = false end
-            if tbl.key == "MBTN_RIGHT" then FSM.DW_RMB_DOWN = false end
-
             FSM.DW_MOUSE_DRAGGING = false
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release to ensure actions 
@@ -3508,7 +3511,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             end
 
             -- GESTURE: Release LMB while RMB is held -> trigger pink
-            if tbl.key == "MBTN_LEFT" and FSM.DW_RMB_DOWN then
+            if key:upper():find("LEFT") and FSM.DW_RMB_DOWN then
                 cmd_dw_toggle_pink(tbl, true)
             end
 
@@ -4205,6 +4208,8 @@ local function manage_dw_bindings(enable)
     -- Clean up mouse and window state
     if not enable then
         FSM.DW_MOUSE_DRAGGING = false
+        FSM.DW_LMB_DOWN = false
+        FSM.DW_RMB_DOWN = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
