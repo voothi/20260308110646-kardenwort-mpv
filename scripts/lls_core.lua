@@ -176,6 +176,7 @@ local FSM = {
     DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
     DW_CURSOR_LINE = -1,       -- Current line focused by word nav
     DW_CURSOR_WORD = -1,       -- Word index in the current line
+    DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
     DW_VIEW_CENTER = -1,       -- Viewport center line index
@@ -1941,6 +1942,7 @@ local function update_media_state()
         Tracks.pri.subs = {} 
         FSM.DW_CURSOR_LINE = -1
         FSM.DW_CURSOR_WORD = -1
+        FSM.DW_CURSOR_X = nil
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -3195,6 +3197,7 @@ local function dw_anki_export_selection()
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
             
             drum_osd:update()
             if dw_osd then dw_osd:update() end
@@ -3231,6 +3234,7 @@ local function cmd_dw_esc()
     -- Step 2: single-word yellow cursor pointer present → hide it
     if FSM.DW_CURSOR_WORD ~= -1 then
         FSM.DW_CURSOR_WORD = -1
+        FSM.DW_CURSOR_X = nil
         -- Sync cursor line to the currently active (white) subtitle so that the
         -- next arrow navigation re-materialises the pointer at the right position
         if FSM.DW_ACTIVE_LINE ~= -1 then
@@ -3428,6 +3432,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
     FSM.DW_CURSOR_WORD = -1
+    FSM.DW_CURSOR_X = nil
     
     dw_osd:update()
 end
@@ -3625,6 +3630,7 @@ local function cmd_dw_double_click()
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
+        FSM.DW_CURSOR_X = nil
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -3904,6 +3910,126 @@ local function get_first_valid_word_idx(sub)
     return -1
 end
 
+-- Returns the OSD-space x-center of the word with the given logical_idx on sub.
+-- Uses the same monospace/proportional width model as dw_hit_test.
+-- Returns nil if the word cannot be located.
+local function dw_compute_word_center_x(sub)
+    -- Returns the OSD x-center of the currently active cursor word (FSM.DW_CURSOR_WORD).
+    if not sub or FSM.DW_CURSOR_WORD == -1 then return nil end
+    local text = sub.text:gsub("\n", " ")
+    local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+    local space_w = dw_get_str_width(" ")
+    local max_text_w = 1860
+
+    -- Replicate dw_build_layout word-wrap to find which vline contains our word.
+    local vlines = {}
+    local cur_indices = {}
+    local cur_w = 0
+    for j, w in ipairs(tokens) do
+        local ww = dw_get_str_width(w)
+        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
+        if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+            table.insert(vlines, cur_indices)
+            cur_indices = {j}
+            cur_w = ww
+        else
+            table.insert(cur_indices, j)
+            cur_w = cur_w + space + ww
+        end
+    end
+    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+    if #vlines == 0 then vlines = {{1}} end
+
+    -- Build visual->logical map.
+    local visual_to_logical = {}
+    for j, t in ipairs(tokens) do
+        if t.logical_idx then visual_to_logical[j] = t.logical_idx end
+    end
+
+    -- Scan vlines for the token whose logical_idx matches DW_CURSOR_WORD.
+    for _, vl_indices in ipairs(vlines) do
+        local vl_width = 0
+        for k, wi in ipairs(vl_indices) do
+            vl_width = vl_width + dw_get_str_width(tokens[wi])
+            if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+        end
+        local vl_left = 960 - vl_width / 2
+        local pos = 0
+        for k, wi in ipairs(vl_indices) do
+            local ww = dw_get_str_width(tokens[wi])
+            if visual_to_logical[wi] == FSM.DW_CURSOR_WORD then
+                return vl_left + pos + ww / 2
+            end
+            pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
+        end
+    end
+    return nil
+end
+
+-- Returns the logical word index on sub whose OSD x-center is closest to target_x.
+-- Falls back to first word if nothing found.
+local function dw_closest_word_at_x(sub, target_x)
+    if not sub then return -1 end
+    local text = sub.text:gsub("\n", " ")
+    local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+    local space_w = dw_get_str_width(" ")
+    local max_text_w = 1860
+
+    -- Replicate word-wrap.
+    local vlines = {}
+    local cur_indices = {}
+    local cur_w = 0
+    for j, w in ipairs(tokens) do
+        local ww = dw_get_str_width(w)
+        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
+        if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+            table.insert(vlines, cur_indices)
+            cur_indices = {j}
+            cur_w = ww
+        else
+            table.insert(cur_indices, j)
+            cur_w = cur_w + space + ww
+        end
+    end
+    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+    if #vlines == 0 then return get_first_valid_word_idx(sub) end
+
+    local visual_to_logical = {}
+    for j, t in ipairs(tokens) do
+        if t.logical_idx then visual_to_logical[j] = t.logical_idx end
+    end
+
+    local best_logical = nil
+    local best_dist = math.huge
+
+    -- For multi-vline subtitles, target_x may sit on any visual row.
+    -- We search ALL vlines and pick the globally closest word.
+    for _, vl_indices in ipairs(vlines) do
+        local vl_width = 0
+        for k, wi in ipairs(vl_indices) do
+            vl_width = vl_width + dw_get_str_width(tokens[wi])
+            if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+        end
+        local vl_left = 960 - vl_width / 2
+        local pos = 0
+        for k, wi in ipairs(vl_indices) do
+            local ww = dw_get_str_width(tokens[wi])
+            local l_idx = visual_to_logical[wi]
+            if l_idx and tokens[wi].is_word then
+                local cx = vl_left + pos + ww / 2
+                local dist = math.abs(cx - target_x)
+                if dist < best_dist then
+                    best_dist = dist
+                    best_logical = l_idx
+                end
+            end
+            pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
+        end
+    end
+
+    return best_logical or get_first_valid_word_idx(sub)
+end
+
 
 local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
@@ -3915,6 +4041,12 @@ local function cmd_dw_line_move(dir, shift)
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         local start_word = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
         FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or (start_word > 0 and start_word or 1)
+    end
+
+    -- Sticky-X: capture current word's x-center before leaving this line.
+    -- If not set yet (fresh cursor), compute from current word; if still nil, use 960 (midpoint).
+    if not FSM.DW_CURSOR_X then
+        FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE]) or 960
     end
     
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
@@ -3931,12 +4063,13 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     if not shift then
-        FSM.DW_CURSOR_WORD = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
+        -- Navigate to the closest word under the sticky horizontal position.
+        FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X)
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
-        if FSM.DW_CURSOR_WORD == -1 then 
-            FSM.DW_CURSOR_WORD = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE]) 
+        if FSM.DW_CURSOR_WORD == -1 then
+            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X)
         end
     end
 end
@@ -3977,6 +4110,10 @@ local function cmd_dw_word_move(dir, shift)
         end
     end
     
+    -- Horizontal move: update sticky X to the new word's center so subsequent
+    -- up/down navigation remembers this column.
+    FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
+
     if not shift then
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
@@ -4027,6 +4164,7 @@ local function cmd_dw_seek_delta(dir)
             if FSM.DW_ANCHOR_LINE == -1 then
                 FSM.DW_CURSOR_LINE = target_idx
                 FSM.DW_CURSOR_WORD = -1
+                FSM.DW_CURSOR_X = nil
             end
         end
     end
@@ -4649,6 +4787,7 @@ local function manage_search_bindings(enable)
                 -- Update DW state so if it opens, or is open, it jumps to this line
                 FSM.DW_CURSOR_LINE = selected_line
                 FSM.DW_CURSOR_WORD = -1
+                FSM.DW_CURSOR_X = nil
                 FSM.DW_VIEW_CENTER = selected_line
                 FSM.DW_FOLLOW_PLAYER = true
                 FSM.DW_ANCHOR_LINE = -1
