@@ -333,7 +333,8 @@
 20260421135322 Why is the comma visually highlighted with this selection, since it is not included in the overlay? `Punkt, letzte` and `Neutralität ... Punkt`.
 20260421141721 Why, when selecting `Nummer 59` with the left mouse button in this way, is `Nummer 59.` added to the file and selected, with a dot? 20260421142343 Continue.
 20260421143003 Does this look like hardcode?                             if t.logical_idx > e_w + 0.0001 then
-
+20260421143129 Can I generally influence the selection with the mouse and then add a dot or other character in the text to the file? Now I am observing that, for example, I can specifically highlight a point in yellow and even add it separately, but when combined with a nearby word this does not always work. It should also be said that this feature, targeted selection, is only relevant for working with the mouse, but not with the keyboard, so that we do not navigate by such signs, but only navigate by words as we do now. Also the question is that I cannot add the word Verkehrsmeldung with a period. I highlight with a dot, but it is added without it. I highlight without a dot and the same thing. This is some weird behavior. Either if I have selected a point, it should be added with the word, or I should not allow it to be selected.
+20260421144855 No, we will not store character positions (dots) in the file and WordSourceIndices is not suitable. Cancel with this.
 
 
 
