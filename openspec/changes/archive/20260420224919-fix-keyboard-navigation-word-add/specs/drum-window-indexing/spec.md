@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Keyboard Cursor Synchronization
 The system SHALL ensure that line-based keyboard navigation (UP/DOWN) always synchronizes the cursor to a valid word token on the target line.
@@ -11,6 +11,35 @@ The system SHALL ensure that line-based keyboard navigation (UP/DOWN) always syn
 - **THEN** `FSM.DW_CURSOR_WORD` SHALL be set to the logical index corresponding to the first word (e.g., "Note").
 
 ## MODIFIED Requirements
+
+## MODIFIED Requirements
+
+### Requirement: Marker-Injection Pivot Anchoring
+The system SHALL anchor the focus pivot to a specific logical coordinate rather than a geometric midpoint to eliminate search drift in variable-font environments.
+- **Constraint**: The context search engine MUST use the Multi-Pivot map to uniquely identify the exact word occurrence in the subtitle database.
+- **Fallback**: If no Multi-Pivot map is present (legacy records), the system SHALL fallback to geometric proximity matching.
+
+#### Scenario: Centering on a specific word index
+- **WHEN** the user selects word 5 in a multi-word line.
+- **THEN** the system SHALL anchor all coordinate lookups and rendering calculations specifically to the logical index `5`.
+
+### Requirement: Temporal Epsilon Guard
+Exports SHALL include a mandatory temporal offset to ensure the recorded timestamp sits reliably within the subtitle's active window.
+- **Offset**: `+0.001s` (1ms).
+- **Rule**: The Anki export timestamp SHALL be `primary_line.start_time + 0.001`.
+
+#### Scenario: Exporting from start of segment
+- **WHEN** a subtitle starts at `00:01:05.100`.
+- **THEN** the exported TSV timestamp SHALL be `00:01:05.101`.
+
+### Requirement: Index-Bounded Highlight Verification
+The highlight engine SHALL use the coordinate map to perform strict existence checks during render.
+- **Grounded Highlighting**: When `anki_global_highlight` is disabled, the engine SHALL only highlight tokens whose logical position matches the stored mapping.
+- **Segment Drift Tolerance**: The system SHALL allow a `+/- 1` subtitle segment drift when resolving origin lines to account for temporal epsilon boundaries (`+1ms`).
+
+#### Scenario: Filtering identical words
+- **WHEN** a record points to line 10, word 5.
+- **THEN** the engine SHALL NOT highlight word 5 on line 11, even if the text is identical.
 
 ### Requirement: Logical Hit-Test Snapping
 The hit-testing engine SHALL implement logical token snapping for all mouse and keyboard interactions.
