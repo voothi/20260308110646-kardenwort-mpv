@@ -1,3 +1,25 @@
+# Release Notes - v1.48.8 (Stability Hardening & Performance)
+
+**Date**: 2026-04-21
+**Version**: v1.48.8
+**Implementation ZIDs**: 20260421231238
+
+## Highlights
+
+### 🛡️ **Critical Stability Fix: Export Freeze Resolved**
+- **Infinite Loop Guard**: Eliminated a critical UI freeze that occurred when using the Middle Mouse Button (MMB) to export terms if the click landed in whitespace or metadata regions. The string search engine now includes mandatory forward-progress guards and empty-term validation.
+- **Search Engine Hardening**: Audited and hardened all internal `while` loops in the core script to ensure stability even when processing malformed or complex subtitle tags.
+
+### ⚡ **Drum Window Performance Boost**
+- **Layout Caching**: Introduced a structure-aware layout cache for the Drum Window (Mode W). This eliminates redundant OSD calculations during mouse movement, resulting in significantly smoother interaction and lower CPU usage.
+- **Instant Anki Export**: Shifted the favorite-saving pipeline to an in-memory update model. Adding new words to Anki is now instantaneous, removing the previous UI stutter caused by full TSV file re-parsing.
+
+### 🔧 **Internal Reliability**
+- **Fingerprint-Based Syncing**: The background synchronization system now uses file fingerprints (mtime/size) to ensure consistency while avoiding unnecessary disk I/O.
+- **Improved Context Extraction**: Refined the context-aware punctuation stripping to better handle multi-sentence selections and sentence boundaries.
+
+---
+
 # Release Notes - v1.48.2 (Sticky Navigation & UX Refinement)
 
 **Date**: 2026-04-21

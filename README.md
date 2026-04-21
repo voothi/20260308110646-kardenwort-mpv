@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.48.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.48.2) 
+[![Version](https://img.shields.io/badge/version-v1.48.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.48.8) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -87,6 +87,8 @@ This suite solves problems that standard video players and generic scripts ignor
 21. **Footprint-based Precision Rendering**: Overhauled punctuation discipline with sub-token stack recalculation and 3-tier nesting gradients for superior visual hierarchical context.
 22. **Zero-Overhead Periodic Sync**: Implements `mtime` + `size` fingerprinting to bypass expensive parsing and filesystem scanning for TSV and URL sidecars when data is unchanged.
 23. **Sticky Column Navigation**: Vertical keyboard movement in the Drum Window now preserves horizontal OSD position, snapping to the closest word on the target line for a professional, editor-like experience.
+24. **Freeze-Proof Export Engine**: A hardened string search logic with mandatory forward-progress guards and empty-term validation to eliminate UI freezes during selection.
+25. **Instant Anki Sync**: Optimized in-memory updates and fingerprint-based disk syncing for seamless, stutter-free vocabulary mining.
 
 [Return to Top](#table-of-contents)
 
@@ -144,6 +146,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Interaction Shielding & Stability**: Features a 150ms shield that silences the mouse arrow following keyboard navigation, preventing accidental pointer "jumps" when using remote controls.
 - **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
 - **Sticky Column Navigation**: Vertical movement (Arrows Up/Down) now preserves the horizontal OSD position, mimicking the VSCode carriage transition for more predictable keyboard navigation.
+- **Performance Layout Cache**: A structure-aware caching engine that eliminates redundant OSD calculations during mouse movement, ensuring a smooth 60fps interaction experience.
 - **Toggle**: `W` (English) or `Ц` (Russian).
 
 ### <span id="anki-mining"></span>Anki Highlighting & Export
@@ -161,6 +164,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 - **Dynamic Context**: The engine intelligently scans surrounding lines to capture grammatically complete sentences for your flashcards.
 - **Instant Record Access**: Press **`o`** within the Drum Window to instantly open your active TSV database in your default editor.
 - **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
+- **Zero-Latency Mining**: In-memory row injection provides instantaneous feedback when saving words, bypassing the performance penalty of full TSV re-parsing.
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
 A sophisticated extraction tool that supports substring and multi-line range selection.
@@ -269,7 +273,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.48.2 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.48.8 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -278,8 +282,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~850 Commits (v1.48.2)
-- **Intensity Profile**: 5.4 Commits/Hour 
+- **Current Maturity**: ~875 Commits (v1.48.8)
+- **Intensity Profile**: 5.6 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
