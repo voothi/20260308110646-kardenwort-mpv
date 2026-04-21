@@ -187,6 +187,8 @@ local FSM = {
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
     DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
 
+    -- Performance Caches
+    DW_LAYOUT_CACHE = nil,     -- Cached layout for the current viewport
     -- Global Search State
     SEARCH_MODE = false,
     SEARCH_QUERY = "",
@@ -1294,6 +1296,7 @@ end
 
 local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos, coord_map)
     if not full_line or full_line == "" then return "" end
+    if not selected_term or selected_term == "" then return full_line end
     
     -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
     -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
@@ -1315,7 +1318,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             best_dist = dist
             start_pos, end_pos = s, e
         end
-        search_from = e + 1
+        search_from = math.max(search_from + 1, e + 1)
     end
     if start_pos then print(string.format("  - Selected match at index %d", start_pos)) end
     
@@ -1342,7 +1345,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                     best_dist_word = dist
                     best_ws, best_we = ws, we
                 end
-                s_from = we + 1
+                s_from = math.max(s_from + 1, we + 1)
             end
             
             if best_ws then
@@ -1853,6 +1856,14 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     f:close()
 
     table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos, index = item_index })
+    
+    -- Performance Optimization: Update fingerprints so the next periodic sync 
+    -- doesn't trigger a redundant re-parse for this local change.
+    local info = utils.file_info(tsv_path)
+    if info then
+        FSM.ANKI_DB_MTIME = info.mtime
+        FSM.ANKI_DB_SIZE = info.size
+    end
 end
 
 local function show_osd(msg, dur)
@@ -1946,6 +1957,7 @@ local function update_media_state()
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+        FSM.DW_LAYOUT_CACHE = nil
     end
     if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
 
@@ -2244,6 +2256,12 @@ end
 
 -- Unified layout engine: wraps subtitle words into visual lines
 local function dw_build_layout(subs, view_center)
+    -- Performance Cache Check: Re-use layout if viewport and subs haven't changed.
+    -- This drastically reduces CPU load during mouse interaction and OSD updates.
+    if FSM.DW_LAYOUT_CACHE and FSM.DW_LAYOUT_CACHE.view_center == view_center and FSM.DW_LAYOUT_CACHE.subs_ptr == subs then
+        return FSM.DW_LAYOUT_CACHE.layout, FSM.DW_LAYOUT_CACHE.total_height
+    end
+
     local win_lines = Options.dw_lines_visible
     local half_win = math.floor(win_lines / 2)
     view_center = math.max(1, math.min(#subs, view_center))
@@ -2321,6 +2339,14 @@ local function dw_build_layout(subs, view_center)
         total_height = total_height + entry_h
         if i < end_idx then total_height = total_height + sub_gap end
     end
+
+    -- Store in cache before returning
+    FSM.DW_LAYOUT_CACHE = {
+        view_center = view_center,
+        subs_ptr = subs,
+        layout = layout,
+        total_height = total_height
+    }
 
     return layout, total_height
 end
@@ -3177,6 +3203,9 @@ local function dw_anki_export_selection()
             if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
                 term = term .. "."
             end
+
+            -- Post-cleaning validation: ensure we haven't stripped the term into oblivion
+            if not term or term == "" then return end
             
             -- Clean context: remove ASS tags
             context_line = context_line:gsub("{[^}]+}", "")
@@ -3191,9 +3220,8 @@ local function dw_anki_export_selection()
             save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
             show_osd("Anki Highlight Saved: " .. term)
 
-            
-            -- Force reload of TSV to pick up the new highlight and clear selection to show it
-            load_anki_tsv(true)
+            -- In-memory update was already performed by save_anki_tsv_row.
+            -- Removing redundant full-file reload to prevent UI stuttering.
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_WORD = -1
