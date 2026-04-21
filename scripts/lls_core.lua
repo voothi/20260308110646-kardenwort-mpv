@@ -213,7 +213,9 @@ local FSM = {
 
     -- Anki Highlighter State
     ANKI_HIGHLIGHTS = {},
-    ANKI_DB_PATH = nil
+    ANKI_DB_PATH = nil,
+    ANKI_DB_MTIME = 0,
+    ANKI_DB_SIZE = 0
 }
 
 local Tracks = {
@@ -1559,11 +1561,28 @@ local function load_anki_tsv(force)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
     
+    local info = mp.utils.file_info(tsv_path)
+    local fingerprint_match = info and (info.mtime == FSM.ANKI_DB_MTIME) and (info.size == FSM.ANKI_DB_SIZE)
+
     if FSM.ANKI_DB_PATH ~= tsv_path then
         FSM.ANKI_DB_PATH = tsv_path
         FSM.ANKI_HIGHLIGHTS = {}
-    elseif not force then
-        if next(FSM.ANKI_HIGHLIGHTS) ~= nil then return end
+        FSM.ANKI_DB_MTIME = 0
+        FSM.ANKI_DB_SIZE = 0
+        fingerprint_match = false
+    end
+
+    -- If the file hasn't changed and we already have highlights, skip expensive parsing.
+    -- This applies even if 'force' is true (e.g. from periodic sync), as re-parsing 
+    -- identical content is wasteful.
+    if fingerprint_match and next(FSM.ANKI_HIGHLIGHTS) ~= nil then
+        print("[LLS] TSV Fingerprint Match: skipping reload")
+        return 
+    end
+
+    if info then
+        FSM.ANKI_DB_MTIME = info.mtime
+        FSM.ANKI_DB_SIZE = info.size
     end
 
     -- Load config before attempting file open so the auto-created header
