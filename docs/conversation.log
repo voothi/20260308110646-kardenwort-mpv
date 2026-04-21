@@ -339,8 +339,7 @@
 20260421145838 We take into account commas and periods when adding them to the file, which means they need to be highlighted. Do it. Mind the anchors and don't break anything else.
 20260421150237 It seems that the specificity is that these dots are at the end of the subtitle lines. If the points fall inside the line, then they are correctly displayed in color.
 20260421150408 I rolled back your solution with the constant 9999 in the code. Don't do that.
-
-
+20260421150712 opsx-propose It seems to be working, let’s specify our additions for today, here is a list of my requests, dialogue anchors for context and so that you don’t forget to take anything into account. Approach the issue responsibly, think twice before deleting something. Minimize changes (minimally invasive). Then we have to synchronize these specifications from the feature to the main branch. 20260421013113 20260421014804 20260421074547 20260421075059 20260421080733 20260421081429 20260421083506 20260421085928 20260421092050 20260421094935 20260421100013 20260421101818 20260421103807 20260421110528 20260421112015 20260421113619 20260421114807 20260421115502 20260421121501 20260421124025 20260421131238 20260421131817 20260421135322 20260421141721 20260421143003 20260421143129 20260421144855 20260421145226 20260421145838 20260421150237 20260421150408
 
 
 
