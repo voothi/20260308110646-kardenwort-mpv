@@ -3119,6 +3119,7 @@ local function ctrl_commit_set(line_idx, word_idx)
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, m.word) then
                         w = t.text
+                        m.is_word = t.is_word
                         break
                     end
                 end
@@ -3215,9 +3216,13 @@ local function ctrl_commit_set(line_idx, word_idx)
     -- Advanced Multi-Pivot Grounding: Identify coordinates for ALL words
     local indices = {}
     local start_time = members[1].time or time_pos
-    for i, m in ipairs(members) do
-        local l_off = m.line - members[1].line
-        table.insert(indices, string.format("%d:%g:%d", l_off, m.word, i))
+    local t_pos_counter = 1
+    for _, m in ipairs(members) do
+        if m.is_word then
+            local l_off = m.line - members[1].line
+            table.insert(indices, string.format("%d:%g:%d", l_off, m.word, t_pos_counter))
+            t_pos_counter = t_pos_counter + 1
+        end
     end
     local advanced_index = table.concat(indices, ",")
 
