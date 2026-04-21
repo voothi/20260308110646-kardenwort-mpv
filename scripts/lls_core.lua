@@ -1561,7 +1561,7 @@ local function load_anki_tsv(force)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
     
-    local info = mp.utils.file_info(tsv_path)
+    local info = utils.file_info(tsv_path)
     local fingerprint_match = info and (info.mtime == FSM.ANKI_DB_MTIME) and (info.size == FSM.ANKI_DB_SIZE)
 
     if FSM.ANKI_DB_PATH ~= tsv_path then
