@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.48.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.48.8) 
+[![Version](https://img.shields.io/badge/version-v1.48.10-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.48.10) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -88,7 +88,8 @@ This suite solves problems that standard video players and generic scripts ignor
 22. **Zero-Overhead Periodic Sync**: Implements `mtime` + `size` fingerprinting to bypass expensive parsing and filesystem scanning for TSV and URL sidecars when data is unchanged.
 23. **Sticky Column Navigation**: Vertical keyboard movement in the Drum Window now preserves horizontal OSD position, snapping to the closest word on the target line for a professional, editor-like experience.
 24. **Freeze-Proof Export Engine**: A hardened string search logic with mandatory forward-progress guards and empty-term validation to eliminate UI freezes during selection.
-25. **Instant Anki Sync**: Optimized in-memory updates and fingerprint-based disk syncing for seamless, stutter-free vocabulary mining.
+25. **Contiguous Multi-Line Selection**: Refined selection logic that reliably maintains the highlighting anchor across subtitle line boundaries, enabling seamless "mass selection" via keyboard navigation.
+26. **Configurable Jump Distances**: Fully adjustable navigation speed. Users can customize the exact number of words or lines jumped during Ctrl-boosted navigation via `mpv.conf`.
 
 [Return to Top](#table-of-contents)
 
@@ -273,7 +274,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.48.8 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.48.10 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -282,8 +283,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~875 Commits (v1.48.8)
-- **Intensity Profile**: 5.6 Commits/Hour 
+- **Current Maturity**: ~882 Commits (v1.48.10)
+- **Intensity Profile**: 5.7 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

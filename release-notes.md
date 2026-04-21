@@ -1,3 +1,21 @@
+# Release Notes - v1.48.10 (Drum Window Selection Refinement)
+
+**Date**: 2026-04-22
+**Version**: v1.48.10
+**Implementation ZIDs**: 20260422005817
+
+## Highlights
+
+### 🎯 **Contiguous Multi-Line Selection**
+- **Boundary Resilience**: Fixed an issue where range highlighting (yellow) was lost or reset when navigating across subtitle line boundaries. The selection anchor is now captured before cursor movement, ensuring a seamless selection trail between lines.
+- **Modifier Logic Refinement**: Restricted range selection to standard `Shift` and `Ctrl+Shift` arrow combinations, maintaining the `Ctrl` key's role for fast navigation without unintended highlighting.
+
+### ⚙️ **Configurable Navigation Parameters**
+- **User-Defined Jumps**: Navigation jump distances are no longer hardcoded. Users can now customize the word/line jump amount via `lls-dw_jump_words` and `lls-dw_jump_lines` in `mpv.conf`.
+- **Documentation Sync**: Updated `input.conf` to reflect these configurable capabilities, providing clear guidance on the role of Ctrl and Shift modifiers in the Drum Window.
+
+---
+
 # Release Notes - v1.48.8 (Stability Hardening & Performance)
 
 **Date**: 2026-04-21
