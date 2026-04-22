@@ -152,6 +152,10 @@ local Options = {
     search_key_delete_word = "Ctrl+w Ctrl+ц",
     search_key_click = "MBTN_LEFT",
     dw_key_open_record = "o щ",
+    key_sub_pos_up = "r к",
+    key_sub_pos_down = "t е",
+    key_sec_sub_pos_up = "R К",
+    key_sec_sub_pos_down = "T Е",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -5293,6 +5297,16 @@ local function cmd_cycle_sec_pos()
     end
 end
 
+local function cmd_adjust_sub_pos(delta)
+    local p = mp.get_property_number("sub-pos", 95)
+    mp.set_property_number("sub-pos", math.max(0, math.min(150, p + delta)))
+end
+
+local function cmd_adjust_sec_sub_pos(delta)
+    local p = mp.get_property_number("secondary-sub-pos", 10)
+    mp.set_property_number("secondary-sub-pos", math.max(0, math.min(150, p + delta)))
+end
+
 local function cmd_cycle_sec_sid()
     if FSM.DRUM == "ON" then FSM.native_sec_sub_vis = true
     else mp.set_property_bool("secondary-sub-visibility", true) end
@@ -5577,6 +5591,22 @@ mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t)
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
+
+local function register_global_position_keys()
+    local function bind(opt, name, fn)
+        if not opt or opt == "" then return end
+        local i = 1
+        for key in opt:gmatch("[^%s,;]+") do
+            mp.add_key_binding(key, name .. "-" .. i, fn)
+            i = i + 1
+        end
+    end
+    bind(Options.key_sub_pos_up, "lls-sub-pos-up", function() cmd_adjust_sub_pos(1) end)
+    bind(Options.key_sub_pos_down, "lls-sub-pos-down", function() cmd_adjust_sub_pos(-1) end)
+    bind(Options.key_sec_sub_pos_up, "lls-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(1) end)
+    bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(-1) end)
+end
+register_global_position_keys()
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
