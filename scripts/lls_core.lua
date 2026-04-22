@@ -77,6 +77,15 @@ local Options = {
     dw_original_spacing = true,
     dw_jump_words = 5,            -- Words to jump on Ctrl+Left/Right
     dw_jump_lines = 5,            -- Lines to jump on Ctrl+Shift+Up/Down
+    dw_key_nav_word = "LEFT RIGHT",
+    dw_key_nav_line = "UP DOWN",
+    dw_key_jump_word = "Ctrl+LEFT Ctrl+RIGHT",
+    dw_key_jump_line = "Ctrl+Shift+UP Ctrl+Shift+DOWN",
+    dw_key_scroll = "Ctrl+UP Ctrl+DOWN WHEEL_UP WHEEL_DOWN",
+    dw_key_seek = "ENTER KP_ENTER",
+    dw_key_copy = "Ctrl+c Ctrl+с",
+    dw_key_close = "ESC",
+    dw_key_search = "f Ctrl+f а Ctrl+а",
 
     -- Search HUD Styling
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
@@ -4247,31 +4256,44 @@ local function manage_dw_bindings(enable)
     end
 
     local keys = {
-        {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end, "LEFT")},
-        {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
-        {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
-        {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
-        {key = "Shift+UP", name = "dw-line-up-shift", fn = nav(function() cmd_dw_line_move(-1, true) end, "Shift+UP")},
-        {key = "Shift+DOWN", name = "dw-line-down-shift", fn = nav(function() cmd_dw_line_move(1, true) end, "Shift+DOWN")},
-        {key = "a", name = "dw-seek-back", fn = nav(function(t) cmd_seek_with_repeat(-1, t) end, "a"), complex = true},
-        {key = "d", name = "dw-seek-fwd", fn = nav(function(t) cmd_seek_with_repeat(1, t) end, "d"), complex = true},
-        {key = "ENTER", name = "dw-enter", fn = nav(function() cmd_dw_seek_selected() end, "ENTER")},
-        {key = "KP_ENTER", name = "dw-enter-kp", fn = nav(function() cmd_dw_seek_selected() end, "KP_ENTER")},
-        {key = "Shift+LEFT", name = "dw-word-left-shift", fn = nav(function() cmd_dw_word_move(-1, true) end, "Shift+LEFT")},
-        {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = nav(function() cmd_dw_word_move(1, true) end, "Shift+RIGHT")},
-        {key = "Ctrl+LEFT", name = "dw-word-left-ctrl", fn = nav(function() cmd_dw_word_move(-Options.dw_jump_words, false) end, "Ctrl+LEFT")},
-        {key = "Ctrl+RIGHT", name = "dw-word-right-ctrl", fn = nav(function() cmd_dw_word_move(Options.dw_jump_words, false) end, "Ctrl+RIGHT")},
-        {key = "Ctrl+Shift+LEFT", name = "dw-word-left-ctrl-shift", fn = nav(function() cmd_dw_word_move(-Options.dw_jump_words, true) end, "Ctrl+Shift+LEFT")},
-        {key = "Ctrl+Shift+RIGHT", name = "dw-word-right-ctrl-shift", fn = nav(function() cmd_dw_word_move(Options.dw_jump_words, true) end, "Ctrl+Shift+RIGHT")},
-        {key = "Ctrl+Shift+UP", name = "dw-line-up-ctrl-shift", fn = nav(function() cmd_dw_line_move(-Options.dw_jump_lines, true) end, "Ctrl+Shift+UP")},
-        {key = "Ctrl+Shift+DOWN", name = "dw-line-down-ctrl-shift", fn = nav(function() cmd_dw_line_move(Options.dw_jump_lines, true) end, "Ctrl+Shift+DOWN")},
-        {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
-        {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
-        {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = nav(function() cmd_dw_scroll(-1) end, "Ctrl+UP")},
-        {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end, "Ctrl+DOWN")},
-        {key = "ESC", name = "dw-close", fn = nav(function() cmd_toggle_drum_window() end, "ESC")},
-        {key = "Ctrl+ESC", name = "dw-pair-discard", fn = nav(ctrl_discard_set, "Ctrl+ESC")},
-        {key = "Ctrl+c", name = "dw-copy", fn = nav(function() cmd_dw_copy() end, "Ctrl+c")},
+        -- Mouse selection & Suppression
+        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+        -- Ctrl Tracking (State mapping)
+        {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
+            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
+        end, "Ctrl"), complex = true},
+    }
+
+    parse_and_bind(Options.dw_key_nav_word, "dw-word", nil, function(t) 
+        local dir = (t.key:find("LEFT") or t.key:find("ЛЕВЫЙ")) and -1 or 1
+        cmd_dw_word_move(dir, FSM.DW_ANCHOR_LINE ~= -1) 
+    end, true)
+    
+    parse_and_bind(Options.dw_key_nav_line, "dw-line", nil, function(t) 
+        local dir = (t.key:find("UP") or t.key:find("ВВЕРХ")) and -1 or 1
+        cmd_dw_line_move(dir, FSM.DW_ANCHOR_LINE ~= -1) 
+    end, true)
+
+    parse_and_bind(Options.dw_key_jump_word, "dw-jump-word", nil, function(t)
+        local dir = (t.key:find("LEFT") or t.key:find("ЛЕВЫЙ")) and -1 or 1
+        cmd_dw_word_move(dir * Options.dw_jump_words, FSM.DW_ANCHOR_LINE ~= -1)
+    end, true)
+
+    parse_and_bind(Options.dw_key_jump_line, "dw-jump-line", nil, function(t)
+        local dir = (t.key:find("UP") or t.key:find("ВВЕРХ")) and -1 or 1
+        cmd_dw_line_move(dir * Options.dw_jump_lines, FSM.DW_ANCHOR_LINE ~= -1)
+    end, true)
+
+    parse_and_bind(Options.dw_key_scroll, "dw-scroll", function() end, function(t)
+        local dir = (t.key:find("UP") or t.key:find("WHEEL_UP") or t.key:find("ВВЕРХ")) and -1 or 1
+        cmd_dw_scroll(dir)
+    end, false)
+
+    parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
+    parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
+    parse_and_bind(Options.dw_key_close, "dw-close", nil, function() cmd_toggle_drum_window() end, false)
+    parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
