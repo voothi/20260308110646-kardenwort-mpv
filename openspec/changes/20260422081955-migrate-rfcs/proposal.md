@@ -1,14 +1,15 @@
 ## Why
 
-Migrating historical RFCs from `.\docs\rfcs` to the OpenSpec `.\openspec\changes` system is necessary to preserve valuable technical descriptions, test cases, and design logic from earlier development phases. Bringing this information into the active specification framework allows the AI agent to better understand established patterns and ensures that future development remains consistent with historical context.
+Migrating historical RFCs from `.\docs\rfcs` to the OpenSpec `.\openspec\changes` system using a **Historical Baseline** approach. This ensures that the original intent and requirements are preserved exactly as conceived, providing a "Source of Truth" for auditing code evolution and design principles.
 
 ## What Changes
 
 - Creation of individual migration change directories for each RFC file in `.\docs\rfcs`.
-- Naming convention: `<ZID>-feat-<descriptive-name>`, matching the source file's ZID.
-- Extraction of technical details, test cases, and behavioral requirements into OpenSpec specifications for each migration.
+- Naming convention: `<ZID>-<name>`, matching the source file's ZID.
+- **As-Is Documentation**: Technical details, test cases, and behavioral requirements are transferred exactly as expressed in the original RFCs to maintain historical integrity.
+- **Audit-Ready Specs**: Use of original identifiers (filenames, function names) to establish the project's original design baseline.
 - Implementation of a master checklist to track the migration progress.
-- Manual review and confirmation process for each migration step.
+- Manual review and confirmation process for each migration step, including identifier translation during the eventual sync phase.
 
 ## Capabilities
 

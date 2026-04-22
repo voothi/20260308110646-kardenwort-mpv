@@ -16,9 +16,10 @@ The repository contains a significant history of development documented in `.\do
 
 ## Decisions
 
-- **Granular Changes**: Each RFC file will be processed as its own OpenSpec change using the `/opsx-propose` command. This ensures that the extracted specifications are focused and manageable.
-- **Naming Standard**: Directories will follow the pattern `<ZID>-<name>` to maintain a clear link to the original documents.
-- **Checklist-Based Tracking**: A master checklist in `tasks.md` will be used to track progress through the 39 RFC files.
+- **Option 1: Historical Baseline**: RFCs are migrated without adaptation. Logic, requirements, and technical identifiers (e.g., `core.lua`) are preserved as they were in the original documents.
+- **Granular Changes**: Each RFC file will be processed as its own OpenSpec change.
+- **Naming Standard**: Directories follow the pattern `<ZID>-<name>`.
+- **Sync Strategy**: Identifier translation and modernization are deferred until the manual `archive` and `sync` phase. This makes deviations between the original intent and current implementation explicit during review.
 
 ## Risks / Trade-offs
 
