@@ -121,6 +121,7 @@ local Options = {
     dw_key_copy = "Ctrl+c Ctrl+с",
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
+    dw_key_mouse_seek = "MBTN_LEFT_DBL",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -4273,7 +4274,6 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end, "Ctrl+DOWN")},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
@@ -4342,6 +4342,7 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
     parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
     parse_and_bind(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
+    parse_and_bind(Options.dw_key_mouse_seek, "dw-mouse-seek", cmd_dw_double_click, cmd_dw_double_click, false)
 
     -- Extra Layout & Search
     local extra = {
