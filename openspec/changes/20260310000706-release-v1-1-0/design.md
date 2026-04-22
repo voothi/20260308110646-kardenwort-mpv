@@ -1,6 +1,6 @@
 ## Context
 
-The original Context Copy logic relied on a strict sequential check for duplicate lines, which failed in dual-track `.ass` files where English and Russian lines alternate. This caused karaoke fragments of the same sentence to be treated as separate dialogue blocks.
+The original Context Copy logic in `copy_sub.lua` relied on a strict sequential check for duplicate lines, which failed in dual-track `.ass` files where English and Russian lines alternate. This caused karaoke fragments of the same sentence to be treated as separate dialogue blocks.
 
 ## Goals / Non-Goals
 
@@ -10,7 +10,7 @@ The original Context Copy logic relied on a strict sequential check for duplicat
 
 ## Decisions
 
-- **Deep Merge Buffer**: The array loading parser now searches up to 10 entries backwards to find matches for merging. This window is sufficient to cover most interleaved translation scenarios.
+- **Deep Merge Buffer**: The array loading parser in `copy_sub.lua` now searches up to 10 entries backwards to find matches for merging. This window is sufficient to cover most interleaved translation scenarios.
 - **Language Filtering**: `get_context_text` uses Cyrillic detection as a heuristic to identify and skip irrelevant tracks (e.g., skipping Russian translations when the target context is English).
 - **Iterative Search**: The context search continues backwards and forwards until the requested number of unique sentences is satisfied.
 

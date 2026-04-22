@@ -405,7 +405,7 @@
 20260422084454 Would it be more correct to set the task of transferring the documentation as is or adapting it when transferring it to the current code base? It seems that adaptation is a bad option due to the fact that my rfcs are the specification with which I need to match the current version of the code. Think and give 2 options for changing the definition of the migration task in the project 20260422081955-migrate-rfcs.
 20260422085001 Is it better to choose Option 1? How then will irrelevant identifiers be built in with the openspec archive, sync commands? Will they transfer with notification? Are there such cases in the current work flow and openspec prompts regarding these archive, sync operations? Or do you need to have the latest versions before performing these operations? See .\.agent If it doesn't update on final synchronization, doesn't ask anything on difference, then should I choose Option 2?
 20260422090334 I select Option 1 (Historical Baseline), check and update openspec\changes\20260422081955-migrate-rfcs
-
+20260422090549 It is necessary to update openspec\changes\20260309002123-release-v1-0-0 openspec\changes\20260310000706-release-v1-1-0 in accordance with the new requirements openspec\changes\20260422081955-migrate-rfcs
 
 
 

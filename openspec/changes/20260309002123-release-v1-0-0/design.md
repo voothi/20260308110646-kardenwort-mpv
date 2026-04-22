@@ -5,16 +5,17 @@ Release v1.0.0 established the foundation for a script-driven Language Learning 
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide clear visual context for subtitles (Drum Mode).
+- Provide clear visual context for subtitles (Drum Mode) with Middle-Left positioning (`{\an4}`).
 - Implement intelligent pause points that respect linguistic boundaries (Autopause).
-- Create a non-intrusive notification system (Clean OSD).
+- Create a non-intrusive, 500ms notification system (Clean OSD).
 
 ## Decisions
 
 - **Input Configuration**: All persistent hotkeys are moved to `input.conf` to avoid overwrite bugs and handle multi-layout (EN/RU) keyboards reliably.
 - **OSD Rendering**: Uses `mp.osd_message` with `osd-ass-cc/0` instead of `show-text` to ensure reliable ASS tag parsing across different environments.
-- **Timing**: Global OSD duration is set to 500ms to maintain a reactive user experience.
+- **Timing**: Global OSD duration is set to 500ms (`osd_msg_duration`) to maintain a reactive user experience.
 - **Hold-to-Play**: Implemented as a `complex=true` handler to allow bypassing all pause points by holding the SPACE key.
+- **Script Externalization**: OSD duration is externalized into a configurable `osd_msg_duration` parameter across all active scripts.
 
 ## Risks / Trade-offs
 
