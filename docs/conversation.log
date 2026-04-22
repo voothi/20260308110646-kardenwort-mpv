@@ -438,6 +438,7 @@
 20260422120213 No, let’s better replace it with Eсс, without Ctrl, this is how it now works universally for any selection (yellow and pink).
 20260422120457 Okay, what are we going to do with hardcoded values ​​in the code, see anchor 20260422115527? Let's move this into the config step by step. I'm interested in the beginning a / ф (Previous) and d / в (Next).
 20260422122142 Okay, now move into the config `Ctrl+f / Ctrl+а`.
+20260422122511 Okay, now move into the config `Ctrl+c / Ctrl+с`.
 
 
 

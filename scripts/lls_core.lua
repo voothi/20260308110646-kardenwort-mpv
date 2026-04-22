@@ -118,6 +118,7 @@ local Options = {
     dw_key_seek_prev = "a ф",
     dw_key_seek_next = "d в",
     dw_key_search = "f Ctrl+f а Ctrl+а",
+    dw_key_copy = "Ctrl+c Ctrl+с",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -4270,7 +4271,6 @@ local function manage_dw_bindings(enable)
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
         {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = nav(function() cmd_dw_scroll(-1) end, "Ctrl+UP")},
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end, "Ctrl+DOWN")},
-        {key = "Ctrl+c", name = "dw-copy", fn = nav(function() cmd_dw_copy() end, "Ctrl+c")},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
@@ -4339,6 +4339,7 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false)
     parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false)
     parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
+    parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
 
     -- Extra Layout & Search
     local extra = {
@@ -4359,7 +4360,6 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ПРАВЫЙ", name = "dw-word-right-ctrl-shift-ru", fn = function() cmd_dw_word_move(Options.dw_jump_words, true) end},
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-Options.dw_jump_lines, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(Options.dw_jump_lines, true) end},
-        {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
         {key = "ESC", name = "dw-esc", fn = function() cmd_dw_esc() end},
     }
     for _, k in ipairs(extra) do table.insert(keys, k) end
