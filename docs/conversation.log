@@ -424,7 +424,8 @@
 20260422100136 opsx-archive
 20260422100303 Sync now
 20260422100520 Yes, go to the next step in the tasks.md task list.
-
+20260422100838 o opsx-apply openspec\changes\20260310024112-release-v1-2-6
+20260422103045 o Extract from the code the name of the function as is and its default value in the format toggle-autopause="s"
 
 
 
