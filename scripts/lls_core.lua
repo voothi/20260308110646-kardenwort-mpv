@@ -55,7 +55,7 @@ local Options = {
 
     -- System
     tick_rate = 0.05,
-    osd_duration = 1.0,
+    osd_duration = 0.5,
 
     -- Drum Window
     dw_font_size = 34,
