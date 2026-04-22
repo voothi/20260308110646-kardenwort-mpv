@@ -447,7 +447,7 @@
 20260422124320 This doesn't work with arrows. I'm going to branch 20260422124333.
 20260422124557 Which ones remain to be moved besides the arrows?
 20260422124711 Okay, now move into the config `MBTN_LEFT_DBL`.
-
+20260422124959 Double-clicking on a subtitle in window mode w stopped working. The track to this place does not go, the subtitle on which you clicked is not highlighted.
 
 
 
