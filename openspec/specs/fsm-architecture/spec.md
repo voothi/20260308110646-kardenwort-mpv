@@ -1,5 +1,7 @@
-## ADDED Requirements
+## Purpose
 
+The FSM Architecture manages the unified state of the media player, coordinating subtitle visibility, operating modes, and feature boundaries to prevent race conditions and rendering conflicts.
+## Requirements
 ### Requirement: Architecture and Subtitle Visibility Control Matrix
 The system SHALL manage native and custom (OSD) subtitle visibilities via a unified Finite State Machine (FSM). `FSM.native_sub_vis` MUST act as the overarching source of desired truth for standard playback, but actual on-screen rendering MUST obey mutual exclusion rules between `native`, `DRUM`, and `DRUM_WINDOW`.
 
@@ -71,3 +73,18 @@ The Search Mode input grabber SHALL support the entry of German umlauts and the 
 #### Scenario: User types German characters in search field
 - **WHEN** FSM.SEARCH_MODE is true and the user presses 'ä', 'ö', 'ü', 'ß', 'Ä', 'Ö', 'Ü', or 'ẞ'
 - **THEN** THE OSD SHALL capture these characters, append them to FSM.SEARCH_QUERY, and update the search results dynamically.
+
+### Requirement: State-Driven Mode Management
+The system SHALL determine its active operating mode (MEDIA_STATE) by dynamically parsing the current `track-list` of the media player.
+
+#### Scenario: Detecting dual-language tracks
+- **WHEN** the media player has both a primary and secondary subtitle track active
+- **THEN** the system SHALL enter the `DUAL_ASS` or `DUAL_SRT` (or mixed) state as appropriate.
+
+### Requirement: Consolidated Logic Core
+The system SHALL centralize all core language learning features (Autopause, Context visualization, and Subtitle Copy) into a singular script architecture (`lls_core.lua`).
+
+#### Scenario: Feature coordination
+- **WHEN** multiple features are enabled simultaneously
+- **THEN** their logic SHALL be executed sequentially within the centralized core to prevent race conditions.
+
