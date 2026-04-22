@@ -472,11 +472,11 @@
 20260422154757 Yes, the fact is that this button e turns out to be associated with translations and does not work without the second subtitles enabled.
 20260422155941 Update the table with combinations in README.md. 
 20260422160247 This is controlled by the parameter in mpv.conf **2-second** seek forward / backward README.md#L197?
-20260422160806 o opsx-archive openspec\changes\20260310024112-release-v1-2-6
+20260422160806 o opsx-archive openspec\changes\20260310024112-release-v1-2-8
 20260422160922 Sync now
 20260422161355 Sync now.
 20260422162659 Sync and archive.
 20260422163110 Yes, go to the next step in the tasks.md task list.
-
-
+20260422163559 o opsx-archive openspec\changes\20260310094822-release-v1-2-9
+20260422163808 opsx-apply openspec\changes\20260310094822-release-v1-2-9
 
