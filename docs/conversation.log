@@ -465,7 +465,8 @@
 20260422145032 Take out and document and for Drum Window SEARCH Mode combinations. BS (Backspace) / DEL: Delete characters/selection. Shift + LEFT/RIGHT: Select text in the search box. Ctrl + LEFT/RIGHT: Jump words in the search box. HOME / END: Jump to start/end of query. ENTER: Jump to the selected subtitle. ESC: Close search. Ctrl + v: Paste from clipboard. Ctrl + a: Select all text. Ctrl + w: Delete the word before the cursor. MBTN_LEFT: Click to position cursor or select a result.; Just document these in the comments. LEFT / RIGHT: Move text cursor. WHEEL_UP / WHEEL_DOWN: Scroll search results. UP / DOWN: Navigate the search result list.
 20260422150129 Add f as full screen mode in input.conf.
 20260422150545 But by default it is 0 9.
-
+20260422151432 What other undocumented keys remain?
+20260422151638 Okay, now move into the config `o / щ`.
 
 
 

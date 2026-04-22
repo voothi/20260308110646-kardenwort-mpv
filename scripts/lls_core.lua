@@ -151,6 +151,7 @@ local Options = {
     search_key_select_all = "Ctrl+a Ctrl+ф",
     search_key_delete_word = "Ctrl+w Ctrl+ц",
     search_key_click = "MBTN_LEFT",
+    dw_key_open_record = "o щ",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -4372,6 +4373,7 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_select_right, "dw-select-right", nil, function() cmd_dw_word_move(1, true) end, false)
     parse_and_bind(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
     parse_and_bind(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
+    parse_and_bind(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
 
     -- Extra Layout & Search
     local extra = {
@@ -5574,11 +5576,7 @@ mp.add_forced_key_binding(nil, "book-mode-ru", toggle_book_mode)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
-mp.add_key_binding(nil, "toggle-record-file", function()
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        cmd_open_record_file()
-    end
-end)
+mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
