@@ -4226,8 +4226,8 @@ local function cmd_seek_with_repeat(dir, table)
     if table.event == "down" then
         -- Initial press
         cmd_dw_seek_delta(dir)
+        cmd_dw_seek_delta(dir)
         
-        -- Setup repeat timer
         if FSM.SEEK_REPEAT_TIMER then FSM.SEEK_REPEAT_TIMER:kill() end
         FSM.SEEK_REPEAT_TIMER = mp.add_timeout(Options.seek_hold_delay, function()
             FSM.SEEK_REPEAT_TIMER = mp.add_periodic_timer(1.0 / Options.seek_hold_rate, function()
@@ -4245,8 +4245,6 @@ end
 local function manage_dw_bindings(enable)
     local function nav(fn, key_name)
         return function(t)
-            -- Ignore modifiers (Ctrl, Shift, Alt, Meta) as shield-triggers so combos like Shift+Click work.
-            -- Navigation/Action keys (Arrows, Enter, etc.) still trigger the 150ms mouse lockout.
             local key = (t and t.key) or key_name or ""
             if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
@@ -4255,55 +4253,6 @@ local function manage_dw_bindings(enable)
         end
     end
 
-    local keys = {
-        -- Mouse selection & Suppression
-        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
-        -- Ctrl Tracking (State mapping)
-        {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
-            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-        end, "Ctrl"), complex = true},
-    }
-
-    parse_and_bind(Options.dw_key_nav_word, "dw-word", nil, function(t) 
-        local dir = (t.key:find("LEFT") or t.key:find("ЛЕВЫЙ")) and -1 or 1
-        cmd_dw_word_move(dir, FSM.DW_ANCHOR_LINE ~= -1) 
-    end, true)
-    
-    parse_and_bind(Options.dw_key_nav_line, "dw-line", nil, function(t) 
-        local dir = (t.key:find("UP") or t.key:find("ВВЕРХ")) and -1 or 1
-        cmd_dw_line_move(dir, FSM.DW_ANCHOR_LINE ~= -1) 
-    end, true)
-
-    parse_and_bind(Options.dw_key_jump_word, "dw-jump-word", nil, function(t)
-        local dir = (t.key:find("LEFT") or t.key:find("ЛЕВЫЙ")) and -1 or 1
-        cmd_dw_word_move(dir * Options.dw_jump_words, FSM.DW_ANCHOR_LINE ~= -1)
-    end, true)
-
-    parse_and_bind(Options.dw_key_jump_line, "dw-jump-line", nil, function(t)
-        local dir = (t.key:find("UP") or t.key:find("ВВЕРХ")) and -1 or 1
-        cmd_dw_line_move(dir * Options.dw_jump_lines, FSM.DW_ANCHOR_LINE ~= -1)
-    end, true)
-
-    parse_and_bind(Options.dw_key_scroll, "dw-scroll", function() end, function(t)
-        local dir = (t.key:find("UP") or t.key:find("WHEEL_UP") or t.key:find("ВВЕРХ")) and -1 or 1
-        cmd_dw_scroll(dir)
-    end, false)
-
-    parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
-    parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
-    parse_and_bind(Options.dw_key_close, "dw-close", nil, function() cmd_toggle_drum_window() end, false)
-    parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-        -- Mouse selection & Suppression
-        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
-        -- Ctrl Tracking (State mapping)
-        {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
-            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-            -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
-        end, "Ctrl"), complex = true},
-    }
-
     local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection)
         if not key_string or key_string == "" then return end
         local i = 1
@@ -4311,41 +4260,28 @@ local function manage_dw_bindings(enable)
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
-                    -- Detect if the handler is already a mouse handler to avoid redundant wrapping
                     if mouse_fn and MOUSE_HANDLERS[mouse_fn] then
-                        table.insert(keys, {
-                            key = key,
-                            name = base_name .. "-" .. i,
-                            fn = mouse_fn,
-                            complex = true
-                        })
+                        table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = mouse_fn, complex = true })
                     else
-                        -- Mouse keys get the full drag/drop treatment via make_mouse_handler
                         local m_fn = make_mouse_handler(false, 
-                            function(t) mouse_fn(t, true) end, -- up
-                            function(t) mouse_fn(t, true) end, -- down
+                            function(t) mouse_fn(t, true) end, 
+                            function(t) mouse_fn(t, true) end, 
                             updates_selection
                         )
-                        table.insert(keys, {
-                            key = key,
-                            name = base_name .. "-" .. i,
-                            fn = m_fn,
-                            complex = true
-                        })
+                        table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true })
                     end
                 else
                     table.insert(keys, {
                         key = key,
                         name = base_name .. "-" .. i,
                         fn = function(t) 
-                            -- Shield the mouse from ghost clicks after a key is pressed (excluding modifiers)
-                            local key = (t and t.key) or ""
-                            if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
+                            local k = (t and t.key) or ""
+                            if not (k == "Ctrl" or k == "Shift" or k == "Alt" or k == "Meta") then
                                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
                             end
                             key_fn(t, false) 
                         end,
-                        complex = false
+                        complex = (key_fn == cmd_seek_with_repeat)
                     })
                 end
                 i = i + 1
@@ -4353,6 +4289,48 @@ local function manage_dw_bindings(enable)
         end
     end
 
+    local keys = {
+        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+        {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
+            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
+        end, "Ctrl"), complex = true},
+    }
+
+    parse_and_bind(Options.dw_key_nav_word, "dw-word", nil, function(t) 
+        local k = (t and t.key) or ""
+        local dir = (k:find("LEFT") or k:find("ЛЕВЫЙ")) and -1 or 1
+        cmd_dw_word_move(dir, FSM.DW_ANCHOR_LINE ~= -1) 
+    end, true)
+    
+    parse_and_bind(Options.dw_key_nav_line, "dw-line", nil, function(t) 
+        local k = (t and t.key) or ""
+        local dir = (k:find("UP") or k:find("ВВЕРХ")) and -1 or 1
+        cmd_dw_line_move(dir, FSM.DW_ANCHOR_LINE ~= -1) 
+    end, true)
+
+    parse_and_bind(Options.dw_key_jump_word, "dw-jump-word", nil, function(t)
+        local k = (t and t.key) or ""
+        local dir = (k:find("LEFT") or k:find("ЛЕВЫЙ")) and -1 or 1
+        cmd_dw_word_move(dir * Options.dw_jump_words, FSM.DW_ANCHOR_LINE ~= -1)
+    end, true)
+
+    parse_and_bind(Options.dw_key_jump_line, "dw-jump-line", nil, function(t)
+        local k = (t and t.key) or ""
+        local dir = (k:find("UP") or k:find("ВВЕРХ")) and -1 or 1
+        cmd_dw_line_move(dir * Options.dw_jump_lines, FSM.DW_ANCHOR_LINE ~= -1)
+    end, true)
+
+    parse_and_bind(Options.dw_key_scroll, "dw-scroll", function() end, function(t)
+        local k = (t and t.key) or ""
+        local dir = (k:find("UP") or k:find("WHEEL_UP") or k:find("ВВЕРХ")) and -1 or 1
+        cmd_dw_scroll(dir)
+    end, false)
+
+    parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
+    parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
+    parse_and_bind(Options.dw_key_close, "dw-close", nil, function() cmd_dw_esc() end, false)
+    parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
     parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
     parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
     parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
@@ -4360,33 +4338,6 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
 
-    -- Extra Layout & Search
-    local extra = {
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
-        {key = "Shift+ЛЕВЫЙ", name = "dw-word-left-shift-ru", fn = function() cmd_dw_word_move(-1, true) end},
-        {key = "Shift+ПРАВЫЙ", name = "dw-word-right-shift-ru", fn = function() cmd_dw_word_move(1, true) end},
-        {key = "Shift+ВВЕРХ", name = "dw-line-up-shift-ru", fn = function() cmd_dw_line_move(-1, true) end},
-        {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
-        {key = "Ctrl+ВВЕРХ", name = "dw-scroll-up-ctrl-ru", fn = function() cmd_dw_scroll(-1) end},
-        {key = "Ctrl+ВНИЗ", name = "dw-scroll-down-ctrl-ru", fn = function() cmd_dw_scroll(1) end},
-        {key = "ф", name = "dw-seek-back-ru", fn = function(t) cmd_seek_with_repeat(-1, t) end, complex = true},
-        {key = "в", name = "dw-seek-fwd-ru", fn = function(t) cmd_seek_with_repeat(1, t) end, complex = true},
-        {key = "ENTER", name = "dw-enter-ru", fn = function() cmd_dw_seek_selected() end},
-        {key = "Ctrl+ЛЕВЫЙ", name = "dw-word-left-ctrl-ru", fn = function() cmd_dw_word_move(-Options.dw_jump_words, false) end},
-        {key = "Ctrl+ПРАВЫЙ", name = "dw-word-right-ctrl-ru", fn = function() cmd_dw_word_move(Options.dw_jump_words, false) end},
-        {key = "Ctrl+Shift+ЛЕВЫЙ", name = "dw-word-left-ctrl-shift-ru", fn = function() cmd_dw_word_move(-Options.dw_jump_words, true) end},
-        {key = "Ctrl+Shift+ПРАВЫЙ", name = "dw-word-right-ctrl-shift-ru", fn = function() cmd_dw_word_move(Options.dw_jump_words, true) end},
-        {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-Options.dw_jump_lines, true) end},
-        {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(Options.dw_jump_lines, true) end},
-        {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
-        {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
-        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
-        {key = "ESC", name = "dw-esc", fn = function() cmd_dw_esc() end},
-    }
-    for _, k in ipairs(extra) do table.insert(keys, k) end
 
     for _, k in ipairs(keys) do
         if enable then 

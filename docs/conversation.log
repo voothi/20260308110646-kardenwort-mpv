@@ -432,6 +432,7 @@
 20260422105441 Check that input.conf does not conflict with mpv.conf in terms of combinations and together they contain all the combinations used, not only within this table, but in general, in the code and in the descriptions of the openspec\specs specifications and old documents that I transfer from the docs.
 20260422110430 I answer, let's go according to `Positional Nudge vs. Drum Highlighting` will change `r add sub-pos +1` = "; ж:" and add sub-pos -1 = ". ю" input.conf#L172-175 In the `Internal Drum Window Shortcuts` block, instead of duplicating, rigidly writing keys that may over time diverge from the current configuration in mpv.conf, you need to replace them with keys in the form of the function name, for example, `t / е` replace with dw_key_add.
 20260422112248 I answer, I returned some of the combinations back, why are there hardcoded combinations left in input.conf? They need to be explicitly reflected if they are not in mpv.conf, and here indicate with a link to the function name so that you can link and find # Ctrl+L/R: Jump words (Default 5, Configurable) # Ctrl+U/D: Scroll Viewport (no cursor move) # Ctrl+Shift+U/D: Jump lines (Default 5, Configurable) # ENTER: Seek to selected line # Ctrl+c / Ctrl+с
+20260422113141 Window w is not visible, there are no subtitles, something is broken.
 
 
 
