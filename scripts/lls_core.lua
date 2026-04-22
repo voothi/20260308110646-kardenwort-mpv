@@ -136,6 +136,21 @@ local Options = {
     dw_key_select_right = "Shift+RIGHT Shift+ПРАВЫЙ",
     dw_key_select_up = "Shift+UP Shift+ВВЕРХ",
     dw_key_select_down = "Shift+DOWN Shift+ВНИЗ",
+    -- Search Mode (Drum Window)
+    search_key_bs = "BS",
+    search_key_del = "DEL",
+    search_key_select_left = "Shift+LEFT",
+    search_key_select_right = "Shift+RIGHT",
+    search_key_jump_left = "Ctrl+LEFT",
+    search_key_jump_right = "Ctrl+RIGHT",
+    search_key_home = "HOME",
+    search_key_end = "END",
+    search_key_enter = "ENTER",
+    search_key_esc = "ESC",
+    search_key_paste = "Ctrl+v Ctrl+м",
+    search_key_select_all = "Ctrl+a Ctrl+ф",
+    search_key_delete_word = "Ctrl+w Ctrl+ц",
+    search_key_click = "MBTN_LEFT",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -4678,6 +4693,24 @@ local function manage_ui_border_override(enable)
 end
 
 local function manage_search_bindings(enable)
+    local function bind(key_string, name, fn, settings)
+        if not key_string then return end
+        local i = 1
+        for key in key_string:gmatch("[^%s,;]+") do
+            mp.add_forced_key_binding(key, "search-" .. name .. "-" .. i, fn, settings)
+            i = i + 1
+        end
+    end
+
+    local function unbind(key_string, name)
+        if not key_string then return end
+        local i = 1
+        for key in key_string:gmatch("[^%s,;]+") do
+            mp.remove_key_binding("search-" .. name .. "-" .. i)
+            i = i + 1
+        end
+    end
+
     if enable then
         FSM.SEARCH_MODE = true
         FSM.SEARCH_QUERY = ""
@@ -4731,7 +4764,7 @@ local function manage_search_bindings(enable)
         end
         
         -- Special Keys
-        mp.add_forced_key_binding("BS", "search-bs", function()
+        bind(Options.search_key_bs, "bs", function()
             local q_table = utf8_to_table(FSM.SEARCH_QUERY)
             if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
                 local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
@@ -4755,7 +4788,7 @@ local function manage_search_bindings(enable)
             end
         end, "repeatable")
         
-        mp.add_forced_key_binding("DEL", "search-del", function()
+        bind(Options.search_key_del, "del", function()
             local q_table = utf8_to_table(FSM.SEARCH_QUERY)
             if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
                 local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
@@ -4778,21 +4811,23 @@ local function manage_search_bindings(enable)
             end
         end, "repeatable")
         
+        -- Hardcoded Search Keys (documented only)
         mp.add_forced_key_binding("LEFT", "search-left", function() move_search_cursor(-1, false, false) end, "repeatable")
         mp.add_forced_key_binding("RIGHT", "search-right", function() move_search_cursor(1, false, false) end, "repeatable")
-        mp.add_forced_key_binding("Shift+LEFT", "search-left-shift", function() move_search_cursor(-1, false, true) end, "repeatable")
-        mp.add_forced_key_binding("Shift+RIGHT", "search-right-shift", function() move_search_cursor(1, false, true) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+LEFT", "search-left-ctrl", function() move_search_cursor(-1, true, false) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+RIGHT", "search-right-ctrl", function() move_search_cursor(1, true, false) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+Shift+LEFT", "search-left-ctrl-shift", function() move_search_cursor(-1, true, true) end, "repeatable")
-        mp.add_forced_key_binding("Ctrl+Shift+RIGHT", "search-right-ctrl-shift", function() move_search_cursor(1, true, true) end, "repeatable")
+        
+        bind(Options.search_key_select_left, "left-shift", function() move_search_cursor(-1, false, true) end, "repeatable")
+        bind(Options.search_key_select_right, "right-shift", function() move_search_cursor(1, false, true) end, "repeatable")
+        bind(Options.search_key_jump_left, "left-ctrl", function() move_search_cursor(-1, true, false) end, "repeatable")
+        bind(Options.search_key_jump_right, "right-ctrl", function() move_search_cursor(1, true, false) end, "repeatable")
+        bind(Options.search_key_jump_select_left or "Ctrl+Shift+LEFT", "left-ctrl-shift", function() move_search_cursor(-1, true, true) end, "repeatable")
+        bind(Options.search_key_jump_select_right or "Ctrl+Shift+RIGHT", "right-ctrl-shift", function() move_search_cursor(1, true, true) end, "repeatable")
 
-        mp.add_forced_key_binding("HOME", "search-home", function()
+        bind(Options.search_key_home, "home", function()
             FSM.SEARCH_CURSOR = 0
             FSM.SEARCH_ANCHOR = -1
             render_search()
         end)
-        mp.add_forced_key_binding("END", "search-end", function()
+        bind(Options.search_key_end, "end", function()
             FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
             FSM.SEARCH_ANCHOR = -1
             render_search()
@@ -4812,7 +4847,7 @@ local function manage_search_bindings(enable)
             end
         end, "repeatable")
         
-        mp.add_forced_key_binding("ENTER", "search-enter", function()
+        bind(Options.search_key_enter, "enter", function()
             if #FSM.SEARCH_RESULTS > 0 then
                 local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX].idx
                 local sub = Tracks.pri.subs[selected_line]
@@ -4835,7 +4870,7 @@ local function manage_search_bindings(enable)
             end
         end)
         
-        mp.add_forced_key_binding("ESC", "search-esc", function()
+        bind(Options.search_key_esc, "esc", function()
             cmd_toggle_search()
         end)
 
@@ -4883,16 +4918,14 @@ local function manage_search_bindings(enable)
                 end
             end
         end
-        mp.add_forced_key_binding("Ctrl+v", "search-paste", paste_from_clipboard, "repeatable")
-        mp.add_forced_key_binding("Ctrl+м", "search-paste-ru", paste_from_clipboard, "repeatable")
+        bind(Options.search_key_paste, "paste", paste_from_clipboard, "repeatable")
         
         local function select_all()
             FSM.SEARCH_ANCHOR = 0
             FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
             render_search()
         end
-        mp.add_forced_key_binding("Ctrl+a", "search-select-all", select_all)
-        mp.add_forced_key_binding("Ctrl+ф", "search-select-all-ru", select_all)
+        bind(Options.search_key_select_all, "select-all", select_all)
         
         local function delete_word_before_cursor()
             if FSM.SEARCH_QUERY == "" or FSM.SEARCH_CURSOR == 0 then return end
@@ -4921,8 +4954,7 @@ local function manage_search_bindings(enable)
             update_search_results()
             render_search()
         end
-        mp.add_forced_key_binding("Ctrl+w", "search-delete-word", delete_word_before_cursor, "repeatable")
-        mp.add_forced_key_binding("Ctrl+ц", "search-delete-word-ru", delete_word_before_cursor, "repeatable")
+        bind(Options.search_key_delete_word, "delete-word", delete_word_before_cursor, "repeatable")
         
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
@@ -4983,7 +5015,7 @@ local function manage_search_bindings(enable)
                 end
             end
         end
-        mp.add_forced_key_binding("MBTN_LEFT", "search-mouse-click", search_mouse_click, {complex = true})
+        bind(Options.search_key_click, "mouse-click", search_mouse_click, {complex = true})
         
         render_search()
     else
@@ -5000,31 +5032,28 @@ local function manage_search_bindings(enable)
             mp.remove_key_binding("search-char-" .. key_name)
         end
         
-        mp.remove_key_binding("search-bs")
-        mp.remove_key_binding("search-del")
+        unbind(Options.search_key_bs, "bs")
+        unbind(Options.search_key_del, "del")
         mp.remove_key_binding("search-left")
         mp.remove_key_binding("search-right")
-        mp.remove_key_binding("search-left-shift")
-        mp.remove_key_binding("search-right-shift")
-        mp.remove_key_binding("search-left-ctrl")
-        mp.remove_key_binding("search-right-ctrl")
-        mp.remove_key_binding("search-left-ctrl-shift")
-        mp.remove_key_binding("search-right-ctrl-shift")
-        mp.remove_key_binding("search-home")
-        mp.remove_key_binding("search-end")
+        unbind(Options.search_key_select_left, "left-shift")
+        unbind(Options.search_key_select_right, "right-shift")
+        unbind(Options.search_key_jump_left, "left-ctrl")
+        unbind(Options.search_key_jump_right, "right-ctrl")
+        unbind(Options.search_key_jump_select_left or "Ctrl+Shift+LEFT", "left-ctrl-shift")
+        unbind(Options.search_key_jump_select_right or "Ctrl+Shift+RIGHT", "right-ctrl-shift")
+        unbind(Options.search_key_home, "home")
+        unbind(Options.search_key_end, "end")
         mp.remove_key_binding("search-up")
         mp.remove_key_binding("search-down")
-        mp.remove_key_binding("search-enter")
-        mp.remove_key_binding("search-esc")
+        unbind(Options.search_key_enter, "enter")
+        unbind(Options.search_key_esc, "esc")
         mp.remove_key_binding("search-wheel-up")
         mp.remove_key_binding("search-wheel-down")
-        mp.remove_key_binding("search-paste")
-        mp.remove_key_binding("search-paste-ru")
-        mp.remove_key_binding("search-select-all")
-        mp.remove_key_binding("search-select-all-ru")
-        mp.remove_key_binding("search-delete-word")
-        mp.remove_key_binding("search-delete-word-ru")
-        mp.remove_key_binding("search-mouse-click")
+        unbind(Options.search_key_paste, "paste")
+        unbind(Options.search_key_select_all, "select-all")
+        unbind(Options.search_key_delete_word, "delete-word")
+        unbind(Options.search_key_click, "mouse-click")
         
         render_search()
         
