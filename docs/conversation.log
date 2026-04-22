@@ -428,10 +428,13 @@
 20260422103045 o Extract from the code the name of the function as is and its default value in the format toggle-autopause="s"
 20260422102902 Check that all combinations that we replaced with nil are present in the input.conf file or in mpv.conf in explicit form. Report conflicts and absences. toggle-autopause="s" toggle-karaoke-mode="q" smart-space="SPACE" toggle-drum-mode="c" toggle-sub-visibility="v" cycle-secondary-pos="R" cycle-sec-sid="E" toggle-osc-visibility="V" copy-subtitle="Ctrl+c" cycle-copy-mode="m" toggle-copy-context="M" toggle-drum-window="w" toggle-drum-search="f" toggle-book-mode="b" book-mode-b="b" book-mode-ru="и" lls-seek_prev="a" lls-seek_next="d" toggle-anki-global="g"
 20260422104750 Add “f, а” to the existing ones in toggle-drum-search. What are the options toggle-book-mode, book-mode-b, book-mode-ru, are they set in mpv.conf and are there links to this in the comment in input.conf? Change toggle-anki-global to "g п".
-
-
-
-
+20260422105318 Check that all combinations are present in the input.conf file or in mpv.conf in explicit form. Report conflicts and absences. 
+20260422105441 Check that input.conf does not conflict with mpv.conf in terms of combinations and together they contain all the combinations used, not only within this table, but in general, in the code and in the descriptions of the openspec\specs specifications and old documents that I transfer from the docs.
+20260422110430 I answer, let's go according to `Positional Nudge vs. Drum Highlighting` will change `r add sub-pos +1` = "; ж:" and add sub-pos -1 = ". ю" input.conf#L172-175 In the `Internal Drum Window Shortcuts` block, instead of duplicating, rigidly writing keys that may over time diverge from the current configuration in mpv.conf, you need to replace them with keys in the form of the function name, for example, `t / е` replace with dw_key_add.
+20260422112248 I answer, I returned some of the combinations back, why are there hardcoded combinations left in input.conf? They need to be explicitly reflected if they are not in mpv.conf, and here indicate with a link to the function name so that you can link and find # Ctrl+L/R: Jump words (Default 5, Configurable) # Ctrl+U/D: Scroll Viewport (no cursor move) # Ctrl+Shift+U/D: Jump lines (Default 5, Configurable) # ENTER: Seek to selected line # Ctrl+c / Ctrl+с
+20260422113141 Window w is not visible, there are no subtitles, something is broken.
+20260422113517 Error when opening window w.
+20260422114024 This doesn't work, I rolled back by creating a new branch 20260422114003 and switched to it, now I ask you as a powerful model sonnet to help with the solution, given the attempts in commits 96592559e20a83dcb91d0420335b5c070827abcf daf7a2208b47e85db9964445913bb5db5bf8e478 e081c6fe3addcae1c28544c3c0693a14f14d9946, I just need to be able to explicitly reference missing keyboard shortcuts in cofig, some of which may be system ones. It needs to be done without changing the code much, minimally invasively, without complicating it, reliably. It's unlikely that I'll be reassigning keyboard arrows or anything like that. My goal is a declarative config, a single source of truth for keyboard shortcuts. For context, you can go through the following conversation anchors 2026042210083820260422103045 20260422102902 20260422104750 20260422105318 20260422105441 20260422110430 20260422112248 20260422113141 20260422113517
 
 
 
