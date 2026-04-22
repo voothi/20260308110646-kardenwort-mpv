@@ -121,6 +121,7 @@ local Options = {
     dw_key_copy = "Ctrl+c Ctrl+с",
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
+    dw_key_shift_mbtn_left = "Shift+MBTN_LEFT",
     dw_key_mouse_seek = "MBTN_LEFT_DBL",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
@@ -4273,7 +4274,7 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = nav(function() cmd_dw_scroll(-1) end, "Ctrl+UP")},
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end, "Ctrl+DOWN")},
         -- Mouse selection & Suppression
-        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = Options.dw_key_shift_mbtn_left, name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
