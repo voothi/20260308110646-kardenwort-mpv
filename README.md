@@ -200,18 +200,21 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `q` / `Q` | `й` / `Й` | **Quit** / Quit and save position |
 | `SPACE` | `SPACE` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
 | `m` | `ь` | Toggle **Mute** |
+| `0` / `9` | `0` / `9` | Adjust **Volume** (Up / Down) |
 | `[` / `]` | `х` / `ъ` | Decrease / Increase **Playback Speed** (10%) |
 | `{` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
+| `BS` | `BS` | **Reset Playback Speed** (Set to 1.0) |
 | `.` / `,` | `ю` / `б` | Frame Step Forward / Backward |
+| `f` | `а` | Toggle **Fullscreen** |
+| `W` / `E` | `Ц` / `У` | **Panscan** (Zoom Out / In) |
 | `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
 | `Shift+R` / `Shift+T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
 | `s` | `ы` | Toggle Subtitle Visibility (Styled OSD) |
-| `j` | `о` | Cycle Secondary Subtitle Track |
+| `e` | `у` | **Cycle Secondary Track** (Global) / **Toggle Tooltip** (Window) |
 | `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
 | `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
 | `b` | `и` | Toggle **Book Mode** (Static Viewport Lock) |
-| `e` | `у` | Toggle **Translation Tooltip** (Reading Mode) |
 | `n` | `т` | Toggle **Hover Tooltips** (Reading Mode) |
 | `o` | `щ` | **Open Record File** (Active TSV database) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
@@ -220,6 +223,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
 | `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
 | `Ctrl + LMB` | `Ctrl + LMB` | **Multi-Word Selection** (Accumulate individual words) |
+| `Ctrl+Shift+LMB` | `Ctrl+Shift+LMB` | **Extend Pink Selection** (Paired highlights) |
 | `MMB` | `MMB` | **Commit & Export** (Release to save to Anki/TSV) |
 | `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
 | `Ctrl + Shift + LEFT/RIGHT` | `Ctrl+Shift+Л/П` | Block-word Selection (Navigation) |
