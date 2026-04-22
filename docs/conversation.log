@@ -435,7 +435,7 @@
 20260422113141 Window w is not visible, there are no subtitles, something is broken.
 20260422113517 Error when opening window w.
 20260422114024 This doesn't work, I rolled back by creating a new branch 20260422114003 and switched to it, now I ask you as a powerful model sonnet to help with the solution, given the attempts in commits 96592559e20a83dcb91d0420335b5c070827abcf daf7a2208b47e85db9964445913bb5db5bf8e478 e081c6fe3addcae1c28544c3c0693a14f14d9946, I just need to be able to explicitly reference missing keyboard shortcuts in cofig, some of which may be system ones. It needs to be done without changing the code much, minimally invasively, without complicating it, reliably. It's unlikely that I'll be reassigning keyboard arrows or anything like that. My goal is a declarative config, a single source of truth for keyboard shortcuts. For context, you can go through the following conversation anchors 2026042210083820260422103045 20260422102902 20260422104750 20260422105318 20260422105441 20260422110430 20260422112248 20260422113141 20260422113517
-
+20260422120213 No, let’s better replace it with Eсс, without Ctrl, this is how it now works universally for any selection (yellow and pink).
 
 
 

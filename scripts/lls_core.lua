@@ -4269,8 +4269,6 @@ local function manage_dw_bindings(enable)
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
         {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = nav(function() cmd_dw_scroll(-1) end, "Ctrl+UP")},
         {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end, "Ctrl+DOWN")},
-        {key = "ESC", name = "dw-close", fn = nav(function() cmd_toggle_drum_window() end, "ESC")},
-        {key = "Ctrl+ESC", name = "dw-pair-discard", fn = nav(ctrl_discard_set, "Ctrl+ESC")},
         {key = "Ctrl+c", name = "dw-copy", fn = nav(function() cmd_dw_copy() end, "Ctrl+c")},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
