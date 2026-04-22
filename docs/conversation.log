@@ -441,6 +441,7 @@
 20260422122511 Okay, now move into the config `Ctrl+c / Ctrl+с`.
 20260422122810 Okay, now move into the config `ENTER`.
 20260422123001 Okay, now move into the config `ESC`.
-
-
+20260422123152 Okay, now move into the config `Arrows`.
+20260422123402 No, that didn't work, I'm off to brunch. 20260422123416. We refuse this, how can we then fix that the arrows cannot be changed or reassigned in the current implementation?
+20260422124048 Let's try to implement your proposal to wrap the arrows.
 
