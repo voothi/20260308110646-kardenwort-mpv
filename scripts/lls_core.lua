@@ -117,6 +117,7 @@ local Options = {
     dw_key_tooltip_toggle = "e у",
     dw_key_seek_prev = "a ф",
     dw_key_seek_next = "d в",
+    dw_key_search = "f Ctrl+f а Ctrl+а",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -4337,6 +4338,7 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
     parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false)
     parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false)
+    parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
 
     -- Extra Layout & Search
     local extra = {
@@ -4358,8 +4360,6 @@ local function manage_dw_bindings(enable)
         {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-Options.dw_jump_lines, true) end},
         {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(Options.dw_jump_lines, true) end},
         {key = "Ctrl+с", name = "dw-copy-ru", fn = function() cmd_dw_copy() end},
-        {key = "Ctrl+f", name = "dw-search-toggle", fn = function() cmd_toggle_search() end},
-        {key = "Ctrl+а", name = "dw-search-toggle-ru", fn = function() cmd_toggle_search() end},
         {key = "ESC", name = "dw-esc", fn = function() cmd_dw_esc() end},
     }
     for _, k in ipairs(extra) do table.insert(keys, k) end
