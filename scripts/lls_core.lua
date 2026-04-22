@@ -121,6 +121,10 @@ local Options = {
     dw_key_copy = "Ctrl+c Ctrl+с",
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
+    dw_key_left = "LEFT ЛЕВЫЙ",
+    dw_key_right = "RIGHT ПРАВЫЙ",
+    dw_key_up = "UP ВВЕРХ",
+    dw_key_down = "DOWN ВНИЗ",
     anki_context_max_words = 40,
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
@@ -4253,24 +4257,8 @@ local function manage_dw_bindings(enable)
     end
 
     local keys = {
-        {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end, "LEFT")},
-        {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
-        {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
-        {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
-        {key = "Shift+UP", name = "dw-line-up-shift", fn = nav(function() cmd_dw_line_move(-1, true) end, "Shift+UP")},
-        {key = "Shift+DOWN", name = "dw-line-down-shift", fn = nav(function() cmd_dw_line_move(1, true) end, "Shift+DOWN")},
-        {key = "Shift+LEFT", name = "dw-word-left-shift", fn = nav(function() cmd_dw_word_move(-1, true) end, "Shift+LEFT")},
-        {key = "Shift+RIGHT", name = "dw-word-right-shift", fn = nav(function() cmd_dw_word_move(1, true) end, "Shift+RIGHT")},
-        {key = "Ctrl+LEFT", name = "dw-word-left-ctrl", fn = nav(function() cmd_dw_word_move(-Options.dw_jump_words, false) end, "Ctrl+LEFT")},
-        {key = "Ctrl+RIGHT", name = "dw-word-right-ctrl", fn = nav(function() cmd_dw_word_move(Options.dw_jump_words, false) end, "Ctrl+RIGHT")},
-        {key = "Ctrl+Shift+LEFT", name = "dw-word-left-ctrl-shift", fn = nav(function() cmd_dw_word_move(-Options.dw_jump_words, true) end, "Ctrl+Shift+LEFT")},
-        {key = "Ctrl+Shift+RIGHT", name = "dw-word-right-ctrl-shift", fn = nav(function() cmd_dw_word_move(Options.dw_jump_words, true) end, "Ctrl+Shift+RIGHT")},
-        {key = "Ctrl+Shift+UP", name = "dw-line-up-ctrl-shift", fn = nav(function() cmd_dw_line_move(-Options.dw_jump_lines, true) end, "Ctrl+Shift+UP")},
-        {key = "Ctrl+Shift+DOWN", name = "dw-line-down-ctrl-shift", fn = nav(function() cmd_dw_line_move(Options.dw_jump_lines, true) end, "Ctrl+Shift+DOWN")},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
-        {key = "Ctrl+UP", name = "dw-scroll-up-ctrl", fn = nav(function() cmd_dw_scroll(-1) end, "Ctrl+UP")},
-        {key = "Ctrl+DOWN", name = "dw-scroll-down-ctrl", fn = nav(function() cmd_dw_scroll(1) end, "Ctrl+DOWN")},
         -- Mouse selection & Suppression
         {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
@@ -4342,25 +4330,30 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
     parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
     parse_and_bind(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
+    
+    local function bind_nav(key_string, base_name, dir, is_vertical)
+        if not key_string or key_string == "" then return end
+        for key in key_string:gmatch("[^%s,;]+") do
+            if key ~= "" then
+                table.insert(keys, {key = key, name = base_name .. "-move", fn = nav(function() if is_vertical then cmd_dw_line_move(dir, false) else cmd_dw_word_move(dir, false) end end, key)})
+                table.insert(keys, {key = "Shift+" .. key, name = base_name .. "-select", fn = nav(function() if is_vertical then cmd_dw_line_move(dir, true) else cmd_dw_word_move(dir, true) end end, "Shift+" .. key)})
+                if not is_vertical then
+                    table.insert(keys, {key = "Ctrl+" .. key, name = base_name .. "-jump", fn = nav(function() cmd_dw_word_move(dir * Options.dw_jump_words, false) end, "Ctrl+" .. key)})
+                    table.insert(keys, {key = "Ctrl+Shift+" .. key, name = base_name .. "-jump-select", fn = nav(function() cmd_dw_word_move(dir * Options.dw_jump_words, true) end, "Ctrl+Shift+" .. key)})
+                else
+                    table.insert(keys, {key = "Ctrl+" .. key, name = base_name .. "-scroll", fn = nav(function() cmd_dw_scroll(dir) end, "Ctrl+" .. key)})
+                    table.insert(keys, {key = "Ctrl+Shift+" .. key, name = base_name .. "-jump-select", fn = nav(function() cmd_dw_line_move(dir * Options.dw_jump_lines, true) end, "Ctrl+Shift+" .. key)})
+                end
+            end
+        end
+    end
+    bind_nav(Options.dw_key_left, "dw-left", -1, false)
+    bind_nav(Options.dw_key_right, "dw-right", 1, false)
+    bind_nav(Options.dw_key_up, "dw-up", -1, true)
+    bind_nav(Options.dw_key_down, "dw-down", 1, true)
 
     -- Extra Layout & Search
     local extra = {
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
-        {key = "Shift+ЛЕВЫЙ", name = "dw-word-left-shift-ru", fn = function() cmd_dw_word_move(-1, true) end},
-        {key = "Shift+ПРАВЫЙ", name = "dw-word-right-shift-ru", fn = function() cmd_dw_word_move(1, true) end},
-        {key = "Shift+ВВЕРХ", name = "dw-line-up-shift-ru", fn = function() cmd_dw_line_move(-1, true) end},
-        {key = "Shift+ВНИЗ", name = "dw-line-down-shift-ru", fn = function() cmd_dw_line_move(1, true) end},
-        {key = "Ctrl+ВВЕРХ", name = "dw-scroll-up-ctrl-ru", fn = function() cmd_dw_scroll(-1) end},
-        {key = "Ctrl+ВНИЗ", name = "dw-scroll-down-ctrl-ru", fn = function() cmd_dw_scroll(1) end},
-        {key = "Ctrl+ЛЕВЫЙ", name = "dw-word-left-ctrl-ru", fn = function() cmd_dw_word_move(-Options.dw_jump_words, false) end},
-        {key = "Ctrl+ПРАВЫЙ", name = "dw-word-right-ctrl-ru", fn = function() cmd_dw_word_move(Options.dw_jump_words, false) end},
-        {key = "Ctrl+Shift+ЛЕВЫЙ", name = "dw-word-left-ctrl-shift-ru", fn = function() cmd_dw_word_move(-Options.dw_jump_words, true) end},
-        {key = "Ctrl+Shift+ПРАВЫЙ", name = "dw-word-right-ctrl-shift-ru", fn = function() cmd_dw_word_move(Options.dw_jump_words, true) end},
-        {key = "Ctrl+Shift+ВВЕРХ", name = "dw-line-up-ctrl-shift-ru", fn = function() cmd_dw_line_move(-Options.dw_jump_lines, true) end},
-        {key = "Ctrl+Shift+ВНИЗ", name = "dw-line-down-ctrl-shift-ru", fn = function() cmd_dw_line_move(Options.dw_jump_lines, true) end},
     }
     for _, k in ipairs(extra) do table.insert(keys, k) end
 
