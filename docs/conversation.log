@@ -426,8 +426,8 @@
 20260422100520 Yes, go to the next step in the tasks.md task list.
 20260422100838 o opsx-apply openspec\changes\20260310024112-release-v1-2-6
 20260422103045 o Extract from the code the name of the function as is and its default value in the format toggle-autopause="s"
-
-
+20260422102902 Check that all combinations that we replaced with nil are present in the input.conf file or in mpv.conf in explicit form. Report conflicts and absences. toggle-autopause="s" toggle-karaoke-mode="q" smart-space="SPACE" toggle-drum-mode="c" toggle-sub-visibility="v" cycle-secondary-pos="R" cycle-sec-sid="E" toggle-osc-visibility="V" copy-subtitle="Ctrl+c" cycle-copy-mode="m" toggle-copy-context="M" toggle-drum-window="w" toggle-drum-search="f" toggle-book-mode="b" book-mode-b="b" book-mode-ru="и" lls-seek_prev="a" lls-seek_next="d" toggle-anki-global="g"
+20260422104750 Add “f, а” to the existing ones in toggle-drum-search. What are the options toggle-book-mode, book-mode-b, book-mode-ru, are they set in mpv.conf and are there links to this in the comment in input.conf? Change toggle-anki-global to "g п".
 
 
 
