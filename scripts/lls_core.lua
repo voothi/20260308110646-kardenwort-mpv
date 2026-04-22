@@ -4226,7 +4226,6 @@ local function cmd_seek_with_repeat(dir, table)
     if table.event == "down" then
         -- Initial press
         cmd_dw_seek_delta(dir)
-        cmd_dw_seek_delta(dir)
         
         if FSM.SEEK_REPEAT_TIMER then FSM.SEEK_REPEAT_TIMER:kill() end
         FSM.SEEK_REPEAT_TIMER = mp.add_timeout(Options.seek_hold_delay, function()
@@ -4243,6 +4242,14 @@ local function cmd_seek_with_repeat(dir, table)
 end
 
 local function manage_dw_bindings(enable)
+    local keys = {
+        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+        {key = "Ctrl", name = "dw-ctrl-track", fn = function(t) 
+            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
+        end, complex = true},
+    }
+
     local function nav(fn, key_name)
         return function(t)
             local key = (t and t.key) or key_name or ""
@@ -4288,14 +4295,6 @@ local function manage_dw_bindings(enable)
             end
         end
     end
-
-    local keys = {
-        {key = "Shift+MBTN_LEFT", name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-        {key = "MBTN_LEFT_DBL", name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
-        {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
-            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-        end, "Ctrl"), complex = true},
-    }
 
     parse_and_bind(Options.dw_key_nav_word, "dw-word", nil, function(t) 
         local k = (t and t.key) or ""
