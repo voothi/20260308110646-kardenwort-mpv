@@ -111,6 +111,7 @@ local Options = {
     -- Anki Highlighter
     dw_key_add = "MBTN_MID Ctrl+MBTN_MID r к",
     dw_key_pair = "t е Ctrl+MBTN_LEFT",
+    dw_key_pair_extend = "Ctrl+Shift+MBTN_LEFT",
     dw_key_select = "MBTN_LEFT",
     dw_key_tooltip_pin = "MBTN_RIGHT",
     dw_key_tooltip_hover = "n т",
@@ -3580,6 +3581,7 @@ end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
+local cmd_dw_mouse_select_pink_extend = make_mouse_handler(true, cmd_dw_toggle_pink)
 
 local function dw_anki_export_smart_callback(tbl)
     -- Only trigger on release (Standard export behavior)
@@ -4275,6 +4277,7 @@ local function manage_dw_bindings(enable)
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
         -- Mouse selection & Suppression
         {key = Options.dw_key_select_extend, name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = Options.dw_key_pair_extend, name = "dw-mouse-select-pink-extend", fn = cmd_dw_mouse_select_pink_extend, complex = true},
         {key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
         {key = "Ctrl", name = "dw-ctrl-track", fn = nav(function(t) 
