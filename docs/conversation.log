@@ -444,4 +444,4 @@
 20260422123152 Okay, now move into the config `Arrows`.
 20260422123402 No, that didn't work, I'm off to brunch. 20260422123416. We refuse this, how can we then fix that the arrows cannot be changed or reassigned in the current implementation?
 20260422124048 Let's try to implement your proposal to wrap the arrows.
-
+20260422124320 This doesn't work with arrows. I'm going to branch 20260422124333.
