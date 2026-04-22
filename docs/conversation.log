@@ -459,3 +459,13 @@
 20260422141438 Okay, now move into the config `Shift+Arrows`.
 20260422141951 Okay, let's, by the way, add Ctrl+Shift+MBTN_LEFT to highlight the range in pink in the same way as this is done, but only for yellow using the Shift+MBTN_LEFT keys.
 20260422142753 I rolled back the changes to branch 20260422142731 , it turned out it was not necessary, for me MBTN_LEFT highlights in pink the same way as Shift+MBTN_LEFT highlights in yellow.
+20260422143702 What other undocumented keys remain?
+20260422144532 Okay, now move into the config `Ctrl`.
+
+
+
+
+
+
+
+
