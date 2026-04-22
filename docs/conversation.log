@@ -428,8 +428,9 @@
 20260422103045 o Extract from the code the name of the function as is and its default value in the format toggle-autopause="s"
 20260422102902 Check that all combinations that we replaced with nil are present in the input.conf file or in mpv.conf in explicit form. Report conflicts and absences. toggle-autopause="s" toggle-karaoke-mode="q" smart-space="SPACE" toggle-drum-mode="c" toggle-sub-visibility="v" cycle-secondary-pos="R" cycle-sec-sid="E" toggle-osc-visibility="V" copy-subtitle="Ctrl+c" cycle-copy-mode="m" toggle-copy-context="M" toggle-drum-window="w" toggle-drum-search="f" toggle-book-mode="b" book-mode-b="b" book-mode-ru="и" lls-seek_prev="a" lls-seek_next="d" toggle-anki-global="g"
 20260422104750 Add “f, а” to the existing ones in toggle-drum-search. What are the options toggle-book-mode, book-mode-b, book-mode-ru, are they set in mpv.conf and are there links to this in the comment in input.conf? Change toggle-anki-global to "g п".
-
-
+20260422105318 Check that all combinations are present in the input.conf file or in mpv.conf in explicit form. Report conflicts and absences. 
+20260422105441 Check that input.conf does not conflict with mpv.conf in terms of combinations and together they contain all the combinations used, not only within this table, but in general, in the code and in the descriptions of the openspec\specs specifications and old documents that I transfer from the docs.
+20260422110430 I answer, let's go according to `Positional Nudge vs. Drum Highlighting` will change `r add sub-pos +1` = "; ж:" and add sub-pos -1 = ". ю" input.conf#L172-175 In the `Internal Drum Window Shortcuts` block, instead of duplicating, rigidly writing keys that may over time diverge from the current configuration in mpv.conf, you need to replace them with keys in the form of the function name, for example, `t / е` replace with dw_key_add.
 
 
 
