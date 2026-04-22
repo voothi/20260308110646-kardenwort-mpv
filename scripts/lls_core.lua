@@ -112,7 +112,7 @@ local Options = {
     dw_key_add = "MBTN_MID Ctrl+MBTN_MID r к",
     dw_key_pair = "t е Ctrl+MBTN_LEFT",
     dw_key_select = "MBTN_LEFT",
-    dw_key_ctrl = "Ctrl",
+    dw_key_pair_mod = "Ctrl",
     dw_key_tooltip_pin = "MBTN_RIGHT",
     dw_key_tooltip_hover = "n т",
     dw_key_tooltip_toggle = "e у",
@@ -4278,10 +4278,10 @@ local function manage_dw_bindings(enable)
         {key = Options.dw_key_select_extend, name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
         {key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
         -- Ctrl Tracking (State mapping)
-        {key = Options.dw_key_ctrl, name = "dw-ctrl-track", fn = nav(function(t) 
+        {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
             -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
-        end, Options.dw_key_ctrl), complex = true},
+        end, Options.dw_key_pair_mod), complex = true},
     }
 
     local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection)

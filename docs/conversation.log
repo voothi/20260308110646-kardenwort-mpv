@@ -461,6 +461,7 @@
 20260422142753 I rolled back the changes to branch 20260422142731 , it turned out it was not necessary, for me MBTN_LEFT highlights in pink the same way as Shift+MBTN_LEFT highlights in yellow.
 20260422143702 What other undocumented keys remain?
 20260422144532 Okay, now move into the config `Ctrl`.
+20260422144717 Give a name more suitable for the dw_key_ctrl function.
 
 
 
