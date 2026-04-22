@@ -450,7 +450,7 @@
 20260422124959 Double-clicking on a subtitle in window mode w stopped working. The track to this place does not go, the subtitle on which you clicked is not highlighted.
 20260422125648 Okay, now move into the config `Shift+MBTN_LEFT`.
 20260422130000 Okay, let's, by the way, add Ctrl+Shift+MBTN_LEFT to highlight the range in pink in the same way as this is done, but only for yellow using the Shift+MBTN_LEFT keys.
-
+20260422130528 Model quota has expired.
 
 
 
