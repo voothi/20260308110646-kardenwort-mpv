@@ -244,11 +244,11 @@
 ## Highlights
 
 ### ⌨️ **Keyboard-Driven Tooltip Logic**
-- **Unified Toggle Shortcut**: Introduced **`e`** (Russian **`у`**) to toggle translation tooltips in the Drum Window. This enhances keyboard-driven study sessions by eliminating the need for mouse interaction to peek at hints.
+- **Unified Toggle Shortcut**: Introduced **`e`** (Russian **`у`**) to toggle translation tooltips in the Drum Window. This enhances keyboard-driven immersion sessions by eliminating the need for mouse interaction to peek at hints.
 - **Dynamic Scroll Tracking**: Tooltips now intelligently follow their parent subtitle line during scrolling and navigation. The hint remains vertically anchored to the text rather than "float" at a static screen position.
 - **Contextual Priority Targeting**: 
   - **Playback Mode**: While the video is running, the keyboard tooltip automatically follows the currently active subtitle (White).
-  - **Study Mode**: When paused, the toggle prioritizes the user's manual selection/cursor (Yellow) for precise, word-by-word analysis.
+  - **Immersion Mode**: When paused, the toggle prioritizes the user's manual selection/cursor (Yellow) for precise, word-by-word analysis.
 - **RMB Interaction Hardening**: Restored and refined the Right-MouseButton (RMB) hold behavior. Tooltips now reliably appear during hold and correctly dismiss when focus is lost in non-hover modes.
 
 ### 🛡️ **Selection Persistence & Focus Stability**
@@ -445,7 +445,7 @@
 
 ### ⚙️ **Refined Interaction Logic**
 - **LMB & MMB Hold Suppression**: Tooltips now remain suppressed as long as the **Left** or **Middle (Wheel)** Mouse Button is held down. This allows you to "sweep" across lines while selecting or analyzing without any auto-hover popups interfering with your focus.
-- **Improved Focus Stability**: Manual tooltip pins can be instantly dismissed with a standard click (LMB/MMB). The system is fully aware of multi-line selection drags, ensuring the UI remains professionally clean throughout complex study operations.
+- **Improved Focus Stability**: Manual tooltip pins can be instantly dismissed with a standard click (LMB/MMB). The system is fully aware of multi-line selection drags, ensuring the UI remains professionally clean throughout complex immersion operations.
 
 ### 🧹 **Architectural Cleanup**
 - **Functional Naming**: Internal mouse handles have been refactored (e.g., `cmd_dw_mouse_select`) to more accurately reflect their role in the selection and suppression lifecycle, ensuring the codebase remains maintainable as new interactions are added.
