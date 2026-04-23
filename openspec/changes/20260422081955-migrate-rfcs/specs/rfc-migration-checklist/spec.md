@@ -12,4 +12,4 @@ The migration SHALL proceed one file at a time, requiring a separate `/opsx-prop
 
 #### Scenario: Proposing a single RFC
 - **WHEN** the user initiates a migration for a specific RFC file
-- **THEN** a new change directory SHALL be created with the naming convention `<ZID>-feat-<name>`.
+- **THEN** a new change directory SHALL be created with the naming convention `<ZID>-<name>`.
