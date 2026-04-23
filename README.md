@@ -209,8 +209,9 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `W` / `E` | `Ц` / `У` | **Panscan** (Zoom Out / In) |
 | `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
 | `Shift+R` / `Shift+T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
+| `j` | `о` | **Cycle Secondary Track** (Translation) |
 | `s` | `ы` | Toggle Subtitle Visibility (Styled OSD) |
-| `e` | `у` | **Cycle Secondary Track** (Global) / **Toggle Tooltip** (Window) |
+| `e` | `у` | **Toggle Tooltip** (Reading Mode Only) |
 | `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
 | `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
