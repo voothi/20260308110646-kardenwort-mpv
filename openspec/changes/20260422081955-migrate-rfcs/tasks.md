@@ -33,7 +33,7 @@
 - [x] 1.31 Migrate 20260322135347-release-v1.26.18.md
 - [x] 1.32 Migrate 20260322135917-release-v1.26.20.md
 - [x] 1.33 Migrate 20260322153215-release-v1.26.22.md
-- [ ] 1.34 Migrate 20260322154532-release-v1.26.24.md
+- [x] 1.34 Migrate 20260322154532-release-v1.26.24.md
 - [ ] 1.35 Migrate 20260322161222-release-v1.26.26.md
 - [ ] 1.36 Migrate 20260322163803-release-v1.26.28.md
 - [ ] 1.37 Migrate 20260322171238-release-v1.26.30.md
