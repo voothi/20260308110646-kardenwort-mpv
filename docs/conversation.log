@@ -499,7 +499,8 @@
 20260423102711 opsx-apply openspec\changes\20260311014935-release-v1-2-16
 20260423133035 Look in general, according to version v1.2.18, v1.2.20, do you need to change the code? If we don't need to do this, how do we change the job and specifications to take this into account when further synchronizing with the main specifications catalog? We are currently in the process of transferring the project openspec\changes\20260422081955-migrate-rfcs lls_core.lua#L2290-2294
 20260423140459 I'll remember 20260423140439 for now and roll back to 20260423102556 to deal with it later.
-
+20260423140901 I found that the display of ass subtitles is broken.
+20260423140905 Yes, go to the next step in the tasks.md task list.
 
 
 
