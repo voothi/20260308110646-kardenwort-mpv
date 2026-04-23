@@ -38,4 +38,4 @@
 - [x] 1.36 Migrate 20260322163803-release-v1.26.28.md
 - [x] 1.37 Migrate 20260322171238-release-v1.26.30.md
 - [x] 1.38 Migrate 20260322191027-release-v1.26.32.md
-- [ ] 1.39 Migrate 20260322202226-v1.26.34.md
+- [x] 1.39 Migrate 20260322202226-v1.26.34.md
