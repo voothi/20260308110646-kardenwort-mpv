@@ -2288,9 +2288,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
         Options.drum_border_size, Options.drum_shadow_offset, calculate_ass_alpha(Options.drum_bg_opacity))
 
     if is_top then
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}{\\q0}%s%s\n", y_pixel, font_size, style_block, all_text)
     else
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
+        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}{\\q0}%s%s\n", y_pixel, font_size, style_block, all_text)
     end
 
     return ass
@@ -2625,8 +2625,8 @@ local function draw_dw(subs, view_center, active_idx)
     
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
+    -- \q0 enables smart wrapping to prevent line overlapping in the OSD layout
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q0}{\\fs%d}%s", 
         Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
     return ass
@@ -4239,11 +4239,11 @@ local function cmd_dw_seek_delta(dir)
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
-            if FSM.DW_ANCHOR_LINE == -1 then
-                FSM.DW_CURSOR_LINE = target_idx
-                FSM.DW_CURSOR_WORD = -1
-                FSM.DW_CURSOR_X = nil
-            end
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_LINE = target_idx
+            FSM.DW_CURSOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
         end
     end
 end
