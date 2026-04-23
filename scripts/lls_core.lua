@@ -5601,10 +5601,10 @@ local function register_global_position_keys()
             i = i + 1
         end
     end
-    bind(Options.key_sub_pos_up, "lls-sub-pos-up", function() cmd_adjust_sub_pos(1) end)
-    bind(Options.key_sub_pos_down, "lls-sub-pos-down", function() cmd_adjust_sub_pos(-1) end)
-    bind(Options.key_sec_sub_pos_up, "lls-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(1) end)
-    bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(-1) end)
+    bind(Options.key_sub_pos_up, "lls-sub-pos-up", function() cmd_adjust_sub_pos(-1) end)
+    bind(Options.key_sub_pos_down, "lls-sub-pos-down", function() cmd_adjust_sub_pos(1) end)
+    bind(Options.key_sec_sub_pos_up, "lls-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end)
+    bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
 end
 register_global_position_keys()
 
