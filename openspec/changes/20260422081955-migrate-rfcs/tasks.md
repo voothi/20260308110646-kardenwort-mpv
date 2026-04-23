@@ -15,7 +15,7 @@
 - [x] 1.13 Migrate 20260311023622-release-v1.2.18.md
 - [x] 1.14 Migrate 20260311044229-release-v1.2.20.md
 - [x] 1.15 Migrate 20260311101023-release-v1.2.22.md
-- [ ] 1.16 Migrate 20260312115025-release-v1.24.0.md
+- [x] 1.16 Migrate 20260312115025-release-v1.24.0.md
 - [ ] 1.17 Migrate 20260312174428-release-v1.24.8.md
 - [ ] 1.18 Migrate 20260312175031-release-v1.24.9.md
 - [ ] 1.19 Migrate 20260312185338-release-v1.24.10.md
