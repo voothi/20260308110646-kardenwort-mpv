@@ -51,7 +51,7 @@ local Options = {
     -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
     -- to prevent primary and secondary subtitles from overlapping at the bottom.
     sec_pos_top = 10,
-    sec_pos_bottom = 80,
+    sec_pos_bottom = 90,
 
     -- System
     tick_rate = 0.05,
