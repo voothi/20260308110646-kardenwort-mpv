@@ -2625,8 +2625,8 @@ local function draw_dw(subs, view_center, active_idx)
     
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
-    -- \q0 enables smart wrapping to prevent line overlapping in the OSD layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q0}{\\fs%d}%s", 
+    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
         Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
     return ass
