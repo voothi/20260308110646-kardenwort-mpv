@@ -196,7 +196,8 @@ options.read_options(Options, "lls")
 -- =========================================================================
 
 function show_osd(msg, dur)
-    mp.osd_message(msg, dur or 2)
+    local style = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
 end
 
 function has_cyrillic(str)
@@ -2039,10 +2040,7 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     end
 end
 
-local function show_osd(msg, dur)
-    local style = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
-end
+
 
 
 -- =========================================================================
