@@ -4239,11 +4239,12 @@ local function cmd_dw_seek_delta(dir)
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
-            if FSM.DW_ANCHOR_LINE == -1 then
-                FSM.DW_CURSOR_LINE = target_idx
-                FSM.DW_CURSOR_WORD = -1
-                FSM.DW_CURSOR_X = nil
-            end
+        end
+        
+        if FSM.DW_ANCHOR_LINE == -1 then
+            FSM.DW_CURSOR_LINE = target_idx
+            FSM.DW_CURSOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
         end
     end
 end
