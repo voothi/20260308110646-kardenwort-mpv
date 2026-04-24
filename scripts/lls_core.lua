@@ -293,8 +293,99 @@ dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
 
 -- =========================================================================
--- DRUM WINDOW CTRL-SELECT ACCUMULATOR
+-- COPY CONTEXT LOGIC (Moved up for visibility)
 -- =========================================================================
+
+function cmd_cycle_copy_mode()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Copy Mode: No subtitles loaded")
+        return
+    end
+    if FSM.MEDIA_STATE == "SINGLE_SRT" then
+        show_osd("Copy Mode: Fixed to Primary (Single Track)")
+        return
+    end
+    FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
+    
+    local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
+    show_osd("Copy Subtitle Mode: " .. label)
+end
+
+function cmd_toggle_copy_ctx()
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        show_osd("Context Copy: No subtitles loaded")
+        return
+    end
+    if not Tracks.pri.path and not Tracks.sec.path then
+        show_osd("Context Copy: Requires external subtitle files")
+        return
+    end
+    FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
+    show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
+end
+
+function get_copy_context_text(time_pos, line_idx)
+    local combined = {}
+    
+    local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
+    
+    local function is_target(s)
+        if not s then return false end
+        local cyr = has_cyrillic(s)
+        if FSM.COPY_MODE == "A" then
+            return not cyr
+        else
+            return cyr
+        end
+    end
+    
+    local function append(path, is_ass, explicit_idx)
+        if not path then return end
+        local subs = nil
+        if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
+        elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.sec.subs
+        else subs = load_sub(path, is_ass) end
+
+        if subs and #subs > 0 then
+            local idx = explicit_idx or get_center_index(subs, time_pos)
+            if idx ~= -1 then
+                if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
+                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
+                        idx = idx - 1
+                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
+                        idx = idx + 1
+                    end
+                end
+                
+                local pre, i = {}, idx - 1
+                while i >= 1 and #pre < Options.copy_context_lines do
+                    local t = trim(subs[i].text)
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
+                    i = i - 1
+                end
+                for _, ln in ipairs(pre) do table.insert(combined, ln) end
+                
+                local ctext = trim(subs[idx].text)
+                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
+                
+                local post, i2 = {}, idx + 1
+                while i2 <= #subs and #post < Options.copy_context_lines do
+                    local t = trim(subs[i2].text)
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
+                    i2 = i2 + 1
+                end
+                for _, ln in ipairs(post) do table.insert(combined, ln) end
+            end
+        end
+    end
+    
+    append(Tracks.pri.path, Tracks.pri.is_ass, line_idx)
+    if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path then
+        append(Tracks.sec.path, Tracks.sec.is_ass)
+    end
+    
+    return #combined > 0 and table.concat(combined, "\n") or nil
+end
 
 
 local ANKI_MAPPING_CACHE = nil
@@ -4395,16 +4486,19 @@ local function manage_dw_bindings(enable)
 
     for _, k in ipairs(keys) do
         if enable then 
-            if k.complex then
-                mp.add_forced_key_binding(k.key, k.name, k.fn, {complex = true})
-            else
-                local settings = nil
-                if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
-                   or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-                   or k.key == "ENTER" or k.key == "KP_ENTER" then
-                    settings = "repeatable"
+            -- Shield the system from unknown or naked modifier keys
+            if k.key and not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
+                if k.complex then
+                    mp.add_forced_key_binding(k.key, k.name, k.fn, {complex = true})
+                else
+                    local settings = nil
+                    if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
+                       or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
+                       or k.key == "ENTER" or k.key == "KP_ENTER" then
+                        settings = "repeatable"
+                    end
+                    mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
                 end
-                mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
             end
         else mp.remove_key_binding(k.name) end
     end
@@ -5398,99 +5492,12 @@ local function cmd_toggle_osc()
 end
 
 -- =========================================================================
--- COPY CONTEXT LOGIC
+-- SYSTEM EVENTS
 -- =========================================================================
 
-local function cmd_cycle_copy_mode()
-    if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Copy Mode: No subtitles loaded")
-        return
-    end
-    if FSM.MEDIA_STATE == "SINGLE_SRT" then
-        show_osd("Copy Mode: Fixed to Primary (Single Track)")
-        return
-    end
-    FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
-    
-    local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
-    show_osd("Copy Subtitle Mode: " .. label)
-end
-
-local function cmd_toggle_copy_ctx()
-    if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Context Copy: No subtitles loaded")
-        return
-    end
-    if not Tracks.pri.path and not Tracks.sec.path then
-        show_osd("Context Copy: Requires external subtitle files")
-        return
-    end
-    FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
-    show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
-end
-
-local function get_copy_context_text(time_pos, line_idx)
-    local combined = {}
-    
-    local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
-    
-    local function is_target(s)
-        if not s then return false end
-        local cyr = has_cyrillic(s)
-        if FSM.COPY_MODE == "A" then
-            return not cyr
-        else
-            return cyr
-        end
-    end
-    
-    local function append(path, is_ass, explicit_idx)
-        if not path then return end
-        local subs = nil
-        if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
-        elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.sec.subs
-        else subs = load_sub(path, is_ass) end
-
-        if subs and #subs > 0 then
-            local idx = explicit_idx or get_center_index(subs, time_pos)
-            if idx ~= -1 then
-                if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
-                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
-                        idx = idx - 1
-                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
-                        idx = idx + 1
-                    end
-                end
-                
-                local pre, i = {}, idx - 1
-                while i >= 1 and #pre < Options.copy_context_lines do
-                    local t = trim(subs[i].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
-                    i = i - 1
-                end
-                for _, ln in ipairs(pre) do table.insert(combined, ln) end
-                
-                local ctext = trim(subs[idx].text)
-                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
-                
-                local post, i2 = {}, idx + 1
-                while i2 <= #subs and #post < Options.copy_context_lines do
-                    local t = trim(subs[i2].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
-                    i2 = i2 + 1
-                end
-                for _, ln in ipairs(post) do table.insert(combined, ln) end
-            end
-        end
-    end
-    
-    append(Tracks.pri.path, Tracks.pri.is_ass, line_idx)
-    if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path then
-        append(Tracks.sec.path, Tracks.sec.is_ass)
-    end
-    
-    return #combined > 0 and table.concat(combined, "\n") or nil
-end
+-- =========================================================================
+-- SYSTEM EVENTS
+-- =========================================================================
 
 local function cmd_copy_sub()
     local ctext = ""
