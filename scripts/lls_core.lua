@@ -3858,9 +3858,13 @@ local function tick_dw(time_pos)
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
         if not FSM.BOOK_MODE then
-            FSM.DW_VIEW_CENTER = active_idx
-            if FSM.DW_ANCHOR_LINE == -1 then
-                FSM.DW_CURSOR_LINE = active_idx
+            if FSM.DW_VIEW_CENTER ~= active_idx then
+                FSM.DW_VIEW_CENTER = active_idx
+                if FSM.DW_ANCHOR_LINE == -1 then
+                    FSM.DW_CURSOR_LINE = active_idx
+                    FSM.DW_CURSOR_WORD = -1
+                    FSM.DW_CURSOR_X = nil
+                end
             end
         elseif not FSM.DW_SEEKING_MANUALLY then
             -- Book Mode: Line-by-line scrolling during playback
@@ -4417,6 +4421,11 @@ local function cmd_dw_seek_delta(dir)
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+        
+        if FSM.DW_ANCHOR_LINE == -1 then
+            FSM.DW_CURSOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
+        end
         
         -- Immediate visual feedback for the viewport
         if FSM.BOOK_MODE then

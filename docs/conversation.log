@@ -555,7 +555,7 @@
 20260424231745 Okay, better, only now it scrolls to the middle of the text, but it should scroll to the top. This is one of the comments.
 20260424232058 Okay, now we need to look at openspec\specs and make sure there is no regression.
 20260424232246 The fact is that the behavior has changed, now the yellow cursor is shown after scrolling a, d in the line of the current subtitles and follows them. But it was not like that. Look at the commit d264b61a4e676ff20763a1dae931ac7cd2039959 when it worked correctly.
-
+20260424233409 Okay, but you still need to be in Book Mode OFF when you probably remove the yellow highlight as it worked before. Because now it appears in every subtitle, unless you remove it with Esc.
 
 
 
