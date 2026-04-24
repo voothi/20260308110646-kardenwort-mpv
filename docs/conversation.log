@@ -529,7 +529,8 @@
 20260423230535 Yes, go to the next step in the tasks.md task list.
 20260423231109 opsx-archive 20260422081955-migrate-rfcs
 20260423231317 Sync now
-
+20260424201740 I discovered a problem in which in window w when Book Mode ON is turned on, when scrolling through subtitles with the a, d keys, when selecting new subtitles in this way, when copying Ctrl C, the last subtitle that was before switching to ON mode is copied. In OFF mode it works, but there is always focus on the center when scrolling like this, when making a selection.
+20260424202701 Yes, create a propose 
 
 
 
