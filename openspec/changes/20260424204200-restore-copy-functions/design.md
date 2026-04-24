@@ -28,3 +28,18 @@ In `cmd_dw_copy`:
 ## Risks / Trade-offs
 - **Track Sync Desync**: If primary and secondary tracks have different line counts or offsets, `COPY_MODE B` in the Drum Window might copy the wrong line. However, this is an existing limitation of the `lls` dual-subtitle logic.
 - **Context Bloat**: Including context for range selections might result in very large clipboard entries. We will adhere to `Options.copy_context_lines` to keep this manageable.
+
+## Implementation Notes & Debugging (Anchors)
+
+The implementation required several technical adjustments to resolve visibility and stability issues in the `lls_core.lua` script architecture.
+
+### Anchors & Milestones
+- **20260424204541**: Implementation started via spec-driven workflow.
+- **20260424204855 / 205329**: **Function Visibility Fix**. Resolved "nil upvalue" crash by promoting `cmd_cycle_copy_mode` and `cmd_toggle_copy_ctx` to global scope and lifting them to the top of the file.
+- **20260424205936 / 210742**: **Parsing Stability Fix**. Resolved `load_sub` and `time_pos` nil crashes by lifting subtitle parsing utilities to the top and adding player-time fallbacks for context extraction.
+- **20260424212101**: **OSD Styling Restoration**. Restored `{\an4}{\fs20}` ASS tags to `show_osd` to fix message positioning regressions.
+- **20260424213101**: **Regression Audit**. Verified that `cmd_dw_copy` correctly utilizes `FSM.DW_CURSOR_LINE` for Book Mode accuracy, fixing the "stale copy" issue.
+
+### Architectural Improvements
+- **Utility Lifting**: All core utilities (`show_osd`, `has_cyrillic`, `get_center_index`, `load_sub`, `parse_time`, `clean_text_srt`) are now globally available at the top of the script.
+- **Modifier Shielding**: `manage_dw_bindings` now explicitly ignores standalone modifiers (`Ctrl`, etc.) during registration to prevent mpv "Unknown key" errors.
