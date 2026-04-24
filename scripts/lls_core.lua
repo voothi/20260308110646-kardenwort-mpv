@@ -479,6 +479,7 @@ function cmd_toggle_copy_ctx()
 end
 
 function get_copy_context_text(time_pos, line_idx)
+    time_pos = time_pos or mp.get_property_number("time-pos") or 0
     local combined = {}
     
     local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
