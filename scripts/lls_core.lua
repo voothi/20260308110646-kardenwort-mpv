@@ -410,6 +410,7 @@ local FSM = {
     DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
+    DW_SEEKING_MANUALLY = false,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
 
     -- Repeat Timer
@@ -3858,7 +3859,7 @@ local function tick_dw(time_pos)
             if FSM.DW_ANCHOR_LINE == -1 then
                 FSM.DW_CURSOR_LINE = active_idx
             end
-        else
+        elseif not FSM.DW_SEEKING_MANUALLY then
             -- Book Mode: Line-by-line scrolling during playback
             dw_ensure_visible(active_idx, true)
             if FSM.DW_ANCHOR_LINE == -1 then
@@ -4264,12 +4265,9 @@ local function dw_ensure_visible(line_idx, paged)
     view_max = math.min(#subs, view_max)
 
     if paged then
-        if line_idx < view_min + margin then
-            -- Jump up: active line becomes aligned with bottom margin
-            FSM.DW_VIEW_CENTER = math.max(1, line_idx + (win_lines - margin - 1) - half_win)
-        elseif line_idx > view_max - margin then
-            -- Jump down: active line becomes aligned with top margin
-            FSM.DW_VIEW_CENTER = math.min(#subs, line_idx - margin + half_win)
+        if line_idx < view_min + margin or line_idx > view_max - margin then
+            -- Jump to center (as in drum mode)
+            FSM.DW_VIEW_CENTER = line_idx
         end
     else
         -- Push (line-by-line)
@@ -4416,19 +4414,20 @@ local function cmd_dw_seek_delta(dir)
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
-        if not FSM.BOOK_MODE then
-            FSM.DW_VIEW_CENTER = target_idx
-        else
-            dw_ensure_visible(target_idx, false)
-        end
-        
         if FSM.DW_ANCHOR_LINE == -1 then
             FSM.DW_CURSOR_LINE = target_idx
             FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[target_idx], FSM.DW_CURSOR_X or 960)
             FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[target_idx]) or FSM.DW_CURSOR_X
         end
-    end
+        
+        -- Immediate visual feedback for the viewport
+        if FSM.BOOK_MODE then
+            dw_ensure_visible(target_idx, false)
+        else
+            FSM.DW_VIEW_CENTER = target_idx
+        end
 end
+
 
 local function cmd_seek_with_repeat(dir, table)
     if not table or not table.event then 
@@ -4439,6 +4438,7 @@ local function cmd_seek_with_repeat(dir, table)
 
     if table.event == "down" then
         -- Initial press
+        FSM.DW_SEEKING_MANUALLY = true
         cmd_dw_seek_delta(dir)
         
         -- Setup repeat timer
@@ -4449,6 +4449,7 @@ local function cmd_seek_with_repeat(dir, table)
             end)
         end)
     elseif table.event == "up" then
+        FSM.DW_SEEKING_MANUALLY = false
         if FSM.SEEK_REPEAT_TIMER then
             FSM.SEEK_REPEAT_TIMER:kill()
             FSM.SEEK_REPEAT_TIMER = nil
@@ -4582,8 +4583,7 @@ local function manage_dw_bindings(enable)
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
                        or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-                       or k.key == "ENTER" or k.key == "KP_ENTER" 
-                       or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
+                       or k.key == "ENTER" or k.key == "KP_ENTER" then
                         settings = "repeatable"
                     end
                     mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
