@@ -16,12 +16,13 @@ The Drum Window's Book Mode currently suffers from inconsistent scrolling and na
 ## Decisions
 
 - **Unified Scroll Handler**: Modify `dw_ensure_visible(line_idx, paged)` to accept a `paged` boolean.
-  - If `paged` is true: When `line_idx` exceeds `view_max - margin`, set `FSM.DW_VIEW_CENTER` such that `line_idx` becomes `view_min + margin` (flipping the page forward). Similar logic for scrolling up.
-  - If `paged` is false: Standard "push" logic that moves `FSM.DW_VIEW_CENTER` just enough to keep `line_idx` within the margin.
-- **Repeatable Bindings**: Maintain `a`, `d`, `ф`, `в` as repeatable keys in `manage_dw_bindings` to allow smooth manual scrolling.
-- **Cursor Synchronization**: In `cmd_dw_seek_delta`, update `FSM.DW_CURSOR_WORD` to the closest word on the target line instead of `-1`. This ensures the `Options.dw_highlight_color` (Gold) is applied to at least one word, providing visual feedback of the "pointer" location.
-- **Configurable Context**: Use `Options.dw_scrolloff` for both header and footer margins.
+  - If `paged` is true (Playback): When `line_idx` exceeds `view_max - margin`, set `FSM.DW_VIEW_CENTER` such that `line_idx` becomes `view_min + margin` (flipping the page forward so the active line is near the TOP).
+  - If `paged` is false (Manual): Standard "push" logic that moves `FSM.DW_VIEW_CENTER` incrementally to keep `line_idx` within the margin.
+- **Pointer Independence (Book Mode)**: Decouple the manual seek (`a`/`d`) from the yellow cursor. Manual seeking moves the video and "white pointer" while the yellow cursor stays stationary at its last manual position.
+- **Selection Persistence (Regular Mode)**: In Regular Mode (Book Mode OFF), the yellow cursor follows the player focus but resets the word focus (`DW_CURSOR_WORD = -1`) when the subtitle changes automatically, matching the behavior of commit `d264b61`.
+- **Virtual Seek Target**: Implement `FSM.DW_SEEK_TARGET` to track manual seek position independently of the video engine's current state, ensuring smooth and responsive navigation under load.
+- **Repeatable Bindings**: Use script-level timers (`cmd_seek_with_repeat`) for high-performance key repeats, ensuring no conflict with `mpv`'s native repeat logic.
 
 ## Risks / Trade-offs
-- **Rapid Seeks**: Repeatable `a`/`d` keys might trigger multiple `mpv` seek commands in quick succession. We rely on `mpv`'s `absolute+exact` seek efficiency and the script's `seek_hold_rate` to prevent lag.
-- **Margin Overlap**: If `dw_scrolloff` is set to more than half of `dw_lines_visible`, the logic might cause oscillatory scrolling. We should add a safety clamp in `dw_ensure_visible`.
+- **View Oscillations**: If `dw_scrolloff` is set too high for the current window size, the logic could trigger rapid scrolling. We've added a safety clamp in `dw_ensure_visible` to prevent this.
+- **Decoupling Confusion**: Users might expect the yellow cursor to follow `a`/`d` in Book Mode. However, we've prioritized "Editor Mode" independence to allow users to hold a word focus while flipping through the context.

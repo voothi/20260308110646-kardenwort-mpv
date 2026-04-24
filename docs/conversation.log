@@ -557,6 +557,8 @@
 20260424232246 The fact is that the behavior has changed, now the yellow cursor is shown after scrolling a, d in the line of the current subtitles and follows them. But it was not like that. Look at the commit d264b61a4e676ff20763a1dae931ac7cd2039959 when it worked correctly.
 20260424233409 Okay, but you still need to be in Book Mode OFF when you probably remove the yellow highlight as it worked before. Because now it appears in every subtitle, unless you remove it with Esc.
 20260424234447 Okay, it works. Check for regression of functions in comparison with the version according to commit d264b61a4e676ff20763a1dae931ac7cd2039959. Review the code like a senior developer and meticulous tester.
+20260424234802 Update documentation, specifications, add test cases in openspec\changes\20260424223910-refine-book-mode-nav using conversation anchors 20260424230315 20260424230542 20260424231350 20260424231745 20260424232058 20260424232246 20260424233409 20260424234447. We need to collect as many and detailed cases as possible that we described, implemented, and tested as part of our current work.
+20260424235241 Have you described all the test cases in the specification openspec\changes\20260424223910-refine-book-mode-nav\specs?
 
 
 
