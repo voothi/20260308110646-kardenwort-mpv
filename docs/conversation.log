@@ -561,6 +561,6 @@
 20260424235241 Have you described all the test cases in the specification openspec\changes\20260424223910-refine-book-mode-nav\specs?
 20260424235410 opsx-archive openspec\changes\20260424223910-refine-book-mode-nav
 20260424235728 Auto-scrolling stopped working when holding  a, d, which previously worked, in a commit 6c8b7b5289ed2b85f742b44060eb56207d2d88b3. Should work the same in normal mode, single line mode, reel mode with, window mode w.
-
+20260425014646 Okay, but look that you have synchronized all the specifications from this revision.
 
 

@@ -14,6 +14,14 @@ The system SHALL provide a unified auto-repeat mechanism for subtitle navigation
 - **WHEN** the user holds down the `d` key
 - **THEN** after a 500ms delay, the system SHALL begin seeking to the next subtitle repeatedly at a rate of 10 times per second until the key is released.
 
+#### Scenario: Stopping seek on key release
+- **WHEN** the navigation key is released after being held
+- **THEN** the continuous seeking SHALL stop immediately.
+
+#### Scenario: Normal mode parity
+- **WHEN** the Drum Window is closed (Normal Mode)
+- **THEN** holding `a` or `d` SHALL behave identically to the Drum Window behavior (if the script bindings are active).
+
 ### Requirement: Configurable Repeat Parameters
 The system SHALL expose controls for the repeat delay and repetition rate via script options.
 
