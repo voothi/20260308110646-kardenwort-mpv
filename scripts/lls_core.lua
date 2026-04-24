@@ -60,6 +60,7 @@ local Options = {
     -- Drum Window
     dw_font_size = 34,
     dw_lines_visible = 15,        -- how many lines visible in the window
+    dw_scrolloff = 3,             -- margin lines at top/bottom before scrolling
     dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     dw_text_color = "CCCCCC",     -- light text
@@ -3858,11 +3859,11 @@ local function tick_dw(time_pos)
                 FSM.DW_CURSOR_LINE = active_idx
             end
         else
-            -- Book Mode: Paged scrolling during playback
-            dw_ensure_visible(active_idx, true)
-            -- [NOTE] We don't force CURSOR_LINE to active_idx in Book Mode here
-            -- to allow a/d to move the "white pointer" independently during pause
-            -- and to prevent fighting between seek logic and playback tracker.
+            -- Book Mode: Line-by-line scrolling during playback
+            dw_ensure_visible(active_idx)
+            if FSM.DW_ANCHOR_LINE == -1 then
+                FSM.DW_CURSOR_LINE = active_idx
+            end
         end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
@@ -4238,13 +4239,13 @@ local function dw_closest_word_at_x(sub, target_x)
 end
 
 
-local function dw_ensure_visible(line_idx, paged)
+local function dw_ensure_visible(line_idx)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
     local win_lines = Options.dw_lines_visible
     local half_win = math.floor(win_lines / 2)
-    local margin = 3 -- Start scrolling 3 lines before the edge
+    local margin = Options.dw_scrolloff
     
     -- Calculate current viewport bounds
     local view_min = FSM.DW_VIEW_CENTER - half_win
@@ -4262,23 +4263,12 @@ local function dw_ensure_visible(line_idx, paged)
     view_min = math.max(1, view_min)
     view_max = math.min(#subs, view_max)
 
-    if paged then
-        if line_idx < view_min + margin then
-            -- Jump up: active line at bottom margin
-            FSM.DW_VIEW_CENTER = math.max(1, line_idx + (win_lines - margin - 1) - half_win)
-        elseif line_idx > view_max - margin then
-            -- Jump down: active line at top margin
-            FSM.DW_VIEW_CENTER = math.min(#subs, line_idx - margin + half_win)
-        end
-    else
-        -- Push (line-by-line)
-        if line_idx < view_min + margin then
-            local diff = (view_min + margin) - line_idx
-            FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
-        elseif line_idx > view_max - margin then
-            local diff = line_idx - (view_max - margin)
-            FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
-        end
+    if line_idx < view_min + margin then
+        local diff = (view_min + margin) - line_idx
+        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
+    elseif line_idx > view_max - margin then
+        local diff = line_idx - (view_max - margin)
+        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
     end
 end
 
@@ -4400,6 +4390,9 @@ local function cmd_dw_seek_delta(dir)
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
+    local current_idx = get_center_index(subs, time_pos)
+    if current_idx == -1 then return end
+    
     local base_idx = current_idx
     if FSM.BOOK_MODE and FSM.DW_CURSOR_LINE ~= -1 then
         base_idx = FSM.DW_CURSOR_LINE
@@ -4415,7 +4408,7 @@ local function cmd_dw_seek_delta(dir)
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
         else
-            dw_ensure_visible(target_idx, false)
+            dw_ensure_visible(target_idx)
         end
         
         if FSM.DW_ANCHOR_LINE == -1 then

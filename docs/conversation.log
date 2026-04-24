@@ -547,7 +547,7 @@
 20260424222209 In Book Mode ON, subtitles do not move down or up a, d. But the yellow pointer works as it should. Scrolling when it hits the border. 
 20260424223011 Subtitles are not selected when navigating with a, d in Book Mode ON. It didn't fix it. Look to see if we removed anything unnecessary in the previous step 38d2f9433e7fdea3fe579d991fb56b77c82d6c6d
 20260424223510 No, the subtitles don't move at all. We may have made unnecessary changes.
-
+20260424223910 Doesn't work again, compare the current version with the one when it still worked - commit af9c77675c3148f1ab8331aba0253f6ebff7b905. And move those pieces that in the current version are responsible for borders and scrolling in Book Mode ON with a white pointer (changing the current subtitles) and a yellow one (it worked). Also make this number of lines in the header and footer changeable via the option.
 
 
 
