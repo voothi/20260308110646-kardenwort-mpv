@@ -3851,10 +3851,18 @@ local function tick_dw(time_pos)
     FSM.DW_ACTIVE_LINE = active_idx
     
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
-    if FSM.DW_FOLLOW_PLAYER and not FSM.BOOK_MODE then
-        FSM.DW_VIEW_CENTER = active_idx
-        if FSM.DW_ANCHOR_LINE == -1 then
-            FSM.DW_CURSOR_LINE = active_idx
+    if FSM.DW_FOLLOW_PLAYER then
+        if not FSM.BOOK_MODE then
+            FSM.DW_VIEW_CENTER = active_idx
+            if FSM.DW_ANCHOR_LINE == -1 then
+                FSM.DW_CURSOR_LINE = active_idx
+            end
+        else
+            -- Book Mode: Paged scrolling during playback
+            dw_ensure_visible(active_idx, true)
+            if FSM.DW_ANCHOR_LINE == -1 then
+                FSM.DW_CURSOR_LINE = active_idx
+            end
         end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
@@ -4230,7 +4238,7 @@ local function dw_closest_word_at_x(sub, target_x)
 end
 
 
-local function dw_ensure_visible(line_idx)
+local function dw_ensure_visible(line_idx, paged)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -4254,12 +4262,23 @@ local function dw_ensure_visible(line_idx)
     view_min = math.max(1, view_min)
     view_max = math.min(#subs, view_max)
 
-    if line_idx < view_min + margin then
-        local diff = (view_min + margin) - line_idx
-        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
-    elseif line_idx > view_max - margin then
-        local diff = line_idx - (view_max - margin)
-        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
+    if paged then
+        if line_idx < view_min + margin then
+            -- Jump up: active line at bottom margin
+            FSM.DW_VIEW_CENTER = math.max(1, line_idx + (win_lines - margin - 1) - half_win)
+        elseif line_idx > view_max - margin then
+            -- Jump down: active line at top margin
+            FSM.DW_VIEW_CENTER = math.min(#subs, line_idx - margin + half_win)
+        end
+    else
+        -- Push (line-by-line)
+        if line_idx < view_min + margin then
+            local diff = (view_min + margin) - line_idx
+            FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
+        elseif line_idx > view_max - margin then
+            local diff = line_idx - (view_max - margin)
+            FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
+        end
     end
 end
 
@@ -4285,7 +4304,7 @@ local function cmd_dw_line_move(dir, shift)
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
-    dw_ensure_visible(FSM.DW_CURSOR_LINE)
+    dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
     
     if not shift then
         -- Navigate to the closest word under the sticky horizontal position.
@@ -4388,13 +4407,13 @@ local function cmd_dw_seek_delta(dir)
     local sub = subs[target_idx]
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
-        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
         else
-            dw_ensure_visible(target_idx)
+            dw_ensure_visible(target_idx, false)
         end
         
         if FSM.DW_ANCHOR_LINE == -1 then
