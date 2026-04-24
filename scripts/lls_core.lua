@@ -4230,6 +4230,40 @@ local function dw_closest_word_at_x(sub, target_x)
 end
 
 
+local function dw_ensure_visible(line_idx)
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local win_lines = Options.dw_lines_visible
+    local half_win = math.floor(win_lines / 2)
+    local margin = 3 -- Start scrolling 3 lines before the edge
+    
+    -- Calculate current viewport bounds
+    local view_min = FSM.DW_VIEW_CENTER - half_win
+    local view_max = view_min + win_lines - 1
+    
+    -- Adjust bounds to account for start/end of file (clamping logic in dw_build_layout)
+    if view_min < 1 then
+        view_max = view_max + (1 - view_min)
+        view_min = 1
+    end
+    if view_max > #subs then
+        view_min = view_min - (view_max - #subs)
+        view_max = #subs
+    end
+    view_min = math.max(1, view_min)
+    view_max = math.min(#subs, view_max)
+
+    if line_idx < view_min + margin then
+        local diff = (view_min + margin) - line_idx
+        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
+    elseif line_idx > view_max - margin then
+        local diff = line_idx - (view_max - margin)
+        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
+    end
+end
+
+
 local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
@@ -4251,15 +4285,7 @@ local function cmd_dw_line_move(dir, shift)
     FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
-    local half = math.floor(Options.dw_lines_visible / 2)
-    local view_min = FSM.DW_VIEW_CENTER - half
-    local view_max = view_min + Options.dw_lines_visible - 1
-    
-    if FSM.DW_CURSOR_LINE < view_min then
-        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_CURSOR_LINE + half)
-    elseif FSM.DW_CURSOR_LINE > view_max then
-        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_CURSOR_LINE - half)
-    end
+    dw_ensure_visible(FSM.DW_CURSOR_LINE)
     
     if not shift then
         -- Navigate to the closest word under the sticky horizontal position.
@@ -4367,6 +4393,8 @@ local function cmd_dw_seek_delta(dir)
         
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
+        else
+            dw_ensure_visible(target_idx)
         end
         
         if FSM.DW_ANCHOR_LINE == -1 then
