@@ -546,4 +546,9 @@
 20260424221132 Is it possible to make page-by-page scrolling in this Book Mode ON so that it works as we did now with pushing when moving subtitles with the a, d keys, only when playing, so that when the subtitles reach the edge they are scrolled as in drum mode, only with this listing. Think about whether to leave these 3 lines of the subtitle at the edges, that is, so that the 3 previous subtitles can be seen when scrolling through this way. For context.
 20260424222209 In Book Mode ON, subtitles do not move down or up a, d. But the yellow pointer works as it should. Scrolling when it hits the border. 
 20260424223011 Subtitles are not selected when navigating with a, d in Book Mode ON. It didn't fix it. Look to see if we removed anything unnecessary in the previous step 38d2f9433e7fdea3fe579d991fb56b77c82d6c6d
+20260424223510 No, the subtitles don't move at all. We may have made unnecessary changes.
+
+
+
+
 
