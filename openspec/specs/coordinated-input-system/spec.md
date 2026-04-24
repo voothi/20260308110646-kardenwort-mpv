@@ -19,7 +19,7 @@ The system SHALL use a standardized `dw_key_` prefix for all Drum Window interac
 
 #### Scenario: Accessing coordinated keys
 - **WHEN** the script initializes
-- **THEN** it SHALL read `dw_key_add`, `dw_key_pair`, `dw_key_tooltip_pin`, `dw_key_tooltip_hover`, and `dw_key_tooltip_toggle` from the Options table.
+- **THEN** it SHALL read `dw_key_add`, `dw_key_pair`, `dw_key_tooltip_pin`, `dw_key_tooltip_hover`, `dw_key_tooltip_toggle`, `dw_key_cycle_copy_mode`, and `dw_key_toggle_copy_context` from the Options table.
 
 ### Requirement: Layout-Aware Binding
 The system SHALL allow multiple physical keys (e.g., from different keyboard layouts) to be mapped to the same logical action within a single configuration list.
@@ -27,4 +27,15 @@ The system SHALL allow multiple physical keys (e.g., from different keyboard lay
 #### Scenario: EN and RU layout parity
 - **WHEN** the list contains both `r` and `к`
 - **THEN** the smart-add action MUST work regardless of the active keyboard layout.
+
+### Requirement: Unified Mode Toggles
+The keys `z` and `x` must be responsive in all UI states, including the Drum Window and Book Mode.
+
+#### Scenario: Toggling Context Copy in Book Mode
+- **WHEN** the Drum Window is open and Book Mode is ON.
+- **THEN** pressing `x` must toggle `FSM.COPY_CONTEXT` and display an OSD message "Context Copy: ON/OFF".
+
+#### Scenario: Cycling Copy Mode in Book Mode
+- **WHEN** the Drum Window is open and Book Mode is ON.
+- **THEN** pressing `z` must cycle `FSM.COPY_MODE` and display the corresponding OSD message.
 

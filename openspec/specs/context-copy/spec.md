@@ -20,3 +20,17 @@ The system SHALL continue searching the subtitle array until the specified numbe
 #### Scenario: Satisfying line count
 - **WHEN** the user requests 2 lines of context
 - **THEN** the system SHALL continue its search beyond adjacent entries if those entries are merged or filtered.
+
+### Requirement: Contextual Drum Copy
+The Drum Window copy command (`Ctrl+C`) must support context-aware extraction when enabled.
+
+#### Scenario: Verbatim Selection with Context
+- **WHEN** a range of words is selected in the Drum Window and `COPY_CONTEXT` is "ON".
+- **THEN** the clipboard must contain the selected text wrapped with `copy_context_lines` from the surrounding subtitle track.
+
+### Requirement: Language-Aware Fallback
+The single-item fallback (word/line) in the Drum Window must respect the selected language target.
+
+#### Scenario: Copying Translation from Drum Window
+- **WHEN** the cursor is on a line in the Drum Window, `COPY_MODE` is "B" (Russian), and `Ctrl+C` is pressed.
+- **THEN** the clipboard must contain the Russian translation of that specific line instead of the source text.
