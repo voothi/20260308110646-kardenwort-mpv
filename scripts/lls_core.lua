@@ -411,6 +411,7 @@ local FSM = {
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
     DW_SEEKING_MANUALLY = false,
+    DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
 
     -- Repeat Timer
@@ -3864,9 +3865,6 @@ local function tick_dw(time_pos)
         elseif not FSM.DW_SEEKING_MANUALLY then
             -- Book Mode: Line-by-line scrolling during playback
             dw_ensure_visible(active_idx, true)
-            if FSM.DW_ANCHOR_LINE == -1 then
-                FSM.DW_CURSOR_LINE = active_idx
-            end
         end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
@@ -4408,22 +4406,17 @@ local function cmd_dw_seek_delta(dir)
     if current_idx == -1 then return end
     
     local base_idx = current_idx
-    if FSM.BOOK_MODE and FSM.DW_CURSOR_LINE ~= -1 then
-        base_idx = FSM.DW_CURSOR_LINE
+    if FSM.DW_SEEKING_MANUALLY and FSM.DW_SEEK_TARGET ~= -1 then
+        base_idx = FSM.DW_SEEK_TARGET
     end
     
     local target_idx = math.max(1, math.min(#subs, base_idx + dir))
+    FSM.DW_SEEK_TARGET = target_idx
     local sub = subs[target_idx]
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
-        
-        if FSM.DW_ANCHOR_LINE == -1 then
-            FSM.DW_CURSOR_LINE = target_idx
-            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[target_idx], FSM.DW_CURSOR_X or 960)
-            FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[target_idx]) or FSM.DW_CURSOR_X
-        end
         
         -- Immediate visual feedback for the viewport
         if FSM.BOOK_MODE then
@@ -4456,6 +4449,7 @@ local function cmd_seek_with_repeat(dir, table)
         end)
     elseif table.event == "up" then
         FSM.DW_SEEKING_MANUALLY = false
+        FSM.DW_SEEK_TARGET = -1
         if FSM.SEEK_REPEAT_TIMER then
             FSM.SEEK_REPEAT_TIMER:kill()
             FSM.SEEK_REPEAT_TIMER = nil
