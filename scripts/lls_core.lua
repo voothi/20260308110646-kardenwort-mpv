@@ -136,6 +136,8 @@ local Options = {
     dw_key_select_right = "Shift+RIGHT Shift+ПРАВЫЙ",
     dw_key_select_up = "Shift+UP Shift+ВВЕРХ",
     dw_key_select_down = "Shift+DOWN Shift+ВНИЗ",
+    dw_key_cycle_copy_mode = "z я",
+    dw_key_toggle_copy_context = "x ч",
     -- Search Mode (Drum Window)
     search_key_bs = "BS",
     search_key_del = "DEL",
@@ -4379,6 +4381,8 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
     parse_and_bind(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
     parse_and_bind(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
+    parse_and_bind(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
+    parse_and_bind(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
 
     -- Extra Layout & Search
     local extra = {
@@ -5190,73 +5194,98 @@ function cmd_dw_copy()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
+    local cl = FSM.DW_CURSOR_LINE
+    if cl == -1 then return end
+
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    local cw = FSM.DW_CURSOR_WORD
     
     local final_text = ""
+    local is_context = false
     
-    if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-        -- Range selection
-        local p1_l, p1_w, p2_l, p2_w
-        if al < cl or (al == cl and aw <= cw) then
-            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-        else
-            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+    -- 1. Check for Context Copy first (Matches cmd_copy_sub behavior)
+    if FSM.COPY_CONTEXT == "ON" then
+        local ctx = get_copy_context_text(nil, cl)
+        if ctx and ctx ~= "" then
+            final_text = ctx:gsub("\n", " ")
+            is_context = true
         end
-        
-        local parts = {}
-        for i = p1_l, p2_l do
-            local text = subs[i].text:gsub("\n", " ")
-            local tokens = build_word_list_internal(text, true)
-            
-            local s_w = (i == p1_l) and p1_w or 1
-            local e_w = (i == p2_l) and p2_w or nil
-            
-            if not e_w then
-                local wc = 0
-                for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
-                e_w = wc
+    end
+
+    -- 2. Fallback to selection or line if context is OFF or failed
+    if final_text == "" then
+        if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+            -- Range selection (always verbatim from primary track for precision)
+            local p1_l, p1_w, p2_l, p2_w
+            if al < cl or (al == cl and aw <= cw) then
+                p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+            else
+                p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
             end
             
-            local line_parts = {}
-            local in_range = false
-            for _, t in ipairs(tokens) do
-                if logical_cmp(t.logical_idx, s_w) then in_range = true end
+            local parts = {}
+            for i = p1_l, p2_l do
+                local text = subs[i].text:gsub("\n", " ")
+                local tokens = build_word_list_internal(text, true)
                 
-                if in_range then 
-                    table.insert(line_parts, t.text) 
+                local s_w = (i == p1_l) and p1_w or 1
+                local e_w = (i == p2_l) and p2_w or nil
+                
+                if not e_w then
+                    local wc = 0
+                    for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
+                    e_w = wc
                 end
                 
-                if logical_cmp(t.logical_idx, e_w) then in_range = false break end
+                local line_parts = {}
+                local in_range = false
+                for _, t in ipairs(tokens) do
+                    if logical_cmp(t.logical_idx, s_w) then in_range = true end
+                    
+                    if in_range then 
+                        table.insert(line_parts, t.text) 
+                    end
+                    
+                    if logical_cmp(t.logical_idx, e_w) then in_range = false break end
+                end
+                
+                if #line_parts > 0 then
+                    table.insert(parts, table.concat(line_parts, ""))
+                end
+            end
+            final_text = table.concat(parts, " ")
+        else
+            -- Single point or line fallback (Respects COPY_MODE B for translations)
+            local target_subs = subs
+            if FSM.COPY_MODE == "B" and Tracks.sec.subs and #Tracks.sec.subs >= cl then
+                target_subs = Tracks.sec.subs
             end
             
-            if #line_parts > 0 then
-                table.insert(parts, table.concat(line_parts, ""))
+            local text = target_subs[cl].text:gsub("\n", " ")
+            if FSM.DW_CURSOR_WORD > 0 and FSM.COPY_MODE == "A" then
+                local words = build_word_list(text)
+                final_text = words[FSM.DW_CURSOR_WORD] or text
+            else
+                final_text = text
             end
-        end
-        final_text = table.concat(parts, " ")
-    else
-        -- Single point or line fallback
-        local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-        if FSM.DW_CURSOR_WORD > 0 then
-            local words = build_word_list(text)
-            final_text = words[FSM.DW_CURSOR_WORD] or text
-        else
-            final_text = text
         end
     end
     
     if final_text ~= "" then
         final_text = final_text:gsub("{[^}]+}", "")
-        -- Clean capture: Remove trailing/leading punctuation/spaces
-        local pre = final_text:match("^[%p%s]*")
-        local suf = final_text:match("[%p%s]*$")
-        if #pre < #final_text then
-            final_text = final_text:sub(#pre + 1, #final_text - #suf)
+        
+        if not is_context then
+            -- Clean capture: Remove trailing/leading punctuation/spaces for single word/line captures
+            local pre = final_text:match("^[%p%s]*")
+            local suf = final_text:match("[%p%s]*$")
+            if #pre < #final_text then
+                final_text = final_text:sub(#pre + 1, #final_text - #suf)
+            end
         end
         
         set_clipboard(final_text)
-        show_osd("DW Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
+        local label = is_context and "Context" or "DW"
+        show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
     end
 end
 
@@ -5400,7 +5429,7 @@ local function cmd_toggle_copy_ctx()
     show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
 end
 
-local function get_copy_context_text(time_pos)
+local function get_copy_context_text(time_pos, line_idx)
     local combined = {}
     
     local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
@@ -5415,7 +5444,7 @@ local function get_copy_context_text(time_pos)
         end
     end
     
-    local function append(path, is_ass)
+    local function append(path, is_ass, explicit_idx)
         if not path then return end
         local subs = nil
         if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
@@ -5423,7 +5452,7 @@ local function get_copy_context_text(time_pos)
         else subs = load_sub(path, is_ass) end
 
         if subs and #subs > 0 then
-            local idx = get_center_index(subs, time_pos)
+            local idx = explicit_idx or get_center_index(subs, time_pos)
             if idx ~= -1 then
                 if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
                     if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
@@ -5455,7 +5484,7 @@ local function get_copy_context_text(time_pos)
         end
     end
     
-    append(Tracks.pri.path, Tracks.pri.is_ass)
+    append(Tracks.pri.path, Tracks.pri.is_ass, line_idx)
     if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path then
         append(Tracks.sec.path, Tracks.sec.is_ass)
     end
