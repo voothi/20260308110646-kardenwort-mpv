@@ -549,5 +549,5 @@
 20260424223510 No, the subtitles don't move at all. We may have made unnecessary changes.
 20260424223910 Doesn't work again, compare the current version with the one when it still worked - commit af9c77675c3148f1ab8331aba0253f6ebff7b905. And move those pieces that in the current version are responsible for borders and scrolling in Book Mode ON with a white pointer (changing the current subtitles) and a yellow one (it worked). Also make this number of lines in the header and footer changeable via the option.
 20260424224327 opsx-explore Look at the history of commits by comments, there is a ZID, correlate these attempts with what I have given below in the action logs of another chat. Try to understand the reason, crystallize the requirements and give a proposal for correct implementation, based on the mistakes we made, so as not to repeat ourselves. Recruit a specialist on the issues described below.
-
+20260424230315 opsx-apply 20260424223910-refine-book-mode-nav
 

@@ -3860,7 +3860,7 @@ local function tick_dw(time_pos)
             end
         else
             -- Book Mode: Line-by-line scrolling during playback
-            dw_ensure_visible(active_idx)
+            dw_ensure_visible(active_idx, true)
             if FSM.DW_ANCHOR_LINE == -1 then
                 FSM.DW_CURSOR_LINE = active_idx
             end
@@ -4239,13 +4239,13 @@ local function dw_closest_word_at_x(sub, target_x)
 end
 
 
-local function dw_ensure_visible(line_idx)
+local function dw_ensure_visible(line_idx, paged)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
     local win_lines = Options.dw_lines_visible
     local half_win = math.floor(win_lines / 2)
-    local margin = Options.dw_scrolloff
+    local margin = math.min(Options.dw_scrolloff, math.floor(win_lines / 2) - 1)
     
     -- Calculate current viewport bounds
     local view_min = FSM.DW_VIEW_CENTER - half_win
@@ -4263,12 +4263,23 @@ local function dw_ensure_visible(line_idx)
     view_min = math.max(1, view_min)
     view_max = math.min(#subs, view_max)
 
-    if line_idx < view_min + margin then
-        local diff = (view_min + margin) - line_idx
-        FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
-    elseif line_idx > view_max - margin then
-        local diff = line_idx - (view_max - margin)
-        FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
+    if paged then
+        if line_idx < view_min + margin then
+            -- Jump up: active line becomes aligned with bottom margin
+            FSM.DW_VIEW_CENTER = math.max(1, line_idx + (win_lines - margin - 1) - half_win)
+        elseif line_idx > view_max - margin then
+            -- Jump down: active line becomes aligned with top margin
+            FSM.DW_VIEW_CENTER = math.min(#subs, line_idx - margin + half_win)
+        end
+    else
+        -- Push (line-by-line)
+        if line_idx < view_min + margin then
+            local diff = (view_min + margin) - line_idx
+            FSM.DW_VIEW_CENTER = math.max(1, FSM.DW_VIEW_CENTER - diff)
+        elseif line_idx > view_max - margin then
+            local diff = line_idx - (view_max - margin)
+            FSM.DW_VIEW_CENTER = math.min(#subs, FSM.DW_VIEW_CENTER + diff)
+        end
     end
 end
 
@@ -4408,13 +4419,13 @@ local function cmd_dw_seek_delta(dir)
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = target_idx
         else
-            dw_ensure_visible(target_idx)
+            dw_ensure_visible(target_idx, false)
         end
         
         if FSM.DW_ANCHOR_LINE == -1 then
             FSM.DW_CURSOR_LINE = target_idx
-            FSM.DW_CURSOR_WORD = -1
-            FSM.DW_CURSOR_X = nil
+            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[target_idx], FSM.DW_CURSOR_X or 960)
+            FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[target_idx]) or FSM.DW_CURSOR_X
         end
     end
 end
