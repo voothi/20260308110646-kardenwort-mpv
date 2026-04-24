@@ -4267,9 +4267,12 @@ dw_ensure_visible = function(line_idx, paged)
     view_max = math.min(#subs, view_max)
 
     if paged then
-        if line_idx < view_min + margin or line_idx > view_max - margin then
-            -- Jump to center (as in drum mode)
-            FSM.DW_VIEW_CENTER = line_idx
+        if line_idx < view_min + margin then
+            -- Jump up: active line becomes aligned with bottom margin
+            FSM.DW_VIEW_CENTER = math.max(1, line_idx + (win_lines - margin - 1) - half_win)
+        elseif line_idx > view_max - margin then
+            -- Jump down: active line becomes aligned with top margin
+            FSM.DW_VIEW_CENTER = math.min(#subs, line_idx - margin + half_win)
         end
     else
         -- Push (line-by-line)
