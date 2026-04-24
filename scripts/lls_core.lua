@@ -220,6 +220,131 @@ function get_center_index(subs, time_pos)
     return best
 end
 
+function parse_time(time_str)
+    local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
+    if h and m and s and ms then
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
+    end
+    h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
+    if h and m and s and ms then
+        local ms_val = tonumber(ms)
+        if #ms == 2 then ms_val = ms_val * 10 end -- Centiseconds to milliseconds
+        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + ms_val / 1000
+    end
+    return 0
+end
+
+function clean_text_srt(line)
+    if not line then return "" end
+    line = line:gsub("^\xEF\xBB\xBF", "")
+    return line:gsub("\r", ""):gsub("<[^>]+>", "")
+end
+
+function load_sub(path, is_ass)
+    if not path or path == "" then return {} end
+    local f = io.open(path, "r")
+    if not f then return {} end
+    
+    local subs = {}
+    local current_sub = nil
+
+    if is_ass then
+        for line in f:lines() do
+            if line:match("^Dialogue:") then
+                local first_colon = line:find(":")
+                if first_colon then
+                    local content = line:sub(first_colon + 1)
+                    content = content:gsub("^%s+", "")
+                    local parts = {}
+                    local last_pos = 1
+                    for i = 1, 9 do
+                        local comma_pos = content:find(",", last_pos)
+                        if not comma_pos then break end
+                        table.insert(parts, content:sub(last_pos, comma_pos - 1))
+                        last_pos = comma_pos + 1
+                    end
+                    if #parts == 9 then
+                        local text = content:sub(last_pos)
+                        local start_str = parts[2]:match("^%s*(.-)%s*$")
+                        local end_str = parts[3]:match("^%s*(.-)%s*$")
+                        if start_str and end_str and text then
+                            local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
+                            raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
+                            if raw_text ~= "" and not has_cyrillic(raw_text) then
+                                local parsed_start = parse_time(start_str)
+                                local parsed_end = parse_time(end_str)
+                                local merged = false
+                                local search_limit = math.max(1, #subs - 10)
+                                for i = #subs, search_limit, -1 do
+                                    if subs[i].raw_text == raw_text then
+                                        subs[i].end_time = math.max(subs[i].end_time, parsed_end)
+                                        merged = true
+                                        break
+                                    end
+                                end
+                                if not merged then
+                                    table.insert(subs, {
+                                        start_time = parsed_start,
+                                        end_time = parsed_end,
+                                        text = raw_text,
+                                        raw_text = raw_text
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+    else
+        local state = "ID"
+        for raw_line in f:lines() do
+            local line = clean_text_srt(raw_line)
+            if line == "" then
+                if current_sub and current_sub.text ~= "" then
+                    current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
+                    if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
+                        subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
+                    else
+                        table.insert(subs, current_sub)
+                    end
+                end
+                current_sub = nil
+                state = "ID"
+            elseif state == "ID" then
+                if line:match("^%d+$") then
+                    current_sub = {text = ""}
+                    state = "TIME"
+                end
+            elseif state == "TIME" then
+                local start_str, end_str = string.match(line, "(%S+)%s+%-%->%s+(%S+)")
+                if start_str and end_str then
+                    current_sub.start_time = parse_time(start_str)
+                    current_sub.end_time = parse_time(end_str)
+                    state = "TEXT"
+                end
+            elseif state == "TEXT" then
+                if current_sub.text == "" then
+                    current_sub.text = line
+                else
+                    current_sub.text = current_sub.text .. "\n" .. line
+                end
+            end
+        end
+        if current_sub and current_sub.text ~= "" then
+            current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
+            if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
+                subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
+            else
+                table.insert(subs, current_sub)
+            end
+        end
+    end
+    f:close()
+    return subs
+end
+
 -- =========================================================================
 -- STATE MACHINE
 -- =========================================================================
@@ -657,24 +782,9 @@ local function calculate_ass_alpha(val)
     return hex
 end
 
-local function parse_time(time_str)
-    local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
-    if h and m and s and ms then
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
-    end
-    h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
-    if h and m and s and ms then
-        local ms_val = tonumber(ms)
-        if #ms == 2 then ms_val = ms_val * 10 end -- Centiseconds to milliseconds
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + ms_val / 1000
-    end
-    return 0
-end
 
-local function clean_text_srt(line)
-    line = line:gsub("^\xEF\xBB\xBF", "")
-    return line:gsub("\r", ""):gsub("<[^>]+>", "")
-end
+
+
 
 local function utf8_to_table(str)
     local t = {}
@@ -1592,110 +1702,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     return compose_term_smart(context_words):match("^%s*(.-)%s*$")
 end
 
-local function load_sub(path, is_ass)
-    if not path or path == "" then return {} end
-    local f = io.open(path, "r")
-    if not f then return {} end
-    
-    local subs = {}
-    local current_sub = nil
 
-    if is_ass then
-        for line in f:lines() do
-            if line:match("^Dialogue:") then
-                local first_colon = line:find(":")
-                if first_colon then
-                    local content = line:sub(first_colon + 1)
-                    content = content:gsub("^%s+", "")
-                    local parts = {}
-                    local last_pos = 1
-                    for i = 1, 9 do
-                        local comma_pos = content:find(",", last_pos)
-                        if not comma_pos then break end
-                        table.insert(parts, content:sub(last_pos, comma_pos - 1))
-                        last_pos = comma_pos + 1
-                    end
-                    if #parts == 9 then
-                        local text = content:sub(last_pos)
-                        local start_str = parts[2]:match("^%s*(.-)%s*$")
-                        local end_str = parts[3]:match("^%s*(.-)%s*$")
-                        if start_str and end_str and text then
-                            local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
-                            raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
-                            if raw_text ~= "" and not has_cyrillic(raw_text) then
-                                local parsed_start = parse_time(start_str)
-                                local parsed_end = parse_time(end_str)
-                                local merged = false
-                                local search_limit = math.max(1, #subs - 10)
-                                for i = #subs, search_limit, -1 do
-                                    if subs[i].raw_text == raw_text then
-                                        subs[i].end_time = math.max(subs[i].end_time, parsed_end)
-                                        merged = true
-                                        break
-                                    end
-                                end
-                                if not merged then
-                                    table.insert(subs, {
-                                        start_time = parsed_start,
-                                        end_time = parsed_end,
-                                        text = raw_text,
-                                        raw_text = raw_text
-                                    })
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        table.sort(subs, function(a, b) return a.start_time < b.start_time end)
-    else
-        local state = "ID"
-        for raw_line in f:lines() do
-            local line = clean_text_srt(raw_line)
-            if line == "" then
-                if current_sub and current_sub.text ~= "" then
-                    current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-                    if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
-                        subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
-                    else
-                        table.insert(subs, current_sub)
-                    end
-                end
-                current_sub = nil
-                state = "ID"
-            elseif state == "ID" then
-                if line:match("^%d+$") then
-                    current_sub = {text = ""}
-                    state = "TIME"
-                end
-            elseif state == "TIME" then
-                local start_str, end_str = string.match(line, "(%S+)%s+%-%->%s+(%S+)")
-                if start_str and end_str then
-                    current_sub.start_time = parse_time(start_str)
-                    current_sub.end_time = parse_time(end_str)
-                    state = "TEXT"
-                end
-            elseif state == "TEXT" then
-                if current_sub.text == "" then
-                    current_sub.text = line
-                else
-                    current_sub.text = current_sub.text .. "\n" .. line
-                end
-            end
-        end
-        if current_sub and current_sub.text ~= "" then
-            current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-            if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
-                subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
-            else
-                table.insert(subs, current_sub)
-            end
-        end
-    end
-    f:close()
-    return subs
-end
 
 local function get_tsv_path()
     local path = mp.get_property("path")
