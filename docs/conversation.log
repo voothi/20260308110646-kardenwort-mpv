@@ -562,5 +562,12 @@
 20260424235410 opsx-archive openspec\changes\20260424223910-refine-book-mode-nav
 20260424235728 Auto-scrolling stopped working when holding  a, d, which previously worked, in a commit 6c8b7b5289ed2b85f742b44060eb56207d2d88b3. Should work the same in normal mode, single line mode, reel mode with, window mode w.
 20260425014646 Okay, but look that you have synchronized all the specifications from this revision.
+20260425014904 Check that nothing is broken according to the specifications openspec\specs. It feels like copying Ctrl C in window mode w, Book Mode ON is not working again. When I'm navigating a, d.We just downgraded it recently, look for ZID here docs\conversation.log. You can also match the ZID with the commit comments in the git history to clarify.
+
+
+
+
+
+
 
 

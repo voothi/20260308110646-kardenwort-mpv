@@ -13,19 +13,20 @@ The system SHALL allow this mode to be toggled at runtime using the `b` (or `и`
 - **WHEN** the script initializes
 - **THEN** the system SHALL read the `book_mode` boolean parameter from `mpv.conf` (under the script-opts grouping) to define the initial lock state.
 
-### Requirement: Stationary Viewport (Frozen Scroll) in Book Mode
-When in Book Mode, the system SHALL decouple the viewport center from the playback time, ensuring the list remains stationary during playback and navigation.
+### Requirement: Paged Viewport (Auto-Scrolling) in Book Mode
+When in Book Mode, the system SHALL automatically scroll the viewport in "pages" during playback to keep the active subtitle visible while maximizing reading context.
 
 #### Scenario: Playback progression in Book Mode
 - **WHEN** the system is in Book Mode
 - **AND** the video plays forward
 - **THEN** the active subtitle highlight SHALL move
-- **BUT** the viewport (`FSM.DW_VIEW_CENTER`) SHALL NOT scroll automatically.
+- **AND** when the highlight reaches the bottom margin, the viewport SHALL jump forward so the active line is at the top margin.
 
 #### Scenario: Manual navigation in Book Mode
-- **WHEN** the user seeks via `a`/`d` or double-click to select a word
+- **WHEN** the user seeks via `a`/`d`
 - **THEN** the video SHALL seek to the target line
-- **BUT** the viewport center SHALL REMAIN static at its current scrolled position, preventing the "jump" back to center.
+- **AND** the viewport SHALL use "push" scrolling to keep the line visible
+- **AND** the yellow cursor highlight SHALL follow the seek target.
 
 ### Requirement: Selection Persistence During Manual Navigation
 The system SHALL ensure that any active Drum Window selection (yellow highlight) is preserved when navigating between subtitles using manual seek keys (`a`/`d`), regardless of whether Book Mode is active.

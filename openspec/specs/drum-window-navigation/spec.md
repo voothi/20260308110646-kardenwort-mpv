@@ -22,7 +22,7 @@ The system SHALL use `Options.dw_scrolloff` to determine the number of lines to 
 
 #### Scenario: Manual Seek in Book Mode
 - **WHEN** the user presses `d` in Book Mode
-- **THEN** the video SHALL seek forward AND the white active highlight SHALL move AND the yellow cursor highlight SHALL remain at its current stationary position.
+- **THEN** the video SHALL seek forward AND the white active highlight SHALL move AND the yellow cursor highlight SHALL be updated to the new seek target (allowing immediate copying via Ctrl+C).
 
 #### Scenario: Selection Dismissal on Manual Seek
 - **WHEN** the user starts manual seeking via `a`/`d`
