@@ -4496,7 +4496,7 @@ local function manage_dw_bindings(enable)
         end, Options.dw_key_pair_mod), complex = true},
     }
 
-    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection)
+    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection, complex)
         if not key_string or key_string == "" then return end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
@@ -4537,7 +4537,7 @@ local function manage_dw_bindings(enable)
                             end
                             key_fn(t, false) 
                         end,
-                        complex = false
+                        complex = complex or false
                     })
                 end
                 i = i + 1
@@ -4551,8 +4551,8 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
-    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false)
-    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false)
+    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
+    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
     parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
     parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
     parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)

@@ -1,5 +1,10 @@
 # Spec: Navigation Auto-Repeat
 
+## Purpose
+Unified auto-repeat mechanism for subtitle navigation.
+
+## Requirements
+
 ## ADDED Requirements
 
 ### Requirement: Global Subtitle Repeat
