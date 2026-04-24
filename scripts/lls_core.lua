@@ -449,6 +449,8 @@ dw_tooltip_osd.res_x = 1920
 dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
 
+local dw_ensure_visible -- forward declaration
+
 -- =========================================================================
 -- COPY CONTEXT LOGIC (Moved up for visibility)
 -- =========================================================================
@@ -4240,7 +4242,7 @@ local function dw_closest_word_at_x(sub, target_x)
 end
 
 
-local function dw_ensure_visible(line_idx, paged)
+dw_ensure_visible = function(line_idx, paged)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -4426,6 +4428,7 @@ local function cmd_dw_seek_delta(dir)
         else
             FSM.DW_VIEW_CENTER = target_idx
         end
+    end
 end
 
 
