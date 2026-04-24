@@ -3860,9 +3860,8 @@ local function tick_dw(time_pos)
         else
             -- Book Mode: Paged scrolling during playback
             dw_ensure_visible(active_idx, true)
-            if FSM.DW_ANCHOR_LINE == -1 then
-                FSM.DW_CURSOR_LINE = active_idx
-            end
+            -- [NOTE] We don't force CURSOR_LINE to active_idx in Book Mode here
+            -- to prevent fighting with a/d seek navigation or manual cursor placement.
         end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
@@ -4521,7 +4520,7 @@ local function manage_dw_bindings(enable)
                             end
                             key_fn(t, false) 
                         end,
-                        complex = false
+                        complex = updates_selection or false -- Reuse updates_selection as 'is_complex' internal hint
                     })
                 end
                 i = i + 1
@@ -4535,8 +4534,8 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
-    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false)
-    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false)
+    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, true)
+    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, true)
     parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
     parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
     parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
@@ -4576,7 +4575,8 @@ local function manage_dw_bindings(enable)
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
                        or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-                       or k.key == "ENTER" or k.key == "KP_ENTER" then
+                       or k.key == "ENTER" or k.key == "KP_ENTER" 
+                       or k.key == "a" or k.key == "d" or k.key == "ф" or k.key == "в" then
                         settings = "repeatable"
                     end
                     mp.add_forced_key_binding(k.key, k.name, k.fn, settings)

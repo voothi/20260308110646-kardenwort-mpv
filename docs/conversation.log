@@ -544,7 +544,6 @@
 20260424214526 opsx-archive openspec\changes\20260424204200-restore-copy-functions
 20260424215250 Make it so that I can use a, d to move the white pointer, active subtitles in Book Mode ON down and up the text, scroll the page line by line, so that when they hit the edge of the screen, they start scrolling earlier, up or later down. This is how it works now by moving the yellow (golden) pointer. Now my white highlight in this mode goes beyond the boundaries of the screen. According to our concept, working in w window mode should be similar to working in a regular test editor with a text file.
 20260424221132 Is it possible to make page-by-page scrolling in this Book Mode ON so that it works as we did now with pushing when moving subtitles with the a, d keys, only when playing, so that when the subtitles reach the edge they are scrolled as in drum mode, only with this listing. Think about whether to leave these 3 lines of the subtitle at the edges, that is, so that the 3 previous subtitles can be seen when scrolling through this way. For context.
-
-
+20260424222209 In Book Mode ON, subtitles do not move down or up a, d. But the yellow pointer works as it should. Scrolling when it hits the border. 
 
 
