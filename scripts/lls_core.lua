@@ -5325,6 +5325,8 @@ function cmd_toggle_drum_window()
             FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
             FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
         end
+        FSM.DW_SEEKING_MANUALLY = false
+        FSM.DW_SEEK_TARGET = -1
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_ANCHOR_LINE = -1
