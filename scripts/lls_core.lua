@@ -408,6 +408,7 @@ local FSM = {
     DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
     DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
+    DW_LAST_ACTIVE_LINE = -1,   -- Previous tick's active subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
 
@@ -3860,10 +3861,17 @@ local function tick_dw(time_pos)
         else
             -- Book Mode: Paged scrolling during playback
             dw_ensure_visible(active_idx, true)
-            -- [NOTE] We don't force CURSOR_LINE to active_idx in Book Mode here
-            -- to prevent fighting with a/d seek navigation or manual cursor placement.
+            
+            -- Follow player with cursor only if the player actually moved to a new line.
+            -- This prevents "fighting" between a/d seeks and the playback tracker.
+            if active_idx ~= FSM.DW_LAST_ACTIVE_LINE then
+                if FSM.DW_ANCHOR_LINE == -1 then
+                    FSM.DW_CURSOR_LINE = active_idx
+                end
+            end
         end
     end
+    FSM.DW_LAST_ACTIVE_LINE = active_idx
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
     -- active_idx just controls the blue highlight color (may be off-screen)
     
@@ -4479,7 +4487,7 @@ local function manage_dw_bindings(enable)
         end, Options.dw_key_pair_mod), complex = true},
     }
 
-    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection)
+    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection, is_complex)
         if not key_string or key_string == "" then return end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
@@ -4520,7 +4528,7 @@ local function manage_dw_bindings(enable)
                             end
                             key_fn(t, false) 
                         end,
-                        complex = updates_selection or false -- Reuse updates_selection as 'is_complex' internal hint
+                        complex = is_complex or false
                     })
                 end
                 i = i + 1
@@ -4534,8 +4542,8 @@ local function manage_dw_bindings(enable)
     parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
     parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
     parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
-    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, true)
-    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, true)
+    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
+    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
     parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
     parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
     parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
