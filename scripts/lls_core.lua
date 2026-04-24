@@ -192,6 +192,35 @@ local Options = {
 options.read_options(Options, "lls")
 
 -- =========================================================================
+-- CORE UTILITIES (Moved up for visibility)
+-- =========================================================================
+
+function show_osd(msg, dur)
+    mp.osd_message(msg, dur or 2)
+end
+
+function has_cyrillic(str)
+    if not str then return false end
+    return str:match("[\208-\209][\128-\191]") ~= nil
+end
+
+function get_center_index(subs, time_pos)
+    if not subs or #subs == 0 then return -1 end
+    local low, high = 1, #subs
+    local best = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            best = mid
+            low = mid + 1
+        else
+            high = mid - 1
+        end
+    end
+    return best
+end
+
+-- =========================================================================
 -- STATE MACHINE
 -- =========================================================================
 
