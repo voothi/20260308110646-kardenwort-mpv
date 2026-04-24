@@ -532,7 +532,7 @@
 20260424201740 I discovered a problem in which in window w when Book Mode ON is turned on, when scrolling through subtitles with the a, d keys, when selecting new subtitles in this way, when copying Ctrl C, the last subtitle that was before switching to ON mode is copied. In OFF mode it works, but there is always focus on the center when scrolling like this, when making a selection.
 20260424202701 Yes, create a propose 
 20260424202952 opsx-apply openspec\changes\20260424202720-fix-book-mode-copy
-
+20260424203505 It worked, but I noticed that the Copy Subtitle Mode z, Context Copy x functions stopped working. 
 
 
 
