@@ -451,6 +451,7 @@ dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
 
 local dw_ensure_visible -- forward declaration
+local tick_dw -- forward declaration
 
 -- =========================================================================
 -- COPY CONTEXT LOGIC (Moved up for visibility)
@@ -2758,6 +2759,12 @@ local function draw_dw(subs, view_center, active_idx)
     
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
+    
+    -- Manual Scroll Indicator
+    if not FSM.DW_FOLLOW_PLAYER then
+        block_text = "{\\an9}{\\fs14}{\\c&HAAAAAA&}(Manual Scroll ON)\\N{\\an5}" .. block_text
+    end
+
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
         Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
@@ -3428,14 +3435,25 @@ end
 -- Step 2: Clear single-word yellow pointer; syncs cursor to active subtitle so
 --         the next arrow keypress places the pointer at the first active word
 -- Step 3: Close the Drum Window
+-- Step 3: Close the Drum Window
 local function cmd_dw_esc()
-    -- Step 1: pink set OR multi-line yellow anchor present → discard both
+    -- Priority 1: Restore auto-scroll (Manual Scroll OFF)
+    if not FSM.DW_FOLLOW_PLAYER then
+        FSM.DW_FOLLOW_PLAYER = true
+        show_osd("Manual Scroll: OFF")
+        local time_pos = mp.get_property_number("time-pos") or 0
+        tick_dw(time_pos)
+        return
+    end
+
+    -- Priority 2: Clear pink set OR multi-line yellow anchor present → discard both
     if next(FSM.DW_CTRL_PENDING_SET) or FSM.DW_ANCHOR_LINE ~= -1 then
         ctrl_discard_set()
         dw_osd:update()
         return
     end
-    -- Step 2: single-word yellow cursor pointer present → hide it
+    
+    -- Priority 3: Clear single-word yellow cursor pointer present → hide it
     if FSM.DW_CURSOR_WORD ~= -1 then
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
@@ -3447,8 +3465,9 @@ local function cmd_dw_esc()
         dw_osd:update()
         return
     end
-    -- Step 3: nothing left to clear → close the window
-    cmd_toggle_drum_window(false)
+
+    -- Step 4: Window closure via Esc is now disabled per user request
+    -- cmd_toggle_drum_window(false)
 end
 
 local function get_dw_selection_bounds()
@@ -3651,7 +3670,10 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
         
         if tbl.event == "down" then
-            FSM.DW_FOLLOW_PLAYER = false
+            if FSM.DW_FOLLOW_PLAYER then
+                FSM.DW_FOLLOW_PLAYER = false
+                show_osd("Manual Scroll: ON")
+            end
 
             -- Dismiss tooltip on click and lock suppression for the current focus
             local osd_x, osd_y = dw_get_mouse_osd()
@@ -3842,8 +3864,14 @@ local function cmd_dw_double_click()
         if not FSM.BOOK_MODE then
             FSM.DW_VIEW_CENTER = line_idx
         end
-        
-        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        if FSM.BOOK_MODE then
+            if FSM.DW_FOLLOW_PLAYER then
+                FSM.DW_FOLLOW_PLAYER = false
+                show_osd("Manual Scroll: ON")
+            end
+        else
+            FSM.DW_FOLLOW_PLAYER = true
+        end
     end
 end
 
@@ -4105,7 +4133,10 @@ end
 
 
 local function cmd_dw_scroll(dir)
-    FSM.DW_FOLLOW_PLAYER = false
+    if FSM.DW_FOLLOW_PLAYER then
+        FSM.DW_FOLLOW_PLAYER = false
+        show_osd("Manual Scroll: ON")
+    end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
@@ -4293,7 +4324,10 @@ local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
-    FSM.DW_FOLLOW_PLAYER = false
+    if FSM.DW_FOLLOW_PLAYER then
+        FSM.DW_FOLLOW_PLAYER = false
+        show_osd("Manual Scroll: ON")
+    end
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
@@ -4328,7 +4362,10 @@ local function cmd_dw_word_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
-    FSM.DW_FOLLOW_PLAYER = false
+    if FSM.DW_FOLLOW_PLAYER then
+        FSM.DW_FOLLOW_PLAYER = false
+        show_osd("Manual Scroll: ON")
+    end
     
     -- Capture anchor before moving if shift is held and no anchor exists
     if shift and FSM.DW_ANCHOR_LINE == -1 then
@@ -4387,7 +4424,14 @@ local function cmd_dw_seek_selected()
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
             mp.commandv("seek", sub.start_time, "absolute+exact")
-            FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        if FSM.BOOK_MODE then
+            if FSM.DW_FOLLOW_PLAYER then
+                FSM.DW_FOLLOW_PLAYER = false
+                show_osd("Manual Scroll: ON")
+            end
+        else
+            FSM.DW_FOLLOW_PLAYER = true
+        end
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
             if not FSM.BOOK_MODE then
@@ -4419,7 +4463,12 @@ local function cmd_dw_seek_delta(dir)
     local sub = subs[target_idx]
     if sub and sub.start_time then
         mp.commandv("seek", sub.start_time, "absolute+exact")
-        FSM.DW_FOLLOW_PLAYER = true
+        if not FSM.DW_FOLLOW_PLAYER then
+            FSM.DW_FOLLOW_PLAYER = true
+            show_osd("Manual Scroll: OFF")
+        else
+            FSM.DW_FOLLOW_PLAYER = true
+        end
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if FSM.DW_ANCHOR_LINE == -1 then
