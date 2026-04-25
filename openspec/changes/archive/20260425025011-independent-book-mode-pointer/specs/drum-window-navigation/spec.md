@@ -7,7 +7,7 @@ The Drum Window SHALL maintain separate states for the active video subtitle (wh
 - **WHEN** the user presses `a` or `d` in Book Mode
 - **THEN** the video SHALL seek AND the white active highlight SHALL move AND the yellow cursor highlight SHALL NOT be updated (maintaining its current position).
 
-#### Scenario: Selection Dismissal on Manual Seek (Regular Mode)
+#### Scenario: Selection Dismissal on Manual Seek
 - **WHEN** the user starts manual seeking via `a`/`d` in Book Mode OFF
 - **THEN** any active yellow word-focus (`DW_CURSOR_WORD`) SHALL be dismissed (`-1`).
 
