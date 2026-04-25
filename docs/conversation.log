@@ -571,6 +571,6 @@
 20260425030404 opsx-archive openspec\changes\20260425025011-independent-book-mode-pointer
 20260425030927 opsx-archive openspec\changes\20260424202720-fix-book-mode-copy
 20260425031039 Archive without syncing (recommended)
-
+20260425031828 Check the code for compliance with openspec\specs, copying Ctrl C does not work again. conversation.log
 
 

@@ -5392,80 +5392,98 @@ function cmd_dw_copy()
     if not subs or #subs == 0 then return end
     
     local cl = FSM.DW_CURSOR_LINE
-    if cl == -1 then return end
-
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cw = FSM.DW_CURSOR_WORD
-    
+
+    -- 0. Smart Focus Fallback for Book Mode
+    -- In Book Mode, if we are in 'Follow' mode (e.g. navigation via a/d),
+    -- prefer the active playback line if no specific word/range is selected.
+    if FSM.BOOK_MODE and FSM.DW_FOLLOW_PLAYER and al == -1 and cw == -1 then
+        cl = FSM.DW_ACTIVE_LINE
+    end
+    -- Fallback for Esc state or between-subs
+    if cl == -1 then cl = FSM.DW_ACTIVE_LINE end
+    if cl == -1 then return end
+
     local final_text = ""
+    local selection_text = ""
     local is_context = false
     
-    -- 1. Check for Context Copy first (Matches cmd_copy_sub behavior)
+    -- 1. Calculate Selection/Line Text (Required for verbatim fallback and context wrapping)
+    if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+        -- Range selection (always verbatim from primary track for precision)
+        local p1_l, p1_w, p2_l, p2_w
+        if al < cl or (al == cl and aw <= cw) then
+            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+        else
+            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+        end
+        
+        local parts = {}
+        for i = p1_l, p2_l do
+            local text = subs[i].text:gsub("\n", " ")
+            local tokens = build_word_list_internal(text, true)
+            
+            local s_w = (i == p1_l) and p1_w or 1
+            local e_w = (i == p2_l) and p2_w or nil
+            
+            if not e_w then
+                local wc = 0
+                for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
+                e_w = wc
+            end
+            
+            local line_parts = {}
+            local in_range = false
+            for _, t in ipairs(tokens) do
+                if logical_cmp(t.logical_idx, s_w) then in_range = true end
+                if in_range then table.insert(line_parts, t.text) end
+                if logical_cmp(t.logical_idx, e_w) then in_range = false break end
+            end
+            
+            if #line_parts > 0 then
+                table.insert(parts, table.concat(line_parts, ""))
+            end
+        end
+        selection_text = table.concat(parts, " ")
+    else
+        -- Single point or line fallback (Respects COPY_MODE B for translations)
+        local target_subs = subs
+        if FSM.COPY_MODE == "B" and Tracks.sec.subs and #Tracks.sec.subs >= cl then
+            target_subs = Tracks.sec.subs
+        end
+        
+        local text = target_subs[cl].text:gsub("\n", " ")
+        if FSM.DW_CURSOR_WORD > 0 and FSM.COPY_MODE == "A" then
+            local words = build_word_list(text)
+            selection_text = words[FSM.DW_CURSOR_WORD] or text
+        else
+            selection_text = text
+        end
+    end
+
+    -- 2. Check for Context Copy (Matches cmd_copy_sub behavior)
     if FSM.COPY_CONTEXT == "ON" then
         local ctx = get_copy_context_text(nil, cl)
         if ctx and ctx ~= "" then
+            -- Requirement: Verbatim Selection with Context
+            -- Replace the focus line in the context with our specific selection
+            local target_line = subs[cl].text:gsub("\n", " "):gsub("{[^}]+}", ""):match("^%s*(.-)%s*$") or ""
+            local esc_target = target_line:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")
+            local clean_sel = selection_text:gsub("{[^}]+}", ""):match("^%s*(.-)%s*$") or ""
+            
+            if esc_target ~= "" and esc_target ~= clean_sel then
+                ctx = ctx:gsub(esc_target, clean_sel)
+            end
+            
             final_text = ctx:gsub("\n", " ")
             is_context = true
         end
     end
 
-    -- 2. Fallback to selection or line if context is OFF or failed
+    -- 3. Final Fallback
     if final_text == "" then
-        if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            -- Range selection (always verbatim from primary track for precision)
-            local p1_l, p1_w, p2_l, p2_w
-            if al < cl or (al == cl and aw <= cw) then
-                p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-            else
-                p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
-            end
-            
-            local parts = {}
-            for i = p1_l, p2_l do
-                local text = subs[i].text:gsub("\n", " ")
-                local tokens = build_word_list_internal(text, true)
-                
-                local s_w = (i == p1_l) and p1_w or 1
-                local e_w = (i == p2_l) and p2_w or nil
-                
-                if not e_w then
-                    local wc = 0
-                    for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
-                    e_w = wc
-                end
-                
-                local line_parts = {}
-                local in_range = false
-                for _, t in ipairs(tokens) do
-                    if logical_cmp(t.logical_idx, s_w) then in_range = true end
-                    
-                    if in_range then 
-                        table.insert(line_parts, t.text) 
-                    end
-                    
-                    if logical_cmp(t.logical_idx, e_w) then in_range = false break end
-                end
-                
-                if #line_parts > 0 then
-                    table.insert(parts, table.concat(line_parts, ""))
-                end
-            end
-            final_text = table.concat(parts, " ")
-        else
-            -- Single point or line fallback (Respects COPY_MODE B for translations)
-            local target_subs = subs
-            if FSM.COPY_MODE == "B" and Tracks.sec.subs and #Tracks.sec.subs >= cl then
-                target_subs = Tracks.sec.subs
-            end
-            
-            local text = target_subs[cl].text:gsub("\n", " ")
-            if FSM.DW_CURSOR_WORD > 0 and FSM.COPY_MODE == "A" then
-                local words = build_word_list(text)
-                final_text = words[FSM.DW_CURSOR_WORD] or text
-            else
-                final_text = text
-            end
-        end
+        final_text = selection_text
     end
     
     if final_text ~= "" then
