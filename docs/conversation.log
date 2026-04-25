@@ -611,8 +611,16 @@
 20260425200201 Do you approve this Holistic Suggestion Report for the final Release v1.26.34? - Approve
 20260425200630 Do you approve the final archival and closing of this migration session? - Approve
 20260425155139 Make it so that in a window w Book Mode ON mode, after deselecting the yellow pointer word, the auto scroll mode is restored to the state it has after scrolling through subtitles with the a, d keys when the subtitle is highlighted in white. Now after Enter on the gray subtitle that I want to go to, so that it turns white and the recording starts from it, I move the keyboard arrows to the yellow pointer and press Enter, it is highlighted but it is not equivalent to pressing a or d in terms of how the subtitle then behaves when it reaches the bottom edge of the screen. In this case, when we don't reset the yellow pointer at that position on this screen with text, and the subtitle reaches the end of the page, the automatic scrolling doesn't work, the white highlighting of the subtitle goes beyond the three subtitles, the lines at the bottom and goes beyond the visible part of the screen. The idea is to keep it that way if the yellow pointer is present in the text, but if it has been reset (via Esc), then the auto-scrolling mechanism for the current subtitles should work correctly and it should go up to the position of the 4th subtitle from the top and go further as if we were in navigation mode, after pressing a, d. 
-
-
-
+20260425203600 I already doubt this 20260425203323 comment, because if the subtitle has already  reached the border of the 3 lower subtitles, then I still have to distort the mechanism by pressing a, d. I would like it to correct it automatically. This is when I press Esc on the yellow word, already in the margins.
+20260425203130 Correct, Enter needs to be excluded from this case, since this is the mode for working with texts and when I have a yellow pointer, which means I am in the mode for working with texts, we must avoid automatic action.
+20260425203323 Not instantly, but when the subtitle reaches the bottom border (3 subtitle below).
+20260425204345 It’s not very clear, I may have a situation where in both Book Modes ON OFF when I scroll with the mouse wheel and this disables auto-scrolling. Then this also needs to be taken into account in addition to the status of the yellow pointer?
+20260425204735 I will not be able to visually track these states when scrolling is in manual or automatic mode and understand when I can press Esc. What then?
+20260425210200 Clarify, in this case, if I have manual scrolling mode activated and the yellow word pointer is set, what will be removed first when I press Esc? Write by pressing Esc. The first and subsequent ones.
+20260425210747 Intuitively, it still seems to me that it would be better to do auto-scroll ON first on the first Esc. The next one removes the pink or yellow highlight. The next one removes the yellow pointer. Let's make sure that window w doesn't close from Esc. When you change the mouse wheel scroll or change the selection, the manual mode should be turned on again and turned off again by pressing Esc. In Book Mode ON, when Enter and double-clicking on a subtitle, auto-scroll ON should not immediately turn on. If the icon is manual, then the function should be called manual scroll ON OFF.
+20260425213913 Accept.
+20260425214748 Error
+20260425214926 The window becomes small.
+20260425215027 It didn’t work.
 
 
