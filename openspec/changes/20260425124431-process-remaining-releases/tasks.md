@@ -6,7 +6,7 @@
 
 Each release must follow the flow: Parse Legacy RFC -> Perform Multi-Release & Three-Way Comparison (Legacy Spec vs Master Spec vs Live Code vs Other Releases in List) -> Generate Holistic Suggestion Report -> Manual User Validation -> Implementation/Documentation -> Archival with Final Spec Sync.
 
-- [ ] 2.1 Process `openspec/changes/20260311014935-release-v1-2-16`
+- [x] 2.1 Process `openspec/changes/20260311014935-release-v1-2-16`
 - [ ] 2.2 Process `openspec/changes/20260311023622-release-v1-2-18`
 - [ ] 2.3 Process `openspec/changes/20260311044229-release-v1-2-20`
 - [ ] 2.4 Process `openspec/changes/20260311101023-release-v1-2-22`

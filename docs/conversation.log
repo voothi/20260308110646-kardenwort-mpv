@@ -579,7 +579,7 @@
 20260425125646 Add also that in this chain the old specification (the current list element is openspec\changes\...\specs) - the current specifications (openspec\specs) - the current version of the code. That is, it is similar to three-way synchronization. At the same time, we now have a working version of the code that cannot be broken.
 20260425130150 opsx-apply openspec\changes\20260425124431-process-remaining-releases Initiating Change Application I've begun working through the opsx-apply workflow to address the 20260425124431-process-remaining-releases change. First step complete: selecting the change is done, and the name is loaded. Now, on to the workflow.
 20260425131036 It is necessary to add another condition that during each analysis at each step of the list, you need to compare the specifications of the current list element with all others in this list in openspec\changes\...\specs in order to take into account future changes, the history of changes between versions and to avoid unnecessary edits when requirements change along with the evolution of the project.
-
+20260425131735 We have changed the spec openspec\changes\20260425124431-process-remaining-releases, run the first completed first step openspec/changes/20260311014935-release-v1-2-16 again taking into account the new one.
 
 
 
