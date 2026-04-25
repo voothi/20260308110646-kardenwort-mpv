@@ -3880,16 +3880,18 @@ local function tick_dw(time_pos)
     dw_tooltip_mouse_update()
 end
 
-local function tick_drum(time_pos)
+local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
     if FSM.DRUM_WINDOW ~= "OFF" then return end
     
     local is_drum = (FSM.DRUM == "ON")
-    local vis = FSM.native_sub_vis
     
-    if not vis then
-        drum_osd.data = ""
-        drum_osd:update()
+    -- If no tracks are requested for OSD, clear and return
+    if not pri_use_osd and not sec_use_osd then
+        if drum_osd.data ~= "" then
+            drum_osd.data = ""
+            drum_osd:update()
+        end
         return
     end
 
@@ -3915,12 +3917,12 @@ local function tick_drum(time_pos)
     end
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
-    if #Tracks.pri.subs > 0 then
+    if pri_use_osd and #Tracks.pri.subs > 0 then
         local idx = get_center_index(Tracks.pri.subs, time_pos)
         ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size)
     end
 
-    if #Tracks.sec.subs > 0 then
+    if sec_use_osd and #Tracks.sec.subs > 0 then
         local idx = get_center_index(Tracks.sec.subs, time_pos)
         ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size)
     end
@@ -3975,18 +3977,31 @@ local function master_tick()
     -- Manage native subtitle suppression
     -- We hide native subs if OSD rendering is active OR Drum Window is open.
     local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
-    local render_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or use_osd_for_srt)
     local dw_active = (FSM.DRUM_WINDOW ~= "OFF")
+    
+    -- Independent OSD render decisions:
+    -- 1. Always use OSD if Drum Mode is ON (Drum Mode auto-disables for ASS anyway)
+    -- 2. Use OSD for SRT if configured.
+    -- 3. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
+    local pri_use_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or (use_osd_for_srt and not Tracks.pri.is_ass))
+    local sec_use_osd = FSM.native_sec_sub_vis and (FSM.DRUM == "ON" or (use_osd_for_srt and not Tracks.sec.is_ass))
 
-    if dw_active or render_osd then
-        if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
-            mp.set_property_bool("sub-visibility", false)
-            mp.set_property_bool("secondary-sub-visibility", false)
+    if dw_active or pri_use_osd or sec_use_osd then
+        -- Suppression Logic
+        -- We hide native if DW is active OR if we are using OSD for that specific track.
+        local target_pri_vis = not dw_active and not pri_use_osd and FSM.native_sub_vis
+        local target_sec_vis = not dw_active and not sec_use_osd and FSM.native_sec_sub_vis
+
+        if mp.get_property_bool("sub-visibility") ~= target_pri_vis then
+            mp.set_property_bool("sub-visibility", target_pri_vis)
+        end
+        if mp.get_property_bool("secondary-sub-visibility") ~= target_sec_vis then
+            mp.set_property_bool("secondary-sub-visibility", target_sec_vis)
         end
         
         -- Only render one-line Drum/SRT OSD if Drum Window is not active
-        if not dw_active and render_osd then
-            tick_drum(time_pos)
+        if not dw_active and (pri_use_osd or sec_use_osd) then
+            tick_drum(time_pos, pri_use_osd, sec_use_osd)
         else
             if drum_osd.data ~= "" then
                 drum_osd.data = ""
