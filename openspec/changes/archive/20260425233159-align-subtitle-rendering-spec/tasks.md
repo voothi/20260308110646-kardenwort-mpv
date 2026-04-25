@@ -12,4 +12,4 @@
 
 - [x] 3.1 Verify resolution of regression `20260425224611` (ASS subtitles display correctly).
 - [x] 3.2 Confirm `dw_active` still correctly suppresses all native tracks.
-- [ ] 3.3 Archive the change `20260425233159-align-subtitle-rendering-spec`.
+- [x] 3.3 Archive the change `20260425233159-align-subtitle-rendering-spec`.
