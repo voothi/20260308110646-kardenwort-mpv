@@ -585,7 +585,7 @@
 20260425135903 Approve
 20260425142540 Approve
 20260425143128 Approve
-
+20260425143822 Requirement: Cross-Process Clipboard Bridging. The system SHALL support pasting text from the system clipboard into the search buffer using PowerShell integration. - Do I need to clarify here that this should work on other OSes as well?
 
 
 
