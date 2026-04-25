@@ -569,8 +569,8 @@
 20260425025249 Rename 20260425025011-anchors, keeping the ZID, but giving the name according to the fix.
 20260425025501 opsx-apply openspec\changes\20260425025011-independent-book-mode-pointer
 20260425030404 opsx-archive openspec\changes\20260425025011-independent-book-mode-pointer
-
-
+20260425030927 opsx-archive openspec\changes\20260424202720-fix-book-mode-copy
+20260425031039 Archive without syncing (recommended)
 
 
 
