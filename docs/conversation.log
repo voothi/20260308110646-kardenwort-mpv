@@ -565,7 +565,7 @@
 20260425014904 Check that nothing is broken according to the specifications openspec\specs. It feels like copying Ctrl C in window mode w, Book Mode ON is not working again. When I'm navigating a, d.We just downgraded it recently, look for ZID here docs\conversation.log. You can also match the ZID with the commit comments in the git history to clarify.
 20260425020627 Didn’t my specifications describe a case where in Book Mode ON, unlike OFF, the yellow pointer should not disappear when scrolling through subtitles a, d? Now it works fine, but the backlight is only lost. We solved this in some change, see docs\conversation.log. Look, here it still worked as it should 03ede8c4e35b2397aad8cb346975e24e927c98bb 20260423140750
 20260425024236 The yellow pointer should not change position after shifting from the white subtitle until I remove it Esc.
-
+20260425024824 Fine, openspec-propose Anchors 20260425024236 20260425024400
 
 
 
