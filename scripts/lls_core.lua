@@ -5467,7 +5467,10 @@ function cmd_dw_copy()
         local ctx = get_copy_context_text(nil, cl)
         if ctx and ctx ~= "" then
             -- Requirement: Verbatim Selection with Context
-            -- Replace the focus line in the context with our specific selection
+            -- If we have a specific selection (word or range), replace the focal line in the context.
+            -- We clean the context of ASS tags FIRST to ensure gsub matching works against the focal line.
+            ctx = ctx:gsub("{[^}]+}", "")
+            
             local target_line = subs[cl].text:gsub("\n", " "):gsub("{[^}]+}", ""):match("^%s*(.-)%s*$") or ""
             local esc_target = target_line:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")
             local clean_sel = selection_text:gsub("{[^}]+}", ""):match("^%s*(.-)%s*$") or ""
@@ -5487,16 +5490,8 @@ function cmd_dw_copy()
     end
     
     if final_text ~= "" then
+        -- Remove ASS tags but keep all punctuation and formatting (Requirement: Copy as is)
         final_text = final_text:gsub("{[^}]+}", "")
-        
-        if not is_context then
-            -- Clean capture: Remove trailing/leading punctuation/spaces for single word/line captures
-            local pre = final_text:match("^[%p%s]*")
-            local suf = final_text:match("[%p%s]*$")
-            if #pre < #final_text then
-                final_text = final_text:sub(#pre + 1, #final_text - #suf)
-            end
-        end
         
         set_clipboard(final_text)
         local label = is_context and "Context" or "DW"
