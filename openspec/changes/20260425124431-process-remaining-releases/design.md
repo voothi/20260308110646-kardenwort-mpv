@@ -5,10 +5,10 @@ This design outlines the execution strategy for "Stage 2" of the RFC migration. 
 ## Goals / Non-Goals
 
 **Goals:**
-- **Sequential Execution**: Process each release change one by one to ensure focus and correctness.
-- **Pre-Implementation Validation**: Parse legacy documentation and present implementation suggestions for manual review before any code is modified.
-- **Specification Integrity**: Synchronize and update the master specifications in `openspec/specs/` to reflect the cumulative state after each release.
-- **Conflict Management**: Proactively identify and resolve requirement conflicts between legacy releases and current specifications.
+- **Three-Way Synchronization**: Harmonize legacy specifications (change-local), current master specifications (`openspec/specs/`), and the current live code state.
+- **Code Stability**: Guarantee that the current working version of the code is not broken or regressed during the integration of legacy requirements.
+- **Pre-Implementation Validation**: Parse legacy documentation and present implementation suggestions for manual review before any code is modified, verifying them against the live code behavior.
+- **Conflict Management**: Proactively identify and resolve requirement conflicts between legacy releases, current specifications, and live code.
 
 **Non-Goals:**
 - Automated mass-merging of all releases without manual validation.
@@ -16,10 +16,13 @@ This design outlines the execution strategy for "Stage 2" of the RFC migration. 
 
 ## Decisions
 
-- **Step-by-Step Processing**: The migration will proceed sequentially through the provided list of 28 changes.
-- **Validation Gates**: For each release, the agent must generate a proposal and design that is explicitly reviewed. Before code changes, a "Suggestion Report" must be provided.
-- **Archival Sync**: The `openspec archive` command (or equivalent) will be used to ensure the final specifications are updated during the archival of each release change.
-- **User-Centric Conflict Resolution**: If an inconsistency is found between a legacy release requirement and the current `openspec/specs/`, the agent will halt and ask the user for a resolution decision.
+- **Three-Way Comparison**: For each release, the agent must evaluate:
+  1. What the legacy spec required (`openspec/changes/.../specs`).
+  2. what the current master spec says (`openspec/specs`).
+  3. How the feature is currently implemented in the code.
+- **Stability First**: If a legacy requirement would break a currently working feature in the code, the current code behavior takes precedence unless the user explicitly approves a change.
+- **Validation Gates**: For each release, the agent must generate a "Three-Way Suggestion Report" for user approval before implementation.
+- **Archival Sync**: The final synchronization must merge all three perspectives into the master `openspec/specs/`.
 
 ## Risks / Trade-offs
 

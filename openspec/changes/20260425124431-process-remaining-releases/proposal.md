@@ -4,10 +4,9 @@ The project has a backlog of legacy release changes that need to be systematical
 
 ## What Changes
 
-- **Sequential Migration**: Processing 28 specific release changes (v1.2.16 through v1.26.34) one at a time.
-- **Manual Validation Workflow**: Parsing and issuing suggestions for each release before applying code changes to allow for manual inspection.
-- **Specification Synchronization**: Updating final specifications in `openspec/specs/` during the archiving of each release to reflect the as-built state.
-- **Conflict Resolution**: Identifying and resolving inconsistencies between legacy release requirements and current system specifications.
+- **Three-Way Synchronization**: Aligning legacy specifications (from the change directory), current master specifications (`openspec/specs/`), and the current live codebase.
+- **Code Stability Guarantee**: Ensuring that the current working version of the code is never broken during the synchronization and migration process.
+- **Manual Validation Workflow**: Parsing and issuing suggestions for each release before applying code changes to allow for manual inspection and verification against the live code.
 
 ## Capabilities
 
@@ -20,5 +19,6 @@ The project has a backlog of legacy release changes that need to be systematical
 ## Impact
 
 - **OpenSpec Archival**: Completes the historical record for 28 legacy releases.
-- **Spec Integrity**: Improves the accuracy of `openspec/specs/` by merging historical deltas.
-- **Auditability**: Provides a clear trace of when and how features from v1.2.16 to v1.26.34 were integrated.
+- **Spec Integrity**: Improves the accuracy of `openspec/specs/` by merging historical deltas and aligning them with the actual codebase.
+- **System Stability**: Rigorous manual validation ensures that the functional codebase remains intact while documentation catches up.
+- **Auditability**: Provides a clear three-way trace (Legacy Spec <-> Current Spec <-> Live Code) for all releases.

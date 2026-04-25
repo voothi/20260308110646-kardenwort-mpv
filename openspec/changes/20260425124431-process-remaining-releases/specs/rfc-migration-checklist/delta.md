@@ -14,12 +14,26 @@ Before modifying any source code for a legacy release migration, the system SHAL
 - **WHEN** a Suggestion Report is generated
 - **THEN** the system SHALL wait for manual user approval/validation before applying code changes.
 
+### Requirement: Three-Way Synchronization
+The migration SHALL align three sources of truth for each release: the legacy specification, the current master specification, and the live codebase.
+
+#### Scenario: Comparing specifications and code
+- **WHEN** a release change is processed
+- **THEN** the system SHALL identify discrepancies between the legacy requirements, current `openspec/specs/`, and the existing implementation.
+
+### Requirement: Code Stability Guarantee
+The migration process SHALL NOT break the current working version of the code.
+
+#### Scenario: Preventing regressions
+- **WHEN** a legacy requirement conflicts with working code behavior
+- **THEN** the current code behavior SHALL be preserved unless explicitly overridden by the user.
+
 ### Requirement: Specification Synchronization on Archive
-During the archival of a completed release change, the system SHALL synchronize all delta specifications with the master records in `openspec/specs/`.
+During the archival of a completed release change, the system SHALL synchronize all three perspectives into the master records in `openspec/specs/`.
 
 #### Scenario: Finalizing a release migration
 - **WHEN** a release change is archived
-- **THEN** the master specifications SHALL be updated to reflect the new "as-built" state.
+- **THEN** the master specifications SHALL be updated to accurately reflect the validated "as-built" state.
 
 ### Requirement: Conflict Resolution Prompt
 The system SHALL proactively check for inconsistencies between legacy release requirements and current specifications in `openspec/specs/`.

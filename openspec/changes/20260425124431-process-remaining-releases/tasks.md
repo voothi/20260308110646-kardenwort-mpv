@@ -4,7 +4,7 @@
 
 ## 2. Sequential Release Processing
 
-Each release must follow the flow: Parse RFC -> Generate Suggestions -> Manual User Validation -> Implementation/Documentation -> Archival with Spec Sync.
+Each release must follow the flow: Parse Legacy RFC -> Perform Three-Way Comparison (Legacy Spec vs Master Spec vs Live Code) -> Generate Three-Way Suggestion Report -> Manual User Validation -> Implementation/Documentation -> Archival with Final Spec Sync.
 
 - [ ] 2.1 Process `openspec/changes/20260311014935-release-v1-2-16`
 - [ ] 2.2 Process `openspec/changes/20260311023622-release-v1-2-18`
