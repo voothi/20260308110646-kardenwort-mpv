@@ -2762,7 +2762,7 @@ local function draw_dw(subs, view_center, active_idx)
     
     -- Manual Scroll Indicator
     if not FSM.DW_FOLLOW_PLAYER then
-        block_text = "{\\an9}{\\fs14}{\\c&HAAAAAA&}(Manual Scroll ON)\\N{\\an5}" .. block_text
+        block_text = "{\\fs16}{\\c&HAAAAAA&}(Manual Scroll ON)\\N\\N{\\r}" .. block_text
     end
 
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
