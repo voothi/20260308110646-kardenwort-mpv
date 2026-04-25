@@ -4423,9 +4423,11 @@ local function cmd_dw_seek_delta(dir)
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if FSM.DW_ANCHOR_LINE == -1 then
-            FSM.DW_CURSOR_LINE = target_idx
-            FSM.DW_CURSOR_WORD = -1
-            FSM.DW_CURSOR_X = nil
+            if not FSM.BOOK_MODE then
+                FSM.DW_CURSOR_LINE = target_idx
+                FSM.DW_CURSOR_WORD = -1
+                FSM.DW_CURSOR_X = nil
+            end
         end
         
         -- Immediate visual feedback for the viewport
