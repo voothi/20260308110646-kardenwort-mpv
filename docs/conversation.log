@@ -628,6 +628,7 @@
 20260425222649 Accept.
 20260425224611 ASS subtitles no longer display properly, apparently due to our move to OSD for srt subtitles.
 20260425230113 Accept.
-
+20260425232158 Check for regression in accordance with openspec\specs and commit message 20260425223444.
+20260425233054 opsx-propose... Anchors 20260425224611 20260425230113 20260425232158
 
 
