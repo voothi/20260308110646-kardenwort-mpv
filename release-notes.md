@@ -1,4 +1,37 @@
+# Release Notes - v1.50.0 (OpenSpec Consolidation & Compliance)
+
+**Date**: 2026-04-25
+**Version**: v1.50.0
+**Implementation ZIDs**: 20260422081955, 20260424202720, 20260424204200, 20260424223910, 20260425013258, 20260425025011, 20260425031828, 20260425124431, 20260425215431, 20260425221654
+
+## Highlights
+
+### 🚄 **OpenSpec Migration & Synchronization (Phase 2)**
+- **Massive RFC Migration**: Successfully migrated 28 legacy releases (from v1.2.16 to v1.26.34) into the OpenSpec ecosystem. This ensures a three-way synchronization between legacy documentation, master specifications, and the current live code state.
+- **Requirement Harmonization**: Traced feature evolution across the entire release history to minimize churn and resolve conflicting requirements between legacy versions and current implementations.
+
+### 🛡️ **Code Compliance & Stabilization Audit**
+- **Systemic Audit**: Conducted a comprehensive compliance audit of the entire codebase against `openspec/specs`, identifying and resolving implementation gaps and pruning "dead" specifications.
+- **Verified Alignment**: Updated core specifications (like the `inter-segment-highlighter`) to reflect verified implementation behaviors, such as increasing the temporal proximity threshold for phrase joining to 60.0 seconds.
+
+### 📚 **Book Mode Enhancements**
+- **Independent Pointer Navigation**: Implemented an independent pointer system for Book Mode. Visual focus now remains stable during playback or navigation, preventing disruptive OSD jumps.
+- **Refined Scrolling Logic**: Improved "push" scrolling and page-by-page navigation during playback, ensuring a consistent 3-line context margin for superior readability at viewport edges.
+- **Binding Cleanup**: Pruned redundant key bindings and centralized interaction logic to prevent conflicts between Book Mode and global input handlers.
+
+### 📋 **"Verbatim Selection" Copy Compliance**
+- **Context-Aware Splicing**: Overhauled the copy functionality in the Drum Window to satisfy strict "Verbatim Selection with Context" requirements. Focal lines are now correctly spliced into surrounding context blocks.
+- **Punctuation Preservation**: Removed aggressive punctuation stripping to ensure brackets (e.g., `[räuspern]`) are preserved in the clipboard, satisfying "Copy as is" requirements for full lines.
+- **ASS Tag Resilience**: Improved context extraction to handle ASS tags (`{...}`) during text cleaning, ensuring reliable phrase matching even in complex formatted subtitles.
+
+### 🔧 **Interaction Hardening**
+- **Restored Auto-Scroll Repeat**: Resolved a regression where key-repeat functionality (`a`/`d` keys) was lost in Normal, Single Line, Reel, and Window modes.
+- **OSD Stability**: Corrected runtime errors caused by function scope issues (nil upvalues) and stabilized OSD message positioning during high-frequency interactions.
+
+---
+
 # Release Notes - v1.48.10 (Drum Window Selection Refinement)
+
 
 **Date**: 2026-04-22
 **Version**: v1.48.10

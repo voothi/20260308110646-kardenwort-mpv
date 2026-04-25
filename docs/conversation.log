@@ -624,5 +624,6 @@
 20260425215027 x It didn’t work.
 20260425215431 Check if the code meets all specification requirements openspec\specs
 20260425221654 Temporal Gap Threshold: The inter-segment-highlighter spec defines a 1.5s gap for joining phrases, while the implementation currently uses a 60s limit (Options.anki_split_gap_limit). Change the specification to the current value. Redundant Bindings: I identified a small set of incorrect forced key bindings for Book Mode (lines 5741-5742 in lls_core.lua) that use nil as the key. While the functionality is preserved via input.conf, these lines should be cleaned up. Yes, let's do it.
-
+20260425222448 create-release-2 v1.50.0 openspec\changes\archive\20260422081955-migrate-rfcs openspec\changes\archive\20260424202720-fix-book-mode-copy openspec\changes\archive\20260424204200-restore-copy-functions openspec\changes\archive\20260424223910-refine-book-mode-nav openspec\changes\archive\20260425013258-restore-autoscroll-repeat openspec\changes\archive\20260425025011-independent-book-mode-pointer openspec\changes\archive\20260425031828-fix-book-mode-copy-compliance openspec\changes\archive\20260425124431-process-remaining-releases openspec\changes\archive\20260425215431-code-compliance-check openspec\changes\archive\20260425221654-spec-alignment-and-binding-cleanup
+20260425222649 Accept.
 
