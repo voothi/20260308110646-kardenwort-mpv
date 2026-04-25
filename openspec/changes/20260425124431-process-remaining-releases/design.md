@@ -6,6 +6,7 @@ This design outlines the execution strategy for "Stage 2" of the RFC migration. 
 
 **Goals:**
 - **Three-Way Synchronization**: Harmonize legacy specifications (change-local), current master specifications (`openspec/specs/`), and the current live code state.
+- **Holistic Change Tracking**: Evaluate each release against the entire batch (future and past) to trace feature evolution and minimize churn.
 - **Code Stability**: Guarantee that the current working version of the code is not broken or regressed during the integration of legacy requirements.
 - **Pre-Implementation Validation**: Parse legacy documentation and present implementation suggestions for manual review before any code is modified, verifying them against the live code behavior.
 - **Conflict Management**: Proactively identify and resolve requirement conflicts between legacy releases, current specifications, and live code.
@@ -16,10 +17,12 @@ This design outlines the execution strategy for "Stage 2" of the RFC migration. 
 
 ## Decisions
 
-- **Three-Way Comparison**: For each release, the agent must evaluate:
-  1. What the legacy spec required (`openspec/changes/.../specs`).
-  2. what the current master spec says (`openspec/specs`).
-  3. How the feature is currently implemented in the code.
+- **Multi-Perspective Comparison**: For each release, the agent must evaluate:
+  1. Legacy spec (`openspec/changes/.../specs`).
+  2. Master spec (`openspec/specs`).
+  3. Live code implementation.
+  4. Other releases in the list (to identify future modifications or overrides).
+- **Redundancy Reduction**: If a requirement in a current release is superseded by a subsequent release in the list, documentation should reflect the evolution to avoid unnecessary intermediate code/spec edits.
 - **Stability First**: If a legacy requirement would break a currently working feature in the code, the current code behavior takes precedence unless the user explicitly approves a change.
 - **Validation Gates**: For each release, the agent must generate a "Three-Way Suggestion Report" for user approval before implementation.
 - **Archival Sync**: The final synchronization must merge all three perspectives into the master `openspec/specs/`.

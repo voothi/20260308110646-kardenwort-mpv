@@ -21,6 +21,13 @@ The migration SHALL align three sources of truth for each release: the legacy sp
 - **WHEN** a release change is processed
 - **THEN** the system SHALL identify discrepancies between the legacy requirements, current `openspec/specs/`, and the existing implementation.
 
+### Requirement: Cross-Release Specification Audit
+The analysis of each release SHALL include a comparison with all other releases in the Stage 2 list to ensure requirement evolution is accounted for and redundant edits are avoided.
+
+#### Scenario: Identifying future overrides
+- **WHEN** analyzing a specific legacy release
+- **THEN** the system SHALL check if subsequent releases in the list modify or supersede its requirements.
+
 ### Requirement: Code Stability Guarantee
 The migration process SHALL NOT break the current working version of the code.
 
