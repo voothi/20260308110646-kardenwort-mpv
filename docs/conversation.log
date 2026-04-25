@@ -581,8 +581,7 @@
 20260425131036 It is necessary to add another condition that during each analysis at each step of the list, you need to compare the specifications of the current list element with all others in this list in openspec\changes\...\specs in order to take into account future changes, the history of changes between versions and to avoid unnecessary edits when requirements change along with the evolution of the project.
 20260425131735 We have changed the spec openspec\changes\20260425124431-process-remaining-releases, run the first completed first step openspec/changes/20260311014935-release-v1-2-16 again taking into account the new one.
 20260425134219 Scenario: Seeking while in Manual Mode. - You need to think about how this fits in with Book Mode OFF ON.
-
-
+20260425135532 Approve
 
 
 
