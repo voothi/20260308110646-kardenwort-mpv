@@ -3875,7 +3875,7 @@ local function cmd_dw_double_click()
     end
 end
 
-local function tick_dw(time_pos)
+tick_dw = function(time_pos)
     local subs = Tracks.pri.subs
     if #subs == 0 then return end
     
