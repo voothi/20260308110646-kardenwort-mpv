@@ -23,7 +23,7 @@ Each release must follow the flow: Parse Legacy RFC -> Perform Multi-Release & T
 - [x] 2.15 Process `openspec/changes/20260314000819-release-v1-26-8`
 - [x] 2.16 Process `openspec/changes/20260321182207-release-v1-26-10`
 - [x] 2.17 Process `openspec/changes/20260321213543-release-v1-26-12`
-- [ ] 2.18 Process `openspec/changes/20260322123553-release-v1-26-14`
+- [x] 2.18 Process `openspec/changes/20260322123553-release-v1-26-14`
 - [ ] 2.19 Process `openspec/changes/20260322132514-release-v1-26-16`
 - [ ] 2.20 Process `openspec/changes/20260322135347-release-v1-26-18`
 - [ ] 2.21 Process `openspec/changes/20260322135917-release-v1-26-20`
