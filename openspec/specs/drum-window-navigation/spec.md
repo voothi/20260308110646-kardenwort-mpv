@@ -33,6 +33,10 @@ The Drum Window SHALL maintain separate states for the active video subtitle (wh
 - **WHEN** the system is in Book Mode OFF and the playback moves to a new subtitle
 - **THEN** the yellow line highlight SHALL follow the player AND the yellow word-focus SHALL be reset to `-1`.
 
+#### Scenario: Smart Focus Fallback for Copying
+- **WHEN** Book Mode is ON and the user navigates via `a`/`d` (with `DW_FOLLOW_PLAYER` active)
+- **THEN** a `Ctrl+C` command SHALL prioritize copying the white (active/navigated) line if no specific word or range selection is active on the yellow pointer.
+
 ### Requirement: High-Performance Navigation
 ### Historical Regression Context
 
