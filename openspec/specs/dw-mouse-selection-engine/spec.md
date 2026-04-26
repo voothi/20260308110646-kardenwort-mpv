@@ -19,7 +19,7 @@ The system SHALL support instant seeking via double-click with viewport synchron
 
 #### Scenario: Double-clicking in Normal Mode (Book Mode OFF)
 - **WHEN** the user double-clicks a visible subtitle line
-- **THEN** the system SHALL seek playback to that subtitle's start time, re-enable Follow Mode, and re-center the viewport.
+- **THEN** the system SHALL seek playback to that subtitle's start time, re-enable Follow Mode, re-center the viewport, and CLEAR any active word selection (reset `FSM.DW_CURSOR_WORD` and `FSM.DW_ANCHOR_WORD` to `-1`).
 
 #### Scenario: Double-clicking in Book Mode (ON)
 - **WHEN** the user double-clicks a visible subtitle line

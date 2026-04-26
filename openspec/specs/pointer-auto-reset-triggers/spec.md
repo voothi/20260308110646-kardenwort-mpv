@@ -6,6 +6,7 @@ Changing the visual context should clear specific word selections to prevent mis
 ## Requirements
 - Reset `FSM.DW_CURSOR_WORD` to `-1` whenever the user scrolls the Drum Window (mouse wheel).
 - Reset `FSM.DW_CURSOR_WORD` to `-1` whenever a new subtitle is jumped to via the Search Mode result selection.
+- Reset `FSM.DW_CURSOR_WORD` to `-1` whenever the user double-clicks a subtitle to seek (in Book Mode OFF / Drum Mode C).
 
 ## Verification
 - Highlight a word in the Drum Window.

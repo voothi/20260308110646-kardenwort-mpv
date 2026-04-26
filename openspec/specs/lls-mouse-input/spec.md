@@ -7,8 +7,8 @@ Provide a robust, high-precision mouse interaction model for the Drum Window tha
 
 ### Requirement: Systemic Interaction Shield Lockout
 The interaction engine SHALL enforce a uniform 150ms lockout for all mouse events following a keyboard-based interaction, governed by a single configurable parameter (`Options.dw_mouse_shield_ms`).
-- **Interaction Shielding**: All navigational and input handlers (Arrows, Enter, a/d, etc.) MUST set `FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)`.
-- **Efficacy**: Mouse button events (press, up, drag) SHALL be ignored if the current time is less than `FSM.DW_MOUSE_LOCK_UNTIL`.
+- **Interaction Shielding**: All navigational and input handlers (Arrows, Enter, a/d, Double-Click Seek, etc.) MUST set `FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)`.
+- **Efficacy**: Mouse button events (press, up, drag) and passive pointer synchronization (hover/sync) SHALL be ignored if the current time is less than `FSM.DW_MOUSE_LOCK_UNTIL`.
 - **Hardcoded Constants**: Hardcoded durations for lockout are STRONGLY DISCOURAGED.
 
 #### Scenario: Keyboard command triggers shield
@@ -24,6 +24,7 @@ The interaction engine SHALL enforce a uniform 150ms lockout for all mouse event
 ### Requirement: Coordinate-Precise Sync (Pointer Jump Sync)
 The system SHALL ensure the logical focus and highlight anchor are synchronized to the exact pixel-perfect word under the mouse pointer immediately *before* any action is dispatched.
 - **Rationale**: Prevents actions from being applied to a previously "hovered" word if the pointer has jumped due to hardware latency.
+- **Shield Constraint**: Synchronization logic SHALL be bypassed if an active Interaction Shield is in effect, preventing the pointer from "grabbing" new words during rapid UI transitions (like re-centering after a seek).
 
 ### Requirement: Zero-Collapse Clamping
 The hit-testing engine SHALL implement logical index clamping for margin and line gap areas.
