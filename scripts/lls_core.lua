@@ -3948,6 +3948,11 @@ local function cmd_dw_double_click()
 
     local sub = subs[line_idx]
     if sub and sub.start_time then
+        -- Set mouse lock to ignore the trailing "up" event of the double-click
+        -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
+        -- at the post-seek mouse position.
+        FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
+
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1

@@ -6,7 +6,7 @@ A recent audit has identified several regressions and UX issues in the subtitle 
 
 1.  **Safety-Aware Positioning**: Subtitles currently overlap when positioned close together in the bottom half of the screen if manual control is too permissive. The `tick_drum` logic needs to ensure a safety gap to maintain legibility while still allowing user control via relative adjustments.
 2.  **Cyrillic Hit-Testing Inaccuracy**: The hit-testing logic for OSD-based word selection relies on a width heuristic (`dw_get_str_width`) that does not accurately reflect the visual width of Cyrillic characters in proportional fonts (like Inter). This causes mouse clicks and tooltips to be offset or misaligned for Russian text.
-3.  **UX Conflict on Double-Click**: Double-clicking a word in OSD mode is intended for seeking, but the current implementation can lead to unwanted UI state transitions (like the Drum Window appearing) that obstruct the view.
+3.  **Double-Click "Echo" Interaction**: Double-clicking a word in OSD mode is intended for seeking, but the trailing "up" event of the mouse action is often misinterpreted by the system as a new single click. Since the video has already sought to a new position, this "echo" click causes accidental highlighting of a word at the new playback time.
 4.  **Visibility Dependency**: Drum Mode `c` rendering is currently gated by the native subtitle visibility state (`sub-visibility`). This prevents users from using the custom OSD rendering while native subtitles are hidden, which is a common use case for active listening practice.
 
 ## Proposed Changes

@@ -645,4 +645,6 @@
 20260426173149 opsx-explore Okay, check the implementation and the current version of the code meets all specifications openspec\specs, is there any regression regarding commit subject 20260425234228, hash 280f359e69a1e15e7605d3e2956348de5f40a0ee? See our work log in docs\conversation.log, anchors 20260426162052 20260426162846 20260426163312 20260426164155 20260426164419 20260426164608 20260426165755 20260426171701 20260426172432
 20260426175309 Check these comments.
 20260426180503 opsx-apply 20260426175600-subtitle-rendering-fixes
+20260426180955 Return it back to how it was before the implementation of the Restore Manual Positioning modification. Subtitles began to overlap each other. Change the specification to reflect what was in the code.
+20260426181451 Okay, now there is a problem: after double-clicking on a gray subtitle in drum mode c or window mode w, an additional press of LMB occurs, as a result of which the word is highlighted in yellow under the current position of the mouse cursor. This was not observed in the version prior to the selection functionality in reel mode c. This worked correctly in the version 280f359e69a1e15e7605d3e2956348de5f40a0ee
 
