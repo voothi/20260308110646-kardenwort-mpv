@@ -5799,7 +5799,25 @@ local function cmd_copy_sub()
     if ctext == "" then
         local p_text = mp.get_property("sub-text") or ""
         local s_text = mp.get_property("secondary-sub-text") or ""
-        ctext = p_text .. "\n" .. s_text
+        if p_text ~= "" or s_text ~= "" then
+            ctext = p_text .. ((p_text ~= "" and s_text ~= "") and "\n" or "") .. s_text
+        end
+    end
+
+    -- Fallback to internal tracks if still empty (Requirement: OSD-Independent Extraction)
+    if ctext == "" and time_pos then
+        local pri_idx = get_center_index(Tracks.pri.subs, time_pos)
+        local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
+        
+        local pri_s = (pri_idx ~= -1) and Tracks.pri.subs[pri_idx]
+        local sec_s = (sec_idx ~= -1) and Tracks.sec.subs[sec_idx]
+        
+        local pri_line = (pri_s and time_pos >= pri_s.start_time and time_pos <= pri_s.end_time) and pri_s.text or ""
+        local sec_line = (sec_s and time_pos >= sec_s.start_time and time_pos <= sec_s.end_time) and sec_s.text or ""
+        
+        if pri_line ~= "" or sec_line ~= "" then
+            ctext = pri_line .. ((pri_line ~= "" and sec_line ~= "") and "\n" or "") .. sec_line
+        end
     end
     
     -- Clean text (remove ASS tags)
