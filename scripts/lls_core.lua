@@ -3057,9 +3057,13 @@ local function dw_sync_cursor_to_mouse()
             FSM.DW_CURSOR_WORD = word_idx
         end
 
-        local active_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
-        dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
-        dw_osd:update()
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            local active_idx = get_center_index(subs, mp.get_property_number("time-pos") or 0)
+            dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
+            dw_osd:update()
+        else
+            drum_osd:update()
+        end
     end
 
 end
@@ -3528,7 +3532,7 @@ local function ctrl_discard_set()
     FSM.DW_CTRL_PENDING_SET = {}
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
-    dw_osd:update()
+    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
 end
 
 -- Context-Aware Escape: 3-step cancel then close window
@@ -3540,7 +3544,7 @@ local function cmd_dw_esc()
     -- Step 1: pink set OR multi-line yellow anchor present → discard both
     if next(FSM.DW_CTRL_PENDING_SET) or FSM.DW_ANCHOR_LINE ~= -1 then
         ctrl_discard_set()
-        dw_osd:update()
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
         return
     end
     -- Step 2: single-word yellow cursor pointer present → hide it
@@ -3552,7 +3556,7 @@ local function cmd_dw_esc()
         if FSM.DW_ACTIVE_LINE ~= -1 then
             FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
         end
-        dw_osd:update()
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
         return
     end
     -- Step 3: nothing left to clear → close the window
@@ -3582,7 +3586,7 @@ local function ctrl_toggle_word(line_idx, word_idx)
     else
         FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
     end
-    dw_osd:update()
+    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
 end
 
 local function ctrl_commit_set(line_idx, word_idx)
@@ -3806,7 +3810,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
                     
                     drum_osd:update()
-                    if dw_osd then dw_osd:update() end
+                    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
                 end
             end
         elseif tbl.event == "up" then
@@ -3910,7 +3914,7 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
             mp.remove_key_binding("dw-mouse-drag")
         end
         drum_osd:update()
-        dw_osd:update()
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
     else
         -- Fallback to single word toggle (standard behavior)
         if was_mouse then
