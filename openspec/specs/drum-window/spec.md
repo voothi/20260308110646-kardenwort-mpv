@@ -127,3 +127,11 @@ The transparency levels for active and context lines in the Drum Window MUST be 
 - **WHEN** the user sets `dw_context_opacity` to "00" in `mpv.conf`.
 - **THEN** all lines in the Drum Window SHALL be rendered with full saturation, matching the previous behavior.
 
+
+### Requirement: OSD-Agnostic Track Loading
+The system SHALL index all dialogue lines from external subtitle files regardless of their character set or language, ensuring that both primary and secondary tracks are fully resident in memory.
+
+#### Scenario: Loading Russian ASS Translation
+- **WHEN** an ASS subtitle track containing Cyrillic characters is loaded.
+- **THEN** the system SHALL NOT filter out these lines during the ingestion phase.
+- **AND** the Tracks.sec.subs table SHALL contain all dialogue entries for use in translation copy and tooltip rendering.

@@ -1,10 +1,10 @@
 ## ADDED Requirements
 
 ### Requirement: Robust Karaoke Merging
-The system SHALL correctly merge identical subtitle text fragments (karaoke tokens) into a single dialogue block, even when they are separated by interleaved translation tracks.
+The system SHALL correctly merge identical subtitle text fragments (karaoke tokens) into a single dialogue block, even when they are separated by interleaved translation tracks, across all supported file formats (ASS and SRT).
 
 #### Scenario: Merging interleaved karaoke
-- **WHEN** loading a subtitle file with alternating English and Russian tracks
+- **WHEN** loading any supported subtitle file (ASS or SRT) with alternating tracks.
 - **THEN** identical raw text entries found within a 10-entry backward window SHALL be merged into one.
 
 ### Requirement: Language-Aware Context Fetching
@@ -36,11 +36,15 @@ The system SHALL preserve all textual formatting markers, including brackets and
 - **THEN** the resulting clipboard text SHALL include those markers intact.
 
 ### Requirement: Language-Aware Fallback
-The single-item fallback (word/line) in the Drum Window must respect the selected language target.
+The single-item fallback (word/line) in the system (Drum Window and Global) must respect the selected language target.
 
 #### Scenario: Copying Translation from Drum Window
 - **WHEN** the cursor is on a line in the Drum Window, `COPY_MODE` is "B" (Russian), and `Ctrl+C` is pressed.
 - **THEN** the clipboard must contain the Russian translation of that specific line instead of the source text.
+
+#### Scenario: Copying Translation in Regular Mode
+- **WHEN** the user is in Regular Mode (Drum Window OFF), `COPY_MODE` is "B" (Russian), and `Ctrl+c` is pressed.
+- **THEN** the clipboard must contain the Russian translation for the current timestamp, extracted from the internal track table.
 
 ### Requirement: OSD-Independent Clipboard Extraction
 The system SHALL ensure that global copy operations correctly retrieve subtitle text even when native `mpv` subtitle visibility is disabled for custom OSD rendering.
@@ -57,3 +61,4 @@ The system SHALL utilize the internal subtitle index as the primary source for s
 - **WHEN** the user has multiple tracks loaded and `COPY_MODE` is set to "B" (Russian).
 - **AND** the user presses `Ctrl+c`.
 - **THEN** the system SHALL extract the Russian translation line from the internal `Tracks.sec.subs` table if the primary track is English.
+- **AND** native properties SHALL NOT be used if valid internal data exists for the target language.

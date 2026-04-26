@@ -665,7 +665,9 @@
 20260427001003 Check the current code 333640dcee095936ba0225edd92692a05e84a4bb with version ca682a221acc98170c731efecd750b2964c07877 for regression. Does it meet the core openspec\specs specifications?
 20260427002920 Would you like me to prepare a fix for these issues? - Yes.
 20260427003220 opsx-propose 20260427002920
-
+20260427003645 opsx-apply validate
+20260427003946 opsx-archive openspec\changes\20260427003254-fix-load-sub-copy-regressions
+20260427004333 Sync now
 
 
 
