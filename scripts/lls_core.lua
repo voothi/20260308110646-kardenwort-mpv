@@ -8,6 +8,10 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 -- LLS CORE CONFIGURATION
 -- =========================================================================
 
+-- Forward declarations for interactive logic
+local manage_dw_bindings
+local update_interactive_bindings
+
 local Options = {
     -- AutoPause
     autopause_default = true,
@@ -4070,7 +4074,7 @@ end
 -- MASTER TICK LOOP
 -- =========================================================================
 
-local function update_interactive_bindings()
+update_interactive_bindings = function()
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
     local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
     
@@ -4603,7 +4607,7 @@ local function cmd_seek_with_repeat(dir, table)
     end
 end
 
-local function manage_dw_bindings(enable_mouse, enable_kb)
+manage_dw_bindings = function(enable_mouse, enable_kb)
     local function nav(fn, key_name)
         return function(t)
             local key = (t and t.key) or key_name or ""
