@@ -659,6 +659,6 @@
 20260426231501 Check that copying subtitles in Context Copy x, Copy Subtitle Mode z works correctly. Look at the specifications. Find the mistake. Subtitles are not copied in Context OFF mode, in normal mode, they are copied only if Context ON or if you highlight the text in yellow, and in just white subtitles mode they are not copied.
 20260426233344 opsx-apply openspec\changes\20260426233000-fix-copy-subtitle-fragility
 20260426234803 Would you like to try adding that (dw_context_opacity)? - Yes.
-
+20260426235106 opsx-apply openspec\changes\20260426235000-window-mode-context-fading
 
 

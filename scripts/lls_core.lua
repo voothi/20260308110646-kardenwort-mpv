@@ -69,7 +69,9 @@ local Options = {
     dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     dw_text_color = "CCCCCC",     -- light text
-    dw_text_opacity = "00",       -- text alpha
+    dw_text_opacity = "00",       -- legacy/unused base
+    dw_active_opacity = "00",     -- text alpha for active playback line
+    dw_context_opacity = "30",    -- text alpha for context lines
     dw_active_color = "FFFFFF",   -- white active text in BGR
     dw_highlight_color = "00CCFF",-- Gold highlight in BGR
     dw_ctrl_select_color = "FF88FF",-- Neon pink for split-word select (pairing with purple)
@@ -2644,9 +2646,10 @@ local function draw_dw(subs, view_center, active_idx)
         
         local is_active = (i == active_idx)
         local color = is_active and Options.dw_active_color or Options.dw_text_color
+        local opacity = calculate_ass_alpha(is_active and Options.dw_active_opacity or Options.dw_context_opacity)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = Options.dw_font_bold and "1" or "0"
-        local line_prefix = string.format("{\\fn%s}{\\b%s}{\\c&H%s&}", font_name, bold_state, color)
+        local line_prefix = string.format("{\\fn%s}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, bold_state, color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -2843,8 +2846,8 @@ local function draw_dw(subs, view_center, active_idx)
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\1a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_text_opacity), calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
     return ass
 end
