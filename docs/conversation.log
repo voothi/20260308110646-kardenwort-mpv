@@ -675,9 +675,9 @@
 20260427012237 opsx-apply openspec\changes\20260427011411-fix-yellow-word-indicator-consistency Considering Implementation Details I've crafted the necessary artifacts, including proposal.md, design.md, and specifications. I'm focusing on the /opsx-apply workflow now, and reading up on the processes I'll need to do next to implement the change 20260427011411-fix-yellow-word-indicator-consistency.
 20260427012558 Error
 20260427013259 Check that everything is taken into account in the specifications 20260427011411-fix-yellow-word-indicator-consistency for anchors 20260427011411 20260427012237 20260427012558
-
-
-
+20260427013559 opsx-apply 20260427011411-fix-yellow-word-indicator-consistency
+20260427013707 opsx-archive 20260427011411-fix-yellow-word-indicator-consistency
+20260427013802 Sync now
 
 
 
