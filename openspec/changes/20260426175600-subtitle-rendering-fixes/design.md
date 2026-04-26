@@ -27,8 +27,12 @@ While we cannot measure fonts exactly, we can improve the heuristic in `dw_get_s
 ### 3. Drum Mode Visibility Override
 In `master_tick`, the rendering decision for `pri_use_osd` and `sec_use_osd` will be updated. If `FSM.DRUM` is "ON", the tracks will be rendered to the OSD regardless of the `FSM.native_sub_vis` state. This allows the user to hide native subtitles while still seeing the interactive Drum Mode OSD.
 
-### 4. Double-Click Contextual Guarding
-The `cmd_dw_double_click` function will be updated to handle the distinction between "W" mode (Window) and "C" mode (OSD). In OSD mode, it will focus on seeking and selection updates without triggering the `cmd_toggle_drum_window()` function.
+### 4. Double-Click Guarding & Selection Reset
+The `cmd_dw_double_click` function will be updated to:
+- **Clear Selection**: Explicitly reset `FSM.DW_CURSOR_WORD` and `FSM.DW_ANCHOR_WORD` to `-1` (matching `Book Mode OFF` requirements).
+- **Terminate Dragging**: Force `FSM.DW_MOUSE_DRAGGING = false` and remove the drag binding/timer to prevent state leak.
+- **Interaction Shield**: Set `FSM.DW_MOUSE_LOCK_UNTIL` to shield against the trailing "up" event and subsequent passive sync events.
+- **Engine Shielding**: The `dw_sync_cursor_to_mouse` logic will be updated to respect the Interaction Shield, preventing the pointer from "grabbing" words during the UI centering transition.
 
 ## Risks / Trade-offs
 
