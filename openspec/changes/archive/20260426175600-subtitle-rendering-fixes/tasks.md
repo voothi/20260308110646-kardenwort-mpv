@@ -16,6 +16,6 @@
 
 ## 3. Validation
 
-- [ ] 3.1 Verify that adjusting `sub-pos` with `r/t` moves the OSD tracks correctly without overlapping.
-- [ ] 3.2 Test Drum Mode `c` with native subtitles hidden (`s` key) to ensure the OSD remains visible and interactive.
-- [ ] 3.3 Validate mouse-word alignment for Russian text in OSD mode.
+- [x] 3.1 Verify that adjusting `sub-pos` with `r/t` moves the OSD tracks correctly without overlapping.
+- [x] 3.2 Test Drum Mode `c` with native subtitles hidden (`s` key) to ensure the OSD remains visible and interactive.
+- [x] 3.3 Validate mouse-word alignment for Russian text in OSD mode.
