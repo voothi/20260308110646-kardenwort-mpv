@@ -18,8 +18,8 @@ The current subtitle rendering engine implements "smart" features that sometimes
 
 ## Decisions
 
-### 1. Manual Position Priority
-The auto-offset logic in `tick_drum` (which attempted to prevent track overlap) will be removed. The system will rely entirely on the user's input via `sub-pos` and `secondary-sub-pos` properties. This simplifies the rendering loop and eliminates "jumping" subtitles when the user adjusts positions.
+### 1. Safety-Aware Positioning
+The auto-offset logic in `tick_drum` will be restored and maintained. When the secondary track is positioned in the bottom half of the screen, the system will calculate a safety offset based on the primary track's height to prevent overlap. This ensures legibility while still respecting the user's relative position adjustments.
 
 ### 2. Heuristic-Based Word Width Refinement
 While we cannot measure fonts exactly, we can improve the heuristic in `dw_get_str_width` for proportional fonts. We will ensure that the loop always counts characters (not bytes) and apply a consistent width factor for Cyrillic characters that better matches the common `Inter` font metrics used in the project.

@@ -2,13 +2,13 @@
 
 ## ADDED Requirements
 
-### Requirement: Pure Manual Positioning
-The subtitle rendering engine SHALL NOT apply automatic offsets or adjustments to the vertical position of subtitle tracks.
+### Requirement: Safety-Aware Positioning
+The subtitle rendering engine SHALL apply automatic offsets to the secondary subtitle track if its manual position would cause it to overlap with the primary track.
 
-#### Scenario: User-Defined Stacking
-- **GIVEN** Primary sub position is at 90 and Secondary sub position is at 80
+#### Scenario: Collision Prevention
+- **GIVEN** Primary sub position is at 90 and Secondary sub position is at 80 (bottom half)
 - **WHEN** Drum Mode or OSD rendering is active
-- **THEN** The tracks SHALL be rendered at exactly those positions (accounting for their own height) without the script attempting to "correct" or "safety-offset" the secondary track.
+- **THEN** The system SHALL calculate a safety offset based on the primary track's height and apply it to the secondary track to ensure legibility, while still allowing the user's relative adjustments (`r/t`) to be reflected.
 
 ### Requirement: Character-Based Word Boundaries
 All word-width calculations for hit-testing and selection highlights SHALL use character-aware iteration.
