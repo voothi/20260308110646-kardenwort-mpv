@@ -3581,6 +3581,7 @@ local function cmd_dw_esc()
         if FSM.DW_ACTIVE_LINE ~= -1 then
             FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
         end
+        FSM.DW_FOLLOW_PLAYER = true
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
         return
     end
@@ -4019,9 +4020,8 @@ local function tick_dw(time_pos)
     local subs = Tracks.pri.subs
     if #subs == 0 then return end
     
-    local active_idx = get_center_index(subs, time_pos)
+    local active_idx = FSM.DW_ACTIVE_LINE
     if active_idx == -1 then return end
-    FSM.DW_ACTIVE_LINE = active_idx
     
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
@@ -4087,8 +4087,12 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
-        local idx = get_center_index(Tracks.pri.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
+        local idx = FSM.DW_ACTIVE_LINE
+        local center_idx = idx
+        if not FSM.DW_FOLLOW_PLAYER and FSM.DW_CURSOR_LINE ~= -1 then
+            center_idx = FSM.DW_CURSOR_LINE
+        end
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, center_idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
@@ -4147,6 +4151,13 @@ local function master_tick()
     local ok, err = xpcall(function()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
+
+    -- Synchronize Active Line for all modes (C and W)
+    if #Tracks.pri.subs > 0 then
+        FSM.DW_ACTIVE_LINE = get_center_index(Tracks.pri.subs, time_pos)
+    else
+        FSM.DW_ACTIVE_LINE = -1
+    end
 
     -- Execute Autopause
     if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
