@@ -35,6 +35,7 @@ local Options = {
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
+    osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
     -- SRT Style (Regular Mode)
     srt_font_size = 55,
@@ -400,6 +401,7 @@ local FSM = {
 
     -- Transient UI State
     saved_osd_border_style = nil,
+    DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
 
     -- Tooltip State
     DW_TOOLTIP_LINE = -1,
@@ -2161,6 +2163,7 @@ local function update_media_state()
             FSM.MEDIA_STATE = "DUAL_MIXED"
         end
     end
+    update_interactive_bindings()
 
     -- If Drum Mode is ON, but MEDIA_STATE includes an ASS track, we MUST disable Drum Mode to prevent bugs
     if FSM.DRUM == "ON" then
@@ -2243,7 +2246,54 @@ local function dw_get_str_width(str)
     return w
 end
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
+local function is_inside_dw_selection(l, w)
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return false end
+    
+    local p1_l, p1_w, p2_l, p2_w
+    if al < cl or (al == cl and aw <= cw) then
+        p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+    else
+        p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+    end
+    
+    if l < p1_l or l > p2_l then return false end
+    if l == p1_l and w < p1_w then return false end
+    if l == p2_l and w > p2_w then return false end
+    return true
+end
+
+local function calculate_osd_line_meta(text, sub_idx, font_size)
+    local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+    local space_w = dw_get_str_width(" ")
+    local words = {}
+    local total_w = 0
+    
+    for j, t in ipairs(tokens) do
+        local ww = dw_get_str_width(t.text)
+        local space = (j > 1 and not Options.dw_original_spacing) and space_w or 0
+        
+        if t.is_word and t.logical_idx then
+            table.insert(words, {
+                logical_idx = t.logical_idx,
+                x_offset = total_w + space, -- Relative to start of line
+                width = ww,
+                text = t.text
+            })
+        end
+        total_w = total_w + space + ww
+    end
+    
+    return {
+        sub_idx = sub_idx,
+        words = words,
+        total_width = total_w,
+        height = font_size * Options.drum_stack_multiplier
+    }
+end
+
+local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones)
     if center_idx == -1 then return "" end
     
     local ass = ""
@@ -2266,6 +2316,30 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
     end_idx = math.min(#subs, end_idx)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
+
+    if hit_zones and Options.osd_interactivity then
+        local line_metas = {}
+        for i = start_idx, end_idx do
+            local is_active = (i == center_idx)
+            local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
+            table.insert(line_metas, calculate_osd_line_meta(subs[i].text, i, size))
+        end
+        
+        local total_h = 0
+        for _, m in ipairs(line_metas) do total_h = total_h + m.height end
+        
+        local y_start = y_pixel
+        if not is_top then y_start = y_pixel - total_h end
+        
+        local cur_y = y_start
+        for _, m in ipairs(line_metas) do
+            m.y_top = cur_y
+            m.y_bottom = cur_y + m.height
+            m.x_start = 960 - m.total_width / 2
+            cur_y = cur_y + m.height
+            table.insert(hit_zones, m)
+        end
+    end
     
     local function format_sub(sub_idx, is_active, t_pos)
         local text = subs[sub_idx] and subs[sub_idx].text or ""
@@ -2307,7 +2381,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size)
             -- Level 2: Selection/Hover (Focus Point)
             if meta.priority == 0 and l_idx then
                 local is_focus_point = (sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD)
-                if is_focus_point then
+                local is_selection = is_inside_dw_selection(sub_idx, l_idx)
+                if is_focus_point or is_selection then
                     meta.color = Options.dw_highlight_color
                     meta.priority = 2
                 end
@@ -2923,30 +2998,51 @@ local function dw_hit_test(osd_x, osd_y)
     return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
 end
 
-local function is_inside_dw_selection(l, w)
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return false end
+local function drum_osd_hit_test(osd_x, osd_y)
+    if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then return nil, nil end
     
-    local p1_l, p1_w, p2_l, p2_w
-    if al < cl or (al == cl and aw <= cw) then
-        p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-    else
-        p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+    for _, line in ipairs(FSM.DRUM_HIT_ZONES) do
+        if osd_y >= line.y_top and osd_y <= line.y_bottom then
+            local rel_x = osd_x - line.x_start
+            if rel_x >= 0 and rel_x <= line.total_width then
+                -- Find closest word in this line
+                local best_logical_idx = nil
+                local min_dist = math.huge
+                for _, word in ipairs(line.words) do
+                    local center = word.x_offset + word.width / 2
+                    local dist = math.abs(rel_x - center)
+                    if dist < min_dist then
+                        min_dist = dist
+                        best_logical_idx = word.logical_idx
+                    end
+                end
+                return line.sub_idx, best_logical_idx
+            end
+        end
     end
-    
-    if l < p1_l or l > p2_l then return false end
-    if l == p1_l and w < p1_w then return false end
-    if l == p2_l and w > p2_w then return false end
-    return true
+    return nil, nil
 end
+
+local function lls_hit_test_all(osd_x, osd_y)
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        return dw_hit_test(osd_x, osd_y)
+    elseif Options.osd_interactivity then
+        return drum_osd_hit_test(osd_x, osd_y)
+    end
+    return nil, nil
+end
+
 
 local function dw_sync_cursor_to_mouse()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+    local line_idx, word_idx
+    
+    if FSM.DRUM_WINDOW ~= "OFF" or Options.osd_interactivity then
+        line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+    end
 
     if line_idx and word_idx then
         -- Selection & Hover Protection: ONLY update logical cursor if we ARE dragging.
@@ -3082,12 +3178,12 @@ local function cmd_dw_tooltip_toggle()
 end
 
 local function dw_tooltip_mouse_update()
-    if FSM.DRUM_WINDOW == "OFF" then return end
+    if FSM.DRUM_WINDOW == "OFF" and not Options.osd_interactivity then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _ = dw_hit_test(osd_x, osd_y)
+    local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
     
     -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
     if FSM.DW_TOOLTIP_FORCE then
@@ -3144,6 +3240,14 @@ local function dw_tooltip_mouse_update()
         local target_l = line_idx
         if target_l and target_l ~= -1 then
             local target_y = FSM.DW_LINE_Y_MAP[target_l]
+            if not target_y and FSM.DRUM_WINDOW == "OFF" then
+                for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
+                    if zone.sub_idx == target_l then
+                        target_y = zone.y_top
+                        break
+                    end
+                end
+            end
             if target_y then
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 FSM.DW_TOOLTIP_LINE = target_l
@@ -3655,7 +3759,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
             -- Dismiss tooltip on click and lock suppression for the current focus
             local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
             
             if line_idx then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
@@ -3707,7 +3811,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             -- POINTER JUMP SYNC: Perform a final hit-test on release to ensure actions 
             -- are applied to the exact coordinate where the button was released.
             local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+            local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
             
             if line_idx and word_idx and updates_selection then
                 if not FSM.DW_PROTECTED_SELECTION then
@@ -3807,7 +3911,7 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         -- Fallback to single word toggle (standard behavior)
         if was_mouse then
             local osd_x, osd_y = dw_get_mouse_osd()
-            line, word = dw_hit_test(osd_x, osd_y)
+            line, word = lls_hit_test_all(osd_x, osd_y)
         else
             line, word = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
         end
@@ -3826,7 +3930,7 @@ local function cmd_dw_double_click()
     if not subs or #subs == 0 then return end
 
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, word_idx = dw_hit_test(osd_x, osd_y)
+    local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
     if not line_idx then return end
 
     local sub = subs[line_idx]
@@ -3916,15 +4020,17 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
         sec_pos = sec_pos + auto_offset
     end
 
+    FSM.DRUM_HIT_ZONES = {}
+
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
         local idx = get_center_index(Tracks.pri.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size)
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
         local idx = get_center_index(Tracks.sec.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size)
+        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
     end
     
     drum_osd.data = ass_text
@@ -3963,6 +4069,16 @@ end
 -- =========================================================================
 -- MASTER TICK LOOP
 -- =========================================================================
+
+local function update_interactive_bindings()
+    local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
+    local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
+    
+    local need_mouse = dw_on or osd_on
+    local need_kb = dw_on
+    
+    manage_dw_bindings(need_mouse, need_kb)
+end
 
 local function master_tick()
     local ok, err = xpcall(function()
@@ -4036,6 +4152,8 @@ local function master_tick()
     -- Execute Drum Window
     if FSM.DRUM_WINDOW == "DOCKED" then
         tick_dw(time_pos)
+    elseif Options.osd_interactivity then
+        dw_tooltip_mouse_update()
     end
     end, debug.traceback)
     if not ok then
@@ -4113,6 +4231,7 @@ local function cmd_toggle_drum()
         FSM.DRUM = "OFF"
         show_osd("Drum Mode: OFF")
     end
+    update_interactive_bindings()
     -- master_tick handles the sub-visibility property suppression
     drum_osd.data = ""
     drum_osd:update()
@@ -4484,11 +4603,9 @@ local function cmd_seek_with_repeat(dir, table)
     end
 end
 
-local function manage_dw_bindings(enable)
+local function manage_dw_bindings(enable_mouse, enable_kb)
     local function nav(fn, key_name)
         return function(t)
-            -- Ignore modifiers (Ctrl, Shift, Alt, Meta) as shield-triggers so combos like Shift+Click work.
-            -- Navigation/Action keys (Arrows, Enter, etc.) still trigger the 150ms mouse lockout.
             local key = (t and t.key) or key_name or ""
             if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
                 FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
@@ -4497,112 +4614,97 @@ local function manage_dw_bindings(enable)
         end
     end
 
-    local keys = {
+    local keys = {}
+    
+    -- 1. Definitive Keyboard Navigation Group
+    local kb_keys = {
         {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end, "LEFT")},
         {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
         {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
         {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
-        -- Mouse selection & Suppression
-        {key = Options.dw_key_select_extend, name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-        {key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
-        -- Ctrl Tracking (State mapping)
         {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-            -- We no longer discard on Ctrl up to allow building pink selections with modifier keys
         end, Options.dw_key_pair_mod), complex = true},
+        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
+        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
+        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
+        {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
     }
+    for _, k in ipairs(kb_keys) do 
+        k.is_kb = true
+        table.insert(keys, k) 
+    end
 
-    local function parse_and_bind(key_string, base_name, mouse_fn, key_fn, updates_selection, complex)
+    -- 2. Definitive Mouse Interaction Group
+    local mouse_keys = {
+        {key = Options.dw_key_select_extend, name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
+        {key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+    }
+    for _, k in ipairs(mouse_keys) do 
+        k.is_mouse = true
+        table.insert(keys, k) 
+    end
+
+    local function parse_and_collect(key_string, base_name, mouse_fn, key_fn, updates_selection, complex)
         if not key_string or key_string == "" then return end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
-                    -- Detect if the handler is already a mouse handler to avoid redundant wrapping
-                    if mouse_fn and MOUSE_HANDLERS[mouse_fn] then
-                        table.insert(keys, {
-                            key = key,
-                            name = base_name .. "-" .. i,
-                            fn = mouse_fn,
-                            complex = true
-                        })
-                    else
-                        -- Mouse keys get the full drag/drop treatment via make_mouse_handler
-                        local m_fn = make_mouse_handler(false, 
-                            function(t) mouse_fn(t, true) end, -- up
-                            function(t) mouse_fn(t, true) end, -- down
-                            updates_selection
-                        )
-                        table.insert(keys, {
-                            key = key,
-                            name = base_name .. "-" .. i,
-                            fn = m_fn,
-                            complex = true
-                        })
-                    end
+                    local m_fn = (mouse_fn and MOUSE_HANDLERS[mouse_fn]) and mouse_fn or make_mouse_handler(false, 
+                        function(t) mouse_fn(t, true) end, 
+                        function(t) mouse_fn(t, true) end, 
+                        updates_selection
+                    )
+                    table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true, is_mouse = true })
                 else
-                    table.insert(keys, {
-                        key = key,
-                        name = base_name .. "-" .. i,
-                        fn = function(t) 
-                            -- Shield the mouse from ghost clicks after a key is pressed (excluding modifiers)
-                            local key = (t and t.key) or ""
-                            if not (key == "Ctrl" or key == "Shift" or key == "Alt" or key == "Meta") then
-                                FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
-                            end
-                            key_fn(t, false) 
-                        end,
-                        complex = complex or false
-                    })
+                    table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = function(t) 
+                        local k = (t and t.key) or ""
+                        if not (k == "Ctrl" or k == "Shift" or k == "Alt" or k == "Meta") then
+                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
+                        end
+                        key_fn(t, false) 
+                    end, complex = complex or false, is_kb = true })
                 end
                 i = i + 1
             end
         end
     end
 
-    parse_and_bind(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
-    parse_and_bind(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
-    parse_and_bind(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
-    parse_and_bind(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
-    parse_and_bind(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
-    parse_and_bind(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
-    parse_and_bind(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
-    parse_and_bind(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
-    parse_and_bind(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-    parse_and_bind(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
-    parse_and_bind(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
-    parse_and_bind(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
-    parse_and_bind(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
-    parse_and_bind(Options.dw_key_jump_right, "dw-jump-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, false) end, false)
-    parse_and_bind(Options.dw_key_jump_select_left, "dw-jump-select-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, true) end, false)
-    parse_and_bind(Options.dw_key_jump_select_right, "dw-jump-select-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, true) end, false)
-    parse_and_bind(Options.dw_key_scroll_up, "dw-scroll-up-ctrl", nil, function() cmd_dw_scroll(-1) end, false)
-    parse_and_bind(Options.dw_key_scroll_down, "dw-scroll-down-ctrl", nil, function() cmd_dw_scroll(1) end, false)
-    parse_and_bind(Options.dw_key_jump_select_up, "dw-jump-select-up", nil, function() cmd_dw_line_move(-Options.dw_jump_lines, true) end, false)
-    parse_and_bind(Options.dw_key_jump_select_down, "dw-jump-select-down", nil, function() cmd_dw_line_move(Options.dw_jump_lines, true) end, false)
-    parse_and_bind(Options.dw_key_select_left, "dw-select-left", nil, function() cmd_dw_word_move(-1, true) end, false)
-    parse_and_bind(Options.dw_key_select_right, "dw-select-right", nil, function() cmd_dw_word_move(1, true) end, false)
-    parse_and_bind(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
-    parse_and_bind(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
-    parse_and_bind(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
-    parse_and_bind(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
-    parse_and_bind(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
-
-    -- Extra Layout & Search
-    local extra = {
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
-    }
-    for _, k in ipairs(extra) do table.insert(keys, k) end
+    parse_and_collect(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
+    parse_and_collect(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
+    parse_and_collect(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
+    parse_and_collect(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
+    parse_and_collect(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
+    parse_and_collect(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
+    parse_and_collect(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
+    parse_and_collect(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
+    parse_and_collect(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
+    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
+    parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
+    parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
+    parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
+    parse_and_collect(Options.dw_key_jump_right, "dw-jump-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, false) end, false)
+    parse_and_collect(Options.dw_key_jump_select_left, "dw-jump-select-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, true) end, false)
+    parse_and_collect(Options.dw_key_jump_select_right, "dw-jump-select-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, true) end, false)
+    parse_and_collect(Options.dw_key_scroll_up, "dw-scroll-up-ctrl", nil, function() cmd_dw_scroll(-1) end, false)
+    parse_and_collect(Options.dw_key_scroll_down, "dw-scroll-down-ctrl", nil, function() cmd_dw_scroll(1) end, false)
+    parse_and_collect(Options.dw_key_jump_select_up, "dw-jump-select-up", nil, function() cmd_dw_line_move(-Options.dw_jump_lines, true) end, false)
+    parse_and_collect(Options.dw_key_jump_select_down, "dw-jump-select-down", nil, function() cmd_dw_line_move(Options.dw_jump_lines, true) end, false)
+    parse_and_collect(Options.dw_key_select_left, "dw-select-left", nil, function() cmd_dw_word_move(-1, true) end, false)
+    parse_and_collect(Options.dw_key_select_right, "dw-select-right", nil, function() cmd_dw_word_move(1, true) end, false)
+    parse_and_collect(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
+    parse_and_collect(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
+    parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
+    parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
+    parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
 
     for _, k in ipairs(keys) do
-        if enable then 
-            -- Shield the system from unknown or naked modifier keys
+        local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
+        if active then 
             if k.key and not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 if k.complex then
                     mp.add_forced_key_binding(k.key, k.name, k.fn, {complex = true})
@@ -4618,8 +4720,9 @@ local function manage_dw_bindings(enable)
             end
         else mp.remove_key_binding(k.name) end
     end
-    -- Clean up mouse and window state
-    if not enable then
+
+    -- Cleanup Dragging & Window state
+    if not enable_mouse then
         FSM.DW_MOUSE_DRAGGING = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
@@ -4629,15 +4732,19 @@ local function manage_dw_bindings(enable)
         if FSM.DW_NATIVE_WINDOW_DRAGGING ~= nil then
             mp.set_property_bool("window-dragging", FSM.DW_NATIVE_WINDOW_DRAGGING)
         end
-        -- Flush tooltip
-        FSM.DW_TOOLTIP_LINE = -1
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
+        -- Flush tooltip if interaction was lost
+        if not enable_kb then
+            FSM.DW_TOOLTIP_LINE = -1
+            dw_tooltip_osd.data = ""
+            dw_tooltip_osd:update()
+        end
     else
-        FSM.DW_NATIVE_WINDOW_DRAGGING = mp.get_property_bool("window-dragging", true)
+        if FSM.DW_NATIVE_WINDOW_DRAGGING == nil then
+            FSM.DW_NATIVE_WINDOW_DRAGGING = mp.get_property_bool("window-dragging", true)
+        end
         mp.set_property_bool("window-dragging", false)
     end
-    FSM.DW_KEY_OVERRIDE = enable
+    FSM.DW_KEY_OVERRIDE = enable_kb
 end
 
 -- =========================================================================
@@ -5352,7 +5459,7 @@ function cmd_toggle_drum_window()
         FSM.DW_FOLLOW_PLAYER = true
         
         if not FSM.SEARCH_MODE then
-            manage_dw_bindings(true)
+            update_interactive_bindings()
         end
 
         -- Explicitly trigger first render for instant appearance
@@ -5369,7 +5476,7 @@ function cmd_toggle_drum_window()
         manage_ui_border_override(false)
 
         if not FSM.SEARCH_MODE then
-            manage_dw_bindings(false)
+            update_interactive_bindings()
         end
         dw_osd.data = ""
         dw_osd:update()
