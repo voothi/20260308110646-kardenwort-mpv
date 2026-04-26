@@ -3569,7 +3569,8 @@ local function cmd_dw_esc()
     -- Step 1: pink set OR multi-line yellow anchor present → discard both
     if next(FSM.DW_CTRL_PENDING_SET) or FSM.DW_ANCHOR_LINE ~= -1 then
         ctrl_discard_set()
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
+        elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
     end
     -- Step 2: single-word yellow cursor pointer present → hide it
@@ -3581,7 +3582,8 @@ local function cmd_dw_esc()
         if FSM.DW_ACTIVE_LINE ~= -1 then
             FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
         end
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
+        elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
     end
     -- Step 3: nothing left to clear → close the window
@@ -4015,13 +4017,9 @@ local function cmd_dw_double_click()
     end
 end
 
-local function tick_dw(time_pos)
+local function tick_dw(time_pos, active_idx)
     local subs = Tracks.pri.subs
-    if #subs == 0 then return end
-    
-    local active_idx = get_center_index(subs, time_pos)
-    if active_idx == -1 then return end
-    FSM.DW_ACTIVE_LINE = active_idx
+    if #subs == 0 or active_idx == -1 then return end
     
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
@@ -4153,6 +4151,15 @@ local function master_tick()
         tick_autopause(time_pos)
     end
 
+    -- Sync active line for Drum/DW logic
+    local active_idx = -1
+    if #Tracks.pri.subs > 0 then
+        active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if active_idx ~= -1 then
+            FSM.DW_ACTIVE_LINE = active_idx
+        end
+    end
+
     -- Manage native subtitle suppression
     -- We hide native subs if OSD rendering is active OR Drum Window is open.
     local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
@@ -4214,7 +4221,7 @@ local function master_tick()
 
     -- Execute Drum Window
     if FSM.DRUM_WINDOW == "DOCKED" then
-        tick_dw(time_pos)
+        tick_dw(time_pos, active_idx)
     elseif Options.osd_interactivity then
         dw_tooltip_mouse_update()
     end

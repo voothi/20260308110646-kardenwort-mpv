@@ -672,7 +672,7 @@
 20260427010000 x It is necessary to understand why in mode c and window mode w the yellow word indicator after Esc does not appear in the same pattern. It should be like now in window mode w, where when you press the up key the word appears on the line above in the middle, when you press the arrow below it appears on the line below in the middle. When you press the left arrow, the last word of the subtitle should be highlighted, when you press the right, the first word.
 20260427010857 x Accept.
 20260427011411 opsx-propose It is necessary to understand why in mode c and window mode w the yellow word indicator after Esc does not appear in the same pattern. It should be like now in window mode w, where when you press the up key the word appears on the line above in the middle, when you press the arrow below it appears on the line below in the middle. When you press the left arrow, the last word of the subtitle should be highlighted, when you press the right, the first word. At the same time, now in mode c the yellow word pointer does not scroll the subtitles behind it when moved, which is correct behavior. This also works in other modes, in window mode w.
-
+20260427012237 opsx-apply openspec\changes\20260427011411-fix-yellow-word-indicator-consistency Considering Implementation Details I've crafted the necessary artifacts, including proposal.md, design.md, and specifications. I'm focusing on the /opsx-apply workflow now, and reading up on the processes I'll need to do next to implement the change 20260427011411-fix-yellow-word-indicator-consistency.
 
 
 
