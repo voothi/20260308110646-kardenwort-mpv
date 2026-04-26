@@ -655,7 +655,8 @@
 20260426191235 Okay, it works now. You need to check that the cases are displayed in the specification; they reflect the current state of the code. Let me remind you that the conversation was conducted using anchors 20260426185208 20260426190034.
 20260426191753 Check that openspec\changes\20260426162931-active-subtitle-highlighting openspec\changes\20260426175600-subtitle-rendering-fixes projects are updated according to the fix.
 20260426192009 We can archive them with openspec synchronization? openspec\changes\20260426162931-active-subtitle-highlighting openspec\changes\20260426175600-subtitle-rendering-fixes
-
+20260426192456 Check the current code for compliance with all specifications located in the openspec\specs directory.
+20260426231501 Check that copying subtitles in Context Copy x, Copy Subtitle Mode z works correctly. Look at the specifications. Find the mistake. Subtitles are not copied in Context OFF mode, in normal mode, they are copied only if Context ON or if you highlight the text in yellow, and in just white subtitles mode they are not copied.
 
 
 
