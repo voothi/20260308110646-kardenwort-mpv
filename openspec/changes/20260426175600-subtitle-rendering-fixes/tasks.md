@@ -10,7 +10,9 @@
 - [x] 2.1 Refine `dw_get_str_width` (lls_core.lua:L2226) to ensure character-aware iteration for all font types.
 - [x] 2.2 Standardize width heuristics in `dw_get_str_width` to avoid over-estimation of Cyrillic character widths.
 - [x] 2.3 Modify `cmd_dw_double_click` (lls_core.lua:L3936) to prevent triggering `cmd_toggle_drum_window()` when interacting with the OSD.
-- [x] 2.4 Implement a mouse shield in `cmd_dw_double_click` to prevent trailing "up" events from triggering accidental highlights after a seek.
+- [x] 2.4 Refine mouse shield in `cmd_dw_double_click` and related sync logic.
+- [x] 2.5 Add shield check to `dw_sync_cursor_to_mouse` to prevent re-syncing during transitions.
+- [x] 2.6 Update `cmd_dw_double_click` to explicitly terminate dragging state and timers.
 
 ## 3. Validation
 

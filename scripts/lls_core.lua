@@ -3043,6 +3043,9 @@ end
 
 
 local function dw_sync_cursor_to_mouse()
+    -- Shield logic: ignore mouse events if a keyboard command or double-click was just triggered
+    if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
+
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
@@ -3962,6 +3965,14 @@ local function cmd_dw_double_click()
         -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
         -- at the post-seek mouse position.
         FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
+
+        -- Explicitly terminate any dragging/scrolling state initiated by the first click
+        FSM.DW_MOUSE_DRAGGING = false
+        mp.remove_key_binding("dw-mouse-drag")
+        if FSM.DW_MOUSE_SCROLL_TIMER then
+            FSM.DW_MOUSE_SCROLL_TIMER:kill()
+            FSM.DW_MOUSE_SCROLL_TIMER = nil
+        end
 
         mp.commandv("seek", sub.start_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
