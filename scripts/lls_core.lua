@@ -115,8 +115,8 @@ local Options = {
     seek_hold_rate = 10,
 
     -- Anki Highlighter
-    dw_key_add = "MBTN_MID Ctrl+MBTN_MID f а",
-    dw_key_pair = "g п Ctrl+MBTN_LEFT",
+    dw_key_add = "g п MBTN_MID Ctrl+MBTN_MID",
+    dw_key_pair = "f а Ctrl+MBTN_LEFT",
     dw_key_select = "MBTN_LEFT",
     dw_key_pair_mod = "Ctrl",
     dw_key_tooltip_pin = "MBTN_RIGHT",

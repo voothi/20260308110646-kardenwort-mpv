@@ -640,6 +640,7 @@
 20260426164419 Error
 20260426164608 When you click LMB on a word in drum mode c, a window w appears on top of these double subtitles and it gets in the way. But now I can click at least.
 20260426165755 Okay, we need to do something now so that the `r, k` keys in Drum window w change to `f, а`, and the keys `t, е` on `g, п`. Key `g, п` (Anki Global) it needs to be changed на `h, р`. Make it happen r, t worked only to adjust the position. And f, g worked as they worked r, t in window mode w, but now not only in this mode, since we have made it possible to work with text in double subtitles mode.
+20260426171701 Key `f, а` was busy under Full Screen, we reassigned her. Make Full Screen by `v, м `
 
 
 
