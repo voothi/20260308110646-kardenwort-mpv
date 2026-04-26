@@ -678,8 +678,8 @@
 20260427013559 opsx-apply 20260427011411-fix-yellow-word-indicator-consistency
 20260427013707 opsx-archive 20260427011411-fix-yellow-word-indicator-consistency
 20260427013802 Sync now
-
-
+20260427014503 opsx-propose There was some kind of change recently, look at openspec, in terms of turning subtitles on and off with the `s, ы` key, it stopped working. Currently, subtitles are not removed from the screen, although they are OSD and not standard.
+20260427015323 opsx-apply openspec\changes\20260427014503-fix-subtitle-toggle-regression
 
 
 

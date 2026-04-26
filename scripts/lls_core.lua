@@ -4169,8 +4169,8 @@ local function master_tick()
     -- 1. Always use OSD if Drum Mode is ON (Drum Mode auto-disables for ASS anyway)
     -- 2. Use OSD for SRT if configured.
     -- 3. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
-    local pri_use_osd = (FSM.DRUM == "ON") or (FSM.native_sub_vis and use_osd_for_srt and not Tracks.pri.is_ass)
-    local sec_use_osd = (FSM.DRUM == "ON") or (FSM.native_sec_sub_vis and use_osd_for_srt and not Tracks.sec.is_ass)
+    local pri_use_osd = FSM.native_sub_vis and ((FSM.DRUM == "ON") or (use_osd_for_srt and not Tracks.pri.is_ass))
+    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (use_osd_for_srt and not Tracks.sec.is_ass))
 
     if dw_active or pri_use_osd or sec_use_osd then
         -- Suppression Logic
@@ -5706,7 +5706,7 @@ local function cmd_toggle_sub_vis()
     end
     
     show_osd("Subtitles: " .. (nxt and "ON" or "OFF"))
-    drum_osd:update()
+    master_tick()
 end
 
 local function cmd_cycle_sec_pos()
