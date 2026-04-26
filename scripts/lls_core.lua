@@ -279,7 +279,7 @@ function load_sub(path, is_ass)
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
-                            if raw_text ~= "" and not has_cyrillic(raw_text) then
+                            if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
                                 local merged = false
@@ -313,9 +313,16 @@ function load_sub(path, is_ass)
             if line == "" then
                 if current_sub and current_sub.text ~= "" then
                     current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-                    if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
-                        subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
-                    else
+                    local merged = false
+                    local search_limit = math.max(1, #subs - 10)
+                    for i = #subs, search_limit, -1 do
+                        if subs[i].raw_text == current_sub.raw_text then
+                            subs[i].end_time = math.max(subs[i].end_time, current_sub.end_time)
+                            merged = true
+                            break
+                        end
+                    end
+                    if not merged then
                         table.insert(subs, current_sub)
                     end
                 end
@@ -343,9 +350,16 @@ function load_sub(path, is_ass)
         end
         if current_sub and current_sub.text ~= "" then
             current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-            if #subs > 0 and subs[#subs].raw_text == current_sub.raw_text then
-                subs[#subs].end_time = math.max(subs[#subs].end_time, current_sub.end_time)
-            else
+            local merged = false
+            local search_limit = math.max(1, #subs - 10)
+            for i = #subs, search_limit, -1 do
+                if subs[i].raw_text == current_sub.raw_text then
+                    subs[i].end_time = math.max(subs[i].end_time, current_sub.end_time)
+                    merged = true
+                    break
+                end
+            end
+            if not merged then
                 table.insert(subs, current_sub)
             end
         end
@@ -5799,15 +5813,7 @@ local function cmd_copy_sub()
         end
     end
     
-    if ctext == "" then
-        local p_text = mp.get_property("sub-text") or ""
-        local s_text = mp.get_property("secondary-sub-text") or ""
-        if p_text ~= "" or s_text ~= "" then
-            ctext = p_text .. ((p_text ~= "" and s_text ~= "") and "\n" or "") .. s_text
-        end
-    end
-
-    -- Fallback to internal tracks if still empty (Requirement: OSD-Independent Extraction)
+    -- Primary: Internal tracks (Requirement: Unified Source Fallback / OSD-Independent)
     if ctext == "" and time_pos then
         local pri_idx = get_center_index(Tracks.pri.subs, time_pos)
         local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
@@ -5820,6 +5826,15 @@ local function cmd_copy_sub()
         
         if pri_line ~= "" or sec_line ~= "" then
             ctext = pri_line .. ((pri_line ~= "" and sec_line ~= "") and "\n" or "") .. sec_line
+        end
+    end
+
+    -- Fallback: Native properties (if internal data unavailable)
+    if ctext == "" then
+        local p_text = mp.get_property("sub-text") or ""
+        local s_text = mp.get_property("secondary-sub-text") or ""
+        if p_text ~= "" or s_text ~= "" then
+            ctext = p_text .. ((p_text ~= "" and s_text ~= "") and "\n" or "") .. s_text
         end
     end
     
@@ -5846,9 +5861,9 @@ local function cmd_copy_sub()
                     if (FSM.COPY_MODE == "A" and not cyr) or (FSM.COPY_MODE == "B" and cyr) then table.insert(valid, ln) end
                 end
                 
-                if #valid == 0 then table.insert(valid, (FSM.COPY_MODE == "A") and lines[#lines] or lines[1]) end
+                if #valid == 0 then table.insert(valid, (FSM.COPY_MODE == "A") and lines[1] or lines[#lines]) end
             else
-                table.insert(valid, (FSM.COPY_MODE == "A") and lines[#lines] or lines[1])
+                table.insert(valid, (FSM.COPY_MODE == "A") and lines[1] or lines[#lines])
             end
             final_text = table.concat(valid, " ")
         end

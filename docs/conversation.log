@@ -662,8 +662,9 @@
 20260426235106 opsx-apply openspec\changes\20260426235000-window-mode-context-fading
 20260426235851 Okay, archive and sync. openspec\changes\20260426233000-fix-copy-subtitle-fragility openspec\changes\20260426235000-window-mode-context-fading
 20260427000255 I don’t see you pouring the specifications into the main ones.
-
-
+20260427001003 Check the current code 333640dcee095936ba0225edd92692a05e84a4bb with version ca682a221acc98170c731efecd750b2964c07877 for regression. Does it meet the core openspec\specs specifications?
+20260427002920 Would you like me to prepare a fix for these issues? - Yes.
+20260427003220 opsx-propose 20260427002920
 
 
 
