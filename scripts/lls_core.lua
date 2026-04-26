@@ -2223,29 +2223,31 @@ end
 -- =========================================================================
 
 -- Helper to estimate the width of a proportional string
-local function dw_get_str_width(str)
+local function dw_get_str_width(str, fs, font_name)
     if type(str) == "table" then str = str.text end
     if not str then return 0 end
+    fs = fs or Options.dw_font_size
+    font_name = font_name or Options.dw_font_name
     
     -- Strip ASS tags before calculating physical width
     str = str:gsub("{[^}]+}", "")
     
-    local char_w = Options.dw_font_size * Options.dw_char_width
-    if Options.dw_font_name:lower():match("consolas") or Options.dw_font_name:lower():match("mono") then
+    -- Monospace path (standard for Drum Window)
+    if font_name:lower():match("consolas") or font_name:lower():match("mono") then
         local len = 0
         for _ in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do len = len + 1 end
-        return len * char_w
+        return len * fs * Options.dw_char_width
     end
     
-    local fs = Options.dw_font_size
+    -- Proportional heuristic (standard for OSD)
     local w = 0
     for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if c == " " then w = w + (fs * 0.35)
-        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.25)
-        elseif c:match("[mwMW%@]") then w = w + (fs * 0.70)
-        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.45)
-        elseif #c > 1 then w = w + (fs * 0.50)
-        else w = w + (fs * 0.45) end
+        if c == " " then w = w + (fs * 0.30)
+        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
+        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
+        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
+        elseif #c > 1 then w = w + (fs * 0.45) -- Cyrillic/Wide
+        else w = w + (fs * 0.42) end
     end
     return w
 end
@@ -2268,14 +2270,14 @@ local function is_inside_dw_selection(l, w)
     return true
 end
 
-local function calculate_osd_line_meta(text, sub_idx, font_size)
+local function calculate_osd_line_meta(text, sub_idx, font_size, font_name)
     local tokens = build_word_list_internal(text, Options.dw_original_spacing)
-    local space_w = dw_get_str_width(" ")
+    local space_w = dw_get_str_width(" ", font_size, font_name)
     local words = {}
     local total_w = 0
     
     for j, t in ipairs(tokens) do
-        local ww = dw_get_str_width(t.text)
+        local ww = dw_get_str_width(t.text, font_size, font_name)
         local space = (j > 1 and not Options.dw_original_spacing) and space_w or 0
         
         if t.is_word and t.logical_idx then
@@ -2322,11 +2324,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local y_pixel = y_pos_percent * 1080 / 100
 
     if hit_zones and Options.osd_interactivity then
+        local is_drum_mode = (FSM.DRUM == "ON")
+        local font_name = is_drum_mode and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
+                                       or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
         local line_metas = {}
         for i = start_idx, end_idx do
             local is_active = (i == center_idx)
             local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-            table.insert(line_metas, calculate_osd_line_meta(subs[i].text, i, size))
+            table.insert(line_metas, calculate_osd_line_meta(subs[i].text, i, size, font_name))
         end
         
         local total_h = 0
@@ -3956,6 +3961,14 @@ local function cmd_dw_double_click()
         end
         
         FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        
+        -- Explicitly ensure we don't open the full Drum Window (Mode W) 
+        -- when interacting in OSD mode (Mode C).
+        if FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF" then
+            drum_osd:update()
+        elseif FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        end
     end
 end
 
@@ -4018,15 +4031,6 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     local context_lines = is_drum and Options.drum_context_lines or 0
     
     
-    if sec_pos > 50 then
-        local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
-        local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
-        -- Calculate safety position (2 blocks above primary + comfort gap)
-        local min_safe_pos = pri_pos - (2 * (max_pixels / 1080) * 100) - Options.drum_track_gap
-        -- Apply relative offset so user keys (r/t) still work responsively
-        local auto_offset = min_safe_pos - Options.sec_pos_bottom
-        sec_pos = sec_pos + auto_offset
-    end
 
     FSM.DRUM_HIT_ZONES = {}
 
@@ -4107,8 +4111,8 @@ local function master_tick()
     -- 1. Always use OSD if Drum Mode is ON (Drum Mode auto-disables for ASS anyway)
     -- 2. Use OSD for SRT if configured.
     -- 3. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
-    local pri_use_osd = FSM.native_sub_vis and (FSM.DRUM == "ON" or (use_osd_for_srt and not Tracks.pri.is_ass))
-    local sec_use_osd = FSM.native_sec_sub_vis and (FSM.DRUM == "ON" or (use_osd_for_srt and not Tracks.sec.is_ass))
+    local pri_use_osd = (FSM.DRUM == "ON") or (FSM.native_sub_vis and use_osd_for_srt and not Tracks.pri.is_ass)
+    local sec_use_osd = (FSM.DRUM == "ON") or (FSM.native_sec_sub_vis and use_osd_for_srt and not Tracks.sec.is_ass)
 
     if dw_active or pri_use_osd or sec_use_osd then
         -- Suppression Logic

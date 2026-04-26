@@ -2,14 +2,14 @@
 
 ## 1. Core Rendering & Positioning
 
-- [ ] 1.1 Remove the `auto_offset` block in `tick_drum` (lls_core.lua:L4021-4029) to restore purely manual control over subtitle positions.
-- [ ] 1.2 Update `master_tick` rendering triggers (lls_core.lua:L4110-4111) to allow `pri_use_osd` and `sec_use_osd` to be active if `FSM.DRUM == "ON"`, regardless of `FSM.native_sub_vis`.
+- [x] 1.1 Remove the `auto_offset` block in `tick_drum` (lls_core.lua:L4021-4029) to restore purely manual control over subtitle positions.
+- [x] 1.2 Update `master_tick` rendering triggers (lls_core.lua:L4110-4111) to allow `pri_use_osd` and `sec_use_osd` to be active if `FSM.DRUM == "ON"`, regardless of `FSM.native_sub_vis`.
 
 ## 2. Interaction & Hit-Testing
 
-- [ ] 2.1 Refine `dw_get_str_width` (lls_core.lua:L2226) to ensure character-aware iteration for all font types.
-- [ ] 2.2 Standardize width heuristics in `dw_get_str_width` to avoid over-estimation of Cyrillic character widths.
-- [ ] 2.3 Modify `cmd_dw_double_click` (lls_core.lua:L3936) to prevent triggering `cmd_toggle_drum_window()` when interacting with the OSD.
+- [x] 2.1 Refine `dw_get_str_width` (lls_core.lua:L2226) to ensure character-aware iteration for all font types.
+- [x] 2.2 Standardize width heuristics in `dw_get_str_width` to avoid over-estimation of Cyrillic character widths.
+- [x] 2.3 Modify `cmd_dw_double_click` (lls_core.lua:L3936) to prevent triggering `cmd_toggle_drum_window()` when interacting with the OSD.
 
 ## 3. Validation
 
