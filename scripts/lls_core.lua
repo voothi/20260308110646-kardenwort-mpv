@@ -4019,7 +4019,7 @@ end
 
 local function tick_dw(time_pos, active_idx)
     local subs = Tracks.pri.subs
-    if #subs == 0 or active_idx == -1 then return end
+    if #subs == 0 or not active_idx or active_idx == -1 then return end
     
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
@@ -5534,7 +5534,8 @@ function cmd_toggle_drum_window()
 
         -- Explicitly trigger first render for instant appearance
         if FSM.DRUM_WINDOW == "DOCKED" then
-            tick_dw(time_pos or 0)
+            local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
+            tick_dw(time_pos or 0, active_idx)
         end
     else
         print("[LLS] CLOSING DRUM WINDOW...")
