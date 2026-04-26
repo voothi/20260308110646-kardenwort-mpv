@@ -115,8 +115,8 @@ local Options = {
     seek_hold_rate = 10,
 
     -- Anki Highlighter
-    dw_key_add = "MBTN_MID Ctrl+MBTN_MID r к",
-    dw_key_pair = "t е Ctrl+MBTN_LEFT",
+    dw_key_add = "MBTN_MID Ctrl+MBTN_MID f а",
+    dw_key_pair = "g п Ctrl+MBTN_LEFT",
     dw_key_select = "MBTN_LEFT",
     dw_key_pair_mod = "Ctrl",
     dw_key_tooltip_pin = "MBTN_RIGHT",
@@ -124,7 +124,7 @@ local Options = {
     dw_key_tooltip_toggle = "e у",
     dw_key_seek_prev = "a ф",
     dw_key_seek_next = "d в",
-    dw_key_search = "f Ctrl+f а Ctrl+а",
+    dw_key_search = "Ctrl+f Ctrl+а",
     dw_key_copy = "Ctrl+c Ctrl+с",
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
@@ -4083,7 +4083,7 @@ update_interactive_bindings = function()
     local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
     
     local need_mouse = dw_on or osd_on
-    local need_kb = dw_on
+    local need_kb = dw_on or osd_on
     
     manage_dw_bindings(need_mouse, need_kb)
 end
