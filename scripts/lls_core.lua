@@ -3770,8 +3770,11 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
 
-            -- Dismiss tooltip on click and lock suppression for the current focus
+            -- Store initial coordinates to detect movement/dragging
             local osd_x, osd_y = dw_get_mouse_osd()
+            FSM.DW_MOUSE_DOWN_X, FSM.DW_MOUSE_DOWN_Y = osd_x, osd_y
+
+            -- Dismiss tooltip on click and lock suppression for the current focus
             local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
             
             if line_idx then
@@ -3821,17 +3824,24 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             
-            -- POINTER JUMP SYNC: Perform a final hit-test on release to ensure actions 
-            -- are applied to the exact coordinate where the button was released.
+            -- POINTER JUMP SYNC: Perform a final hit-test on release ONLY if the mouse 
+            -- has moved significantly (dragging). This prevents stationary clicks 
+            -- from re-highlighting wrong words when the text shifts vertically 
+            -- (e.g. during re-centering or seeking).
             local osd_x, osd_y = dw_get_mouse_osd()
-            local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+            local dx = math.abs(osd_x - (FSM.DW_MOUSE_DOWN_X or 0))
+            local dy = math.abs(osd_y - (FSM.DW_MOUSE_DOWN_Y or 0))
             
-            if line_idx and word_idx and updates_selection then
-                if not FSM.DW_PROTECTED_SELECTION then
-                    FSM.DW_CURSOR_LINE = line_idx
-                    FSM.DW_CURSOR_WORD = word_idx
+            if (dx > 5 or dy > 5) and updates_selection then
+                local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+                
+                if line_idx and word_idx then
+                    if not FSM.DW_PROTECTED_SELECTION then
+                        FSM.DW_CURSOR_LINE = line_idx
+                        FSM.DW_CURSOR_WORD = word_idx
+                    end
+                    FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
                 end
-                FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
             end
             
             FSM.DW_PROTECTED_SELECTION = false
