@@ -9,12 +9,28 @@ The yellow word indicator state must be synchronized with the currently active p
 - **THEN** The indicator must disappear immediately
 - **THEN** `FSM.DW_CURSOR_LINE` must be set to the currently active subtitle line index
 
-#### Scenario: Arrow navigation after Escape in Mode C
-- **WHEN** The indicator has been cleared with `Esc` in Mode C
-- **WHEN** The user presses `Up`
-- **THEN** A yellow word indicator must appear in the middle of the subtitle line immediately above the previously active line
+#### Scenario: Vertical arrow navigation after Escape
+- **WHEN** The indicator has been cleared with `Esc`
+- **WHEN** The user presses `Up` (or `Down`)
+- **THEN** A yellow word indicator must appear in the middle (x=960) of the subtitle line immediately above (or below) the active line.
 
-#### Scenario: Horizontal arrow navigation after Escape in Mode C
-- **WHEN** The indicator has been cleared with `Esc` in Mode C
+#### Scenario: Horizontal arrow navigation after Escape
+- **WHEN** The indicator has been cleared with `Esc`
 - **WHEN** The user presses `Right`
-- **THEN** The first word of the active subtitle line must be highlighted
+- **THEN** The first word of the active subtitle line must be highlighted.
+- **WHEN** The user presses `Left`
+- **THEN** The last word of the active subtitle line must be highlighted.
+
+### Requirement: Independent Mode C Viewport
+The cursor navigation in Mode C must not trigger viewport scrolling.
+
+#### Scenario: Moving cursor in Mode C
+- **WHEN** The user navigates the cursor with arrows in Mode C
+- **THEN** The yellow indicator moves but the underlying subtitles stay fixed at the current video playback position.
+
+### Requirement: Stability and Error Prevention
+The system must not crash when toggling modes or updating the OSD.
+
+#### Scenario: Opening Drum Window
+- **WHEN** The user toggles the Drum Window (Mode W) ON
+- **THEN** The window must initialize and render without Lua errors, even if it's the first render of the session.
