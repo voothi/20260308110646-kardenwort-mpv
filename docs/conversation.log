@@ -754,8 +754,8 @@
 20260427163449 Sync now
 20260427163737 opsx-explore Check for regression regarding commit 0befa9923cae21c33f43c69875de438c9101cf66 (20260427022609) and compliance of the current version with all openspec\specs specifications
 20260427194741 opsx-explore 20260427165606 Doesn't seem to work drum_double_gap=no.
-20260427200339 opsx-propose
-
+20260427200339 opsx-propose openspec\changes\20260427200421-fix-drum-spacing-logic
+20260427200737 opsx-apply openspec\changes\20260427200421-fix-drum-spacing-logic
 
 
 
