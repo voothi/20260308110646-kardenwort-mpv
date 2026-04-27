@@ -15,3 +15,11 @@ Mouse interaction hit-zones must automatically synchronize with the visual layou
 - **WHEN** the user sets `lls-dw_vsp` to a negative value or toggles `lls-dw_double_gap`
 - **THEN** the clickable word zones must automatically shift their vertical positions to remain perfectly aligned with the new visual positions of the words.
 - **AND** no manual re-calibration of `line_height_mul` should be required for basic structural changes.
+
+### Requirement: Precise Tooltip Centering
+The tooltip active line must be perfectly centered on the target playback line's midpoint when `tooltip_y_offset_lines=0`.
+
+#### Scenario: Displaying Tooltip for an Active Subtitle
+- **WHEN** a translation tooltip is triggered for a specific line
+- **AND** `tooltip_y_offset_lines` is set to `0`
+- **THEN** the vertical center of the tooltip's active line should align exactly with the vertical center of the target line in the primary window.

@@ -15,6 +15,7 @@ Implement a "Semi-Automatic Calibration" system and enforce visual parity across
 2. **Visual Parity**: Unify internal rendering tags (`\1c`, `\1a`, `\q2`) across all modes to resolve brightness and sharpness differences.
 3. **Styling Standardization**: Ensure all modes (DW, Drum, SRT, Tooltip) support the same set of styling parameters (`active_bold`, `context_size_mul`, etc.) for logical consistency.
 4. **Interval Synchronization**: Lock the vertical spacing logic of the Tooltip to match the Drum Window's behavior.
+5. **Precision Tooltip Centering**: Implement logic to ensure that `tooltip_y_offset_lines=0` centers the tooltip's active line exactly on the middle of the target "white line".
 
 ## Benefits
 - **User-Centric Configuration**: Users can style the OSD declaratively in `mpv.conf` without worrying about breaking technical calibration.
