@@ -726,7 +726,7 @@
 20260427115421 Check Options in the script.
 20260427115956 The font itself, its parameters, opacity parameters for dw, drum, srt modes, except for line spacing, are completely identical and are applied using the same mechanism? Look carefully at the white subtitle, it is brighter in one photo.
 20260427120532 Would you like me to unify these internal rendering tags now to fix the brightness discrepancy? - Yes.
-
+20260427120848 Doesn't seem to help.
 
 
 
