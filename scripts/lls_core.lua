@@ -845,10 +845,6 @@ local function calculate_ass_alpha(val)
     return hex
 end
 
-
-
-
-
 local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     local b_gap_mul = Options[prefix .. "_block_gap_mul"] or 0
     local d_gap = Options[prefix .. "_double_gap"]
@@ -858,6 +854,9 @@ local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     end
     return gap
 end
+
+
+
 
 
 local function utf8_to_table(str)
@@ -2383,6 +2382,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     end_idx = math.min(#subs, end_idx)
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
+    local sub_scale = mp.get_property_number("sub-scale", 1.0)
 
     if hit_zones and Options.osd_interactivity then
         local is_drum_mode = (FSM.DRUM == "ON")
@@ -2400,7 +2400,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             table.insert(line_metas, calculate_osd_line_meta(subs[i].text, i, size, font_name, lh_mul, vsp))
         end
         
-        local sub_scale = mp.get_property_number("sub-scale", 1.0)
         local total_h = 0
         for i, m in ipairs(line_metas) do 
             m.height = m.height * sub_scale
@@ -2574,27 +2573,16 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     end
     
     local is_drum_mode = (FSM.DRUM == "ON")
-    local prefix = is_drum_mode and "drum" or "srt"
-    local d_gap = Options[prefix .. "_double_gap"]
-    local vsp_base = is_drum_mode and Options.drum_vsp or Options.srt_vsp
-    local b_gap_mul = Options[prefix .. "_block_gap_mul"] or 0
-    local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
+    local d_gap = is_drum_mode and Options.drum_double_gap or Options.srt_double_gap
+    local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
+    local separator = d_gap and "\\N\\N" or "\\N"
+    local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
     
-    local function get_separator(prev_is_active)
-        local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or (line_fs * b_gap_mul)
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-    
-    local all_text = ""
-    for i = start_idx, end_idx do
-        local line_text = format_sub(i, i == center_idx, subs[i].start_time)
-        if i == start_idx then
-            all_text = line_text
-        else
-            all_text = all_text .. get_separator(i - 1 == center_idx) .. line_text
-        end
-    end
+    local all_text = table.concat(prev_text, separator)
+    if all_text ~= "" and active_text ~= "" then all_text = all_text .. separator end
+    all_text = all_text .. active_text
+    if all_text ~= "" and #next_text > 0 then all_text = all_text .. separator end
+    all_text = all_text .. table.concat(next_text, separator)
 
     local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
@@ -2720,10 +2708,9 @@ local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
     local ass = ""
-    local sub_scale = mp.get_property_number("sub-scale", 1.0)
     local layout, total_height = dw_build_layout(subs, view_center)
+    local sub_scale = mp.get_property_number("sub-scale", 1.0)
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = ((Options.dw_font_size * lh_mul) + Options.dw_vsp) * sub_scale
     local current_y = 540 - ((total_height * sub_scale) / 2)
     FSM.DW_LINE_Y_MAP = {}
     
@@ -2953,26 +2940,9 @@ local function draw_dw(subs, view_center, active_idx)
         table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
-    local d_gap = Options.dw_double_gap
-    local vsp_base = Options.dw_vsp
-    local b_gap_mul = Options.dw_block_gap_mul or 0
-    local lh_mul = Options.dw_line_height_mul
-
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or (line_fs * b_gap_mul)
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-
-    local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
-        end
-    end
+    -- Join separate subtitles with configured gap
+    local separator = Options.dw_double_gap and "\\N\\N" or "\\N"
+    local block_text = table.concat(lines_ass, separator)
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
@@ -3009,23 +2979,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
     end
     
-    local d_gap = Options.tooltip_double_gap
-    local vsp_base = Options.tooltip_vsp
-    local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    
-    local function get_separator()
-        local vsp_extra = d_gap and (fs * b_gap_mul / 2) or (fs * b_gap_mul)
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-    
-    local text_block = ""
-    for i, line_text in ipairs(lines_ass) do
-        if i == 1 then
-            text_block = line_text
-        else
-            text_block = text_block .. get_separator() .. line_text
-        end
-    end
+    local separator = Options.tooltip_double_gap and "\\N\\N" or "\\N"
+    local text_block = table.concat(lines_ass, separator)
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
@@ -3037,6 +2992,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
     local layout_line_h = (fs * Options.tooltip_line_height_mul) + Options.tooltip_vsp
+    local block_gap = (fs * Options.tooltip_block_gap_mul)
+    
+    -- Each logical block has its height, and we use the centralized gap calculation
+    -- to ensure parity between visual block_height and hit-testing zones.
     local total_gap = calculate_sub_gap("tooltip", fs, Options.tooltip_line_height_mul, Options.tooltip_vsp)
     local block_height = (num_lines * layout_line_h)
     if num_lines > 1 then
@@ -3044,7 +3003,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     
     local sub_scale = mp.get_property_number("sub-scale", 1.0)
-    local scaled_half_h = (block_height / 2) * sub_scale
+    local scaled_half_h = half_h * sub_scale
     local margin = 20
     local screen_h = 1080 -- Target OSD vertical resolution
     
@@ -4465,7 +4424,7 @@ local function cmd_toggle_drum()
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
         if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
 
-        show_osd(string.format("Drum Mode: ON [Double Gap: %s]", Options.drum_double_gap and "YES" or "NO"))
+        show_osd("Drum Mode: ON")
     else
         FSM.DRUM = "OFF"
         show_osd("Drum Mode: OFF")
@@ -5705,7 +5664,6 @@ function cmd_toggle_drum_window()
         if FSM.DRUM_WINDOW == "DOCKED" then
             local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
-            show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
         end
     else
         print("[LLS] CLOSING DRUM WINDOW...")
@@ -5879,7 +5837,7 @@ local function cmd_toggle_sub_vis()
         mp.set_property_bool("secondary-sub-visibility", false)
     end
     
-    show_osd("Subtitles: " .. (nxt and string.format("ON [Double Gap: %s]", Options.srt_double_gap and "YES" or "NO") or "OFF"))
+    show_osd("Subtitles: " .. (nxt and "ON" or "OFF"))
     master_tick()
 end
 

@@ -760,7 +760,7 @@
 20260427201934 It didn't get better with calibration, but now drum_double_gap=no works.
 20260427202302 Error
 20260427202528 No, this is also inaccurate after drum_double_gap=no
-20260427203455 Switched to branch 20260427200731, let's look at commit 4c4bfca22b51e522a579d4605ec5357edeb4df4c 20260427200731, in which the calibration works хорошо в режиме drum_double_gap=no.
+20260427203455 Switched to branch 20260427200731, let's look at commit 4c4bfca22b51e522a579d4605ec5357edeb4df4c 20260427200731, in which the calibration works хорошо в режиме drum_double_gap=no. Take exactly this implementation.
 
 
 
