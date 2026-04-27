@@ -716,18 +716,20 @@
 20260427105700 Don't we need to modify the script as requested 20260427095955 from docs\conversation.log?
 20260427110047 Okay, now explain why we need to implement \vsp and what it is? Was this implemented in version 42856b86df9d964f20ac7a8a87ae20ed583133e6?
 20260427110422 Now it looks perfect without vsp, can we safely, minimally invasively implement vsp for future opportunities, so that with a devolt value it does not affect the situation and works as without it? 
-
-
-
-
-
-
-
-
-
-
-
-
+20260427111217 x In which lls-... (dw, srt, drum, search, ... in the mpv.conf file do we still need to add our improvements to the text display for uniformity? We also have a drum mode c.
+20260427112224 x Question about calibration, how do the _line_height_mul, _double_gap, _vsp and other parameters affect the calibration? Do I need to set this separately for window mode w, drum c, srt, tooltip?
+20260427113035 x But should these parameters _line_height_mul and _block_gap_mul affect the external display if their purpose is calibration?
+20260427113402 x But how can we switch dw_line_height_mul to semi-automatic calibration mode like others?
+20260427113846 x I cannot automatically change the settings specified declaratively for the text view via mpv.conf, you can only adjust the values ​​of the calibration parameters.
+20260427114201 x But what then is the function of the remaining manual calibration parameters, what are they, by the way? Is this for more precise tuning, for fine-tuning?
+20260427114332 x How then should I migrate the current (old) calibration parameters for identical accuracy compared to the previous version? In particular, for the main mode - dw?
+20260427115421 x Check Options in the script.
+20260427115956 x The font itself, its parameters, opacity parameters for dw, drum, srt modes, except for line spacing, are completely identical and are applied using the same mechanism? Look carefully at the white subtitle, it is brighter in one photo.
+20260427120532 x Would you like me to unify these internal rendering tags now to fix the brightness discrepancy? - Yes.
+20260427120848 x Doesn't seem to help.
+20260427120933 x Compose opsx-propose leaning on to anchor the conversation 20260427101804 20260427104612 20260427105230 20260427105700 20260427110047 20260427110422 20260427111217 20260427112224 20260427113035 20260427113402 20260427113846 20260427114201 20260427114332 20260427115421 20260427115956 20260427120532 20260427120848
+20260427122218 x opsx-explore I have a regression due to the latest improvements described here openspec/changes/20260427121101-osd-uniformity-calibration-sync, the action log for it can be viewed in docs\conversation.log for the following anchors ZID 20260427101804 20260427104612 20260427105230 20260427105700 20260427110047 20260427110422 20260427111217 20260427112224 20260427113035 20260427113402 20260427113846 20260427114201 20260427114332 20260427115421 20260427115956 20260427120532 20260427120848 20260427120933. The first problem is that the styles between the dw, drum, srt, and tooltip windows began to differ. Previously, my drum window had the same font as in dw. Now it is brighter in drum mode than in dw. Вторая проблема с центрированием tooltip, сейчас у меня tooltip_y_offset_lines=0, но как видно из фото, подсказка справа сдвинута. I found a version when these two things still worked well 42741da7c05b4d9fa7cfabdd96d5223e32711b95, 20260427110710. From that moment on there was a regression. And one can question the applicable changes as a whole.
+20260427124503 x It doesn't work.
 
 
 
