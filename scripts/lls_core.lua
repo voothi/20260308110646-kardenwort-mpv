@@ -2912,45 +2912,54 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local fs = Options.tooltip_font_size
-    local line_height = fs * Options.tooltip_line_height_mul
+    local step = fs * Options.tooltip_line_height_mul
     local bold = Options.tooltip_font_bold and "1" or "0"
     
     local lines_ass = {}
+    local active_pos_in_block = center_idx - start_idx + 1
+    
+    -- Calculate vertical bounds for clamping
+    local offset_unit = Options.tooltip_y_offset_lines * step
+    local top_rel = (1 - active_pos_in_block) * step
+    local bottom_rel = ( (end_idx - start_idx + 1) - active_pos_in_block) * step
+    
+    local final_osd_y = osd_y + offset_unit
+    
+    -- Boundary clamping
+    local margin = 20
+    local screen_h = 1080
+    if final_osd_y + top_rel < margin then
+        final_osd_y = margin - top_rel
+    elseif final_osd_y + bottom_rel > screen_h - margin then
+        final_osd_y = screen_h - margin - bottom_rel
+    end
+    
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
         local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
         
-        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
+        -- Relative positioning: active line is at 0 relative to final_osd_y
+        local relative_idx = (i - start_idx + 1) - active_pos_in_block
+        local y = final_osd_y + (relative_idx * step)
+        
+        -- Individual line positioning with \an6 (Right Center)
+        table.insert(lines_ass, string.format("{\\pos(1800, %d)}{\\an6}{\\c&H%s&}{\\1a&H%s&}%s", y, color, calculate_ass_alpha(opacity), sub_text))
     end
     
-    local text_block = table.concat(lines_ass, "\\N")
+    -- We join WITHOUT \N to avoid the "phantom offset" issue. 
+    -- Individual \pos commands handle all spacing.
+    local text_block = table.concat(lines_ass, "")
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Apply manual Y offset if requested
-    local final_y = osd_y + (Options.tooltip_y_offset_lines * line_height)
-    
-    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
-    local num_lines = end_idx - start_idx + 1
-    local block_height = num_lines * line_height
-    local half_h = block_height / 2
-    local margin = 20
-    local screen_h = 1080 -- Target OSD vertical resolution
-    
-    if final_y - half_h < margin then
-        final_y = margin + half_h
-    elseif final_y + half_h > screen_h - margin then
-        final_y = screen_h - margin - half_h
-    end
-
-    -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
-    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        font_name, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    -- Final OSD string with \q2 (no wrap) for exact layout control
+    local ass = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end
