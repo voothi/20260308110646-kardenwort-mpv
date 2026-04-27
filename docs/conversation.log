@@ -777,6 +777,8 @@
 20260427163737 opsx-explore Check for regression regarding commit 0befa9923cae21c33f43c69875de438c9101cf66 (20260427022609) and compliance of the current version with all openspec\specs specifications
 20260427233113 WOULD YOU LIKE ME TO PROCEED WITH FIXING THE PERFORMANCE REGRESSION AND THE SMART JOINER INTEGRATION? Create opsx-propose
 20260427234608 It needs to be calibrated a little so that in drum mode c there is a small downward adjustment of a 2 pixels to the upper subtitles when you click on a word.
+20260428000144 Add 2 more pixels.
+20260428000439 This setting does not respond - and 20 or 0. I noted the spread on the top lines.
 
 
 

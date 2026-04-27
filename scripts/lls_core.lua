@@ -41,6 +41,7 @@ local Options = {
     drum_double_gap = true,
     drum_vsp = 0,
     drum_block_gap_mul = -0.27,
+    drum_upper_gap_adj = -6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
@@ -2408,8 +2409,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             total_h = total_h + m.height 
             if i < #line_metas then
                 local abs_idx = start_idx + i - 1
+                local adj = (not d_gap and abs_idx < center_idx) and (Options.drum_upper_gap_adj or 0) or 0
                 local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
-                total_h = total_h + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp)
+                total_h = total_h + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp) + adj
             end
         end
         
@@ -2418,15 +2420,15 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         
         local cur_y = y_start
         for i, m in ipairs(line_metas) do
-            local abs_idx = start_idx + i - 1
-            local adj = (not d_gap and abs_idx < center_idx) and 2 or 0
-            m.y_top = cur_y + adj
-            m.y_bottom = cur_y + m.height + adj
+            m.y_top = cur_y
+            m.y_bottom = cur_y + m.height
             m.x_start = 960 - m.total_width / 2
             cur_y = cur_y + m.height
             if i < #line_metas then
+                local abs_idx = start_idx + i - 1
+                local adj = (not d_gap and abs_idx < center_idx) and (Options.drum_upper_gap_adj or 0) or 0
                 local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
-                cur_y = cur_y + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp)
+                cur_y = cur_y + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp) + adj
             end
             table.insert(hit_zones, m)
         end
