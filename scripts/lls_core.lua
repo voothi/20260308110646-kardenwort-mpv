@@ -151,6 +151,7 @@ local Options = {
     tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
     tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
+    -- [v1.4.8] y_offset_lines=0: Tooltip active line is centered on the middle of the white line in Window W or E.
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
 
     -- Navigation Repeat
@@ -2391,15 +2392,18 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         end
         
         local total_h = 0
-        for _, m in ipairs(line_metas) do total_h = total_h + m.height end
+        local sub_gap = (font_size * (is_drum_mode and Options.drum_block_gap_mul or Options.srt_block_gap_mul)) 
+                         + ((is_drum_mode and Options.drum_double_gap or Options.srt_double_gap) and (line_metas[1] and line_metas[1].height or 0) or 0)
+
+        for i, m in ipairs(line_metas) do 
+            total_h = total_h + m.height 
+            if i < #line_metas then total_h = total_h + sub_gap end
+        end
         
         local y_start = y_pixel
         if not is_top then y_start = y_pixel - total_h end
         
         local cur_y = y_start
-        local sub_gap = (font_size * (is_drum and Options.drum_block_gap_mul or Options.srt_block_gap_mul)) 
-                         + ((is_drum and Options.drum_double_gap or Options.srt_double_gap) and (vline_h or line_metas[1].height) or 0)
-        
         for i, m in ipairs(line_metas) do
             m.y_top = cur_y
             m.y_bottom = cur_y + m.height
@@ -2425,7 +2429,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
                                       or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
         
-        local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
+        local size = font_size * (is_active and (is_drum and Options.drum_active_size_mul or Options.srt_active_size_mul) 
+                                             or (is_drum and Options.drum_context_size_mul or Options.srt_context_size_mul))
         
         local tokens = build_word_list_internal(text, Options.dw_original_spacing)
         
@@ -2436,6 +2441,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                 visual_to_logical[j] = t.logical_idx
             end
         end
+
+        local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
 
         -- Level 1 & 2: Base Highlighting (First Pass)
         local token_meta = {}
@@ -2533,8 +2540,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             result_text = compose_term_smart(formatted_parts)
         end
 
-        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-            font_name, opacity, bold_state, base_color, size, result_text)
+        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\3c&H%s&}{\\fs%d}%s", 
+            font_name, opacity, bold_state, base_color, bg_color, size, result_text)
     end
 
     local separator = (is_drum and Options.drum_double_gap or Options.srt_double_gap) and "\\N\\N" or "\\N"
@@ -2547,6 +2554,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local active_text = ""
     if center_idx > 0 and center_idx <= #subs then
         local sub = subs[center_idx]
+        -- The centered line in draw_drum is always considered "active" (highlighted white),
+        -- which ensures consistent highlighting during scrolling and seek operations,
+        -- matching the robust behavior of the Drum Window (Mode W).
         active_text = format_sub(center_idx, true, sub.start_time)
     end
     
@@ -2567,10 +2577,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local vsp = is_drum and Options.drum_vsp or Options.srt_vsp
-    local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s", 
-        bord, shad, bg_color, calculate_ass_alpha(bg_opacity), vsp_tag)
+    local vsp_val = is_drum and Options.drum_vsp or Options.srt_vsp
+    local vsp_tag = vsp_val ~= 0 and string.format("{\\vsp%g}", vsp_val) or ""
+    local style_block = string.format("%s{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}", 
+        vsp_tag, bord, shad, bg_color, calculate_ass_alpha(bg_opacity), bg_color, calculate_ass_alpha(bg_opacity))
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2716,7 +2726,7 @@ local function draw_dw(subs, view_center, active_idx)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\3c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, Options.dw_bg_color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -2766,11 +2776,11 @@ local function draw_dw(subs, view_center, active_idx)
                     elseif orange_stack > 0 then
                         if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
                         elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
-                        elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                        else h_color = Options.anki_highlight_depth_3 end
                     elseif purple_stack > 0 then
                         if purple_depth == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
                         elseif purple_depth == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                        elseif purple_depth >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                        else h_color = Options.anki_split_depth_3 or "B3607C" end
                     end
 
                     if h_color ~= color then
@@ -2915,8 +2925,8 @@ local function draw_dw(subs, view_center, active_idx)
     local block_text = table.concat(lines_ass, separator)
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
     
     return ass
 end
@@ -2958,6 +2968,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     -- Active Line Alignment: Calculate Y so that the CENTER of the active line (center_idx)
     -- aligns perfectly with osd_y. This prevents "shifting" when start_idx or end_idx are clamped.
+    -- When tooltip_y_offset_lines=0, this ensures the tooltip is centered on the target line's middle.
     local vline_h = (Options.tooltip_font_size * Options.tooltip_line_height_mul) + Options.tooltip_vsp
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
@@ -2986,8 +2997,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, Options.tooltip_font_size, bord, shad, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, Options.tooltip_font_size, bord, shad, bg_color, bg_alpha, bg_color, bg_alpha, text_block)
         
     return ass
 end

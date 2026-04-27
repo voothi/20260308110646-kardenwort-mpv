@@ -5,10 +5,11 @@
 
 ## 2. Renderer Unification
 
-- [x] 2.1 Standardize on `\1c` and `\q2` in `draw_drum` (Drum Mode C / SRT).
-- [x] 2.2 Standardize on `\1c` and `\q2` in `draw_dw` (Drum Window).
-- [x] 2.3 Standardize on `\1c` and `\q2` in `draw_dw_tooltip`.
-- [x] 2.4 Audit `format_highlighted_word` for consistent tag usage. (Completed via standardizing the base color tags).
+- [x] 2.1 Standardize on `\1c`, `\3c`, and `\q2` in `draw_drum` (Drum Mode C / SRT).
+- [x] 2.2 Standardize on `\1c`, `\3c`, and `\q2` in `draw_dw` (Drum Window).
+- [x] 2.3 Standardize on `\1c`, `\3c`, and `\q2` in `draw_dw_tooltip`.
+- [x] 2.4 Incorporate sophisticated Tooltip Centering logic for `y_offset_lines=0`.
+- [x] 2.5 Audit `format_highlighted_word` for consistent tag usage. (Completed via standardizing the base color tags).
 
 ## 3. Semi-Automatic Calibration
 

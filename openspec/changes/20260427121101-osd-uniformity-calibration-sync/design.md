@@ -29,6 +29,10 @@ The project uses multiple OSD overlays to display subtitles, translations, and n
 ### 3. Schema Alignment
 - Add missing styling parameters (`active_bold`, `context_bold`, `active_size_mul`, `context_size_mul`, `vsp`, `double_gap`) to all mode blocks in the `Options` table.
 
+### 4. Tooltip Centering
+- **Precision Alignment**: When `tooltip_y_offset_lines=0`, the active line of the tooltip is centered exactly on the middle of the target "white line" in Window W (Drum Window) or Window E (Tooltip).
+- **Consistency**: This alignment logic is independent of the number of context lines or clamping, ensuring a stable visual anchor during interaction.
+
 ## Risks / Trade-offs
 - **Legacy Offset**: Users with highly customized manual calibrations might need to adjust their `_mul` values slightly to account for the new "smarter" logic.
 - **No-Wrap Risk**: Using `\q2` means text will simply cut off if it exceeds the OSD width, but this is already the expected behavior for the Drum Window and list-based layouts.
