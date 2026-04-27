@@ -6,5 +6,5 @@
 
 ## 2. Verification
 
-- [ ] 2.1 **Navigation Test**: Load a video with the reported subtitle sequence and verify that pressing 'd' on "and fifteen" correctly seeks to the following segment.
-- [ ] 2.2 **Generic Tag Integrity**: Verify that separate occurrences of `[Music]` or similar tags are preserved as independent seek targets when separated by other subtitles or time gaps.
+- [x] 2.1 **Navigation Test**: Load a video with the reported subtitle sequence and verify that pressing 'd' on "and fifteen" correctly seeks to the following segment.
+- [x] 2.2 **Generic Tag Integrity**: Verify that separate occurrences of `[Music]` or similar tags are preserved as independent seek targets when separated by other subtitles or time gaps.
