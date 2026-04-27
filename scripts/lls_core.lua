@@ -38,6 +38,8 @@ local Options = {
     drum_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
+    drum_double_gap = false,
+    drum_vsp = 0,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
@@ -53,6 +55,8 @@ local Options = {
     srt_bg_opacity = "60",         -- Shadow/Frame transparency
     srt_border_size = 1.5,
     srt_shadow_offset = 1.0,
+    srt_double_gap = false,
+    srt_vsp = 0,
     srt_line_height_mul = 1.2,     -- Vertical spacing multiplier
 
     -- Copy Mode
@@ -2312,7 +2316,7 @@ local function is_inside_dw_selection(l, w)
     return true
 end
 
-local function calculate_osd_line_meta(text, sub_idx, font_size, font_name)
+local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line_height_mul, vsp)
     local tokens = build_word_list_internal(text, Options.dw_original_spacing)
     local space_w = dw_get_str_width(" ", font_size, font_name)
     local words = {}
@@ -2337,7 +2341,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name)
         sub_idx = sub_idx,
         words = words,
         total_width = total_w,
-        height = font_size * Options.drum_line_height_mul
+        height = (font_size * line_height_mul) + vsp
     }
 end
 
@@ -2369,25 +2373,39 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         local is_drum_mode = (FSM.DRUM == "ON")
         local font_name = is_drum_mode and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
                                        or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
+        local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
+        local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
+        local d_gap = is_drum_mode and Options.drum_double_gap or Options.srt_double_gap
+
         local line_metas = {}
         for i = start_idx, end_idx do
             local is_active = (i == center_idx)
             local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-            table.insert(line_metas, calculate_osd_line_meta(subs[i].text, i, size, font_name))
+            table.insert(line_metas, calculate_osd_line_meta(subs[i].text, i, size, font_name, lh_mul, vsp))
         end
         
         local total_h = 0
-        for _, m in ipairs(line_metas) do total_h = total_h + m.height end
+        for i, m in ipairs(line_metas) do 
+            total_h = total_h + m.height 
+            if i < #line_metas then
+                local gap = 0
+                if d_gap then gap = (font_size * lh_mul) + vsp end
+                total_h = total_h + gap
+            end
+        end
         
         local y_start = y_pixel
         if not is_top then y_start = y_pixel - total_h end
         
         local cur_y = y_start
-        for _, m in ipairs(line_metas) do
+        for i, m in ipairs(line_metas) do
             m.y_top = cur_y
             m.y_bottom = cur_y + m.height
             m.x_start = 960 - m.total_width / 2
             cur_y = cur_y + m.height
+            if i < #line_metas and d_gap then
+                cur_y = cur_y + (font_size * lh_mul) + vsp
+            end
             table.insert(hit_zones, m)
         end
     end
@@ -2520,39 +2538,39 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             font_name, opacity, bold_state, base_color, size, result_text)
     end
 
-    local prev_text = ""
+    local prev_text = {}
     for i = start_idx, center_idx - 1 do
-        local sub = subs[i]
-        prev_text = prev_text .. (prev_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
+        table.insert(prev_text, format_sub(i, false, subs[i].start_time))
     end
     
     local active_text = ""
     if center_idx > 0 and center_idx <= #subs then
-        local sub = subs[center_idx]
-        -- The centered line in draw_drum is always considered "active" (highlighted white),
-        -- which ensures consistent highlighting during scrolling and seek operations,
-        -- matching the robust behavior of the Drum Window (Mode W).
-        active_text = format_sub(center_idx, true, sub.start_time)
+        active_text = format_sub(center_idx, true, subs[center_idx].start_time)
     end
     
-    local next_text = ""
+    local next_text = {}
     for i = center_idx + 1, end_idx do
-        local sub = subs[i]
-        next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
+        table.insert(next_text, format_sub(i, false, subs[i].start_time))
     end
     
-    local all_text = prev_text
-    if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
+    local is_drum_mode = (FSM.DRUM == "ON")
+    local d_gap = is_drum_mode and Options.drum_double_gap or Options.srt_double_gap
+    local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
+    local separator = d_gap and "\\N\\N" or "\\N"
+    local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
+    
+    local all_text = table.concat(prev_text, separator)
+    if all_text ~= "" and active_text ~= "" then all_text = all_text .. separator end
     all_text = all_text .. active_text
-    if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
-    all_text = all_text .. next_text
+    if all_text ~= "" and #next_text > 0 then all_text = all_text .. separator end
+    all_text = all_text .. table.concat(next_text, separator)
 
     local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
-        bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
+    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s", 
+        bord, shad, bg_color, calculate_ass_alpha(bg_opacity), vsp_tag)
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2589,8 +2607,12 @@ local function dw_build_layout(subs, view_center)
     start_idx = math.max(1, start_idx)
     end_idx = math.min(#subs, end_idx)
 
-    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
+    if Options.dw_double_gap then
+        -- In ASS, \N\N adds a full line height gap. We must match this in hit-testing.
+        sub_gap = sub_gap + vline_h
+    end
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -2668,7 +2690,11 @@ local function draw_dw(subs, view_center, active_idx)
     
     local ass = ""
     local layout, total_height = dw_build_layout(subs, view_center)
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
+    if Options.dw_double_gap then
+        sub_gap = sub_gap + vline_h
+    end
     local current_y = 540 - (total_height / 2)
     FSM.DW_LINE_Y_MAP = {}
     
@@ -2940,10 +2966,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local shad = Options.tooltip_shadow_offset
     
     -- Boundary clamping: Ensure the tooltip doesn't go off-screen
-    -- We use 1.2 * fs as the natural line height baseline since we aren't using \vsp
+    -- The actual height per logical line includes line_height_mul and vsp
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
-    local layout_line_h = fs * 1.2 
+    local layout_line_h = (fs * Options.tooltip_line_height_mul) + Options.tooltip_vsp
     local block_height = visual_lines * layout_line_h
     local half_h = block_height / 2
     local margin = 20
@@ -2960,8 +2986,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    -- \q2 ensures parity with hit-testing logic
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, fs, bold, bord, shad, Options.tooltip_active_color, bg_color, bg_alpha, text_block)
         
     return ass
 end
@@ -2997,8 +3024,11 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
+    if Options.dw_double_gap then
+        sub_gap = sub_gap + vline_h
+    end
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
