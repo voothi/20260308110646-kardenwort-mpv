@@ -2,6 +2,7 @@
 
 - [x] 1.1 Update `master_tick` in `scripts/lls_core.lua` to incorporate `FSM.native_sub_vis` and `FSM.native_sec_sub_vis` into `pri_use_osd` and `sec_use_osd` flags.
 - [x] 1.2 Verify that `cmd_toggle_sub_vis` correctly triggers an OSD update to clear text immediately when toggled OFF.
+- [x] 1.3 Add a guard to `cmd_toggle_sub_vis` to block visibility changes and show a warning when the Drum Window (Mode W) is active.
 
 ## 2. Specification Alignment
 

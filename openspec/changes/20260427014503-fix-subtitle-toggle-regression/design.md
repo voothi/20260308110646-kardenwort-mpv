@@ -10,8 +10,8 @@ The `lls_core.lua` script implements a custom OSD-based subtitle rendering engin
 - Maintain the "suppression" logic that hides native mpv subtitles when OSD is active to prevent double rendering.
 
 **Non-Goals:**
-- Changing the behavior of the Drum Window (Mode W), which is a separate interactive UI element and already manages its own visibility.
-- Modifying how ASS tracks are handled (they will continue to be rendered natively when not in Drum Mode).
+- Changing the behavior of the Drum Window (Mode W) itself, which manages its own specialized visibility and overlays.
+- Toggling subtitle visibility while the Drum Window is active; this will now be blocked with a warning to avoid state desync.
 
 ## Decisions
 
@@ -22,6 +22,11 @@ We will modify the `pri_use_osd` and `sec_use_osd` flags in `master_tick` to be 
 
 ### Decision 2: Immediate OSD Clearing in `cmd_toggle_sub_vis`
 The `cmd_toggle_sub_vis` function already calls `drum_osd:update()`. By updating the underlying flags used in the rendering loop, the next tick (or the manual update call) will correctly see that no tracks should be rendered and clear the `drum_osd.data`.
+
+### Decision 3: Block Visibility Toggle in Drum Window Mode
+We will add a guard clause to `cmd_toggle_sub_vis` that checks if `FSM.DRUM_WINDOW ~= "OFF"`. If it is active, the function will show a warning OSD and exit without changing any flags.
+
+**Rationale:** The Drum Window is a highly interactive mode that manages its own subtitle display and suppression logic. Toggling the global visibility flag while in this mode could lead to confusing states when the window is closed (e.g., subtitles not reappearing as expected). Making the toggle "fail" with a message provides clear feedback to the user.
 
 ## Risks / Trade-offs
 
