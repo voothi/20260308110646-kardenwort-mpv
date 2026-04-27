@@ -696,7 +696,7 @@
 20260427031334 Check and update comments.
 20260427031643 You could have deleted something you needed lls_core.lua#L80-81
 20260427032312 Check that these are not stubs and add them to mpv.conf.
-
+20260427032903 opsx-explore Error, please review. Look in the docs\conversation.log file for entries 20260427023955 20260427025928 20260427030317 20260427030616 20260427031040 20260427031334 20260427031643 20260427032312. Check for regression between the old version 0befa9923cae21c33f43c69875de438c9101cf66 and current 15548c9e6c2eadd3fd30faa029e45c1d21ea2a7b.
 
 
 

@@ -26,7 +26,7 @@ local Options = {
     drum_font_bold = false,
     drum_context_lines = 2,
     drum_context_opacity = "30",
-    drum_context_color = "FFFFFF",
+    drum_context_color = "CCCCCC",
     drum_context_bold = false,
     drum_context_size_mul = 1.0,
     drum_active_opacity = "00",
@@ -34,8 +34,8 @@ local Options = {
     drum_active_bold = false,
     drum_active_size_mul = 1.0,
     drum_line_height_mul = 1.15,
-    drum_bg_color = "000000",
-    drum_bg_opacity = "60",
+    drum_bg_color = "000000",       -- black in BGR hex for ASS
+    drum_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
@@ -100,8 +100,8 @@ local Options = {
     -- Search HUD Styling
     search_font_name = "Inter",
     search_font_size = 34,
-    search_bg_color = "000000",
-    search_bg_opacity = "60",
+    search_bg_color = "000000",      -- black in BGR hex for ASS
+    search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
     search_text_color = "FFFFFF",
     search_border_size = 2.0,
     search_shadow_offset = 1.0,
@@ -2959,8 +2959,8 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
-    local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
+    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
+    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
@@ -4100,7 +4100,7 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     
     if sec_pos > 50 then
         local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
-        local max_pixels = max_lines * font_size * Options.drum_stack_multiplier
+        local max_pixels = max_lines * font_size * Options.drum_line_height_mul
         -- Calculate safety position (2 blocks above primary + comfort gap)
         local min_safe_pos = pri_pos - (2 * (max_pixels / 1080) * 100) - Options.drum_track_gap
         -- Apply relative offset so user keys (r/t) still work responsively
@@ -5076,10 +5076,10 @@ local function draw_search_ui()
         local results_h = line_height + padding_y * 2
         local results_y = box_y + line_height + padding_y * 2 + 5
         
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} No results found.\n",
-            box_x + padding_x, results_y + padding_y, font_size * 0.8, "999999")
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} No results found.\n",
+            box_x + padding_x, results_y + padding_y, opacity_hex, font_size * 0.8, "999999")
     end
     
     return ass
