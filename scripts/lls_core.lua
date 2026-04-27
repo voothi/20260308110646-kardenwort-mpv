@@ -316,12 +316,12 @@ function load_sub(path, is_ass)
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
                                 local merged = false
-                                local search_limit = math.max(1, #subs - 10)
-                                for i = #subs, search_limit, -1 do
-                                    if subs[i].raw_text == raw_text then
-                                        subs[i].end_time = math.max(subs[i].end_time, parsed_end)
+                                local prev = subs[#subs]
+                                if prev and prev.raw_text == raw_text then
+                                    -- Only merge if consecutive and close (gap <= 200ms)
+                                    if parsed_start <= prev.end_time + 0.2 then
+                                        prev.end_time = math.max(prev.end_time, parsed_end)
                                         merged = true
-                                        break
                                     end
                                 end
                                 if not merged then
@@ -347,12 +347,12 @@ function load_sub(path, is_ass)
                 if current_sub and current_sub.text ~= "" then
                     current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
                     local merged = false
-                    local search_limit = math.max(1, #subs - 10)
-                    for i = #subs, search_limit, -1 do
-                        if subs[i].raw_text == current_sub.raw_text then
-                            subs[i].end_time = math.max(subs[i].end_time, current_sub.end_time)
+                    local prev = subs[#subs]
+                    if prev and prev.raw_text == current_sub.raw_text then
+                        -- Only merge if consecutive and close (gap <= 200ms)
+                        if current_sub.start_time <= prev.end_time + 0.2 then
+                            prev.end_time = math.max(prev.end_time, current_sub.end_time)
                             merged = true
-                            break
                         end
                     end
                     if not merged then
@@ -384,12 +384,12 @@ function load_sub(path, is_ass)
         if current_sub and current_sub.text ~= "" then
             current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
             local merged = false
-            local search_limit = math.max(1, #subs - 10)
-            for i = #subs, search_limit, -1 do
-                if subs[i].raw_text == current_sub.raw_text then
-                    subs[i].end_time = math.max(subs[i].end_time, current_sub.end_time)
+            local prev = subs[#subs]
+            if prev and prev.raw_text == current_sub.raw_text then
+                -- Only merge if consecutive and close (gap <= 200ms)
+                if current_sub.start_time <= prev.end_time + 0.2 then
+                    prev.end_time = math.max(prev.end_time, current_sub.end_time)
                     merged = true
-                    break
                 end
             end
             if not merged then
@@ -398,6 +398,7 @@ function load_sub(path, is_ass)
         end
     end
     f:close()
+    table.sort(subs, function(a, b) return a.start_time < b.start_time end)
     return subs
 end
 
