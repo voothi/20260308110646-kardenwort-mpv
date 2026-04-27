@@ -2389,17 +2389,32 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         end
         
         local total_h = 0
-        for _, m in ipairs(line_metas) do total_h = total_h + m.height end
+        local vline_h = font_size * (is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul) 
+                        + (is_drum_mode and Options.drum_vsp or Options.srt_vsp)
+        local sep_h = (is_drum_mode and Options.drum_double_gap or Options.srt_double_gap) and vline_h or 0
+
+        for i, m in ipairs(line_metas) do 
+            total_h = total_h + m.height 
+            if i < #line_metas then total_h = total_h + sep_h end
+        end
         
         local y_start = y_pixel
         if not is_top then y_start = y_pixel - total_h end
         
         local cur_y = y_start
-        for _, m in ipairs(line_metas) do
+        local sep_h = (is_drum_mode and Options.drum_double_gap or Options.srt_double_gap) and vline_h or 0
+        
+        for i, m in ipairs(line_metas) do
             m.y_top = cur_y
             m.y_bottom = cur_y + m.height
             m.x_start = 960 - m.total_width / 2
+            
+            -- Move cursor for next line, including the gap separator
             cur_y = cur_y + m.height
+            if i < #line_metas then
+                cur_y = cur_y + sep_h
+            end
+            
             table.insert(hit_zones, m)
         end
     end
@@ -2606,8 +2621,11 @@ local function dw_build_layout(subs, view_center)
     start_idx = math.max(1, start_idx)
     end_idx = math.min(#subs, end_idx)
 
-    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
+    if Options.dw_double_gap then
+        sub_gap = sub_gap + vline_h
+    end
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -3018,8 +3036,11 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
+    if Options.dw_double_gap then
+        sub_gap = sub_gap + vline_h
+    end
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2

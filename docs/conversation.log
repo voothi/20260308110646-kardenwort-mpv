@@ -717,10 +717,11 @@
 20260427110047 Okay, now explain why we need to implement \vsp and what it is? Was this implemented in version 42856b86df9d964f20ac7a8a87ae20ed583133e6?
 20260427110422 Now it looks perfect without vsp, can we safely, minimally invasively implement vsp for future opportunities, so that with a devolt value it does not affect the situation and works as without it? 
 20260427111217 In which lls-... (dw, srt, drum, search, ... in the mpv.conf file do we still need to add our improvements to the text display for uniformity? We also have a drum mode c.
-
-
-
-
+20260427112224 Question about calibration, how do the _line_height_mul, _double_gap, _vsp and other parameters affect the calibration? Do I need to set this separately for window mode w, drum c, srt, tooltip?
+20260427113035 But should these parameters _line_height_mul and _block_gap_mul affect the external display if their purpose is calibration?
+20260427113402 But how can we switch dw_line_height_mul to semi-automatic calibration mode like others?
+20260427113846 I cannot automatically change the settings specified declaratively for the text view via mpv.conf, you can only adjust the values ​​of the calibration parameters.
+20260427114201 But what then is the function of the remaining manual calibration parameters, what are they, by the way? Is this for more precise tuning, for fine-tuning?
 
 
 
