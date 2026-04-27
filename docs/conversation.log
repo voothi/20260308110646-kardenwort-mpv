@@ -722,6 +722,7 @@
 20260427113402 But how can we switch dw_line_height_mul to semi-automatic calibration mode like others?
 20260427113846 I cannot automatically change the settings specified declaratively for the text view via mpv.conf, you can only adjust the values ​​of the calibration parameters.
 20260427114201 But what then is the function of the remaining manual calibration parameters, what are they, by the way? Is this for more precise tuning, for fine-tuning?
+20260427114332 How then should I migrate the current (old) calibration parameters for identical accuracy compared to the previous version? In particular, for the main mode - dw?
 
 
 
