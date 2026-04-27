@@ -121,15 +121,18 @@ local Options = {
 
     -- Tooltip Style (Unified Schema)
     tooltip_font_size = 34,
-    tooltip_context_lines = 1,
-    tooltip_bg_opacity = "60",
-    tooltip_bg_color = "222222",
-    tooltip_text_color = "CCCCCC",
     tooltip_font_name = "Inter",
-    tooltip_text_opacity = "00",
     tooltip_font_bold = false,
+    tooltip_context_lines = 1,
+    tooltip_active_color = "FFFFFF",   -- Active translation line color
+    tooltip_context_color = "CCCCCC",  -- Surrounding lines color
+    tooltip_active_opacity = "00",     -- Transparency for active line
+    tooltip_context_opacity = "30",    -- Transparency for context lines
+    tooltip_bg_color = "222222",       -- Background color (BGR hex)
+    tooltip_bg_opacity = "60",         -- Background transparency
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
+    tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -212,7 +215,7 @@ local Options = {
     
     -- Colors
     dw_split_select_color = "FF88B0",
-    dw_mouse_shield_ms = 150,      -- Ghost-click suppression window after keyboard commands (ms)
+    dw_mouse_shield_ms = 50,       -- Ghost-click suppression window after keyboard commands (ms)
     sentence_word_threshold = 3
 }
 options.read_options(Options, "lls")
@@ -2906,24 +2909,43 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local start_idx = math.max(1, center_idx - Options.tooltip_context_lines)
     local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.tooltip_context_lines)
     
-    local lines = {}
-    for i = start_idx, end_idx do
-        table.insert(lines, Tracks.sec.subs[i].raw_text)
-    end
-    local text = table.concat(lines, "\\N")
-    
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local fs = Options.tooltip_font_size
-    local bg_alpha = Options.tooltip_bg_opacity
-    local bg_color = Options.tooltip_bg_color
-    local text_color = Options.tooltip_text_color
-    local text_alpha = Options.tooltip_text_opacity or "00"
+    local line_height = fs * Options.tooltip_line_height_mul
     local bold = Options.tooltip_font_bold and "1" or "0"
-    local bord = Options.tooltip_border_size or 1.5
-    local shad = Options.tooltip_shadow_offset or 1.0
-
-    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        font_name, osd_y, fs, bold, bord, shad, text_color, calculate_ass_alpha(text_alpha), bg_color, calculate_ass_alpha(bg_alpha), text)
+    
+    local lines_ass = {}
+    local total_height = 0
+    local rendered_lines = {}
+    
+    for i = start_idx, end_idx do
+        local is_active = (i == center_idx)
+        local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
+        local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
+        local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
+        
+        table.insert(rendered_lines, {
+            text = sub_text,
+            color = color,
+            opacity = opacity
+        })
+        total_height = total_height + line_height
+    end
+    
+    local current_y = osd_y - (total_height / 2)
+    local ass = ""
+    local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
+    local bg_color = Options.tooltip_bg_color
+    local bord = Options.tooltip_border_size
+    local shad = Options.tooltip_shadow_offset
+    
+    -- Background / Frame
+    -- We use a simple vertical stack for the tooltip
+    for i, line in ipairs(rendered_lines) do
+        local y = current_y + (i-1) * line_height
+        ass = ass .. string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s\\N",
+            font_name, y, fs, bold, bord, shad, line.color, calculate_ass_alpha(line.opacity), bg_color, bg_alpha, line.text)
+    end
         
     return ass
 end
