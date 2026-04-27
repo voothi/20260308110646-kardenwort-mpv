@@ -2402,7 +2402,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             m.height = m.height * sub_scale
             total_h = total_h + m.height 
             if i < #line_metas then
-                local line_fs = font_size * ( (i == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
+                local abs_idx = start_idx + i - 1
+                local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
                 total_h = total_h + (calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp) * sub_scale)
             end
         end
@@ -2417,7 +2418,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             m.x_start = 960 - (m.total_width * sub_scale) / 2
             cur_y = cur_y + m.height
             if i < #line_metas then
-                local line_fs = font_size * ( (i == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
+                local abs_idx = start_idx + i - 1
+                local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
                 cur_y = cur_y + (calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp) * sub_scale)
             end
             table.insert(hit_zones, m)
@@ -2738,7 +2740,12 @@ local function draw_dw(subs, view_center, active_idx)
         local i = entry.sub_idx
         local entry_h = entry.height * sub_scale
         FSM.DW_LINE_Y_MAP[i] = current_y + (entry_h / 2)
-        current_y = current_y + entry_h + sub_gap
+        current_y = current_y + entry_h
+        if i < #layout then
+            local is_active = (entry.sub_idx == active_idx)
+            local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+            current_y = current_y + (calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp) * sub_scale)
+        end
         
         local is_active = (i == active_idx)
         local color = is_active and Options.dw_active_color or Options.dw_context_color
