@@ -2940,6 +2940,10 @@ local function draw_dw(subs, view_center, active_idx)
         table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
+    local d_gap = Options.dw_double_gap
+    local vsp_base = Options.dw_vsp
+    local b_gap_mul = Options.dw_block_gap_mul or 0
+
     local function get_separator(prev_is_active)
         local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
         local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or (line_fs * b_gap_mul)
