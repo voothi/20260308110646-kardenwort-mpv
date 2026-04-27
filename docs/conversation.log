@@ -727,7 +727,7 @@
 20260427115956 The font itself, its parameters, opacity parameters for dw, drum, srt modes, except for line spacing, are completely identical and are applied using the same mechanism? Look carefully at the white subtitle, it is brighter in one photo.
 20260427120532 Would you like me to unify these internal rendering tags now to fix the brightness discrepancy? - Yes.
 20260427120848 Doesn't seem to help.
-
+20260427120933 Compose opsx-propose leaning on to anchor the conversation 20260427101804 20260427104612 20260427105230 20260427105700 20260427110047 20260427110422 20260427111217 20260427112224 20260427113035 20260427113402 20260427113846 20260427114201 20260427114332 20260427115421 20260427115956 20260427120532 20260427120848
 
 
 
