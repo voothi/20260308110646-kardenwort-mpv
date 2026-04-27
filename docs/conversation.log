@@ -684,8 +684,8 @@
 20260427020857 Check that all Options are present in mpv.conf. lls_core.lua#L15
 20260427021305 Add a comment for osd_interactivity, dw_scrolloff.
 20260427021853 opsx-propose 20260427020857 20260427021305
-
-
+20260427022137 opsx-archive openspec\changes\20260427021928-sync-mpv-conf-options
+20260427022213 Sync now
 
 
 
