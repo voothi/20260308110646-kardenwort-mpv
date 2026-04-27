@@ -745,6 +745,7 @@
 20260427155405 Proof openspec\changes\20260427121101-osd-uniformity-calibration-sync\specs
 20260427155636 Proof openspec\changes\20260427121101-osd-uniformity-calibration-sync\specs
 20260427155743 Check openspec\changes\20260427121101-osd-uniformity-calibration-sync\specs\vsp-support
+20260427160317 It seems that tooltip_y_offset_lines is not consistent with tooltip_double_gap
 
 
 

@@ -2991,8 +2991,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local margin = 20
     local screen_h = 1080 -- Target OSD vertical resolution
     
-    -- Apply manual Y offset (unit: natural line heights)
-    local final_y = osd_y + (Options.tooltip_y_offset_lines * layout_line_h)
+    -- Apply manual Y offset (unit: logical subtitle intervals)
+    -- The interval between the center of Line N and Line N+1
+    local gap_size = Options.tooltip_double_gap and layout_line_h or 0
+    local logical_interval = layout_line_h + gap_size + block_gap
+    local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
     
     if final_y - half_h < margin then
         final_y = margin + half_h
