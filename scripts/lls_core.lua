@@ -2580,12 +2580,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local vsp_tag = vsp_base ~= 0 and string.format("{\\vsp%g}", vsp_base) or ""
     
     local function get_separator(prev_is_active)
-        if d_gap then
-            local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-            return string.format("{\\vsp%g}\\N\\N", line_fs * b_gap_mul)
-        else
-            return "\\N"
-        end
+        local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
+        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
+        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
     end
     
     local all_text = ""
@@ -2954,12 +2951,9 @@ local function draw_dw(subs, view_center, active_idx)
     local b_gap_mul = Options.dw_block_gap_mul or 0
 
     local function get_separator(prev_is_active)
-        if d_gap then
-            local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-            return string.format("{\\vsp%g}\\N\\N", line_fs * b_gap_mul)
-        else
-            return "\\N"
-        end
+        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
+        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
     end
 
     local block_text = ""
@@ -3010,7 +3004,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local d_gap = Options.tooltip_double_gap
     local vsp_base = Options.tooltip_vsp
     local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    local separator = d_gap and string.format("{\\vsp%g}\\N\\N", fs * b_gap_mul) or "\\N"
+    local vsp_extra = d_gap and (fs * b_gap_mul / 2) or 0
+    local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
 
     local text_block = table.concat(lines_ass, separator)
     
