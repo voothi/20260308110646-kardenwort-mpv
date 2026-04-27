@@ -96,6 +96,7 @@ local Options = {
     dw_highlight_color = "00CCFF",-- Gold highlight in BGR
     dw_ctrl_select_color = "FF88FF",-- Neon pink for split-word select (pairing with purple)
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
+    dw_font_bold = false,
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
@@ -110,12 +111,19 @@ local Options = {
     -- Search HUD Styling
     search_font_name = "Consolas",
     search_font_size = 34,
+    search_font_bold = false,
     search_bg_color = "000000",      -- black in BGR hex for ASS
     search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
     search_text_color = "FFFFFF",
     search_border_size = 2.0,
     search_shadow_offset = 1.0,
+    search_vsp = 0,
+    search_double_gap = false,
     search_line_height_mul = 1.2,
+    search_active_bold = false,
+    search_active_size_mul = 1.0,
+    search_context_bold = false,
+    search_context_size_mul = 1.0,
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
     search_sel_color = "FFFFFF",       -- Selected line color (White)
@@ -2247,7 +2255,7 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     if type(word) == "table" then word = word.text end
     if not word then return "" end
     
-    local c_tag = use_1c and "1c" or "c"
+    local c_tag = "1c"
     local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
     local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state or "0") or ""
     
@@ -2530,7 +2538,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
                 table.insert(formatted_parts, format_highlighted_word({text = meta.text}, meta.color, base_color, meta.is_phrase, bold_state, true))
             elseif meta.priority == 1 or meta.priority == 2 then
-                table.insert(formatted_parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, base_color))
+                table.insert(formatted_parts, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", meta.color, meta.text, base_color))
             else
                 table.insert(formatted_parts, meta.text)
             end
@@ -2733,7 +2741,7 @@ local function draw_dw(subs, view_center, active_idx)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\3c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, Options.dw_bg_color, opacity)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\3c&H%s&}{\\1a&H%s&}{\\q2}", font_name, f_size, bold_state, color, Options.dw_bg_color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -5049,7 +5057,7 @@ local function draw_search_ui()
     
     -- Draw Input Field Backing
     local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity)
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\1c&H%s&}{\\q2}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
         box_x, box_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
     
     -- Draw Input Text
@@ -5089,7 +5097,7 @@ local function draw_search_ui()
         end
     end
 
-    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s\n",
+    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\fs%d}{\\1c&H%s&}{\\q2} %s\n",
         font_name, box_x + padding_x, box_y + padding_y, shad, bg_color, opacity_hex, font_size, text_color, display_query)
         
     -- Draw Results Dropdown
@@ -5100,7 +5108,7 @@ local function draw_search_ui()
         local results_y = box_y + line_height + padding_y * 2 + 5
         
         -- Dropdown Backing
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\1c&H%s&}{\\q2}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
             
         -- Scroll window mapping
@@ -5141,13 +5149,13 @@ local function draw_search_ui()
             for i = 1, #raw_t_table do
                 local is_hit = result_data.hl and result_data.hl[i]
                 if is_hit then
-                    display_text = display_text .. string.format("%s{\\c&H%s&}%s%s{\\c&H%s&}", hit_bold, hit_color, raw_t_table[i], hit_bold_end, base_color)
+                    display_text = display_text .. string.format("%s{\\1c&H%s&}%s%s{\\1c&H%s&}", hit_bold, hit_color, raw_t_table[i], hit_bold_end, base_color)
                 else
                     display_text = display_text .. raw_t_table[i]
                 end
             end
             
-            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\1c&H%s&}{\\q2} %s%s%s\n",
                 box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
