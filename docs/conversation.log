@@ -707,7 +707,7 @@
 20260427093239 Why do we need tooltip_line_height_mul at all, do we use it to calibrate clicks on the tooltip?
 20260427093446 In this case, do not the current names cause confusion and inconsistency with the real purpose?? tooltip_line_height_mul,  dw_line_height_mul.
 20260427094741 But again, it is necessary that when tooltip_y_offset_lines=0 the tooltip block is aligned to the center of the white lines. How it was in 42856b86df9d964f20ac7a8a87ae20ed583133e6.
-
+20260427095955 Okay, it works, but how now to solve the problem when the tooltip goes off the screen for the upper subtitles with the value tooltip_y_offset_lines=-5 (offset up) or at the bottom with the value =5? 
 
 
 

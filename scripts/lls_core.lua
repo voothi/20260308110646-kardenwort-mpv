@@ -2934,6 +2934,19 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     -- Apply manual Y offset if requested
     local final_y = osd_y + (Options.tooltip_y_offset_lines * line_height)
+    
+    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
+    local num_lines = end_idx - start_idx + 1
+    local block_height = num_lines * line_height
+    local half_h = block_height / 2
+    local margin = 20
+    local screen_h = 1080 -- Target OSD vertical resolution
+    
+    if final_y - half_h < margin then
+        final_y = margin + half_h
+    elseif final_y + half_h > screen_h - margin then
+        final_y = screen_h - margin - half_h
+    end
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
