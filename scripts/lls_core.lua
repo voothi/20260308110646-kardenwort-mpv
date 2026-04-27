@@ -2916,22 +2916,13 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bold = Options.tooltip_font_bold and "1" or "0"
     
     local lines_ass = {}
-    local num_lines = end_idx - start_idx + 1
-    local total_height = (num_lines - 1) * line_height
-    
-    -- Calculate starting Y to center the active line (center_idx) on osd_y
-    local active_relative_idx = center_idx - start_idx
-    local first_y = osd_y - (active_relative_idx * line_height) + (Options.tooltip_y_offset_lines * line_height)
-    
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
         local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
         
-        local y = first_y + (i - start_idx) * line_height
-        -- Match DW presentation: Each line has its own position, joined by \N for background box rendering
-        table.insert(lines_ass, string.format("{\\pos(1800, %d)}{\\an6}{\\c&H%s&}{\\1a&H%s&}%s", y, color, calculate_ass_alpha(opacity), sub_text))
+        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
     end
     
     local text_block = table.concat(lines_ass, "\\N")
@@ -2941,9 +2932,12 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Final OSD string with \q2 (no wrap) for exact layout control
-    local ass = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    -- Apply manual Y offset if requested
+    local final_y = osd_y + (Options.tooltip_y_offset_lines * line_height)
+
+    -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
+    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        font_name, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end
