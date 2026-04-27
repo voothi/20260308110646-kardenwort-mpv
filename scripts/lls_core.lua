@@ -2544,8 +2544,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             result_text = compose_term_smart(formatted_parts)
         end
 
-        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-            font_name, opacity, bold_state, base_color, size, result_text)
+        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\3c&H%s&}{\\fs%d}%s", 
+            font_name, opacity, bold_state, base_color, bg_color, size, result_text)
     end
 
     local prev_text = ""
@@ -2583,8 +2583,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("%s{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}", 
-        vsp_tag, bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
+    local style_block = string.format("%s{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}", 
+        vsp_tag, bord, shad, bg_color, calculate_ass_alpha(bg_opacity), bg_color, calculate_ass_alpha(bg_opacity))
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2733,7 +2733,7 @@ local function draw_dw(subs, view_center, active_idx)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\3c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, Options.dw_bg_color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -2895,7 +2895,7 @@ local function draw_dw(subs, view_center, active_idx)
             for _, j in ipairs(vl_indices) do
                 local meta = token_meta[j]
                 if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
-                    table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", false))
+                    table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, bold_state, true))
                 elseif meta.priority == 1 or meta.priority == 2 then
                     table.insert(formatted_words, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", meta.color, meta.text, color))
                 else
@@ -2932,8 +2932,8 @@ local function draw_dw(subs, view_center, active_idx)
     local block_text = table.concat(lines_ass, separator)
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
     
     return ass
 end
@@ -2979,10 +2979,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local shad = Options.tooltip_shadow_offset
     
     -- Boundary clamping: Ensure the tooltip doesn't go off-screen
-    -- We use 1.2 * fs as the natural line height baseline since we aren't using \vsp
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
-    local layout_line_h = fs * 1.2 
+    local layout_line_h = fs * Options.tooltip_line_height_mul 
     local block_height = visual_lines * layout_line_h
     local half_h = block_height / 2
     local margin = 20
@@ -2999,8 +2998,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, bg_color, bg_alpha, text_block)
         
     return ass
 end
