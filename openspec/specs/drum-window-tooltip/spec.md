@@ -73,4 +73,16 @@ The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns f
 - **AND** the user then moves the mouse focus to a different subtitle line
 - **THEN** the pinned tooltip SHALL be dismissed.
 
+### Requirement: Precision Centering and Interval Sync
+When `tooltip_y_offset_lines = 0`, the tooltip's active line midpoint must align perfectly with the target OSD line midpoint.
 
+#### Scenario: Alignment Calculation
+- **GIVEN** a tooltip is displayed for a target line
+- **WHEN** the tooltip renderer (`draw_dw_tooltip`) calculates vertical positioning
+- **THEN** it SHALL use a `logical_interval` derived from `layout_line_h + (double_gap ? layout_line_h : 0) + block_gap`
+- **AND** the final OSD Y coordinate SHALL be `target_osd_y + (offset * logical_interval)`.
+
+#### Scenario: Visual Consistency
+- **GIVEN** the Drum Window and Tooltip are both visible
+- **WHEN** `line_height_mul` or `block_gap_mul` are modified
+- **THEN** the context lines in the translation tooltip SHALL maintain identical visual spacing to the navigation window context lines.
