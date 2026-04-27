@@ -748,7 +748,7 @@
 20260427160317 It seems that tooltip_y_offset_lines is not consistent with tooltip_double_gap
 20260427161414 Why is scrolling stuck using a, d on `and fifteen`. Each time you press d, this subtitle is played again and does not go further.
 20260427162315 opsx-propose 20260427161414
-
+20260427162736 opsx-apply openspec\changes\20260427161414-fix-subtitle-scroll-stuck
 
 
 
