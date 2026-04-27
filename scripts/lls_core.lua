@@ -22,9 +22,9 @@ local Options = {
 
     -- Drum Mode
     drum_font_size = 34,
-    drum_font_name = "Inter",
+    drum_font_name = "Consolas",
     drum_font_bold = false,
-    drum_context_lines = 2,
+    drum_context_lines = 3,
     drum_context_opacity = "30",
     drum_context_color = "CCCCCC",
     drum_context_bold = false,
@@ -44,9 +44,9 @@ local Options = {
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
     -- SRT Style (Regular Mode)
-    srt_font_size = 55,
-    srt_font_name = "Inter",
-    srt_font_bold = true,
+    srt_font_size = 34,
+    srt_font_name = "Consolas",
+    srt_font_bold = false,
     srt_active_color = "FFFFFF",   -- Active playback line color
     srt_context_color = "CCCCCC",  -- Surrounding lines color
     srt_active_opacity = "00",     -- Transparency for active line
@@ -98,7 +98,7 @@ local Options = {
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
-    dw_block_gap_mul = 0.6,       -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
+    dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
     dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     dw_border_size = 1.5,
@@ -108,7 +108,7 @@ local Options = {
     dw_jump_lines = 5,            -- Lines to jump on Ctrl+Shift+Up/Down
 
     -- Search HUD Styling
-    search_font_name = "Inter",
+    search_font_name = "Consolas",
     search_font_size = 34,
     search_bg_color = "000000",      -- black in BGR hex for ASS
     search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
@@ -131,9 +131,9 @@ local Options = {
 
     -- Tooltip Style (Unified Schema)
     tooltip_font_size = 34,
-    tooltip_font_name = "Inter",
+    tooltip_font_name = "Consolas",
     tooltip_font_bold = false,
-    tooltip_context_lines = 1,
+    tooltip_context_lines = 3,
     tooltip_active_color = "FFFFFF",   -- Active translation line color
     tooltip_context_color = "CCCCCC",  -- Surrounding lines color
     tooltip_active_opacity = "00",     -- Transparency for active line
@@ -142,7 +142,7 @@ local Options = {
     tooltip_bg_opacity = "60",         -- Background transparency
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
-    tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
+    tooltip_line_height_mul = 0.87,     -- Vertical spacing multiplier
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
     tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     tooltip_active_bold = false,
