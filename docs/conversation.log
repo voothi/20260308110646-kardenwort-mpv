@@ -689,6 +689,7 @@
 20260427022353 opsx-archive openspec\changes\20260427014503-fix-subtitle-toggle-regression
 20260427022443 Sync now
 20260427023955 It feels like the context text in c mode is brighter than in w window mode. 
+20260427025928 Look what we accidentally deleted. What's with dw_bg_color? ac4fa3195cc52e8a294dcf03a4fe818538adfb54
 
 
 

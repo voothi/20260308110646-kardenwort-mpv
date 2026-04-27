@@ -66,12 +66,10 @@ local Options = {
     dw_font_size = 34,
     dw_lines_visible = 15,        -- how many lines visible in the window
     dw_scrolloff = 3,             -- margin lines at top/bottom before scrolling
+    dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
-    -- dw_context_color ...
-    -- dw_active_opacity ...
-    -- dw_context_opacity ...
-    -- dw_active_color ...
     dw_context_color = "CCCCCC",  -- light text
+    dw_text_opacity = "00",       -- legacy/unused base
     dw_active_opacity = "00",     -- text alpha for active playback line
     dw_context_opacity = "30",    -- text alpha for context lines
     dw_active_color = "FFFFFF",   -- white active text in BGR
