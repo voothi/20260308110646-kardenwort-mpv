@@ -92,6 +92,7 @@ local Options = {
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_block_gap_mul = 0.6,       -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
+    dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     dw_border_size = 1.5,
     dw_shadow_offset = 1.0,
     dw_original_spacing = true,
@@ -135,6 +136,7 @@ local Options = {
     tooltip_shadow_offset = 1.0,
     tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
+    tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
 
     -- Navigation Repeat
@@ -2893,9 +2895,10 @@ local function draw_dw(subs, view_center, active_idx)
     -- Join separate subtitles with configured gap
     local separator = Options.dw_double_gap and "\\N\\N" or "\\N"
     local block_text = table.concat(lines_ass, separator)
+    local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
     
     return ass
 end
@@ -2956,8 +2959,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
-    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        font_name, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end
