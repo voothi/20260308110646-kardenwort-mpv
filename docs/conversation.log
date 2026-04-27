@@ -695,7 +695,8 @@
 20260427031040 Check other options for this problem of dummy placeholders and inconsistent names.
 20260427031334 Check and update comments.
 20260427031643 You could have deleted something you needed lls_core.lua#L80-81
- 
+20260427032312 Check that these are not stubs and add them to mpv.conf.
+
 
 
 
