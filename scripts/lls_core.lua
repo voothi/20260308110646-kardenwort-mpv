@@ -2583,7 +2583,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("%s{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
+    local style_block = string.format("%s{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}", 
         vsp_tag, bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
 
     if is_top then
@@ -2733,7 +2733,7 @@ local function draw_dw(subs, view_center, active_idx)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -2897,7 +2897,7 @@ local function draw_dw(subs, view_center, active_idx)
                 if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
                     table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", false))
                 elseif meta.priority == 1 or meta.priority == 2 then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, color))
+                    table.insert(formatted_words, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", meta.color, meta.text, color))
                 else
                     table.insert(formatted_words, meta.text)
                 end
@@ -2966,7 +2966,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local t_bold = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
         local t_size = fs * (is_active and Options.tooltip_active_size_mul or Options.tooltip_context_size_mul)
 
-        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}{\\b%s}{\\fs%d}%s", 
+        table.insert(lines_ass, string.format("{\\1c&H%s&}{\\1a&H%s&}{\\b%s}{\\fs%d}%s", 
             color, calculate_ass_alpha(opacity), t_bold, t_size, sub_text))
     end
     
@@ -2999,7 +2999,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
         font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
