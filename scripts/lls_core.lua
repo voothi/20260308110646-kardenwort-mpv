@@ -2992,11 +2992,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local layout_line_h = (fs * Options.tooltip_line_height_mul) + Options.tooltip_vsp
     -- Each logical block has its height, and we use the centralized gap calculation
     -- to ensure parity between visual block_height and hit-testing zones.
+    local total_gap = calculate_sub_gap("tooltip", fs, Options.tooltip_line_height_mul, Options.tooltip_vsp)
     local block_height = (num_lines * layout_line_h)
     if num_lines > 1 then
-        local num_gaps = num_lines - 1
-        local total_gap = calculate_sub_gap("tooltip", fs, Options.tooltip_line_height_mul, Options.tooltip_vsp)
-        block_height = block_height + (num_gaps * total_gap)
+        block_height = block_height + ((num_lines - 1) * total_gap)
     end
     
     local half_h = block_height / 2
@@ -3004,9 +3003,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local screen_h = 1080 -- Target OSD vertical resolution
     
     -- Apply manual Y offset (unit: logical subtitle intervals)
-    -- The interval between the center of Line N and Line N+1
-    local gap_size = Options.tooltip_double_gap and layout_line_h or 0
-    local logical_interval = layout_line_h + gap_size + block_gap
+    local logical_interval = layout_line_h + total_gap
     local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
     
     if final_y - half_h < margin then
