@@ -5189,7 +5189,7 @@ local function draw_search_ui()
             
             -- Construct highlighted string
             local display_text = ""
-            local hit_color = is_selected and Options.search_sel_color or Options.search_hit_color
+            local hit_color = is_selected and (Options.search_query_hit_color or "FFFFFF") or Options.search_hit_color
             local hit_bold = Options.search_hit_bold and "{\\b1}" or ""
             local hit_bold_end = Options.search_hit_bold and "{\\b0}" or ""
             

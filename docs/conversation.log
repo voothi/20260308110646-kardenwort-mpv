@@ -794,6 +794,8 @@
 20260428011803 How can I change the font size in the search dropdown menu? And in the search bar?
 20260428012238 Let's do -1 is 80, and 0 is 100%.
 20260428012357 Give it in the comment.
+20260428013045 Now the picture with the highlighting of the current one in the drop-down list has changed, in the current version the line becomes all white, but it needs to be as before, when entries are visible in color. It used to be in version 0befa9923cae21c33f43c69875de438c9101cf66 20260427022609 - photo 20260428012713, it is now - photo 20260428013041.
+20260428013613 Is it correct in this picture as shown in the first line? van doesn't need to be filled with orange? Now the line turns orange if you put a space at the end of the search string, it seems. Is this correct?
 
 
 
