@@ -2944,7 +2944,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     -- We use a simple vertical stack for the tooltip
     for i, line in ipairs(rendered_lines) do
         local y = current_y + (i - 0.5) * line_height
-        ass = ass .. string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s\\N",
+        ass = ass .. string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
             font_name, y, fs, bold, bord, shad, line.color, calculate_ass_alpha(line.opacity), bg_color, bg_alpha, line.text)
     end
         
