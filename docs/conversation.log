@@ -732,6 +732,7 @@
 20260427124503 x It doesn't work.
 20260427124714 I rolled back to the version 42741da7c05b4d9fa7cfabdd96d5223e32711b95 20260427110710, I need to integrate the project into the current branch openspec/changes/20260427121101-osd-uniformity-calibration-sync taking into account issues and requests in the docs\conversation.log file for the following anchors ZID 20260427111217 20260427112224 20260427113035 20260427113402 20260427113846 20260427114201 20260427114332 20260427115421 20260427115956 20260427120532 20260427120848 20260427120933 20260427122218 20260427124503 20260427124714
 20260427135635 Would you like me to proceed with these integrations? - First, update the documentation to make sure it says that the tooltip with tooltip_y_offset_lines=0 should be centered on the middle of the white lines in window w and window e (tooltip). Also, so that this modification does not change the current appearance of the text and windows in the end.
+20260427140505 You haven't updated the documentation openspec\changes\20260427121101-osd-uniformity-calibration-sync
 
 
 
