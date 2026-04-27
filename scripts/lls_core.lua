@@ -38,6 +38,8 @@ local Options = {
     drum_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
+    drum_vsp = 0,
+    drum_double_gap = false,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
@@ -53,6 +55,12 @@ local Options = {
     srt_bg_opacity = "60",         -- Shadow/Frame transparency
     srt_border_size = 1.5,
     srt_shadow_offset = 1.0,
+    srt_active_bold = true,
+    srt_context_bold = true,
+    srt_active_size_mul = 1.0,
+    srt_context_size_mul = 1.0,
+    srt_vsp = 0,
+    srt_double_gap = false,
     srt_line_height_mul = 1.2,     -- Vertical spacing multiplier
 
     -- Copy Mode
@@ -137,6 +145,10 @@ local Options = {
     tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
     tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
+    tooltip_active_bold = false,
+    tooltip_context_bold = false,
+    tooltip_active_size_mul = 1.0,
+    tooltip_context_size_mul = 1.0,
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
 
     -- Navigation Repeat
@@ -2404,11 +2416,12 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         
         local font_name = is_drum and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
                                    or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
-        local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
-        local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
-                                      or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
+        local f_bold = is_drum and (is_active and Options.drum_active_bold or Options.drum_context_bold)
+                                   or (is_active and Options.srt_active_bold or Options.srt_context_bold)
+        local bold_state = f_bold and "1" or "0"
         
-        local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
+        local size = font_size * (is_active and (is_drum and Options.drum_active_size_mul or Options.srt_active_size_mul) 
+                                             or (is_drum and Options.drum_context_size_mul or Options.srt_context_size_mul))
         
         local tokens = build_word_list_internal(text, Options.dw_original_spacing)
         
@@ -2541,18 +2554,22 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
     end
     
+    local sep = (is_drum and Options.drum_double_gap or Options.srt_double_gap) and "\\N\\N" or "\\N"
+    local vsp_val = is_drum and Options.drum_vsp or Options.srt_vsp
+    local vsp_tag = vsp_val ~= 0 and string.format("{\\vsp%g}", vsp_val) or ""
+
     local all_text = prev_text
-    if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
+    if all_text ~= "" and active_text ~= "" then all_text = all_text .. sep end
     all_text = all_text .. active_text
-    if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
+    if all_text ~= "" and next_text ~= "" then all_text = all_text .. sep end
     all_text = all_text .. next_text
 
     local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
-        bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
+    local style_block = string.format("%s{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
+        vsp_tag, bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2928,7 +2945,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
         
-        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
+        local t_bold = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
+        local t_size = fs * (is_active and Options.tooltip_active_size_mul or Options.tooltip_context_size_mul)
+
+        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}{\\b%s}{\\fs%d}%s", 
+            color, calculate_ass_alpha(opacity), t_bold, t_size, sub_text))
     end
     
     local separator = Options.tooltip_double_gap and "\\N\\N" or "\\N"

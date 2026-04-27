@@ -716,7 +716,7 @@
 20260427105700 Don't we need to modify the script as requested 20260427095955 from docs\conversation.log?
 20260427110047 Okay, now explain why we need to implement \vsp and what it is? Was this implemented in version 42856b86df9d964f20ac7a8a87ae20ed583133e6?
 20260427110422 Now it looks perfect without vsp, can we safely, minimally invasively implement vsp for future opportunities, so that with a devolt value it does not affect the situation and works as without it? 
-
+20260427111217 In which lls-... (dw, srt, drum, search, ... in the mpv.conf file do we still need to add our improvements to the text display for uniformity? We also have a drum mode c.
 
 
 
