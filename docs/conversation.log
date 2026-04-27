@@ -757,6 +757,7 @@
 20260427200339 opsx-propose openspec\changes\20260427200421-fix-drum-spacing-logic
 20260427200737 opsx-apply openspec\changes\20260427200421-fix-drum-spacing-logic
 20260427201354 Error
+20260427201934 It didn't get better with calibration, but now drum_double_gap=no works.
 
 
 
