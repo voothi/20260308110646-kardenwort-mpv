@@ -66,17 +66,22 @@ local Options = {
     dw_font_size = 34,
     dw_lines_visible = 15,        -- how many lines visible in the window
     dw_scrolloff = 3,             -- margin lines at top/bottom before scrolling
-    dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
-    dw_text_color = "CCCCCC",     -- light text
-    dw_text_opacity = "00",       -- legacy/unused base
+    -- dw_context_color ...
+    -- dw_active_opacity ...
+    -- dw_context_opacity ...
+    -- dw_active_color ...
+    dw_context_color = "CCCCCC",  -- light text
     dw_active_opacity = "00",     -- text alpha for active playback line
     dw_context_opacity = "30",    -- text alpha for context lines
     dw_active_color = "FFFFFF",   -- white active text in BGR
+    dw_active_bold = false,
+    dw_context_bold = false,
+    dw_active_size_mul = 1.0,
+    dw_context_size_mul = 1.0,
     dw_highlight_color = "00CCFF",-- Gold highlight in BGR
     dw_ctrl_select_color = "FF88FF",-- Neon pink for split-word select (pairing with purple)
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
-    dw_font_bold = false,
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_vline_h_mul = 0.87,        -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
@@ -87,6 +92,7 @@ local Options = {
     dw_jump_lines = 5,            -- Lines to jump on Ctrl+Shift+Up/Down
 
     -- Search HUD Styling
+    search_bg_color = "000000",
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
     search_sel_color = "FFFFFF",       -- Selected line color (White)
@@ -2658,11 +2664,12 @@ local function draw_dw(subs, view_center, active_idx)
         current_y = current_y + entry.height + sub_gap
         
         local is_active = (i == active_idx)
-        local color = is_active and Options.dw_active_color or Options.dw_text_color
+        local color = is_active and Options.dw_active_color or Options.dw_context_color
         local opacity = calculate_ass_alpha(is_active and Options.dw_active_opacity or Options.dw_context_opacity)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
-        local bold_state = Options.dw_font_bold and "1" or "0"
-        local line_prefix = string.format("{\\fn%s}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, bold_state, color, opacity)
+        local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
+        local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -4936,9 +4943,9 @@ local function draw_search_ui()
     local bg_color = "181818"
     local border_color = "666666"
     local text_color = "FFFFFF"
-    if Options.dw_bg_color then
-        bg_color = Options.dw_bg_color
-        text_color = Options.dw_text_color
+    if Options.search_bg_color then
+        bg_color = Options.search_bg_color
+        text_color = Options.dw_context_color
     end
     
     -- Draw Input Field Backing
