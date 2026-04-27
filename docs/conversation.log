@@ -770,7 +770,8 @@
 20260427222821 It didn't help, do it well.
 20260427223931 It seems that it worked on commit 20260427223813, we can try to carefully return vsp without breaking anything, if this is reasonable? I completely agree with your instinct. The dynamic \vsp injection was indeed the root cause of the problem—it was modifying the visual text spacing in ways that made it impossible to lock the hit-zones to the text! I have just completely ripped out the \vsp injections (vsp_extra and get_separator) from draw_drum, draw_dw, and draw_dw_tooltip. The separators are now strictly just \N\N (for double gap) or \N (for single gap), EXACTLY as they were in the 4c4bfca commit that you said worked well. With \vsp removed from the visual rendering, your b_gap_mul coefficient will now strictly and predictably affect only the hit-zones. You should now be able to dial in your lls-drum_block_gap_mul to perfectly align the green dot with the red dot in single gap mode (drum_double_gap=no). Let me know what coefficients end up working for you, or if you need any further adjustments!
 20260427225351 Check that mpv.conf is complete.
-
+20260427230735 Update openspec\changes\20260427200421-fix-drum-spacing-logic Anchors 20260427205535 20260427211802 20260427213340 20260427215548 20260427220327 20260427222353 20260427222821 20260427223931 20260427225351
+20260427231010 Update openspec\changes\20260427200421-fix-drum-spacing-logic\specs
 
 
 

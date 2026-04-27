@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Cross-Mode Parity
-All `_block_gap_mul` settings (drum, srt, dw) must be applied to the visual separator in their respective rendering functions.
+All `_block_gap_mul` settings (drum, srt, dw) must be applied to the visual separator only when double-gap mode is active.
 
 #### Scenario: Switching Rendering Modes
 - **WHEN** the user toggles between Regular and Drum Mode

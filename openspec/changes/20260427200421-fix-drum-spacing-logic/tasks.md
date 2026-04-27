@@ -24,3 +24,16 @@
 - [x] 4.2 Verify that `drum_double_gap=no` correctly switches the visual separator and hit-zones simultaneously without breaking the semi-auto adjustments.
 - [x] 4.3 Verify that setting `drum_block_gap_mul` to a negative value visually compresses subtitles and that mouse clicks still hit the correct words.
 - [x] 4.4 Ensure no regressions in "Regular Mode" (SRT style) when `srt_double_gap` is toggled.
+
+## Progress Tracking & Calibration Anchors
+
+- **20260427205535**: Initial proposal to merge branch logic and fix `drum_double_gap=no`.
+- **20260427211802**: First implementation attempt with unified `calculate_sub_gap`.
+- **20260427213340**: Identified cumulative error drift in single-gap mode click accuracy.
+- **20260427215548**: Discovery that `block_gap_mul` was being applied twice to single-gaps.
+- **20260427220327**: Reverted to stable `212448` merge for re-calibration testing.
+- **20260427222353**: Experimented with stripping `\vsp` to isolate rendering jitter.
+- **20260427222821**: Confirmed that `\vsp` stripping alone didn't solve the math mismatch.
+- **20260427223931**: **SUCCESS**: Implemented decoupled hit-zone gap (0 for single-gap) and restored `/2` `\vsp` scaling for double-gap.
+- **20260427225351**: Finalized `mpv.conf` with explicit `lls-drum_vsp` and `lls-srt_vsp` declarations.
+

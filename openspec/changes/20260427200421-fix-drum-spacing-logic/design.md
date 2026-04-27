@@ -23,12 +23,16 @@ The implementation will integrate fixes and logic from a commit root `4c4bfca22b
 
 ### 1. Centralized Gap Calculation
 Implement a helper function `calculate_sub_gap(prefix, font_size, lh_mul, vsp)` to ensure consistency.
-- **Formula**: `(font_size * Options[prefix .. "_block_gap_mul"]) + (Options[prefix .. "_double_gap"] and (font_size * lh_mul) or 0) + vsp`.
+- **Formula (Double Gap)**: `(font_size * lh_mul) + (font_size * Options[prefix .. "_block_gap_mul"]) + vsp`.
+- **Formula (Single Gap)**: `0` (natural `\N` advance covers the hit-zone when `lh_mul` is calibrated to the font's line-height).
+- This decoupling allows the same `block_gap_mul` coefficient to work across both modes by treating it strictly as a "block gap" adjustment rather than a "line gap" adjustment.
 
 ### 2. Visual Gap Synchronization via `\vsp`
-Modify the `separator` used in `draw_drum`, `draw_dw`, and `draw_tooltip` to include an inline `\vsp` tag that compensates for the difference between the requested gap and the default `\N`/`\N\N` height.
-- **Implementation**: `separator = (d_gap and "\\N\\N" or "\\N") .. string.format("{\\vsp%g}", calculated_gap - default_gap)`.
-- This ensures that the visual block height matches the `total_height` used in coordinate mapping.
+Modify the `get_separator` function in `draw_drum`, `draw_dw`, and `draw_tooltip` to include an inline `\vsp` tag for double-gap modes.
+- **Implementation (Double Gap)**: `string.format("{\\vsp%g}\\N\\N{\\vsp%g}", vsp_base + (line_fs * b_gap_mul / 2), vsp_base)`.
+- **Implementation (Single Gap)**: `\\N` (standard newline, no `vsp_extra`).
+- The `/ 2` division compensates for the fact that `\N\N` hits the `\vsp` tag twice in ASS layout logic.
+- Restoring `vsp_base` after the newline ensures global `vsp` settings are preserved for subsequent lines.
 
 ### 3. Semi-automatic Adjustment Mechanism Integration
 Review and integrate the solutions from branches `93db0ae538d990e0463a9a689db9eff704b1a0ea` and `828967d07419d361540e1750712b9eefd63cca84`. Adjust the semi-automatic coefficient scaling so that it properly accounts for the state of `drum_double_gap` and interval modes, resolving the inconsistencies reported.
