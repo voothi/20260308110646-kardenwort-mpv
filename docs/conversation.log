@@ -713,6 +713,7 @@
 20260427101804 Why is there such a difference between 1 and 2 in the window text w and tooltip? How can I make sure that the intervals are the same?
 20260427104612 Change the separator from \N\N to \N in the draw_dw function. - I need to make this configurable separately for dw, tooltip. By default, make it in both as it is now in dw. We should not change the current type of dw, our calibration will be lost. 20260427104819 Implement Visual Spacing. - You can try to implement this in the tooltip, although I don’t know why it is needed.
 20260427105230 The text began to be, look. Are you sure we needed to implement this? It was in window mode w, I don’t see the code in other places on vsp search.
+20260427105700 Don't we need to modify the script as requested 20260427095955 from docs\conversation.log?
 
 
 

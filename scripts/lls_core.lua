@@ -2936,15 +2936,18 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Apply manual Y offset if requested
-    local final_y = osd_y + (Options.tooltip_y_offset_lines * line_height)
-    
     -- Boundary clamping: Ensure the tooltip doesn't go off-screen
+    -- We use 1.2 * fs as the natural line height baseline since we aren't using \vsp
     local num_lines = end_idx - start_idx + 1
-    local block_height = num_lines * line_height
+    local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
+    local layout_line_h = fs * 1.2 
+    local block_height = visual_lines * layout_line_h
     local half_h = block_height / 2
     local margin = 20
     local screen_h = 1080 -- Target OSD vertical resolution
+    
+    -- Apply manual Y offset (unit: natural line heights)
+    local final_y = osd_y + (Options.tooltip_y_offset_lines * layout_line_h)
     
     if final_y - half_h < margin then
         final_y = margin + half_h
