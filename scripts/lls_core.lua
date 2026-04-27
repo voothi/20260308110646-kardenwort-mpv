@@ -2524,8 +2524,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
     all_text = all_text .. next_text
 
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4a&H%s&}", 
-        Options.drum_border_size, Options.drum_shadow_offset, calculate_ass_alpha(Options.drum_bg_opacity))
+    local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
+    local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
+    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
+        Options.drum_border_size, Options.drum_shadow_offset, bg_color, calculate_ass_alpha(bg_opacity))
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2868,8 +2870,8 @@ local function draw_dw(subs, view_center, active_idx)
     -- Join separate subtitles with \N\N
     local block_text = table.concat(lines_ass, "\\N\\N")
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
+    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
     
     return ass
 end
@@ -4951,8 +4953,9 @@ local function draw_search_ui()
     end
     
     -- Draw Input Field Backing
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H11&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-        box_x, box_y, border_color, bg_color, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
+    local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity)
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        box_x, box_y, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
     
     -- Draw Input Text
     local display_query = ""
@@ -5002,8 +5005,8 @@ local function draw_search_ui()
         local results_y = box_y + line_height + padding_y * 2 + 5
         
         -- Dropdown Backing
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H22&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, border_color, bg_color, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
             
         -- Scroll window mapping
         local start_idx = math.max(1, FSM.SEARCH_SEL_IDX - math.floor(max_results_display / 2))
