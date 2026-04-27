@@ -33,12 +33,12 @@ local Options = {
     drum_active_color = "FFFFFF",
     drum_active_bold = false,
     drum_active_size_mul = 1.0,
-    drum_line_height_mul = 1.15,
+    drum_line_height_mul = 0.87,
     drum_bg_color = "000000",       -- black in BGR hex for ASS
     drum_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
-    drum_double_gap = false,
+    drum_double_gap = true,
     drum_vsp = 0,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
@@ -55,9 +55,9 @@ local Options = {
     srt_bg_opacity = "60",         -- Shadow/Frame transparency
     srt_border_size = 1.5,
     srt_shadow_offset = 1.0,
-    srt_double_gap = false,
+    srt_double_gap = true,
     srt_vsp = 0,
-    srt_line_height_mul = 1.2,     -- Vertical spacing multiplier
+    srt_line_height_mul = 0.87,     -- Vertical spacing multiplier
 
     -- Copy Mode
     copy_default_mode = "A",
