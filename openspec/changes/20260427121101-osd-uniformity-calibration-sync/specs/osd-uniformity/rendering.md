@@ -8,7 +8,7 @@ The following ASS tags are mandatory for all LLS renderers:
 
 | Tag | Purpose | Standard |
 |-----|---------|----------|
-| `\1c` | Primary Color | Use `{\1c&HFFFFFF&}` (Primary color tag) instead of `\c`. |
+| `\1c` | Primary Color | Use `{\1c&H[COLOR]&}` to explicitly target the primary text layer. |
 | `\3c` | Border Color | Standardized border color for all overlays. |
 | `\q2` | Wrap Style | Enforced "No Wrap" for all list-based and context-based displays. |
 | `\vsp` | Spacing | Support for `{\vsp%g}` for fine-tuned vertical adjustment. |
