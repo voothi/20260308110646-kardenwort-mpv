@@ -2916,37 +2916,28 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bold = Options.tooltip_font_bold and "1" or "0"
     
     local lines_ass = {}
-    local total_height = 0
-    local rendered_lines = {}
-    
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
         local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
         
-        table.insert(rendered_lines, {
-            text = sub_text,
-            color = color,
-            opacity = opacity
-        })
-        total_height = total_height + line_height
+        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
     end
     
-    local current_y = osd_y - (total_height / 2) + (Options.tooltip_y_offset_lines * line_height)
-    local ass = ""
+    local text_block = table.concat(lines_ass, "\\N")
+    
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Background / Frame
-    -- We use a simple vertical stack for the tooltip
-    for i, line in ipairs(rendered_lines) do
-        local y = current_y + (i - 0.5) * line_height
-        ass = ass .. string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\c&H%s&}{\\1a&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-            font_name, y, fs, bold, bord, shad, line.color, calculate_ass_alpha(line.opacity), bg_color, bg_alpha, line.text)
-    end
+    -- Apply manual Y offset if requested
+    local final_y = osd_y + (Options.tooltip_y_offset_lines * line_height)
+
+    -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
+    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        font_name, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end

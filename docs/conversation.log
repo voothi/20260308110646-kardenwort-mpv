@@ -701,6 +701,7 @@
 20260427084215 It turns out that you made the tooltip with an upward shift, previously, at my request, this was done so that the lines were centered, for a quick visual comparison, this is an interesting idea, but I want to introduce a separate parameter for this, which allows you to set such a deviation, or is it dynamically configured? If dynamically, then I would like to make it possible to set a shift in the number of lines up or down.
 20260427085329 Make sure that the standard for 0 has the same logic that was in version 0befa9923cae21c33f43c69875de438c9101cf66, that is, white lines must be centered and located strictly one above the other, in the center of the lines, regardless of the size and type of fonts, they may differ. This is the starting position.
 20260427085855 Look at the white lines, they are not centered although in the setting tooltip_y_offset_lines=0
+20260427090613 Look what you did, this is not the same at all, this is a mistake, you need to go back to the implementation of version 0befa9923cae21c33f43c69875de438c9101cf66, take it as a basis, rewrite the changes again, completely.
 
 
 
