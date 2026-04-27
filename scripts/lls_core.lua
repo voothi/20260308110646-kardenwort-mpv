@@ -259,6 +259,22 @@ function get_center_index(subs, time_pos)
             high = mid - 1
         end
     end
+    
+    if best == -1 then return 1 end
+    
+    if time_pos <= subs[best].end_time then
+        return best
+    end
+    
+    if best < #subs then
+        local next_sub = subs[best + 1]
+        if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
+            return best
+        else
+            return best + 1
+        end
+    end
+    
     return best
 end
 
@@ -885,20 +901,7 @@ local function is_word_char(c)
     return false
 end
 
-local function get_center_index(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
-    for i = 1, #subs do
-        local sub = subs[i]
-        if time_pos >= sub.start_time and time_pos <= sub.end_time then return i end
-        if time_pos < sub.start_time then
-            if i > 1 then
-                local prev = subs[i-1]
-                if (time_pos - prev.end_time) < (sub.start_time - time_pos) then return i - 1 else return i end
-            else return 1 end
-        end
-    end
-    return #subs
-end
+
 
 local function build_word_list_internal(text, keep_spaces)
     local tokens = {}
@@ -3491,6 +3494,7 @@ local function dw_anki_export_selection()
             if not subs[p1_l] or not subs[p2_l] then return end
             
             local parts = {}
+            local term_tokens = {}
             local indices = {}
             local pivot_idx = 1
             for i = p1_l, p2_l do
@@ -3512,6 +3516,7 @@ local function dw_anki_export_selection()
                             -- Include token if it's on a middle/last line OR if it's past the start anchor on the first line
                             if not is_first_line or t.logical_idx >= p1_w - L_EPSILON then
                                 table.insert(line_parts, t.text) 
+                                table.insert(term_tokens, t.text)
                                 if t.is_word then
                                     table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
                                     pivot_idx = pivot_idx + 1
@@ -3525,7 +3530,7 @@ local function dw_anki_export_selection()
                     end
                 end
             end
-            term = table.concat(parts, " ")
+            term = compose_term_smart(term_tokens)
             advanced_index = table.concat(indices, ",")
             
             local ctx_parts = {}
@@ -3794,7 +3799,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     
     -- Compose the term with adaptive gap detection
     local subs = Tracks.pri.subs
-    local term = ""
+    local term_tokens = {}
     local last_m = nil
     
     for _, m in ipairs(members) do
@@ -3832,37 +3837,33 @@ local function ctrl_commit_set(line_idx, word_idx)
                         end
 
                         if is_gap then
-                            term = term .. " ... "
+                            table.insert(term_tokens, "...")
                         else
-                            local interstitial = ""
                             if m.line == last_m.line then
                                 for _, t in ipairs(tokens) do
                                     if t.logical_idx > last_m.word and t.logical_idx < m.word then
-                                        interstitial = interstitial .. t.text
+                                        table.insert(term_tokens, t.text)
                                     end
                                 end
                             else
-                                local trail = ""
                                 local last_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
                                 for _, t in ipairs(last_tokens) do
-                                    if t.logical_idx > last_m.word then trail = trail .. t.text end
+                                    if t.logical_idx > last_m.word then table.insert(term_tokens, t.text) end
                                 end
-                                local lead = ""
                                 for _, t in ipairs(tokens) do
-                                    if t.logical_idx < m.word then lead = lead .. t.text end
+                                    if t.logical_idx < m.word then table.insert(term_tokens, t.text) end
                                 end
-                                interstitial = trail .. " " .. lead
                             end
-                            term = term .. interstitial
                         end
                     end
-                    term = term .. clean_w
+                    table.insert(term_tokens, clean_w)
                     last_m = m
                 end
             end
         end
     end
-    if term == "" then return end
+    if #term_tokens == 0 then return end
+    local term = compose_term_smart(term_tokens)
     
     -- Use the earliest selected word's line for timestamp (document-natural start)
     local time_pos = subs[members[1].line].start_time
