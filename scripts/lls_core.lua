@@ -109,6 +109,7 @@ local Options = {
     -- Search HUD Styling
     search_font_name = "Consolas",
     search_font_size = 34,
+    search_results_font_size = 0,    -- 0 means auto-scale (80% of search_font_size)
     search_bg_color = "000000",      -- black in BGR hex for ASS
     search_bg_opacity = "20",        -- background opacity (00-FF, 00 is opaque)
     search_text_color = "FFFFFF",
@@ -5201,8 +5202,9 @@ local function draw_search_ui()
                 end
             end
             
+            local r_font_size = (Options.search_results_font_size and Options.search_results_font_size > 0) and Options.search_results_font_size or (font_size * 0.8)
             ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
-                font_name, box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
+                font_name, box_x + padding_x, item_y, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
         -- "No results"
@@ -5211,8 +5213,10 @@ local function draw_search_ui()
         
         ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+            
+        local r_font_size = (Options.search_results_font_size and Options.search_results_font_size > 0) and Options.search_results_font_size or (font_size * 0.8)
         ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} No results found.\n",
-            font_name, box_x + padding_x, results_y + padding_y, font_size * 0.8, "999999")
+            font_name, box_x + padding_x, results_y + padding_y, r_font_size, "999999")
     end
     
     return ass
