@@ -41,7 +41,7 @@ local Options = {
     drum_double_gap = true,
     drum_vsp = 0,
     drum_block_gap_mul = -0.27,
-    drum_upper_gap_adj = -6,
+    drum_upper_gap_adj = 6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
@@ -2394,8 +2394,9 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                                        or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
         local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
         local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
-        local d_gap = is_drum_mode and Options.drum_double_gap or Options.srt_double_gap
-        local b_gap_mul = is_drum_mode and Options.drum_block_gap_mul or Options.srt_block_gap_mul
+        local prefix = is_drum_mode and "drum" or "srt"
+        local d_gap = Options[prefix .. "_double_gap"]
+        local b_gap_mul = Options[prefix .. "_block_gap_mul"] or 0
 
         local line_metas = {}
         for i = start_idx, end_idx do
