@@ -35,6 +35,7 @@ local Options = {
     drum_active_size_mul = 1.0,
     drum_spacing_gap = -0.1,
     drum_stack_multiplier = 1.15,
+    drum_bg_color = "000000",
     drum_bg_opacity = "60",        -- Frame transparency (ASS alpha 00-FF)
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
@@ -45,6 +46,8 @@ local Options = {
     srt_font_size = 55,
     srt_font_name = "Inter",
     srt_font_bold = true,
+    srt_bg_color = "000000",
+    srt_bg_opacity = "60",
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -91,6 +94,7 @@ local Options = {
 
     -- Search HUD Styling
     search_bg_color = "000000",
+    search_bg_opacity = "60",
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
     search_sel_color = "FFFFFF",       -- Selected line color (White)
