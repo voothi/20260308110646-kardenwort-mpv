@@ -26,8 +26,9 @@ The project uses multiple OSD overlays to display subtitles, translations, and n
 - **Gap Handling**: The inter-subtitle gap will automatically expand by one full line height if `double_gap` is enabled.
 - **Source of Truth**: Visual parameters in `mpv.conf` (like `dw_vsp` or `dw_double_gap`) become inputs for the calibration engine.
 
-### 3. Schema Alignment
-- Add missing styling parameters (`active_bold`, `context_bold`, `active_size_mul`, `context_size_mul`, `vsp`, `double_gap`) to all mode blocks in the `Options` table.
+### 4. Tooltip Centering
+- **Precision Alignment**: When `tooltip_y_offset_lines=0`, the active line of the tooltip is centered exactly on the middle of the target "white line" in Window W (Drum Window) or Window E (Tooltip).
+- **Consistency**: This alignment logic is independent of the number of context lines or clamping, ensuring a stable visual anchor during interaction.
 
 ## Risks / Trade-offs
 - **Legacy Offset**: Users with highly customized manual calibrations might need to adjust their `_mul` values slightly to account for the new "smarter" logic.
