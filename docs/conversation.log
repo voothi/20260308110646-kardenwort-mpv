@@ -752,9 +752,9 @@
 20260427162908 /opsx:archive openspec\changes\20260427161414-fix-subtitle-scroll-stuck
 20260427163247 opsx-archive openspec\changes\20260427121101-osd-uniformity-calibration-sync
 20260427163449 Sync now
-
-
-
+20260427163737 opsx-explore Check for regression regarding commit 0befa9923cae21c33f43c69875de438c9101cf66 (20260427022609) and compliance of the current version with all openspec\specs specifications
+20260427194741 opsx-explore 20260427165606 Doesn't seem to work drum_double_gap=no.
+20260427200339 opsx-propose
 
 
 
