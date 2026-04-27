@@ -704,6 +704,8 @@
 20260427090613 Look what you did, this is not the same at all, this is a mistake, you need to go back to the implementation of version 0befa9923cae21c33f43c69875de438c9101cf66, take it as a basis, rewrite the changes again, completely.
 20260427091447 Okay, but why is the line spacing and text presentation in tooltip visually different from dw? Is it possible to synchronize the settings for consistency so that the intervals are the same and I can check the accuracy of the tooltip_y_offset_lines offset.
 20260427092149 How does this relate to lls-dw_line_height_mul=0.87? Seems to work with tooltip_line_height_mul=1. Second question, why is tooltip_y_offset_lines=0 not now aligned to the center of the white lines, how it worked correctly back in the version 42856b86df9d964f20ac7a8a87ae20ed583133e6?йц
+20260427093239 Why do we need tooltip_line_height_mul at all, do we use it to calibrate clicks on the tooltip?
+20260427093446 In this case, do not the current names cause confusion and inconsistency with the real purpose?? tooltip_line_height_mul,  dw_line_height_mul.
 
 
 
