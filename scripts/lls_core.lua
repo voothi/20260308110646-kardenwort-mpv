@@ -91,6 +91,7 @@ local Options = {
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
     dw_block_gap_mul = 0.6,       -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
+    dw_separator = "\\N\\N",      -- Separator between distinct subtitles in the window
     dw_border_size = 1.5,
     dw_shadow_offset = 1.0,
     dw_original_spacing = true,
@@ -133,6 +134,7 @@ local Options = {
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
     tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
+    tooltip_separator = "\\N\\N",      -- Separator between context lines in the tooltip
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
 
     -- Navigation Repeat
@@ -2888,8 +2890,8 @@ local function draw_dw(subs, view_center, active_idx)
         table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
-    -- Join separate subtitles with \N\N
-    local block_text = table.concat(lines_ass, "\\N\\N")
+    -- Join separate subtitles with configured separator
+    local block_text = table.concat(lines_ass, Options.dw_separator)
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s", 
         Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, block_text)
@@ -2925,7 +2927,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
     end
     
-    local text_block = table.concat(lines_ass, "\\N")
+    local text_block = table.concat(lines_ass, Options.tooltip_separator)
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
@@ -2948,9 +2950,15 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         final_y = screen_h - margin - half_h
     end
 
+    -- Visual Spacing (\vsp) implementation:
+    -- libass default line height is approx 1.2 * font_size. 
+    -- We add \vsp to adjust it to match tooltip_line_height_mul.
+    local vsp = (Options.tooltip_line_height_mul - 1.2) * fs
+    local vsp_tag = string.format("{\\vsp%g}", vsp)
+
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
-    local ass = string.format("{\\fn%s}{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        font_name, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end

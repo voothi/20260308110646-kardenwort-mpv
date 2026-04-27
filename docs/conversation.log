@@ -710,8 +710,8 @@
 20260427095955 Okay, it works, but how now to solve the problem when the tooltip goes off the screen for the upper subtitles with the value tooltip_y_offset_lines=-5 (offset up) or at the bottom with the value =5? 
 20260427100343 x Okay, it works, but I don’t understand how I can make the spacing number 2 in the figure between the tooltip text equal to the spacing number 1 for the window text w.  Perhaps you need to add some other parameter to the tooltip.
 20260427101153 x This is what we have, this is a mistake.
-
-
+20260427101804 Why is there such a difference between 1 and 2 in the window text w and tooltip? How can I make sure that the intervals are the same?
+20260427104612 Change the separator from \N\N to \N in the draw_dw function. - I need to make this configurable separately for dw, tooltip. By default, make it in both as it is now in dw. We should not change the current type of dw, our calibration will be lost. 20260427104819 Implement Visual Spacing. - You can try to implement this in the tooltip, although I don’t know why it is needed.
 
 
 
