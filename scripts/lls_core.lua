@@ -40,6 +40,7 @@ local Options = {
     drum_shadow_offset = 1.0,
     drum_double_gap = true,
     drum_vsp = 0,
+    drum_block_gap_mul = -0.27,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
@@ -57,6 +58,7 @@ local Options = {
     srt_shadow_offset = 1.0,
     srt_double_gap = true,
     srt_vsp = 0,
+    srt_block_gap_mul = -0.27,
     srt_line_height_mul = 0.87,     -- Vertical spacing multiplier
 
     -- Copy Mode
@@ -139,6 +141,7 @@ local Options = {
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
     tooltip_line_height_mul = 0.87,     -- Vertical spacing multiplier
+    tooltip_block_gap_mul = -0.27,
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
     tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
@@ -2376,6 +2379,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
         local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
         local d_gap = is_drum_mode and Options.drum_double_gap or Options.srt_double_gap
+        local b_gap_mul = is_drum_mode and Options.drum_block_gap_mul or Options.srt_block_gap_mul
 
         local line_metas = {}
         for i = start_idx, end_idx do
@@ -2388,8 +2392,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         for i, m in ipairs(line_metas) do 
             total_h = total_h + m.height 
             if i < #line_metas then
-                local gap = 0
-                if d_gap then gap = (font_size * lh_mul) + vsp end
+                local gap = (font_size * b_gap_mul)
+                if d_gap then gap = gap + (font_size * lh_mul) + vsp end
                 total_h = total_h + gap
             end
         end
@@ -2403,8 +2407,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             m.y_bottom = cur_y + m.height
             m.x_start = 960 - m.total_width / 2
             cur_y = cur_y + m.height
-            if i < #line_metas and d_gap then
-                cur_y = cur_y + (font_size * lh_mul) + vsp
+            if i < #line_metas then
+                local gap = (font_size * b_gap_mul)
+                if d_gap then gap = gap + (font_size * lh_mul) + vsp end
+                cur_y = cur_y + gap
             end
             table.insert(hit_zones, m)
         end
@@ -2970,7 +2976,17 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
     local layout_line_h = (fs * Options.tooltip_line_height_mul) + Options.tooltip_vsp
-    local block_height = visual_lines * layout_line_h
+    local block_gap = (fs * Options.tooltip_block_gap_mul)
+    
+    -- Each logical block has its height, and if double_gap is true, we have a blank line between blocks.
+    -- Plus we add the fine-tuned block_gap_mul.
+    local block_height = (num_lines * layout_line_h)
+    if num_lines > 1 then
+        local num_gaps = num_lines - 1
+        local gap_size = Options.tooltip_double_gap and layout_line_h or 0
+        block_height = block_height + (num_gaps * (gap_size + block_gap))
+    end
+    
     local half_h = block_height / 2
     local margin = 20
     local screen_h = 1080 -- Target OSD vertical resolution

@@ -738,6 +738,8 @@
 20260427150913 opsx-apply openspec\changes\20260427121101-osd-uniformity-calibration-sync
 20260427152950 Check if this is fair.
 20260427153857 Would you like me to enforce 100% value parity across all modes? - Yes.
+20260427154220 Is it correct that dw_block_gap_mul is only for dw and not for drum?
+20260427154347 Check mpv.conf.
 
 
 
