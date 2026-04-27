@@ -774,9 +774,8 @@
 20260427231010 Update openspec\changes\20260427200421-fix-drum-spacing-logic\specs
 20260427231237 Does the specification reflect the solution from anchor 20260427223931? The main pain?
 20260427231418 opsx-archive openspec\changes\20260427200421-fix-drum-spacing-logic
-
-
-
+20260427163737 opsx-explore Check for regression regarding commit 0befa9923cae21c33f43c69875de438c9101cf66 (20260427022609) and compliance of the current version with all openspec\specs specifications
+20260427233113 WOULD YOU LIKE ME TO PROCEED WITH FIXING THE PERFORMANCE REGRESSION AND THE SMART JOINER INTEGRATION? Create opsx-propose
 
 
 
