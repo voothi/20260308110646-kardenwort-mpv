@@ -787,6 +787,9 @@
 20260428003007 Sync now 
 20260428003302 opsx-explore Check for regression regarding commit 0befa9923cae21c33f43c69875de438c9101cf66 (20260427022609) and compliance of the current version with all openspec\specs specifications
 20260428003943 Everything is ok.
+20260428004029 It is necessary to solve the problem with the search window mode Ctrl F, the styling has changed in the current version. Need to go back to version 0befa9923cae21c33f43c69875de438c9101cf66 20260427022609
+20260428005125 You deleted what you needed.
+20260428005717 Check the changes, make sure that the active subtitles in the f window stand out like the subtitles in the drum mode with white color. See photo in the first message.
 
 
 

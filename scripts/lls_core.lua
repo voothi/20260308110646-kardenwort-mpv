@@ -111,7 +111,7 @@ local Options = {
     search_font_size = 34,
     search_bg_color = "000000",      -- black in BGR hex for ASS
     search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
-    search_text_color = "FFFFFF",
+    search_text_color = "CCCCCC",
     search_border_size = 2.0,
     search_shadow_offset = 1.0,
     search_line_height_mul = 1.2,
@@ -119,7 +119,7 @@ local Options = {
     search_hit_bold = false,            -- Bold matches?
     search_sel_color = "FFFFFF",       -- Selected line color (White)
     search_sel_bold = false,           -- Bold selected line?
-    search_query_hit_color = "0088FF", -- Search bar text hits (Select All/Selection)
+    search_query_hit_color = "FFFFFF", -- Search bar text hits (Select All/Selection)
     search_query_hit_bold = false,      -- Bold search bar hits?
 
     -- Font Scaling (Ported from fixed_font.lua)
@@ -5085,23 +5085,24 @@ local function draw_search_ui()
     local ass = ""
     local padding_x = 20
     local padding_y = 10
-    local font_size = Options.search_font_size
-    local font_name = Options.search_font_name ~= "" and Options.search_font_name or mp.get_property("sub-font", "Inter")
-    local line_height = font_size * Options.search_line_height_mul
+    local font_size = Options.search_font_size or Options.dw_font_size
+    local font_name = Options.search_font_name ~= "" and Options.search_font_name or Options.dw_font_name
+    local line_height = font_size * (Options.search_line_height_mul or 1.2)
     
-    -- Positioning Constants
+    -- Positioning Constants (0befa99 layout)
     local box_w = 1200
     local box_x = 960 - (box_w / 2)
     local box_y = 50
     
-    local bg_color = Options.search_bg_color
+    local bg_color = Options.search_bg_color or "181818"
     local border_color = "666666"
-    local text_color = Options.search_text_color
-    local bord = Options.search_border_size
-    local shad = Options.search_shadow_offset
+    local text_color = Options.search_text_color or "CCCCCC"
+    local bord = Options.search_border_size or 2.0
+    local shad = Options.search_shadow_offset or 0.0
+    
+    local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity or "60")
     
     -- Draw Input Field Backing
-    local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity)
     ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
         box_x, box_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
     
@@ -5142,8 +5143,8 @@ local function draw_search_ui()
         end
     end
 
-    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s\n",
-        font_name, box_x + padding_x, box_y + padding_y, shad, bg_color, opacity_hex, font_size, text_color, display_query)
+    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
+        font_name, box_x + padding_x, box_y + padding_y, shad, font_size, "FFFFFF", display_query)
         
     -- Draw Results Dropdown
     if #FSM.SEARCH_RESULTS > 0 then
@@ -5200,8 +5201,8 @@ local function draw_search_ui()
                 end
             end
             
-            ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
-                box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
+            ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+                font_name, box_x + padding_x, item_y, font_size * 0.8, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
         -- "No results"
@@ -5210,8 +5211,8 @@ local function draw_search_ui()
         
         ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} No results found.\n",
-            box_x + padding_x, results_y + padding_y, opacity_hex, font_size * 0.8, "999999")
+        ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} No results found.\n",
+            font_name, box_x + padding_x, results_y + padding_y, font_size * 0.8, "999999")
     end
     
     return ass
