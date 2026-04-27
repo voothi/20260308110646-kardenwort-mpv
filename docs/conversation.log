@@ -681,7 +681,8 @@
 20260427014503 opsx-propose There was some kind of change recently, look at openspec, in terms of turning subtitles on and off with the `s, ы` key, it stopped working. Currently, subtitles are not removed from the screen, although they are OSD and not standard.
 20260427015323 opsx-apply openspec\changes\20260427014503-fix-subtitle-toggle-regression
 20260427015904 Okay, but we can also make it so that in window mode w, instead of blindly trying to use the s key to turn the subtitles off or on, we will make it fail or display a warning in this mode and make no changes.
-
+20260427020857 Check that all Options are present in mpv.conf. lls_core.lua#L15
+20260427021305 Add a comment for osd_interactivity, dw_scrolloff.
 
 
 

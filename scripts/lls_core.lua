@@ -193,7 +193,6 @@ local Options = {
     
     -- Colors
     dw_split_select_color = "FF88B0",
-    book_mode = false,
     dw_mouse_shield_ms = 150,      -- Ghost-click suppression window after keyboard commands (ms)
     sentence_word_threshold = 3
 }
