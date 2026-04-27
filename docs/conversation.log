@@ -698,6 +698,7 @@
 20260427032312 Check that these are not stubs and add them to mpv.conf.
 20260427032903 opsx-explore Error, please review. Look in the docs\conversation.log file for entries 20260427023955 20260427025928 20260427030317 20260427030616 20260427031040 20260427031334 20260427031643 20260427032312. Check for regression between the old version 0befa9923cae21c33f43c69875de438c9101cf66 and current 15548c9e6c2eadd3fd30faa029e45c1d21ea2a7b.
 20260427083222 Check that everything is really connected to the code, there are no stubs, that nothing has been forgotten, all parameters are present in mpv.conf and the Options block of the lls_core.lua script, after which let's implement for the tooltip for uniformity also ctive_opacity context_opacity bg_opacity active_color, in general, so that in this part between dw, drum, tooltip, srt names and functionality were of the same type.
+20260427084215 It turns out that you made the tooltip with an upward shift, previously, at my request, this was done so that the lines were centered, for a quick visual comparison, this is an interesting idea, but I want to introduce a separate parameter for this, which allows you to set such a deviation, or is it dynamically configured? If dynamically, then I would like to make it possible to set a shift in the number of lines up or down.
 
 
 

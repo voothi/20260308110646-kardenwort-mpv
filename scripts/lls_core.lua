@@ -133,6 +133,7 @@ local Options = {
     tooltip_border_size = 1.5,
     tooltip_shadow_offset = 1.0,
     tooltip_line_height_mul = 1.2,     -- Vertical spacing multiplier
+    tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -2932,7 +2933,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         total_height = total_height + line_height
     end
     
-    local current_y = osd_y - (total_height / 2)
+    local current_y = osd_y - (total_height / 2) + (Options.tooltip_y_offset_lines * line_height)
     local ass = ""
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
