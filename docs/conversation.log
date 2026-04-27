@@ -767,6 +767,7 @@
 20260427215548 Doesn't work.
 20260427220327 I moved to commit 20260427212448, this is the result of merging two options using the pro model, I need to try to find the coefficients for the option in drum mode c, drum_double_gap=no. I will write and attach photos of clicks. Pressing will be indicated in red, and displacement in green. I click on first 20260427220720, first itself is highlighted they match, green overlaps red. Next. I click on sort, it gets to that 20260427221056. Next. I click on that, I get to to, on the border with packages 20260427221238. I click on packages, I get on up, on the border with entire 20260427221354.
 20260427222353 Let's remove \vsp from the implementation, it feels like there's a problem with it or we'll fix it.
+20260427222821 It didn't help, do it well.
 
 
 

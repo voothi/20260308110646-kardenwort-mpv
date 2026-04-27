@@ -2323,11 +2323,12 @@ end
 local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     local b_gap_mul = Options[prefix .. "_block_gap_mul"] or 0
     local d_gap = Options[prefix .. "_double_gap"]
-    local gap = (font_size * b_gap_mul)
+    
     if d_gap then
-        gap = gap + (font_size * lh_mul) + vsp
+        return (font_size * lh_mul) + (font_size * b_gap_mul) + vsp
+    else
+        return 0
     end
-    return gap
 end
 
 local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line_height_mul, vsp)
@@ -2578,7 +2579,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
     local vsp_tag = vsp_base ~= 0 and string.format("{\\vsp%g}", vsp_base) or ""
     
-    local separator = d_gap and "\\N\\N" or "\\N"
+    local function get_separator(prev_is_active)
+        if d_gap then
+            local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
+            return string.format("{\\vsp%g}\\N\\N", line_fs * b_gap_mul)
+        else
+            return "\\N"
+        end
+    end
     
     local all_text = ""
     for i = start_idx, end_idx do
@@ -2586,7 +2594,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         if i == start_idx then
             all_text = line_text
         else
-            all_text = all_text .. separator .. line_text
+            all_text = all_text .. get_separator(i - 1 == center_idx) .. line_text
         end
     end
 
@@ -2945,7 +2953,14 @@ local function draw_dw(subs, view_center, active_idx)
     local vsp_base = Options.dw_vsp
     local b_gap_mul = Options.dw_block_gap_mul or 0
 
-    local separator = d_gap and "\\N\\N" or "\\N"
+    local function get_separator(prev_is_active)
+        if d_gap then
+            local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+            return string.format("{\\vsp%g}\\N\\N", line_fs * b_gap_mul)
+        else
+            return "\\N"
+        end
+    end
 
     local block_text = ""
     for i, entry in ipairs(layout) do
@@ -2953,7 +2968,7 @@ local function draw_dw(subs, view_center, active_idx)
         if i == 1 then
             block_text = line_text
         else
-            block_text = block_text .. separator .. line_text
+            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
         end
     end
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
@@ -2995,7 +3010,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local d_gap = Options.tooltip_double_gap
     local vsp_base = Options.tooltip_vsp
     local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    local separator = d_gap and "\\N\\N" or "\\N"
+    local separator = d_gap and string.format("{\\vsp%g}\\N\\N", fs * b_gap_mul) or "\\N"
 
     local text_block = table.concat(lines_ass, separator)
     
