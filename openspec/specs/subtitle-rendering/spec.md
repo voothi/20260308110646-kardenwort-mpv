@@ -22,8 +22,15 @@ The system SHALL periodically suppress native mpv subtitles ONLY for tracks curr
 - **THEN** the system SHALL force `sub-visibility` to `false` (SRT suppressed)
 - **AND** it SHALL allow `secondary-sub-visibility` to match the user's preference (ASS displayed natively).
 
+### Requirement: Logarithmic Centering Performance
+The system SHALL ensure that subtitle centering logic (e.g., `get_center_index`) operates in logarithmic time ($O(\log N)$) relative to the total number of subtitles in the track.
+- **Deduplication**: There SHALL be only a single, globally-accessible implementation of the centering logic to prevent shadowing or redundant linear evaluations.
+- **Impact**: This ensures stable CPU usage and low latency even on extremely large subtitle tracks (>5000 lines).
+
 ### Requirement: Precision-Aware Active Highlighting
-The system SHALL ensure that the "active" subtitle (highlighted in white) remains consistently highlighted even during precise navigation or seek operations where the player position might land slightly before the official start time.
+The system SHALL ensure that the "active" subtitle (highlighted in white) remains consistently highlighted even during precise navigation or seek operations where the player position might land slightly outside the nominal `[start_time, end_time]` range (e.g., in the temporal gap between two subtitles).
+- **Nearest-Neighbor Grounding**: If the current player timestamp falls into a gap between two subtitles, the centering logic MUST identify and return the index of the subtitle whose temporal boundary (start or end) is nearest to the player position.
+- **Visual Feedback**: This prevents the active highlight from "flickering" or disappearing during frame-by-frame navigation or precise seeking to subtitle boundaries.
 
 #### Scenario: Seeking to Subtitle Start
 - **WHEN** the user seeks to a subtitle's start time using 'a' or 'd'
@@ -32,6 +39,7 @@ The system SHALL ensure that the "active" subtitle (highlighted in white) remain
 #### Scenario: Active Line Consistency
 - **WHEN** in Standard or Drum (C) modes
 - **THEN** the subtitle rendering SHALL follow the same highlighting logic as the Drum Window (Mode W), ensuring that the "focused" subtitle (returned by the centering logic) is always rendered in its active state.
+
 
 ### Requirement: Sliding-Window Boundary Filling
 The system SHALL maintain a full range of visible context subtitles even when the active subtitle is near the start or end of the track, provided sufficient subtitles exist in the track.

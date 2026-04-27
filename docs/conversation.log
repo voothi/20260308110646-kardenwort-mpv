@@ -783,7 +783,8 @@
 20260428001440 I try with values ​​-100 or 100 and it does not correct the click on the top lines.
 20260428002045 Okay it works - drum_upper_gap_adj = 6. Take it out as well mpv.conf.
 20260428002408 Update openspec\changes\20260427233207-fix-perf-regression-and-smart-joiner Anchors 20260427231237 20260427231418 20260427163737 20260427233113 20260427233552 20260427234608 20260428000144 20260428000439 20260428001440 20260428002045
-
+20260428002850 opsx-archive openspec\changes\20260427233207-fix-perf-regression-and-smart-joiner
+20260428003007 Sync now 
 
 
 

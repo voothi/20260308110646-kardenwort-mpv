@@ -20,3 +20,14 @@ All OSD rendering modes must maintain absolute parity between the visual vertica
 #### Scenario: Subtitle Spacing Adjustment
 - **WHEN** the user sets `block_gap_mul` to a negative value (e.g., `-0.27`)
 - **THEN** both the visual OSD and the mouse hit-testing zones must contract by the same amount, ensuring no selection drift occurs.
+
+### Requirement: Cumulative Calibration Adjustment
+- In single-gap mode (`drum_double_gap=no`), if the natural font vertical advance does not perfectly match the `line_height_mul` calibration, the system SHALL support a cumulative adjustment via `drum_upper_gap_adj`.
+- **Cumulative Correctness**: The adjustment MUST be applied to both the `total_h` calculation (which offsets the starting position of the OSD block) and the `cur_y` iteration (which places individual hit-boxes).
+- **Directionality**: The adjustment SHALL only apply to lines above the active center line.
+- **Anchor Integrity**: The active center line and all lower lines MUST remain stationary relative to the `y_pixel` anchor, preventing visual jitter during track navigation.
+
+#### Scenario: Calibrating Upper Drift
+- **WHEN** the user observes that top-line hit-zones are slightly above the visual text.
+- **THEN** setting `drum_upper_gap_adj` to a positive value (e.g., `6`) SHALL shift the hit-zones of upper subtitles downwards by an accumulating amount, while keeping the active subtitle anchored in place.
+
