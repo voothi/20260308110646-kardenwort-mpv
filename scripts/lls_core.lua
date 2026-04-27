@@ -2948,9 +2948,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         table.insert(lines_ass, string.format("{\\pos(1800, %d)}{\\an6}{\\c&H%s&}{\\1a&H%s&}%s", y, color, calculate_ass_alpha(opacity), sub_text))
     end
     
-    -- We join WITHOUT \N to avoid the "phantom offset" issue. 
-    -- Individual \pos commands handle all spacing.
-    local text_block = table.concat(lines_ass, "")
+    -- Join with \N to ensure the renderer treats each positioning command as a new line.
+    -- This fixes the "flattened at top" glitch while keeping manual spacing control.
+    local text_block = table.concat(lines_ass, "\\N")
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
