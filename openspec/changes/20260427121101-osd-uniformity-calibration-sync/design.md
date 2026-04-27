@@ -19,20 +19,24 @@ The project uses multiple OSD overlays to display subtitles, translations, and n
 ### 1. Rendering Unification
 - **Primary Color Tag**: Standardize on `\1c` instead of `\c` to ensure the renderer treats the primary text layer consistently across all overlays.
 - **Wrap Style**: Enforce `\q2` (No Wrap) for all list-based displays. This prevents mpv from applying any "smart wrapping" or layout softening that could cause brightness discrepancies.
-- **Layering**: Ensure that only one primary subtitle display (Drum Mode or Drum Window) is active at a time to prevent "Double Rendering" brightness stack.
+- **Opacity Consistency**: Ensure `calculate_ass_alpha` is used consistently for `\1a`, `\3a`, and `\4a` across all modes.
 
 ### 2. Semi-Automatic Calibration Logic
-- **Vertical Height**: The height of a logical line in the hit-testing map will be calculated as `(Options.xx_font_size * Options.xx_line_height_mul) + Options.xx_vsp`.
-- **Gap Handling**: The inter-subtitle gap will automatically expand by one full line height if `double_gap` is enabled.
+- **Vertical Height**: The height of a logical line in the hit-testing map is calculated as `(Options.xx_font_size * Options.xx_line_height_mul) + Options.xx_vsp`.
+- **Gap Handling**: The inter-subtitle gap is calculated as `(Options.xx_font_size * Options.xx_block_gap_mul) + (double_gap ? vline_h : 0)`.
 - **Source of Truth**: Visual parameters in `mpv.conf` (like `dw_vsp` or `dw_double_gap`) become inputs for the calibration engine.
 
-### 3. Schema Alignment
-- Add missing styling parameters (`active_bold`, `context_bold`, `active_size_mul`, `context_size_mul`, `vsp`, `double_gap`) to all mode blocks in the `Options` table.
+### 3. Global Parity standard
+- All modes (`srt`, `dw`, `drum`, `tooltip`) are enforced to use identical visual defaults:
+    - **Font**: Consolas, Size 34.
+    - **Spacing**: `line_height_mul = 0.87`, `block_gap_mul = -0.27`, `double_gap = yes`.
+- This ensures that a single calibration value (`-0.27`) provides identical mouse accuracy across the entire suite.
 
 ### 4. Tooltip Centering
 - **Precision Alignment**: When `tooltip_y_offset_lines=0`, the active line of the tooltip is centered exactly on the middle of the target "white line" in Window W (Drum Window) or Window E (Tooltip).
+- **Formula**: `final_y = osd_y + (Options.tooltip_y_offset_lines * layout_line_h)`.
 - **Consistency**: This alignment logic is independent of the number of context lines or clamping, ensuring a stable visual anchor during interaction.
 
 ## Risks / Trade-offs
-- **Legacy Offset**: Users with highly customized manual calibrations might need to adjust their `_mul` values slightly to account for the new "smarter" logic.
+- **Migration Necessity**: To maintain legacy accuracy with the new "smarter" gap detection, users must migrate `block_gap_mul` to `-0.27` (if using Consolas 34 and Double Gaps).
 - **No-Wrap Risk**: Using `\q2` means text will simply cut off if it exceeds the OSD width, but this is already the expected behavior for the Drum Window and list-based layouts.

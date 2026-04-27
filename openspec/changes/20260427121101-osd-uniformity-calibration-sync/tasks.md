@@ -20,5 +20,7 @@
 ## 4. Configuration & Verification
 
 - [x] 4.1 Update `mpv.conf` with synchronized defaults for all OSD modes.
-- [x] 4.2 Verify visual parity (brightness/sharpness) by toggling between Modes C and W.
-- [x] 4.3 Verify click accuracy after changing `vsp` values in the Drum Window.
+- [x] 4.2 Enforce 100% Value Parity in `lls_core.lua` (Consolas 34, Gap -0.27).
+- [x] 4.3 Implement `block_gap_mul` support for all modes (SRT, Drum, Tooltip).
+- [x] 4.4 Verify visual parity (brightness/sharpness) by toggling between Modes C and W.
+- [x] 4.5 Verify click accuracy after changing `vsp` values in the Drum Window.
