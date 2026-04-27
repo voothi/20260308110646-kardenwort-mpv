@@ -34,6 +34,9 @@ local Options = {
     drum_active_bold = false,
     drum_active_size_mul = 1.0,
     drum_line_height_mul = 1.15,
+    drum_block_gap_mul = 0.6,       -- gap between subtitles = font_size * this
+    drum_vsp = 0,                   -- Vertical spacing adjustment (pixels)
+    drum_double_gap = true,         -- Use double newline (\N\N) between subtitles
     drum_bg_color = "000000",       -- black in BGR hex for ASS
     drum_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     drum_border_size = 1.5,
@@ -49,11 +52,18 @@ local Options = {
     srt_context_color = "CCCCCC",  -- Surrounding lines color
     srt_active_opacity = "00",     -- Transparency for active line
     srt_context_opacity = "30",    -- Transparency for context lines
+    srt_active_bold = true,
+    srt_context_bold = true,
+    srt_active_size_mul = 1.0,
+    srt_context_size_mul = 1.0,
     srt_bg_color = "000000",       -- Shadow/Frame color
     srt_bg_opacity = "60",         -- Shadow/Frame transparency
     srt_border_size = 1.5,
     srt_shadow_offset = 1.0,
     srt_line_height_mul = 1.2,     -- Vertical spacing multiplier
+    srt_block_gap_mul = 0.6,       -- gap between subtitles = font_size * this
+    srt_vsp = 0,                   -- Vertical spacing adjustment (pixels)
+    srt_double_gap = true,         -- Use double newline (\N\N) between subtitles
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -130,6 +140,10 @@ local Options = {
     tooltip_context_color = "CCCCCC",  -- Surrounding lines color
     tooltip_active_opacity = "00",     -- Transparency for active line
     tooltip_context_opacity = "30",    -- Transparency for context lines
+    tooltip_active_bold = false,
+    tooltip_context_bold = false,
+    tooltip_active_size_mul = 1.0,
+    tooltip_context_size_mul = 1.0,
     tooltip_bg_color = "222222",       -- Background color (BGR hex)
     tooltip_bg_opacity = "60",         -- Background transparency
     tooltip_border_size = 1.5,
@@ -2337,7 +2351,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name)
         sub_idx = sub_idx,
         words = words,
         total_width = total_w,
-        height = font_size * Options.drum_line_height_mul
+        height = (font_size * (is_drum and Options.drum_line_height_mul or Options.srt_line_height_mul)) + (is_drum and Options.drum_vsp or Options.srt_vsp)
     }
 end
 
@@ -2383,11 +2397,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         if not is_top then y_start = y_pixel - total_h end
         
         local cur_y = y_start
-        for _, m in ipairs(line_metas) do
+        local sub_gap = (font_size * (is_drum and Options.drum_block_gap_mul or Options.srt_block_gap_mul)) 
+                         + ((is_drum and Options.drum_double_gap or Options.srt_double_gap) and (vline_h or line_metas[1].height) or 0)
+        
+        for i, m in ipairs(line_metas) do
             m.y_top = cur_y
             m.y_bottom = cur_y + m.height
             m.x_start = 960 - m.total_width / 2
-            cur_y = cur_y + m.height
+            cur_y = cur_y + m.height + (i < #line_metas and sub_gap or 0)
             table.insert(hit_zones, m)
         end
     end
@@ -2520,39 +2537,40 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             font_name, opacity, bold_state, base_color, size, result_text)
     end
 
+    local separator = (is_drum and Options.drum_double_gap or Options.srt_double_gap) and "\\N\\N" or "\\N"
     local prev_text = ""
     for i = start_idx, center_idx - 1 do
         local sub = subs[i]
-        prev_text = prev_text .. (prev_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
+        prev_text = prev_text .. (prev_text == "" and "" or separator) .. format_sub(i, false, sub.start_time)
     end
     
     local active_text = ""
     if center_idx > 0 and center_idx <= #subs then
         local sub = subs[center_idx]
-        -- The centered line in draw_drum is always considered "active" (highlighted white),
-        -- which ensures consistent highlighting during scrolling and seek operations,
-        -- matching the robust behavior of the Drum Window (Mode W).
         active_text = format_sub(center_idx, true, sub.start_time)
     end
     
     local next_text = ""
     for i = center_idx + 1, end_idx do
         local sub = subs[i]
-        next_text = next_text .. (next_text == "" and "" or "\\N") .. format_sub(i, false, sub.start_time)
+        next_text = next_text .. (next_text == "" and "" or separator) .. format_sub(i, false, sub.start_time)
     end
     
+    
     local all_text = prev_text
-    if all_text ~= "" and active_text ~= "" then all_text = all_text .. "\\N" end
+    if all_text ~= "" and active_text ~= "" then all_text = all_text .. separator end
     all_text = all_text .. active_text
-    if all_text ~= "" and next_text ~= "" then all_text = all_text .. "\\N" end
+    if all_text ~= "" and next_text ~= "" then all_text = all_text .. separator end
     all_text = all_text .. next_text
 
     local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
-        bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
+    local vsp = is_drum and Options.drum_vsp or Options.srt_vsp
+    local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
+    local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s", 
+        bord, shad, bg_color, calculate_ass_alpha(bg_opacity), vsp_tag)
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2589,8 +2607,8 @@ local function dw_build_layout(subs, view_center)
     start_idx = math.max(1, start_idx)
     end_idx = math.min(#subs, end_idx)
 
-    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul) + (Options.dw_double_gap and vline_h or 0)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -2698,7 +2716,7 @@ local function draw_dw(subs, view_center, active_idx)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
@@ -2860,9 +2878,9 @@ local function draw_dw(subs, view_center, active_idx)
             for _, j in ipairs(vl_indices) do
                 local meta = token_meta[j]
                 if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
-                    table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", false))
+                    table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", true))
                 elseif meta.priority == 1 or meta.priority == 2 then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, color))
+                    table.insert(formatted_words, string.format("{\\1c&H%s&}%s{\\1c&H%s&}", meta.color, meta.text, color))
                 else
                     table.insert(formatted_words, meta.text)
                 end
@@ -2917,9 +2935,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.tooltip_context_lines)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
-    local fs = Options.tooltip_font_size
-    local line_height = fs * Options.tooltip_line_height_mul
-    local bold = Options.tooltip_font_bold and "1" or "0"
+    local fs = Options.tooltip_font_size * (is_active and Options.tooltip_active_size_mul or Options.tooltip_context_size_mul)
+    local bold = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
     
     local lines_ass = {}
     for i = start_idx, end_idx do
@@ -2928,7 +2945,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
         
-        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
+        table.insert(lines_ass, string.format("{\\1c&H%s&}{\\1a&H%s&}{\\fs%d}{\\b%s}%s", color, calculate_ass_alpha(opacity), fs, bold, sub_text))
     end
     
     local separator = Options.tooltip_double_gap and "\\N\\N" or "\\N"
@@ -2939,18 +2956,27 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
-    -- We use 1.2 * fs as the natural line height baseline since we aren't using \vsp
+    -- Active Line Alignment: Calculate Y so that the CENTER of the active line (center_idx)
+    -- aligns perfectly with osd_y. This prevents "shifting" when start_idx or end_idx are clamped.
+    local vline_h = (Options.tooltip_font_size * Options.tooltip_line_height_mul) + Options.tooltip_vsp
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
-    local layout_line_h = fs * 1.2 
-    local block_height = visual_lines * layout_line_h
+    local block_height = visual_lines * vline_h
+    
+    local lines_above = (center_idx - start_idx) * (Options.tooltip_double_gap and 2 or 1)
+    local dist_to_active_center = (lines_above * vline_h) + (0.5 * vline_h)
+    
+    -- Start with the Y that aligns the active line, then apply manual line offset
+    local base_y = osd_y + (Options.tooltip_y_offset_lines * vline_h)
+    
+    -- The \an6 position is the vertical CENTER of the whole block.
+    -- To put active_center at base_y, the block center must be at:
+    local final_y = base_y - dist_to_active_center + (0.5 * block_height)
+    
+    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
     local half_h = block_height / 2
     local margin = 20
-    local screen_h = 1080 -- Target OSD vertical resolution
-    
-    -- Apply manual Y offset (unit: natural line heights)
-    local final_y = osd_y + (Options.tooltip_y_offset_lines * layout_line_h)
+    local screen_h = 1080 
     
     if final_y - half_h < margin then
         final_y = margin + half_h
@@ -2960,8 +2986,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
-        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, Options.tooltip_font_size, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end
@@ -2997,8 +3023,8 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
-    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
+    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul) + (Options.dw_double_gap and vline_h or 0)
     local space_w = dw_get_str_width(" ")
 
     local block_top = 540 - total_height / 2
