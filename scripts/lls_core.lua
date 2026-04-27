@@ -2418,12 +2418,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         
         local cur_y = y_start
         for i, m in ipairs(line_metas) do
-            m.y_top = cur_y
-            m.y_bottom = cur_y + m.height
+            local abs_idx = start_idx + i - 1
+            local adj = (not d_gap and abs_idx < center_idx) and 2 or 0
+            m.y_top = cur_y + adj
+            m.y_bottom = cur_y + m.height + adj
             m.x_start = 960 - m.total_width / 2
             cur_y = cur_y + m.height
             if i < #line_metas then
-                local abs_idx = start_idx + i - 1
                 local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
                 cur_y = cur_y + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp)
             end
