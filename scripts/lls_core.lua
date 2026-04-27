@@ -33,10 +33,9 @@ local Options = {
     drum_active_color = "FFFFFF",
     drum_active_bold = false,
     drum_active_size_mul = 1.0,
-    drum_spacing_gap = -0.1,
-    drum_stack_multiplier = 1.15,
+    drum_line_height_mul = 1.15,
     drum_bg_color = "000000",
-    drum_bg_opacity = "60",        -- Frame transparency (ASS alpha 00-FF)
+    drum_bg_opacity = "60",
     drum_border_size = 1.5,
     drum_shadow_offset = 1.0,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
@@ -46,8 +45,15 @@ local Options = {
     srt_font_size = 55,
     srt_font_name = "Inter",
     srt_font_bold = true,
-    srt_bg_color = "000000",
-    srt_bg_opacity = "60",
+    srt_active_color = "FFFFFF",   -- Active playback line color
+    srt_context_color = "CCCCCC",  -- Surrounding lines color
+    srt_active_opacity = "00",     -- Transparency for active line
+    srt_context_opacity = "30",    -- Transparency for context lines
+    srt_bg_color = "000000",       -- Shadow/Frame color
+    srt_bg_opacity = "60",         -- Shadow/Frame transparency
+    srt_border_size = 1.5,
+    srt_shadow_offset = 1.0,
+    srt_line_height_mul = 1.2,     -- Vertical spacing multiplier
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -72,11 +78,6 @@ local Options = {
     dw_bg_color = "000000",       -- black in BGR hex for ASS
     dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
     dw_context_color = "CCCCCC",  -- light text
-    dw_text_opacity = "00",       -- legacy/unused base
-    dw_active_opacity = "00",     -- text alpha for active playback line
-    dw_context_opacity = "30",    -- text alpha for context lines
-    dw_active_color = "FFFFFF",   -- white active text in BGR
-    dw_active_bold = false,
     dw_context_bold = false,
     dw_active_size_mul = 1.0,
     dw_context_size_mul = 1.0,
@@ -84,8 +85,8 @@ local Options = {
     dw_ctrl_select_color = "FF88FF",-- Neon pink for split-word select (pairing with purple)
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
-    dw_vline_h_mul = 0.87,        -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
-    dw_sub_gap_mul = 0.6,         -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
+    dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
+    dw_block_gap_mul = 0.6,       -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_border_size = 1.5,
     dw_shadow_offset = 1.0,
     dw_original_spacing = true,
@@ -93,8 +94,14 @@ local Options = {
     dw_jump_lines = 5,            -- Lines to jump on Ctrl+Shift+Up/Down
 
     -- Search HUD Styling
+    search_font_name = "Inter",
+    search_font_size = 34,
     search_bg_color = "000000",
     search_bg_opacity = "60",
+    search_text_color = "FFFFFF",
+    search_border_size = 2.0,
+    search_shadow_offset = 1.0,
+    search_line_height_mul = 1.2,
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
     search_hit_bold = false,            -- Bold matches?
     search_sel_color = "FFFFFF",       -- Selected line color (White)
@@ -2318,7 +2325,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name)
         sub_idx = sub_idx,
         words = words,
         total_width = total_w,
-        height = font_size * Options.drum_stack_multiplier
+        height = font_size * Options.drum_line_height_mul
     }
 end
 
@@ -2376,9 +2383,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local function format_sub(sub_idx, is_active, t_pos)
         local text = subs[sub_idx] and subs[sub_idx].text or ""
         if text == "" then return "" end
-        local base_color = is_active and Options.drum_active_color or Options.drum_context_color
-        local opacity = calculate_ass_alpha(is_active and Options.drum_active_opacity or Options.drum_context_opacity)
         local is_drum = (FSM.DRUM == "ON")
+        
+        local base_color = is_drum and (is_active and Options.drum_active_color or Options.drum_context_color)
+                                    or (is_active and Options.srt_active_color or Options.srt_context_color)
+        local opacity = calculate_ass_alpha(is_drum and (is_active and Options.drum_active_opacity or Options.drum_context_opacity)
+                                                     or (is_active and Options.srt_active_opacity or Options.srt_context_opacity))
+        
         local font_name = is_drum and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
                                    or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
         local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
@@ -2526,8 +2537,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
 
     local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
+    local bord = is_drum and Options.drum_border_size or Options.srt_border_size
+    local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
     local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}", 
-        Options.drum_border_size, Options.drum_shadow_offset, bg_color, calculate_ass_alpha(bg_opacity))
+        bord, shad, bg_color, calculate_ass_alpha(bg_opacity))
 
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
@@ -2564,8 +2577,8 @@ local function dw_build_layout(subs, view_center)
     start_idx = math.max(1, start_idx)
     end_idx = math.min(#subs, end_idx)
 
-    local vline_h = Options.dw_font_size * Options.dw_vline_h_mul
-    local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
+    local vline_h = Options.dw_font_size * Options.dw_line_height_mul
+    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -2643,7 +2656,7 @@ local function draw_dw(subs, view_center, active_idx)
     
     local ass = ""
     local layout, total_height = dw_build_layout(subs, view_center)
-    local sub_gap = Options.dw_font_size * Options.dw_sub_gap_mul
+    local sub_gap = Options.dw_font_size * Options.dw_block_gap_mul
     local current_y = 540 - (total_height / 2)
     FSM.DW_LINE_Y_MAP = {}
     
@@ -4936,26 +4949,25 @@ local function draw_search_ui()
     local ass = ""
     local padding_x = 20
     local padding_y = 10
-    local font_size = Options.dw_font_size
-    local line_height = font_size * 1.2
+    local font_size = Options.search_font_size
+    local font_name = Options.search_font_name ~= "" and Options.search_font_name or mp.get_property("sub-font", "Inter")
+    local line_height = font_size * Options.search_line_height_mul
     
     -- Positioning Constants
     local box_w = 1200
     local box_x = 960 - (box_w / 2)
     local box_y = 50
     
-    local bg_color = "181818"
+    local bg_color = Options.search_bg_color
     local border_color = "666666"
-    local text_color = "FFFFFF"
-    if Options.search_bg_color then
-        bg_color = Options.search_bg_color
-        text_color = Options.dw_context_color
-    end
+    local text_color = Options.search_text_color
+    local bord = Options.search_border_size
+    local shad = Options.search_shadow_offset
     
     -- Draw Input Field Backing
     local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity)
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-        box_x, box_y, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        box_x, box_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
     
     -- Draw Input Text
     local display_query = ""
@@ -4994,8 +5006,8 @@ local function draw_search_ui()
         end
     end
 
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
-        box_x + padding_x, box_y + padding_y, font_size, text_color, display_query)
+    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s\n",
+        font_name, box_x + padding_x, box_y + padding_y, shad, bg_color, opacity_hex, font_size, text_color, display_query)
         
     -- Draw Results Dropdown
     if #FSM.SEARCH_RESULTS > 0 then
@@ -5005,8 +5017,8 @@ local function draw_search_ui()
         local results_y = box_y + line_height + padding_y * 2 + 5
         
         -- Dropdown Backing
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord2}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
             
         -- Scroll window mapping
         local start_idx = math.max(1, FSM.SEARCH_SEL_IDX - math.floor(max_results_display / 2))
