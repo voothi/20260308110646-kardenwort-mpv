@@ -734,6 +734,7 @@
 20260427135635 Would you like me to proceed with these integrations? - First, update the documentation to make sure it says that the tooltip with tooltip_y_offset_lines=0 should be centered on the middle of the white lines in window w and window e (tooltip). Also, so that this modification does not change the current appearance of the text and windows in the end.
 20260427140505 You haven't updated the documentation openspec\changes\20260427121101-osd-uniformity-calibration-sync
 20260427141202 Check what's wrong with the commit 51cb0b8dbb0aee75eac8e6e16de0001cc3edc1ba
+20260427143339 Why didn’t it work out for you, look how it should be 20260427143356 and how it is now 20260427143447 
 
 
 

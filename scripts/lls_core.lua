@@ -2945,8 +2945,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.tooltip_context_lines)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
-    local fs = Options.tooltip_font_size * (is_active and Options.tooltip_active_size_mul or Options.tooltip_context_size_mul)
-    local bold = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
+    local fs = Options.tooltip_font_size
+    local bold = Options.tooltip_font_bold and "1" or "0"
     
     local lines_ass = {}
     for i = start_idx, end_idx do
@@ -2955,7 +2955,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
         
-        table.insert(lines_ass, string.format("{\\1c&H%s&}{\\1a&H%s&}{\\fs%d}{\\b%s}%s", color, calculate_ass_alpha(opacity), fs, bold, sub_text))
+        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
     end
     
     local separator = Options.tooltip_double_gap and "\\N\\N" or "\\N"
@@ -2966,28 +2966,18 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Active Line Alignment: Calculate Y so that the CENTER of the active line (center_idx)
-    -- aligns perfectly with osd_y. This prevents "shifting" when start_idx or end_idx are clamped.
-    -- When tooltip_y_offset_lines=0, this ensures the tooltip is centered on the target line's middle.
-    local vline_h = (Options.tooltip_font_size * Options.tooltip_line_height_mul) + Options.tooltip_vsp
+    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
+    -- We use 1.2 * fs as the natural line height baseline since we aren't using \vsp
     local num_lines = end_idx - start_idx + 1
     local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
-    local block_height = visual_lines * vline_h
-    
-    local lines_above = (center_idx - start_idx) * (Options.tooltip_double_gap and 2 or 1)
-    local dist_to_active_center = (lines_above * vline_h) + (0.5 * vline_h)
-    
-    -- Start with the Y that aligns the active line, then apply manual line offset
-    local base_y = osd_y + (Options.tooltip_y_offset_lines * vline_h)
-    
-    -- The \an6 position is the vertical CENTER of the whole block.
-    -- To put active_center at base_y, the block center must be at:
-    local final_y = base_y - dist_to_active_center + (0.5 * block_height)
-    
-    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
+    local layout_line_h = fs * 1.2 
+    local block_height = visual_lines * layout_line_h
     local half_h = block_height / 2
     local margin = 20
-    local screen_h = 1080 
+    local screen_h = 1080 -- Target OSD vertical resolution
+    
+    -- Apply manual Y offset (unit: natural line heights)
+    local final_y = osd_y + (Options.tooltip_y_offset_lines * layout_line_h)
     
     if final_y - half_h < margin then
         final_y = margin + half_h
@@ -2997,8 +2987,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\3a&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, Options.tooltip_font_size, bord, shad, bg_color, bg_alpha, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q1}%s",
+        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     return ass
 end
