@@ -763,6 +763,41 @@
 20260427203455 Switched to branch 20260427200731, let's look at commit 4c4bfca22b51e522a579d4605ec5357edeb4df4c 20260427200731, in which the calibration works хорошо в режиме drum_double_gap=no. Take exactly this implementation.
 20260427205535 opsx-propose I have a commit root 4c4bfca22b51e522a579d4605ec5357edeb4df4c 20260427200731 and two branches first 93db0ae538d990e0463a9a689db9eff704b1a0ea 20260427202748 and the second 828967d07419d361540e1750712b9eefd63cca84 20260427204617, I need to modify the solution so that the semi-automatic adjustment mechanism works normally when I set the coefficients in double interval mode, and with drum_double_gap=no for it to work. Update openspec\changes\20260427200421-fix-drum-spacing-logic
 20260427211802 opsx-apply
+20260427213340 It will eliminate and correct the increasing error when clicking on the lower subtitle in drum mode c, in mode with one transfer, on a higher line the fight click is further removed vertically higher, one line, then after 2 lines.
+20260427215548 Doesn't work.
+20260427220327 I moved to commit 20260427212448, this is the result of merging two options using the pro model, I need to try to find the coefficients for the option in drum mode c, drum_double_gap=no. I will write and attach photos of clicks. Pressing will be indicated in red, and displacement in green. I click on first 20260427220720, first itself is highlighted they match, green overlaps red. Next. I click on sort, it gets to that 20260427221056. Next. I click on that, I get to to, on the border with packages 20260427221238. I click on packages, I get on up, on the border with entire 20260427221354.
+20260427222353 Let's remove \vsp from the implementation, it feels like there's a problem with it or we'll fix it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
