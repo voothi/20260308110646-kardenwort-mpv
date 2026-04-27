@@ -99,9 +99,20 @@ All word-width calculations for hit-testing and selection highlights SHALL use c
 - **THEN** The system SHALL iterate exactly 6 times and apply width heuristics per character, ensuring the selection zone matches the visual glyphs.
 
 ### Requirement: Drum Mode Visibility Master
-The Drum Mode (Mode C) toggle SHALL act as a master visibility control for custom OSD rendering.
+The Drum Mode (Mode C) toggle SHALL control the rendering style (single-line vs multi-line context), but SHALL respect the global subtitle visibility toggle (`s` key).
 
-#### Scenario: Practicing with Hidden Subtitles
-- **GIVEN** Native subtitle visibility (`s` key) is OFF
-- **WHEN** Drum Mode is toggled ON
-- **THEN** The custom OSD rendering SHALL become visible, enabling interactive practice even when the native subtitle track is hidden from the player's perspective.
+#### Scenario: Hiding Subtitles in Drum Mode
+- **GIVEN** Drum Mode is toggled ON and subtitles are visible
+- **WHEN** the user toggles native subtitle visibility OFF (using `s` or `ы`)
+- **THEN** the custom OSD rendering SHALL immediately become invisible.
+
+#### Scenario: Showing Subtitles in Drum Mode
+- **GIVEN** Drum Mode is toggled ON and subtitles are hidden
+- **WHEN** the user toggles native subtitle visibility ON (using `s` or `ы`)
+- **THEN** the custom OSD rendering SHALL immediately become visible using Drum Mode styling.
+
+#### Scenario: Visibility Toggle in Drum Window
+- **GIVEN** the Drum Window (Mode W) is active
+- **WHEN** the user presses `s` or `ы`
+- **THEN** the system SHALL NOT change the subtitle visibility state
+- **AND** it SHALL display a warning OSD indicating that visibility is managed by the Drum Window.
