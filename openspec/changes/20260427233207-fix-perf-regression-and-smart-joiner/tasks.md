@@ -1,16 +1,20 @@
 ## 1. get_center_index Optimization
-- [x] 1.1 Locate both definitions of `get_center_index` in `scripts/lls_core.lua` (around L249 and L888).
-- [x] 1.2 Remove the local linear-scan definition (around L888).
-- [x] 1.3 Modify the global binary-search definition (L249) to include precision grounding: if `time_pos` falls in a gap between the best match and its adjacent subtitles, return the index of the subtitle with the closest temporal boundary.
+- [x] 1.1 Locate both definitions of `get_center_index` in `scripts/lls_core.lua`.
+- [x] 1.2 Remove the local linear-scan definition.
+- [x] 1.3 Modify the global binary-search definition to include nearest-neighbor grounding for gaps.
 
 ## 2. Smart Joiner TSV Export Integration
-- [x] 2.1 Locate `dw_anki_export_selection` in `scripts/lls_core.lua`.
-- [x] 2.2 Identify the term string building loop. Instead of `table.concat(parts, " ")`, extract the raw text parts into a list.
-- [x] 2.3 Pass this list to `compose_term_smart` to assemble the final `term` string before calling `save_anki_tsv_row`.
-- [x] 2.4 Locate `ctrl_commit_set` in `scripts/lls_core.lua`.
-- [x] 2.5 Replace manual interstitial space addition (`term = term .. " " .. clean_w`) with a clean token array pass to `compose_term_smart`. (Retain `" ... "` logic for explicit gaps).
+- [x] 2.1 Refactor `dw_anki_export_selection` to use `compose_term_smart`.
+- [x] 2.2 Refactor `ctrl_commit_set` to use `compose_term_smart`.
 
-## 3. Verification
-- [x] 3.1 Verify that CPU usage remains low during standard playback (indicating $O(\log N)$ centering).
-- [x] 3.2 Verify that pausing the video slightly before a subtitle correctly highlights the upcoming subtitle.
-- [x] 3.3 Verify that exporting "Marken-Discount" or similar punctuated phrases yields the correct unspaced string in the TSV file.
+## 3. Drum Mode Hit-Zone Calibration
+- [x] 3.1 Implement `drum_upper_gap_adj` option in `lls_core.lua`.
+- [x] 3.2 Fix the boolean ternary bug for `d_gap` evaluation in `draw_drum`.
+- [x] 3.3 Update `draw_drum` to accumulate `adj` into `total_h` and `cur_y` for upper lines.
+- [x] 3.4 Verify alignment with `drum_upper_gap_adj = 6` in single-gap mode.
+- [x] 3.5 Update `mpv.conf` with `lls-drum_upper_gap_adj=6`.
+
+## 4. Verification
+- [x] 4.1 Verify $O(\log N)$ performance.
+- [x] 4.2 Verify smart spacing in TSV exports.
+- [x] 4.3 Verify perfect hit-zone alignment in Drum Mode.
