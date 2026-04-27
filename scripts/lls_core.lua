@@ -110,8 +110,8 @@ local Options = {
     search_font_name = "Consolas",
     search_font_size = 34,
     search_bg_color = "000000",      -- black in BGR hex for ASS
-    search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
-    search_text_color = "CCCCCC",
+    search_bg_opacity = "20",        -- background opacity (00-FF, 00 is opaque)
+    search_text_color = "FFFFFF",
     search_border_size = 2.0,
     search_shadow_offset = 1.0,
     search_line_height_mul = 1.2,
@@ -119,7 +119,7 @@ local Options = {
     search_hit_bold = false,            -- Bold matches?
     search_sel_color = "FFFFFF",       -- Selected line color (White)
     search_sel_bold = false,           -- Bold selected line?
-    search_query_hit_color = "FFFFFF", -- Search bar text hits (Select All/Selection)
+    search_query_hit_color = "0088FF", -- Search bar text hits (Select All/Selection)
     search_query_hit_bold = false,      -- Bold search bar hits?
 
     -- Font Scaling (Ported from fixed_font.lua)
@@ -5096,7 +5096,7 @@ local function draw_search_ui()
     
     local bg_color = Options.search_bg_color or "181818"
     local border_color = "666666"
-    local text_color = Options.search_text_color or "CCCCCC"
+    local text_color = Options.search_text_color or "FFFFFF"
     local bord = Options.search_border_size or 2.0
     local shad = Options.search_shadow_offset or 0.0
     
@@ -5188,7 +5188,7 @@ local function draw_search_ui()
             
             -- Construct highlighted string
             local display_text = ""
-            local hit_color = is_selected and (Options.search_query_hit_color or "FFFFFF") or Options.search_hit_color
+            local hit_color = is_selected and Options.search_sel_color or Options.search_hit_color
             local hit_bold = Options.search_hit_bold and "{\\b1}" or ""
             local hit_bold_end = Options.search_hit_bold and "{\\b0}" or ""
             
