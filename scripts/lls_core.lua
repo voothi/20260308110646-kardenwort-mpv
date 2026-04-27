@@ -2323,9 +2323,10 @@ end
 local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     local b_gap_mul = Options[prefix .. "_block_gap_mul"] or 0
     local d_gap = Options[prefix .. "_double_gap"]
-    local gap = (font_size * b_gap_mul)
+    -- vsp is ALWAYS applied to the gap, even without double_gap
+    local gap = (font_size * b_gap_mul) + vsp
     if d_gap then
-        gap = gap + (font_size * lh_mul) + vsp
+        gap = gap + (font_size * lh_mul)
     end
     return gap
 end
@@ -2403,9 +2404,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         for i, m in ipairs(line_metas) do 
             total_h = total_h + m.height 
             if i < #line_metas then
-                local abs_idx = start_idx + i - 1
-                local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
-                total_h = total_h + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp)
+                total_h = total_h + calculate_sub_gap(is_drum_mode and "drum" or "srt", font_size, lh_mul, vsp)
             end
         end
         
@@ -2419,9 +2418,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             m.x_start = 960 - m.total_width / 2
             cur_y = cur_y + m.height
             if i < #line_metas then
-                local abs_idx = start_idx + i - 1
-                local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
-                cur_y = cur_y + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp)
+                cur_y = cur_y + calculate_sub_gap(is_drum_mode and "drum" or "srt", font_size, lh_mul, vsp)
             end
             table.insert(hit_zones, m)
         end
@@ -2578,10 +2575,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
     local vsp_tag = vsp_base ~= 0 and string.format("{\\vsp%g}", vsp_base) or ""
     
-    local function get_separator(prev_is_active)
-        local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or (line_fs * b_gap_mul)
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+    local separator
+    if d_gap then
+        local vsp_extra = font_size * b_gap_mul
+        separator = string.format("{\\fs%d}{\\vsp%g}\\N{\\vsp%g}\\N", font_size, vsp_extra, vsp_base)
+    else
+        local vsp_extra = font_size * b_gap_mul
+        separator = string.format("{\\fs%d}{\\vsp%g}\\N{\\vsp%g}", font_size, vsp_base + vsp_extra, vsp_base)
     end
     
     local all_text = ""
@@ -2590,7 +2590,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         if i == start_idx then
             all_text = line_text
         else
-            all_text = all_text .. get_separator(i - 1 == center_idx) .. line_text
+            all_text = all_text .. separator .. line_text
         end
     end
 
@@ -2740,9 +2740,7 @@ local function draw_dw(subs, view_center, active_idx)
         FSM.DW_LINE_Y_MAP[i] = current_y + (entry.height / 2)
         current_y = current_y + entry.height
         if layout_i < #layout then
-            local is_active = (entry.sub_idx == active_idx)
-            local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-            current_y = current_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+            current_y = current_y + calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
         end
         
         local is_active = (i == active_idx)
@@ -2949,21 +2947,16 @@ local function draw_dw(subs, view_center, active_idx)
     local vsp_base = Options.dw_vsp
     local b_gap_mul = Options.dw_block_gap_mul or 0
 
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or (line_fs * b_gap_mul)
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+    local separator
+    if d_gap then
+        local vsp_extra = Options.dw_font_size * b_gap_mul
+        separator = string.format("{\\fs%d}{\\vsp%g}\\N{\\vsp%g}\\N", Options.dw_font_size, vsp_extra, vsp_base)
+    else
+        local vsp_extra = Options.dw_font_size * b_gap_mul
+        separator = string.format("{\\fs%d}{\\vsp%g}\\N{\\vsp%g}", Options.dw_font_size, vsp_base + vsp_extra, vsp_base)
     end
 
-    local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
-        end
-    end
+    local block_text = table.concat(lines_ass, separator)
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
@@ -3003,8 +2996,14 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local d_gap = Options.tooltip_double_gap
     local vsp_base = Options.tooltip_vsp
     local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    local vsp_extra = d_gap and (fs * b_gap_mul / 2) or (fs * b_gap_mul)
-    local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+    local separator
+    if d_gap then
+        local vsp_extra = fs * b_gap_mul
+        separator = string.format("{\\fs%d}{\\vsp%g}\\N{\\vsp%g}\\N", fs, vsp_extra, vsp_base)
+    else
+        local vsp_extra = fs * b_gap_mul
+        separator = string.format("{\\fs%d}{\\vsp%g}\\N{\\vsp%g}", fs, vsp_base + vsp_extra, vsp_base)
+    end
 
     local text_block = table.concat(lines_ass, separator)
     
