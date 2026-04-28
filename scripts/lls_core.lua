@@ -1803,11 +1803,14 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local span = last_idx - first_idx + 1
     if span >= limit then
         -- Selection spans more words than the limit allows padding for.
-        -- Return exactly the selected span (first_idx..last_idx) — tight crop,
-        -- no extra pre/post context bleeding from the surrounding blob.
-        print(string.format("  - Span (%d) >= limit (%d), cropping to span", span, limit))
+        -- Crop to the span but add a small fixed padding on each side so the
+        -- extreme selected words don't get cut mid-phrase.
+        local pad = 3
+        local crop_start = math.max(1, first_idx - pad)
+        local crop_end   = math.min(#words, last_idx + pad)
+        print(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
         local span_words = {}
-        for i = first_idx, last_idx do table.insert(span_words, words[i]) end
+        for i = crop_start, crop_end do table.insert(span_words, words[i]) end
         return compose_term_smart(span_words):match("^%s*(.-)%s*$")
     end
     
