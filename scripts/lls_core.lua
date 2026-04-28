@@ -3805,7 +3805,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     
     -- Compose the term with adaptive gap detection
     local subs = Tracks.pri.subs
-    local term_tokens = {}
+    local term = ""
     local last_m = nil
     
     for _, m in ipairs(members) do
@@ -3843,33 +3843,37 @@ local function ctrl_commit_set(line_idx, word_idx)
                         end
 
                         if is_gap then
-                            table.insert(term_tokens, "...")
+                            term = term .. " ... "
                         else
+                            local interstitial = ""
                             if m.line == last_m.line then
                                 for _, t in ipairs(tokens) do
                                     if t.logical_idx > last_m.word and t.logical_idx < m.word then
-                                        table.insert(term_tokens, t.text)
+                                        interstitial = interstitial .. t.text
                                     end
                                 end
                             else
+                                local trail = ""
                                 local last_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
                                 for _, t in ipairs(last_tokens) do
-                                    if t.logical_idx > last_m.word then table.insert(term_tokens, t.text) end
+                                    if t.logical_idx > last_m.word then trail = trail .. t.text end
                                 end
+                                local lead = ""
                                 for _, t in ipairs(tokens) do
-                                    if t.logical_idx < m.word then table.insert(term_tokens, t.text) end
+                                    if t.logical_idx < m.word then lead = lead .. t.text end
                                 end
+                                interstitial = trail .. " " .. lead
                             end
+                            term = term .. interstitial
                         end
                     end
-                    table.insert(term_tokens, clean_w)
+                    term = term .. clean_w
                     last_m = m
                 end
             end
         end
     end
-    if #term_tokens == 0 then return end
-    local term = compose_term_smart(term_tokens)
+    if term == "" then return end
     
     -- Use the earliest selected word's line for timestamp (document-natural start)
     local time_pos = subs[members[1].line].start_time
