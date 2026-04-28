@@ -1746,7 +1746,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local limit = max_words_override or Options.anki_context_max_words
     if #words <= limit then return sentence end
     
-    -- 3. If the sentence is still too long, fallback to word-based truncation around the term
     local selected_words = build_word_list(selected_term)
     if #selected_words == 0 then return sentence:sub(1, 100) .. "..." end
     
@@ -1758,18 +1757,65 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
         if match then target_idx = i break end
     end
+
+    local first_idx = nil
+    local last_idx = nil
     
-    if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
+    if target_idx ~= -1 then
+        first_idx = target_idx
+        last_idx = target_idx + #selected_words - 1
+    else
+        -- Fallback for non-contiguous terms: find the first and last selected word within the sentence
+        for i, w in ipairs(words) do
+            for _, sw in ipairs(selected_words) do
+                if sw ~= "..." and w:lower() == sw:lower() then
+                    if not first_idx then first_idx = i end
+                    last_idx = i
+                end
+            end
+        end
+    end
     
-    local last_idx = target_idx + #selected_words - 1
+    -- If we still can't find the term (e.g., highly aggressive metadata stripping removed it), fallback to start
+    if not first_idx then 
+        if #sentence <= 100 then return sentence end
+        return sentence:sub(1, 100) .. " ..." 
+    end
+    
+    local span_len = last_idx - first_idx + 1
     local half_max = math.floor(limit / 2)
-    local context_start = math.max(1, target_idx - half_max)
-    local context_end = math.min(#words, last_idx + half_max)
+    local context_start, context_end
+    
+    if span_len > limit then
+        -- If the gap itself is larger than the limit, we must include the whole gap
+        context_start = first_idx
+        context_end = last_idx
+    else
+        local remaining = limit - span_len
+        local pad_before = math.floor(remaining / 2)
+        local pad_after = remaining - pad_before
+        
+        context_start = math.max(1, first_idx - pad_before)
+        context_end = math.min(#words, last_idx + pad_after)
+        
+        -- Adjust if we hit boundaries
+        if context_start == 1 then
+            context_end = math.min(#words, last_idx + remaining - (first_idx - 1))
+        elseif context_end == #words then
+            context_start = math.max(1, first_idx - remaining + (#words - last_idx))
+        end
+    end
     
     local context_words = {}
     for i = context_start, context_end do table.insert(context_words, words[i]) end
     
-    return compose_term_smart(context_words):match("^%s*(.-)%s*$")
+    local res = compose_term_smart(context_words):match("^%s*(.-)%s*$")
+    
+    -- Append visual indicators if we truncated the sentence
+    if context_start > 1 then res = "... " .. res end
+    if context_end < #words then res = res .. " ..." end
+    
+    return res
 end
 
 

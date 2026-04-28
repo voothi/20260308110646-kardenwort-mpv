@@ -825,7 +825,7 @@
 20260428174011 Sync now
 20260428174324 opsx-explore Check for regression and compliance with specifications. Specifications openspec\specs. New version 50cf26ee1f618b7e6f2b17a8708bc4a222f34094 20260428174219, previous version 840cf69d5ec99940ad83fe12fdeeb16e383aa594 20260428102242
 20260428175056 No further actions are required. The codebase is now fully synchronized with the specified requirements for high-quality Anki mining and immersion styling. - Fine.
-
+20260428183309 We have a problem, we need to revise the project that we completed for an error and the specifications were poured into the main folder, I discovered that the SentenceSource sentences in the file began to be cut off ` ... ` in the position of the first word of the paired selection.
 
 
 
