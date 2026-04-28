@@ -17,12 +17,27 @@ The system SHALL default to a higher word-count limit to accommodate complex sen
 - **WHEN** an export is triggered without custom overrides
 - **THEN** the system applies a default limit of 40 words (increased from 20).
 
-### Requirement: Non-Contiguous Term Context Anchor
-When the composed term cannot be found verbatim in the context block (due to non-contiguous selection or cross-line boundaries), the context extraction system SHALL find the best occurrence of every word in the term closest to the center and anchor the sentence boundary search on the **full span** of those matches.
+### Requirement: Non-Contiguous Term Context Anchor (Sequential Forward Search)
+When the composed term cannot be found verbatim in the context block (due to non-contiguous selection or cross-line boundaries), the context extraction system SHALL find the occurrences of each word in the term in their natural document order.
 
 #### Scenario: Non-contiguous term spanning sentence boundaries
-- **WHEN** `extract_anki_context` is called with a term like `"und Ende"` where "und" is in the first sentence and "Ende" is in the second
-- **THEN** the system SHALL calculate the distance of all occurrences of "und" and "Ende" to the center of the context window
-- **AND** determine the span (min-start to max-end) that covers the best occurrences of both words
-- **AND** use that span as the anchor for sentence boundary detection
-- **AND** return all involved sentences (from the start of the "und" sentence to the end of the "Ende" sentence) correctly.
+- **WHEN** `extract_anki_context` is called with a term containing multiple segments (e.g. `"she's ... six ... four"`)
+- **THEN** the system SHALL anchor the search using the first word closest to the pivot center
+- **AND** search for all subsequent words strictly forward from the previous match's end position
+- **AND** use the absolute character offsets of the first and last matches (relative to the source line) to map the span into word indices.
+
+### Requirement: Precision Offset Mapping
+The system SHALL ensure that character-relative spans are mapped to word indices by accounting for leading character stripping during sentence cleaning.
+
+#### Scenario: Mapping selection to word indices
+- **WHEN** a sentence is stripped of leading whitespace or punctuation (e.g. `"  Wait, how..."` becomes `"Wait, how..."`)
+- **THEN** the system SHALL calculate the actual start offset of the cleaned string within the source line
+- **AND** derive word indices (`first_idx`, `last_idx`) using relative character offsets (`s_rel`, `e_rel`) based on this true origin.
+
+### Requirement: Adaptive Span Padding for Wide Selections
+When the highlighted span itself is wider than the allowed word limit, the system SHALL fallback to a tight-crop representation of the span with natural padding.
+
+#### Scenario: Exporting a wide selection
+- **WHEN** the detected word span between the first and last selected words is $\ge$ `anki_context_max_words`
+- **THEN** the system SHALL return only the words within that span plus a small fixed padding (default `anki_context_span_pad = 3`) on each side
+- **AND** clamp this padded range to the sentence boundaries.
