@@ -248,13 +248,48 @@ The project now uses a centralized configuration model. All core script behavior
 - **`save-position-on-quit=yes`**: Pick up your immersion session exactly where you left off.
 
 ### Centralized Script Controls:
-- **`script-opts-append=lls-autopause_default=yes`**: Toggle autopause at session start.
-- **`script-opts-append=lls-dw_font_name=Consolas`**: Unified font for reading modes.
-- **`script-opts-append=lls-anki_sync_period=5`**: Frequency of TSV database reloads.
-- **`script-opts-append=lls-dw_vline_h_mul=0.87`**: Tunable vertical hit-test multiplier.
-- **`script-opts-append=lls-book_mode=no`**: Stationary viewport lock (default).
-- **`script-opts-append=lls-dw_original_spacing=yes`**: Perfectly mirror source subtitle formatting.
-- **`script-opts-append=lls-copy_default_mode=A`**: Set the default clipboard target.
+
+| Parameter | Default | Description |
+|---|---|---|
+| **AutoPause** | | |
+| `lls-autopause_default` | `yes` | Enable automatic pausing at the end of each subtitle line by default. |
+| `lls-karaoke_every_word`| `no` | If enabled, autopause stops after every highlighted word (Karaoke mode). |
+| `lls-pause_padding` | `0.15` | Buffer delay (seconds) before pausing to ensure word completion. |
+| `lls-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
+| `lls-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
+| **Drum Mode (c)** | | |
+| `lls-drum_font_size` | `34` | Text size used in Drum Mode. |
+| `lls-drum_font_name` | `Consolas` | Monospace font family for aligned context rendering. |
+| `lls-drum_context_lines`| `3` | Number of surrounding subtitle lines shown for context. |
+| `lls-drum_context_color`| `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
+| `lls-drum_active_color` | `FFFFFF` | Text color for the currently active subtitle line (BGR Hex). |
+| `lls-drum_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF, 00 is opaque). |
+| `lls-drum_track_gap` | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
+| **Drum Window (w)** | | |
+| `lls-dw_font_size` | `34` | Base text size for the Static Reading Mode window. |
+| `lls-dw_lines_visible` | `15` | Maximum number of subtitle lines visible in the viewport. |
+| `lls-dw_scrolloff` | `3` | Margin lines maintained at top/bottom before the viewport scrolls. |
+| `lls-dw_original_spacing`| `yes` | Preserve the source subtitle's original whitespace and formatting. |
+| `lls-dw_jump_words` | `2` | Number of words jumped during Ctrl-boosted navigation. |
+| `lls-dw_jump_lines` | `2` | Number of lines jumped during Ctrl-Shift boosted navigation. |
+| **Anki & Mining** | | |
+| `lls-anki_sync_period` | `10` | Interval (seconds) for automatic TSV database reloading. |
+| `lls-anki_context_lines`| `6` | Number of surrounding lines captured in Anki flashcard context. |
+| `lls-anki_context_max_words`| `40` | Maximum word count allowed per exported context sentence. |
+| `lls-anki_strip_metadata`| `no` | Proactively remove bracketed tags (e.g. `[musik]`) from exports. |
+| `lls-anki_highlight_bold`| `yes` | Apply bold styling to database-matched highlights in the OSD. |
+| `lls-anki_global_highlight`| `no` | Highlight matches across the entire video (True) or just original scene (False). |
+| **Search HUD** | | |
+| `lls-search_font_size` | `34` | Text size for the Search overlay input field. |
+| `lls-search_results_font_size`| `0` | Scaling for results list (0=100%, -1=80% of base size). |
+| `lls-search_hit_color` | `0088FF` | Color used to highlight query matches in the results list (BGR Hex). |
+| **Font Scaling** | | |
+| `lls-font_scaling_enabled`| `yes` | Enable smart scaling to keep text legible on small windows. |
+| `lls-font_scale_strength`| `0.5` | Scaling intensity (0.0=Native, 1.0=Strictly fixed size). |
+| **System** | | |
+| `lls-osd_duration` | `0.5` | Default display time for script notification popups (seconds). |
+| `lls-seek_hold_delay` | `0.5` | Delay (seconds) before key-hold triggers continuous subtitle seeking. |
+| `lls-seek_hold_rate` | `10` | Frequency of subtitle jumps per second during held navigation. |
 
 ### Anki Field Mapping
 The suite leverages an external `anki_mapping.ini` to decouple metadata from logic. Users can define custom fields, static literals, and language-specific TTS flags for zero-touch Anki imports.
