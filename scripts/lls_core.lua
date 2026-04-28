@@ -203,6 +203,7 @@ local Options = {
     key_sec_sub_pos_up = "R К",
     key_sec_sub_pos_down = "T Е",
     anki_context_max_words = 40,
+    anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
     anki_highlight_depth_1 = "0075D1",
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003C88",
@@ -1805,7 +1806,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         -- Selection spans more words than the limit allows padding for.
         -- Crop to the span but add a small fixed padding on each side so the
         -- extreme selected words don't get cut mid-phrase.
-        local pad = 3
+        local pad = Options.anki_context_span_pad
         local crop_start = math.max(1, first_idx - pad)
         local crop_end   = math.min(#words, last_idx + pad)
         print(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
