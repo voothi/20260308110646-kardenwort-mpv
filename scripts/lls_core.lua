@@ -1748,25 +1748,35 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     if #words <= limit then return sentence end
     
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
-    -- Find which words in the list correspond to the start/end of the selected term
-    local s_rel = start_pos - sent_start + 1
-    local e_rel = end_pos - sent_start + 1
-    
+    -- Compute span relative to the cleaned sentence string.
+    -- (sentence is stripped of leading whitespace/punctuation via :match, so we locate its
+    -- actual start inside full_line to get a correct offset.)
     local first_idx, last_idx = nil, nil
-    local curr_char = 1
-    for i, w in ipairs(words) do
-        local w_start = sentence:find(w, curr_char, true)
-        if w_start then
-            local w_end = w_start + #w - 1
-            if w_end >= s_rel and w_start <= e_rel then
-                first_idx = first_idx or i
-                last_idx = i
+    if start_pos then
+        -- Find where the cleaned sentence starts inside full_line
+        local sentence_abs_start = full_line:find(sentence, 1, true) or sent_start
+        local s_rel = start_pos - sentence_abs_start + 1
+        local e_rel = end_pos   - sentence_abs_start + 1
+        s_rel = math.max(1, s_rel)
+        e_rel = math.max(s_rel, e_rel)
+        
+        local curr_char = 1
+        for i, w in ipairs(words) do
+            local w_start = sentence:find(w, curr_char, true)
+            if w_start then
+                local w_end = w_start + #w - 1
+                if w_end >= s_rel and w_start <= e_rel then
+                    first_idx = first_idx or i
+                    last_idx = i
+                end
+                curr_char = w_end + 1
             end
-            curr_char = w_end + 1
         end
+        
+        print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
+    else
+        print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | no anchor", #words, limit))
     end
-    
-    print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
     if first_idx then
         print(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
     else
