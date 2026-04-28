@@ -819,8 +819,11 @@
 20260428191630 Now, being an Specification Architect, create one based on the results of changes from commit 9e51818dcd5116e134a6c9e870bfb9629c54e323 opsx-propose with specs to cement this into text for future AI agent work.
 20260428192355 opsx-apply openspec\changes\20260428192102-normalize-tsv-ellipsis-spacing Initiating the Apply Workflow I'm now initiating the /opsx-apply workflow to apply the change 20260428192102-normalize-tsv-ellipsis-spacing. I've already ensured the changes are implemented and artifacts updated to reflect a "literal" approach. My next step is the crucial "Select" process within the workflow.
 20260428192423 opsx-archive with Sync.
-
-
+20260428215720 opsx-explore # The phrase string generation logic SentenceSource for paired highlighting mode D does not work as expected, generating phrases that do not contain the full captured phrases that contain these separated words using pink highlighting.
+20260428225727 opsx-propose
+20260428230634 opsx-apply 20260428225732-fix-non-contiguous-context-export
+20260428231417 However, isn’t this too long a phrase, considering that it fits in `that up on the top shelf and notice how she puts`
+20260428231830 What could have changed?
 
 
 
