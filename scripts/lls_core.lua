@@ -1802,8 +1802,13 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     -- return the full sentence so none of the picked words are hidden.
     local span = last_idx - first_idx + 1
     if span >= limit then
-        print(string.format("  - Span (%d) >= limit (%d), returning full sentence", span, limit))
-        return sentence
+        -- Selection spans more words than the limit allows padding for.
+        -- Return exactly the selected span (first_idx..last_idx) — tight crop,
+        -- no extra pre/post context bleeding from the surrounding blob.
+        print(string.format("  - Span (%d) >= limit (%d), cropping to span", span, limit))
+        local span_words = {}
+        for i = first_idx, last_idx do table.insert(span_words, words[i]) end
+        return compose_term_smart(span_words):match("^%s*(.-)%s*$")
     end
     
     -- Center the viewport around the detected span
