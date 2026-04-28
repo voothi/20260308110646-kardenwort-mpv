@@ -817,8 +817,8 @@
 20260428102451 How can I do git push on all branches where it is required? Go through all the branches and do this.
 20260428190630 I rolled back to branch 20260428190609, I need to implement it as it was in the old version (0befa99). I don't really like the option of changing text using regex filters.
 20260428191630 Now, being an Specification Architect, create one based on the results of changes from commit 9e51818dcd5116e134a6c9e870bfb9629c54e323 opsx-propose with specs to cement this into text for future AI agent work.
-
-
+20260428192355 opsx-apply openspec\changes\20260428192102-normalize-tsv-ellipsis-spacing Initiating the Apply Workflow I'm now initiating the /opsx-apply workflow to apply the change 20260428192102-normalize-tsv-ellipsis-spacing. I've already ensured the changes are implemented and artifacts updated to reflect a "literal" approach. My next step is the crucial "Select" process within the workflow.
+20260428192423 opsx-archive with Sync.
 
 
 
