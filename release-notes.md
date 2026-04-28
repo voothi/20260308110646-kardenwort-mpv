@@ -1,3 +1,33 @@
+# Release Notes - v1.54.0 (Search UI Refinement & Rendering Stability)
+
+**Date**: 2026-04-28
+**Version**: v1.54.0
+**Implementation ZIDs**: 20260425233159, 20260426162931, 20260426175600, 20260426233000, 20260426235000, 20260427003254, 20260427011411, 20260427014503, 20260427021928, 20260427121101, 20260427161414, 20260427200421, 20260427233207, 20260428015150
+
+## Highlights
+
+### 🔦 **Search UI & Aesthetic Refinement**
+- **Restored Selection Highlighting**: Corrected a visual regression in the Search HUD where active selections lost their colored highlighting. The interface now accurately renders the active result in bright white while preserving match-specific color indicators.
+- **Independent Search Scaling**: Introduced `lls-search_results_font_size` to allow independent scaling of the results dropdown (e.g., 80% of the main UI size), optimizing screen real estate for dense search results.
+- **Aesthetic Synchronization**: Realigned search window positioning and background logic with the "Drum Mode" visual style, ensuring a cohesive look and feel across all custom UI overlays.
+
+### 🎨 **Subtitle Rendering & Layout Hardening**
+- **Calibrated Drum Spacing**: Resolved vertical drift issues in Drum Mode by calibrating hit-zone detection and line intervals. Clicks now map with pixel-perfect accuracy to the rendered OSD text.
+- **Active Subtitle Highlighting**: Implemented high-contrast highlighting for the currently active subtitle line across all modes, significantly improving readability during rapid navigation.
+- **Uniformity Calibration Sync**: Synchronized OSD uniformity settings across different screen layouts and aspect ratios, ensuring consistent visual behavior in both windowed and fullscreen modes.
+
+### 🚄 **Stability & Interaction Hardening**
+- **Performance Regression Fix**: Eliminated a performance bottleneck in the rendering loop that caused micro-stutters during high-frequency subtitle updates.
+- **Smart Joiner 2.0**: Improved the intelligent word joiner to handle complex German compound boundaries and non-standard punctuation during Anki exports and clipboard copying.
+- **Fragility Resolution**: Hardened the subtitle copy engine against malformed ASS tags and fragmentation, ensuring verbatim capture even in edge cases with overlapping formatting tags.
+
+### 🔧 **Workflow & Configuration**
+- **Subtitle Toggle Recovery**: Resolved a regression that caused subtitle visibility toggles to become unresponsive after certain mode transitions.
+- **Option Synchronization**: Fully synchronized all internal script parameters with `mpv.conf`, allowing users to persist custom calibrations for hit-testing and spacing without editing the Lua source.
+- **Sticky Scroll Guard**: Fixed a bug where subtitle scrolling could become "stuck" at track boundaries or during rapid seek-repeat operations.
+
+---
+
 # Release Notes - v1.50.0 (OpenSpec Consolidation & Compliance)
 
 **Date**: 2026-04-25

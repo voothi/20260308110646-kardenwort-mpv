@@ -799,7 +799,7 @@
 20260428015046 opsx-propose Anchors 20260428004029 20260428005125 20260428005717 20260428011126 20260428011803 20260428012238 20260428012357 20260428013045 20260428013613
 20260428015741 opsx-apply openspec\changes\20260428015150-refine-search-ui-styling
 20260428015838 opsx-archive and Sync.
-
+20260428020334 create-release-2 v1.54.0 openspec\changes\archive\20260425233159-align-subtitle-rendering-spec openspec\changes\archive\20260426162931-active-subtitle-highlighting openspec\changes\archive\20260426175600-subtitle-rendering-fixes openspec\changes\archive\20260426233000-fix-copy-subtitle-fragility openspec\changes\archive\20260426235000-window-mode-context-fading openspec\changes\archive\20260427003254-fix-load-sub-copy-regressions openspec\changes\archive\20260427011411-fix-yellow-word-indicator-consistency openspec\changes\archive\20260427014503-fix-subtitle-toggle-regression openspec\changes\archive\20260427021928-sync-mpv-conf-options openspec\changes\archive\20260427121101-osd-uniformity-calibration-sync openspec\changes\archive\20260427161414-fix-subtitle-scroll-stuck openspec\changes\archive\20260427200421-fix-drum-spacing-logic openspec\changes\archive\20260427233207-fix-perf-regression-and-smart-joiner openspec\changes\archive\20260428015150-refine-search-ui-styling
 
 
 
