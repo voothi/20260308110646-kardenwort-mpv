@@ -1,0 +1,23 @@
+## 1. Configuration Schema
+
+- [x] 1.1 Add `search_results_font_size` to the `Options` table in `lls_core.lua`
+- [x] 1.2 Synchronize `mpv.conf` with new search parameters and defaults
+- [x] 1.3 Add comments to `mpv.conf` explaining the font scaling options (0=100%, -1=80%)
+
+## 2. Search UI Rendering Restoration
+
+- [x] 2.1 Restore hardcoded layout constants (`box_w`, `box_x`, `box_y`) in `draw_search_ui`
+- [x] 2.2 Implement independent font size calculation for the results dropdown
+- [x] 2.3 Verify ASS tag syntax for font name and size consistency
+
+## 3. Contrast and Highlighting Refinement
+
+- [x] 3.1 Update rendering loop to force pure white (`FFFFFF`) for the active selection's base text
+- [x] 3.2 Implement logic to preserve colored hit highlights on the selected line using `search_query_hit_color`
+- [x] 3.3 Ensure unselected lines use the dimmer `search_text_color` (default `CCCCCC`) for background context
+
+## 4. Validation and Calibration
+
+- [x] 4.1 Test search functionality with varying query lengths
+- [x] 4.2 Verify that trailing spaces in the search query do not cause unexpected "orange overload"
+- [x] 4.3 Confirm that font scaling correctly applies to the results dropdown without breaking layout alignment
