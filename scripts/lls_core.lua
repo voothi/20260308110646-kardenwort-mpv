@@ -1011,6 +1011,7 @@ end
 local function compose_term_smart(words)
     if not words or #words == 0 then return "" end
     local res = ""
+    for idx, w in ipairs(words) do
         local current_w = w
         if w:match("^%s+$") then current_w = " " end
         res = res .. current_w
