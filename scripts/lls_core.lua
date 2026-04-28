@@ -1707,6 +1707,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local sentence = full_line
     local sent_start = 1
     local sent_end = #full_line
+    local sentence_abs_start = 1   -- tracks where the cleaned sentence starts in full_line
     
     if start_pos then
         local is_sentence_start = false
@@ -1718,21 +1719,23 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             sent_start = start_pos - b_idx + 1
             is_sentence_start = true
         else
-            -- No preceding punctuation found, meaning it starts at the beginning of the text block.
-            -- This acts as a sentence boundary.
             sent_start = 1
             is_sentence_start = true
         end
         
         -- Search forwards for punctuation starting safely AFTER the term
-        -- to ensure we don't cut off multi-sentence selections if they end near punctuation.
         local post = full_line:sub(end_pos + 1)
         local f_idx = post:find("[.!?]")
         if f_idx then
             sent_end = end_pos + f_idx
         end
         
-        sentence = full_line:sub(sent_start, sent_end):match("^[%s.!?]*(.-)%s*$")
+        local raw_sub = full_line:sub(sent_start, sent_end)
+        sentence = raw_sub:match("^[%s.!?]*(.-)%s*$") or raw_sub
+        
+        -- Track where the cleaned sentence actually begins in full_line (before any '.' append)
+        local lead = raw_sub:match("^([%s.!?]*)") or ""
+        sentence_abs_start = sent_start + #lead
         
         if is_sentence_start and sentence and sentence ~= "" and starts_with_uppercase(sentence) then
             if not sentence:match("[.!?]$") then
@@ -1742,19 +1745,14 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     end
 
     -- 2. Check word count of the extracted sentence.
-    -- We use a dynamic limit to avoid overly aggressive truncation for long selections.
     local words = build_word_list(sentence)
     local limit = max_words_override or Options.anki_context_max_words
     if #words <= limit then return sentence end
     
-    -- 3. If the sentence is still too long, fallback to word-based truncation around the term
-    -- Compute span relative to the cleaned sentence string.
-    -- (sentence is stripped of leading whitespace/punctuation via :match, so we locate its
-    -- actual start inside full_line to get a correct offset.)
+    -- 3. If the sentence is still too long, truncate around the selected span.
+    -- Use the pre-computed sentence_abs_start so the "." append doesn't break offset math.
     local first_idx, last_idx = nil, nil
     if start_pos then
-        -- Find where the cleaned sentence starts inside full_line
-        local sentence_abs_start = full_line:find(sentence, 1, true) or sent_start
         local s_rel = start_pos - sentence_abs_start + 1
         local e_rel = end_pos   - sentence_abs_start + 1
         s_rel = math.max(1, s_rel)
@@ -1784,13 +1782,21 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         return sentence
     end
     
+    -- If the selection span itself is wider than the limit, the user picked words far apart —
+    -- return the full sentence so none of the picked words are hidden.
+    local span = last_idx - first_idx + 1
+    if span >= limit then
+        print(string.format("  - Span (%d) >= limit (%d), returning full sentence", span, limit))
+        return sentence
+    end
+    
     -- Center the viewport around the detected span
     local center_idx = math.floor((first_idx + last_idx) / 2)
     local half_max = math.floor(limit / 2)
     local context_start = math.max(1, center_idx - half_max)
     local context_end = math.min(#words, center_idx + half_max)
     
-    -- Ensure the viewport covers at least the core span if possible
+    -- Shift viewport to ensure the full core span is visible
     if context_start > first_idx then
         local shift = context_start - first_idx
         context_start = first_idx
