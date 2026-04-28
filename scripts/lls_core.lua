@@ -1748,26 +1748,23 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
-    -- Filter out joiners from selected_term to ensure we can find all tokens in non-contiguous sets
-    local selected_words = {}
-    for word in selected_term:gmatch("%S+") do
-        if word ~= "..." then
-            local sw = build_word_list(word)
-            if #sw > 0 then table.insert(selected_words, sw[1]) end
-        end
-    end
+    -- Find which words in the list correspond to the start/end of the selected term
+    -- start_pos and end_pos are relative to full_line, so we translate them to sentence relative
+    local s_rel = start_pos - sent_start + 1
+    local e_rel = end_pos - sent_start + 1
     
-    if #selected_words == 0 then return sentence end
-    
-    -- Find the range of words that covers ALL selected tokens
     local first_idx, last_idx = nil, nil
+    local curr_char = 1
     for i, w in ipairs(words) do
-        local w_lower = w:lower()
-        for _, sw in ipairs(selected_words) do
-            if w_lower == sw:lower() then
+        local w_start = sentence:find(w, curr_char, true)
+        if w_start then
+            local w_end = w_start + #w - 1
+            -- If word overlaps with the selection range
+            if w_end >= s_rel and w_start <= e_rel then
                 first_idx = first_idx or i
                 last_idx = i
             end
+            curr_char = w_end + 1
         end
     end
     

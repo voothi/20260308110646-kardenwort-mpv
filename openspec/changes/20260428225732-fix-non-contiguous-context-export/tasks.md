@@ -9,6 +9,7 @@
 - [x] 2.2 **Span-Based Anchoring**: Replace the contiguous `target_idx` loop with a logic that finds the first and last word indices of all `selected_words` within the sentence block.
 - [x] 2.3 **Midpoint Centering**: Update the word-count truncation logic to use the midpoint of the detected word span as the pivot for extracting context words.
 - [x] 2.4 **Fallback Removal**: Remove the legacy string-based truncation `sentence:sub(1, 100) .. "..."` to eliminate artificial data loss and trailing ellipses.
+- [x] 2.5 **Precision Anchoring**: Use the calculated character coordinates (`start_pos`/`end_pos`) to find exact word indices, preventing over-expansion from duplicate words.
 
 ## 3. Verification & Compliance
 
