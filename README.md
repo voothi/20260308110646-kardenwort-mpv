@@ -28,6 +28,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Intelligent Scripts](#intelligent-scripts)
   - [Universal Subtitle Search](#universal-subtitle-search)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
+  - [Drum Mode (Dynamic Multi-line Flow)](#drum-mode)
   - [Static Reading Mode (Drum Window)](#static-reading-mode)
   - [Anki Highlighting & Export](#anki-mining)
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
@@ -137,6 +138,14 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
 - **Toggle**: `P` (English) or `З` (Russian).
 
+### <span id="drum-mode"></span>Drum Mode (Dynamic Multi-line Flow)
+The primary immersion mode designed for rapid reading and phrasal awareness during playback.
+- **Continuous Context**: Synchronizes multiple historical and future subtitle lines into a single cohesive OSD block.
+- **Dynamic Vertical Tracking**: Real-time position syncing with `secondary-sub-pos`. Adjust the entire block height on-the-fly using `Shift+R` / `Shift+T`.
+- **Minimalist Aesthetic**: Forces an ultra-clean `outline-and-shadow` style to ensure maximum readability against any video background, decoupling it from regular subtitle styles.
+- **Dual-Track Synergy**: Seamlessly renders both primary and secondary tracks in a unified stack, providing instant translation context without visual clutter.
+- **Toggle**: `C` (English) or `С` (Russian).
+
 ### <span id="static-reading-mode"></span>Static Reading Mode (Drum Window)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
 - **Advanced Mouse Selection**: Experience text-editor smooth interactions. Click and drag (`LMB`) to instantly highlight ranges, or `Shift+Click` to extend. Hardware-accelerated for 60fps tracking.
@@ -217,7 +226,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `s` | `ы` | Toggle Subtitle Visibility (Styled OSD) |
 | `e` | `у` | **Toggle Tooltip** (Reading Mode Only) |
 | `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
-| `c` | `с` | Toggle **Drum Mode** (Legacy Multi-line Context) |
+| `c` | `с` | Toggle **Drum Mode** (Dynamic Multi-line Context) |
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
 | `b` | `и` | Toggle **Book Mode** (Static Viewport Lock) |
 | `n` | `т` | Toggle **Hover Tooltips** (Reading Mode) |
@@ -268,7 +277,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `lls-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
 | `lls-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
 
-#### **3. Drum Mode (Legacy Multi-line Context)**
+#### **3. Drum Mode (Dynamic Multi-line Context)**
 | Parameter | Default | Description |
 |---|---|---|
 | `lls-drum_font_size` | `34` | Text size used in Drum Mode. |

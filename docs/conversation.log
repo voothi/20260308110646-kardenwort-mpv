@@ -804,7 +804,7 @@
 20260428021052 Did you delete something necessary and relevant? Have you forgotten any other keyboard shortcuts?
 20260428021141 Can you put together a similar table in README.md with all the customizable parameters with clear explanations for the user? Current default values. mpv.conf.
 20260428021748 You haven’t added all the fields, double-check and add absolutely all the fields that are currently active from the .conf.
-
+20260428022457 I don’t understand why Drum Mode is Legacy? This is the main mode. README.md#L271 Reconsidering Nomenclature I'm now reconsidering the use of "Legacy" for "Drum Mode." It seems inappropriate since this is the primary mode. Perhaps "multi-line context" or "main mode" are more accurate. My earlier choice of "Legacy" stemmed from perceiving "Static Reading Mode" as the newer mode.
 
 
 
