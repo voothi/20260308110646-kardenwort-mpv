@@ -201,14 +201,15 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `A` / `D` | `Ф` / `В` | Exact **2-second** seek forward / backward (Window Mode / Global) |
 | `a` / `d` | `ф` / `в` | **Seek** to previous / next subtitle line |
 | `q` / `Q` | `й` / `Й` | **Quit** / Quit and save position |
-| `SPACE` | `SPACE` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
+| `SPACE` / `LMB` | `SPACE` / `LMB` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
+| `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
 | `m` | `ь` | Toggle **Mute** |
 | `0` / `9` | `0` / `9` | Adjust **Volume** (Up / Down) |
 | `[` / `]` | `х` / `ъ` | Decrease / Increase **Playback Speed** (10%) |
 | `{` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
 | `BS` | `BS` | **Reset Playback Speed** (Set to 1.0) |
 | `.` / `,` | `ю` / `б` | Frame Step Forward / Backward |
-| `f` | `а` | Toggle **Fullscreen** |
+| `v` | `м` | Toggle **Fullscreen** |
 | `W` / `E` | `Ц` / `У` | **Panscan** (Zoom Out / In) |
 | `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
 | `Shift+R` / `Shift+T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
@@ -220,25 +221,14 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
 | `b` | `и` | Toggle **Book Mode** (Static Viewport Lock) |
 | `n` | `т` | Toggle **Hover Tooltips** (Reading Mode) |
+| `h` | `р` | Toggle **Global Highlighting** (Anki Matches) |
 | `o` | `щ` | **Open Record File** (Active TSV database) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
-| `Ctrl+a` | `Ctrl+ф` | **Select All** (Inside Search HUD) |
-| `Ctrl+w` | `Ctrl+ц` | **Delete Word** (Bash-style, Search HUD) |
-| `LMB (Drag)` | `LMB (Drag)` | **Select Text** (Click and drag to highlight) |
-| `LMB (Double)` | `LMB (Double)` | **Seek** to clicked subtitle line |
-| `Ctrl + LMB` | `Ctrl + LMB` | **Multi-Word Selection** (Accumulate individual words) |
-| `Ctrl+Shift+LMB` | `Ctrl+Shift+LMB` | **Extend Pink Selection** (Paired highlights) |
-| `MMB` | `MMB` | **Commit & Export** (Release to save to Anki/TSV) |
-| `Shift + UP/DN` | `Shift + В/Н` | Multi-line Range Selection (Arrows) |
-| `Ctrl + Shift + LEFT/RIGHT` | `Ctrl+Shift+Л/П` | Block-word Selection (Navigation) |
-| `Ctrl + Shift + UP/DOWN` | `Ctrl+Shift+В/Н` | Multi-line Jump Selection |
-| `Ctrl + UP/DN` | `Ctrl + В/Н` | Viewport Scroll (Matches Mouse Wheel) |
-| `Ctrl+c` | `Ctrl+с` | **Copy Range** (Exact highlighted words to clipboard) |
-| `x` | `ч` | Toggle **Context Copy** (Include surrounding lines) |
-| `z` | `я` | Cycle **Copy Mode** (Foreign ↔ Translation) |
-| `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
-| `p` | `з` | Toggle **Autopause** (ON/OFF) |
-| `k` | `л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
+| `Ctrl+c` | `Ctrl+с` | **Copy Subtitle** (Extract clean text to clipboard) |
+| `x` / `X` | `ч` / `Ч` | Toggle **Context Copy** (Include surrounding lines) |
+| `z` / `Z` | `я` / `Я` | Cycle **Copy Mode** (Target ↔ Translation) |
+| `p` / `P` | `з` / `З` | Toggle **Autopause** (ON/OFF) |
+| `k` / `K` | `л` / `Л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
 | `S` | `Ы` | Take a **Screenshot** |
 
 [Return to Top](#table-of-contents)
