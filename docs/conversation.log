@@ -826,8 +826,8 @@
 20260428231830 What could have changed?
 20260428232717 opsx-propose # The phrase string generation logic SentenceSource for paired highlighting mode D does not work as expected, generating phrases that do not contain the full captured phrases that contain these separated words using pink highlighting. It might be worth reworking this mechanism. You can look at another project and get inspired by it `..\20241223170748-kardenwort\src\kardenwort\core\kardenwort.py`
 20260428233447 opsx-apply changes/20260428232956-rework-phrase-generation-paired-highlighting
-
-
+20260429000253 opsx-propose
+20260429000745 opsx-apply 20260429000301-refine-phrase-generation-precision-anchoring
 
 
 

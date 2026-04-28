@@ -1676,24 +1676,26 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         local min_s, max_e = nil, nil
         
         for word in term_lower:gmatch("%S+") do
-            local best_ws, best_we = nil, nil
-            local best_dist_word = math.huge
-            local s_from = 1
-            
-            while true do
-                local ws, we = full_lower:find(word, s_from, true)
-                if not ws then break end
-                local dist = math.abs((ws + we) / 2 - center)
-                if dist < best_dist_word then
-                    best_dist_word = dist
-                    best_ws, best_we = ws, we
+            if word ~= "..." then
+                local best_ws, best_we = nil, nil
+                local best_dist_word = math.huge
+                local s_from = 1
+                
+                while true do
+                    local ws, we = full_lower:find(word, s_from, true)
+                    if not ws then break end
+                    local dist = math.abs((ws + we) / 2 - center)
+                    if dist < best_dist_word then
+                        best_dist_word = dist
+                        best_ws, best_we = ws, we
+                    end
+                    s_from = math.max(s_from + 1, we + 1)
                 end
-                s_from = math.max(s_from + 1, we + 1)
-            end
-            
-            if best_ws then
-                min_s = (not min_s) and best_ws or math.min(min_s, best_ws)
-                max_e = (not max_e) and best_we or math.max(max_e, best_we)
+                
+                if best_ws then
+                    min_s = (not min_s) and best_ws or math.min(min_s, best_ws)
+                    max_e = (not max_e) and best_we or math.max(max_e, best_we)
+                end
             end
         end
         
@@ -1745,24 +1747,51 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     if #words <= limit then return sentence end
     
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
-    local selected_words = build_word_list(selected_term)
-    if #selected_words == 0 then return sentence:sub(1, 100) .. "..." end
+    -- Find which words in the list correspond to the start/end of the selected term
+    local s_rel = start_pos - sent_start + 1
+    local e_rel = end_pos - sent_start + 1
     
-    local target_idx = -1
-    for i = 1, #words - #selected_words + 1 do
-        local match = true
-        for j = 1, #selected_words do
-            if words[i + j - 1] ~= selected_words[j] then match = false break end
+    local first_idx, last_idx = nil, nil
+    local curr_char = 1
+    for i, w in ipairs(words) do
+        local w_start = sentence:find(w, curr_char, true)
+        if w_start then
+            local w_end = w_start + #w - 1
+            if w_end >= s_rel and w_start <= e_rel then
+                first_idx = first_idx or i
+                last_idx = i
+            end
+            curr_char = w_end + 1
         end
-        if match then target_idx = i break end
     end
     
-    if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
+    print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
+    if first_idx then
+        print(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
+    else
+        print("  - FAILED to detect span, falling back to full sentence")
+        return sentence
+    end
     
-    local last_idx = target_idx + #selected_words - 1
+    -- Center the viewport around the detected span
+    local center_idx = math.floor((first_idx + last_idx) / 2)
     local half_max = math.floor(limit / 2)
-    local context_start = math.max(1, target_idx - half_max)
-    local context_end = math.min(#words, last_idx + half_max)
+    local context_start = math.max(1, center_idx - half_max)
+    local context_end = math.min(#words, center_idx + half_max)
+    
+    -- Ensure the viewport covers at least the core span if possible
+    if context_start > first_idx then
+        local shift = context_start - first_idx
+        context_start = first_idx
+        context_end = math.max(context_start, context_end - shift)
+    end
+    if context_end < last_idx then
+        local shift = last_idx - context_end
+        context_end = last_idx
+        context_start = math.max(1, context_start - shift)
+    end
+    
+    print(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
     
     local context_words = {}
     for i = context_start, context_end do table.insert(context_words, words[i]) end
