@@ -71,9 +71,9 @@ This suite solves problems that standard video players and generic scripts ignor
 4.  **ASS Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
 5.  **Watch-Later Cleanliness**: Temporary visibility toggles for intense immersion sessions are explicitly excluded from `watch-later` saving, ensuring you never corrupt your clean baseline configuration.
 6.  **[Static Reading Mode](#static-reading-mode)**: Converts the standard scrolling subtitle "drum" into a frozen, text-editor style viewport. Navigate, mouse-select, double-click to seek, and edge-scroll without the text flickering or moving under your cursor.
-7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks (and their Russian layout equivalents). Manually resolve overlaps and tune your visual field without touching a configuration file.
+7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks. Manually resolve overlaps and tune your visual field without touching a configuration file.
 8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
-9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events rather than a polling timer.
+9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events.
 10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session. Implements **Multi-Pivot Grounding** (`Line:Word:TermPos`) to mathematically eliminate highlight bleed.
 11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
 12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
@@ -81,7 +81,7 @@ This suite solves problems that standard video players and generic scripts ignor
 14. **Selection Priority**: Persistent multi-word selections (Ctrl + LMB) now take visual precedence over transient cursor highlights.
 15. **Dynamic Source Discovery**: Automatically extracts YouTube/Source URLs from local metadata files (`.url`, `.txt`, `.md`) for zero-touch Anki metadata population.
 16. **Chromatic Selection Theme**: Implements a "Warm vs. Cool" workflow using Gold for contiguous and Neon Pink for split-phrase selections.
-17. **Hardware Interaction Shielding**: A bulletproof 150ms "interaction shield" that ignores mouse jitter and "ghost clicks" from remote control software (JoyToKey, etc.) immediately after keyboard commands.
+17. **Hardware Interaction Shielding**: A bulletproof 150ms "interaction shield" that ignores mouse jitter and "ghost clicks" from remote control software immediately after keyboard commands.
 18. **Multi-Layout Shortcut Lists**: All major command parameters now support space, comma, or semicolon separated lists. Map `t`, `е`, and `MBTN_LEFT` to the same action simultaneously in `mpv.conf`.
 19. **Precision Context Verification**: Implements word-tokenized intersection for vocabulary matches, ensuring highlights persist through punctuation and formatting differences.
 20. **Embedded Subtitle Support**: The Drum Window (Mode W) now supports internal/embedded subtitle tracks in MKV files, providing a consistent experience across all media formats.
@@ -93,7 +93,8 @@ This suite solves problems that standard video players and generic scripts ignor
 26. **Configurable Jump Distances**: Fully adjustable navigation speed. Users can customize the exact number of words or lines jumped during Ctrl-boosted navigation via `mpv.conf`.
 27. **Independent Book Mode Pointer**: Visual focus remains stable during playback or navigation in Book Mode, preventing disruptive OSD jumps.
 28. **Verbatim Selection with Context**: Compliant copy functionality that preserves punctuation and formatting while intelligently splicing focal lines into surrounding context.
-29. **Comprehensive Spec Synchronization**: A multi-phase OpenSpec migration and compliance auditing framework that ensures 100% alignment between implementation and requirements.
+29. **Unified Source Fallback**: Automatically detects and extracts text from the most relevant subtitle track (Target vs Translation) during copy/Anki operations, eliminating track-switching friction.
+30. **Temporal Merging Guard**: Advanced navigation logic that prevents scrolling "stutter" by detecting and bridging natural gaps in subtitle timing during rapid seeks.
 
 [Return to Top](#table-of-contents)
 
@@ -120,16 +121,17 @@ A high-performance navigation overlay that decouples content lookup from playbac
 - **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
 - **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
 
-#### **How the Search Engine Works**
-The search bar uses a multi-stage **Keyword-Based Fuzzy Matching** engine:
-1.  **Tokenization**: Your query is split into individual keywords (separated by spaces).
-2.  **Order-Independent Matching**: The engine finds results containing all keywords, regardless of the sequence you typed them in.
-3.  **"Really Fuzzy" Subsequence**: Each keyword matches if its letters appear in the correct order within a word, even if other letters are in between (e.g., `mne` matches **m**a**n**ag**e**).
-4.  **Hit Highlighting**: Character matches are elegantly bolded and colored in the result list.
-5.  **Relevance Ranking**:
-    -   **Exact Match**: Literal matches are prioritized first.
-    -   **Compactness Bonus**: Higher priority is given to "dense" matches where letters are clustered within a single word rather than scattered across the whole line.
-    -   **Structural Bonus**: Matches at the start of a subtitle line receive a specific weight.
+#### **Search HUD Interaction**
+| Key | Action |
+|---|---|
+| `Arrows Up/Down` | Navigate through result list |
+| `ENTER` | Seek to selected subtitle and close search |
+| `Ctrl + V` / `Ctrl + М` | Paste from clipboard |
+| `Ctrl + A` / `Ctrl + Ф` | Select all text in query bar |
+| `Ctrl + W` / `Ctrl + Ц` | Delete previous word (Bash-style) |
+| `Shift + LEFT/RIGHT` | Select text range within query |
+| `HOME` / `END` | Jump cursor to start/end of query |
+| `ESC` | Discard query or close search |
 
 ### Karaoke-Safe Autopause
 Advanced pause logic designed specifically for immersion students using `.ass` karaoke-formatted subtitles.
@@ -285,7 +287,11 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `lls-drum_font_bold` | `no` | Apply bold styling to all text in Drum Mode. |
 | `lls-drum_context_lines` | `3` | Number of surrounding subtitle lines shown for context. |
 | `lls-drum_context_color` | `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
+| `lls-drum_context_bold` | `no` | Apply bold styling to context lines specifically. |
+| `lls-drum_context_size_mul` | `1.0` | Scale factor for context line text size. |
 | `lls-drum_active_color` | `FFFFFF` | Text color for the currently active subtitle line (BGR Hex). |
+| `lls-drum_active_bold` | `no` | Apply bold styling to the active playback line. |
+| `lls-drum_active_size_mul` | `1.0` | Scale factor for the active line text size. |
 | `lls-drum_active_opacity` | `00` | Transparency for active text (00=Opaque, FF=Transparent). |
 | `lls-drum_context_opacity` | `20` | Transparency for context text (00=Opaque, FF=Transparent). |
 | `lls-drum_bg_color` | `000000` | Background box color (BGR Hex). |
@@ -293,10 +299,11 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `lls-drum_border_size` | `1.5` | Size of the text outline/border. |
 | `lls-drum_shadow_offset` | `1.0` | Depth of the text shadow. |
 | `lls-drum_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `lls-drum_double_gap` | `yes` | Use double spacing between distinct subtitle blocks. |
 | `lls-drum_block_gap_mul` | `-0.27` | Extra spacing between distinct subtitle blocks. |
 | `lls-drum_upper_gap_adj` | `6` | Fine-tuning for upper-track vertical alignment. |
 | `lls-drum_vsp` | `0` | Vertical shift pixels (manual offset). |
-| `lls-drum_track_gap` | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
+| `lls-drum_track_gap" | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
 | `lls-osd_interactivity` | `yes` | Enable mouse word-selection for standard OSD subtitles. |
 
 #### **4. SRT Style (Regular Mode)**
@@ -304,80 +311,99 @@ The project uses a centralized configuration model. All core script behaviors ar
 |---|---|---|
 | `lls-srt_font_size` | `34` | Text size for standard SRT rendering. |
 | `lls-srt_font_name` | `Consolas` | Font family for standard SRT rendering. |
-| `lls-srt_active_color` | `FFFFFF` | Primary text color (BGR Hex). |
+| `lls-srt_font_bold` | `no` | Apply bold styling to SRT subtitles. |
+| `lls-srt_active_color` | `FFFFFF` | Primary text color for the active playback line. |
+| `lls-srt_context_color` | `CCCCCC` | Color for non-active surrounding lines. |
+| `lls-srt_active_opacity` | `00` | Transparency for the active line (00-FF). |
+| `lls-srt_context_opacity` | `30` | Transparency for surrounding lines (00-FF). |
+| `lls-srt_bg_color` | `000000` | Shadow/Frame color (BGR Hex). |
 | `lls-srt_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
-| `lls-srt_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `lls-srt_border_size` | `1.5` | Size of text outline. |
+| `lls-srt_shadow_offset` | `1.0` | Depth of text shadow. |
 | `lls-srt_double_gap` | `yes` | Use expanded spacing for dual-track layouts. |
+| `lls-srt_vsp` | `0` | Vertical spacing adjustment (pixels). |
 | `lls-srt_block_gap_mul` | `-0.27` | Spacing between subtitle blocks in SRT mode. |
+| `lls-srt_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
 
-#### **5. Drum Window (Static Reading Mode)**
+#### **5. Copy Mode Configuration**
+| Parameter | Default | Description |
+|---|---|---|
+| `lls-copy_default_mode` | `A` | Default track target for copy (A=Target, B=Translation). |
+| `lls-copy_filter_russian` | `yes` | Automatically strip Cyrillic characters from Target-track copies. |
+| `lls-copy_context_lines` | `2` | Number of surrounding lines to include in context copy (`X`). |
+| `lls-copy_word_limit` | `3` | Number of words shown in the OSD copy notification. |
+
+#### **6. Drum Window (Static Reading Mode)**
 | Parameter | Default | Description |
 |---|---|---|
 | `lls-dw_font_name` | `Consolas` | Font family used in the Reading Mode window. |
 | `lls-dw_font_size` | `34` | Base text size for the Static Reading Mode window. |
-| `lls-dw_char_width` | `0.5` | Character width calibration (relative to font size). |
+| `lls-dw_active_bold` | `no` | Bold active line in window. |
+| `lls-dw_context_bold` | `no` | Bold context lines in window. |
+| `lls-dw_active_opacity` | `00` | Transparency for active line (00-FF). |
+| `lls-dw_context_opacity` | `30` | Transparency for context lines (00-FF). |
+| `lls-dw_active_size_mul` | `1.0` | Scale active line font size. |
+| `lls-dw_context_size_mul` | `1.0` | Scale context line font size. |
+| `lls-dw_char_width` | `0.5` | Character width calibration (0.5 is exact for Consolas). |
 | `lls-dw_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
 | `lls-dw_block_gap_mul` | `-0.27` | Spacing between distinct subtitle blocks. |
-| `lls-dw_double_gap` | `yes` | Enable expanded dual-track spacing in the window. |
+| `lls-dw_double_gap" | `yes` | Enable expanded dual-track spacing in the window. |
 | `lls-dw_vsp` | `0` | Vertical shift pixels for hit-zone calibration. |
 | `lls-dw_lines_visible` | `15` | Maximum number of subtitle lines visible in the viewport. |
 | `lls-dw_scrolloff` | `3` | Margin lines maintained at top/bottom before the viewport scrolls. |
 | `lls-dw_original_spacing` | `yes` | Preserve source subtitle's original whitespace and formatting. |
-| `lls-dw_jump_words` | `2` | Words jumped during Ctrl-boosted navigation. |
-| `lls-dw_jump_lines` | `2` | Lines jumped during Ctrl-Shift boosted navigation. |
-| `lls-dw_highlight_color` | `00CCFF` | Color for active word selection (BGR Hex). |
-| `lls-dw_ctrl_select_color` | `FF88FF` | Color for split-word selection (Pink) in pending state. |
-| `lls-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights. |
+| `lls-dw_jump_words` | `5` | Words jumped during `Ctrl+Left/Right`. |
+| `lls-dw_jump_lines` | `5` | Lines jumped during `Ctrl+Shift+Up/Down`. |
+| `lls-dw_highlight_color` | `00CCFF` | Color for active word selection (Gold BGR). |
+| `lls-dw_ctrl_select_color" | `FF88FF` | Color for split-word selection (Pink) in pending state. |
+| `lls-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights (Purple). |
 | `lls-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
 
-#### **6. Translation Tooltips**
+#### **7. Translation Tooltips**
 | Parameter | Default | Description |
 |---|---|---|
+| `lls-tooltip_font_name` | `Consolas` | Font family for translation hints. |
 | `lls-tooltip_font_size` | `34` | Text size for translation hints. |
-| `lls-tooltip_context_lines` | `3` | Surrounding lines captured for tooltip context. |
+| `lls-tooltip_font_bold` | `no` | Bold styling for tooltips. |
+| `lls-tooltip_active_color` | `FFFFFF` | Color for the primary translation line. |
+| `lls-tooltip_context_color` | `CCCCCC` | Color for surrounding context lines. |
+| `lls-tooltip_active_opacity` | `00` | Transparency for the primary line. |
+| `lls-tooltip_context_opacity` | `30` | Transparency for context lines. |
 | `lls-tooltip_bg_color` | `222222` | Background color for tooltips (BGR Hex). |
+| `lls-tooltip_bg_opacity` | `60` | Background box transparency (00-FF). |
+| `lls-tooltip_context_lines` | `3` | Surrounding lines captured for tooltip context. |
 | `lls-tooltip_line_height_mul` | `0.87` | Vertical spacing multiplier for tooltips. |
 | `lls-tooltip_y_offset_lines` | `0` | Manual vertical offset for tooltip positioning. |
-| `lls-dw_key_tooltip_toggle` | `e у` | Key to toggle tooltips in the Drum Window. |
-| `lls-dw_key_tooltip_hover` | `n т` | Key to toggle "Hover Mode" for automatic hints. |
 
-#### **7. Search HUD**
+#### **8. Search HUD Styling**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-search_font_size` | `34` | Text size for the Search overlay input field. |
+| `lls-search_font_name` | `Consolas` | Font family for the Search overlay. |
+| `lls-search_font_size` | `34` | Text size for the Search input field. |
 | `lls-search_results_font_size` | `0` | Scaling for results list (0=100%, -1=80% of base size). |
-| `lls-search_hit_color` | `0088FF` | Color used to highlight query matches in results (BGR Hex). |
-| `lls-search_query_hit_color` | `0088FF` | Color for hits within the input query itself. |
+| `lls-search_bg_color` | `000000` | Background color for search panels (BGR Hex). |
+| `lls-search_bg_opacity` | `20` | Background box transparency (00-FF). |
+| `lls-search_text_color` | `FFFFFF` | Primary text color in search HUD. |
+| `lls-search_line_height_mul` | `1.2` | Line height for search results. |
+| `lls-search_hit_color` | `0088FF` | Color for query matches in results (BGR Hex). |
+| `lls-search_hit_bold` | `no` | Bold query matches in result list. |
 | `lls-search_sel_color` | `FFFFFF` | Color for the currently selected result (BGR Hex). |
+| `lls-search_sel_bold` | `no` | Bold selected result. |
+| `lls-search_query_hit_color` | `0088FF` | Color for hits within the input query itself. |
 
-#### **8. Anki & Mining**
+#### **9. Anki & Mining Aesthetics**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-anki_sync_period` | `10` | Interval (seconds) for automatic TSV database reloading. |
+| `lls-anki_highlight_depth_1/2/3` | - | Colors for contiguous matches (Light -> Deep Orange). |
+| `lls-anki_split_depth_1/2/3` | - | Colors for split-phrase matches (Light -> Deep Purple). |
+| `lls-anki_mix_depth_1/2/3` | - | Colors for mixed/overlapping matches (Light -> Deep Blue). |
+| `lls-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
 | `lls-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
 | `lls-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
-| `lls-anki_context_strict` | `yes` | Only capture context from the active subtitle track. |
-| `lls-anki_strip_metadata` | `no` | Remove bracketed tags (e.g. `[musik]`) from exports. |
-| `lls-anki_highlight_bold` | `yes` | Apply bold styling to database-matched highlights. |
-| `lls-anki_global_highlight` | `no` | Highlight matches across the entire video (True) or original scene (False). |
-| `lls-anki_local_fuzzy_window` | `10` | Time window (seconds) to match records when timestamps drift. |
-| `lls-anki_split_search_window` | `35` | Max segments to scan when matching paired words. |
-| `lls-anki_split_gap_limit` | `60.0` | Max temporal gap (seconds) between paired words. |
-| `lls-anki_neighbor_window` | `5` | Context range for identifying contiguous words. |
-
-#### **9. System & Performance**
-| Parameter | Default | Description |
-|---|---|---|
-| `lls-tick_rate` | `0.05` | Script processing frequency (seconds). Low values improve responsiveness. |
-| `lls-osd_duration` | `0.5` | Display time for script notification popups (seconds). |
-| `lls-seek_hold_delay` | `0.5` | Delay (seconds) before key-hold triggers continuous seeking. |
-| `lls-seek_hold_rate` | `10` | Jumps per second during held navigation. |
-| `lls-dw_mouse_shield_ms` | `50` | Suppression window to ignore mouse jitter after keyboard commands. |
-| `lls-record_editor` | `Code.exe` | Path to the editor used to open the TSV database. |
-| `lls-sentence_word_threshold`| `3` | Minimum words required to consider a line a full sentence. |
+| `lls-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
 
 #### **10. Detailed Key Mapping (Internal)**
-These parameters allow remapping internal script actions to different keys. Values can be space-separated lists.
+These parameters allow remapping internal script actions in `mpv.conf`. Values can be space, comma, or semicolon separated lists.
 
 | Parameter | Default Keys |
 |---|---|
@@ -390,10 +416,12 @@ These parameters allow remapping internal script actions to different keys. Valu
 | `lls-dw_key_open_record` | `o щ` |
 | `lls-dw_key_select` | `MBTN_LEFT` |
 | `lls-dw_key_tooltip_pin` | `MBTN_RIGHT` |
-
-### Anki Field Mapping
-
-The suite leverages an external `anki_mapping.ini` (located in `script-opts/`) to decouple metadata from logic. This allows users to define custom fields, static literals, and language-specific TTS flags for zero-touch Anki imports.
+| `lls-dw_key_tooltip_hover` | `n т` |
+| `lls-dw_key_tooltip_toggle` | `e у` |
+| `lls-dw_key_mouse_seek` | `MBTN_LEFT_DBL` |
+| `lls-dw_key_scroll_up/down` | `Ctrl+UP/DOWN` |
+| `lls-key_sub_pos_up/down` | `r/t к/е` |
+| `lls-key_sec_sub_pos_up/down`| `R/T К/Е` |
 
 #### **Mapping Keywords**
 When configuring `anki_mapping.ini`, use these keywords to pull dynamic data:
