@@ -1705,11 +1705,13 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     end
     
     local sentence = full_line
+    local sent_start = 1
+    local sent_end = #full_line
+    
     if start_pos then
         local is_sentence_start = false
         -- Search backwards for punctuation
         local pre = full_line:sub(1, start_pos - 1)
-        local sent_start = 1
         -- Look for space followed by . ! ? in reversed string (meaning . ! ? followed by space in original)
         local b_idx = pre:reverse():find("%s+[.!?]")
         if b_idx then
@@ -1725,7 +1727,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         -- Search forwards for punctuation starting safely AFTER the term
         -- to ensure we don't cut off multi-sentence selections if they end near punctuation.
         local post = full_line:sub(end_pos + 1)
-        local sent_end = #full_line
         local f_idx = post:find("[.!?]")
         if f_idx then
             sent_end = end_pos + f_idx
