@@ -223,6 +223,8 @@ local Options = {
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
+    anki_abbrev_list = "ca. z.B. usw. bzw. etc. t.con",
+    anki_abbrev_smart = true,
     book_mode = false,
 
     -- Record File
@@ -3539,12 +3541,22 @@ end
 
 local function is_abbrev(w)
     if not w then return false end
-    -- Single or double lowercase letters followed by period: ca. bzw. usw. etc.
-    if w:match("^%l+%.$") and #w <= 5 then return true end
-    -- Uppercase letter + period patterns: z. (common German prefix)
-    if w:match("^%u%.$") then return true end
-    -- Two-letter dotted abbreviation: z.B.
-    if w:match("^%u%.%u%.$") then return true end
+    
+    -- Check user-defined list (case-insensitive)
+    local l_word = w:lower()
+    local abbrev_list = " " .. (Options.anki_abbrev_list or ""):lower() .. " "
+    if abbrev_list:find(" " .. l_word .. " ", 1, true) then
+        return true
+    end
+
+    if Options.anki_abbrev_smart then
+        -- Single or double lowercase letters followed by period: ca. bzw. usw. etc.
+        if w:match("^%l+%.$") and #w <= 5 then return true end
+        -- Uppercase letter + period patterns: z. (common German prefix)
+        if w:match("^%u%.$") then return true end
+        -- Two-letter dotted abbreviation: z.B.
+        if w:match("^%u%.%u%.$") then return true end
+    end
     return false
 end
 
