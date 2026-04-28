@@ -1,4 +1,5 @@
 # Proposal: Fix TSV Ellipsis and Spacing Logic
+<!-- Context: 20260428165923, 20260428171653, 20260428171824, 20260428172619 -->
 
 ## Problem
 TSV export for non-contiguous (paired) selections currently produces inconsistent spacing. Specifically:
@@ -20,3 +21,9 @@ TSV export for non-contiguous (paired) selections currently produces inconsisten
 - **Affected Code**: `scripts/lls_core.lua` (`compose_term_smart`, `ctrl_commit_set`).
 - **Affected Specs**: `openspec/specs/smart-joiner-service/spec.md`, `openspec/specs/anki-export-mapping/spec.md`.
 - **System**: Improves TSV readability and consistency for Anki mining and immersion logs.
+
+## Context
+- **Requirement Source**: 20260428165923 (Reported spacing inconsistencies)
+- **Constraint Definition**: 20260428171824 (Mandate single space and padded ellipsis)
+- **Review**: 20260428172619 (Big model architecture review)
+- **Documentation**: 20260428171653 (Walkthrough relocation)
