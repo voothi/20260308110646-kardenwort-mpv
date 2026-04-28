@@ -6,10 +6,16 @@ Provide a central, robust logic engine for reconstructing natural-language strin
 ## Requirements
 
 ### Requirement: Unified Punctuation Spacing Rule (UPSR)
-The system SHALL accept a list of word/punctuation tokens and reconstruct a single natural-language string with correct spacing.
+The system SHALL accept a list of word/punctuation tokens and reconstruct a single natural-language string with correct spacing and strict single-space normalization.
+- **Single Space Normalization**: The system SHALL NOT insert multiple spaces between words. All tokens consisting solely of whitespace MUST be collapsed to a single space.
+- **Whitespace Awareness**: The system SHALL NOT insert an additional space if either the preceding token ends with whitespace or the following token starts with whitespace.
 - **No Space Before**: No space SHALL be inserted before tokens: `, . ! ? : ; ) ] } … » ” / - " '` as well as En-Dashes and Em-Dashes.
 - **No Space After**: No space SHALL be inserted after tokens: `( [ { ¿ ¡ « „ “ / - " '` as well as En-Dashes and Em-Dashes.
 - **Default**: A single space SHALL be inserted between word tokens.
+
+#### Scenario: Joining with multiple source spaces
+- **WHEN** joining "find", "   ", and "those"
+- **THEN** the result SHALL be "find those" (all intermediate whitespace collapsed to a single space)
 
 #### Scenario: Preserving compound words
 - **WHEN** joining "Marken", "-", and "Discount".
@@ -17,7 +23,8 @@ The system SHALL accept a list of word/punctuation tokens and reconstruct a sing
 
 ### Requirement: Elliptical Joiner Support
 The engine SHALL support the injection of ellipses when reconstructing non-contiguous (split) phrases from the `ctrl_pending_set` or multi-segment ranges.
-- **Separator**: ` ... ` (space-padded ellipsis).
+- **Separator**: ` ... ` (strictly space-padded ellipsis with exactly one space on each side).
+- **Control**: The joiner SHALL NOT strip the padding around the ellipsis, regardless of standard punctuation rules for dots.
 - **Rationale**: Visually signifies that words are part of a unified mining record despite being non-contiguous in the source text.
 
 #### Scenario: Reconstructing a split phrase

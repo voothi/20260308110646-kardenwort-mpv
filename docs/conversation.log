@@ -820,9 +820,9 @@
 20260428171824 Check again that the uploads will contain only constructions with one space between words and ` ... ` ellipsis separated by spaces.
 20260428172619 You, like a big model, review the solution.
 20260428172838 Update project openspec\changes\20260428170913-fix-tsv-ellipsis-and-spacing, specs, by anchors 20260428165923 20260428171653 20260428171824 20260428172619
-
-
-
+20260428173056 opsx-apply 20260428170913-fix-tsv-ellipsis-and-spacing
+20260428173140 opsx-archive 20260428170913-fix-tsv-ellipsis-and-spacing
+20260428174011 Sync now
 
 
 

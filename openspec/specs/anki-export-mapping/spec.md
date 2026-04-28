@@ -72,6 +72,10 @@ The export system SHALL support non-contiguous selections by injecting ellipsis 
 - **WHEN** a user selection contains words with a gap in their `logical_idx` values (e.g. 1, 4).
 - **THEN** the system SHALL join them using a space-padded ellipsis (exact string: ` ... `) for the `source_word` field (e.g. "word1 ... word4").
 
+#### Scenario: Split selection with contractions
+- **WHEN** a user selection contains "she's" and "putting" with a gap
+- **THEN** the `source_word` field MUST be "she's ... putting" (preserving the contraction without stripping the ellipsis padding).
+
 #### Scenario: Multi-Word Fragment Save
 - **WHEN** a user selects a single word, skips several, and then selects two adjacent words.
 - **THEN** the system SHALL detect the gap after the first word and inject ` ... `, but join the adjacent pair with a space.
