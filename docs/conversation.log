@@ -821,7 +821,7 @@
 20260428192423 opsx-archive with Sync.
 20260428215720 opsx-explore # The phrase string generation logic SentenceSource for paired highlighting mode D does not work as expected, generating phrases that do not contain the full captured phrases that contain these separated words using pink highlighting.
 20260428225727 opsx-propose
-
+20260428230634 opsx-apply 20260428225732-fix-non-contiguous-context-export
 
 
 
