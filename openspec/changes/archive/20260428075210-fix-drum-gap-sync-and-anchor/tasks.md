@@ -17,6 +17,6 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Verify that setting `drum_gap_adj=30` visibly shifts the Drum Mode text downwards and hit-zones remain perfectly synced.
-- [ ] 4.2 Verify that the center-line correctly shifts in bottom-anchored mode (`sub-pos=95`).
-- [ ] 4.3 Confirm that `drum_double_gap=yes` behavior remains unaffected (where `adj` should be 0).
+- [x] 4.1 Verify that setting `drum_gap_adj=30` visibly shifts the Drum Mode text downwards and hit-zones remain perfectly synced.
+- [x] 4.2 Verify that the center-line correctly shifts in bottom-anchored mode (`sub-pos=95`).
+- [x] 4.3 Confirm that `drum_double_gap=yes` behavior remains unaffected (where `adj` should be 0).

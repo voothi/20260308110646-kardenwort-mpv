@@ -1,10 +1,10 @@
 ## ADDED Requirements
 
 ### Requirement: Visual-Logical Calibration Parity
-All fine-tuning parameters that shift OSD hit-zones (specifically `drum_upper_gap_adj`) MUST be explicitly synchronized with the visual text rendering. The system SHALL use the `\vsp` ASS tag in the OSD separator logic to ensure that visible subtitles move in exact pixel parity with their corresponding mouse interaction zones.
+All fine-tuning parameters that shift OSD hit-zones (specifically `drum_gap_adj`) MUST be explicitly synchronized with the visual text rendering. The system SHALL use the `\vsp` ASS tag in the OSD separator logic to ensure that visible subtitles move in exact pixel parity with their corresponding mouse interaction zones.
 
 #### Scenario: Visual Feedback for drum mode c
-- **WHEN** the user sets `drum_upper_gap_adj` to `30`.
+- **WHEN** the user sets `drum_gap_adj` to `30`.
 - **THEN** the visible upper context lines in Drum Mode MUST shift downwards by 30 pixels per gap, matching the relocation of the click-sensitive hit-zones.
 
 ### Requirement: Multi-Pivot Calibration
