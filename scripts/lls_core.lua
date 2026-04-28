@@ -1029,7 +1029,7 @@ local function compose_term_smart(words)
                                  or w:match("^[%[%({¿¡«„“]$")
                                  or w:match("^[\"']$")
             
-            if no_space_before or no_space_after then
+            if no_space_before or no_space_after or w:match("%s$") or next_w:match("^%s") then
                 -- Join without space
             else
                 res = res .. " "
@@ -3843,7 +3843,7 @@ local function ctrl_commit_set(line_idx, word_idx)
                         end
 
                         if is_gap then
-                            table.insert(term_tokens, "...")
+                            table.insert(term_tokens, " ... ")
                         else
                             if m.line == last_m.line then
                                 for _, t in ipairs(tokens) do
