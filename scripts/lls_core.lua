@@ -1017,7 +1017,8 @@ local function compose_term_smart(words)
         
         if next_w then
             -- Smart joiner: No space based on punctuation rules (covers English, German, Russian, etc.)
-            local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
+            -- We exclude the gap ellipsis "..." from this rule to ensure it gets a space before it.
+            local no_space_before = (next_w:match("[%.,!?;:…»”%)%]%}]$") and next_w ~= "...")
                                   or next_w:match("^[/-]$") 
                                   or next_w:match("^\226\128\147$") -- en-dash
                                   or next_w:match("^\226\128\148$") -- em-dash
@@ -1036,7 +1037,8 @@ local function compose_term_smart(words)
             end
         end
     end
-    return res
+    -- Normalize: collapse multiple spaces and trim
+    return res:gsub("%s+", " "):match("^%s*(.-)%s*$")
 end
 
 

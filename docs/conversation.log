@@ -826,7 +826,7 @@
 20260428174324 opsx-explore Check for regression and compliance with specifications. Specifications openspec\specs. New version 50cf26ee1f618b7e6f2b17a8708bc4a222f34094 20260428174219, previous version 840cf69d5ec99940ad83fe12fdeeb16e383aa594 20260428102242
 20260428175056 No further actions are required. The codebase is now fully synchronized with the specified requirements for high-quality Anki mining and immersion styling. - Fine.
 20260428183309 We have a problem, we need to revise the project that we completed for an error and the specifications were poured into the main folder, I discovered that the SentenceSource sentences in the file began to be cut off ` ... ` in the position of the first word of the paired selection.
-
+20260428184241 I rolled back to branch 20260428184214, we overcomplicated it, I need to add one space before the ellipsis in the upload and remove other extra spaces. There is no need to touch the mechanism for adding context (SentenceSource). The request history can be viewed in docs\conversation.log. Previous version ae3dc76a23799be7c5908b7aedc5c936ff682fba 20260428184112.
 
 
 
