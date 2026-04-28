@@ -11,7 +11,7 @@ In `scripts/lls_core.lua`, the `compose_term_smart` function was adding a space 
 if no_space_before or no_space_after then
 
 -- After
-if no_space_before or no_space_after or w:match("%s$") or next_w:match("^%s") then
+if no_space_before or no_space_after or current_w:match("%s$") or next_w:match("^%s") then
 ```
 
 ## 2. Updating the Ellipsis Token
@@ -32,6 +32,6 @@ The following specifications were updated to make these rules "strict" and descr
 - `openspec/specs/anki-export-mapping/spec.md`: Explicitly mandated the space-padded delimiter for paired selections.
 
 ## Verification Checklist
-1. Export a non-contiguous pair (e.g., `she's` and `putting`). Result should be `she's ... putting`.
-2. Export a phrase with multiple spaces in the source (e.g., `find   those`). Result should be `find   those`, not `find    those` (4 spaces).
-3. Ensure hyphens still join without spaces (e.g., `Marken-Discount`).
+- [ ] 1. Export a non-contiguous pair (e.g., "she's" and "putting"). Result should be "she's ... putting".
+- [ ] 2. Export a phrase with multiple spaces in the source (e.g., "find   those"). Result should be "find those" (collapsed to a single space).
+- [ ] 3. Ensure hyphens still join without spaces (e.g., "Marken-Discount").

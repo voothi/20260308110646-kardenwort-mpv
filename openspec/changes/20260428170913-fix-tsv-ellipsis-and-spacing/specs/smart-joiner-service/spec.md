@@ -1,12 +1,13 @@
 ## MODIFIED Requirements
 
 ### Requirement: Unified Punctuation Spacing Rule (UPSR)
-**Delta**: Clarify whitespace awareness to prevent doubled spaces.
-- **Whitespace Awareness**: The system SHALL NOT insert a space if either the preceding token ends with whitespace or the following token starts with whitespace.
+**Delta**: Enforce strict single-space normalization between words.
+- **Single Space Normalization**: The system SHALL NOT insert multiple spaces between words. All tokens consisting solely of whitespace MUST be collapsed to a single space.
+- **Whitespace Awareness**: The system SHALL NOT insert an additional space if either the preceding token ends with whitespace or the following token starts with whitespace.
 
-#### Scenario: Joining with existing spaces
+#### Scenario: Joining with multiple source spaces
 - **WHEN** joining "find", "   ", and "those"
-- **THEN** the result SHALL be "find   those" (no additional spaces injected)
+- **THEN** the result SHALL be "find those" (all intermediate whitespace collapsed to a single space)
 
 ### Requirement: Elliptical Joiner Support
 **Delta**: Strictly define the space-padded delimiter and ensure it is not stripped by punctuation rules.

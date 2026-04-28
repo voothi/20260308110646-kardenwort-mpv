@@ -1011,8 +1011,9 @@ end
 local function compose_term_smart(words)
     if not words or #words == 0 then return "" end
     local res = ""
-    for idx, w in ipairs(words) do
-        res = res .. w
+        local current_w = w
+        if w:match("^%s+$") then current_w = " " end
+        res = res .. current_w
         local next_w = words[idx + 1]
         
         if next_w then
@@ -1023,13 +1024,13 @@ local function compose_term_smart(words)
                                   or next_w:match("^\226\128\148$") -- em-dash
                                   or next_w:match("^[\"']$")
             
-            local no_space_after = w:match("^[/-]$") 
-                                 or w:match("^\226\128\147$") 
-                                 or w:match("^\226\128\148$") 
-                                 or w:match("^[%[%({¿¡«„“]$")
-                                 or w:match("^[\"']$")
+            local no_space_after = current_w:match("^[/-]$") 
+                                 or current_w:match("^\226\128\147$") 
+                                 or current_w:match("^\226\128\148$") 
+                                 or current_w:match("^[%[%({¿¡«„“]$")
+                                 or current_w:match("^[\"']$")
             
-            if no_space_before or no_space_after or w:match("%s$") or next_w:match("^%s") then
+            if no_space_before or no_space_after or current_w:match("%s$") or next_w:match("^%s") then
                 -- Join without space
             else
                 res = res .. " "

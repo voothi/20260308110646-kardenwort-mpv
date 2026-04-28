@@ -817,8 +817,7 @@
 20260428102451 How can I do git push on all branches where it is required? Go through all the branches and do this.
 20260428165923 Why is such a line `she's... putting that` preserved in TSV when these words are highlighted in pairs and there is no space after she's? This happened again with other entries. What does the openspec\specs specification say about this? Is there an explicit reference to a `... ` delimiter with spaces? Is it described there in words, not just by example? Also check why extra spaces are observed in such paired selections. Fix this and add it to the specification, strictly fix these two points to control. Based on the results of the analysis, create opsx-propose и decompose for a small model.
 20260428171653 Move docs\tsv_fix_decomposition.md
-
-
+20260428171824 Check again that the uploads will contain only constructions with one space between words and ` ... ` ellipsis separated by spaces.
 
 
 
