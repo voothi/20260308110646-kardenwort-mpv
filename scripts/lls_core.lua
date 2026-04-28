@@ -3601,7 +3601,7 @@ local function dw_anki_export_selection()
                         if t.logical_idx then
                             -- Strict boundary check only applies to the final line where the drag ended
                             if is_last_line and t.logical_idx > p2_w + L_EPSILON then
-                                break
+                                if t.is_word then break end
                             end
 
                             -- Include token if it's on a middle/last line OR if it's past the start anchor on the first line
