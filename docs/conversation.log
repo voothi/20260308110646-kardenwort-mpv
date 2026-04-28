@@ -815,17 +815,17 @@
 20260428101342 You perform as a working model opsx-apply openspec\changes\20260428075210-fix-drum-gap-sync-and-anchor
 20260428101923 Okay, it works, update openspec\changes\20260428075210-fix-drum-gap-sync-and-anchor\specs and execute opsx-archive with Sync.
 20260428102451 How can I do git push on all branches where it is required? Go through all the branches and do this.
-
-
-
-
-
-
-
-
-
-
-
+20260428165923 Why is such a line `she's... putting that` preserved in TSV when these words are highlighted in pairs and there is no space after she's? This happened again with other entries. What does the openspec\specs specification say about this? Is there an explicit reference to a `... ` delimiter with spaces? Is it described there in words, not just by example? Also check why extra spaces are observed in such paired selections. Fix this and add it to the specification, strictly fix these two points to control. Based on the results of the analysis, create opsx-propose и decompose for a small model.
+20260428171653 Move docs\tsv_fix_decomposition.md
+20260428171824 Check again that the uploads will contain only constructions with one space between words and ` ... ` ellipsis separated by spaces.
+20260428172619 You, like a big model, review the solution.
+20260428172838 Update project openspec\changes\20260428170913-fix-tsv-ellipsis-and-spacing, specs, by anchors 20260428165923 20260428171653 20260428171824 20260428172619
+20260428173056 opsx-apply 20260428170913-fix-tsv-ellipsis-and-spacing
+20260428173140 opsx-archive 20260428170913-fix-tsv-ellipsis-and-spacing
+20260428174011 Sync now
+20260428174324 opsx-explore Check for regression and compliance with specifications. Specifications openspec\specs. New version 50cf26ee1f618b7e6f2b17a8708bc4a222f34094 20260428174219, previous version 840cf69d5ec99940ad83fe12fdeeb16e383aa594 20260428102242
+20260428175056 No further actions are required. The codebase is now fully synchronized with the specified requirements for high-quality Anki mining and immersion styling. - Fine.
+20260428183309 We have a problem, we need to revise the project that we completed for an error and the specifications were poured into the main folder, I discovered that the SentenceSource sentences in the file began to be cut off ` ... ` in the position of the first word of the paired selection.
 
 
 
