@@ -1673,28 +1673,44 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     -- across sentence boundaries (e.g. "und ... Ende") correctly capture all
     -- involved sentences.
     if not start_pos then
+        -- Sequential forward search: find the first word closest to the pivot,
+        -- then find each subsequent word strictly after the previous match.
+        -- This preserves the document order of the original selection and avoids
+        -- picking an earlier occurrence of a later word (e.g. "bag six" instead of "six five four").
+        local seq_pos = 1
+        local first_word_found = false
         local min_s, max_e = nil, nil
         
         for word in term_lower:gmatch("%S+") do
             if word ~= "..." then
-                local best_ws, best_we = nil, nil
-                local best_dist_word = math.huge
-                local s_from = 1
-                
-                while true do
-                    local ws, we = full_lower:find(word, s_from, true)
-                    if not ws then break end
-                    local dist = math.abs((ws + we) / 2 - center)
-                    if dist < best_dist_word then
-                        best_dist_word = dist
-                        best_ws, best_we = ws, we
+                if not first_word_found then
+                    -- For the first real word, pick the occurrence closest to the pivot
+                    local best_ws, best_we = nil, nil
+                    local best_dist_word = math.huge
+                    local s_from = 1
+                    while true do
+                        local ws, we = full_lower:find(word, s_from, true)
+                        if not ws then break end
+                        local dist = math.abs((ws + we) / 2 - center)
+                        if dist < best_dist_word then
+                            best_dist_word = dist
+                            best_ws, best_we = ws, we
+                        end
+                        s_from = math.max(s_from + 1, we + 1)
                     end
-                    s_from = math.max(s_from + 1, we + 1)
-                end
-                
-                if best_ws then
-                    min_s = (not min_s) and best_ws or math.min(min_s, best_ws)
-                    max_e = (not max_e) and best_we or math.max(max_e, best_we)
+                    if best_ws then
+                        min_s = best_ws
+                        max_e = best_we
+                        seq_pos = best_we + 1
+                        first_word_found = true
+                    end
+                else
+                    -- For subsequent words, search strictly forward from the previous match
+                    local ws, we = full_lower:find(word, seq_pos, true)
+                    if ws then
+                        max_e = we
+                        seq_pos = we + 1
+                    end
                 end
             end
         end
