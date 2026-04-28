@@ -301,7 +301,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `lls-drum_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
 | `lls-drum_double_gap` | `yes` | Use double spacing between distinct subtitle blocks. |
 | `lls-drum_block_gap_mul` | `-0.27` | Extra spacing between distinct subtitle blocks. |
-| `lls-drum_upper_gap_adj` | `6` | Fine-tuning for upper-track vertical alignment. |
+| `lls-drum_gap_adj` | `6` | Fine-tuning for vertical alignment (all tracks). |
 | `lls-drum_vsp` | `0` | Vertical shift pixels (manual offset). |
 | `lls-drum_track_gap" | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
 | `lls-osd_interactivity` | `yes` | Enable mouse word-selection for standard OSD subtitles. |

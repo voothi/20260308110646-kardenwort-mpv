@@ -41,7 +41,7 @@ local Options = {
     drum_double_gap = true,
     drum_vsp = 0,
     drum_block_gap_mul = -0.27,
-    drum_upper_gap_adj = 6,
+    drum_gap_adj = 6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
     osd_interactivity = true,     -- Enable mouse interaction for main subtitles
 
@@ -2411,7 +2411,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             total_h = total_h + m.height 
             if i < #line_metas then
                 local abs_idx = start_idx + i - 1
-                local adj = (not d_gap and abs_idx < center_idx) and (Options.drum_upper_gap_adj or 0) or 0
+                local adj = (not d_gap) and (Options.drum_gap_adj or 0) or 0
                 local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
                 total_h = total_h + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp) + adj
             end
@@ -2428,7 +2428,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             cur_y = cur_y + m.height
             if i < #line_metas then
                 local abs_idx = start_idx + i - 1
-                local adj = (not d_gap and abs_idx < center_idx) and (Options.drum_upper_gap_adj or 0) or 0
+                local adj = (not d_gap) and (Options.drum_gap_adj or 0) or 0
                 local line_fs = font_size * ( (abs_idx == center_idx) and Options.drum_active_size_mul or Options.drum_context_size_mul )
                 cur_y = cur_y + calculate_sub_gap(is_drum_mode and "drum" or "srt", line_fs, lh_mul, vsp) + adj
             end
@@ -2587,10 +2587,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
     local vsp_tag = vsp_base ~= 0 and string.format("{\\vsp%g}", vsp_base) or ""
     
+    local adj = (not d_gap) and (Options.drum_gap_adj or 0) or 0
     local function get_separator(prev_is_active)
         local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra + adj, d_gap and "\\N\\N" or "\\N", vsp_base)
     end
     
     local all_text = ""
