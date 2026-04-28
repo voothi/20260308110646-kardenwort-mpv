@@ -1749,17 +1749,38 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     if #selected_words == 0 then return sentence:sub(1, 100) .. "..." end
     
     local target_idx = -1
+    local last_idx = -1
     for i = 1, #words - #selected_words + 1 do
         local match = true
         for j = 1, #selected_words do
             if words[i + j - 1] ~= selected_words[j] then match = false break end
         end
-        if match then target_idx = i break end
+        if match then 
+            target_idx = i 
+            last_idx = i + #selected_words - 1
+            break 
+        end
+    end
+    
+    if target_idx == -1 then
+        local w_i = 1
+        local s_i = 1
+        local first_match = -1
+        while w_i <= #words and s_i <= #selected_words do
+            if words[w_i] == selected_words[s_i] then
+                if first_match == -1 then first_match = w_i end
+                last_idx = w_i
+                s_i = s_i + 1
+            end
+            w_i = w_i + 1
+        end
+        if s_i > #selected_words then
+            target_idx = first_match
+        end
     end
     
     if target_idx == -1 then return sentence:sub(1, 100) .. "..." end
     
-    local last_idx = target_idx + #selected_words - 1
     local half_max = math.floor(limit / 2)
     local context_start = math.max(1, target_idx - half_max)
     local context_end = math.min(#words, last_idx + half_max)
