@@ -1749,7 +1749,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
     -- 3. If the sentence is still too long, fallback to word-based truncation around the term
     -- Find which words in the list correspond to the start/end of the selected term
-    -- start_pos and end_pos are relative to full_line, so we translate them to sentence relative
     local s_rel = start_pos - sent_start + 1
     local e_rel = end_pos - sent_start + 1
     
@@ -1759,7 +1758,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         local w_start = sentence:find(w, curr_char, true)
         if w_start then
             local w_end = w_start + #w - 1
-            -- If word overlaps with the selection range
             if w_end >= s_rel and w_start <= e_rel then
                 first_idx = first_idx or i
                 last_idx = i
@@ -1768,7 +1766,13 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
     end
     
-    if not first_idx then return sentence end
+    print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
+    if first_idx then
+        print(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
+    else
+        print("  - FAILED to detect span, falling back to full sentence")
+        return sentence
+    end
     
     -- Center the viewport around the detected span
     local center_idx = math.floor((first_idx + last_idx) / 2)
@@ -1787,6 +1791,8 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         context_end = last_idx
         context_start = math.max(1, context_start - shift)
     end
+    
+    print(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
     
     local context_words = {}
     for i = context_start, context_end do table.insert(context_words, words[i]) end
