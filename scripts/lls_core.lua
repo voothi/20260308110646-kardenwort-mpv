@@ -298,7 +298,7 @@ end
 function clean_text_srt(line)
     if not line then return "" end
     line = line:gsub("^\xEF\xBB\xBF", "")
-    return line:gsub("\r", ""):gsub("<[^>]+>", "")
+    return line:gsub("\r", ""):gsub("<[^>]+>", ""):gsub("%z", "")
 end
 
 function load_sub(path, is_ass)
@@ -330,7 +330,7 @@ function load_sub(path, is_ass)
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
-                            raw_text = raw_text:gsub("%s+", " "):match("^%s*(.-)%s*$")
+                            raw_text = raw_text:gsub("%s+", " "):gsub("%z", ""):match("^%s*(.-)%s*$")
                             if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
@@ -1727,38 +1727,29 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local sentence_abs_start = 1   -- tracks where the cleaned sentence starts in full_line
     
     if start_pos then
-        local is_sentence_start = false
-        -- Search backwards for punctuation
+        -- Search backwards for subtitle boundary (NUL sentinel)
         local pre = full_line:sub(1, start_pos - 1)
-        -- Look for space followed by . ! ? in reversed string (meaning . ! ? followed by space in original)
-        local b_idx = pre:reverse():find("%s+[.!?]")
+        local b_idx = pre:reverse():find("\0", 1, true)
         if b_idx then
             sent_start = start_pos - b_idx + 1
-            is_sentence_start = true
         else
             sent_start = 1
-            is_sentence_start = true
         end
         
-        -- Search forwards for punctuation starting safely AFTER the term
+        -- Search forwards for subtitle boundary
         local post = full_line:sub(end_pos + 1)
-        local f_idx = post:find("[.!?]")
+        local f_idx = post:find("\0", 1, true)
         if f_idx then
             sent_end = end_pos + f_idx
         end
         
         local raw_sub = full_line:sub(sent_start, sent_end)
-        sentence = raw_sub:match("^[%s.!?]*(.-)%s*$") or raw_sub
+        -- Replace sentinels with spaces and trim
+        sentence = raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
         
-        -- Track where the cleaned sentence actually begins in full_line (before any '.' append)
-        local lead = raw_sub:match("^([%s.!?]*)") or ""
+        -- Track where the cleaned sentence actually begins in full_line (for truncation offset math)
+        local lead = raw_sub:match("^([%s%z]*)") or ""
         sentence_abs_start = sent_start + #lead
-        
-        if is_sentence_start and sentence and sentence ~= "" and starts_with_uppercase(sentence) then
-            if not sentence:match("[.!?]$") then
-                sentence = sentence .. "."
-            end
-        end
     end
 
     -- 2. Check word count of the extracted sentence.
@@ -3546,6 +3537,17 @@ local function dw_tooltip_mouse_update()
     end
 end
 
+local function is_abbrev(w)
+    if not w then return false end
+    -- Single or double lowercase letters followed by period: ca. bzw. usw. etc.
+    if w:match("^%l+%.$") and #w <= 5 then return true end
+    -- Uppercase letter + period patterns: z. (common German prefix)
+    if w:match("^%u%.$") then return true end
+    -- Two-letter dotted abbreviation: z.B.
+    if w:match("^%u%.%u%.$") then return true end
+    return false
+end
+
 local function dw_anki_export_selection()
     local ok, err = pcall(function()
         local subs = Tracks.pri.subs
@@ -3636,7 +3638,7 @@ local function dw_anki_export_selection()
                 end
             end
             if pivot_pos == -1 then pivot_pos = char_offset / 2 end
-            context_line = table.concat(ctx_parts, " ")
+            context_line = table.concat(ctx_parts, "\0")
             -- Add small epsilon (1ms) to ensure get_center_index lands inside this segment and not the end of the previous one
             time_pos = subs[p1_l].start_time + 0.001
             print(string.format("[LLS] Export Range: Lines %d-%d, Word Index: %d, Pivot: %.1f", p1_l, p2_l, p1_w, pivot_pos))
@@ -3658,7 +3660,7 @@ local function dw_anki_export_selection()
                         prev_text = t.text
                     end
                 end
-                if prev_text and prev_text:match("[.!?]$") then
+                if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
                     is_sentence_boundary = true
                 end
             end
@@ -3686,7 +3688,7 @@ local function dw_anki_export_selection()
                 term = term or target_sub.text
                 advanced_index = string.format("0:%g:1", cw)
                 -- Check for boundary
-                if cw == 1 or (prev_text and prev_text:match("[.!?]$")) then
+                if cw == 1 or (prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text)) then
                     is_sentence_boundary = true
                 end
             else
@@ -3716,7 +3718,7 @@ local function dw_anki_export_selection()
                 end
             end
             if pivot_pos == -1 then pivot_pos = char_offset / 2 end
-            context_line = table.concat(ctx_parts, " ")
+            context_line = table.concat(ctx_parts, "\0")
             -- Add small epsilon (1ms) to ensure grounding lands inside this segment
             time_pos = target_sub.start_time + 0.001
             p1_w = cw
