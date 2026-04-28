@@ -198,7 +198,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | Key (EN) | Key (RU) | Action |
 |---|---|---|
 | `RIGHT` / `LEFT` | `RIGHT` / `LEFT` | Exact **2-second** seek forward / backward |
-| `A` / `D` | `Ф` / `В` | Exact **2-second** seek forward / backward (Window Mode / Global) |
+| `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** (Window Mode / Global) |
 | `a` / `d` | `ф` / `в` | **Seek** to previous / next subtitle line |
 | `q` / `Q` | `й` / `Й` | **Quit** / Quit and save position |
 | `SPACE` / `LMB` | `SPACE` / `LMB` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
@@ -237,7 +237,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 
 ## Configuration Guide (mpv.conf)
 
-The project now uses a centralized configuration model. All core script behaviors (AutoPause, Drum Mode, Search HUD) are controlled directly from `mpv.conf` using the `lls-` prefix.
+The project uses a centralized configuration model. All core script behaviors are controlled directly from `mpv.conf` using the `lls-` prefix.
 
 ### Key Operational Settings:
 - **`sub-align-y=bottom`**: Standardizes the layout for drum mode.
@@ -247,57 +247,177 @@ The project now uses a centralized configuration model. All core script behavior
 - **`osc=no`**: Removes visual clutter from the screen.
 - **`save-position-on-quit=yes`**: Pick up your immersion session exactly where you left off.
 
-### Centralized Script Controls:
+### Comprehensive Parameter Reference
 
+#### **1. Font Scaling & Layout**
 | Parameter | Default | Description |
 |---|---|---|
-| **AutoPause** | | |
+| `lls-font_scaling_enabled` | `yes` | Enable smart scaling to keep text legible on small windows. |
+| `lls-font_base_height` | `1080` | Target vertical resolution for scaling calculations. |
+| `lls-font_base_scale` | `1.0` | Global scaling multiplier for all OSD text. |
+| `lls-font_scale_strength` | `0.5` | Scaling intensity (0.0=Native, 1.0=Strictly fixed size). |
+| `lls-sec_pos_top` | `10` | Top destination for `cycle-secondary-pos`. |
+| `lls-sec_pos_bottom` | `90` | Bottom destination for `cycle-secondary-pos`. |
+
+#### **2. AutoPause & Spacebar**
+| Parameter | Default | Description |
+|---|---|---|
 | `lls-autopause_default` | `yes` | Enable automatic pausing at the end of each subtitle line by default. |
-| `lls-karaoke_every_word`| `no` | If enabled, autopause stops after every highlighted word (Karaoke mode). |
+| `lls-karaoke_every_word` | `no` | If enabled, autopause stops after every highlighted word (Karaoke mode). |
 | `lls-pause_padding` | `0.15` | Buffer delay (seconds) before pausing to ensure word completion. |
 | `lls-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
 | `lls-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
-| **Drum Mode (c)** | | |
+
+#### **3. Drum Mode (Legacy Multi-line Context)**
+| Parameter | Default | Description |
+|---|---|---|
 | `lls-drum_font_size` | `34` | Text size used in Drum Mode. |
 | `lls-drum_font_name` | `Consolas` | Monospace font family for aligned context rendering. |
-| `lls-drum_context_lines`| `3` | Number of surrounding subtitle lines shown for context. |
-| `lls-drum_context_color`| `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
+| `lls-drum_font_bold` | `no` | Apply bold styling to all text in Drum Mode. |
+| `lls-drum_context_lines` | `3` | Number of surrounding subtitle lines shown for context. |
+| `lls-drum_context_color` | `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
 | `lls-drum_active_color` | `FFFFFF` | Text color for the currently active subtitle line (BGR Hex). |
-| `lls-drum_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF, 00 is opaque). |
+| `lls-drum_active_opacity` | `00` | Transparency for active text (00=Opaque, FF=Transparent). |
+| `lls-drum_context_opacity` | `20` | Transparency for context text (00=Opaque, FF=Transparent). |
+| `lls-drum_bg_color` | `000000` | Background box color (BGR Hex). |
+| `lls-drum_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
+| `lls-drum_border_size` | `1.5` | Size of the text outline/border. |
+| `lls-drum_shadow_offset` | `1.0` | Depth of the text shadow. |
+| `lls-drum_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `lls-drum_block_gap_mul` | `-0.27` | Extra spacing between distinct subtitle blocks. |
+| `lls-drum_upper_gap_adj` | `6` | Fine-tuning for upper-track vertical alignment. |
+| `lls-drum_vsp` | `0` | Vertical shift pixels (manual offset). |
 | `lls-drum_track_gap` | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
-| **Drum Window (w)** | | |
+| `lls-osd_interactivity` | `yes` | Enable mouse word-selection for standard OSD subtitles. |
+
+#### **4. SRT Style (Regular Mode)**
+| Parameter | Default | Description |
+|---|---|---|
+| `lls-srt_font_size` | `34` | Text size for standard SRT rendering. |
+| `lls-srt_font_name` | `Consolas` | Font family for standard SRT rendering. |
+| `lls-srt_active_color` | `FFFFFF` | Primary text color (BGR Hex). |
+| `lls-srt_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
+| `lls-srt_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `lls-srt_double_gap` | `yes` | Use expanded spacing for dual-track layouts. |
+| `lls-srt_block_gap_mul` | `-0.27` | Spacing between subtitle blocks in SRT mode. |
+
+#### **5. Drum Window (Static Reading Mode)**
+| Parameter | Default | Description |
+|---|---|---|
+| `lls-dw_font_name` | `Consolas` | Font family used in the Reading Mode window. |
 | `lls-dw_font_size` | `34` | Base text size for the Static Reading Mode window. |
+| `lls-dw_char_width` | `0.5` | Character width calibration (relative to font size). |
+| `lls-dw_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `lls-dw_block_gap_mul` | `-0.27` | Spacing between distinct subtitle blocks. |
+| `lls-dw_double_gap` | `yes` | Enable expanded dual-track spacing in the window. |
+| `lls-dw_vsp` | `0` | Vertical shift pixels for hit-zone calibration. |
 | `lls-dw_lines_visible` | `15` | Maximum number of subtitle lines visible in the viewport. |
 | `lls-dw_scrolloff` | `3` | Margin lines maintained at top/bottom before the viewport scrolls. |
-| `lls-dw_original_spacing`| `yes` | Preserve the source subtitle's original whitespace and formatting. |
-| `lls-dw_jump_words` | `2` | Number of words jumped during Ctrl-boosted navigation. |
-| `lls-dw_jump_lines` | `2` | Number of lines jumped during Ctrl-Shift boosted navigation. |
-| **Anki & Mining** | | |
-| `lls-anki_sync_period` | `10` | Interval (seconds) for automatic TSV database reloading. |
-| `lls-anki_context_lines`| `6` | Number of surrounding lines captured in Anki flashcard context. |
-| `lls-anki_context_max_words`| `40` | Maximum word count allowed per exported context sentence. |
-| `lls-anki_strip_metadata`| `no` | Proactively remove bracketed tags (e.g. `[musik]`) from exports. |
-| `lls-anki_highlight_bold`| `yes` | Apply bold styling to database-matched highlights in the OSD. |
-| `lls-anki_global_highlight`| `no` | Highlight matches across the entire video (True) or just original scene (False). |
-| **Search HUD** | | |
+| `lls-dw_original_spacing` | `yes` | Preserve source subtitle's original whitespace and formatting. |
+| `lls-dw_jump_words` | `2` | Words jumped during Ctrl-boosted navigation. |
+| `lls-dw_jump_lines` | `2` | Lines jumped during Ctrl-Shift boosted navigation. |
+| `lls-dw_highlight_color` | `00CCFF` | Color for active word selection (BGR Hex). |
+| `lls-dw_ctrl_select_color` | `FF88FF` | Color for split-word selection (Pink) in pending state. |
+| `lls-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights. |
+| `lls-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
+
+#### **6. Translation Tooltips**
+| Parameter | Default | Description |
+|---|---|---|
+| `lls-tooltip_font_size` | `34` | Text size for translation hints. |
+| `lls-tooltip_context_lines` | `3` | Surrounding lines captured for tooltip context. |
+| `lls-tooltip_bg_color` | `222222` | Background color for tooltips (BGR Hex). |
+| `lls-tooltip_line_height_mul` | `0.87` | Vertical spacing multiplier for tooltips. |
+| `lls-tooltip_y_offset_lines` | `0` | Manual vertical offset for tooltip positioning. |
+| `lls-dw_key_tooltip_toggle` | `e у` | Key to toggle tooltips in the Drum Window. |
+| `lls-dw_key_tooltip_hover` | `n т` | Key to toggle "Hover Mode" for automatic hints. |
+
+#### **7. Search HUD**
+| Parameter | Default | Description |
+|---|---|---|
 | `lls-search_font_size` | `34` | Text size for the Search overlay input field. |
-| `lls-search_results_font_size`| `0` | Scaling for results list (0=100%, -1=80% of base size). |
-| `lls-search_hit_color` | `0088FF` | Color used to highlight query matches in the results list (BGR Hex). |
-| **Font Scaling** | | |
-| `lls-font_scaling_enabled`| `yes` | Enable smart scaling to keep text legible on small windows. |
-| `lls-font_scale_strength`| `0.5` | Scaling intensity (0.0=Native, 1.0=Strictly fixed size). |
-| **System** | | |
-| `lls-osd_duration` | `0.5` | Default display time for script notification popups (seconds). |
-| `lls-seek_hold_delay` | `0.5` | Delay (seconds) before key-hold triggers continuous subtitle seeking. |
-| `lls-seek_hold_rate` | `10` | Frequency of subtitle jumps per second during held navigation. |
+| `lls-search_results_font_size` | `0` | Scaling for results list (0=100%, -1=80% of base size). |
+| `lls-search_hit_color` | `0088FF` | Color used to highlight query matches in results (BGR Hex). |
+| `lls-search_query_hit_color` | `0088FF` | Color for hits within the input query itself. |
+| `lls-search_sel_color` | `FFFFFF` | Color for the currently selected result (BGR Hex). |
+
+#### **8. Anki & Mining**
+| Parameter | Default | Description |
+|---|---|---|
+| `lls-anki_sync_period` | `10` | Interval (seconds) for automatic TSV database reloading. |
+| `lls-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
+| `lls-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
+| `lls-anki_context_strict` | `yes` | Only capture context from the active subtitle track. |
+| `lls-anki_strip_metadata` | `no` | Remove bracketed tags (e.g. `[musik]`) from exports. |
+| `lls-anki_highlight_bold` | `yes` | Apply bold styling to database-matched highlights. |
+| `lls-anki_global_highlight` | `no` | Highlight matches across the entire video (True) or original scene (False). |
+| `lls-anki_local_fuzzy_window` | `10` | Time window (seconds) to match records when timestamps drift. |
+| `lls-anki_split_search_window` | `35` | Max segments to scan when matching paired words. |
+| `lls-anki_split_gap_limit` | `60.0` | Max temporal gap (seconds) between paired words. |
+| `lls-anki_neighbor_window` | `5` | Context range for identifying contiguous words. |
+
+#### **9. System & Performance**
+| Parameter | Default | Description |
+|---|---|---|
+| `lls-tick_rate` | `0.05` | Script processing frequency (seconds). Low values improve responsiveness. |
+| `lls-osd_duration` | `0.5` | Display time for script notification popups (seconds). |
+| `lls-seek_hold_delay` | `0.5` | Delay (seconds) before key-hold triggers continuous seeking. |
+| `lls-seek_hold_rate` | `10` | Jumps per second during held navigation. |
+| `lls-dw_mouse_shield_ms` | `50` | Suppression window to ignore mouse jitter after keyboard commands. |
+| `lls-record_editor` | `Code.exe` | Path to the editor used to open the TSV database. |
+| `lls-sentence_word_threshold`| `3` | Minimum words required to consider a line a full sentence. |
+
+#### **10. Detailed Key Mapping (Internal)**
+These parameters allow remapping internal script actions to different keys. Values can be space-separated lists.
+
+| Parameter | Default Keys |
+|---|---|
+| `lls-dw_key_seek_prev` | `a ф` |
+| `lls-dw_key_seek_next` | `d в` |
+| `lls-dw_key_copy` | `Ctrl+c Ctrl+с` |
+| `lls-dw_key_search` | `Ctrl+f Ctrl+а` |
+| `lls-dw_key_add` | `g п MBTN_MID` |
+| `lls-dw_key_pair` | `f а Ctrl+MBTN_LEFT` |
+| `lls-dw_key_open_record` | `o щ` |
+| `lls-dw_key_select` | `MBTN_LEFT` |
+| `lls-dw_key_tooltip_pin` | `MBTN_RIGHT` |
 
 ### Anki Field Mapping
-The suite leverages an external `anki_mapping.ini` to decouple metadata from logic. Users can define custom fields, static literals, and language-specific TTS flags for zero-touch Anki imports.
+
+The suite leverages an external `anki_mapping.ini` (located in `script-opts/`) to decouple metadata from logic. This allows users to define custom fields, static literals, and language-specific TTS flags for zero-touch Anki imports.
+
+#### **Mapping Keywords**
+When configuring `anki_mapping.ini`, use these keywords to pull dynamic data:
+- `source_word`: The selected term or phrase.
+- `source_sentence`: The full sentence context captured around the selection.
+- `source_index`: The sequential index of the line in the subtitle file.
+- `time`: The exact timestamp (HH:MM:SS,ms) of the selection.
+- `source_url`: The discovered URL (YouTube, etc.) for the media.
+- `deck_name`: The filename-derived deck category.
+
+---
+
+### PotPlayer-style UI Optimization
+
+To achieve the "Premium Dark" aesthetic seen in project demonstrations, ensure these standard `mpv` properties are set in your `mpv.conf`:
+
+| Property | Value | Description |
+|---|---|---|
+| `sub-border-style` | `background-box` | Places a semi-transparent black box behind subtitles. |
+| `sub-back-color` | `"#C0000000"` | 75% opaque black background for readability. |
+| `osd-border-style` | `background-box` | Applies the same box aesthetic to all OSD notifications. |
+| `osc` | `no` | Hides the default controller for a distraction-free view. |
+| `osd-bar` | `no` | Disables the low-resolution seek bar during navigation. |
+| `geometry` | `50%:50%` | Centers the player window on the screen at startup. |
+| `autofit` | `1920x1080` | Forces a consistent high-resolution starting window size. |
+
+---
 
 ### Switchable Layout Modes:
+
 The configuration supports a **Mode-based architecture**. You can define and switch between different font size calibrations (e.g., MODE 1 for size 30, MODE 2 for size 34) directly in `mpv.conf` to ensure hit-testing remains pixel-perfect regardless of your chosen font scale.
 
-(Refer to the heavily commented `mpv.conf` file in the repository for a complete list of all 35+ adjustable parameters and functional templates.)
+(Refer to the heavily commented `mpv.conf` file in the repository for a complete list of all 150+ adjustable parameters and functional templates.)
 
 [Return to Top](#table-of-contents)
 
