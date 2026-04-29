@@ -3003,30 +3003,38 @@ local function calculate_osd_line_meta(subs, sub_idx, font_size, font_name, line
     return meta
 end
 
-local DRUM_DRAW_CACHE = {
-    pri = { center_idx = -1, y_pos = -1, fs = -1, db_ver = -1, res = "", hz = {} },
-    sec = { center_idx = -1, y_pos = -1, fs = -1, db_ver = -1, res = "", hz = {} }
-}
+local DRUM_DRAW_CACHE = {}
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, master_hit_zones, cache_key)
+local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, master_hit_zones, tag)
+    local ok, res = xpcall(function()
     if center_idx == -1 then return "" end
     
-    local db_ver = FSM.ANKI_DB_MTIME or 0
-    if cache_key and DRUM_DRAW_CACHE[cache_key] then
-        local c = DRUM_DRAW_CACHE[cache_key]
-        if c.center_idx == center_idx and c.y_pos == y_pos_percent and c.fs == font_size and c.db_ver == db_ver then
-            if master_hit_zones and #c.hz > 0 then
-                for _, hz in ipairs(c.hz) do table.insert(master_hit_zones, hz) end
-            end
-            return c.res
-        end
-    end
+    local is_drum_mode = (FSM.DRUM == "ON")
+    -- In regular mode, we still render OSD if configured, so we treat it like drum rendering logic-wise
+    local is_drum = is_drum_mode 
     
-    local local_hit_zones = {}
+    local prefix = is_drum_mode and "drum" or "srt"
+    local font_name = is_drum_mode and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
+                                   or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
+    local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
+    local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
+    local d_gap = Options[prefix .. "_double_gap"]
+    local adj = (not d_gap) and (Options.drum_gap_adj or 0) or 0
 
-    local is_drum = (FSM.DRUM == "ON")
-    local context_lines = is_drum and Options.drum_context_lines or 0
-    local half = context_lines
+    -- Cache Check
+    local db_ver = get_anki_db_ver()
+    local cache_key = string.format("%s:%d:%d:%d:%d:%d:%d:%s:%s", tostring(tag), center_idx, y_pos_percent, font_size, lh_mul, vsp, db_ver, font_name, tostring(Options.dw_original_spacing))
+    
+    if DRUM_DRAW_CACHE[cache_key] then
+        local c = DRUM_DRAW_CACHE[cache_key]
+        if master_hit_zones and c.hz and #c.hz > 0 then
+            for _, hz in ipairs(c.hz) do table.insert(master_hit_zones, hz) end
+        end
+        return c.res
+    end
+
+    local local_hit_zones = {}
+    local half = is_drum_mode and Options.drum_context_lines or 0
     local start_idx = math.max(1, center_idx - half)
     local end_idx = math.min(#subs, center_idx + half)
     
@@ -3042,15 +3050,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
     
-    local is_drum_mode = (FSM.DRUM == "ON")
-    local prefix = is_drum_mode and "drum" or "srt"
-    local font_name = is_drum_mode and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
-                                   or (Options.srt_font_name ~= "" and Options.srt_font_name or mp.get_property("sub-font", "Inter"))
-    local lh_mul = is_drum_mode and Options.drum_line_height_mul or Options.srt_line_height_mul
-    local vsp = is_drum_mode and Options.drum_vsp or Options.srt_vsp
-    local d_gap = Options[prefix .. "_double_gap"]
-    local adj = (not d_gap) and (Options.drum_gap_adj or 0) or 0
-
     local sub_metas = {}
     local total_h = 0
     
@@ -3059,15 +3058,19 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         local m = calculate_osd_line_meta(subs, i, size, font_name, lh_mul, vsp)
         
-        -- Pass 1: Global Highlight Pre-Pass
-        local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
-                                        or (is_active and Options.srt_active_color or Options.srt_context_color)
-        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time)
-        
-        table.insert(sub_metas, m)
-        total_h = total_h + m.total_height
-        if i < end_idx then
-            total_h = total_h + calculate_sub_gap(prefix, m.size, lh_mul, vsp) + adj
+        if not m then
+            -- Skip
+        else
+            -- Pass 1: Global Highlight Pre-Pass
+            local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
+                                            or (is_active and Options.srt_active_color or Options.srt_context_color)
+            m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time)
+            
+            table.insert(sub_metas, m)
+            total_h = total_h + m.total_height
+            if i < end_idx then
+                total_h = total_h + calculate_sub_gap(prefix, m.size, lh_mul, vsp) + adj
+            end
         end
     end
 
@@ -3095,19 +3098,19 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
     end
 
     -- Rendering logic
-    local function format_sub_wrapped(meta, is_active, t_pos)
+    local function format_sub_wrapped(meta, is_active)
         local tokens = meta.tokens
         local vlines = meta.vlines
         local token_meta = meta.token_meta
         if #tokens == 0 or not token_meta then return "" end
 
-        local base_color = is_drum and (is_active and Options.drum_active_color or Options.drum_context_color)
-                                    or (is_active and Options.srt_active_color or Options.srt_context_color)
-        local opacity = calculate_ass_alpha(is_drum and (is_active and Options.drum_active_opacity or Options.drum_context_opacity)
-                                                      or (is_active and Options.srt_active_opacity or Options.srt_context_opacity))
-        local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
-        local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
-                                      or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
+        local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
+                                        or (is_active and Options.srt_active_color or Options.srt_context_color)
+        local opacity = calculate_ass_alpha(is_drum_mode and (is_active and Options.drum_active_opacity or Options.drum_context_opacity)
+                                                       or (is_active and Options.srt_active_opacity or Options.srt_context_opacity))
+        local f_bold = is_drum_mode and Options.drum_font_bold or Options.srt_font_bold
+        local bold_state = (is_active and (is_drum_mode and Options.drum_active_bold or f_bold) 
+                                      or (is_drum_mode and Options.drum_context_bold or f_bold)) and "1" or "0"
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
 
         local line_strings = {}
@@ -3141,7 +3144,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
     local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
     
     for i, m in ipairs(sub_metas) do
-        local line_text = format_sub_wrapped(m, m.sub_idx == center_idx, subs[m.sub_idx].start_time)
+        local line_text = format_sub_wrapped(m, m.sub_idx == center_idx)
         if i == 1 then
             all_text = line_text
         else
@@ -3153,10 +3156,10 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
         end
     end
 
-    local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
-    local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
-    local bord = is_drum and Options.drum_border_size or Options.srt_border_size
-    local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
+    local bg_color = is_drum_mode and Options.drum_bg_color or Options.srt_bg_color
+    local bg_opacity = is_drum_mode and Options.drum_bg_opacity or Options.srt_bg_opacity
+    local bord = is_drum_mode and Options.drum_border_size or Options.srt_border_size
+    local shad = is_drum_mode and Options.drum_shadow_offset or Options.srt_shadow_offset
     local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s", 
         bord, shad, bg_color, calculate_ass_alpha(bg_opacity), vsp_tag)
 
@@ -3167,19 +3170,27 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
         ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
     end
 
-    if cache_key and DRUM_DRAW_CACHE[cache_key] then
-        DRUM_DRAW_CACHE[cache_key] = {
-            center_idx = center_idx, y_pos = y_pos_percent, fs = font_size, 
-            db_ver = db_ver, res = ass, hz = local_hit_zones
-        }
-    end
+    -- Cache Result
+    DRUM_DRAW_CACHE[cache_key] = {
+        center_idx = center_idx, y_pos = y_pos_percent, fs = font_size, 
+        db_ver = db_ver, res = ass, hz = local_hit_zones
+    }
     
     -- Merge into master
     if master_hit_zones then
         for _, hz in ipairs(local_hit_zones) do table.insert(master_hit_zones, hz) end
     end
 
+    if #ass > 0 then
+        print(string.format("[LLS DEBUG] draw_drum: generated %d bytes of ASS for %s", #ass, tostring(tag)))
+    end
     return ass
+    end, debug.traceback)
+    if not ok then
+        print("[LLS ERROR] draw_drum crash: " .. tostring(res))
+        return ""
+    end
+    return res
 end
 
 
@@ -6398,6 +6409,8 @@ end)
 mp.add_key_binding(nil, "toggle-autopause", cmd_toggle_autopause)
 mp.add_key_binding(nil, "toggle-karaoke-mode", cmd_toggle_karaoke)
 mp.add_key_binding(nil, "smart-space", cmd_smart_space, {complex=true})
+mp.add_key_binding("c", "toggle-drum-mode-c", cmd_toggle_drum)
+mp.add_key_binding("с", "toggle-drum-mode-cyr-c", cmd_toggle_drum)
 mp.add_key_binding(nil, "toggle-drum-mode", cmd_toggle_drum)
 mp.add_key_binding(nil, "toggle-sub-visibility", cmd_toggle_sub_vis)
 mp.add_key_binding(nil, "cycle-secondary-pos", cmd_cycle_sec_pos)
@@ -6406,6 +6419,8 @@ mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
 mp.add_key_binding(nil, "copy-subtitle", cmd_copy_sub)
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
+mp.add_key_binding("w", "toggle-drum-window-w", cmd_toggle_drum_window)
+mp.add_key_binding("ц", "toggle-drum-window-cyr-w", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
