@@ -3608,7 +3608,7 @@ local function clean_anki_term(term)
     -- Remove ASS tags
     term = term:gsub("{[^}]+}", "")
     
-    -- Balanced bracket stripping (only if it wraps the entire selection)
+    -- 1. Balanced wrapper stripping (e.g., "[word]" -> "word")
     local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
     if outer_bal then
         term = term:sub(2, -2)
@@ -3617,16 +3617,42 @@ local function clean_anki_term(term)
     -- Space normalization
     term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     
-    -- Strip non-terminal punctuation (the restoration logic handles terminal ones)
-    -- IMPROVED: We only strip brackets/parens if they were part of a balanced pair 
-    -- at the edges that we ALREADY handled above. Otherwise, we treat them as
-    -- part of the content (e.g., "[UMGEBUNG] Amazon" or "Amazon (Regensburg)").
+    -- 2. Strip leading/trailing punctuation that are NOT brackets
     local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
     local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
-    
     if #pre < #term then
         term = term:sub(#pre + 1, #term - #suf)
     end
+
+    -- 3. UNBALANCED bracket stripping at edges
+    -- If lead is "(" but there is no matching ")" inside the term, strip lead.
+    -- If tail is ")" but there is no matching "(" inside the term, strip tail.
+    local function strip_unbalanced(s)
+        local changed = true
+        while changed do
+            changed = false
+            local first = s:match("^([%(%[%{])")
+            if first then
+                local b_match = (first == "(" and "%)") or (first == "[" and "%]") or (first == "{" and "%}")
+                if not s:match(b_match) then
+                    s = s:sub(2)
+                    changed = true
+                end
+            end
+            local last = s:match("([%)%]%}])$")
+            if last then
+                local b_match = (last == ")" and "%(") or (last == "]" and "%[") or (last == "}" and "%{")
+                if not s:match(b_match) then
+                    s = s:sub(1, -2)
+                    changed = true
+                end
+            end
+            if changed then s = s:match("^%s*(.-)%s*$") end
+        end
+        return s
+    end
+    
+    term = strip_unbalanced(term)
     
     return term or ""
 end
