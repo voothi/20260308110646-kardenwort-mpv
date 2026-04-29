@@ -908,7 +908,48 @@ end
 
 
 
+local function starts_with_uppercase(str)
+    if not str or str == "" then return false end
+    local first_char = str:match("^([%z\1-\127\194-\244][\128-\191]*)")
+    if not first_char then return false end
+    if first_char:match("^[A-Z]") then return true end
+    
+    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
+    for ch in string.gmatch(upper, "[%z\1-\127\194-\244][\128-\191]*") do
+        if first_char == ch then return true end
+    end
+    return false
+end
+
+local function is_abbrev(w)
+    if not w then return false end
+    local l_word = w:lower()
+    local abbrev_list = " " .. (Options.anki_abbrev_list or ""):lower() .. " "
+    if abbrev_list:find(" " .. l_word .. " ", 1, true) then return true end
+    if Options.anki_abbrev_smart then
+        if w:match("^%l+%.$") and #w <= 5 then return true end
+        if w:match("^%u%.$") then return true end
+        if w:match("^%u%.%u%.$") then return true end
+    end
+    return false
+end
+
+local function clean_anki_term(term)
+    if not term or term == "" then return "" end
+    term = term:gsub("{[^}]+}", "")
+    local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
+    if outer_bal then term = term:sub(2, -2) end
+    term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    return term or ""
+end
+
 local L_EPSILON = 0.0001
+
+local function logical_cmp(a, b)
+    if not a or not b then return false end
+    return math.abs(a - b) < L_EPSILON
+end
+
 
 local function build_word_list_internal(text, keep_spaces)
     local tokens = {}
@@ -1398,11 +1439,6 @@ local function is_word_char(ch)
 end
 
 
-local function logical_cmp(a, b)
-    if not a or not b then return false end
-    return math.abs(a - b) < L_EPSILON
-end
-
 local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not next(FSM.ANKI_HIGHLIGHTS) or not subs or not subs[sub_idx] then return 0, 0, false, {}, 0 end
     
@@ -1842,18 +1878,7 @@ end
 
 
 
-local function starts_with_uppercase(str)
-    if not str or str == "" then return false end
-    local first_char = str:match("^([%z\1-\127\194-\244][\128-\191]*)")
-    if not first_char then return false end
-    if first_char:match("^[A-Z]") then return true end
-    
-    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
-    for ch in string.gmatch(upper, "[%z\1-\127\194-\244][\128-\191]*") do
-        if first_char == ch then return true end
-    end
-    return false
-end
+
 
 local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos, coord_map)
     if not full_line or full_line == "" then return "" end
@@ -3784,51 +3809,6 @@ local function dw_tooltip_mouse_update()
     end
 end
 
-local function is_abbrev(w)
-    if not w then return false end
-    
-    -- Check user-defined list (case-insensitive)
-    local l_word = w:lower()
-    local abbrev_list = " " .. (Options.anki_abbrev_list or ""):lower() .. " "
-    if abbrev_list:find(" " .. l_word .. " ", 1, true) then
-        return true
-    end
-
-    if Options.anki_abbrev_smart then
-        -- Single or double lowercase letters followed by period: ca. bzw. usw. etc.
-        if w:match("^%l+%.$") and #w <= 5 then return true end
-        -- Uppercase letter + period patterns: z. (common German prefix)
-        if w:match("^%u%.$") then return true end
-        -- Two-letter dotted abbreviation: z.B.
-        if w:match("^%u%.%u%.$") then return true end
-    end
-    return false
-end
-
-local function clean_anki_term(term)
-    if not term or term == "" then return "" end
-    -- Remove ASS tags
-    term = term:gsub("{[^}]+}", "")
-    
-    -- Balanced bracket stripping (only if it wraps the entire selection)
-    local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
-    if outer_bal then
-        term = term:sub(2, -2)
-    end
-    
-    -- Space normalization
-    term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
-    
-    -- Requirement: Stop stripping leading/trailing symbols (Fidelity preservation)
-    -- This block is removed:
-    -- local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
-    -- local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
-    -- if #pre < #term then
-    --     term = term:sub(#pre + 1, #term - #suf)
-    -- end
-    
-    return term or ""
-end
 
 
 local function dw_anki_export_selection()
