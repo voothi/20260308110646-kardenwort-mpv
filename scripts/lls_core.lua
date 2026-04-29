@@ -4511,6 +4511,7 @@ local function tick_dw(time_pos, active_idx)
 end
 
 local function tick_drum(time_pos, pri_use_osd, sec_use_osd, pri_idx, sec_idx)
+    print(string.format("[LLS DEBUG] tick_drum: pri=%s sec=%s", tostring(pri_use_osd), tostring(sec_use_osd)))
     -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
     if FSM.DRUM_WINDOW ~= "OFF" then return end
     
@@ -4596,19 +4597,24 @@ end
 -- =========================================================================
 
 update_interactive_bindings = function()
+    print(string.format("[LLS DEBUG] update_interactive_bindings: DRUM=%s DRUM_WINDOW=%s subs=%d", tostring(FSM.DRUM), tostring(FSM.DRUM_WINDOW), #Tracks.pri.subs))
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
     local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
     
+    print(string.format("[LLS DEBUG] need_mouse=%s need_kb=%s", tostring(dw_on or osd_on), tostring(dw_on or osd_on)))
     local need_mouse = dw_on or osd_on
     local need_kb = dw_on or osd_on
     
     manage_dw_bindings(need_mouse, need_kb)
+    print("[LLS DEBUG] update_interactive_bindings: done")
 end
 
 local function master_tick()
     local ok, err = xpcall(function()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
+    
+    if FSM.DRUM == "ON" then print("[LLS DEBUG] master_tick: DRUM=ON") end
 
     -- Execute Autopause
     if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
@@ -4739,8 +4745,11 @@ local function cmd_toggle_anki_global()
 end
 
 local function cmd_toggle_drum()
+    local ok, err = xpcall(function()
+    print("[LLS DEBUG] cmd_toggle_drum called")
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Mode: No subtitles loaded")
+        print("[LLS DEBUG] cmd_toggle_drum: NO_SUBS")
         return
     end
     if FSM.MEDIA_STATE:match("ASS") then
@@ -4749,6 +4758,7 @@ local function cmd_toggle_drum()
     end
     if not Tracks.pri.path then
         show_osd("Drum Mode: Requires external subtitle files (.srt)")
+        print("[LLS DEBUG] cmd_toggle_drum: No pri.path")
         return
     end
 
@@ -4768,9 +4778,12 @@ local function cmd_toggle_drum()
         show_osd("Drum Mode: OFF")
     end
     update_interactive_bindings()
+    print("[LLS DEBUG] cmd_toggle_drum: updated bindings")
     -- master_tick handles the sub-visibility property suppression
     drum_osd.data = ""
     drum_osd:update()
+    end, debug.traceback)
+    if not ok then print("[LLS ERROR] cmd_toggle_drum: " .. tostring(err)) end
 end
 
 
