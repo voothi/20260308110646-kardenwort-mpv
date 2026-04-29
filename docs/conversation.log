@@ -882,5 +882,6 @@
 20260429172455 x It works well with one word in brackets in such variants, now I need to do it for the variant when I also highlight, but all the words are in brackets, there are several of them. When this text is with brackets before and after.
 20260429174222 opsx-archive openspec\changes\20260429142144-fix-paired-export-consistency-and-spec-alignment openspec\changes\20260429144946-fix-dangling-brackets-and-unify-cleaning openspec\changes\20260429151207-fix-pink-selection-regressions-and-cleaning
 20260429183947 Figure it out, synchronize the specifications.
-
+20260429184542 Rework the mechanism for preparing a string for copying to the clipboard and saving to TSV, now it’s some kind of clot of dirt smeared across the code base, consisting of private solutions with brackets and commas. See all  openspec\specs. What are the contradictions? Why is copying now taking place with the removal of symbols, when it should be exactly as in the original text? I navigate through words using the keyboard and can save with such granulation. With the mouse I can also select symbols between words. There is also a discrepancy here. I won't make navigation aware of punctuation and store it in the index. Can we make one function for this?
+20260429185737 opsx-propose
 
