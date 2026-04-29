@@ -3192,18 +3192,15 @@ local function draw_dw(subs, view_center, active_idx)
                 token_meta[j] = meta
             end
 
-            -- Pass 2: Semantic Punctuation Coloring
-            for m, j in ipairs(vl_indices) do
-                local meta = token_meta[j]
-                if meta.priority == 0 and not meta.is_word then
-                    local prev_j = vl_indices[m-1]
-                    local next_j = vl_indices[m+1]
-                    local prev_meta = prev_j and token_meta[prev_j]
-                    local next_meta = next_j and token_meta[next_j]
+            -- Pass 2: Semantic Punctuation Coloring (Subtitle-wide to handle wraps)
+            for j_idx, _ in ipairs(entry.words) do
+                local meta = token_meta[j_idx]
+                if meta and meta.priority == 0 and not meta.is_word then
+                    local prev_meta = j_idx > 1 and token_meta[j_idx-1]
+                    local next_meta = j_idx < #entry.words and token_meta[j_idx+1]
 
                     -- Right-sided (Trailing/Internal)
                     if prev_meta and (prev_meta.priority == 1 or prev_meta.priority == 2) then
-                        -- Direct adoption for manual selections
                         meta.color = prev_meta.color
                         meta.priority = prev_meta.priority
                     elseif prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
@@ -3218,35 +3215,28 @@ local function draw_dw(subs, view_center, active_idx)
                         end
                         
                         if p_orange > 0 or p_purple > 0 then
-                            if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
-                                -- Determine specific punctuation color based on ITS OWN stack
-                                local p_color = prev_meta.color
-                                if p_orange > 0 and p_purple > 0 then
-                                    local mix_depth = math.min((p_orange + (prev_meta.purple_depth or 0)) - 1, 3)
-                                    if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
-                                    elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
-                                    elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
-                                elseif p_orange > 0 then
-                                    local o_depth = math.min(p_orange, 3)
-                                    if o_depth == 1 then p_color = Options.anki_highlight_depth_1
-                                    elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
-                                    else p_color = Options.anki_highlight_depth_3 end
-                                elseif p_purple > 0 then
-                                    local p_depth = math.min(prev_meta.purple_depth or 1, 3)
-                                    if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                                    elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
-                                    else p_color = Options.anki_split_depth_3 or "B3607C" end
-                                end
-
-                                meta.color = p_color
-                                meta.is_phrase = true
-                                meta.matching_terms = prev_meta.matching_terms
-                                meta.purple_depth = prev_meta.purple_depth
+                            local p_color = prev_meta.color
+                            if p_orange > 0 and p_purple > 0 then
+                                local mix_depth = math.min((p_orange + (prev_meta.purple_depth or 0)) - 1, 3)
+                                if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
+                                elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
+                                elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
+                            elseif p_orange > 0 then
+                                local o_depth = math.min(p_orange, 3)
+                                if o_depth == 1 then p_color = Options.anki_highlight_depth_1
+                                elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
+                                else p_color = Options.anki_highlight_depth_3 end
+                            elseif p_purple > 0 then
+                                local p_depth = math.min(prev_meta.purple_depth or 1, 3)
+                                if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                                elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
+                                else p_color = Options.anki_split_depth_3 or "B3607C" end
                             end
+                            meta.color = p_color
+                            meta.priority = 3
                         end
                     -- Left-sided (Leading)
                     elseif next_meta and (next_meta.priority == 1 or next_meta.priority == 2) then
-                        -- Direct adoption for manual selections
                         meta.color = next_meta.color
                         meta.priority = next_meta.priority
                     elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
@@ -3259,32 +3249,27 @@ local function draw_dw(subs, view_center, active_idx)
                                 else p_orange = p_orange + 1 end
                             end
                         end
-
+                        
                         if p_orange > 0 or p_purple > 0 then
-                            if not prev_meta or not prev_meta.is_word then
-                                local p_color = next_meta.color
-                                if p_orange > 0 and p_purple > 0 then
-                                    local mix_depth = math.min((p_orange + (next_meta.purple_depth or 0)) - 1, 3)
-                                    if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
-                                    elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
-                                    elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
-                                elseif p_orange > 0 then
-                                    local o_depth = math.min(p_orange, 3)
-                                    if o_depth == 1 then p_color = Options.anki_highlight_depth_1
-                                    elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
-                                    else p_color = Options.anki_highlight_depth_3 end
-                                elseif p_purple > 0 then
-                                    local p_depth = math.min(next_meta.purple_depth or 1, 3)
-                                    if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                                    elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
-                                    else p_color = Options.anki_split_depth_3 or "B3607C" end
-                                end
-
-                                meta.color = p_color
-                                meta.is_phrase = true
-                                meta.matching_terms = next_meta.matching_terms
-                                meta.purple_depth = next_meta.purple_depth
+                            local n_color = next_meta.color
+                            if p_orange > 0 and p_purple > 0 then
+                                local mix_depth = math.min((p_orange + (next_meta.purple_depth or 0)) - 1, 3)
+                                if mix_depth == 1 then n_color = Options.anki_mix_depth_1 or "4A4AD3"
+                                elseif mix_depth == 2 then n_color = Options.anki_mix_depth_2 or "3636A8"
+                                elseif mix_depth >= 3 then n_color = Options.anki_mix_depth_3 or "151578" end
+                            elseif p_orange > 0 then
+                                local o_depth = math.min(p_orange, 3)
+                                if o_depth == 1 then n_color = Options.anki_highlight_depth_1
+                                elseif o_depth == 2 then n_color = Options.anki_highlight_depth_2
+                                else n_color = Options.anki_highlight_depth_3 end
+                            elseif p_purple > 0 then
+                                local p_depth = math.min(next_meta.purple_depth or 1, 3)
+                                if p_depth == 1 then n_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                                elseif p_depth == 2 then n_color = Options.anki_split_depth_2 or "D97496"
+                                else n_color = Options.anki_split_depth_3 or "B3607C" end
                             end
+                            meta.color = n_color
+                            meta.priority = 3
                         end
                     end
                 end
@@ -3305,17 +3290,15 @@ local function draw_dw(subs, view_center, active_idx)
             local line_ass = ""
             for idx, fw in ipairs(formatted_words) do
                 local t_idx = vl_indices[idx]
-                local t_raw = entry.words[t_idx]
+                local t_raw = entry.words[t_idx].text
                 local next_v_idx = vl_indices[idx+1]
-                local next_t_raw = next_v_idx and entry.words[next_v_idx] or nil
+                local next_t_raw = next_v_idx and entry.words[next_v_idx].text or nil
                 
                 line_ass = line_ass .. fw
                 
                 if next_t_raw and not Options.dw_original_spacing then
-                    -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
                     if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
                        next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
-                        -- Join without space
                     else
                         line_ass = line_ass .. " "
                     end
