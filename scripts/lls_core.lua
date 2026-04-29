@@ -973,15 +973,14 @@ local function build_word_list_internal(text, keep_spaces)
             token.text = table.concat(chars, "", start, math.min(i, n))
             i = i + 1
             
-        -- 2. Handle Metadata Brackets
+        -- 2. Handle Metadata Brackets (Atomize, but do not increment logical index)
         elseif c == "[" then
             local start = i
             while i <= n and chars[i] ~= "]" do i = i + 1 end
             token.text = table.concat(chars, "", start, math.min(i, n))
-            token.is_word = true
-            token.logical_idx = curr_logical_idx
-            curr_logical_idx = curr_logical_idx + 1
-            curr_sub_idx = 0.1
+            token.is_word = false
+            token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
+            curr_sub_idx = curr_sub_idx + 0.1
             i = i + 1
             
         -- 3. Handle Whitespace
@@ -1597,7 +1596,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         local t_end = (t_center + data.__max_l) * 1000 + data.__max_w
                         local t_total = sub_idx * 1000 + target_l_idx
                         if t_total >= t_start and t_total <= t_end then
-                            purple_depth = purple_depth + 1
+                            -- Only increment depth for background shadows if we're not currently 
+                            -- inside a contiguous match candidate that already covers this token
+                            -- (Prevents single-highlight depth pollution)
+                            if not match_found then
+                                purple_depth = purple_depth + 1
+                            end
                         end
                     end
                 end
@@ -2709,73 +2713,21 @@ local function apply_global_semantic_pass(layout)
                     if prev_m and (prev_m.priority == 1 or prev_m.priority == 2) then
                         meta.color = prev_m.color
                         meta.priority = prev_m.priority
-                    elseif prev_m and prev_m.priority == 3 and prev_m.is_phrase then
-                        local p_orange = 0
-                        local p_purple = 0
-                        local p_txt = (prev_m.text .. meta.text):lower()
-                        for _, m_obj in ipairs(prev_m.matching_terms or {}) do
-                            if m_obj.text:lower():find(p_txt, 1, true) then
-                                if m_obj.is_split then p_purple = p_purple + 1
-                                else p_orange = p_orange + 1 end
-                            end
-                        end
-                        if p_orange > 0 or p_purple > 0 then
-                            local p_color = prev_m.color
-                            if p_orange > 0 and p_purple > 0 then
-                                local mix_depth = math.min((p_orange + (prev_m.purple_depth or 1)) - 1, 3)
-                                if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
-                                elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
-                                elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
-                            elseif p_orange > 0 then
-                                local o_depth = math.min(p_orange, 3)
-                                if o_depth == 1 then p_color = Options.anki_highlight_depth_1
-                                elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
-                                else p_color = Options.anki_highlight_depth_3 end
-                            elseif p_purple > 0 then
-                                local p_depth = math.min(prev_m.purple_depth or 1, 3)
-                                if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                                elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
-                                else p_color = Options.anki_split_depth_3 or "B3607C" end
-                            end
-                            meta.color = p_color
-                            meta.priority = 3
-                            meta.is_phrase = true
-                        end
+                    elseif prev_m and prev_m.priority == 3 then
+                        meta.color = prev_m.color
+                        meta.priority = 3
+                        meta.is_phrase = prev_m.is_phrase
+                        meta.matching_terms = prev_m.matching_terms
+                        meta.purple_depth = prev_m.purple_depth
                     elseif next_m and (next_m.priority == 1 or next_m.priority == 2) then
                         meta.color = next_m.color
                         meta.priority = next_m.priority
-                    elseif next_m and next_m.priority == 3 and next_m.is_phrase then
-                        local p_orange = 0
-                        local p_purple = 0
-                        local n_txt = (meta.text .. next_m.text):lower()
-                        for _, m_obj in ipairs(next_m.matching_terms or {}) do
-                            if m_obj.text:lower():find(n_txt, 1, true) then
-                                if m_obj.is_split then p_purple = p_purple + 1
-                                else p_orange = p_orange + 1 end
-                            end
-                        end
-                        if p_orange > 0 or p_purple > 0 then
-                            local n_color = next_m.color
-                            if p_orange > 0 and p_purple > 0 then
-                                local mix_depth = math.min((p_orange + (next_m.purple_depth or 1)) - 1, 3)
-                                if mix_depth == 1 then n_color = Options.anki_mix_depth_1 or "4A4AD3"
-                                elseif mix_depth == 2 then n_color = Options.anki_mix_depth_2 or "3636A8"
-                                elseif mix_depth >= 3 then n_color = Options.anki_mix_depth_3 or "151578" end
-                            elseif p_orange > 0 then
-                                local o_depth = math.min(p_orange, 3)
-                                if o_depth == 1 then n_color = Options.anki_highlight_depth_1
-                                elseif o_depth == 2 then n_color = Options.anki_highlight_depth_2
-                                else n_color = Options.anki_highlight_depth_3 end
-                            elseif p_purple > 0 then
-                                local p_depth = math.min(next_m.purple_depth or 1, 3)
-                                if p_depth == 1 then n_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                                elseif p_depth == 2 then n_color = Options.anki_split_depth_2 or "D97496"
-                                else n_color = Options.anki_split_depth_3 or "B3607C" end
-                            end
-                            meta.color = n_color
-                            meta.priority = 3
-                            meta.is_phrase = true
-                        end
+                    elseif next_m and next_m.priority == 3 then
+                        meta.color = next_m.color
+                        meta.priority = 3
+                        meta.is_phrase = next_m.is_phrase
+                        meta.matching_terms = next_m.matching_terms
+                        meta.purple_depth = next_m.purple_depth
                     end
                 end
             end
