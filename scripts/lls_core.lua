@@ -420,6 +420,7 @@ function load_sub(path, is_ass)
     end
     f:close()
     table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+    print(string.format("[LLS DEBUG] load_sub: loaded %d lines from %s", #subs, tostring(path)))
     return subs
 end
 
@@ -4615,7 +4616,7 @@ local function master_tick()
     if not time_pos then return end
     
     if FSM.DRUM == "ON" then print("[LLS DEBUG] master_tick: DRUM=ON") end
-
+    
     -- Execute Autopause
     if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
         tick_autopause(time_pos)
@@ -4625,6 +4626,7 @@ local function master_tick()
     local active_idx = -1
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if FSM.DRUM == "ON" then print("[LLS DEBUG] master_tick: active_idx=" .. tostring(active_idx)) end
         if active_idx ~= -1 then
             FSM.DW_ACTIVE_LINE = active_idx
         end
