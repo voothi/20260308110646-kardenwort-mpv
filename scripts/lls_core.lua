@@ -1055,6 +1055,120 @@ local function compose_term_smart(words)
 end
 
 
+local function prepare_export_text(params, options)
+    options = options or {}
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return "" end
+    
+    local parts = {}
+    
+    if params.type == "RANGE" then
+        local p1_l, p1_w, p2_l, p2_w = params.p1_l, params.p1_w, params.p2_l, params.p2_w
+        for i = p1_l, p2_l do
+            local sub = subs[i]
+            if sub then
+                local raw_text = sub.text:gsub("\n", " ")
+                local tokens = build_word_list_internal(raw_text, true)
+                
+                local line_parts = {}
+                for _, t in ipairs(tokens) do
+                    if t.logical_idx then
+                        -- Requirement: Symbol-level precision using fractional comparison
+                        local in_range = true
+                        if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
+                        if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                        
+                        if in_range then
+                            table.insert(line_parts, t.text)
+                        end
+                    end
+                end
+                if #line_parts > 0 then
+                    table.insert(parts, table.concat(line_parts, ""))
+                end
+            end
+        end
+    elseif params.type == "SET" then
+        local members = params.members
+        local last_m = nil
+        for idx, m in ipairs(members) do
+            local sub = subs[m.line]
+            if sub then
+                local raw_text = sub.text:gsub("\n", " ")
+                local tokens = build_word_list_internal(raw_text, true)
+                local w_text = nil
+                for _, t in ipairs(tokens) do
+                    if logical_cmp(t.logical_idx, m.word) then
+                        w_text = t.text
+                        break
+                    end
+                end
+                
+                if w_text then
+                    -- Requirement: Elliptical Paired Selection ( ... )
+                    if last_m then
+                        local has_gap = (m.line > last_m.line) or (m.word > last_m.word + 1.05)
+                        if has_gap then
+                            table.insert(parts, " ... ")
+                        else
+                            table.insert(parts, " ")
+                        end
+                    end
+                    table.insert(parts, w_text)
+                    last_m = m
+                end
+            end
+        end
+    elseif params.type == "POINT" then
+        local target_subs = (options.copy_mode == "B" and Tracks.sec.subs and #Tracks.sec.subs >= params.line) and Tracks.sec.subs or subs
+        local sub = target_subs[params.line]
+        if sub then
+            local raw_text = sub.text:gsub("\n", " ")
+            if params.word and params.word ~= -1 then
+                local tokens = build_word_list_internal(raw_text, true)
+                for _, t in ipairs(tokens) do
+                    if logical_cmp(t.logical_idx, params.word) then
+                        parts = {t.text}
+                        break
+                    end
+                end
+            else
+                parts = {raw_text}
+            end
+        end
+    end
+    
+    local final_text = table.concat(parts, params.type == "RANGE" and " " or "")
+    
+    -- Requirement: Unified High-Fidelity Cleaning
+    if options.clean then
+        final_text = clean_anki_term(final_text)
+    else
+        final_text = final_text:gsub("{[^}]+}", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
+    end
+    
+    -- Post-processing for clipboard Russian filter if needed
+    if options.filter_russian then
+        local lines = {}
+        for ln in final_text:gmatch("[^\n]+") do
+            table.insert(lines, ln)
+        end
+        if #lines > 0 then
+            local valid = {}
+            for _, ln in ipairs(lines) do
+                local cyr = has_cyrillic(ln)
+                if (options.copy_mode == "A" and not cyr) or (options.copy_mode == "B" and cyr) then table.insert(valid, ln) end
+            end
+            if #valid == 0 then table.insert(valid, (options.copy_mode == "A") and lines[1] or lines[#lines]) end
+            final_text = table.concat(valid, " ")
+        end
+    end
+    
+    return final_text or ""
+end
+
+
+
 
 local function find_fuzzy_indices(str_lower, query_lower)
     if query_lower == "" then return {} end
@@ -3617,19 +3731,17 @@ local function clean_anki_term(term)
     -- Space normalization
     term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     
-    -- Strip non-terminal punctuation (the restoration logic handles terminal ones)
-    -- IMPROVED: We only strip brackets/parens if they were part of a balanced pair 
-    -- at the edges that we ALREADY handled above. Otherwise, we treat them as
-    -- part of the content (e.g., "[UMGEBUNG] Amazon" or "Amazon (Regensburg)").
-    local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
-    local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
-    
-    if #pre < #term then
-        term = term:sub(#pre + 1, #term - #suf)
-    end
+    -- Requirement: Stop stripping leading/trailing symbols (Fidelity preservation)
+    -- This block is removed:
+    -- local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
+    -- local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
+    -- if #pre < #term then
+    --     term = term:sub(#pre + 1, #term - #suf)
+    -- end
     
     return term or ""
 end
+
 
 local function dw_anki_export_selection()
     local ok, err = pcall(function()
@@ -3638,7 +3750,7 @@ local function dw_anki_export_selection()
         
         local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
         local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-        local p1_l, p1_w, p2_l, p2_w = -1, -1, -1, -1
+        local params = {}
         local term = ""
         local context_line = ""
         local time_pos = 0
@@ -3647,16 +3759,17 @@ local function dw_anki_export_selection()
         local advanced_index = nil
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+            local p1_l, p1_w, p2_l, p2_w
             if al < cl or (al == cl and aw <= cw) then
                 p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
             else
                 p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
             end
             
-            if not subs[p1_l] or not subs[p2_l] then return end
+            params = { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
+            term = prepare_export_text(params, { clean = true })
             
-            local parts = {}
-            local term_tokens = {}
+            -- Requirement: Reconstruct advanced_index (word-based only)
             local indices = {}
             local pivot_idx = 1
             for i = p1_l, p2_l do
@@ -3664,43 +3777,22 @@ local function dw_anki_export_selection()
                 if sub then
                     local raw_text = sub.text:gsub("\n", " ")
                     local tokens = build_word_list_internal(raw_text, true)
-                    local is_first_line = (i == p1_l)
-                    local is_last_line = (i == p2_l)
-                    
-                    local line_parts = {}
-                    local sub_wc = 0
-                    for _, t in ipairs(tokens) do if t.is_word then sub_wc = sub_wc + 1 end end
-                    
                     for _, t in ipairs(tokens) do
-                        if t.logical_idx then
-                            -- Strict boundary check: Only include trailing tokens if we reached the end of the sub segment
-                            if is_last_line and t.logical_idx > p2_w + L_EPSILON then
-                                -- Break if we hit another word OR if the user didn't select the last word of the line
-                                if p2_w < sub_wc or t.is_word then break end
-                                -- Avoid capturing certain characters from the next word or end of phrase
-                                if t.text:match("^[%s%(%[{<%)%]%}]") then break end
-                            end
-
-                            -- Include token if it's on a middle/last line OR if it's past the start anchor on the first line
-                            if not is_first_line or t.logical_idx >= p1_w - L_EPSILON then
-                                table.insert(line_parts, t.text) 
-                                table.insert(term_tokens, t.text)
-                                if t.is_word then
-                                    table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
-                                    pivot_idx = pivot_idx + 1
-                                end
+                        if t.is_word then
+                            local in_range = true
+                            if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
+                            if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                            if in_range then
+                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                pivot_idx = pivot_idx + 1
                             end
                         end
                     end
-                    
-                    if #line_parts > 0 then
-                        table.insert(parts, table.concat(line_parts, ""))
-                    end
                 end
             end
-            term = compose_term_smart(term_tokens)
             advanced_index = table.concat(indices, ",")
             
+            -- Context Extraction Logic
             local ctx_parts = {}
             local char_offset = 0
             pivot_pos = -1
@@ -3712,8 +3804,8 @@ local function dw_anki_export_selection()
                     text = text:gsub("%s+", " ")
                     
                     if k == p1_l then
-                        -- Precision Anchor: Find the first word's position in this segment
-                        local first_word = parts[1] or ""
+                        -- Precision Anchor
+                        local first_word = term:match("%S+") or ""
                         local s = text:find(first_word, 1, true)
                         if s then
                             pivot_pos = char_offset + s + (#first_word / 2)
@@ -3728,24 +3820,15 @@ local function dw_anki_export_selection()
             end
             if pivot_pos == -1 then pivot_pos = char_offset / 2 end
             context_line = table.concat(ctx_parts, "\0")
-            -- Add small epsilon (1ms) to ensure get_center_index lands inside this segment and not the end of the previous one
             time_pos = subs[p1_l].start_time + 0.001
-            print(string.format("[LLS] Export Range: Lines %d-%d, Word Index: %d, Pivot: %.1f", p1_l, p2_l, p1_w, pivot_pos))
-            local tokens = get_sub_tokens(subs[p1_l])
-            local words = {}
-            for _, t in ipairs(tokens) do if t.is_word then table.insert(words, t.text) end end
-            print("[LLS] Word List: " .. table.concat(words, " | ", 1, math.min(10, #words)))
-
-            -- Check if selection starts at a boundary
+            
             is_sentence_boundary = (p1_w == 1)
             if not is_sentence_boundary then
-                local first_tokens = get_sub_tokens(subs[p1_l])
+                local first_tokens = build_word_list_internal(subs[p1_l].text:gsub("\n", " "), true)
                 local prev_text = nil
-                local ptr = 0
                 for _, t in ipairs(first_tokens) do
                     if t.is_word then
-                        ptr = ptr + 1
-                        if ptr == p1_w then break end
+                        if t.logical_idx >= p1_w - L_EPSILON then break end
                         prev_text = t.text
                     end
                 end
@@ -3754,37 +3837,30 @@ local function dw_anki_export_selection()
                 end
             end
         elseif cl ~= -1 and subs[cl] then
-            local target_sub = subs[cl]
-            local ctx_parts = {}
-            local char_offset = 0
-            pivot_pos = -1
+            params = { type = "POINT", line = cl, word = cw }
+            term = prepare_export_text(params, { clean = true })
             
-            -- Extract term first so we can use it for pivot anchoring
             if cw ~= -1 then
-                local tokens = get_sub_tokens(target_sub)
-                local ptr = 0
+                advanced_index = string.format("0:%g:1", cw)
+                local first_tokens = build_word_list_internal(subs[cl].text:gsub("\n", " "), true)
                 local prev_text = nil
-                for _, t in ipairs(tokens) do
+                for _, t in ipairs(first_tokens) do
                     if t.is_word then
-                        ptr = ptr + 1
-                        if ptr == cw then
-                            term = t.text
-                            break
-                        end
+                        if t.logical_idx >= cw - L_EPSILON then break end
                         prev_text = t.text
                     end
                 end
-                term = term or target_sub.text
-                advanced_index = string.format("0:%g:1", cw)
-                -- Check for boundary
                 if cw == 1 or (prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text)) then
                     is_sentence_boundary = true
                 end
             else
-                term = target_sub.text
                 is_sentence_boundary = true
             end
 
+            -- Context Extraction
+            local ctx_parts = {}
+            local char_offset = 0
+            pivot_pos = -1
             local start_k = math.max(1, cl - Options.anki_context_lines)
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
@@ -3793,10 +3869,9 @@ local function dw_anki_export_selection()
                     text = text:gsub("%s+", " ")
                     
                     if k == cl then
-                        local word_text = term or ""
-                        local s = text:find(word_text, 1, true)
+                        local s = text:find(term, 1, true)
                         if s then
-                            pivot_pos = char_offset + s + (#word_text / 2)
+                            pivot_pos = char_offset + s + (#term / 2)
                         else
                             pivot_pos = char_offset + (#text / 2)
                         end
@@ -3808,16 +3883,9 @@ local function dw_anki_export_selection()
             end
             if pivot_pos == -1 then pivot_pos = char_offset / 2 end
             context_line = table.concat(ctx_parts, "\0")
-            -- Add small epsilon (1ms) to ensure grounding lands inside this segment
-            time_pos = target_sub.start_time + 0.001
-            p1_w = cw
-            p1_l = cl
-            print(string.format("[LLS] Export Point: Line %d, Word Index: %d, Pivot: %.1f", cl, cw, pivot_pos))
-            local tokens = get_sub_tokens(target_sub)
-            local words = {}
-            for _, t in ipairs(tokens) do if t.is_word then table.insert(words, t.text) end end
-            print("[LLS] Word List: " .. table.concat(words, " | ", 1, math.min(10, #words)))
+            time_pos = subs[cl].start_time + 0.001
         end
+
 
         if term and term ~= "" then
             local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
@@ -3950,182 +4018,79 @@ local function ctrl_commit_set(line_idx, word_idx)
         return a.word < b.word
     end)
     
-    -- Compose the term with adaptive gap detection
+    -- Requirement: Unified Paired Export
+    local term = prepare_export_text({ type = "SET", members = members }, { clean = true })
+    
     local subs = Tracks.pri.subs
-    local term_tokens = {}
-    local last_m = nil
-    
-    local is_sentence_boundary = false
-    local raw_had_terminal = false
-    local terminal_punct = nil
-    
-    for idx, m in ipairs(members) do
-        local sub = subs[m.line]
-        if sub then
-            local w = nil
-            local raw_text = sub.text:gsub("\n", " ")
-            local tokens = build_word_list_internal(raw_text, true)
-            
-            if tokens then
-                -- Boundary detection for first member
-                if idx == 1 then
-                    if m.word == 1 then
-                        is_sentence_boundary = true
-                    else
-                        local ptr = 0
-                        local prev_text = nil
-                        for _, t in ipairs(tokens) do
-                            if t.is_word then
-                                ptr = ptr + 1
-                                if ptr == m.word then break end
-                                prev_text = t.text
-                            end
-                        end
-                        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
-                            is_sentence_boundary = true
-                        end
-                    end
-                end
+    local p1_l = members[1].line
+    local p1_w = members[1].word
+    local p2_l = members[#members].line
 
-                -- Word lookup and trailing punctuation lookahead
-                local word_found = false
-                local captured_punct = nil
-                for _, t in ipairs(tokens) do
-                    if logical_cmp(t.logical_idx, m.word) then
-                        w = t.text
-                        m.is_word = t.is_word
-                        word_found = true
-                    elseif word_found then
-                        -- Multi-pass lookahead: skip metadata tags when searching for punctuation
-                        local text = t.text
-                        local is_meta = t.is_word and text:match("^%b[]$")
-                        
-                        if t.is_word and not is_meta then
-                            break -- Hit a real word, stop lookahead
-                        end
-                        
-                        if not t.is_word and text:match("[.!?]") then
-                            captured_punct = text:match("[.!?]+")
-                            break
-                        end
-                    end
-                end
-                if idx == #members and captured_punct then
-                    raw_had_terminal = true
-                    terminal_punct = captured_punct
-                end
-            end
-            
-            if w then
-                if last_m then
-                    local is_gap = false
-                    if m.line > last_m.line then
-                        local last_line_wc = subs[last_m.line].word_count or 0
-                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
-                            is_gap = true
-                        end
-                    elseif m.word > last_m.word + 1 then
-                        is_gap = true
-                    end
+    
 
-                    if is_gap then
-                        table.insert(term_tokens, "...")
-                    else
-                        if m.line == last_m.line then
-                            for _, t in ipairs(tokens) do
-                                if t.logical_idx > last_m.word and t.logical_idx < m.word then
-                                    table.insert(term_tokens, t.text)
-                                end
-                            end
-                        else
-                            local last_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
-                            for _, t in ipairs(last_tokens) do
-                                if t.logical_idx > last_m.word then 
-                                    table.insert(term_tokens, t.text) 
-                                end
-                            end
-                            table.insert(term_tokens, " ")
-                            for _, t in ipairs(tokens) do
-                                if t.logical_idx < m.word then 
-                                    table.insert(term_tokens, t.text) 
-                                end
-                            end
-                        end
-                    end
-                end
-                table.insert(term_tokens, w)
-                last_m = m
+    -- Re-detect boundary and terminal state for sentence restoration
+    local is_sentence_boundary = (p1_w == 1)
+    if not is_sentence_boundary then
+        local first_tokens = build_word_list_internal(subs[p1_l].text:gsub("\n", " "), true)
+        local prev_text = nil
+        for _, t in ipairs(first_tokens) do
+            if t.is_word then
+                if t.logical_idx >= p1_w - L_EPSILON then break end
+                prev_text = t.text
             end
+        end
+        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
+            is_sentence_boundary = true
         end
     end
     
-    term = compose_term_smart(term_tokens)
-    if term == "" then return end
-
-    term = clean_anki_term(term)
-
-    -- Restore Terminal Period Logic (Sync with Yellow selection behavior)
+    local last_sub_text = subs[p2_l].text:gsub("\n", " ")
+    local raw_had_terminal = last_sub_text:match("[.!?][%s%p]*$") ~= nil
+    local terminal_punct = last_sub_text:match("[.!?]+")
+    
+    -- Restore terminal punctuation if appropriate
     if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
         term = term .. (terminal_punct or ".")
     end
-    
-    -- Use the earliest selected word's line for timestamp (document-natural start)
-    local time_pos = subs[members[1].line].start_time
-    
-    -- Gather context lines spanning the full selection (earliest → latest member line),
-    -- padded by anki_context_lines on each side.  This ensures the composed term
-    -- always appears verbatim inside the context block passed to extract_anki_context.
-    local ctx_start = math.max(1, members[1].line - Options.anki_context_lines)
-    local ctx_end = math.min(#subs, members[#members].line + Options.anki_context_lines)
+
+    -- Context Extraction
     local ctx_parts = {}
-    for i = ctx_start, ctx_end do
-        table.insert(ctx_parts, subs[i].text)
-    end
-    local full_ctx_text = table.concat(ctx_parts, " ")
-    
-    -- Clean context: remove ASS tags and metadata
-    full_ctx_text = full_ctx_text:gsub("{[^}]+}", "")
-    if Options.anki_strip_metadata then
-        full_ctx_text = full_ctx_text:gsub("%b[]", " ")
-    end
-    full_ctx_text = full_ctx_text:gsub("%s+", " ")
-
-    local term_words = build_word_list(term)
-    local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-    local pivot_pos = 0
-    local current_offset = 0
-    for i = ctx_start, ctx_end do
-        local line_text = subs[i].text:gsub("{[^}]+}", "")
-        if Options.anki_strip_metadata then line_text = line_text:gsub("%b[]", " ") end
-        line_text = line_text:gsub("%s+", " ")
-        
-        if i < members[1].line then
-            pivot_pos = pivot_pos + #line_text + 1
-        elseif i == members[1].line then
-            pivot_pos = pivot_pos + (#line_text / 2)
+    local char_offset = 0
+    local pivot_pos = -1
+    local start_k = math.max(1, p1_l - Options.anki_context_lines)
+    for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
+        if subs[k] then 
+            local text = subs[k].text:gsub("{[^}]+}", "")
+            if Options.anki_strip_metadata then text = text:gsub("%b[]", " ") end
+            text = text:gsub("%s+", " ")
+            
+            if k == p1_l then
+                local first_word = term:match("%S+") or ""
+                local s = text:find(first_word, 1, true)
+                if s then
+                    pivot_pos = char_offset + s + (#first_word / 2)
+                else
+                    pivot_pos = char_offset + (#text / 2)
+                end
+            end
+            
+            table.insert(ctx_parts, text)
+            char_offset = char_offset + #text + 1
         end
     end
-
-    local extracted_context = extract_anki_context(full_ctx_text, term, effective_limit, pivot_pos)
+    if pivot_pos == -1 then pivot_pos = char_offset / 2 end
+    local context_line = table.concat(ctx_parts, "\0")
     
-    -- Advanced Multi-Pivot Grounding: Identify coordinates for ALL words
+    -- Build advanced index string
     local indices = {}
-    local start_time = members[1].time or time_pos
-    local t_pos_counter = 1
-    for _, m in ipairs(members) do
-        if m.is_word then
-            local l_off = m.line - members[1].line
-            table.insert(indices, string.format("%d:%g:%d", l_off, m.word, t_pos_counter))
-            t_pos_counter = t_pos_counter + 1
-        end
+    for i, m in ipairs(members) do
+        table.insert(indices, string.format("%d:%g:%d", m.line - p1_l, m.word, i))
     end
     local advanced_index = table.concat(indices, ",")
-
-    save_anki_tsv_row(term, extracted_context, start_time + 0.001, advanced_index)
-    show_osd("Anki Highlight Saved (Multi): " .. term)
     
-    -- Force reload of TSV to pick up the new highlight
-    load_anki_tsv(true)
+    save_anki_tsv_row(term, extract_anki_context(context_line, term, Options.anki_context_max_words, pivot_pos, advanced_index), subs[p1_l].start_time + 0.001, advanced_index)
+    show_osd("Anki Paired Saved: " .. term)
+
     
     -- Clear set
     FSM.DW_CTRL_PENDING_SET = {}
@@ -5967,108 +5932,47 @@ function cmd_dw_copy()
     local cw = FSM.DW_CURSOR_WORD
 
     -- 0. Smart Focus Fallback for Book Mode
-    -- In Book Mode, if we are in 'Follow' mode (e.g. navigation via a/d),
-    -- prefer the active playback line if no specific word/range is selected.
     if FSM.BOOK_MODE and FSM.DW_FOLLOW_PLAYER and al == -1 and cw == -1 then
         cl = FSM.DW_ACTIVE_LINE
     end
-    -- Fallback for Esc state or between-subs
     if cl == -1 then cl = FSM.DW_ACTIVE_LINE end
     if cl == -1 then return end
 
     local final_text = ""
-    local selection_text = ""
     local is_context = false
     
-    -- 1. Calculate Selection/Line Text (Required for verbatim fallback and context wrapping)
-    if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-        -- Range selection (always verbatim from primary track for precision)
-        local p1_l, p1_w, p2_l, p2_w
-        if al < cl or (al == cl and aw <= cw) then
-            p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-        else
-            p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
-        end
-        
-        local parts = {}
-        for i = p1_l, p2_l do
-            local text = subs[i].text:gsub("\n", " ")
-            local tokens = build_word_list_internal(text, true)
-            
-            local s_w = (i == p1_l) and p1_w or 1
-            local e_w = (i == p2_l) and p2_w or nil
-            
-            if not e_w then
-                local wc = 0
-                for _, t in ipairs(tokens) do if t.is_word then wc = wc + 1 end end
-                e_w = wc
-            end
-            
-            local line_parts = {}
-            local in_range = false
-            for _, t in ipairs(tokens) do
-                if logical_cmp(t.logical_idx, s_w) then in_range = true end
-                if in_range then table.insert(line_parts, t.text) end
-                if logical_cmp(t.logical_idx, e_w) then in_range = false break end
-            end
-            
-            if #line_parts > 0 then
-                table.insert(parts, table.concat(line_parts, ""))
-            end
-        end
-        selection_text = table.concat(parts, " ")
-    else
-        -- Single point or line fallback (Respects COPY_MODE B for translations)
-        local target_subs = subs
-        if FSM.COPY_MODE == "B" and Tracks.sec.subs and #Tracks.sec.subs >= cl then
-            target_subs = Tracks.sec.subs
-        end
-        
-        local text = target_subs[cl].text:gsub("\n", " ")
-        if FSM.DW_CURSOR_WORD > 0 and FSM.COPY_MODE == "A" then
-            local words = build_word_list(text)
-            selection_text = words[FSM.DW_CURSOR_WORD] or text
-        else
-            selection_text = text
-        end
-    end
-
-    -- 2. Check for Context Copy (Matches cmd_copy_sub behavior)
+    -- 1. Check for Context Copy
     if FSM.COPY_CONTEXT == "ON" then
         local ctx = get_copy_context_text(nil, cl)
         if ctx and ctx ~= "" then
-            -- Requirement: Verbatim Selection with Context
-            -- If we have a specific selection (word or range), replace the focal line in the context.
-            -- We clean the context of ASS tags FIRST to ensure gsub matching works against the focal line.
-            ctx = ctx:gsub("{[^}]+}", "")
-            
-            local target_line = subs[cl].text:gsub("\n", " "):gsub("{[^}]+}", ""):match("^%s*(.-)%s*$") or ""
-            local esc_target = target_line:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")
-            local clean_sel = selection_text:gsub("{[^}]+}", ""):match("^%s*(.-)%s*$") or ""
-            
-            if esc_target ~= "" and esc_target ~= clean_sel then
-                ctx = ctx:gsub(esc_target, clean_sel)
-            end
-            
-            final_text = ctx:gsub("\n", " ")
+            final_text = ctx:gsub("{[^}]+}", ""):gsub("\n", " ")
             is_context = true
         end
     end
 
-    -- 3. Final Fallback
+    -- 2. Standard Selection Copy (Verbatim)
     if final_text == "" then
-        final_text = selection_text
+        local params = {}
+        if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
+            params = { type = "RANGE", p1_l = al, p1_w = aw, p2_l = cl, p2_w = cw }
+            -- Ensure p1 is before p2 for prepare_export_text
+            if params.p1_l > params.p2_l or (params.p1_l == params.p2_l and params.p1_w > params.p2_w) then
+                params.p1_l, params.p1_w, params.p2_l, params.p2_w = params.p2_l, params.p2_w, params.p1_l, params.p1_w
+            end
+        else
+            params = { type = "POINT", line = cl, word = cw }
+        end
+        
+        final_text = prepare_export_text(params, { copy_mode = FSM.COPY_MODE })
     end
     
     if final_text ~= "" then
-        -- Remove ASS tags but keep all punctuation and formatting (Requirement: Copy as is)
-        final_text = final_text:gsub("{[^}]+}", "")
-        
         set_clipboard(final_text)
         local label = is_context and "Context" or "DW"
         show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
     end
 end
+
 
 local function cmd_toggle_sub_vis()
     if FSM.DRUM_WINDOW ~= "OFF" then
@@ -6191,74 +6095,32 @@ end
 -- =========================================================================
 
 local function cmd_copy_sub()
-    local ctext = ""
     local time_pos = mp.get_property_number("time-pos")
+    if not time_pos then return end
+    
+    local final_text = ""
     local is_context = false
 
-    if FSM.COPY_CONTEXT == "ON" and time_pos then
+    -- 1. Check for Context Copy
+    if FSM.COPY_CONTEXT == "ON" then
         local ctx = get_copy_context_text(time_pos)
         if ctx and ctx ~= "" then 
-            ctext = ctx 
+            final_text = ctx:gsub("{[^}]+}", ""):gsub("\n", " ")
             is_context = true
         end
     end
     
-    -- Primary: Internal tracks (Requirement: Unified Source Fallback / OSD-Independent)
-    if ctext == "" and time_pos then
-        local pri_idx = get_center_index(Tracks.pri.subs, time_pos)
-        local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
-        
-        local pri_s = (pri_idx ~= -1) and Tracks.pri.subs[pri_idx]
-        local sec_s = (sec_idx ~= -1) and Tracks.sec.subs[sec_idx]
-        
-        local pri_line = (pri_s and time_pos >= pri_s.start_time and time_pos <= pri_s.end_time) and pri_s.text or ""
-        local sec_line = (sec_s and time_pos >= sec_s.start_time and time_pos <= sec_s.end_time) and sec_s.text or ""
-        
-        if pri_line ~= "" or sec_line ~= "" then
-            ctext = pri_line .. ((pri_line ~= "" and sec_line ~= "") and "\n" or "") .. sec_line
+    -- 2. Standard Copy (Active Line)
+    if final_text == "" then
+        local cl = get_center_index(Tracks.pri.subs, time_pos)
+        if cl ~= -1 then
+            final_text = prepare_export_text({ type = "POINT", line = cl }, { 
+                copy_mode = FSM.COPY_MODE, 
+                filter_russian = Options.copy_filter_russian 
+            })
         end
     end
 
-    -- Fallback: Native properties (if internal data unavailable)
-    if ctext == "" then
-        local p_text = mp.get_property("sub-text") or ""
-        local s_text = mp.get_property("secondary-sub-text") or ""
-        if p_text ~= "" or s_text ~= "" then
-            ctext = p_text .. ((p_text ~= "" and s_text ~= "") and "\n" or "") .. s_text
-        end
-    end
-    
-    -- Clean text (remove ASS tags)
-    ctext = ctext:gsub("{[^}]+}", ""):gsub("\\N", "\n")
-    
-    local final_text = ""
-    
-    if is_context then
-        -- Context Copy already filtered lines internally, just join whatever it gave us
-        final_text = ctext:gsub("\n", " ")
-    else
-        local lines = {}
-        for raw_line in ctext:gmatch("[^\n]+") do
-            local line = raw_line:match("^%s*(.-)%s*$")
-            if line and line ~= "" then table.insert(lines, line) end
-        end
-        
-        if #lines > 0 then
-            local valid = {}
-            if Options.copy_filter_russian then
-                for _, ln in ipairs(lines) do
-                    local cyr = has_cyrillic(ln)
-                    if (FSM.COPY_MODE == "A" and not cyr) or (FSM.COPY_MODE == "B" and cyr) then table.insert(valid, ln) end
-                end
-                
-                if #valid == 0 then table.insert(valid, (FSM.COPY_MODE == "A") and lines[1] or lines[#lines]) end
-            else
-                table.insert(valid, (FSM.COPY_MODE == "A") and lines[1] or lines[#lines])
-            end
-            final_text = table.concat(valid, " ")
-        end
-    end
-    
     if final_text ~= "" then
         set_clipboard(final_text)
         
@@ -6273,6 +6135,7 @@ local function cmd_copy_sub()
         show_osd("No subtitle to copy")
     end
 end
+
 
 -- =========================================================================
 -- SYSTEM EVENTS
