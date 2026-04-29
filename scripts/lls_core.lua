@@ -2590,6 +2590,24 @@ local function is_ignorable_for_semantic_pass(text)
     return false
 end
 
+local function is_inside_dw_selection(l, w)
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return false end
+    
+    local p1_l, p1_w, p2_l, p2_w
+    if al < cl or (al == cl and aw <= cw) then
+        p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+    else
+        p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+    end
+    
+    if l < p1_l or l > p2_l then return false end
+    if l == p1_l and w < p1_w - L_EPSILON then return false end
+    if l == p2_l and w > p2_w + L_EPSILON then return false end
+    return true
+end
+
 local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, entry)
     local token_meta = {}
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
@@ -2828,23 +2846,6 @@ local function dw_get_str_width(str, fs, font_name)
     return w
 end
 
-local function is_inside_dw_selection(l, w)
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return false end
-    
-    local p1_l, p1_w, p2_l, p2_w
-    if al < cl or (al == cl and aw <= cw) then
-        p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
-    else
-        p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
-    end
-    
-    if l < p1_l or l > p2_l then return false end
-    if l == p1_l and w < p1_w - L_EPSILON then return false end
-    if l == p2_l and w > p2_w + L_EPSILON then return false end
-    return true
-end
 
 local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     local b_gap_mul = Options[prefix .. "_block_gap_mul"] or 0
@@ -3228,7 +3229,6 @@ local function draw_dw(subs, view_center, active_idx)
     -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    end
 
     -- Pass 1: Global Highlight Pre-Pass
     for layout_i, entry in ipairs(layout) do
