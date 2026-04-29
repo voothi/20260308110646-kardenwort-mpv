@@ -1020,7 +1020,7 @@ local function compose_term_smart(words)
         
         if next_w then
             -- Smart joiner: No space based on punctuation rules (covers English, German, Russian, etc.)
-            local no_space_before = next_w:match("[%.,!?;:…»”%)%]%}]$") 
+            local no_space_before = next_w:match("^[%.,!?;:…»”%)%]%}]$") 
                                   or next_w:match("^[/-]$") 
                                   or next_w:match("^\226\128\147$") -- en-dash
                                   or next_w:match("^\226\128\148$") -- em-dash
@@ -1032,7 +1032,7 @@ local function compose_term_smart(words)
                                  or w:match("^[%[%({¿¡«„“]$")
                                  or w:match("^[\"']$")
             
-            if no_space_before or no_space_after then
+            if no_space_before or no_space_after or w:match("%s$") or next_w:match("^%s") then
                 -- Join without space
             else
                 res = res .. " "
@@ -1803,9 +1803,18 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         local crop_start = math.max(1, first_idx - pad)
         local crop_end   = math.min(#words, last_idx + pad)
         print(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
-        local span_words = {}
-        for i = crop_start, crop_end do table.insert(span_words, words[i]) end
-        return compose_term_smart(span_words):match("^%s*(.-)%s*$")
+        local f_byte = (crop_start == 1) and 1 or nil
+        local l_byte = (crop_end == #words) and #sentence or nil
+        local curr = 1
+        for i = 1, crop_end do
+            local s, e = sentence:find(words[i], curr, true)
+            if s then
+                if i == crop_start then f_byte = s end
+                if i == crop_end then l_byte = e end
+                curr = e + 1
+            end
+        end
+        return sentence:sub(f_byte or 1, l_byte or #sentence):match("^%s*(.-)%s*$")
     end
     
     -- Center the viewport around the detected span
@@ -1828,10 +1837,18 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     
     print(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
     
-    local context_words = {}
-    for i = context_start, context_end do table.insert(context_words, words[i]) end
-    
-    return compose_term_smart(context_words):match("^%s*(.-)%s*$")
+    local f_byte = (context_start == 1) and 1 or nil
+    local l_byte = (context_end == #words) and #sentence or nil
+    local curr = 1
+    for i = 1, context_end do
+        local s, e = sentence:find(words[i], curr, true)
+        if s then
+            if i == context_start then f_byte = s end
+            if i == context_end then l_byte = e end
+            curr = e + 1
+        end
+    end
+    return sentence:sub(f_byte or 1, l_byte or #sentence):match("^%s*(.-)%s*$")
 end
 
 
