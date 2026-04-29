@@ -3590,6 +3590,27 @@ local function is_abbrev(w)
     return false
 end
 
+local function clean_anki_term(term)
+    if not term or term == "" then return "" end
+    -- Remove ASS tags
+    term = term:gsub("{[^}]+}", "")
+    -- Balanced bracket stripping (only if it wraps the entire selection)
+    if term:match("^%b[]$") then
+        term = term:sub(2, -2)
+    end
+    -- Space normalization
+    term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    
+    -- Strip non-terminal punctuation (the restoration logic handles terminal ones)
+    local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
+    local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
+    if #pre < #term then
+        term = term:sub(#pre + 1, #term - #suf)
+    end
+    
+    return term or ""
+end
+
 local function dw_anki_export_selection()
     local ok, err = pcall(function()
         local subs = Tracks.pri.subs
@@ -3627,11 +3648,15 @@ local function dw_anki_export_selection()
                     local is_last_line = (i == p2_l)
                     
                     local line_parts = {}
+                    local sub_wc = sub.word_count or 0
                     for _, t in ipairs(tokens) do
                         if t.logical_idx then
-                            -- Strict boundary check only applies to the final line where the drag ended
+                            -- Strict boundary check: Only include trailing tokens if we reached the end of the sub segment
                             if is_last_line and t.logical_idx > p2_w + L_EPSILON then
-                                if t.is_word then break end
+                                -- Break if we hit another word OR if the user didn't select the last word of the line
+                                if p2_w < sub_wc or t.is_word then break end
+                                -- Avoid capturing opening characters or spaces from the next word
+                                if t.text:match("^[%s%(%[{<]") then break end
                             end
 
                             -- Include token if it's on a middle/last line OR if it's past the start anchor on the first line
@@ -3773,24 +3798,9 @@ local function dw_anki_export_selection()
         end
 
         if term and term ~= "" then
-            -- Clean term: remove ASS tags and trim whitespace
-            term = term:gsub("{[^}]+}", "")
-            -- Context-Aware Bracket Stripping:
-            -- Remove brackets if and only if they wrap the entire selection.
-            -- This preserves brackets inside phrases (e.g. "kann [musik]") 
-            -- but strips them for individual metadata picks (e.g. "[musik]" -> "musik").
-            if term:match("^%b[]$") then
-                term = term:sub(2, -2)
-            end
-            term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
-            
-            -- Clean capture: Remove leading/trailing punctuation (excluding brackets/parentheses)
-            local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
-            local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
             local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
-            if #pre < #term then
-                term = term:sub(#pre + 1, #term - #suf)
-            end
+            term = clean_anki_term(term)
+            
             -- If the selection starts at a boundary AND original subtitle ended with a period (or ! or ?) AND
             -- the cleaned term starts with an uppercase letter AND contains spaces (multi-word), restore the period.
             if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
@@ -3920,11 +3930,12 @@ local function ctrl_commit_set(line_idx, word_idx)
     
     -- Compose the term with adaptive gap detection
     local subs = Tracks.pri.subs
-    local term = ""
+    local term_tokens = {}
     local last_m = nil
     
     local is_sentence_boundary = false
     local raw_had_terminal = false
+    local terminal_punct = nil
     
     for idx, m in ipairs(members) do
         local sub = subs[m.line]
@@ -3954,88 +3965,86 @@ local function ctrl_commit_set(line_idx, word_idx)
                     end
                 end
 
-                -- Terminal punctuation detection for last member
-                if idx == #members then
-                    local found_word = false
-                    for _, t in ipairs(tokens) do
-                        if logical_cmp(t.logical_idx, m.word) then
-                            w = t.text
-                            m.is_word = t.is_word
-                            found_word = true
-                        elseif found_word then
-                            if t.is_word then break end
-                            if t.text:match("[.!?]") then
-                                raw_had_terminal = true
-                                break
-                            end
+                -- Word lookup and trailing punctuation lookahead
+                local word_found = false
+                local captured_punct = nil
+                for _, t in ipairs(tokens) do
+                    if logical_cmp(t.logical_idx, m.word) then
+                        w = t.text
+                        m.is_word = t.is_word
+                        word_found = true
+                    elseif word_found then
+                        -- Multi-pass lookahead: skip metadata tags when searching for punctuation
+                        local text = t.text
+                        local is_meta = t.is_word and text:match("^%b[]$")
+                        
+                        if t.is_word and not is_meta then
+                            break -- Hit a real word, stop lookahead
                         end
-                    end
-                else
-                    -- Normal word lookup
-                    for _, t in ipairs(tokens) do
-                        if logical_cmp(t.logical_idx, m.word) then
-                            w = t.text
-                            m.is_word = t.is_word
+                        
+                        if not t.is_word and text:match("[.!?]") then
+                            captured_punct = text:match("[.!?]+")
                             break
                         end
                     end
                 end
+                if idx == #members and captured_punct then
+                    raw_had_terminal = true
+                    terminal_punct = captured_punct
+                end
             end
             
             if w then
-                local clean_w = w
-                if Options.anki_strip_metadata and clean_w:match("^%b[]$") then
-                    clean_w = clean_w:gsub("[%[%]]", "")
-                end
-
-                if not clean_w:match("^%s*$") then
-                    if last_m then
-                        local is_gap = false
-                        if m.line > last_m.line then
-                            local last_line_wc = subs[last_m.line].word_count or 0
-                            if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
-                                is_gap = true
-                            end
-                        elseif m.word > last_m.word + 1 then
+                if last_m then
+                    local is_gap = false
+                    if m.line > last_m.line then
+                        local last_line_wc = subs[last_m.line].word_count or 0
+                        if (m.line > last_m.line + 1) or (last_m.word < last_line_wc) or (m.word > 1) then
                             is_gap = true
                         end
+                    elseif m.word > last_m.word + 1 then
+                        is_gap = true
+                    end
 
-                        if is_gap then
-                            term = term .. " ... "
-                        else
-                            local interstitial = ""
-                            if m.line == last_m.line then
-                                for _, t in ipairs(tokens) do
-                                    if t.logical_idx > last_m.word and t.logical_idx < m.word then
-                                        interstitial = interstitial .. t.text
-                                    end
+                    if is_gap then
+                        table.insert(term_tokens, "...")
+                    else
+                        if m.line == last_m.line then
+                            for _, t in ipairs(tokens) do
+                                if t.logical_idx > last_m.word and t.logical_idx < m.word then
+                                    table.insert(term_tokens, t.text)
                                 end
-                            else
-                                local trail = ""
-                                local last_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
-                                for _, t in ipairs(last_tokens) do
-                                    if t.logical_idx > last_m.word then trail = trail .. t.text end
-                                end
-                                local lead = ""
-                                for _, t in ipairs(tokens) do
-                                    if t.logical_idx < m.word then lead = lead .. t.text end
-                                end
-                                interstitial = trail .. " " .. lead
                             end
-                            term = term .. interstitial
+                        else
+                            local last_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
+                            for _, t in ipairs(last_tokens) do
+                                if t.logical_idx > last_m.word then 
+                                    table.insert(term_tokens, t.text) 
+                                end
+                            end
+                            table.insert(term_tokens, " ")
+                            for _, t in ipairs(tokens) do
+                                if t.logical_idx < m.word then 
+                                    table.insert(term_tokens, t.text) 
+                                end
+                            end
                         end
                     end
-                    term = term .. clean_w
-                    last_m = m
                 end
+                table.insert(term_tokens, w)
+                last_m = m
             end
         end
     end
+    
+    term = compose_term_smart(term_tokens)
     if term == "" then return end
+
+    term = clean_anki_term(term)
 
     -- Restore Terminal Period Logic (Sync with Yellow selection behavior)
     if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
-        term = term .. "."
+        term = term .. (terminal_punct or ".")
     end
     
     -- Use the earliest selected word's line for timestamp (document-natural start)

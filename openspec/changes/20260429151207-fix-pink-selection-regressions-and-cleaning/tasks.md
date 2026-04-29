@@ -1,18 +1,18 @@
 ## 1. Unified Shared Logic
 
-- [ ] 1.1 Create `clean_anki_term(term)` in `lls_core.lua` to encapsulate tag/metadata stripping.
-- [ ] 1.2 Update `dw_anki_export_selection` to use `clean_anki_term`.
+- [x] 1.1 Create `clean_anki_term(term)` in `lls_core.lua` to encapsulate tag/metadata stripping.
+- [x] 1.2 Update `dw_anki_export_selection` to use `clean_anki_term`.
 
 ## 2. Fix Yellow Selection Regression (Dangling Parenthesis)
 
-- [ ] 2.1 Implement "End of Line" guard in `dw_anki_export_selection` trailing token loop.
-- [ ] 2.2 Add punctuation filter to exclude opening characters (`(`, `[`) from trailing capture.
+- [x] 2.1 Implement "End of Line" guard in `dw_anki_export_selection` trailing token loop.
+- [x] 2.2 Add punctuation filter to exclude opening characters (`(`, `[`) from trailing capture.
 
 ## 3. Refactor Pink Selection (Paired Export)
 
-- [ ] 3.1 Integrate `clean_anki_term` into `ctrl_commit_set`.
-- [ ] 3.2 Implement multi-pass lookahead for literal terminal punctuation (skipping metadata).
-- [ ] 3.3 Replace manual concatenation with `compose_term_smart` for non-gap word joining.
+- [x] 3.1 Integrate `clean_anki_term` into `ctrl_commit_set`.
+- [x] 3.2 Implement multi-pass lookahead for literal terminal punctuation (skipping metadata).
+- [x] 3.3 Replace manual concatenation with `compose_term_smart` for non-gap word joining.
 
 ## 4. Verification
 
