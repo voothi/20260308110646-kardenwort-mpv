@@ -4812,12 +4812,15 @@ local function dw_closest_word_at_x(sub, target_x)
         for k, wi in ipairs(vl_indices) do
             local ww = dw_get_str_width(tokens[wi])
             local l_idx = visual_to_logical[wi]
-            if l_idx and tokens[wi].is_word then
-                local cx = vl_left + pos + ww / 2
-                local dist = math.abs(cx - target_x)
-                if dist < best_dist then
-                    best_dist = dist
-                    best_logical = l_idx
+            if l_idx then
+                -- Ignore pure whitespace for mouse hit-testing
+                if not tokens[wi].text:match("^%s*$") then
+                    local cx = vl_left + pos + ww / 2
+                    local dist = math.abs(cx - target_x)
+                    if dist < best_dist then
+                        best_dist = dist
+                        best_logical = l_idx
+                    end
                 end
             end
             pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)

@@ -896,7 +896,7 @@
 20260429201603 Okay, but why now Shift + Left or Right Arrow has started to highlight spaces between words (invisibly), i.e. I need to press them additionally, which I didn't notice before.
 20260429202300 Why is the bracket not colored with this choice).
 20260429202646 Rename unify-subtitle-export-and-keyboard-granularity to 20260429195210-unify-subtitle-export-and-keyboard-granularity
-
+20260429203158 Some kind of leapfrog with the highlighting of brackets, what influences this, why in one case they are added when captured with the mouse, in another case they are not, in another place.
 
 
 
