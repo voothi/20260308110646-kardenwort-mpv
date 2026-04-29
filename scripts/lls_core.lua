@@ -1804,10 +1804,10 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                             if data.__pivots and #data.__pivots > 0 then
                                                 local all_pivots_matched = true
                                                 for _, g in ipairs(data.__pivots) do
-                                                    local m = ctx_list[current_tuple[g.t_pos]]
+                                                    local m = ctx_list[current_tuple[g.p_idx]]
                                                     -- Apply +/- 1 segment drift tolerance
                                                     local line_match = m and math.abs(m.s_i - (origin_sub_idx + g.l_off)) <= 1
-                                                    if not (line_match and m.l_i == g.p_idx) then
+                                                    if not (line_match and m.l_i == g.l_idx) then
                                                         all_pivots_matched = false; break
                                                     end
                                                 end
@@ -2382,7 +2382,7 @@ local function load_anki_tsv(force)
                             else
                                 local single = tonumber(part)
                                 if single then 
-                                    table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) 
+                                    table.insert(data.__pivots, {l_off = 0, l_idx = single, p_idx = 1}) 
                                     if 0 < min_l then min_l = 0; min_w = single end
                                     if 0 > max_l then max_l = 0; max_w = single end
                                     if single < min_w and min_l == 0 then min_w = single end
@@ -3007,19 +3007,21 @@ local DRUM_DRAW_CACHE = {
     sec = { center_idx = -1, y_pos = -1, fs = -1, db_ver = -1, res = "", hz = {} }
 }
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones, cache_key)
+local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, master_hit_zones, cache_key)
     if center_idx == -1 then return "" end
     
     local db_ver = FSM.ANKI_DB_MTIME or 0
     if cache_key and DRUM_DRAW_CACHE[cache_key] then
         local c = DRUM_DRAW_CACHE[cache_key]
         if c.center_idx == center_idx and c.y_pos == y_pos_percent and c.fs == font_size and c.db_ver == db_ver then
-            if hit_zones and #c.hz > 0 then
-                for _, hz in ipairs(c.hz) do table.insert(hit_zones, hz) end
+            if master_hit_zones and #c.hz > 0 then
+                for _, hz in ipairs(c.hz) do table.insert(master_hit_zones, hz) end
             end
             return c.res
         end
     end
+    
+    local local_hit_zones = {}
 
     local is_drum = (FSM.DRUM == "ON")
     local context_lines = is_drum and Options.drum_context_lines or 0
@@ -3082,7 +3084,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                 vl.y_bottom = vl.y_top + vl.height
                 vl.x_start = 960 - vl.total_width / 2
                 vl.sub_idx = m.sub_idx -- For hit-zone tracking
-                table.insert(hit_zones, vl)
+                table.insert(local_hit_zones, vl)
             end
         end
         cur_y = cur_y + m.total_height
@@ -3167,8 +3169,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     if cache_key and DRUM_DRAW_CACHE[cache_key] then
         DRUM_DRAW_CACHE[cache_key] = {
             center_idx = center_idx, y_pos = y_pos_percent, fs = font_size, 
-            db_ver = db_ver, res = ass, hz = hit_zones or {}
+            db_ver = db_ver, res = ass, hz = local_hit_zones
         }
+    end
+    
+    -- Merge into master
+    if master_hit_zones then
+        for _, hz in ipairs(local_hit_zones) do table.insert(master_hit_zones, hz) end
     end
 
     return ass
