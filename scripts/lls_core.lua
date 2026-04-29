@@ -897,8 +897,8 @@ end
 
 local function is_word_char(c)
     if not c or #c == 0 then return false end
-    -- ASCII alphanumeric + apostrophe
-    if c:match("^[%w']$") then return true end
+    -- ASCII alphanumeric + apostrophe + logistical/metadata symbols
+    if c:match("^[%w'/%-%[%]]$") then return true end
     -- German/Russian/Cyrillic support
     local u = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
     local l = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
@@ -973,15 +973,7 @@ local function build_word_list_internal(text, keep_spaces)
             token.text = table.concat(chars, "", start, math.min(i, n))
             i = i + 1
             
-        -- 2. Handle Metadata Brackets (Atomize, but do not increment logical index)
-        elseif c == "[" then
-            local start = i
-            while i <= n and chars[i] ~= "]" do i = i + 1 end
-            token.text = table.concat(chars, "", start, math.min(i, n))
-            token.is_word = false
-            token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
-            curr_sub_idx = curr_sub_idx + 0.1
-            i = i + 1
+        -- 2. (Metadata brackets now handled by is_word_char/is_word logic)
             
         -- 3. Handle Whitespace
         elseif c:match("^%s$") or c == "\194\160" then
@@ -1845,7 +1837,19 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set then
                             if valid_set.indices[sub_idx .. "-" .. token_idx] then
                                 match_found = true
-                                term_is_split = true
+                                -- Requirement 60: If fuzzy match is entirely local and sequential, 
+                                -- treat it as contiguous (Orange) instead of split (Purple).
+                                local is_contiguous = valid_set.is_local
+                                if is_contiguous then
+                                    -- Check if logical indices are sequential (ignoring punctuation)
+                                    local last_l = -1
+                                    for _, c_idx in ipairs(best_tuple) do
+                                        local cur_l = ctx_list[c_idx].l_i
+                                        if last_l ~= -1 and cur_l <= last_l then is_contiguous = false; break end
+                                        last_l = cur_l
+                                    end
+                                end
+                                term_is_split = not is_contiguous
                             end
 
                             local t_total = sub_idx * 1000 + target_l_idx
