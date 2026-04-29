@@ -2651,8 +2651,8 @@ local function is_inside_dw_selection(l, w)
     end
     
     if l < p1_l or l > p2_l then return false end
-    if l == p1_l and w < p1_w then return false end
-    if l == p2_l and w > p2_w then return false end
+    if l == p1_l and w < p1_w - L_EPSILON then return false end
+    if l == p2_l and w > p2_w + L_EPSILON then return false end
     return true
 end
 
@@ -3150,9 +3150,9 @@ local function draw_dw(subs, view_center, active_idx)
                     local selected = false
                     if has_selection then
                         if i > p1_l and i < p2_l then selected = true
-                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w and l_idx <= p2_w)
-                        elseif i == p1_l then selected = (l_idx >= p1_w)
-                        elseif i == p2_l then selected = (l_idx <= p2_w) end
+                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w - L_EPSILON and l_idx <= p2_w + L_EPSILON)
+                        elseif i == p1_l then selected = (l_idx >= p1_w - L_EPSILON)
+                        elseif i == p2_l then selected = (l_idx <= p2_w + L_EPSILON) end
                     end
                     local is_focus_point = (i == cl and logical_cmp(l_idx, cw))
                     if selected or is_focus_point then

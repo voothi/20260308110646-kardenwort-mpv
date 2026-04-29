@@ -894,7 +894,8 @@
 20260429200343 Check the solution for performance degradation.
 20260429200603 Look to see if there is a double call somewhere by mistake, some old artifacts that can affect performance, stability, and responsiveness.
 20260429201603 Okay, but why now Shift + Left or Right Arrow has started to highlight spaces between words (invisibly), i.e. I need to press them additionally, which I didn't notice before.
-
+20260429202300 Why is the bracket not colored with this choice).
+20260429202646 Rename unify-subtitle-export-and-keyboard-granularity to 20260429195210-unify-subtitle-export-and-keyboard-granularity
 
 
 
