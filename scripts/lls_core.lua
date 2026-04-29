@@ -908,6 +908,8 @@ end
 
 
 
+local L_EPSILON = 0.0001
+
 local function build_word_list_internal(text, keep_spaces)
     local tokens = {}
     if not text then return tokens end
@@ -1395,7 +1397,6 @@ local function is_word_char(ch)
     return ch:match("[%w\128-\255]") ~= nil
 end
 
-local L_EPSILON = 0.0001
 
 local function logical_cmp(a, b)
     if not a or not b then return false end

@@ -887,7 +887,7 @@
 20260429185938 opsx-apply 20260429185737-rework-string-preparation-for-export
 20260429191545 You have made significant code changes, check for regression, check for compliance with specifications. Current c8e30a8e5dc78cc4947b5d73e92ac138aed7ecd7, previous version 7bf6ee98c3489b577bec1fc5ffe6073ed90ca08b. Specs openspec\specs.
 20260429192829 Fix
-
+20260429193014 Error
 
 
 
