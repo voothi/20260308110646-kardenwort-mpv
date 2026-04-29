@@ -121,11 +121,43 @@ The export system SHALL ensure that phrases resembling complete sentences mainta
 - **THEN** the system SHALL append the terminal punctuation to the exported term if it is not already present.
 - **AND** this behavior SHALL be identical to the existing standard selection (Yellow) export logic.
 
-### Requirement: Unified Paired Export Cleaning
-The paired selection export path (Pink selection) SHALL apply the same metadata and ASS tag cleaning logic as the standard selection path (Yellow selection) for the `source_word` field.
+### Requirement: Unified High-Fidelity Export Joining
+All export paths (Clipboard and TSV) SHALL use the original subtitle spacing and punctuation by concatenating tokens directly from the source text, prioritizing verbatim fidelity over typographic "normalization". 
+- This REPLACES Requirement 131 (Spacing Consistency) for export-only paths.
+- OSD rendering logic remains governed by typographic rules.
 
-### Requirement: Strict Selection Boundaries (End-of-Line Guard)
-Standard selection (Yellow) export SHALL NOT capture trailing punctuation or spaces if the selection does not include the final word of the subtitle segment. Opening punctuation characters (e.g., `(`, `[` ) from subsequent words SHALL ALWAYS be excluded from the exported term.
+#### Scenario: Exporting text with non-standard spacing
+- **GIVEN** a subtitle line "Word1 , Word2" (with a space before the comma)
+- **WHEN** the user selects this range and copies it
+- **THEN** the resulting string SHALL be "Word1 , Word2" (verbatim)
+- **AND NOT** "Word1, Word2" (normalized)
 
-### Requirement: Spacing Consistency
-All export paths SHALL use grammar-aware token joining (equivalent to `compose_term_smart`) to ensure consistent spacing around metadata and punctuation tokens.
+### Requirement: Selection Punctuation Preservation
+Export logic SHALL NOT automatically strip leading or trailing punctuation symbols if they were explicitly included in the user's selection range.
+- This MODIFIES Requirement 128 (Strict Selection Boundaries) to respect user intent.
+
+#### Scenario: Explicitly selecting a bracketed word
+- **GIVEN** a subtitle "[Musik]"
+- **WHEN** the user highlights the entire line including the brackets
+- **THEN** the exported term SHALL be "[Musik]"
+- **AND NOT** "Musik"
+
+### Requirement: Unified String Preparation Engine
+The system SHALL use a single, unified `prepare_export_text` service for all clipboard and Anki export pathways. This service MUST handle token concatenation, metadata cleaning, and punctuation restoration consistently to ensure architectural parity.
+
+#### Scenario: Copying text from Drum Window
+- **GIVEN** a word "test" is selected in the Drum Window
+- **WHEN** the copy command is triggered
+- **THEN** `prepare_export_text` SHALL be called with the selection data to generate the clipboard string.
+
+### Requirement: Adjacent Member Fidelity
+When exporting adjacent selection members on the same subtitle line in non-contiguous (Pink) mode, the system SHALL pull the actual intermediate tokens (hyphens, slashes, etc.) from the source text instead of injecting a default space separator.
+
+#### Scenario: Exporting hyphenated term via Pink selection
+- **GIVEN** tokens `["Marken", "-", "Discount"]`
+- **AND** "Marken" and "Discount" are added to the Pink set
+- **WHEN** the export is triggered
+- **THEN** the system SHALL detect the intermediate "-" and join them as "Marken-Discount".
+
+### Requirement: Unified Sentence Restoration Parity
+The detection and restoration of terminal punctuation (`!`, `?`, `.`) for sentence fragments SHALL be identical across both Yellow and Pink selection modes, centralized within the `prepare_export_text` engine.

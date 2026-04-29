@@ -920,7 +920,6 @@
 20260430001258 Look at the color. Is this correct?
 20260430001519 Look. Violet!
 20260430001655 Error
-
-
-
+20260430002120 It seems to have worked. Check compliance with specifications. Can we first update and archive our projects with synchronization? openspec\changes\20260429185737-rework-string-preparation-for-export openspec\changes\20260429195210-unify-subtitle-export-and-keyboard-granularity openspec\changes\20260429212717-unify-global-highlighting
+20260430002549 Accept
 

@@ -111,6 +111,9 @@ The rendering engine SHALL implement a multi-pass coloring logic to ensure that 
 - **AND** it is followed by an exclamation mark "!" and then the end of the line.
 - **THEN** both "Welt" and "!" SHALL be rendered in orange.
 
+### Requirement: Atomic Tokenization for Logistical/Metadata Units
+The tokenizer SHALL treat logistical symbols (`/`, `-`) and metadata brackets (`[`, `]`) as part of the word-character definition to ensure that units like `(Gersdorf/Straubing-Ost)` and `[UMGEBUNG]` are handled as atomic tokens. This prevents logical index shifts when evaluating database-anchored highlights.
+
 ### Requirement: German UTF-8 Localization
 The normalization engine MUST accurately map German uppercase umlauts and sharp S to their lowercase equivalents to support case-insensitive matching in German media.
 
