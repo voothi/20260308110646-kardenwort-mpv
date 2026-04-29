@@ -964,7 +964,7 @@ local function build_word_list_internal(text, keep_spaces)
     
     while i <= n do
         local c = chars[i]
-        local token = { text = "", is_word = false, logical_idx = nil, visual_idx = curr_visual_idx }
+        local token = { text = "", is_word = false, logical_idx = nil, visual_idx = curr_visual_idx, char_idx = i }
         
         -- 1. Handle ASS Tags (Atomize)
         if c == "{" then
@@ -1128,8 +1128,20 @@ local function prepare_export_text(params, options)
                 for _, t in ipairs(tokens) do
                     if t.logical_idx then
                         local in_range = true
-                        if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
-                        if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                        if i == p1_l then
+                            if params.p1_c and t.char_idx then
+                                if t.char_idx < params.p1_c then in_range = false end
+                            elseif t.logical_idx and t.logical_idx < p1_w - L_EPSILON then
+                                in_range = false
+                            end
+                        end
+                        if i == p2_l then
+                            if params.p2_c and t.char_idx then
+                                if t.char_idx > params.p2_c then in_range = false end
+                            elseif t.logical_idx and t.logical_idx > p2_w + L_EPSILON then
+                                in_range = false
+                            end
+                        end
                         
                         if in_range then
                             table.insert(line_parts, t.text)
@@ -1191,7 +1203,14 @@ local function prepare_export_text(params, options)
                 end
 
                 for _, t in ipairs(tokens) do
-                    if logical_cmp(t.logical_idx, m.word) then
+                    local match = false
+                    if m.char_idx and m.char_idx > 0 and t.char_idx then
+                        if t.char_idx == m.char_idx then match = true end
+                    elseif logical_cmp(t.logical_idx, m.word) then
+                        match = true
+                    end
+                    
+                    if match then
                         w_text = t.text
                         break
                     end
@@ -1457,6 +1476,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not target_token or not target_token.is_word then return 0, 0, false, {}, 0 end
     
     local target_l_idx = target_token.logical_idx
+    local target_char_idx = target_token.char_idx
     local target_word_text = target_token.text
     local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
     if target_lower_full == "" then return 0, 0, false, {}, 0 end
@@ -1545,12 +1565,22 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 if data.index and not data.__pivots then
                     data.__pivots = {}
                     for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
-                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                        local l_off, l_idx, c_off, p_idx = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+):(%d+)$")
+                        if not l_off then
+                            l_off, l_idx, p_idx = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                            c_off = nil
+                        end
+                        
                         if l_off then
-                            table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
+                            table.insert(data.__pivots, {
+                                l_off = tonumber(l_off), 
+                                l_idx = tonumber(l_idx), 
+                                c_off = tonumber(c_off), 
+                                p_idx = tonumber(p_idx)
+                            })
                         else
                             local single = tonumber(part)
-                            if single then table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) end
+                            if single then table.insert(data.__pivots, {l_off = 0, l_idx = single, p_idx = 1}) end
                         end
                     end
                 end
@@ -1681,7 +1711,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     if g then
                                         -- Apply +/- 1 segment drift tolerance to absorb +1ms temporal epsilon boundaries
                                         local line_match = math.abs(sub_idx - (origin_l + g.l_off)) <= 1
-                                        if line_match and target_l_idx == g.p_idx then
+                                        local word_match = (target_l_idx == g.l_idx)
+                                        
+                                        if word_match and g.c_off and g.c_off > 0 and target_char_idx and target_char_idx > 0 then
+                                            -- Precision Char-offset check
+                                            if target_char_idx ~= g.c_off then
+                                                word_match = false
+                                            end
+                                        end
+                                        
+                                        if line_match and word_match then
                                             context_satisfied = true
                                         end
                                     end
@@ -2324,11 +2363,16 @@ local function load_anki_tsv(force)
                         local max_w = 0
                         
                         for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
-                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                            local l_off, l_idx, c_off, p_idx = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+):(%d+)$")
+                            if not l_off then
+                                l_off, l_idx, p_idx = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                                c_off = nil
+                            end
+
                             if l_off then
                                 local r_l = tonumber(l_off)
-                                local r_w = tonumber(p_idx)
-                                table.insert(data.__pivots, {l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos)})
+                                local r_w = tonumber(l_idx)
+                                table.insert(data.__pivots, {l_off = r_l, l_idx = r_w, c_off = tonumber(c_off), p_idx = tonumber(p_idx)})
                                 
                                 if r_l < min_l then min_l = r_l; min_w = r_w
                                 elseif r_l == min_l then if r_w < min_w then min_w = r_w end end
@@ -2927,7 +2971,8 @@ local function calculate_osd_line_meta(subs, sub_idx, font_size, font_name, line
                     logical_idx = t.logical_idx,
                     x_offset = line_w + space, -- Relative to start of visual line
                     width = ww,
-                    text = t.text
+                    text = t.text,
+                    char_idx = t.char_idx
                 })
             end
             line_w = line_w + space + ww
@@ -3479,13 +3524,15 @@ local function dw_hit_test(osd_x, osd_y)
     if osd_y <= block_top then
         local first = layout[1]
         local v_idx = first.vlines[1][1]
-        return first.sub_idx, first.visual_to_logical[v_idx] or 1
+        local l_idx = first.visual_to_logical[v_idx] or 1
+        return first.sub_idx, l_idx, first.words[v_idx].char_idx or 0
     end
     if osd_y >= block_top + total_height then
         local last = layout[#layout]
         local last_vl = last.vlines[#last.vlines]
         local v_idx = last_vl[#last_vl]
-        return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+        local l_idx = last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+        return last.sub_idx, l_idx, last.words[v_idx].char_idx or 0
     end
 
     local y_pos = block_top
@@ -3510,8 +3557,14 @@ local function dw_hit_test(osd_x, osd_y)
             local vl_left = 960 - vl_width / 2
 
             local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or math.max(1, #entry.logical_words) end
+            if cx < 0 then 
+                local v_idx = vl_indices[1]
+                return entry.sub_idx, entry.visual_to_logical[v_idx] or 1, entry.words[v_idx].char_idx or 0
+            end
+            if cx >= vl_width then 
+                local v_idx = vl_indices[#vl_indices]
+                return entry.sub_idx, entry.visual_to_logical[v_idx] or math.max(1, #entry.logical_words), entry.words[v_idx].char_idx or 0
+            end
 
             -- Build word center positions for snap-to-nearest logic
             local centers = {}
@@ -3549,7 +3602,7 @@ local function dw_hit_test(osd_x, osd_y)
                 logical_wi = best_logical or 1
             end
 
-            return entry.sub_idx, logical_wi
+            return entry.sub_idx, logical_wi, entry.words[visual_wi].char_idx or 0
         end
         y_pos = entry_bottom + sub_gap
     end
@@ -3558,7 +3611,7 @@ local function dw_hit_test(osd_x, osd_y)
     local last = layout[#layout]
     local last_vl = last.vlines[#last.vlines]
     local v_idx = last_vl[#last_vl]
-    return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+    return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words), last.words[v_idx].char_idx or 0
 end
 
 local function drum_osd_hit_test(osd_x, osd_y)
@@ -3570,6 +3623,7 @@ local function drum_osd_hit_test(osd_x, osd_y)
             if rel_x >= 0 and rel_x <= line.total_width then
                 -- Find closest word in this line
                 local best_logical_idx = nil
+                local best_char_idx = 0
                 local min_dist = math.huge
                 for _, word in ipairs(line.words) do
                     local center = word.x_offset + word.width / 2
@@ -3577,9 +3631,10 @@ local function drum_osd_hit_test(osd_x, osd_y)
                     if dist < min_dist then
                         min_dist = dist
                         best_logical_idx = word.logical_idx
+                        best_char_idx = word.char_idx or 0
                     end
                 end
-                return line.sub_idx, best_logical_idx
+                return line.sub_idx, best_logical_idx, best_char_idx
             end
         end
     end
@@ -3592,7 +3647,7 @@ local function lls_hit_test_all(osd_x, osd_y)
     elseif Options.osd_interactivity then
         return drum_osd_hit_test(osd_x, osd_y)
     end
-    return nil, nil
+    return nil, nil, nil
 end
 
 
@@ -3604,10 +3659,10 @@ local function dw_sync_cursor_to_mouse()
     if not subs or #subs == 0 then return end
 
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, word_idx
+    local line_idx, word_idx, char_idx
     
     if FSM.DRUM_WINDOW ~= "OFF" or Options.osd_interactivity then
-        line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+        line_idx, word_idx, char_idx = lls_hit_test_all(osd_x, osd_y)
     end
 
     if line_idx and word_idx then
@@ -3617,6 +3672,7 @@ local function dw_sync_cursor_to_mouse()
         if FSM.DW_MOUSE_DRAGGING and not FSM.DW_PROTECTED_SELECTION then
             FSM.DW_CURSOR_LINE = line_idx
             FSM.DW_CURSOR_WORD = word_idx
+            FSM.DW_CURSOR_CHAR = char_idx or 0
         end
 
         if FSM.DRUM_WINDOW ~= "OFF" then
@@ -3867,14 +3923,14 @@ local function dw_anki_export_selection()
         local advanced_index = nil
 
         if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            local p1_l, p1_w, p2_l, p2_w
+            local p1_l, p1_w, p1_c, p2_l, p2_w, p2_c
             if al < cl or (al == cl and aw <= cw) then
-                p1_l, p1_w, p2_l, p2_w = al, aw, cl, cw
+                p1_l, p1_w, p1_c, p2_l, p2_w, p2_c = al, aw, FSM.DW_ANCHOR_CHAR, cl, cw, FSM.DW_CURSOR_CHAR
             else
-                p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
+                p1_l, p1_w, p1_c, p2_l, p2_w, p2_c = cl, cw, FSM.DW_CURSOR_CHAR, al, aw, FSM.DW_ANCHOR_CHAR
             end
             
-            params = { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
+            params = { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p1_c = p1_c, p2_l = p2_l, p2_w = p2_w, p2_c = p2_c }
             term = prepare_export_text(params, { clean = true, restore_sentence = true })
             
             -- Requirement: Reconstruct advanced_index (word-based only)
@@ -3888,10 +3944,22 @@ local function dw_anki_export_selection()
                     for _, t in ipairs(tokens) do
                         if t.is_word then
                             local in_range = true
-                            if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
-                            if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                            if i == p1_l then
+                                if p1_c and p1_c > 0 and t.char_idx then
+                                    if t.char_idx < p1_c then in_range = false end
+                                elseif t.logical_idx < p1_w - L_EPSILON then
+                                    in_range = false
+                                end
+                            end
+                            if i == p2_l then
+                                if p2_c and p2_c > 0 and t.char_idx then
+                                    if t.char_idx > p2_c then in_range = false end
+                                elseif t.logical_idx > p2_w + L_EPSILON then
+                                    in_range = false
+                                end
+                            end
                             if in_range then
-                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                table.insert(indices, string.format("%d:%g:%d:%d", i - p1_l, t.logical_idx, t.char_idx or 0, pivot_idx))
                                 pivot_idx = pivot_idx + 1
                             end
                         end
@@ -4055,7 +4123,7 @@ local function get_dw_selection_bounds()
     end
 end
 
-local function ctrl_toggle_word(line_idx, word_idx)
+local function ctrl_toggle_word(line_idx, word_idx, char_idx)
     if line_idx < 1 or word_idx < 0 then return end
     
     if not FSM.DW_CTRL_PENDING_SET[line_idx] then
@@ -4070,7 +4138,7 @@ local function ctrl_toggle_word(line_idx, word_idx)
         for _ in pairs(line_set) do has_any = true break end
         if not has_any then FSM.DW_CTRL_PENDING_SET[line_idx] = nil end
     else
-        line_set[word_idx] = {line = line_idx, word = word_idx}
+        line_set[word_idx] = {line = line_idx, word = word_idx, char_idx = char_idx or 0}
     end
     if FSM.DRUM_WINDOW ~= "OFF" then 
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
@@ -4142,7 +4210,8 @@ local function ctrl_commit_set(line_idx, word_idx)
     -- Build advanced index string
     local indices = {}
     for i, m in ipairs(members) do
-        table.insert(indices, string.format("%d:%g:%d", m.line - p1_l, m.word, i))
+        -- m.word is logical_idx, m.char_idx is character offset
+        table.insert(indices, string.format("%d:%g:%d:%d", m.line - p1_l, m.word, m.char_idx or 0, i))
     end
     local advanced_index = table.concat(indices, ",")
     
@@ -4179,7 +4248,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             FSM.DW_MOUSE_DOWN_X, FSM.DW_MOUSE_DOWN_Y = osd_x, osd_y
 
             -- Dismiss tooltip on click and lock suppression for the current focus
-            local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+            local line_idx, word_idx, char_idx = lls_hit_test_all(osd_x, osd_y)
             
             if line_idx then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
@@ -4202,16 +4271,20 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     if not is_shift and not is_inside then
                         FSM.DW_ANCHOR_LINE = line_idx
                         FSM.DW_ANCHOR_WORD = word_idx
+                        FSM.DW_ANCHOR_CHAR = char_idx or 0
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_CURSOR_CHAR = char_idx or 0
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     elseif is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
                             FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
                             FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
+                            FSM.DW_ANCHOR_CHAR = FSM.DW_CURSOR_CHAR or 0
                         end
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_CURSOR_CHAR = char_idx or 0
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     end
                     
@@ -4237,12 +4310,13 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             local dy = math.abs(osd_y - (FSM.DW_MOUSE_DOWN_Y or 0))
             
             if (dx > 5 or dy > 5) and updates_selection then
-                local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+                local line_idx, word_idx, char_idx = lls_hit_test_all(osd_x, osd_y)
                 
                 if line_idx and word_idx then
                     if not FSM.DW_PROTECTED_SELECTION then
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_CURSOR_CHAR = char_idx or 0
                     end
                     FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
                 end
@@ -4317,7 +4391,7 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
                         if logical_cmp(t.logical_idx, s_w) then in_range = true end
                         if in_range then
                             if not t.text:match("^%s*$") then
-                                ctrl_toggle_word(i, t.logical_idx)
+                                ctrl_toggle_word(i, t.logical_idx, t.char_idx)
                             end
                         end
                         if logical_cmp(t.logical_idx, e_w) then in_range = false break end
@@ -4335,18 +4409,19 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         drum_osd:update()
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
     else
+        local line, word, char
         -- Fallback to single word toggle (standard behavior)
         if was_mouse then
             local osd_x, osd_y = dw_get_mouse_osd()
-            line, word = lls_hit_test_all(osd_x, osd_y)
+            line, word, char = lls_hit_test_all(osd_x, osd_y)
         else
-            line, word = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+            line, word, char = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD, FSM.DW_CURSOR_CHAR
         end
         
         if line and line ~= -1 and word and word ~= -1 then
             -- NEVER update cursor/anchor during a toggle-pink action if it was triggered via mouse.
             -- This ensures that RMB (context) or toggle actions don't move the selector.
-            ctrl_toggle_word(line, word)
+            ctrl_toggle_word(line, word, char)
         end
     end
 end
