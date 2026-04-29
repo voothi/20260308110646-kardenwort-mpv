@@ -50,3 +50,10 @@ The word-level `is_sentence_boundary` check in `dw_anki_export_selection` SHALL 
 #### Scenario: Word before selection is a genuine sentence end
 - **WHEN** the word immediately preceding the user's selection ends with `"."` and does NOT match the abbreviation pattern (e.g. `"Ende."`, `"Abend."`)
 - **THEN** `is_sentence_boundary` SHALL be set to `true`
+
+### Requirement: Literal Context Extraction
+The `SentenceSource` (context) field in exported Anki cards SHALL preserve the exact punctuation and spacing of the source subtitle by extracting substrings directly from the original text, rather than re-tokenizing and joining word lists.
+
+#### Scenario: Complex punctuation in context
+- **WHEN** a subtitle contains `Paketsortierung. [UMGEBUNG]`
+- **THEN** the context extraction SHALL return the substring exactly as it appears in the source, including the space between the period and the bracket.

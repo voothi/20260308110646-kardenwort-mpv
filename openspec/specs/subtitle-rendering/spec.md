@@ -124,3 +124,15 @@ The Drum Mode (Mode C) toggle SHALL control the rendering style (single-line vs 
 - **WHEN** the user presses `s` or `ы`
 - **THEN** the system SHALL NOT change the subtitle visibility state
 - **AND** it SHALL display a warning OSD indicating that visibility is managed by the Drum Window.
+
+### Requirement: Automatic Line Wrapping (SRT & Drum)
+The OSD rendering engine SHALL automatically wrap subtitle lines that exceed the visual safe area (1860px) into multiple vertical lines to prevent text from bleeding off the screen.
+
+#### Scenario: Long Sentence Wrapping
+- **WHEN** an SRT subtitle contains a sentence longer than 1860px.
+- **THEN** it SHALL be split into two or more visual lines.
+- **AND** each visual line SHALL be centered horizontally.
+- **AND** the system SHALL maintain accurate hit-testing (mouse interactivity) for every word on every wrapped visual line.
+
+### Requirement: Forced Line Breaks
+The rendering engine SHALL respect explicit newline characters (`\n`) in the source subtitle file as forced line breaks, regardless of current line width.

@@ -8,6 +8,7 @@ Provide a central, robust logic engine for reconstructing natural-language strin
 ### Requirement: Unified Punctuation Spacing Rule (UPSR)
 The system SHALL provide a central logic engine (`compose_term_smart`) for reconstructing natural-language strings specifically for UI and OSD display purposes.
 - **No Space Before**: No space SHALL be inserted before tokens: `, . ! ? : ; ) ] } … » ” / - " '` as well as En-Dashes and Em-Dashes.
+- **Anchoring Requirement**: For the "No Space Before" rule to trigger, the token MUST exactly match the prohibited character. Multi-character tags (e.g., `[UMGEBUNG]`) SHALL NOT suppress the preceding space unless they are explicitly listed.
 - **No Space After**: No space SHALL be inserted after tokens: `( [ { ¿ ¡ « „ “ / - " '` as well as En-Dashes and Em-Dashes.
 - **Default**: A single space SHALL be inserted between word tokens.
 - **Constraint**: This rule SHALL NOT apply to TSV mining exports, which require literal preservation.
