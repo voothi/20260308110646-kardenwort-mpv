@@ -1033,16 +1033,26 @@ local function build_word_list(text)
     return words
 end
 
-local function get_sub_tokens(s)
+local function get_sub_tokens(s, force_rich)
     if not s then return nil end
-    if not s.tokens then 
-        local raw_text = s.text:gsub("\n", " ")
-        s.tokens = build_word_list_internal(raw_text, Options.dw_original_spacing)
-        local wc = 0
-        for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
-        s.word_count = wc
+    local use_rich = force_rich or Options.dw_original_spacing
+    
+    if use_rich then
+        if not s.tokens_rich then
+            local raw_text = s.text:gsub("\n", " ")
+            s.tokens_rich = build_word_list_internal(raw_text, true)
+        end
+        return s.tokens_rich
+    else
+        if not s.tokens then
+            local raw_text = s.text:gsub("\n", " ")
+            s.tokens = build_word_list_internal(raw_text, false)
+            local wc = 0
+            for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
+            s.word_count = wc
+        end
+        return s.tokens
     end
-    return s.tokens
 end
 
 
@@ -2990,9 +3000,8 @@ local function dw_build_layout(subs, view_center)
     local total_height = 0
 
     for i = start_idx, end_idx do
-        local text = subs[i].text:gsub("\n", " ")
-        local tokens = build_word_list_internal(text, Options.dw_original_spacing)
-        if #tokens == 0 then tokens = {""} end
+        local tokens = get_sub_tokens(subs[i])
+        if #tokens == 0 then tokens = {{text=""}} end
 
         local logical_words = {}
         local visual_to_logical = {} -- tokens[j] -> index in logical_words
@@ -3109,7 +3118,8 @@ local function draw_dw(subs, view_center, active_idx)
                 local meta = { text = w.text, color = color, is_word = w.is_word, is_phrase = false, priority = 0 }
                 
                 -- Level 1: Persistent Selection
-                local ctrl_member = l_idx and FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", i, l_idx)] or nil
+                local line_set = FSM.DW_CTRL_PENDING_SET[i]
+                local ctrl_member = (l_idx and line_set) and line_set[l_idx] or nil
                 if ctrl_member then
                     meta.color = Options.dw_ctrl_select_color
                     meta.priority = 1
@@ -4015,19 +4025,27 @@ end
 local function ctrl_toggle_word(line_idx, word_idx)
     if line_idx < 1 or word_idx < 0 then return end
     
-    local key = string.format("%d:%g", line_idx, word_idx)
-    if FSM.DW_CTRL_PENDING_SET[key] then
-        FSM.DW_CTRL_PENDING_SET[key] = nil
+    if not FSM.DW_CTRL_PENDING_SET[line_idx] then
+        FSM.DW_CTRL_PENDING_SET[line_idx] = {}
+    end
+    
+    local line_set = FSM.DW_CTRL_PENDING_SET[line_idx]
+    if line_set[word_idx] then
+        line_set[word_idx] = nil
+        -- Clean up empty line tables to keep iteration fast
+        local has_any = false
+        for _ in pairs(line_set) do has_any = true break end
+        if not has_any then FSM.DW_CTRL_PENDING_SET[line_idx] = nil end
     else
-        FSM.DW_CTRL_PENDING_SET[key] = {line = line_idx, word = word_idx}
+        line_set[word_idx] = {line = line_idx, word = word_idx}
     end
     if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
 end
 
 local function ctrl_commit_set(line_idx, word_idx)
     -- Check if cursor word is in set
-    local key = string.format("%d:%g", line_idx, word_idx)
-    if not FSM.DW_CTRL_PENDING_SET[key] then
+    local line_set = FSM.DW_CTRL_PENDING_SET[line_idx]
+    if not line_set or not line_set[word_idx] then
         -- Fallback to plain MMB single-click export
         dw_anki_export_selection()
         return
@@ -4035,8 +4053,10 @@ local function ctrl_commit_set(line_idx, word_idx)
     
     -- Extract all members into a list and sort by document order
     local members = {}
-    for _, m in pairs(FSM.DW_CTRL_PENDING_SET) do
-        table.insert(members, m)
+    for _, line_tbl in pairs(FSM.DW_CTRL_PENDING_SET) do
+        for _, m in pairs(line_tbl) do
+            table.insert(members, m)
+        end
     end
     
     if #members == 0 then return end
@@ -4045,6 +4065,7 @@ local function ctrl_commit_set(line_idx, word_idx)
         if a.line ~= b.line then return a.line < b.line end
         return a.word < b.word
     end)
+
     
     -- Requirement: Unified Paired Export
     local term = prepare_export_text({ type = "SET", members = members }, { clean = true, restore_sentence = true })
@@ -4863,8 +4884,7 @@ local function cmd_dw_word_move(dir, shift)
     local raw_sub = subs[line_idx]
     if not raw_sub then return end
     
-    local text = raw_sub.text:gsub("\n", " ")
-    local tokens = build_word_list_internal(text, true)
+    local tokens = get_sub_tokens(raw_sub, true)
     
     -- logical_tokens contains all potential landing spots for the current mode
     local logical_tokens = {}
@@ -4929,8 +4949,7 @@ local function cmd_dw_word_move(dir, shift)
         local next_line = line_idx + (dir > 0 and 1 or -1)
         if next_line >= 1 and next_line <= #subs then
             FSM.DW_CURSOR_LINE = next_line
-            local next_text = subs[next_line].text:gsub("\n", " ")
-            local next_tokens = build_word_list_internal(next_text, true)
+            local next_tokens = get_sub_tokens(subs[next_line], true)
             local next_logical = {}
             for _, t in ipairs(next_tokens) do
                 if t.logical_idx and (shift or t.is_word) then
@@ -4944,6 +4963,7 @@ local function cmd_dw_word_move(dir, shift)
             end
         end
     end
+
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
