@@ -1041,7 +1041,14 @@ local function compose_term_smart(words)
     -- Final cleanup: Trim trailing punctuation that shouldn't be part of a vocab term
     -- but might have been captured by the segment boundary logic.
     if #words == 1 then
-        res = res:gsub("[%.,!?;:%)%]%}%s]+$", ""):gsub("^[%s%(%[%{]+", "")
+        -- Only strip brackets/parens if they are balanced at the outer edges
+        local outer_bal = (res:match("^%b[]$") or res:match("^%b()$") or res:match("^%b{}$"))
+        if outer_bal then
+            res = res:sub(2, -2)
+        else
+            -- Strip terminal punctuation but preserve brackets if they aren't balanced wrappers
+            res = res:gsub("[%.,!?;:%s]+$", ""):gsub("^[%s]+", "")
+        end
     end
 
     return res
@@ -3600,17 +3607,23 @@ local function clean_anki_term(term)
     if not term or term == "" then return "" end
     -- Remove ASS tags
     term = term:gsub("{[^}]+}", "")
+    
     -- Balanced bracket stripping (only if it wraps the entire selection)
-    if term:match("^%b[]$") then
+    local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
+    if outer_bal then
         term = term:sub(2, -2)
     end
+    
     -- Space normalization
     term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     
     -- Strip non-terminal punctuation (the restoration logic handles terminal ones)
-    -- Added: ) ] } to the suffix stripping list to handle (Neutraubling) cases
-    local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s%(%[%{]*") or ""
-    local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s%)%]%}]*$") or ""
+    -- IMPROVED: We only strip brackets/parens if they were part of a balanced pair 
+    -- at the edges that we ALREADY handled above. Otherwise, we treat them as
+    -- part of the content (e.g., "[UMGEBUNG] Amazon" or "Amazon (Regensburg)").
+    local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
+    local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
+    
     if #pre < #term then
         term = term:sub(#pre + 1, #term - #suf)
     end
