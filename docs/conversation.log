@@ -854,13 +854,65 @@
 20260429022653 Needs to be fixed Paketsortierung[UMGEBUNG]. Apparently this appears when there is a paired selection and the last word is at the end of the sentence, a period after it.
 20260429023851 Check now
 20260429024009 Okay.
-
-
-
-
-
-
-
-
-
+20260429123259 opsx-explore # There is a problem with long subtitles in srt, drum (c) mode, they do not transfer and go beyond the screen.
+20260429125303 opsx-propose
+20260429125647 opsx-apply
+20260429130120 Doesn't show subtitles, only w window mode works.
+20260429130826 Now, being an Specification Architect, create opsx-propose based on the current solution in the code, taking into account the dialogue anchors 20260429123259 20260429125303 20260429125647 20260429130120
+20260429131440 opsx-archive openspec\changes\20260429022653-fix-context-punctuation openspec\changes\20260429125303-fix-srt-drum-wrapping openspec\changes\20260429130826-fix-srt-drum-wrapping-final
+20260429131749 Check that you have transferred the specifications to general openspec\specs
+20260429132052 You being an expert and a great model opsx-explore Check the solution and regression between версиями 24a21be2ca417a4edbd9e6bff6d30ff647707f15, 67ee625c1075b891b1518ef45978c89e9dbbefde
+20260429132917 Now, being an Specification Architect, create opsx-propose for these bugfixes. Decompose in detail for a small model.
+20260429133422 opsx-apply 20260429133044-fix-drum-osd-regressions
+20260429133859 Doesn't show subtitles, only w window mode works.
+20260429134212 Now, being an Specification Architect, update openspec\changes\20260429133044-fix-drum-osd-regressions 
+20260429134434 opsx-apply 20260429133044-fix-drum-osd-regressions
+20260429134503 opsx-archive 20260429133044-fix-drum-osd-regressions
+20260429134550 Sync now
+20260429135302 opsx-explore Check for regression regarding commit 24a21be2ca417a4edbd9e6bff6d30ff647707f15 (20260429023111) and compliance of the current version with all openspec\specs specifications
+20260429142144 x opsx-propose
+20260429142952 x opsx-apply 20260429142144-fix-paired-export-consistency-and-spec-alignment
+20260429151207 opsx-propose
+20260429152522 opsx-propose
+20260429153630 The parenthesis at the end which I did not choose. Straubing). [UMGEBUNG] Amazon (			Straubing). [UMGEBUNG] Amazon (	
+20260429161832 Okay, why now Neutraubling) with a bracket at the end is saved when I click on Neutraubling?
+20260429163315 Accept.
+20260429165650 I don’t understand why there is no opening square bracket and closing round bracket?
+20260429171344 x Check. z. B. Globus) ansässig
+20260429172455 x It works well with one word in brackets in such variants, now I need to do it for the variant when I also highlight, but all the words are in brackets, there are several of them. When this text is with brackets before and after.
+20260429174222 opsx-archive openspec\changes\20260429142144-fix-paired-export-consistency-and-spec-alignment openspec\changes\20260429144946-fix-dangling-brackets-and-unify-cleaning openspec\changes\20260429151207-fix-pink-selection-regressions-and-cleaning
+20260429183947 Figure it out, synchronize the specifications.
+20260429184542 Rework the mechanism for preparing a string for copying to the clipboard and saving to TSV, now it’s some kind of clot of dirt smeared across the code base, consisting of private solutions with brackets and commas. See all  openspec\specs. What are the contradictions? Why is copying now taking place with the removal of symbols, when it should be exactly as in the original text? I navigate through words using the keyboard and can save with such granulation. With the mouse I can also select symbols between words. There is also a discrepancy here. I won't make navigation aware of punctuation and store it in the index. Can we make one function for this?
+20260429185737 opsx-propose
+20260429185938 opsx-apply 20260429185737-rework-string-preparation-for-export
+20260429191545 You have made significant code changes, check for regression, check for compliance with specifications. Current c8e30a8e5dc78cc4947b5d73e92ac138aed7ecd7, previous version 7bf6ee98c3489b577bec1fc5ffe6073ed90ca08b. Specs openspec\specs.
+20260429192829 Fix
+20260429193014 Error
+20260429193216 Error
+20260429193720 Okay, can I now make it so that when I select Shift + left and right arrow, I can grab a period, punctuation marks, parentheses, so that, like when selecting with a mouse, I can select and add or copy to the clipboard?
+20260429195015 Now, being an Specification Architect, create opsx-propose, anchors 20260429184542 20260429185737 20260429185938 20260429191545 20260429192829 20260429193014 20260429193216 20260429193720
+20260429200343 Check the solution for performance degradation.
+20260429200603 Look to see if there is a double call somewhere by mistake, some old artifacts that can affect performance, stability, and responsiveness.
+20260429201603 Okay, but why now Shift + Left or Right Arrow has started to highlight spaces between words (invisibly), i.e. I need to press them additionally, which I didn't notice before.
+20260429202300 Why is the bracket not colored with this choice).
+20260429202646 Rename unify-subtitle-export-and-keyboard-granularity to 20260429195210-unify-subtitle-export-and-keyboard-granularity
+20260429203158 Some kind of leapfrog with the highlighting of brackets, what influences this, why in one case they are added when captured with the mouse, in another case they are not, in another place.
+20260429204023 Okay, but why is the bracket not highlighted in W window mode, unlike C mode? It is being transferred, it seems that this may be specific.
+20260429204652 Look, in W mode the bracket does not turn orange. I tried to re-add this phrase with brackets. It hasn't changed.
+20260429205200 The modes are still different, check it like an expert, look at the regression by anchors 20260429202300 20260429202646 20260429203158 20260429204023 20260429204652
+20260429205944 opsx-explore See for yourself. double check 20 times.
+20260429210122 Apply
+20260429210351 x Didn't work, white brackets.
+20260429210641 x Error, there are no subtitles or windows.
+20260429210936 x End, everything is broken.
+20260429211548 Formulate the problem, create a document openspec\changes\20260429211518, copy the screenshots that I sent in this chat there. Go through your anchor responses. 20260429203158 20260429204023 20260429204652 20260429205200 20260429205944 20260429210122 20260429210351 20260429210641 20260429210936
+20260429212433 Would you like me to create a full Implementation Plan based on this unified architecture? - Accept.
+20260429212609 Accept.
+20260429212717 /opsx:propose
+20260429213117 opsx-apply 20260429212717-unify-global-highlighting)
+20260429214150 Error
+20260429214326 Error
+20260429215817 There was a degradation of functionality, the lighting began to work incorrectly on this commit 75d62f85c2ab7fbe29fa6a267e7434e2b9626589 and before the current one a3aa963e27c39d456e97e33a7069778a3029ec6c. We have specifications, you can check them further.
+20260429222146 Quota has expired.
+20260429222752 For now I have switched to version v1.54.12.
 
