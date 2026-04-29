@@ -870,9 +870,8 @@
 20260429134503 opsx-archive 20260429133044-fix-drum-osd-regressions
 20260429134550 Sync now
 20260429135302 opsx-explore Check for regression regarding commit 24a21be2ca417a4edbd9e6bff6d30ff647707f15 (20260429023111) and compliance of the current version with all openspec\specs specifications
-20260429142144 opsx-propose
-20260429142952 opsx-apply 20260429142144-fix-paired-export-consistency-and-spec-alignment
-
-
+20260429142144 x opsx-propose
+20260429142952 x opsx-apply 20260429142144-fix-paired-export-consistency-and-spec-alignment
+20260429151207 opsx-propose
 
 
