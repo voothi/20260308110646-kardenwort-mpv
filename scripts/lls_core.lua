@@ -1029,18 +1029,24 @@ local function compose_term_smart(words)
             local no_space_after = w:match("^[/-]$") 
                                  or w:match("^\226\128\147$") 
                                  or w:match("^\226\128\148$") 
-                                 or w:match("^[%[%({¿¡«„“]$")
+                                 or w:match("^[«“%(%[%{]$")
                                  or w:match("^[\"']$")
-            
-            if no_space_before or no_space_after or w:match("%s$") or next_w:match("^%s") then
-                -- Join without space
-            else
+
+            if not no_space_before and not no_space_after then
                 res = res .. " "
             end
         end
     end
+
+    -- Final cleanup: Trim trailing punctuation that shouldn't be part of a vocab term
+    -- but might have been captured by the segment boundary logic.
+    if #words == 1 then
+        res = res:gsub("[%.,!?;:%)%]%}%s]+$", ""):gsub("^[%s%(%[%{]+", "")
+    end
+
     return res
 end
+
 
 
 local function find_fuzzy_indices(str_lower, query_lower)
@@ -3602,8 +3608,9 @@ local function clean_anki_term(term)
     term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     
     -- Strip non-terminal punctuation (the restoration logic handles terminal ones)
-    local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s]*") or ""
-    local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s]*$") or ""
+    -- Added: ) ] } to the suffix stripping list to handle (Neutraubling) cases
+    local pre = term:match("^[%.%,%!;:%?%-%/\"'»«„“%s%(%[%{]*") or ""
+    local suf = term:match("[%.%,%!;:%?%-%/\"'»«„“%s%)%]%}]*$") or ""
     if #pre < #term then
         term = term:sub(#pre + 1, #term - #suf)
     end
@@ -3657,8 +3664,8 @@ local function dw_anki_export_selection()
                             if is_last_line and t.logical_idx > p2_w + L_EPSILON then
                                 -- Break if we hit another word OR if the user didn't select the last word of the line
                                 if p2_w < sub_wc or t.is_word then break end
-                                -- Avoid capturing opening characters or spaces from the next word
-                                if t.text:match("^[%s%(%[{<]") then break end
+                                -- Avoid capturing certain characters from the next word or end of phrase
+                                if t.text:match("^[%s%(%[{<%)%]%}]") then break end
                             end
 
                             -- Include token if it's on a middle/last line OR if it's past the start anchor on the first line
