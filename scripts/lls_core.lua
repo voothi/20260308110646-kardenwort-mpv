@@ -204,13 +204,13 @@ local Options = {
     key_sec_sub_pos_down = "T Е",
     anki_context_max_words = 40,
     anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
-    anki_highlight_depth_1 = "0075D1",
+    anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: D17500)
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003C88",
-    anki_split_depth_1 = "FF88B0",
-    anki_split_depth_2 = "D97496",
-    anki_split_depth_3 = "B3607C",
-    anki_mix_depth_1 = "4A4AD3",
+    anki_split_depth_1 = "B088FF",        -- Purple (BGR: FF88B0)
+    anki_split_depth_2 = "9674D9",
+    anki_split_depth_3 = "7C60B3",
+    anki_mix_depth_1 = "4A4AD3",          -- Brick (BGR: D34A4A)
     anki_mix_depth_2 = "3636A8",
     anki_mix_depth_3 = "151578",
     anki_global_highlight = false,
@@ -1582,27 +1582,31 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 end
             end
 
-            if in_window then
-                -- Global Footprint Shadow Check (Nesting & Background Intersections)
-                if data.__min_l then
-                    local t_center = data.__cached_anchor_sub
-                    if not t_center or data.__cached_time ~= data.time then
-                        t_center = get_center_index(subs, data.time)
-                        data.__cached_anchor_sub = t_center
-                        data.__cached_time = data.time
-                    end
-                    if t_center ~= -1 then
-                        local t_start = (t_center + data.__min_l) * 1000 + data.__min_w
-                        local t_end = (t_center + data.__max_l) * 1000 + data.__max_w
-                        local t_total = sub_idx * 1000 + target_l_idx
-                        if t_total >= t_start and t_total <= t_end then
-                            -- Only increment depth for background shadows if we're not currently 
-                            -- inside a contiguous match candidate that already covers this token
-                            -- (Prevents single-highlight depth pollution)
-                            if not match_found then
-                                purple_depth = purple_depth + 1
-                            end
-                        end
+            local t_center = data.__cached_anchor_sub
+            if not t_center or data.__cached_time ~= data.time then
+                t_center = get_center_index(subs, data.time)
+                data.__cached_anchor_sub = t_center
+                data.__cached_time = data.time
+            end
+
+            local in_span = false
+            if t_center ~= -1 and data.__min_l and data.__max_l then
+                local s_idx = t_center + data.__min_l
+                local e_idx = t_center + data.__max_l
+                if sub_idx >= s_idx and sub_idx <= e_idx then
+                    in_span = true
+                end
+            end
+
+            if Options.anki_global_highlight or in_span or in_window then
+                -- Footprint Check for intersection depth
+                local is_in_footprint = false
+                if t_center ~= -1 and data.__min_l then
+                    local t_start = (t_center + data.__min_l) * 1000 + data.__min_w
+                    local t_end = (t_center + data.__max_l) * 1000 + data.__max_w
+                    local t_total = sub_idx * 1000 + target_l_idx
+                    if t_total >= t_start and t_total <= t_end then
+                        is_in_footprint = true
                     end
                 end
 
@@ -1856,11 +1860,19 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             if match_found then
                 if term_is_split then 
                     purple_stack = purple_stack + 1
-                    if #term_clean > 1 then has_phrase = true end
+                    -- Verified split matches contribute to purple_depth for mixed color scaling
+                    purple_depth = purple_depth + 1
                 else 
-                    orange_stack = orange_stack + 1 
+                    orange_stack = orange_stack + 1
+                    -- Contiguous matches only contribute to purple_depth (shadow depth)
+                    -- if they overlap with something else, but we increment it here
+                    -- if there was a verified footprint shadow.
+                    if is_in_footprint then
+                        purple_depth = purple_depth + 1
+                    end
                 end
                 matched_terms[term_key] = true
+                has_phrase = (#term_clean > 1)
                 table.insert(matching_source_terms, {text = data.term, is_split = term_is_split})
             end
         end
@@ -2655,10 +2667,10 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
                     elseif o_depth == 2 then h_color = Options.anki_highlight_depth_2
                     else h_color = Options.anki_highlight_depth_3 end
                 elseif purple_stack > 0 then
-                    local p_depth = math.min(purple_depth or 1, 3)
-                    if p_depth == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                    elseif p_depth == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                    else h_color = Options.anki_split_depth_3 or "B3607C" end
+                    local p_depth = math.min(purple_stack, 3)
+                    if p_depth == 1 then h_color = Options.anki_split_depth_1 or "B088FF"
+                    elseif p_depth == 2 then h_color = Options.anki_split_depth_2 or "9674D9"
+                    else h_color = Options.anki_split_depth_3 or "7C60B3" end
                 end
 
                 if h_color ~= base_color then
