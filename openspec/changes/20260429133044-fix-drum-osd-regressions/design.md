@@ -8,11 +8,14 @@ The `draw_drum` function in `scripts/lls_core.lua` was refactored in commit `67e
 
 3. **Unconditional metadata computation**: `calculate_osd_line_meta` and its `wrap_tokens` + `dw_get_str_width` cascade now run every frame regardless of whether `osd_interactivity` is enabled. Pre-refactor, this block was guarded by `if hit_zones and Options.osd_interactivity`.
 
+4. **Missing `cur_y` initialization**: The `local cur_y = y_start` variable was lost during the refactor, causing a Lua crash during rendering in Drum mode.
+
 ## Goals / Non-Goals
 
 **Goals:**
 - Restore correct inter-subtitle vertical spacing when `drum_active_size_mul != drum_context_size_mul`.
 - Restore the minimum slot height for empty context subtitles.
+- Restore the `cur_y` initialization to prevent nil-arithmetic crashes.
 - Eliminate redundant per-frame width calculation when `osd_interactivity` is off.
 - Zero changes to the word-wrapping logic, hit-zone data structures, or ASS rendering output format.
 
