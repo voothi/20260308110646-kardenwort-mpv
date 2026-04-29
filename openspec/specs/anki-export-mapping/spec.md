@@ -112,7 +112,7 @@ The export mapping logic SHALL support multiple physical keys and layouts mapped
 - **ELSE** the system SHALL export the contiguous yellow selection range.
 
 ### Requirement: Sentence Punctuation Restoration
-The export system SHALL ensure that phrases resembling complete sentences maintain their terminal punctuation (., !, ?) in the exported term field, regardless of the selection mode (Yellow or Pink).
+The export system SHALL ensure that phrases resembling complete sentences maintain their terminal punctuation (., !, ?, ...) in the exported term field, regardless of the selection mode (Yellow or Pink). The detection logic SHALL skip metadata tokens (bracketed text) when searching for the terminal punctuation.
 
 #### Scenario: Exporting a paired sentence fragment
 - **GIVEN** a paired (Pink) selection that forms a phrase starting with an uppercase letter
@@ -120,3 +120,12 @@ The export system SHALL ensure that phrases resembling complete sentences mainta
 - **WHEN** the export is triggered
 - **THEN** the system SHALL append the terminal punctuation to the exported term if it is not already present.
 - **AND** this behavior SHALL be identical to the existing standard selection (Yellow) export logic.
+
+### Requirement: Unified Paired Export Cleaning
+The paired selection export path (Pink selection) SHALL apply the same metadata and ASS tag cleaning logic as the standard selection path (Yellow selection) for the `source_word` field.
+
+### Requirement: Strict Selection Boundaries (End-of-Line Guard)
+Standard selection (Yellow) export SHALL NOT capture trailing punctuation or spaces if the selection does not include the final word of the subtitle segment. Opening punctuation characters (e.g., `(`, `[` ) from subsequent words SHALL ALWAYS be excluded from the exported term.
+
+### Requirement: Spacing Consistency
+All export paths SHALL use grammar-aware token joining (equivalent to `compose_term_smart`) to ensure consistent spacing around metadata and punctuation tokens.
