@@ -3124,7 +3124,7 @@ local function draw_dw(subs, view_center, active_idx)
                         elseif i == p1_l then selected = (l_idx >= p1_w)
                         elseif i == p2_l then selected = (l_idx <= p2_w) end
                     end
-                    local is_focus_point = (i == cl and l_idx == cw)
+                    local is_focus_point = (i == cl and logical_cmp(l_idx, cw))
                     if selected or is_focus_point then
                         meta.color = Options.dw_highlight_color
                         meta.priority = 2
@@ -4699,7 +4699,7 @@ local function dw_compute_word_center_x(sub)
         local pos = 0
         for k, wi in ipairs(vl_indices) do
             local ww = dw_get_str_width(tokens[wi])
-            if visual_to_logical[wi] == FSM.DW_CURSOR_WORD then
+            if logical_cmp(visual_to_logical[wi], FSM.DW_CURSOR_WORD) then
                 return vl_left + pos + ww / 2
             end
             pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
@@ -4859,48 +4859,93 @@ local function cmd_dw_word_move(dir, shift)
     
     FSM.DW_FOLLOW_PLAYER = false
     
+    local line_idx = FSM.DW_CURSOR_LINE
+    local raw_sub = subs[line_idx]
+    if not raw_sub then return end
+    
+    local text = raw_sub.text:gsub("\n", " ")
+    local tokens = build_word_list_internal(text, true)
+    
+    -- logical_tokens contains all potential landing spots for the current mode
+    local logical_tokens = {}
+    for i, t in ipairs(tokens) do
+        if t.logical_idx and (shift or t.is_word) then
+            table.insert(logical_tokens, t)
+        end
+    end
+    
+    if #logical_tokens == 0 then
+        FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, line_idx + (dir > 0 and 1 or -1)))
+        FSM.DW_CURSOR_WORD = 1
+        FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
+        return
+    end
+
     -- Capture anchor before moving if shift is held and no anchor exists
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        if FSM.DW_CURSOR_WORD == -1 then
-            local text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-            local words = build_word_list(text)
-            FSM.DW_ANCHOR_WORD = (dir > 0) and 1 or #words
+        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD ~= -1 and FSM.DW_CURSOR_WORD or (dir > 0 and logical_tokens[1].logical_idx or logical_tokens[#logical_tokens].logical_idx)
+    end
+
+    local target_token = nil
+    local current_idx = -1
+    for i, t in ipairs(logical_tokens) do
+        if logical_cmp(t.logical_idx, FSM.DW_CURSOR_WORD) then
+            current_idx = i
+            break
+        end
+    end
+    
+    if current_idx ~= -1 then
+        -- We are on a token valid for the current mode, just step
+        local next_idx = current_idx + dir
+        if next_idx >= 1 and next_idx <= #logical_tokens then
+            target_token = logical_tokens[next_idx]
+        end
+    else
+        -- Transition: We are on a symbol (fractional) but moving in word-only mode (no shift)
+        if dir > 0 then
+            for _, t in ipairs(logical_tokens) do
+                if t.logical_idx > FSM.DW_CURSOR_WORD + L_EPSILON then
+                    target_token = t
+                    break
+                end
+            end
         else
-            FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
+            for i = #logical_tokens, 1, -1 do
+                local t = logical_tokens[i]
+                if t.logical_idx < FSM.DW_CURSOR_WORD - L_EPSILON then
+                    target_token = t
+                    break
+                end
+            end
         end
     end
 
-    local raw_sub = subs[FSM.DW_CURSOR_LINE]
-    if not raw_sub then return end
-    local text = raw_sub.text:gsub("\n", " ")
-    local words = build_word_list(text)
-    
-    if FSM.DW_CURSOR_WORD == -1 then
-        FSM.DW_CURSOR_WORD = (dir > 0) and 1 or #words
+    if target_token then
+        FSM.DW_CURSOR_WORD = target_token.logical_idx
     else
-        FSM.DW_CURSOR_WORD = FSM.DW_CURSOR_WORD + dir
+        -- Line Jump
+        local next_line = line_idx + (dir > 0 and 1 or -1)
+        if next_line >= 1 and next_line <= #subs then
+            FSM.DW_CURSOR_LINE = next_line
+            local next_text = subs[next_line].text:gsub("\n", " ")
+            local next_tokens = build_word_list_internal(next_text, true)
+            local next_logical = {}
+            for _, t in ipairs(next_tokens) do
+                if t.logical_idx and (shift or t.is_word) then
+                    table.insert(next_logical, t)
+                end
+            end
+            if #next_logical > 0 then
+                FSM.DW_CURSOR_WORD = (dir > 0) and next_logical[1].logical_idx or next_logical[#next_logical].logical_idx
+            else
+                FSM.DW_CURSOR_WORD = 1
+            end
+        end
     end
+    
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-    
-    if FSM.DW_CURSOR_WORD < 1 then
-        if FSM.DW_CURSOR_LINE > 1 then
-            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
-            local next_text = subs[FSM.DW_CURSOR_LINE].text:gsub("\n", " ")
-            local next_words = build_word_list(next_text)
-            FSM.DW_CURSOR_WORD = #next_words
-        else
-            FSM.DW_CURSOR_WORD = 1
-        end
-    elseif FSM.DW_CURSOR_WORD > #words then
-        if FSM.DW_CURSOR_LINE < #subs then
-            FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
-            FSM.DW_CURSOR_WORD = 1
-        else
-            FSM.DW_CURSOR_WORD = #words
-        end
-    end
-    
     FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
 
     if not shift then
@@ -4908,6 +4953,8 @@ local function cmd_dw_word_move(dir, shift)
         FSM.DW_ANCHOR_WORD = -1
     end
 end
+
+
 
 local function cmd_dw_seek_selected()
     local subs = Tracks.pri.subs
