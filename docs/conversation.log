@@ -899,5 +899,5 @@
 20260429203158 Some kind of leapfrog with the highlighting of brackets, what influences this, why in one case they are added when captured with the mouse, in another case they are not, in another place.
 20260429204023 Okay, but why is the bracket not highlighted in W window mode, unlike C mode? It is being transferred, it seems that this may be specific.
 20260429204652 Look, in W mode the bracket does not turn orange. I tried to re-add this phrase with brackets. It hasn't changed.
-
+20260429205200 The modes are still different, check it like an expert, look at the regression by anchors 20260429202300 20260429202646 20260429203158 20260429204023 20260429204652
 
