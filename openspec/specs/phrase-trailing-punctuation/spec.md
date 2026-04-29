@@ -1,5 +1,8 @@
-## ADDED Requirements
+# phrase-trailing-punctuation Specification
 
+## Purpose
+TBD - created by archiving change 20260429015128-fix-phrase-trailing-punctuation. Update Purpose after archive.
+## Requirements
 ### Requirement: Phrase Trailing Punctuation Capture
 The Anki export system SHALL include closing punctuation tokens (non-word tokens with fractional logical indices that immediately follow the last selected word) in the reconstructed phrase field when a multi-line range selection ends at the last word of the final subtitle line.
 
@@ -29,10 +32,3 @@ This applies exclusively to the **final subtitle line** of a multi-line selectio
 - **WHEN** the user exports a single word via MMB click (no anchor/cursor range)
 - **THEN** the single-word export path SHALL be unchanged and unaffected by this fix
 
-## MODIFIED Requirements
-
-### Requirement: Literal TSV Term Reconstruction
-The Anki export system SHALL reconstruct the phrase field using literal token concatenation from the subtitle stream, preserving the original whitespace and punctuation **including closing punctuation tokens that are directly bonded (no intervening word token) to the last selected word on the final subtitle line of a multi-line range selection.**
-- **Source**: Tokens MUST be retrieved using `build_word_list_internal(text, true)`.
-- **Normalization**: No regex-based space collapsing SHALL be applied to the final reconstructed string.
-- **Last-line trailing tokens**: On the final subtitle line only, fractional-index non-word tokens occurring after `p2_w` SHALL be appended until the next `is_word == true` token is reached.
