@@ -1061,6 +1061,9 @@ local function prepare_export_text(params, options)
     if not subs or #subs == 0 then return "" end
     
     local parts = {}
+    local is_sentence_boundary = false
+    local raw_had_terminal = false
+    local terminal_punct = "."
     
     if params.type == "RANGE" then
         local p1_l, p1_w, p2_l, p2_w = params.p1_l, params.p1_w, params.p2_l, params.p2_w
@@ -1073,16 +1076,37 @@ local function prepare_export_text(params, options)
                 local line_parts = {}
                 for _, t in ipairs(tokens) do
                     if t.logical_idx then
-                        -- Requirement: Symbol-level precision using fractional comparison
                         local in_range = true
                         if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
                         if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
                         
                         if in_range then
                             table.insert(line_parts, t.text)
+                            if i == p2_l and t.text:match("[.!?]") then
+                                raw_had_terminal = true
+                                terminal_punct = t.text:match("[.!?]+")
+                            end
                         end
                     end
                 end
+                
+                -- Sentence boundary detection (Start of line or after terminal punct)
+                if i == p1_l then
+                    if p1_w == 1 then
+                        is_sentence_boundary = true
+                    else
+                        local prev_text = nil
+                        for _, t in ipairs(tokens) do
+                            if t.logical_idx and t.logical_idx < p1_w - L_EPSILON then
+                                if t.is_word then prev_text = t.text end
+                            else break end
+                        end
+                        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
+                            is_sentence_boundary = true
+                        end
+                    end
+                end
+
                 if #line_parts > 0 then
                     table.insert(parts, table.concat(line_parts, ""))
                 end
@@ -1097,6 +1121,24 @@ local function prepare_export_text(params, options)
                 local raw_text = sub.text:gsub("\n", " ")
                 local tokens = build_word_list_internal(raw_text, true)
                 local w_text = nil
+                
+                -- Boundary detection for first member
+                if idx == 1 then
+                    if m.word == 1 then
+                        is_sentence_boundary = true
+                    else
+                        local prev_text = nil
+                        for _, t in ipairs(tokens) do
+                            if t.logical_idx and t.logical_idx < m.word - L_EPSILON then
+                                if t.is_word then prev_text = t.text end
+                            else break end
+                        end
+                        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
+                            is_sentence_boundary = true
+                        end
+                    end
+                end
+
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, m.word) then
                         w_text = t.text
@@ -1105,17 +1147,39 @@ local function prepare_export_text(params, options)
                 end
                 
                 if w_text then
-                    -- Requirement: Elliptical Paired Selection ( ... )
                     if last_m then
                         local has_gap = (m.line > last_m.line) or (m.word > last_m.word + 1.05)
                         if has_gap then
                             table.insert(parts, " ... ")
                         else
-                            table.insert(parts, " ")
+                            -- Requirement 86: Use verbatim tokens between adjacent members
+                            if m.line == last_m.line then
+                                local last_line_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
+                                for _, t in ipairs(last_line_tokens) do
+                                    if t.logical_idx > last_m.word + L_EPSILON and t.logical_idx < m.word - L_EPSILON then
+                                        table.insert(parts, t.text)
+                                    end
+                                end
+                            else
+                                table.insert(parts, " ")
+                            end
                         end
                     end
                     table.insert(parts, w_text)
                     last_m = m
+                    
+                    -- Terminal punctuation detection for last member
+                    if idx == #members then
+                        for _, t in ipairs(tokens) do
+                            if t.logical_idx and t.logical_idx > m.word + L_EPSILON then
+                                if not t.is_word and t.text:match("[.!?]") then
+                                    raw_had_terminal = true
+                                    terminal_punct = t.text:match("[.!?]+")
+                                    break
+                                elseif t.is_word then break end
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -1129,12 +1193,27 @@ local function prepare_export_text(params, options)
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, params.word) then
                         parts = {t.text}
+                        -- Check for trailing punctuation immediately after the word
+                        local found_word = false
+                        for _, t2 in ipairs(tokens) do
+                            if logical_cmp(t2.logical_idx, params.word) then found_word = true
+                            elseif found_word then
+                                if not t2.is_word and t2.text:match("[.!?]") then
+                                    raw_had_terminal = true
+                                    terminal_punct = t2.text:match("[.!?]+")
+                                    break
+                                elseif t2.is_word then break end
+                            end
+                        end
                         break
                     end
                 end
             else
                 parts = {raw_text}
+                raw_had_terminal = raw_text:match("[.!?][%s%p]*$") ~= nil
+                terminal_punct = raw_text:match("[.!?]+") or "."
             end
+            is_sentence_boundary = true -- Point selections are treated as units
         end
     end
     
@@ -1145,6 +1224,13 @@ local function prepare_export_text(params, options)
         final_text = clean_anki_term(final_text)
     else
         final_text = final_text:gsub("{[^}]+}", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
+    end
+
+    -- Requirement 114: Unified Sentence Punctuation Restoration
+    if options.restore_sentence and is_sentence_boundary and raw_had_terminal then
+        if starts_with_uppercase(final_text) and final_text:find(" ") and not final_text:match("[.!?]$") then
+            final_text = final_text .. (terminal_punct or ".")
+        end
     end
     
     -- Post-processing for clipboard Russian filter if needed
@@ -1166,6 +1252,7 @@ local function prepare_export_text(params, options)
     
     return final_text or ""
 end
+
 
 
 
@@ -3767,7 +3854,7 @@ local function dw_anki_export_selection()
             end
             
             params = { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
-            term = prepare_export_text(params, { clean = true })
+            term = prepare_export_text(params, { clean = true, restore_sentence = true })
             
             -- Requirement: Reconstruct advanced_index (word-based only)
             local indices = {}
@@ -3821,40 +3908,12 @@ local function dw_anki_export_selection()
             if pivot_pos == -1 then pivot_pos = char_offset / 2 end
             context_line = table.concat(ctx_parts, "\0")
             time_pos = subs[p1_l].start_time + 0.001
-            
-            is_sentence_boundary = (p1_w == 1)
-            if not is_sentence_boundary then
-                local first_tokens = build_word_list_internal(subs[p1_l].text:gsub("\n", " "), true)
-                local prev_text = nil
-                for _, t in ipairs(first_tokens) do
-                    if t.is_word then
-                        if t.logical_idx >= p1_w - L_EPSILON then break end
-                        prev_text = t.text
-                    end
-                end
-                if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
-                    is_sentence_boundary = true
-                end
-            end
         elseif cl ~= -1 and subs[cl] then
             params = { type = "POINT", line = cl, word = cw }
-            term = prepare_export_text(params, { clean = true })
+            term = prepare_export_text(params, { clean = true, restore_sentence = true })
             
             if cw ~= -1 then
                 advanced_index = string.format("0:%g:1", cw)
-                local first_tokens = build_word_list_internal(subs[cl].text:gsub("\n", " "), true)
-                local prev_text = nil
-                for _, t in ipairs(first_tokens) do
-                    if t.is_word then
-                        if t.logical_idx >= cw - L_EPSILON then break end
-                        prev_text = t.text
-                    end
-                end
-                if cw == 1 or (prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text)) then
-                    is_sentence_boundary = true
-                end
-            else
-                is_sentence_boundary = true
             end
 
             -- Context Extraction
@@ -3888,18 +3947,6 @@ local function dw_anki_export_selection()
 
 
         if term and term ~= "" then
-            local raw_had_terminal = term:match("[.!?][%s%p]*$") ~= nil
-            term = clean_anki_term(term)
-            
-            -- If the selection starts at a boundary AND original subtitle ended with a period (or ! or ?) AND
-            -- the cleaned term starts with an uppercase letter AND contains spaces (multi-word), restore the period.
-            if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
-                term = term .. "."
-            end
-
-            -- Post-cleaning validation: ensure we haven't stripped the term into oblivion
-            if not term or term == "" then return end
-            
             -- Clean context: remove ASS tags
             context_line = context_line:gsub("{[^}]+}", "")
             if Options.anki_strip_metadata then
@@ -4019,39 +4066,12 @@ local function ctrl_commit_set(line_idx, word_idx)
     end)
     
     -- Requirement: Unified Paired Export
-    local term = prepare_export_text({ type = "SET", members = members }, { clean = true })
+    local term = prepare_export_text({ type = "SET", members = members }, { clean = true, restore_sentence = true })
     
     local subs = Tracks.pri.subs
     local p1_l = members[1].line
-    local p1_w = members[1].word
     local p2_l = members[#members].line
-
-    
-
-    -- Re-detect boundary and terminal state for sentence restoration
-    local is_sentence_boundary = (p1_w == 1)
-    if not is_sentence_boundary then
-        local first_tokens = build_word_list_internal(subs[p1_l].text:gsub("\n", " "), true)
-        local prev_text = nil
-        for _, t in ipairs(first_tokens) do
-            if t.is_word then
-                if t.logical_idx >= p1_w - L_EPSILON then break end
-                prev_text = t.text
-            end
-        end
-        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
-            is_sentence_boundary = true
-        end
-    end
-    
-    local last_sub_text = subs[p2_l].text:gsub("\n", " ")
-    local raw_had_terminal = last_sub_text:match("[.!?][%s%p]*$") ~= nil
-    local terminal_punct = last_sub_text:match("[.!?]+")
-    
-    -- Restore terminal punctuation if appropriate
-    if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
-        term = term .. (terminal_punct or ".")
-    end
+    local time_pos = subs[p1_l].start_time + 0.001
 
     -- Context Extraction
     local ctx_parts = {}
@@ -5963,7 +5983,10 @@ function cmd_dw_copy()
             params = { type = "POINT", line = cl, word = cw }
         end
         
-        final_text = prepare_export_text(params, { copy_mode = FSM.COPY_MODE })
+        final_text = prepare_export_text(params, { 
+            copy_mode = FSM.COPY_MODE,
+            filter_russian = Options.copy_filter_russian 
+        })
     end
     
     if final_text ~= "" then
