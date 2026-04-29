@@ -3187,12 +3187,22 @@ local function draw_dw(subs, view_center, active_idx)
             token_meta[j] = meta
         end
 
-        -- Step 2: Semantic Punctuation Coloring (Subtitle-wide)
+        -- Step 2: Semantic Punctuation Coloring (Subtitle-wide & Space-Agnostic)
+        local function find_visible_neighbor(idx, direction)
+            local k = idx + direction
+            while k >= 1 and k <= #entry.words do
+                local m = token_meta[k]
+                if m and not m.text:match("^%s*$") then return m end
+                k = k + direction
+            end
+            return nil
+        end
+
         for j_idx, _ in ipairs(entry.words) do
             local meta = token_meta[j_idx]
             if meta and meta.priority == 0 and not meta.is_word then
-                local prev_meta = j_idx > 1 and token_meta[j_idx-1]
-                local next_meta = j_idx < #entry.words and token_meta[j_idx+1]
+                local prev_meta = find_visible_neighbor(j_idx, -1)
+                local next_meta = find_visible_neighbor(j_idx, 1)
 
                 if prev_meta and (prev_meta.priority == 1 or prev_meta.priority == 2) then
                     meta.color = prev_meta.color
