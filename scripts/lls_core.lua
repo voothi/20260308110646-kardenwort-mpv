@@ -3245,7 +3245,6 @@ local function draw_dw(subs, view_center, active_idx)
                     local t_raw = entry.words[t_idx].text
                     local next_v_idx = vl_indices[idx+1]
                     local next_t_raw = next_v_idx and entry.words[next_v_idx].text or nil
-                    
                     line_ass = line_ass .. fw
                     
                     if next_t_raw and not Options.dw_original_spacing then
@@ -3261,7 +3260,7 @@ local function draw_dw(subs, view_center, active_idx)
             -- Join visual lines for this subtitle with ONE \N
             table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
         end
-    
+    end
     local d_gap = Options.dw_double_gap
     local vsp_base = Options.dw_vsp
     local b_gap_mul = Options.dw_block_gap_mul or 0
