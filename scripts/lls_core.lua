@@ -1510,7 +1510,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     local has_phrase = false
     local matched_terms = {}
     local matching_source_terms = {}
-    for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
+    local relevant_highlights = (FSM.ANKI_WORD_MAP and FSM.ANKI_WORD_MAP[target_lower_full]) or {}
+    for _, data in ipairs(relevant_highlights) do
         local term_key = data.term
         if not matched_terms[term_key] then
             local match_found = false
@@ -2359,6 +2360,22 @@ local function load_anki_tsv(force)
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
     
+    -- Build Word Index for O(1) lookup in calculate_highlight_stack
+    local word_map = {}
+    for _, data in ipairs(new_highlights) do
+        local term_tokens = build_word_list_internal(utf8_to_lower(data.term), false)
+        for _, t in ipairs(term_tokens) do
+            if t.is_word then
+                local w = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+                if w ~= "" then
+                    if not word_map[w] then word_map[w] = {} end
+                    table.insert(word_map[w], data)
+                end
+            end
+        end
+    end
+    FSM.ANKI_WORD_MAP = word_map
+    
     -- Update fingerprint for next time after successful load
     if info then
         FSM.ANKI_DB_MTIME = info.mtime
@@ -2453,8 +2470,21 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     f:write(table.concat(row_data, "\t") .. "\n")
     f:close()
 
-    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos, index = item_index })
+    local data = { term = term, context = context, time = time_pos, index = item_index }
+    table.insert(FSM.ANKI_HIGHLIGHTS, data)
     
+    -- Update Word Index
+    local term_tokens = build_word_list_internal(utf8_to_lower(term), false)
+    for _, t in ipairs(term_tokens) do
+        if t.is_word then
+            local w = utf8_to_lower(t.text:gsub("[%p%s]", ""))
+            if w ~= "" then
+                if not FSM.ANKI_WORD_MAP[w] then FSM.ANKI_WORD_MAP[w] = {} end
+                table.insert(FSM.ANKI_WORD_MAP[w], data)
+            end
+        end
+    end
+
     -- Performance Optimization: Update fingerprints so the next periodic sync 
     -- doesn't trigger a redundant re-parse for this local change.
     local info = utils.file_info(tsv_path)
@@ -2860,8 +2890,16 @@ local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
     return vlines
 end
 
-local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line_height_mul, vsp)
-    local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+local function calculate_osd_line_meta(subs, sub_idx, font_size, font_name, line_height_mul, vsp)
+    local sub = subs[sub_idx]
+    if not sub then return nil end
+    
+    local layout_key = string.format("%g:%s:%g:%g:%s", font_size, font_name, line_height_mul, vsp, tostring(Options.dw_original_spacing))
+    if sub.__layout_cache and sub.__layout_cache.key == layout_key then
+        return sub.__layout_cache.meta
+    end
+
+    local tokens = get_sub_tokens(sub, Options.dw_original_spacing)
     local max_text_w = 1860
     local vline_indices = wrap_tokens(tokens, max_text_w, font_size, font_name, Options.dw_original_spacing)
     
@@ -2907,7 +2945,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
         max_w = math.max(max_w, line_w)
     end
     
-    return {
+    local meta = {
         sub_idx = sub_idx,
         vlines = lines,
         total_width = max_w,
@@ -2915,11 +2953,29 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
         tokens = tokens, -- Keep tokens for rendering
         size = font_size -- Store for inter-subtitle gap calculation
     }
+    sub.__layout_cache = { key = layout_key, meta = meta }
+    return meta
 end
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones)
+local DRUM_DRAW_CACHE = {
+    pri = { center_idx = -1, y_pos = -1, fs = -1, db_ver = -1, res = "", hz = {} },
+    sec = { center_idx = -1, y_pos = -1, fs = -1, db_ver = -1, res = "", hz = {} }
+}
+
+local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones, cache_key)
     if center_idx == -1 then return "" end
     
+    local db_ver = FSM.ANKI_DB_MTIME or 0
+    if cache_key and DRUM_DRAW_CACHE[cache_key] then
+        local c = DRUM_DRAW_CACHE[cache_key]
+        if c.center_idx == center_idx and c.y_pos == y_pos_percent and c.fs == font_size and c.db_ver == db_ver then
+            if hit_zones and #c.hz > 0 then
+                for _, hz in ipairs(c.hz) do table.insert(hit_zones, hz) end
+            end
+            return c.res
+        end
+    end
+
     local is_drum = (FSM.DRUM == "ON")
     local context_lines = is_drum and Options.drum_context_lines or 0
     local half = context_lines
@@ -2953,7 +3009,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-        local m = calculate_osd_line_meta(subs[i].text, i, size, font_name, lh_mul, vsp)
+        local m = calculate_osd_line_meta(subs, i, size, font_name, lh_mul, vsp)
         
         -- Pass 1: Global Highlight Pre-Pass
         local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
@@ -3061,6 +3117,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
     else
         ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
+    end
+
+    if cache_key and DRUM_DRAW_CACHE[cache_key] then
+        DRUM_DRAW_CACHE[cache_key] = {
+            center_idx = center_idx, y_pos = y_pos_percent, fs = font_size, 
+            db_ver = db_ver, res = ass, hz = hit_zones or {}
+        }
     end
 
     return ass
@@ -4365,7 +4428,7 @@ local function tick_dw(time_pos, active_idx)
     dw_tooltip_mouse_update()
 end
 
-local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
+local function tick_drum(time_pos, pri_use_osd, sec_use_osd, pri_idx, sec_idx)
     -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
     if FSM.DRUM_WINDOW ~= "OFF" then return end
     
@@ -4404,13 +4467,13 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
-        local idx = get_center_index(Tracks.pri.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
+        local idx = pri_idx or get_center_index(Tracks.pri.subs, time_pos)
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, "pri")
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
-        local idx = get_center_index(Tracks.sec.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
+        local idx = sec_idx or get_center_index(Tracks.sec.subs, time_pos)
+        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, "sec")
     end
     
     drum_osd.data = ass_text
@@ -4506,7 +4569,8 @@ local function master_tick()
         
         -- Only render one-line Drum/SRT OSD if Drum Window is not active
         if not dw_active and (pri_use_osd or sec_use_osd) then
-            tick_drum(time_pos, pri_use_osd, sec_use_osd)
+            local sec_idx = (sec_use_osd and #Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos) or -1
+            tick_drum(time_pos, pri_use_osd, sec_use_osd, active_idx, sec_idx)
         else
             if drum_osd.data ~= "" then
                 drum_osd.data = ""
