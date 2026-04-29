@@ -4598,16 +4598,13 @@ end
 -- =========================================================================
 
 update_interactive_bindings = function()
-    print(string.format("[LLS DEBUG] update_interactive_bindings: DRUM=%s DRUM_WINDOW=%s subs=%d", tostring(FSM.DRUM), tostring(FSM.DRUM_WINDOW), #Tracks.pri.subs))
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
     local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
     
-    print(string.format("[LLS DEBUG] need_mouse=%s need_kb=%s", tostring(dw_on or osd_on), tostring(dw_on or osd_on)))
     local need_mouse = dw_on or osd_on
     local need_kb = dw_on or osd_on
     
     manage_dw_bindings(need_mouse, need_kb)
-    print("[LLS DEBUG] update_interactive_bindings: done")
 end
 
 local function master_tick()
@@ -4650,6 +4647,8 @@ local function master_tick()
         local target_pri_vis = not dw_active and not pri_use_osd and FSM.native_sub_vis
         local target_sec_vis = not dw_active and not sec_use_osd and FSM.native_sec_sub_vis
 
+        if FSM.DRUM == "ON" then print(string.format("[LLS DEBUG] suppression: target_pri=%s current=%s", tostring(target_pri_vis), tostring(mp.get_property_bool("sub-visibility")))) end
+
         if mp.get_property_bool("sub-visibility") ~= target_pri_vis then
             mp.set_property_bool("sub-visibility", target_pri_vis)
         end
@@ -4660,7 +4659,9 @@ local function master_tick()
         -- Only render one-line Drum/SRT OSD if Drum Window is not active
         if not dw_active and (pri_use_osd or sec_use_osd) then
             local sec_idx = (sec_use_osd and #Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos) or -1
+            if FSM.DRUM == "ON" then print("[LLS DEBUG] calling tick_drum") end
             tick_drum(time_pos, pri_use_osd, sec_use_osd, active_idx, sec_idx)
+            if FSM.DRUM == "ON" then print("[LLS DEBUG] back from tick_drum") end
         else
             if drum_osd.data ~= "" then
                 drum_osd.data = ""
@@ -4747,6 +4748,7 @@ local function cmd_toggle_anki_global()
 end
 
 local function cmd_toggle_drum()
+    print("[LLS DEBUG] cmd_toggle_drum called")
     local ok, err = xpcall(function()
     print("[LLS DEBUG] cmd_toggle_drum called")
     if FSM.MEDIA_STATE == "NO_SUBS" then
