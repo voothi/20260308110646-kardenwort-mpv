@@ -4924,7 +4924,10 @@ local function cmd_dw_word_move(dir, shift)
     local logical_tokens = {}
     for i, t in ipairs(tokens) do
         if t.logical_idx and (shift or t.is_word) then
-            table.insert(logical_tokens, t)
+            -- Requirement: Do not land on invisible spaces (pure whitespace)
+            if not t.text:match("^%s*$") then
+                table.insert(logical_tokens, t)
+            end
         end
     end
     
@@ -4987,7 +4990,9 @@ local function cmd_dw_word_move(dir, shift)
             local next_logical = {}
             for _, t in ipairs(next_tokens) do
                 if t.logical_idx and (shift or t.is_word) then
-                    table.insert(next_logical, t)
+                    if not t.text:match("^%s*$") then
+                        table.insert(next_logical, t)
+                    end
                 end
             end
             if #next_logical > 0 then
