@@ -2669,7 +2669,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             else
                 line_text = compose_term_smart(formatted_parts)
             end
-            table.insert(line_strings, line_text:gsub("\n", ""))
+            table.insert(line_strings, (line_text:gsub("\n", "")))
         end
 
         local result_text = table.concat(line_strings, "\\N")
