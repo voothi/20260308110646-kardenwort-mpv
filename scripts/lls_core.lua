@@ -2455,6 +2455,12 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
     local tokens = build_word_list_internal(text, Options.dw_original_spacing)
     local max_text_w = 1860
     local vline_indices = wrap_tokens(tokens, max_text_w, font_size, font_name, Options.dw_original_spacing)
+    
+    -- Synthesize a vline for empty text to reserve slot height (fixes regression)
+    if #vline_indices == 0 then
+        vline_indices = {{}}
+    end
+
     local space_w = dw_get_str_width(" ", font_size, font_name)
     
     local lines = {}
@@ -2497,7 +2503,8 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
         vlines = lines,
         total_width = max_w,
         total_height = total_h,
-        tokens = tokens -- Keep tokens for rendering
+        tokens = tokens, -- Keep tokens for rendering
+        size = font_size -- Store for inter-subtitle gap calculation
     }
 end
 
@@ -2541,30 +2548,26 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         table.insert(sub_metas, m)
         total_h = total_h + m.total_height
         if i < end_idx then
-            total_h = total_h + calculate_sub_gap(prefix, size, lh_mul, vsp) + adj
+            total_h = total_h + calculate_sub_gap(prefix, m.size, lh_mul, vsp) + adj
         end
     end
 
     local y_start = y_pixel
     if not is_top then y_start = y_pixel - total_h end
     
-    local cur_y = y_start
     for _, m in ipairs(sub_metas) do
-        local is_active = (m.sub_idx == center_idx)
-        local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-        
-        for _, vl in ipairs(m.vlines) do
-            vl.y_top = cur_y + vl.y_offset
-            vl.y_bottom = vl.y_top + vl.height
-            vl.x_start = 960 - vl.total_width / 2
-            vl.sub_idx = m.sub_idx -- For hit-zone tracking
-            if hit_zones and Options.osd_interactivity then
+        if hit_zones and Options.osd_interactivity then
+            for _, vl in ipairs(m.vlines) do
+                vl.y_top = cur_y + vl.y_offset
+                vl.y_bottom = vl.y_top + vl.height
+                vl.x_start = 960 - vl.total_width / 2
+                vl.sub_idx = m.sub_idx -- For hit-zone tracking
                 table.insert(hit_zones, vl)
             end
         end
         cur_y = cur_y + m.total_height
         if m.sub_idx < end_idx then
-            cur_y = cur_y + calculate_sub_gap(prefix, size, lh_mul, vsp) + adj
+            cur_y = cur_y + calculate_sub_gap(prefix, m.size, lh_mul, vsp) + adj
         end
     end
 
