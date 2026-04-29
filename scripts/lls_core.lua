@@ -3923,18 +3923,61 @@ local function ctrl_commit_set(line_idx, word_idx)
     local term = ""
     local last_m = nil
     
-    for _, m in ipairs(members) do
+    local is_sentence_boundary = false
+    local raw_had_terminal = false
+    
+    for idx, m in ipairs(members) do
         local sub = subs[m.line]
         if sub then
             local w = nil
             local raw_text = sub.text:gsub("\n", " ")
             local tokens = build_word_list_internal(raw_text, true)
+            
             if tokens then
-                for _, t in ipairs(tokens) do
-                    if logical_cmp(t.logical_idx, m.word) then
-                        w = t.text
-                        m.is_word = t.is_word
-                        break
+                -- Boundary detection for first member
+                if idx == 1 then
+                    if m.word == 1 then
+                        is_sentence_boundary = true
+                    else
+                        local ptr = 0
+                        local prev_text = nil
+                        for _, t in ipairs(tokens) do
+                            if t.is_word then
+                                ptr = ptr + 1
+                                if ptr == m.word then break end
+                                prev_text = t.text
+                            end
+                        end
+                        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
+                            is_sentence_boundary = true
+                        end
+                    end
+                end
+
+                -- Terminal punctuation detection for last member
+                if idx == #members then
+                    local found_word = false
+                    for _, t in ipairs(tokens) do
+                        if logical_cmp(t.logical_idx, m.word) then
+                            w = t.text
+                            m.is_word = t.is_word
+                            found_word = true
+                        elseif found_word then
+                            if t.is_word then break end
+                            if t.text:match("[.!?]") then
+                                raw_had_terminal = true
+                                break
+                            end
+                        end
+                    end
+                else
+                    -- Normal word lookup
+                    for _, t in ipairs(tokens) do
+                        if logical_cmp(t.logical_idx, m.word) then
+                            w = t.text
+                            m.is_word = t.is_word
+                            break
+                        end
                     end
                 end
             end
@@ -3989,6 +4032,11 @@ local function ctrl_commit_set(line_idx, word_idx)
         end
     end
     if term == "" then return end
+
+    -- Restore Terminal Period Logic (Sync with Yellow selection behavior)
+    if is_sentence_boundary and raw_had_terminal and starts_with_uppercase(term) and term:find(" ") and not term:match("[.!?]$") then
+        term = term .. "."
+    end
     
     -- Use the earliest selected word's line for timestamp (document-natural start)
     local time_pos = subs[members[1].line].start_time
