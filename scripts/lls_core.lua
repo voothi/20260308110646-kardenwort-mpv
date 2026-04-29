@@ -1829,6 +1829,18 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     end
                                     valid_set.min_idx = min_idx
                                     valid_set.max_idx = max_idx
+
+                                    -- Requirement 60: Detect if words are sequential (contiguous) in the text stream
+                                    local is_contiguous = true
+                                    local last_c = -1
+                                    for _, c_idx in ipairs(best_tuple) do
+                                        if last_c ~= -1 and c_idx ~= last_c + 1 then
+                                            is_contiguous = false
+                                            break
+                                        end
+                                        last_c = c_idx
+                                    end
+                                    valid_set.is_contiguous = is_contiguous
                                 end
                             end
                             subs[sub_idx].__split_valid_indices[term_key] = valid_set
@@ -1837,18 +1849,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set then
                             if valid_set.indices[sub_idx .. "-" .. token_idx] then
                                 match_found = true
-                                -- Requirement 60: If fuzzy match is sequential without intervening words, 
-                                -- treat it as contiguous (Orange) even across line breaks.
-                                local is_contiguous = true
-                                local last_c = -1
-                                for _, c_idx in ipairs(best_tuple) do
-                                    if last_c ~= -1 and c_idx ~= last_c + 1 then
-                                        is_contiguous = false
-                                        break
-                                    end
-                                    last_c = c_idx
-                                end
-                                term_is_split = not is_contiguous
+                                term_is_split = not valid_set.is_contiguous
                             end
 
                             local t_total = sub_idx * 1000 + target_l_idx
