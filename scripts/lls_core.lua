@@ -3078,7 +3078,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
     
     local cur_y = y_start
     for _, m in ipairs(sub_metas) do
-        if hit_zones and Options.osd_interactivity then
+        if master_hit_zones and Options.osd_interactivity then
             for _, vl in ipairs(m.vlines) do
                 vl.y_top = cur_y + vl.y_offset
                 vl.y_bottom = vl.y_top + vl.height
@@ -4633,8 +4633,8 @@ local function master_tick()
     -- 1. Always use OSD if Drum Mode is ON (Drum Mode auto-disables for ASS anyway)
     -- 2. Use OSD for SRT if configured.
     -- 3. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
-    local pri_use_osd = FSM.native_sub_vis and ((FSM.DRUM == "ON") or (use_osd_for_srt and not Tracks.pri.is_ass))
-    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (use_osd_for_srt and not Tracks.sec.is_ass))
+    local pri_use_osd = (FSM.DRUM == "ON") or (FSM.native_sub_vis and use_osd_for_srt and not Tracks.pri.is_ass)
+    local sec_use_osd = (FSM.DRUM == "ON" and Tracks.sec.id ~= 0) or (FSM.native_sec_sub_vis and use_osd_for_srt and not Tracks.sec.is_ass)
 
     if dw_active or pri_use_osd or sec_use_osd then
         -- Suppression Logic
@@ -4754,8 +4754,9 @@ local function cmd_toggle_drum()
 
     if FSM.DRUM == "OFF" then
         FSM.DRUM = "ON"
-        -- We no longer update FSM.native_sub_vis here because it's managed by cmd_toggle_sub_vis
-        -- and would be overwritten by our own suppression logic.
+        -- Force subtitle visibility ON when entering Drum Mode
+        FSM.native_sub_vis = true
+        FSM.native_sec_sub_vis = true
         
         -- Boot subs for drum memory
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
