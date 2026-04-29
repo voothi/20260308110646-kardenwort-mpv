@@ -5,7 +5,7 @@
 
 ## 2. Fix Yellow Selection Regression (Dangling Parenthesis)
 
-- [x] 2.1 Implement "End of Line" guard in `dw_anki_export_selection` trailing token loop.
+- [x] 2.1 Implement "End of Line" guard in `dw_anki_export_selection` trailing token loop (Fixed: ensured `sub_wc` is populated).
 - [x] 2.2 Add punctuation filter to exclude opening characters (`(`, `[`) from trailing capture.
 
 ## 3. Refactor Pink Selection (Paired Export)

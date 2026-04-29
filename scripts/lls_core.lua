@@ -3648,7 +3648,9 @@ local function dw_anki_export_selection()
                     local is_last_line = (i == p2_l)
                     
                     local line_parts = {}
-                    local sub_wc = sub.word_count or 0
+                    local sub_wc = 0
+                    for _, t in ipairs(tokens) do if t.is_word then sub_wc = sub_wc + 1 end end
+                    
                     for _, t in ipairs(tokens) do
                         if t.logical_idx then
                             -- Strict boundary check: Only include trailing tokens if we reached the end of the sub segment
