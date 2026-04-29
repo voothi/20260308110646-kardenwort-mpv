@@ -2555,6 +2555,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local y_start = y_pixel
     if not is_top then y_start = y_pixel - total_h end
     
+    local cur_y = y_start
     for _, m in ipairs(sub_metas) do
         if hit_zones and Options.osd_interactivity then
             for _, vl in ipairs(m.vlines) do
