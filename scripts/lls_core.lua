@@ -932,9 +932,14 @@ local function build_word_list_internal(text, keep_spaces)
             
         -- 2. Handle Metadata Brackets
         elseif c == "[" then
-            local start = i
-            while i <= n and chars[i] ~= "]" do i = i + 1 end
-            token.text = table.concat(chars, "", start, math.min(i, n))
+            token.text = "["
+            token.is_word = true
+            token.logical_idx = curr_logical_idx
+            curr_logical_idx = curr_logical_idx + 1
+            curr_sub_idx = 0.1
+            i = i + 1
+        elseif c == "]" then
+            token.text = "]"
             token.is_word = true
             token.logical_idx = curr_logical_idx
             curr_logical_idx = curr_logical_idx + 1
@@ -1040,7 +1045,16 @@ local function compose_term_smart(words)
 
     -- Final cleanup: Trim trailing punctuation that shouldn't be part of a vocab term
     -- but might have been captured by the segment boundary logic.
-    if #words == 1 then
+    -- IMPROVED: We only perform auto-stripping if the user HASN'T explicitly 
+    -- included brackets in a multi-word highlight.
+    local has_multiple_real_words = false
+    local word_count = 0
+    for _, w in ipairs(words) do
+        if w:match("[%w\128-\255]") then word_count = word_count + 1 end
+    end
+    has_multiple_real_words = (word_count > 1)
+
+    if not has_multiple_real_words then
         -- Only strip brackets/parens if they are balanced at the outer edges
         local outer_bal = (res:match("^%b[]$") or res:match("^%b()$") or res:match("^%b{}$"))
         if outer_bal then
@@ -3049,7 +3063,8 @@ local function draw_dw(subs, view_center, active_idx)
                 if next_t_raw and not Options.dw_original_spacing then
                     -- Smart joiner: No space if current or next word is a hyphen, slash, bracket, or multi-byte dash
                     if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
-                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
+                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") or
+                       t_raw == "[" or next_t_raw == "]" then
                         -- Join without space
                     else
                         line_ass = line_ass .. " "
@@ -3608,14 +3623,14 @@ local function clean_anki_term(term)
     -- Remove ASS tags
     term = term:gsub("{[^}]+}", "")
     
+    -- Space normalization
+    term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    
     -- Balanced bracket stripping (only if it wraps the entire selection)
     local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
     if outer_bal then
         term = term:sub(2, -2)
     end
-    
-    -- Space normalization
-    term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     
     -- Strip non-terminal punctuation (the restoration logic handles terminal ones)
     -- IMPROVED: We only strip brackets/parens if they were part of a balanced pair 
