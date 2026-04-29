@@ -897,7 +897,7 @@
 20260429202300 Why is the bracket not colored with this choice).
 20260429202646 Rename unify-subtitle-export-and-keyboard-granularity to 20260429195210-unify-subtitle-export-and-keyboard-granularity
 20260429203158 Some kind of leapfrog with the highlighting of brackets, what influences this, why in one case they are added when captured with the mouse, in another case they are not, in another place.
-
+20260429204023 Okay, but why is the bracket not highlighted in W window mode, unlike C mode? It is being transferred, it seems that this may be specific.
 
 
 

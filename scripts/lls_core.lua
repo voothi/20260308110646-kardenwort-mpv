@@ -3202,7 +3202,11 @@ local function draw_dw(subs, view_center, active_idx)
                     local next_meta = next_j and token_meta[next_j]
 
                     -- Right-sided (Trailing/Internal)
-                    if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
+                    if prev_meta and (prev_meta.priority == 1 or prev_meta.priority == 2) then
+                        -- Direct adoption for manual selections
+                        meta.color = prev_meta.color
+                        meta.priority = prev_meta.priority
+                    elseif prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
                         local p_orange = 0
                         local p_purple = 0
                         local p_txt = (prev_meta.text .. meta.text):lower()
@@ -3241,6 +3245,10 @@ local function draw_dw(subs, view_center, active_idx)
                             end
                         end
                     -- Left-sided (Leading)
+                    elseif next_meta and (next_meta.priority == 1 or next_meta.priority == 2) then
+                        -- Direct adoption for manual selections
+                        meta.color = next_meta.color
+                        meta.priority = next_meta.priority
                     elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
                         local p_orange = 0
                         local p_purple = 0
