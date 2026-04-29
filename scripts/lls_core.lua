@@ -2845,13 +2845,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             
             if l_idx then
                 -- Persistent Selection
-                if FSM.DW_CTRL_PENDING_SET[string.format("%d:%g", meta.sub_idx, l_idx)] then
+                local line_set = FSM.DW_CTRL_PENDING_SET[meta.sub_idx]
+                if line_set and line_set[l_idx] then
                     meta_item.color = Options.dw_ctrl_select_color
                     meta_item.priority = 1
                 end
                 -- Selection/Hover
                 if meta_item.priority == 0 then
-                    if (meta.sub_idx == FSM.DW_CURSOR_LINE and l_idx == FSM.DW_CURSOR_WORD) or is_inside_dw_selection(meta.sub_idx, l_idx) then
+                    if (meta.sub_idx == FSM.DW_CURSOR_LINE and logical_cmp(l_idx, FSM.DW_CURSOR_WORD)) or is_inside_dw_selection(meta.sub_idx, l_idx) then
                         meta_item.color = Options.dw_highlight_color
                         meta_item.priority = 2
                     end
@@ -3064,9 +3065,28 @@ end
 
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
+local DW_DRAW_CACHE = {
+    view_center = -1, active_idx = -1,
+    cl = -1, cw = -1, al = -1, aw = -1,
+    pending_version = 0,
+    result = ""
+}
+
 local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
+    -- High-level Result Cache: Skip entire rendering if state is identical.
+    -- FSM.DW_CTRL_PENDING_VERSION is incremented whenever the Pink set changes.
+    if DW_DRAW_CACHE.view_center == view_center and
+       DW_DRAW_CACHE.active_idx == active_idx and
+       DW_DRAW_CACHE.cl == FSM.DW_CURSOR_LINE and
+       DW_DRAW_CACHE.cw == FSM.DW_CURSOR_WORD and
+       DW_DRAW_CACHE.al == FSM.DW_ANCHOR_LINE and
+       DW_DRAW_CACHE.aw == FSM.DW_ANCHOR_WORD and
+       DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
+        return DW_DRAW_CACHE.result
+    end
+
     local ass = ""
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
@@ -3320,10 +3340,20 @@ local function draw_dw(subs, view_center, active_idx)
     end
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
         Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
     
-    return ass
+    -- Update Cache
+    DW_DRAW_CACHE.view_center = view_center
+    DW_DRAW_CACHE.active_idx = active_idx
+    DW_DRAW_CACHE.cl = FSM.DW_CURSOR_LINE
+    DW_DRAW_CACHE.cw = FSM.DW_CURSOR_WORD
+    DW_DRAW_CACHE.al = FSM.DW_ANCHOR_LINE
+    DW_DRAW_CACHE.aw = FSM.DW_ANCHOR_WORD
+    DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
+    DW_DRAW_CACHE.result = final_ass
+
+    return final_ass
 end
 
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
@@ -3975,7 +4005,10 @@ local function ctrl_discard_set()
     FSM.DW_CTRL_PENDING_SET = {}
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
-    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
+    if FSM.DRUM_WINDOW ~= "OFF" then 
+        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+        dw_osd:update() 
+    end
 end
 
 -- Context-Aware Escape: 3-step cancel then close window
@@ -4039,7 +4072,10 @@ local function ctrl_toggle_word(line_idx, word_idx)
     else
         line_set[word_idx] = {line = line_idx, word = word_idx}
     end
-    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
+    if FSM.DRUM_WINDOW ~= "OFF" then 
+        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+        dw_osd:update() 
+    end
 end
 
 local function ctrl_commit_set(line_idx, word_idx)
@@ -4236,8 +4272,8 @@ local function dw_anki_export_smart_callback(tbl)
     
     local starts_pink = false
     if FSM.DW_ANCHOR_LINE ~= -1 then
-        local a_key = string.format("%d:%g", FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD)
-        if FSM.DW_CTRL_PENDING_SET[a_key] then starts_pink = true end
+        local line_set = FSM.DW_CTRL_PENDING_SET[FSM.DW_ANCHOR_LINE]
+        if line_set and line_set[FSM.DW_ANCHOR_WORD] then starts_pink = true end
     end
     
     if starts_pink then
@@ -4679,8 +4715,7 @@ end
 local function dw_compute_word_center_x(sub)
     -- Returns the OSD x-center of the currently active cursor word (FSM.DW_CURSOR_WORD).
     if not sub or FSM.DW_CURSOR_WORD == -1 then return nil end
-    local text = sub.text:gsub("\n", " ")
-    local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+    local tokens = get_sub_tokens(sub)
     local space_w = dw_get_str_width(" ")
     local max_text_w = 1860
 
@@ -4733,8 +4768,7 @@ end
 -- Falls back to first word if nothing found.
 local function dw_closest_word_at_x(sub, target_x)
     if not sub then return -1 end
-    local text = sub.text:gsub("\n", " ")
-    local tokens = build_word_list_internal(text, Options.dw_original_spacing)
+    local tokens = get_sub_tokens(sub)
     local space_w = dw_get_str_width(" ")
     local max_text_w = 1860
 
