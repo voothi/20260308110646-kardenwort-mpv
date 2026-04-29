@@ -207,9 +207,9 @@ local Options = {
     anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: D17500)
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003C88",
-    anki_split_depth_1 = "B088FF",        -- Purple (BGR: FF88B0)
-    anki_split_depth_2 = "9674D9",
-    anki_split_depth_3 = "7C60B3",
+    anki_split_depth_1 = "FF0080",        -- Purple/Violet (BGR: 8000FF)
+    anki_split_depth_2 = "D10069",
+    anki_split_depth_3 = "A30052",
     anki_mix_depth_1 = "4A4AD3",          -- Brick (BGR: D34A4A)
     anki_mix_depth_2 = "3636A8",
     anki_mix_depth_3 = "151578",
@@ -1837,17 +1837,16 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if valid_set then
                             if valid_set.indices[sub_idx .. "-" .. token_idx] then
                                 match_found = true
-                                -- Requirement 60: If fuzzy match is entirely local and sequential, 
-                                -- treat it as contiguous (Orange) instead of split (Purple).
-                                local is_contiguous = valid_set.is_local
-                                if is_contiguous then
-                                    -- Check if logical indices are sequential (ignoring punctuation)
-                                    local last_l = -1
-                                    for _, c_idx in ipairs(best_tuple) do
-                                        local cur_l = ctx_list[c_idx].l_i
-                                        if last_l ~= -1 and cur_l <= last_l then is_contiguous = false; break end
-                                        last_l = cur_l
+                                -- Requirement 60: If fuzzy match is sequential without intervening words, 
+                                -- treat it as contiguous (Orange) even across line breaks.
+                                local is_contiguous = true
+                                local last_c = -1
+                                for _, c_idx in ipairs(best_tuple) do
+                                    if last_c ~= -1 and c_idx ~= last_c + 1 then
+                                        is_contiguous = false
+                                        break
                                     end
+                                    last_c = c_idx
                                 end
                                 term_is_split = not is_contiguous
                             end
