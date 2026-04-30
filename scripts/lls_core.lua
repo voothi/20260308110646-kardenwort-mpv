@@ -923,11 +923,12 @@ local function is_abbrev(w)
     return false
 end
 
-local function clean_anki_term(term)
+local function clean_anki_term(term, options)
     if not term or term == "" then return "" end
+    options = options or {}
     term = term:gsub("{[^}]+}", "")
     local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
-    if outer_bal then term = term:sub(2, -2) end
+    if outer_bal and not options.bypass_bracket_strip then term = term:sub(2, -2) end
     term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     return term or ""
 end
@@ -1102,6 +1103,7 @@ local function prepare_export_text(params, options)
     
     local parts = {}
     
+    local first_token, last_token = nil, nil
     if params.type == "RANGE" then
         local p1_l, p1_w, p2_l, p2_w = params.p1_l, params.p1_w, params.p2_l, params.p2_w
         for i = p1_l, p2_l do
@@ -1111,14 +1113,25 @@ local function prepare_export_text(params, options)
                 local tokens = build_word_list_internal(raw_text, true)
                 
                 local line_parts = {}
+                local reached_p2_limit = false
                 for _, t in ipairs(tokens) do
                     if t.logical_idx then
                         local in_range = true
                         if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
-                        if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                        
+                        if i == p2_l then
+                            if t.logical_idx > p2_w + L_EPSILON then
+                                if t.is_word or reached_p2_limit then
+                                    in_range = false
+                                    reached_p2_limit = true
+                                end
+                            end
+                        end
                         
                         if in_range then
                             table.insert(line_parts, t.text)
+                            if not first_token then first_token = t.text end
+                            last_token = t.text
                         end
                     end
                 end
@@ -1139,13 +1152,25 @@ local function prepare_export_text(params, options)
                 local tokens = build_word_list_internal(raw_text, true)
                 local w_text = nil
                 
-
+                local in_w = false
+                local reached_next_word = false
+                local collected = {}
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, m.word) then
-                        w_text = t.text
-                        break
+                        in_w = true
+                        table.insert(collected, t.text)
+                        if not first_token then first_token = t.text end
+                        last_token = t.text
+                    elseif in_w and not reached_next_word then
+                        -- Requirement: Capture bonded trailing punctuation for the LAST member
+                        if idx == #members and not t.is_word then
+                            table.insert(collected, t.text)
+                        else
+                            reached_next_word = true
+                        end
                     end
                 end
+                w_text = table.concat(collected, "")
                 
                 if w_text then
                     if last_m then
@@ -1216,7 +1241,13 @@ local function prepare_export_text(params, options)
     
     -- Requirement: Unified High-Fidelity Cleaning
     if options.clean then
-        final_text = clean_anki_term(final_text)
+        local bypass = false
+        if first_token and last_token then
+            local b_start = (first_token:match("^%[") or first_token:match("^%(") or first_token:match("^{"))
+            local b_end = (last_token:match("%]$") or last_token:match("%)$") or last_token:match("}$"))
+            if b_start and b_end then bypass = true end
+        end
+        final_text = clean_anki_term(final_text, { bypass_bracket_strip = bypass })
     else
         final_text = final_text:gsub("{[^}]+}", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
     end
@@ -1392,7 +1423,42 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not tokens then return 0, 0, 0, false end
     
     local target_token = tokens[token_idx]
-    if not target_token or not target_token.is_word then return 0, 0, false, {}, 0 end
+    if not target_token then return 0, 0, false, {}, 0 end
+    
+    if not target_token.is_word then
+        -- Requirement: Global Stream-Based Punctuation Rendering
+        -- Search for nearest neighbor word in the current subtitle
+        local neighbor_t_idx = nil
+        for j = token_idx - 1, 1, -1 do
+            if tokens[j].is_word then neighbor_t_idx = j; break end
+        end
+        if not neighbor_t_idx then
+            for j = token_idx + 1, #tokens do
+                if tokens[j].is_word then neighbor_t_idx = j; break end
+            end
+        end
+        
+        if neighbor_t_idx then
+            return calculate_highlight_stack(subs, sub_idx, neighbor_t_idx, time_pos)
+        else
+            -- Cross-subtitle search (Requirement 15 Disciplined Punctuation Stacks)
+            local p_idx = sub_idx - 1
+            if p_idx >= 1 then
+                local pt = get_sub_tokens(subs[p_idx])
+                for j = #pt, 1, -1 do
+                    if pt[j].is_word then return calculate_highlight_stack(subs, p_idx, j, time_pos) end
+                end
+            end
+            local n_idx = sub_idx + 1
+            if n_idx <= #subs then
+                local nt = get_sub_tokens(subs[n_idx])
+                for j = 1, #nt do
+                    if nt[j].is_word then return calculate_highlight_stack(subs, n_idx, j, time_pos) end
+                end
+            end
+            return 0, 0, false, {}, 0
+        end
+    end
     
     local target_l_idx = target_token.logical_idx
     local target_word_text = target_token.text
