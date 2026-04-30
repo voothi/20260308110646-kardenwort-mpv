@@ -4,15 +4,13 @@
 Formalize the requirements for literal, space-preserving term reconstruction in Anki exports to ensure predictable and high-quality mining data.
 ## Requirements
 ### Requirement: Literal TSV Term Reconstruction
-The Anki export system SHALL reconstruct the phrase field using literal token concatenation from the subtitle stream, preserving the original whitespace and punctuation **including closing punctuation tokens that are directly bonded (no intervening word token) to the last selected word on the final subtitle line of a multi-line range selection.**
-- **Source**: Tokens MUST be retrieved using `build_word_list_internal(text, true)`.
-- **Normalization**: No regex-based space collapsing SHALL be applied to the final reconstructed string.
-- **Last-line trailing tokens**: On the final subtitle line only, fractional-index non-word tokens occurring after `p2_w` SHALL be appended until the next `is_word == true` token is reached.
+The Anki export system SHALL reconstruct the phrase field using literal token concatenation from the subtitle stream, preserving the original whitespace and punctuation **only for tokens explicitly contained within the user's selection range.**
+- **Removal**: The requirement to append "Last-line trailing tokens" (lookahead) is REMOVED.
 
-#### Scenario: Preserving literal spacing with trailing punctuation
+#### Scenario: Strictly literal selection
 - **WHEN** the subtitle contains "word1  word2."
-- **AND** both words are selected for export
-- **THEN** the `source_word` field SHALL contain exactly "word1  word2.".
+- **AND** the user selects "word1" and "word2" but NOT the period
+- **THEN** the `source_word` field SHALL contain exactly "word1  word2" (no period).
 
 ### Requirement: Manual Gap Ellipsis Injection
 The system SHALL inject a hardcoded, space-padded ellipsis string when a logical gap is detected between non-contiguous selected words.

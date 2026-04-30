@@ -2,9 +2,7 @@
 
 ## Purpose
 Decouple Anki TSV export structure from the core logic using a dynamic, position-based INI configuration and allow contextual layout switching based on term length.
-
 ## Requirements
-
 ### Requirement: Threshold-Based Dynamic Field Mapping
 The export system SHALL dynamically select between word-level and sentence-level field mapping profiles based on the total word count of the selected term.
 - Profiles are defined in `anki_mapping.ini` as `[fields_mapping.word]` and `[fields_mapping.sentence]`.
@@ -111,7 +109,6 @@ The export mapping logic SHALL support multiple physical keys and layouts mapped
 - **THEN** the system SHALL export all members of that set using elliptical joiners where necessary.
 - **ELSE** the system SHALL export the contiguous yellow selection range.
 
-
 ### Requirement: Unified High-Fidelity Export Joining
 All export paths (Clipboard and TSV) SHALL use the original subtitle spacing and punctuation by concatenating tokens directly from the source text, prioritizing verbatim fidelity over typographic "normalization". 
 - This REPLACES Requirement 131 (Spacing Consistency) for export-only paths.
@@ -124,14 +121,14 @@ All export paths (Clipboard and TSV) SHALL use the original subtitle spacing and
 - **AND NOT** "Word1, Word2" (normalized)
 
 ### Requirement: Selection Punctuation Preservation
-Export logic SHALL NOT automatically strip leading or trailing punctuation symbols if they were explicitly included in the user's selection range.
-- This MODIFIES Requirement 128 (Strict Selection Boundaries) to respect user intent.
+Export logic SHALL NOT perform any automatic filtering, stripping, or cleaning of leading/trailing symbols (including balanced brackets like `[]`, `()`, or `{}`). The system SHALL strictly export the character sequence defined by the user's manual selection range.
+- **Clarification**: All "smart" bracket stripping is removed to ensure absolute verbatim fidelity.
 
-#### Scenario: Explicitly selecting a bracketed word
+#### Scenario: Verbatim bracket export
 - **GIVEN** a subtitle "[Musik]"
-- **WHEN** the user highlights the entire line including the brackets
+- **WHEN** the user selects the entire line including the brackets
 - **THEN** the exported term SHALL be "[Musik]"
-- **AND NOT** "Musik"
+- **AND** the system SHALL NOT attempt to "clean" the brackets away.
 
 ### Requirement: Unified String Preparation Engine
 The system SHALL use a single, unified `prepare_export_text` service for all clipboard and Anki export pathways. This service MUST handle token concatenation, metadata cleaning, and punctuation restoration consistently to ensure architectural parity.
