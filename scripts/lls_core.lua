@@ -3083,7 +3083,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
     local cur_y = y_start
     for _, m in ipairs(sub_metas) do
         if master_hit_zones and Options.osd_interactivity then
-            for _, vl in ipairs(m.vlines) do
+            for _, vl_ref in ipairs(m.vlines) do
+                -- Clone vl to avoid corrupting layout cache or other track's hit-zones
+                local vl = {}
+                for k,v in pairs(vl_ref) do vl[k] = v end
+                
                 vl.y_top = cur_y + vl.y_offset
                 vl.y_bottom = vl.y_top + vl.height
                 vl.x_start = 960 - vl.total_width / 2
