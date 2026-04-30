@@ -3023,7 +3023,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
 
     -- Cache Check
     local db_ver = FSM.ANKI_DB_MTIME or 0
-    local cache_key = string.format("%s:%d:%d:%g:%g:%g:%d:%s:%s", tostring(tag), center_idx, y_pos_percent, font_size, lh_mul, vsp, db_ver, font_name, tostring(Options.dw_original_spacing))
+    local cache_key = string.format("%s:%s:%d:%d:%g:%g:%g:%d:%s:%s", tostring(is_drum_mode), tostring(tag), center_idx, y_pos_percent, font_size, lh_mul, vsp, db_ver, font_name, tostring(Options.dw_original_spacing))
     
     if DRUM_DRAW_CACHE[cache_key] then
         local c = DRUM_DRAW_CACHE[cache_key]
