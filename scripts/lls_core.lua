@@ -897,8 +897,8 @@ end
 
 local function is_word_char(c)
     if not c or #c == 0 then return false end
-    -- ASCII alphanumeric + apostrophe + logistical/metadata symbols
-    if c:match("^[%w'/%-%[%]]$") then return true end
+    -- ASCII alphanumeric + apostrophe
+    if c:match("^[%w']$") then return true end
     -- German/Russian/Cyrillic support
     local u = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
     local l = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
@@ -2690,67 +2690,6 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
     return token_meta
 end
 
-local function get_global_neighbor(layout, entry_idx, token_idx, direction)
-    local cur_e = entry_idx
-    local cur_t = token_idx + direction
-    
-    while cur_e >= 1 and cur_e <= #layout do
-        local entry = layout[cur_e]
-        local meta = entry.token_meta
-        if not meta then break end
-        
-        while cur_t >= 1 and cur_t <= #meta do
-            local m = meta[cur_t]
-            if not is_ignorable_for_semantic_pass(m.text) then
-                return m
-            end
-            cur_t = cur_t + direction
-        end
-        
-        cur_e = cur_e + direction
-        if layout[cur_e] and layout[cur_e].token_meta then
-            cur_t = (direction > 0) and 1 or #layout[cur_e].token_meta
-        else
-            break
-        end
-    end
-    return nil
-end
-
-local function apply_global_semantic_pass(layout)
-    for e_idx, entry in ipairs(layout) do
-        local token_meta = entry.token_meta
-        if token_meta then
-            for j_idx, meta in ipairs(token_meta) do
-                if meta.priority == 0 and not meta.is_word then
-                    local prev_m = get_global_neighbor(layout, e_idx, j_idx, -1)
-                    local next_m = get_global_neighbor(layout, e_idx, j_idx, 1)
-                    
-                    if prev_m and (prev_m.priority == 1 or prev_m.priority == 2) then
-                        meta.color = prev_m.color
-                        meta.priority = prev_m.priority
-                    elseif prev_m and prev_m.priority == 3 then
-                        meta.color = prev_m.color
-                        meta.priority = 3
-                        meta.is_phrase = prev_m.is_phrase
-                        meta.matching_terms = prev_m.matching_terms
-                        meta.purple_depth = prev_m.purple_depth
-                    elseif next_m and (next_m.priority == 1 or next_m.priority == 2) then
-                        meta.color = next_m.color
-                        meta.priority = next_m.priority
-                    elseif next_m and next_m.priority == 3 then
-                        meta.color = next_m.color
-                        meta.priority = 3
-                        meta.is_phrase = next_m.is_phrase
-                        meta.matching_terms = next_m.matching_terms
-                        meta.purple_depth = next_m.purple_depth
-                    end
-                end
-            end
-        end
-    end
-end
-
 local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c)
     if type(word) == "table" then word = word.text end
     if not word then return "" end
@@ -2966,9 +2905,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             total_h = total_h + calculate_sub_gap(prefix, m.size, lh_mul, vsp) + adj
         end
     end
-
-    -- Pass 2: Global Semantic Pass
-    apply_global_semantic_pass(sub_metas)
 
     local y_start = y_pixel
     if not is_top then y_start = y_pixel - total_h end
@@ -3206,8 +3142,7 @@ local function draw_dw(subs, view_center, active_idx)
         entry.token_meta = populate_token_meta(subs, i, entry.words, base_color, subs[i].start_time, entry)
     end
 
-    -- Pass 2: Global Semantic Pass
-    apply_global_semantic_pass(layout)
+
 
     -- Text Block mapping
     local lines_ass = {}
