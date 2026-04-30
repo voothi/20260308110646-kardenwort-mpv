@@ -3140,12 +3140,14 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, m
         end
 
         local result_text = table.concat(line_strings, "\\N")
-        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}%s", 
-            font_name, opacity, bold_state, base_color, size, result_text)
+        local total_vsp = vsp + (size * (lh_mul - 1))
+        return string.format("{\\fn%s}{\\1a&H%s&}{\\b%s}{\\1c&H%s&}{\\fs%d}{\\vsp%g}%s", 
+            font_name, opacity, bold_state, base_color, size, total_vsp, result_text)
     end
 
     local all_text = ""
-    local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
+    local total_vsp_base = vsp + (font_size * (lh_mul - 1))
+    local vsp_tag = string.format("{\\vsp%g}", total_vsp_base)
     
     for i, m in ipairs(sub_metas) do
         local line_text = format_sub_wrapped(m, m.sub_idx == center_idx)
