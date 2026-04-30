@@ -1,25 +1,17 @@
 # Global Semantic Coloring
 
 ## Purpose
-Ensure consistent highlight propagation for punctuation and symbols across subtitle boundaries, whitespace, and line-break sequences.
+Ensure that highlighting is strictly bound to user-selected tokens and database-matched terms, preventing visual ambiguity caused by automatic color propagation.
 
 ## Requirements
 
-### Requirement: Global Semantic Color Flow
-The system SHALL implement a shared semantic engine that propagates highlight colors from words to adjacent punctuation symbols across subtitle entry boundaries and visual line wraps.
+### Requirement: Strict Highlight Binding
+Highlight colors SHALL strictly apply only to the explicitly selected tokens and terms found in the dictionary. There SHALL BE no automatic color inheritance or "bleeding" to adjacent non-selected punctuation symbols or whitespace.
 
-#### Scenario: Punctuation at start of subtitle entry
-- **WHEN** a punctuation symbol (e.g., a bracket) is at the start of a subtitle entry
-- **AND** the previous subtitle entry ended with a highlighted word
-- **THEN** the punctuation symbol SHALL inherit the highlight color and phrase-status of that word
+#### Scenario: Selected word adjacent to bracket
+- **WHEN** the word `UMGEBUNG` is selected in the string `[UMGEBUNG]`
+- **THEN** only `UMGEBUNG` SHALL be highlighted.
+- **AND** the brackets `[` and `]` SHALL remain in the default (white/unselected) color.
 
-#### Scenario: Punctuation across multiple spaces
-- **WHEN** a punctuation symbol is separated from a highlighted word by multiple whitespace tokens
-- **THEN** the system SHALL skip the whitespace and propagate the color to the punctuation symbol
-
-### Requirement: Atomic Line-Break Tokenization
-The tokenizer SHALL treat ASS/SRT line-break sequences (`\N`, `\h`) as atomic tokens to ensure they do not interfere with semantic color propagation.
-
-#### Scenario: Line-break between word and bracket
-- **WHEN** a literal line-break `\N` exists between a highlighted word and its trailing bracket
-- **THEN** the semantic engine SHALL skip the line-break token and color the bracket correctly
+### Requirement: Independent Line-Break Handling
+The tokenizer SHALL preserve ASS/SRT line-break sequences (`\N`, `\h`) as logical tokens, but they SHALL NOT be used as bridge points for semantic highlight propagation.
