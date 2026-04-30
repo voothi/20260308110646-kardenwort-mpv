@@ -908,18 +908,7 @@ end
 
 
 
-local function starts_with_uppercase(str)
-    if not str or str == "" then return false end
-    local first_char = str:match("^([%z\1-\127\194-\244][\128-\191]*)")
-    if not first_char then return false end
-    if first_char:match("^[A-Z]") then return true end
-    
-    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
-    for ch in string.gmatch(upper, "[%z\1-\127\194-\244][\128-\191]*") do
-        if first_char == ch then return true end
-    end
-    return false
-end
+
 
 local function is_abbrev(w)
     if not w then return false end
@@ -1112,9 +1101,6 @@ local function prepare_export_text(params, options)
     if not subs or #subs == 0 then return "" end
     
     local parts = {}
-    local is_sentence_boundary = false
-    local raw_had_terminal = false
-    local terminal_punct = "."
     
     if params.type == "RANGE" then
         local p1_l, p1_w, p2_l, p2_w = params.p1_l, params.p1_w, params.p2_l, params.p2_w
@@ -1133,30 +1119,10 @@ local function prepare_export_text(params, options)
                         
                         if in_range then
                             table.insert(line_parts, t.text)
-                            if i == p2_l and t.text:match("[.!?]") then
-                                raw_had_terminal = true
-                                terminal_punct = t.text:match("[.!?]+")
-                            end
                         end
                     end
                 end
                 
-                -- Sentence boundary detection (Start of line or after terminal punct)
-                if i == p1_l then
-                    if p1_w == 1 then
-                        is_sentence_boundary = true
-                    else
-                        local prev_text = nil
-                        for _, t in ipairs(tokens) do
-                            if t.logical_idx and t.logical_idx < p1_w - L_EPSILON then
-                                if t.is_word then prev_text = t.text end
-                            else break end
-                        end
-                        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
-                            is_sentence_boundary = true
-                        end
-                    end
-                end
 
                 if #line_parts > 0 then
                     table.insert(parts, table.concat(line_parts, ""))
@@ -1173,22 +1139,6 @@ local function prepare_export_text(params, options)
                 local tokens = build_word_list_internal(raw_text, true)
                 local w_text = nil
                 
-                -- Boundary detection for first member
-                if idx == 1 then
-                    if m.word == 1 then
-                        is_sentence_boundary = true
-                    else
-                        local prev_text = nil
-                        for _, t in ipairs(tokens) do
-                            if t.logical_idx and t.logical_idx < m.word - L_EPSILON then
-                                if t.is_word then prev_text = t.text end
-                            else break end
-                        end
-                        if prev_text and prev_text:match("[.!?]$") and not is_abbrev(prev_text) then
-                            is_sentence_boundary = true
-                        end
-                    end
-                end
 
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, m.word) then
@@ -1199,7 +1149,29 @@ local function prepare_export_text(params, options)
                 
                 if w_text then
                     if last_m then
-                        local has_gap = (m.line > last_m.line) or (m.word > last_m.word + 1.05)
+                        local has_gap = false
+                        if m.line == last_m.line then
+                            has_gap = (m.word > last_m.word + 1.05)
+                        elseif m.line > last_m.line + 1 then
+                            has_gap = true
+                        else
+                            -- Consecutive lines: Check for intermediate words (Requirement 151 Adaptive Gap)
+                            local prev_sub_tokens = get_sub_tokens(subs[last_m.line], true)
+                            local next_sub_tokens = get_sub_tokens(subs[m.line], true)
+                            for _, t in ipairs(prev_sub_tokens) do
+                                if t.logical_idx and t.logical_idx > last_m.word + L_EPSILON and t.is_word then
+                                    has_gap = true; break
+                                end
+                            end
+                            if not has_gap then
+                                for _, t in ipairs(next_sub_tokens) do
+                                    if t.logical_idx and t.logical_idx < m.word - L_EPSILON and t.is_word then
+                                        has_gap = true; break
+                                    end
+                                end
+                            end
+                        end
+
                         if has_gap then
                             table.insert(parts, " ... ")
                         else
@@ -1219,18 +1191,6 @@ local function prepare_export_text(params, options)
                     table.insert(parts, w_text)
                     last_m = m
                     
-                    -- Terminal punctuation detection for last member
-                    if idx == #members then
-                        for _, t in ipairs(tokens) do
-                            if t.logical_idx and t.logical_idx > m.word + L_EPSILON then
-                                if not t.is_word and t.text:match("[.!?]") then
-                                    raw_had_terminal = true
-                                    terminal_punct = t.text:match("[.!?]+")
-                                    break
-                                elseif t.is_word then break end
-                            end
-                        end
-                    end
                 end
             end
         end
@@ -1240,31 +1200,15 @@ local function prepare_export_text(params, options)
         if sub then
             local raw_text = sub.text:gsub("\n", " ")
             if params.word and params.word ~= -1 then
-                local tokens = build_word_list_internal(raw_text, true)
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, params.word) then
                         parts = {t.text}
-                        -- Check for trailing punctuation immediately after the word
-                        local found_word = false
-                        for _, t2 in ipairs(tokens) do
-                            if logical_cmp(t2.logical_idx, params.word) then found_word = true
-                            elseif found_word then
-                                if not t2.is_word and t2.text:match("[.!?]") then
-                                    raw_had_terminal = true
-                                    terminal_punct = t2.text:match("[.!?]+")
-                                    break
-                                elseif t2.is_word then break end
-                            end
-                        end
                         break
                     end
                 end
             else
                 parts = {raw_text}
-                raw_had_terminal = raw_text:match("[.!?][%s%p]*$") ~= nil
-                terminal_punct = raw_text:match("[.!?]+") or "."
             end
-            is_sentence_boundary = true -- Point selections are treated as units
         end
     end
     
@@ -1277,12 +1221,6 @@ local function prepare_export_text(params, options)
         final_text = final_text:gsub("{[^}]+}", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
     end
 
-    -- Requirement 114: Unified Sentence Punctuation Restoration
-    if options.restore_sentence and is_sentence_boundary and raw_had_terminal then
-        if starts_with_uppercase(final_text) and final_text:find(" ") and not final_text:match("[.!?]$") then
-            final_text = final_text .. (terminal_punct or ".")
-        end
-    end
     
     -- Post-processing for clipboard Russian filter if needed
     if options.filter_russian then
