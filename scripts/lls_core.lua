@@ -2726,18 +2726,12 @@ local function apply_global_semantic_pass(layout)
                     local prev_m = get_global_neighbor(layout, e_idx, j_idx, -1)
                     local next_m = get_global_neighbor(layout, e_idx, j_idx, 1)
                     
-                    if prev_m and (prev_m.priority == 1 or prev_m.priority == 2) then
-                        meta.color = prev_m.color
-                        meta.priority = prev_m.priority
-                    elseif prev_m and prev_m.priority == 3 then
+                    if prev_m and prev_m.priority == 3 then
                         meta.color = prev_m.color
                         meta.priority = 3
                         meta.is_phrase = prev_m.is_phrase
                         meta.matching_terms = prev_m.matching_terms
                         meta.purple_depth = prev_m.purple_depth
-                    elseif next_m and (next_m.priority == 1 or next_m.priority == 2) then
-                        meta.color = next_m.color
-                        meta.priority = next_m.priority
                     elseif next_m and next_m.priority == 3 then
                         meta.color = next_m.color
                         meta.priority = 3
@@ -4863,11 +4857,8 @@ local function cmd_dw_word_move(dir, shift)
     -- logical_tokens contains all potential landing spots for the current mode
     local logical_tokens = {}
     for i, t in ipairs(tokens) do
-        if t.logical_idx and (shift or t.is_word) then
-            -- Requirement: Do not land on invisible spaces (pure whitespace)
-            if not t.text:match("^%s*$") then
-                table.insert(logical_tokens, t)
-            end
+        if t.logical_idx and t.is_word then
+            table.insert(logical_tokens, t)
         end
     end
     
@@ -4929,10 +4920,8 @@ local function cmd_dw_word_move(dir, shift)
             local next_tokens = get_sub_tokens(subs[next_line], true)
             local next_logical = {}
             for _, t in ipairs(next_tokens) do
-                if t.logical_idx and (shift or t.is_word) then
-                    if not t.text:match("^%s*$") then
-                        table.insert(next_logical, t)
-                    end
+                if t.logical_idx and t.is_word then
+                    table.insert(next_logical, t)
                 end
             end
             if #next_logical > 0 then
