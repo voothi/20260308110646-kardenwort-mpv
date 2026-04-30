@@ -949,8 +949,9 @@
 20260430182048 You made a mistake, I need to be able to navigate using Shift and the left or right arrow key by position, including punctuation and parentheses, etc., except empty spaces, for precision selection, and without Shift by words only. This must be synchronized by selection as well and must be taken into account when appending to a file or copying to the clipboard. There must be an explicit mode. There is also now a question with the word UMGEBUNG in square brackets. When you press LMB on it, everything with brackets is highlighted in yellow, but only the word should be highlighted, unless I additionally scrolled through and selected these brackets. After adding, only what was highlighted when adding should also be displayed, so that it is specific and unambiguous. We are moving away from complex logic with regular expressions in favor of simplicity and straightforwardness, clarity, unambiguous display and selection.
 20260430183751 opsx-propose 20260430182048
 20260430184225 opsx-apply
+20260430184338 I need to refine the mechanism for easy use with a keyboard, without a mouse, but the principle should be the same. Now I don't know how to highlight a parenthesis if I don't need to have the word in front of it highlighted. Now I can select the first bracket (see photo) only if I positioned myself on the word before it, then pressed Shift+Right Arrow. How can I select a bracket separately if I cannot start the selection from it in keyboard mode. Offer a solution. We noted that we want to skip empty spaces when navigating with arrows. 
 20260430185250 Option with Alt + LEFT / RIGHT: Precision Step does not work, I don’t have an Alt button on the remote, I only need to make do with the Shift, LEFT, RIGHT keys.
-
+20260430185945 Ok, solution LEFT / RIGHT (without Shift): Now steps through every visible token works, now update the specs openspec\changes\20260430183833-fix-precision-selection-and-tokenization, anchors 20260430184338 20260430185250
 
 
 

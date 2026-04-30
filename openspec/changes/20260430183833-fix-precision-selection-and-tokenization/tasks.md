@@ -5,8 +5,8 @@
 
 ## 2. Navigation Logic
 
-- [x] 2.1 Update `cmd_dw_word_move` to allow landing on punctuation tokens only when the `shift` parameter is true.
-- [x] 2.2 Ensure navigation logic skips pure whitespace tokens (`^%s*$`) in both word-only and precision modes.
+- [x] 2.1 Update `cmd_dw_word_move` to allow landing on ALL tokens (words and symbols) by default.
+- [x] 2.2 Ensure navigation logic skips pure whitespace tokens (`^%s*$`) in all modes.
 - [x] 2.3 Verify `cmd_dw_line_move` and `dw_closest_word_at_x` correctly handle the new token boundaries.
 
 ## 3. Rendering Engine Cleanup

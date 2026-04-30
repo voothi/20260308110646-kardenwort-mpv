@@ -1,17 +1,18 @@
 ## MODIFIED Requirements
 
 ### Requirement: Modifier-Driven Selection Granularity
-The Drum Window SHALL support granular token-level selection using the Shift modifier with arrow keys.
-- **Normal Arrow Keys**: Move the cursor between adjacent words (tokens with `is_word=true`).
-- **Shift + Arrow Keys**: Move the cursor between all logical tokens, including punctuation and symbols, BUT excluding pure whitespace tokens.
+The Drum Window SHALL support granular token-level navigation using standard arrow keys to accommodate limited input devices like remote controls.
+- **Normal Arrow Keys**: Move the cursor between ALL logical tokens, including words, punctuation, and symbols, BUT excluding pure whitespace tokens.
+- **Shift + Arrow Keys**: Move the cursor between tokens AND extend the selection highlight.
 
 #### Scenario: Selecting punctuation with keyboard
 - **GIVEN** a subtitle line "Hello, world!"
-- **WHEN** the cursor is at "Hello" and the user presses Shift + Right
+- **WHEN** the cursor is at "Hello" and the user presses Right
 - **THEN** the cursor SHALL move to the comma token `,`.
 - **AND** it SHALL NOT stop on the space between "Hello," and "world".
 
-#### Scenario: Word-only navigation
+#### Scenario: Starting selection from a symbol
 - **GIVEN** a subtitle line "[UMGEBUNG]"
-- **WHEN** the user presses Right (without Shift) from the start of the line
-- **THEN** the cursor SHALL move directly to "UMGEBUNG", skipping the bracket `[`.
+- **WHEN** the user presses Right from the start of the line to land on `[`
+- **AND** the user then presses Shift + Right
+- **THEN** the selection SHALL start from `[` and move to "UMGEBUNG".
