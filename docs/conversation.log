@@ -954,6 +954,7 @@
 20260430185945 Ok, solution LEFT / RIGHT (without Shift): Now steps through every visible token works, now update the specs openspec\changes\20260430183833-fix-precision-selection-and-tokenization, anchors 20260430184338 20260430185250
 20260430190546 x Okay, but there is a slight inaccuracy with the highlighting of the selected one, the fact is that it intuitively seems to me that the highlighting of the following characters `[UMGEBUNG] Geis Gruppe Neutraubling/Regensburg` in this case, according to the contents of the TSV file, should all be orange.
 20260430191338 x It's broken.
+20260430191947 Okay, but there is a slight inaccuracy with the highlighting of the selected one, the fact is that it intuitively seems to me that the highlighting of the following characters `[UMGEBUNG] Geis Gruppe Neutraubling/Regensburg` in this case, according to the contents of the TSV file, should all be orange.
 
 
 

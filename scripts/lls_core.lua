@@ -2687,6 +2687,43 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
         end
         token_meta[j] = meta
     end
+
+    -- Second pass: smart punctuation coloring based on literal presence in matched term
+    for j, meta in ipairs(token_meta) do
+        if not meta.is_word and meta.priority == 0 and not meta.text:match("^%s*$") then
+            local left_meta, right_meta
+            
+            local l = j - 1
+            while l >= 1 and token_meta[l].text:match("^%s*$") do l = l - 1 end
+            if l >= 1 and token_meta[l].is_word then left_meta = token_meta[l] end
+            
+            local r = j + 1
+            while r <= #token_meta and token_meta[r].text:match("^%s*$") do r = r + 1 end
+            if r <= #token_meta and token_meta[r].is_word then right_meta = token_meta[r] end
+            
+            local target_meta = nil
+            local function check_meta(neighbor)
+                if neighbor and neighbor.priority == 3 and neighbor.matching_terms then
+                    for term_key in pairs(neighbor.matching_terms) do
+                        if term_key:find(meta.text, 1, true) then
+                            return true
+                        end
+                    end
+                end
+                return false
+            end
+
+            if check_meta(left_meta) then target_meta = left_meta
+            elseif check_meta(right_meta) then target_meta = right_meta end
+            
+            if target_meta then
+                meta.color = target_meta.color
+                meta.priority = target_meta.priority
+                meta.is_phrase = target_meta.is_phrase
+            end
+        end
+    end
+
     return token_meta
 end
 
