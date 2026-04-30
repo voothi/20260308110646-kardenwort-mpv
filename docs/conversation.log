@@ -945,6 +945,7 @@
 20260430162527 What has changed between the current version 89a4d4736a7e50b71cdbafce959387f12a130a32 and the older 131f53065fb99d73754ebf81b0ac1a71d5da93fe and the even older 24a21be2ca417a4edbd9e6bff6d30ff647707f15
 20260430172108 Check for compliance with all openspec\specs
 20260430174230 Based on this audit, the codebase is in a stable, compliant state. - Okay.
+20260430180253 x Currently using one mechanism to move between LMB and LEFT/RIGHT to highlight a word? In both modes C and W? And how does it work when selecting several Shift+LEFT/RIGHT or Shift+LMV. The thing is that it doesn't work well. A dot or bracket is highlighted if the word next to it is highlighted. When you click on a word or use the arrows, the transition occurs through spaces. For what? We already had a similar problem, see conversation 20260429201603 or the nearest commit.
 
 
 
