@@ -180,6 +180,8 @@ local Options = {
     dw_key_select_right = "Shift+RIGHT Shift+ПРАВЫЙ",
     dw_key_select_up = "Shift+UP Shift+ВВЕРХ",
     dw_key_select_down = "Shift+DOWN Shift+ВНИЗ",
+    dw_key_precision_left = "Alt+LEFT Alt+ЛЕВЫЙ",
+    dw_key_precision_right = "Alt+RIGHT Alt+ПРАВЫЙ",
     dw_key_cycle_copy_mode = "z я",
     dw_key_toggle_copy_context = "x ч",
     -- Search Mode (Drum Window)
@@ -4783,7 +4785,7 @@ local function cmd_dw_line_move(dir, shift)
     end
 end
 
-local function cmd_dw_word_move(dir, shift)
+local function cmd_dw_word_move(dir, shift, precision)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -4798,7 +4800,7 @@ local function cmd_dw_word_move(dir, shift)
     -- logical_tokens contains all potential landing spots for the current mode
     local logical_tokens = {}
     for i, t in ipairs(tokens) do
-        if t.logical_idx and (shift or t.is_word) then
+        if t.logical_idx and (shift or precision or t.is_word) then
             -- Requirement: Do not land on invisible spaces (pure whitespace)
             if not t.text:match("^%s*$") then
                 table.insert(logical_tokens, t)
@@ -4864,7 +4866,7 @@ local function cmd_dw_word_move(dir, shift)
             local next_tokens = get_sub_tokens(subs[next_line], true)
             local next_logical = {}
             for _, t in ipairs(next_tokens) do
-                if t.logical_idx and (shift or t.is_word) then
+                if t.logical_idx and (shift or precision or t.is_word) then
                     if not t.text:match("^%s*$") then
                         table.insert(next_logical, t)
                     end
@@ -5074,6 +5076,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_select_right, "dw-select-right", nil, function() cmd_dw_word_move(1, true) end, false)
     parse_and_collect(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
     parse_and_collect(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
+    parse_and_collect(Options.dw_key_precision_left, "dw-precision-left", nil, function() cmd_dw_word_move(-1, false, true) end, false)
+    parse_and_collect(Options.dw_key_precision_right, "dw-precision-right", nil, function() cmd_dw_word_move(1, false, true) end, false)
     parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
     parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
