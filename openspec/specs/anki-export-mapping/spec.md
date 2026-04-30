@@ -111,15 +111,6 @@ The export mapping logic SHALL support multiple physical keys and layouts mapped
 - **THEN** the system SHALL export all members of that set using elliptical joiners where necessary.
 - **ELSE** the system SHALL export the contiguous yellow selection range.
 
-### Requirement: Sentence Punctuation Restoration
-The export system SHALL ensure that phrases resembling complete sentences maintain their terminal punctuation (., !, ?, ...) in the exported term field, regardless of the selection mode (Yellow or Pink). The detection logic SHALL skip metadata tokens (bracketed text) when searching for the terminal punctuation.
-
-#### Scenario: Exporting a paired sentence fragment
-- **GIVEN** a paired (Pink) selection that forms a phrase starting with an uppercase letter
-- **AND** the original subtitle segment contained trailing punctuation at the end of the phrase's final word
-- **WHEN** the export is triggered
-- **THEN** the system SHALL append the terminal punctuation to the exported term if it is not already present.
-- **AND** this behavior SHALL be identical to the existing standard selection (Yellow) export logic.
 
 ### Requirement: Unified High-Fidelity Export Joining
 All export paths (Clipboard and TSV) SHALL use the original subtitle spacing and punctuation by concatenating tokens directly from the source text, prioritizing verbatim fidelity over typographic "normalization". 
@@ -159,5 +150,3 @@ When exporting adjacent selection members on the same subtitle line in non-conti
 - **WHEN** the export is triggered
 - **THEN** the system SHALL detect the intermediate "-" and join them as "Marken-Discount".
 
-### Requirement: Unified Sentence Restoration Parity
-The detection and restoration of terminal punctuation (`!`, `?`, `.`) for sentence fragments SHALL be identical across both Yellow and Pink selection modes, centralized within the `prepare_export_text` engine.
