@@ -969,4 +969,7 @@
 20260430201831 opsx-explore Check for compliance with all openspec\specs
 20260501005009 opsx-propose
 20260501005504 x opsx-apply
+20260501010819 I need to change the specifications more than the code. Simplify. No complex mechanics are needed. We don’t have to do anything special with brackets and other characters, only direct processing if captured manually. 20260501005019-fix-spec-compliance-regressions
+
+
 

@@ -926,8 +926,6 @@ end
 local function clean_anki_term(term)
     if not term or term == "" then return "" end
     term = term:gsub("{[^}]+}", "")
-    local outer_bal = (term:match("^%b[]$") or term:match("^%b()$") or term:match("^%b{}$"))
-    if outer_bal then term = term:sub(2, -2) end
     term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
     return term or ""
 end

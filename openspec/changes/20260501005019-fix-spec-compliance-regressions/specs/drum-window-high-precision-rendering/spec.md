@@ -1,16 +1,8 @@
-## MODIFIED Requirements
+## REMOVED Requirements
 
 ### Requirement: Global Stream-Based Punctuation Rendering
-The Drum Window SHALL use a **Global Token Stream** pass to determine punctuation colors, ensuring that highlights flow across visual line wraps and subtitle boundaries without "white holes" or color dropouts.
-- **Implementation**: Punctuation tokens MUST NOT be excluded from highlight stack calculations. If a token is identified as punctuation, the system SHALL perform a global search to identify its semantic neighbors and inherit their highlight state.
-
-#### Scenario: Cross-subtitle bracket coloring
-- **WHEN** A parenthetical expression `(Word)` is split across two subtitle entries
-- **THEN** Both the opening and closing brackets SHALL inherit the highlight color of the enclosed word, regardless of the entry boundary.
+**Reason**: To reduce architectural complexity and focus on word-level language acquisition, the requirement to propagate highlights to punctuation tokens is removed.
+**Migration**: Punctuation will remain uncolored (base context color) unless it is part of a contiguous phrase highlight.
 
 ### Requirement: Disciplined Punctuation Stacks
-Punctuation marks SHALL recalculate their Orange and Purple stack counts independently from their neighbor words, using a **whitespace-blind global search** to identify the nearest relevant semantic neighbor in either direction.
-
-#### Scenario: Punctuation Bleed Prevention
-- **WHEN** A word is "Brick" (intersected) but the trailing comma only belongs to an "Orange" record
-- **THEN** The comma SHALL be colored Orange, not Brick, by identifying the correct neighbor context even across spaces.
+**Reason**: Obsolete following the removal of punctuation highlighting.

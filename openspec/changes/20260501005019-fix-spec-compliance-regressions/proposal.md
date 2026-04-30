@@ -1,12 +1,12 @@
 ## Why
 
-Recent refactoring (Change `20260430233400`) introduced regressions where mandatory terminal punctuation is stripped from Anki exports, and high-precision rendering rules for punctuation highlighting are being bypassed. This change restores compliance with core specifications to ensure high-fidelity mining data and visual consistency.
+The previous attempt to restore compliance with "smart" capture and cleaning logic resulted in unnecessary complexity. The philosophy is shifting to a **Strictly Verbatim** model where the system only processes tokens explicitly captured by the user's manual selection range. Complex mechanics for trailing punctuation lookahead and automatic bracket stripping are being removed to simplify the pipeline and ensure predictability.
 
 ## What Changes
 
-- **Restore Trailing Punctuation**: Re-implement lookahead logic in `prepare_export_text` to capture bonded terminal punctuation at the end of selection ranges.
-- **Selective Bracket Preservation**: Modify `clean_anki_term` and `compose_term_smart` to preserve outer brackets if they were explicitly included in the user's selection.
-- **Semantic Punctuation Highlighting**: Remove the non-word early-exit in `calculate_highlight_stack` and implement the whitespace-blind global search for punctuation highlighting.
+- **Simplify Export Pipeline**: Remove lookahead capture logic from `prepare_export_text`. Only tokens within the manual selection range will be exported.
+- **Remove Automatic Cleaning**: Disable automatic balanced-bracket stripping in `clean_anki_term`. If a user selects brackets, they are included; if not, they aren't.
+- **Simplify Highlight Logic**: (Non-goal/Optional) Revert complex punctuation bridging if it complicates the core stack.
 
 ## Capabilities
 
@@ -14,13 +14,12 @@ Recent refactoring (Change `20260430233400`) introduced regressions where mandat
 - None
 
 ### Modified Capabilities
-- `anki-export-mapping`: Clarify that explicit user selection overrides automatic bracket stripping for "professional" cleaning.
-- `phrase-trailing-punctuation`: Re-establish the requirement for capturing terminal punctuation bonded to the last word of a selection.
-- `tsv-export-formatting`: Restore literal preservation of terminal punctuation in TSV mining records.
-- `drum-window-high-precision-rendering`: Restore the requirement for independent, stream-based punctuation highlighting to prevent "white holes" in colored phrases.
+- `anki-export-mapping`: REMOVE automatic bracket stripping. Requirements SHALL focus on strict verbatim selection.
+- `phrase-trailing-punctuation`: REMOVE bonded capture requirement. Trailing punctuation is only included if explicitly selected.
+- `tsv-export-formatting`: REMOVE trailing token lookahead.
+- `drum-window-high-precision-rendering`: (Optional) Revert to word-only highlighting if global stream-based rendering is too complex for the current architecture.
 
 ## Impact
 
-- `scripts/lls_core.lua`: Significant logic updates to `prepare_export_text`, `clean_anki_term`, `compose_term_smart`, and `calculate_highlight_stack`.
-- **Anki Export System**: Restored fidelity of exported terms and context.
-- **Drum Window UI**: Restored color-accurate punctuation rendering across line and subtitle boundaries.
+- `scripts/lls_core.lua`: Simplification of `prepare_export_text`, `clean_anki_term`, and `calculate_highlight_stack`.
+- **System Logic**: Reduced maintenance overhead and higher predictability for advanced users.

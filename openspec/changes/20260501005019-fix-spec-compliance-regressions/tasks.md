@@ -1,15 +1,13 @@
-## 1. Refactoring lls_core.lua
+## 1. Reverting Smart Logic (lls_core.lua)
 
-- [ ] 1.1 Restore minimal lookahead logic in `prepare_export_text` for `RANGE` mode to capture bonded terminal punctuation.
-- [ ] 1.2 Restore minimal lookahead logic in `prepare_export_text` for `SET` mode to capture bonded terminal punctuation.
-- [ ] 1.3 Update `clean_anki_term` to support a `bypass_bracket_strip` parameter.
-- [ ] 1.4 Update `prepare_export_text` callers to detect explicit bracket selection and trigger `bypass_bracket_strip`.
-- [ ] 1.5 Modify `calculate_highlight_stack` to remove the `target_token.is_word` early-exit.
-- [ ] 1.6 Implement whitespace-blind neighbor search in `calculate_highlight_stack` for punctuation highlighting.
+- [x] 1.1 Remove lookahead logic from `prepare_export_text` (`RANGE` mode).
+- [x] 1.2 Remove lookahead logic from `prepare_export_text` (`SET` mode).
+- [x] 1.3 Remove selection-aware bracket detection from `prepare_export_text`.
+- [x] 1.4 Remove balanced-bracket stripping (`%b[]` etc.) from `clean_anki_term`.
+- [x] 1.5 Revert `calculate_highlight_stack` to early-exit for non-word tokens (remove semantic bridge).
 
 ## 2. Verification & Validation
 
-- [ ] 2.1 Verify multi-line range selection includes bonded terminal punctuation (e.g., periods, parentheses).
-- [ ] 2.2 Verify bracketed words (e.g., `[Musik]`) are preserved in export when brackets are explicitly selected.
-- [ ] 2.3 Verify punctuation marks in Drum Window inherit highlight colors from their semantic neighbors.
-- [ ] 2.4 Verify single-word MMB clicks still perform "professional" bracket stripping when brackets are NOT selected.
+- [x] 2.1 Verify Anki export is strictly verbatim (exactly what is selected).
+- [x] 2.2 Verify bracketed phrases are no longer automatically cleaned.
+- [x] 2.3 Verify Drum Window highlights are strictly word-based (uncolored punctuation).

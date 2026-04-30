@@ -1,37 +1,35 @@
 ## Context
 
-The recent removal of "Sentence Punctuation Restoration" (Change `20260430233400`) accidentally stripped away "Phrase Trailing Punctuation Capture" as well. This design restores the capture logic while maintaining the decision to avoid synthetic restoration. It also addresses aggressive bracket stripping in `clean_anki_term` and missing punctuation highlights in the Drum Window.
+The design philosophy is shifting from "Smart" capture/cleaning to "Strictly Verbatim" selection. This simplification removes all hidden lookahead logic and automatic text filtering, ensuring that the exported Anki cards and UI highlights strictly match the user's manual selection.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Restore bonded trailing punctuation capture for `RANGE` and `SET` export modes.
-- Prevent automatic bracket stripping when brackets are part of an explicit user selection.
-- Implement a "semantic bridge" for punctuation highlighting in `calculate_highlight_stack`.
+- Eliminate all lookahead capture in `prepare_export_text`.
+- Disable automatic bracket/parenthesis stripping in `clean_anki_term`.
+- Simplify `calculate_highlight_stack` by removing punctuation bridging.
 
 **Non-Goals:**
-- Re-introducing synthetic "Sentence Punctuation Restoration" (adding missing periods).
-- Modifying the underlying `build_word_list_internal` tokenization.
+- Supporting any form of automatic "professional" cleaning that modifies the user's selected character stream.
 
 ## Decisions
 
-### 1. Minimal Lookahead for Trailing Punctuation
-I will re-implement a targeted lookahead loop in the `RANGE` and `SET` branches of `prepare_export_text`.
-- **Logic**: After identifying the last word (`p2_w`), scan subsequent tokens on the same line.
-- **Stop Condition**: Stop at the first token where `is_word == true` OR when the line ends.
-- **Rationale**: This restores "capture" (including what's there) without "restoration" (adding what's not).
+### 1. Pure Verbatim Selection
+I will revert all lookahead logic in `prepare_export_text`.
+- **Logic**: Use the existing `in_range` logic without the `reached_p2_limit` lookahead.
+- **Rationale**: If a user wants a period, they must select it. This ensures absolute predictability.
 
-### 2. Selection-Aware Cleaning
-Modify `clean_anki_term` to respect the explicit selection boundaries.
-- **Logic**: Pass the first and last tokens of the selection to the cleaning service. If the first token starts with an opening bracket and the last ends with a closing one (and they match), bypass the `sub(2, -2)` stripping logic.
-- **Alternative considered**: Removing bracket stripping entirely. *Rejected* because "Professional Cleaning" is still desired for MMB clicks (single word) that accidentally catch line-level brackets.
+### 2. Bypass Cleaning
+I will simplify `clean_anki_term` to its most basic form.
+- **Logic**: Remove the balanced-bracket stripping logic entirely.
+- **Rationale**: Selection intent is sovereign. Brackets are treated as any other character.
 
-### 3. Punctuation Highlight Bridging
-Update `calculate_highlight_stack` to handle non-word tokens.
-- **Logic**: If `target_token.is_word` is false, perform a bi-directional global search for the nearest word token. Inherit the highlight state (Orange/Purple stacks) from that neighbor.
-- **Rationale**: This prevents "white holes" in highlighted phrases split by punctuation or symbols.
+### 3. Word-Only Highlighting
+I will revert `calculate_highlight_stack` to its original word-only state.
+- **Logic**: Early-exit for any token where `is_word` is false.
+- **Rationale**: Reduces complexity and focus the user's attention on word-level acquisition.
 
 ## Risks / Trade-offs
 
-- **[Risk]** Punctuation might inherit "Brick" (mixed) status incorrectly. → **Mitigation**: Use a priority-based inheritance (Purple > Orange) and respect the `logical_idx` distance.
-- **[Risk]** Lookahead might include too much whitespace. → **Mitigation**: `prepare_export_text` already uses `build_word_list_internal(text, true)`, so we can filter for `not t.is_word` specifically.
+- **[Trade-off]** Users must be more precise with their mouse/keyboard selection to include punctuation. → **Benefit**: Higher predictability and lower code complexity.
+- **[Trade-off]** Brackets will no longer be colored in parenthetical phrases. → **Benefit**: Clearer distinction between word tokens and logistical punctuation.
