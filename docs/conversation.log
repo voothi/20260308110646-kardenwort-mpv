@@ -972,5 +972,6 @@
 20260501010819 I need to change the specifications more than the code. Simplify. No complex mechanics are needed. We don’t have to do anything special with brackets and other characters, only direct processing if captured manually. 20260501005019-fix-spec-compliance-regressions
 20260501012159 Okay, let's leave it like that, check it again, do it opsx-archive
 20260501012257 Sync now
-
+20260501012542 opsx-explore Check for compliance with all openspec\specs
+20260501013716 Would you like me to create a change proposal to resolve these contradictions and bring the code into alignment with your preferred model? Yes. Recommended Actions We prefer the "Simplified" model The "Surgical" Model (Current): That's right. Fix Export Normalization Yes. Would you like me to create a change proposal to resolve these contradictions and bring the code into alignment with your preferred model?
 
