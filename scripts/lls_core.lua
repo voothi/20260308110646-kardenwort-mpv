@@ -1454,11 +1454,18 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not tokens then return 0, 0, 0, false end
     
     local target_token = tokens[token_idx]
-    if not target_token or not target_token.is_word then return 0, 0, false, {}, 0 end
+    if not target_token then return 0, 0, false, {}, 0 end
     
     local target_l_idx = target_token.logical_idx
     local target_word_text = target_token.text
-    local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
+
+    local function clean_t(txt, is_w)
+        if not txt then return "" end
+        if is_w then return utf8_to_lower(txt:gsub("[%p%s]", "")) end
+        return utf8_to_lower(txt)
+    end
+
+    local target_lower_full = clean_t(target_word_text, target_token.is_word)
     if target_lower_full == "" then return 0, 0, false, {}, 0 end
 
     -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
@@ -1523,8 +1530,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                 local term_tokens = build_word_list_internal(utf8_to_lower(term_key), false)
                 data.__term_clean = {}
                 for _, t in ipairs(term_tokens) do
-                    if t.is_word then
-                        table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
+                    -- Skip pure whitespace and ASS tags, but include all other tokens (words and symbols)
+                    if not t.text:match("^%s*$") and not t.text:match("^{") then
+                        table.insert(data.__term_clean, clean_t(t.text, t.is_word))
                     end
                 end
                 -- First extract cloze content (e.g., {{c1::hello}} -> hello), THEN strip standard ASS tags {...}
@@ -1621,7 +1629,36 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                             for k = 1, #term_clean do
                                 if k ~= term_offset then
                                     local rw_text = get_relative_word_text(k - term_offset)
-                                    if not rw_text or term_clean[k] ~= utf8_to_lower(rw_text:gsub("[%p%s]", "")) then
+                                    if not rw_text then 
+                                        sequence_match = false
+                                        break
+                                    end
+                                    
+                                    -- Check if the relative token matches the term's token at that position
+                                    -- We must look up the is_word property of the relative token as well
+                                    local rel_is_word = false
+                                    local c_sub_idx = sub_idx
+                                    local rel_logical = target_l_idx + (k - term_offset)
+                                    -- (Optimization: we could cache this, but get_relative_word_text already scans)
+                                    -- We need to know if the relative token is a word to clean it correctly
+                                    local rel_tok = nil
+                                    local safety = 0
+                                    local curr_s = sub_idx
+                                    while safety < 5 do
+                                        local ctks = get_sub_tokens(subs[curr_s])
+                                        for _, rt in ipairs(ctks or {}) do
+                                            if logical_cmp(rt.logical_idx, rel_logical) then
+                                                rel_tok = rt; break
+                                            end
+                                        end
+                                        if rel_tok then break end
+                                        if rel_logical > (subs[curr_s].word_count or 0) then curr_s = curr_s + 1
+                                        else curr_s = curr_s - 1 end
+                                        safety = safety + 1
+                                        if not subs[curr_s] then break end
+                                    end
+
+                                    if not rel_tok or term_clean[k] ~= clean_t(rel_tok.text, rel_tok.is_word) then
                                         sequence_match = false
                                         break
                                     end
