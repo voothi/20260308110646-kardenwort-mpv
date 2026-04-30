@@ -956,7 +956,9 @@
 20260430191338 x It's broken.
 20260430191947 Okay, but there is a slight inaccuracy with the highlighting of the selected one, the fact is that it intuitively seems to me that the highlighting of the following characters `[UMGEBUNG] Geis Gruppe Neutraubling/Regensburg` in this case, according to the contents of the TSV file, should all be orange.
 20260430192432 It's broken.
-
+20260430192701 Export the message from this chat using anchor 20260430190546 with a picture from this chat and save it to the directory of the same name scratch\ZID-up-to-five-words-here.
+20260430193154 Change my prompt to understand better in the future, I needed to create a directory with a name using the ZID-up-to-five-words-here pattern from a string 20260430190546 Okay, but there is a slight inaccuracy with the highlighting of the selected
+20260430193406 "Export message 20260430190546 and the related picture to a .\scratch folder. Name the folder using the pattern: [ZID]-[slugified-first-5-words]." - Okay.
 
 
 
