@@ -1447,7 +1447,9 @@ end
 local function is_word_char(ch)
     if not ch then return false end
     return ch:match("[%w\128-\255]") ~= nil
-endlocal function apply_semantic_punctuation_colors(token_meta)
+end
+
+local function apply_semantic_punctuation_colors(token_meta)
     if not token_meta or #token_meta == 0 then return end
     
     local n = #token_meta

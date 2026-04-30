@@ -940,3 +940,6 @@
 20260430143204 x Subtitles C have appeared, but cannot be clicked.
 20260430144131 I rolled back to commit 20260429210156, you need to create /opsx-proposal so that you can transfer functionality and improvements from there, according to existing openspec specifications, see also the timestamps of what was done in this range between commits in the docs\conversation.log file, do it like an expert, a high-end specification architect, meticulous, thoughtful and working with surgical precision, in a minimally invasive manner. Pay special attention to the FSM switches, color marking logic, click logic, and text selection.
 20260430150502 opsx-apply openspec\changes\20260430145112-surgical-transfer-post-rollback-improvements
+20260430153016 Error
+
+
