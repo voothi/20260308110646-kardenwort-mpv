@@ -112,17 +112,19 @@ The export mapping logic SHALL support multiple physical keys and layouts mapped
 ### Requirement: Unified High-Fidelity Export Joining
 All export paths (Clipboard and TSV) SHALL use the original subtitle spacing and punctuation by concatenating tokens directly from the source text, prioritizing verbatim fidelity over typographic "normalization". 
 - This REPLACES Requirement 131 (Spacing Consistency) for export-only paths.
+- The system SHALL NOT perform any whitespace normalization (e.g., collapsing multiple spaces).
 - OSD rendering logic remains governed by typographic rules.
 
 #### Scenario: Exporting text with non-standard spacing
-- **GIVEN** a subtitle line "Word1 , Word2" (with a space before the comma)
+- **GIVEN** a subtitle line "Word1   ,   Word2" (with multiple spaces around the comma)
 - **WHEN** the user selects this range and copies it
-- **THEN** the resulting string SHALL be "Word1 , Word2" (verbatim)
-- **AND NOT** "Word1, Word2" (normalized)
+- **THEN** the resulting string SHALL be "Word1   ,   Word2" (verbatim)
+- **AND NOT** "Word1 , Word2" (normalized to single spaces)
 
 ### Requirement: Selection Punctuation Preservation
 Export logic SHALL NOT perform any automatic filtering, stripping, or cleaning of leading/trailing symbols (including balanced brackets like `[]`, `()`, or `{}`). The system SHALL strictly export the character sequence defined by the user's manual selection range.
 - **Clarification**: All "smart" bracket stripping is removed to ensure absolute verbatim fidelity.
+- **Clarification**: Metadata stripping is restricted strictly to ASS tags `{...}` when `options.clean` is explicitly requested.
 
 #### Scenario: Verbatim bracket export
 - **GIVEN** a subtitle "[Musik]"

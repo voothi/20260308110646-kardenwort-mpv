@@ -926,7 +926,7 @@ end
 local function clean_anki_term(term)
     if not term or term == "" then return "" end
     term = term:gsub("{[^}]+}", "")
-    term = term:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    term = term:match("^%s*(.-)%s*$")
     return term or ""
 end
 
@@ -1216,7 +1216,7 @@ local function prepare_export_text(params, options)
     if options.clean then
         final_text = clean_anki_term(final_text)
     else
-        final_text = final_text:gsub("{[^}]+}", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
+        final_text = final_text:gsub("{[^}]+}", ""):match("^%s*(.-)%s*$")
     end
 
     

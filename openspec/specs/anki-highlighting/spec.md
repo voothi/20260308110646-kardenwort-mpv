@@ -100,20 +100,6 @@ The user SHALL be able to configure the specific hex color used for split-term h
 - **WHEN** the user provides `split_select_color=#123456` in `mpv.conf`
 - **THEN** the rendering system uses this specific color instead of the default purple hex for split words.
 
-### Requirement: Semantic Punctuation Coloring
-The rendering engine SHALL implement a multi-pass coloring logic to ensure that non-word tokens (punctuation, symbols) receive the appropriate highlight color when they are semantically part of a highlighted phrase.
-- **Internal Punctuation**: Punctuation occurring between two words of the same highlighted phrase SHALL inherit that phrase's color.
-- **Trailing Punctuation**: Punctuation following a highlighted word SHALL inherit that word's color if it is not immediately followed by another word-token, ensuring symbols like `!`, `?`, or `.` are visually included in the highlight.
-- **Priority**: Semantic punctuation coloring SHALL only apply to tokens with no existing priority (i.e., not part of an active selection or another higher-priority highlight).
-
-#### Scenario: Highlighting a sentence-ending word
-- **WHEN** the word "Welt" is highlighted in orange.
-- **AND** it is followed by an exclamation mark "!" and then the end of the line.
-- **THEN** both "Welt" and "!" SHALL be rendered in orange.
-
-### Requirement: Atomic Tokenization for Logistical/Metadata Units
-The tokenizer SHALL treat logistical symbols (`/`, `-`) and metadata brackets (`[`, `]`) as part of the word-character definition to ensure that units like `(Gersdorf/Straubing-Ost)` and `[UMGEBUNG]` are handled as atomic tokens. This prevents logical index shifts when evaluating database-anchored highlights.
-
 ### Requirement: German UTF-8 Localization
 The normalization engine MUST accurately map German uppercase umlauts and sharp S to their lowercase equivalents to support case-insensitive matching in German media.
 
