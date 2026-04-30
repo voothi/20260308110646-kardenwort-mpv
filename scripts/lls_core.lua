@@ -241,6 +241,21 @@ options.read_options(Options, "lls")
 -- CORE UTILITIES (Moved up for visibility)
 -- =========================================================================
 
+local L_EPSILON = 0.0001
+
+local function logical_cmp(a, b)
+    if not a or not b then return false end
+    return math.abs(a - b) < L_EPSILON
+end
+
+local function is_word_token(t)
+    if not t then return false end
+    if type(t) == "table" then return t.is_word == true end
+    -- Fallback for string tokens (if any)
+    if #t == 0 then return false end
+    return not t:match("^%s+$")
+end
+
 function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
@@ -943,13 +958,6 @@ local function clean_anki_term(term)
     return term or ""
 end
 
-local L_EPSILON = 0.0001
-
-local function logical_cmp(a, b)
-    if not a or not b then return false end
-    return math.abs(a - b) < L_EPSILON
-end
-
 
 local function build_word_list_internal(text, keep_spaces)
     local tokens = {}
@@ -1055,15 +1063,6 @@ local function get_sub_tokens(s, force_rich)
     end
 end
 
-
-local function is_word_token(t)
-    if not t then return false end
-    if type(t) == "table" then return t.is_word == true end
-    -- Fallback for string tokens (if any)
-    if #t == 0 then return false end
-    return not t:match("^%s+$")
-end
-
 local function compose_term_smart(words)
     if not words or #words == 0 then return "" end
     local res = ""
@@ -1129,12 +1128,14 @@ local function prepare_export_text(params, options)
                 local line_parts = {}
                 for _, t in ipairs(tokens) do
                     if t.logical_idx then
+                        -- Task 2.3: Strict boundary checks for symbol-level precision
                         local in_range = true
                         if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
                         if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
                         
                         if in_range then
                             table.insert(line_parts, t.text)
+                            -- Capture terminal punctuation if it's the end of our range
                             if i == p2_l and t.text:match("[.!?]") then
                                 raw_had_terminal = true
                                 terminal_punct = t.text:match("[.!?]+")
@@ -1143,9 +1144,9 @@ local function prepare_export_text(params, options)
                     end
                 end
                 
-                -- Sentence boundary detection (Start of line or after terminal punct)
+                -- Sentence boundary detection for first line
                 if i == p1_l then
-                    if p1_w == 1 then
+                    if p1_w < 1.1 then
                         is_sentence_boundary = true
                     else
                         local prev_text = nil
@@ -1177,7 +1178,7 @@ local function prepare_export_text(params, options)
                 
                 -- Boundary detection for first member
                 if idx == 1 then
-                    if m.word == 1 then
+                    if m.word < 1.1 then
                         is_sentence_boundary = true
                     else
                         local prev_text = nil
@@ -1205,7 +1206,7 @@ local function prepare_export_text(params, options)
                         if has_gap then
                             table.insert(parts, " ... ")
                         else
-                            -- Requirement 86: Use verbatim tokens between adjacent members
+                            -- Task 2.4: Adjacent Member Fidelity (Verbatim Lookbehind)
                             if m.line == last_m.line then
                                 local last_line_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
                                 for _, t in ipairs(last_line_tokens) do
@@ -1245,7 +1246,7 @@ local function prepare_export_text(params, options)
                 local tokens = build_word_list_internal(raw_text, true)
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, params.word) then
-                        parts = {t.text}
+                        table.insert(parts, t.text)
                         -- Check for trailing punctuation immediately after the word
                         local found_word = false
                         for _, t2 in ipairs(tokens) do
@@ -1262,31 +1263,31 @@ local function prepare_export_text(params, options)
                     end
                 end
             else
-                parts = {raw_text}
+                table.insert(parts, raw_text)
                 raw_had_terminal = raw_text:match("[.!?][%s%p]*$") ~= nil
                 terminal_punct = raw_text:match("[.!?]+") or "."
             end
-            is_sentence_boundary = true -- Point selections are treated as units
+            is_sentence_boundary = true
         end
     end
     
-    local final_text = table.concat(parts, params.type == "RANGE" and " " or "")
+    -- Task 2.2: Verbatim joining (no separator between parts unless explicitly added above)
+    local final_text = table.concat(parts, "")
     
-    -- Requirement: Unified High-Fidelity Cleaning
     if options.clean then
         final_text = clean_anki_term(final_text)
     else
         final_text = final_text:gsub("{[^}]+}", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
     end
 
-    -- Requirement 114: Unified Sentence Punctuation Restoration
+    -- Task 2.5: Centralized terminal punctuation restoration
     if options.restore_sentence and is_sentence_boundary and raw_had_terminal then
         if starts_with_uppercase(final_text) and final_text:find(" ") and not final_text:match("[.!?]$") then
             final_text = final_text .. (terminal_punct or ".")
         end
     end
     
-    -- Post-processing for clipboard Russian filter if needed
+    -- Clipboard Russian filter integration
     if options.filter_russian then
         local lines = {}
         for ln in final_text:gmatch("[^\n]+") do
@@ -1446,6 +1447,60 @@ end
 local function is_word_char(ch)
     if not ch then return false end
     return ch:match("[%w\128-\255]") ~= nil
+endlocal function apply_semantic_punctuation_colors(token_meta)
+    if not token_meta or #token_meta == 0 then return end
+    
+    local n = #token_meta
+    
+    -- Forward Pass: Propagate color to trailing punctuation (e.g., "Word!")
+    for i = 1, n do
+        local current = token_meta[i]
+        -- Propagate from any colored word/token
+        if current.priority > 0 and current.color and current.color ~= "" then
+            local j = i + 1
+            while j <= n do
+                local ahead = token_meta[j]
+                if ahead.text:match("^%s*$") then
+                    -- Skip whitespace
+                    j = j + 1
+                elseif not ahead.is_word and (ahead.priority == 0 or ahead.priority == 4) then
+                    -- Found uncolored or already semantically colored punctuation
+                    -- (Priority 4 allows overwriting if we have a better match, but usually we just stop)
+                    if ahead.priority == 0 then
+                        ahead.color = current.color
+                        ahead.priority = 4 -- Mark as semantically colored
+                    end
+                    j = j + 1
+                else
+                    -- Hit another word or high-priority colored token, stop
+                    break
+                end
+            end
+        end
+    end
+    
+    -- Backward Pass: Propagate color to leading punctuation (e.g., "[Musik")
+    for i = n, 1, -1 do
+        local current = token_meta[i]
+        if current.priority > 0 and current.color and current.color ~= "" then
+            local j = i - 1
+            while j >= 1 do
+                local back = token_meta[j]
+                if back.text:match("^%s*$") then
+                    -- Skip whitespace
+                    j = j - 1
+                elseif not back.is_word and back.priority == 0 then
+                    -- Found uncolored punctuation, apply color
+                    back.color = current.color
+                    back.priority = 4
+                    j = j - 1
+                else
+                    -- Hit another word or high-priority colored token, stop
+                    break
+                end
+            end
+        end
+    end
 end
 
 
@@ -1512,50 +1567,31 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     local has_phrase = false
     local matched_terms = {}
     local matching_source_terms = {}
-    for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
+    local potential_matches = {}
+    local seen_data = {}
+    if FSM.ANKI_WORD_MAP then
+        for sw, _ in pairs(target_subsets) do
+            local matches = FSM.ANKI_WORD_MAP[sw]
+            if matches then
+                for _, data in ipairs(matches) do
+                    if not seen_data[data] then
+                        table.insert(potential_matches, data)
+                        seen_data[data] = true
+                    end
+                end
+            end
+        end
+    else
+        potential_matches = FSM.ANKI_HIGHLIGHTS
+    end
+
+    for _, data in ipairs(potential_matches) do
         local term_key = data.term
         if not matched_terms[term_key] then
             local match_found = false
             local term_is_split = false
             local term_is_local_split = false
             
-            -- Performance: Lazy-cache processed term data
-            if not data.__term_clean then
-                data.__is_elliptical = term_key:find("...", 1, true) ~= nil
-                local term_tokens = build_word_list_internal(utf8_to_lower(term_key), false)
-                data.__term_clean = {}
-                for _, t in ipairs(term_tokens) do
-                    if t.is_word then
-                        table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
-                    end
-                end
-                -- First extract cloze content (e.g., {{c1::hello}} -> hello), THEN strip standard ASS tags {...}
-                local cleaned_ctx = data.context:gsub("{{c%d+::(.-)}}", "%1"):gsub("{[^}]+}", "")
-                data.__ctx_lower = utf8_to_lower(cleaned_ctx)
-                
-                -- Tokenize context for exact neighbor matching (prevents substring bleed)
-                data.__ctx_words = {}
-                local ctx_tokens = build_word_list_internal(data.__ctx_lower, false)
-                for _, t in ipairs(ctx_tokens) do
-                    if t.is_word then
-                        data.__ctx_words[utf8_to_lower(t.text:gsub("[%p%s]", ""))] = true
-                    end
-                end
-
-                -- Parse string indices (if not already parsed during load)
-                if data.index and not data.__pivots then
-                    data.__pivots = {}
-                    for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
-                        local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
-                        if l_off then
-                            table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
-                        else
-                            local single = tonumber(part)
-                            if single then table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) end
-                        end
-                    end
-                end
-            end
             local term_clean = data.__term_clean
             
             local window = Options.anki_local_fuzzy_window
@@ -2330,7 +2366,68 @@ local function load_anki_tsv(force)
     end
     f:close()
     
+    local function build_anki_word_map()
+        FSM.ANKI_WORD_MAP = {}
+        if not FSM.ANKI_HIGHLIGHTS then return end
+        
+        for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
+            -- 1. Term cleaning
+            if not data.__term_clean then
+                local term_tokens = build_word_list_internal(utf8_to_lower(data.term), false)
+                data.__term_clean = {}
+                for _, t in ipairs(term_tokens) do
+                    if t.is_word then
+                        table.insert(data.__term_clean, utf8_to_lower(t.text:gsub("[%p%s]", "")))
+                    end
+                end
+            end
+            
+            -- 2. Context cleaning & tokenization
+            if not data.__ctx_lower then
+                local cleaned_ctx = data.context:gsub("{{c%d+::(.-)}}", "%1"):gsub("{[^}]+}", "")
+                data.__ctx_lower = utf8_to_lower(cleaned_ctx)
+                data.__ctx_words = {}
+                local ctx_tokens = build_word_list_internal(data.__ctx_lower, false)
+                for _, t in ipairs(ctx_tokens) do
+                    if t.is_word then
+                        data.__ctx_words[utf8_to_lower(t.text:gsub("[%p%s]", ""))] = true
+                    end
+                end
+            end
+
+            -- 3. Elliptical check
+            if data.__is_elliptical == nil then
+                data.__is_elliptical = data.term:find("...", 1, true) ~= nil
+            end
+
+            -- 4. Parse string indices (if not already parsed during load)
+            if data.index and not data.__pivots then
+                data.__pivots = {}
+                for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
+                    local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                    if l_off then
+                        table.insert(data.__pivots, {l_off = tonumber(l_off), p_idx = tonumber(p_idx), t_pos = tonumber(t_pos)})
+                    else
+                        local single = tonumber(part)
+                        if single then table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) end
+                    end
+                end
+            end
+            
+            -- 5. Index by each unique word in the term
+            local seen = {}
+            for _, word in ipairs(data.__term_clean) do
+                if word ~= "" and not seen[word] then
+                    if not FSM.ANKI_WORD_MAP[word] then FSM.ANKI_WORD_MAP[word] = {} end
+                    table.insert(FSM.ANKI_WORD_MAP[word], data)
+                    seen[word] = true
+                end
+            end
+        end
+    end
+
     FSM.ANKI_HIGHLIGHTS = new_highlights
+    build_anki_word_map()
     
     -- Update fingerprint for next time after successful load
     if info then
@@ -2701,7 +2798,20 @@ local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
     return vlines
 end
 
+local DRUM_LAYOUT_CACHE = {}
+local DRUM_DRAW_CACHE = {
+    center_idx = -1, y_pos = -1, time_pos = -1,
+    pending_version = 0,
+    result = ""
+}
+
 local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line_height_mul, vsp)
+    -- Task 5.2: Layout Caching
+    local cache_key = string.format("%d|%s|%d|%s|%g|%g", sub_idx, text, font_size, font_name or "", line_height_mul, vsp)
+    if DRUM_LAYOUT_CACHE[cache_key] then
+        return DRUM_LAYOUT_CACHE[cache_key]
+    end
+
     local tokens = build_word_list_internal(text, Options.dw_original_spacing)
     local max_text_w = 1860
     local vline_indices = wrap_tokens(tokens, max_text_w, font_size, font_name, Options.dw_original_spacing)
@@ -2748,7 +2858,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
         max_w = math.max(max_w, line_w)
     end
     
-    return {
+    local res = {
         sub_idx = sub_idx,
         vlines = lines,
         total_width = max_w,
@@ -2756,11 +2866,24 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
         tokens = tokens, -- Keep tokens for rendering
         size = font_size -- Store for inter-subtitle gap calculation
     }
+    DRUM_LAYOUT_CACHE[cache_key] = res
+    return res
 end
 
 local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones)
     if center_idx == -1 then return "" end
     
+    -- Task 5.3: Draw Caching
+    if DRUM_DRAW_CACHE.center_idx == center_idx and
+       DRUM_DRAW_CACHE.y_pos == y_pos_percent and
+       math.abs(DRUM_DRAW_CACHE.time_pos - time_pos) < 0.01 and
+       DRUM_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
+        if hit_zones and DRUM_DRAW_CACHE.hit_zones then
+            for _, hz in ipairs(DRUM_DRAW_CACHE.hit_zones) do table.insert(hit_zones, hz) end
+        end
+        return DRUM_DRAW_CACHE.result
+    end
+
     local is_drum = (FSM.DRUM == "ON")
     local context_lines = is_drum and Options.drum_context_lines or 0
     local half = context_lines
@@ -2769,16 +2892,12 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     
     -- Re-adjust to maintain window size if possible
     if end_idx - start_idx < 2 * half then
-        if start_idx == 1 then
-            end_idx = math.min(#subs, start_idx + 2 * half)
-        elseif end_idx == #subs then
-            start_idx = math.max(1, end_idx - 2 * half)
-        end
+        if start_idx == 1 then end_idx = math.min(#subs, start_idx + 2 * half)
+        elseif end_idx == #subs then start_idx = math.max(1, end_idx - 2 * half) end
     end
 
     local is_top = (y_pos_percent < 50)
     local y_pixel = y_pos_percent * 1080 / 100
-    
     local is_drum_mode = (FSM.DRUM == "ON")
     local prefix = is_drum_mode and "drum" or "srt"
     local font_name = is_drum_mode and (Options.drum_font_name ~= "" and Options.drum_font_name or mp.get_property("sub-font", "Inter"))
@@ -2790,7 +2909,6 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
 
     local sub_metas = {}
     local total_h = 0
-    
     for i = start_idx, end_idx do
         local is_active = (i == center_idx)
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
@@ -2812,7 +2930,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                 vl.y_top = cur_y + vl.y_offset
                 vl.y_bottom = vl.y_top + vl.height
                 vl.x_start = 960 - vl.total_width / 2
-                vl.sub_idx = m.sub_idx -- For hit-zone tracking
+                vl.sub_idx = m.sub_idx
                 table.insert(hit_zones, vl)
             end
         end
@@ -2822,44 +2940,34 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         end
     end
 
-    -- Rendering logic
-    local function format_sub_wrapped(meta, is_active, t_pos)
-        local tokens = meta.tokens
-        local vlines = meta.vlines
-        if #tokens == 0 then return "" end
-
+    -- Phase 1: Global Highlight Pass (Task 4.5/4.7)
+    local all_token_meta = {}
+    for _, m in ipairs(sub_metas) do
+        local is_active = (m.sub_idx == center_idx)
         local base_color = is_drum and (is_active and Options.drum_active_color or Options.drum_context_color)
                                     or (is_active and Options.srt_active_color or Options.srt_context_color)
-        local opacity = calculate_ass_alpha(is_drum and (is_active and Options.drum_active_opacity or Options.drum_context_opacity)
-                                                     or (is_active and Options.srt_active_opacity or Options.srt_context_opacity))
-        local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
-        local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
-                                      or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
-        local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
-
-        -- Pre-calculate highlights for all tokens
-        local token_meta = {}
-        for j, t in ipairs(tokens) do
+        m.token_meta = {}
+        for j, t in ipairs(m.tokens) do
             local meta_item = { text = t.text, color = base_color, is_word = t.is_word, is_phrase = false, priority = 0 }
             local l_idx = t.logical_idx
             
             if l_idx then
-                -- Persistent Selection
-                local line_set = FSM.DW_CTRL_PENDING_SET[meta.sub_idx]
+                -- Level 1: Persistent Selection
+                local line_set = FSM.DW_CTRL_PENDING_SET[m.sub_idx]
                 if line_set and line_set[l_idx] then
                     meta_item.color = Options.dw_ctrl_select_color
                     meta_item.priority = 1
                 end
-                -- Selection/Hover
+                -- Level 2: Selection/Hover
                 if meta_item.priority == 0 then
-                    if (meta.sub_idx == FSM.DW_CURSOR_LINE and logical_cmp(l_idx, FSM.DW_CURSOR_WORD)) or is_inside_dw_selection(meta.sub_idx, l_idx) then
+                    if (m.sub_idx == FSM.DW_CURSOR_LINE and logical_cmp(l_idx, FSM.DW_CURSOR_WORD)) or is_inside_dw_selection(m.sub_idx, l_idx) then
                         meta_item.color = Options.dw_highlight_color
                         meta_item.priority = 2
                     end
                 end
-                -- Database Highlights
+                -- Level 3: Database Highlights
                 if meta_item.priority == 0 then
-                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, meta.sub_idx, j, t_pos)
+                    local orange_stack, purple_stack, is_phrase = calculate_highlight_stack(subs, m.sub_idx, j, subs[m.sub_idx].start_time)
                     local h_color = base_color
                     if orange_stack > 0 and purple_stack > 0 then
                         local mix_depth = math.min((orange_stack + purple_stack) - 1, 3)
@@ -2882,48 +2990,41 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                     end
                 end
             end
-            token_meta[j] = meta_item
+            table.insert(m.token_meta, meta_item)
+            table.insert(all_token_meta, meta_item)
         end
+    end
 
-        -- Semantic Punctuation Pass
-        for j, t in ipairs(tokens) do
-            local meta_item = token_meta[j]
-            if meta_item.priority == 0 and not meta_item.is_word then
-                local prev_meta = token_meta[j-1]
-                local next_meta = token_meta[j+1]
-                if prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
-                    if (next_meta and next_meta.priority == 3 and next_meta.color == prev_meta.color) or (not next_meta or not next_meta.is_word) then
-                        meta_item.color = prev_meta.color
-                        meta_item.is_phrase = true
-                    end
-                elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
-                    if not prev_meta or not prev_meta.is_word then
-                        meta_item.color = next_meta.color
-                        meta_item.is_phrase = true
-                    end
-                end
-            end
-        end
+    -- Phase 2: Propagation
+    apply_semantic_punctuation_colors(all_token_meta)
+
+    -- Phase 3: Assembly
+    local function format_sub_wrapped(meta, is_active)
+        local tokens = meta.tokens
+        local vlines = meta.vlines
+        if #tokens == 0 then return "" end
+
+        local base_color = is_drum and (is_active and Options.drum_active_color or Options.drum_context_color)
+                                    or (is_active and Options.srt_active_color or Options.srt_context_color)
+        local opacity = calculate_ass_alpha(is_drum and (is_active and Options.drum_active_opacity or Options.drum_context_opacity)
+                                                      or (is_active and Options.srt_active_opacity or Options.srt_context_opacity))
+        local f_bold = is_drum and Options.drum_font_bold or Options.srt_font_bold
+        local bold_state = (is_active and (is_drum and Options.drum_active_bold or f_bold) 
+                                       or (is_drum and Options.drum_context_bold or f_bold)) and "1" or "0"
+        local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
 
         local line_strings = {}
         for _, vl in ipairs(vlines) do
             local formatted_parts = {}
             for _, j in ipairs(vl.token_indices) do
-                local meta_item = token_meta[j]
-                if meta_item.priority == 3 or (meta_item.priority == 0 and meta_item.is_phrase) then
+                local meta_item = meta.token_meta[j]
+                if meta_item.priority > 0 then
                     table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true))
-                elseif meta_item.priority == 1 or meta_item.priority == 2 then
-                    table.insert(formatted_parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta_item.color, meta_item.text, base_color))
                 else
                     table.insert(formatted_parts, meta_item.text)
                 end
             end
-            local line_text = ""
-            if Options.dw_original_spacing then
-                line_text = table.concat(formatted_parts, "")
-            else
-                line_text = compose_term_smart(formatted_parts)
-            end
+            local line_text = Options.dw_original_spacing and table.concat(formatted_parts, "") or compose_term_smart(formatted_parts)
             table.insert(line_strings, (line_text:gsub("\n", "")))
         end
 
@@ -2934,9 +3035,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
 
     local all_text = ""
     local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
-    
     for i, m in ipairs(sub_metas) do
-        local line_text = format_sub_wrapped(m, m.sub_idx == center_idx, subs[m.sub_idx].start_time)
+        local line_text = format_sub_wrapped(m, m.sub_idx == center_idx)
         if i == 1 then
             all_text = line_text
         else
@@ -2955,14 +3055,22 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local style_block = string.format("{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s", 
         bord, shad, bg_color, calculate_ass_alpha(bg_opacity), vsp_tag)
 
-    local ass = ""
-    if is_top then
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
-    else
-        ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
+    local final_ass = ""
+    if is_top then final_ass = string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
+    else final_ass = string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text) end
+
+    -- Update Cache
+    DRUM_DRAW_CACHE.center_idx = center_idx
+    DRUM_DRAW_CACHE.y_pos = y_pos_percent
+    DRUM_DRAW_CACHE.time_pos = time_pos
+    DRUM_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
+    DRUM_DRAW_CACHE.result = final_ass
+    DRUM_DRAW_CACHE.hit_zones = {}
+    if hit_zones then
+        for _, hz in ipairs(hit_zones) do table.insert(DRUM_DRAW_CACHE.hit_zones, hz) end
     end
 
-    return ass
+    return final_ass
 end
 
 
@@ -3076,7 +3184,6 @@ local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
     
     -- High-level Result Cache: Skip entire rendering if state is identical.
-    -- FSM.DW_CTRL_PENDING_VERSION is incremented whenever the Pink set changes.
     if DW_DRAW_CACHE.view_center == view_center and
        DW_DRAW_CACHE.active_idx == active_idx and
        DW_DRAW_CACHE.cl == FSM.DW_CURSOR_LINE and
@@ -3087,11 +3194,8 @@ local function draw_dw(subs, view_center, active_idx)
         return DW_DRAW_CACHE.result
     end
 
-    local ass = ""
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local current_y = 540 - (total_height / 2)
-    FSM.DW_LINE_Y_MAP = {}
     
     -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
@@ -3106,19 +3210,83 @@ local function draw_dw(subs, view_center, active_idx)
         end
     end
 
-    -- Text Block mapping
+    -- Phase 1: Collect and Highlight Tokens
+    local all_token_meta = {}
+    for _, entry in ipairs(layout) do
+        local i = entry.sub_idx
+        local is_active = (i == active_idx)
+        local base_color = is_active and Options.dw_active_color or Options.dw_context_color
+        entry.token_meta = {}
+        
+        for j, w in ipairs(entry.words) do
+            local l_idx = entry.visual_to_logical[j]
+            local meta = { text = w.text, color = base_color, is_word = w.is_word, is_phrase = false, priority = 0 }
+            
+            if l_idx then
+                -- Level 1: Persistent Selection
+                local line_set = FSM.DW_CTRL_PENDING_SET[i]
+                if line_set and line_set[l_idx] then
+                    meta.color = Options.dw_ctrl_select_color
+                    meta.priority = 1
+                end
+                -- Level 2: Selection/Hover
+                if meta.priority == 0 then
+                    local selected = false
+                    if has_selection then
+                        if i > p1_l and i < p2_l then selected = true
+                        elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w - L_EPSILON and l_idx <= p2_w + L_EPSILON)
+                        elseif i == p1_l then selected = (l_idx >= p1_w - L_EPSILON)
+                        elseif i == p2_l then selected = (l_idx <= p2_w + L_EPSILON) end
+                    end
+                    if selected or (i == cl and logical_cmp(l_idx, cw)) then
+                        meta.color = Options.dw_highlight_color
+                        meta.priority = 2
+                    end
+                end
+                -- Level 3: Database Highlights
+                if meta.priority == 0 then
+                    local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, i, j, subs[i].start_time)
+                    meta.purple_depth = purple_depth
+                    local h_color = base_color
+                    if orange_stack > 0 and purple_stack > 0 then
+                        local mix_depth = math.min((orange_stack + purple_depth) - 1, 3)
+                        if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
+                        elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
+                        elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
+                    elseif orange_stack > 0 then
+                        if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
+                        elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
+                        elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
+                    elseif purple_stack > 0 then
+                        if purple_depth == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
+                        elseif purple_depth == 2 then h_color = Options.anki_split_depth_2 or "D97496"
+                        elseif purple_depth >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
+                    end
+                    if h_color ~= base_color then
+                        meta.color = h_color
+                        meta.is_phrase = is_phrase
+                        meta.priority = 3
+                    end
+                end
+            end
+            table.insert(entry.token_meta, meta)
+            table.insert(all_token_meta, meta)
+        end
+    end
+
+    -- Phase 2: Propagation
+    apply_semantic_punctuation_colors(all_token_meta)
+
+    -- Phase 3: Assembly
     local lines_ass = {}
+    local current_y = 540 - (total_height / 2)
+    FSM.DW_LINE_Y_MAP = {}
+    
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
-        FSM.DW_LINE_Y_MAP[i] = current_y + (entry.height / 2)
-        current_y = current_y + entry.height
-        if layout_i < #layout then
-            local is_active = (entry.sub_idx == active_idx)
-            local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-            current_y = current_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
-        end
-        
         local is_active = (i == active_idx)
+        FSM.DW_LINE_Y_MAP[i] = current_y + (entry.height / 2)
+        
         local color = is_active and Options.dw_active_color or Options.dw_context_color
         local opacity = calculate_ass_alpha(is_active and Options.dw_active_opacity or Options.dw_context_opacity)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
@@ -3126,196 +3294,43 @@ local function draw_dw(subs, view_center, active_idx)
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
-        -- Step 1: Subtitle-wide Highlight Pre-Pass
-        local token_meta = {}
-        for j, w in ipairs(entry.words) do
-            local l_idx = entry.visual_to_logical[j]
-            local meta = { text = w.text, color = color, is_word = w.is_word, is_phrase = false, priority = 0 }
-            
-            -- Level 1: Persistent Selection
-            local line_set = FSM.DW_CTRL_PENDING_SET[i]
-            local ctrl_member = (l_idx and line_set) and line_set[l_idx] or nil
-            if ctrl_member then
-                meta.color = Options.dw_ctrl_select_color
-                meta.priority = 1
-            end
-
-            -- Level 2: Selection/Hover Focus
-            if meta.priority == 0 and l_idx then
-                local selected = false
-                if has_selection then
-                    if i > p1_l and i < p2_l then selected = true
-                    elseif i == p1_l and i == p2_l then selected = (l_idx >= p1_w - L_EPSILON and l_idx <= p2_w + L_EPSILON)
-                    elseif i == p1_l then selected = (l_idx >= p1_w - L_EPSILON)
-                    elseif i == p2_l then selected = (l_idx <= p2_w + L_EPSILON) end
-                end
-                local is_focus_point = (i == cl and logical_cmp(l_idx, cw))
-                if selected or is_focus_point then
-                    meta.color = Options.dw_highlight_color
-                    meta.priority = 2
-                end
-            end
-
-            -- Level 3: Database Highlights
-            if meta.priority == 0 and l_idx then
-                local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, i, j, subs[i].start_time)
-                meta.purple_depth = purple_depth
-                local h_color = color
-                
-                if orange_stack > 0 and purple_stack > 0 then
-                    local mix_depth = math.min((orange_stack + purple_depth) - 1, 3)
-                    if mix_depth == 1 then h_color = Options.anki_mix_depth_1 or "4A4AD3"
-                    elseif mix_depth == 2 then h_color = Options.anki_mix_depth_2 or "3636A8"
-                    elseif mix_depth >= 3 then h_color = Options.anki_mix_depth_3 or "151578" end
-                elseif orange_stack > 0 then
-                    if orange_stack == 1 then h_color = Options.anki_highlight_depth_1
-                    elseif orange_stack == 2 then h_color = Options.anki_highlight_depth_2
-                    elseif orange_stack >= 3 then h_color = Options.anki_highlight_depth_3 end
-                elseif purple_stack > 0 then
-                    if purple_depth == 1 then h_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                    elseif purple_depth == 2 then h_color = Options.anki_split_depth_2 or "D97496"
-                    elseif purple_depth >= 3 then h_color = Options.anki_split_depth_3 or "B3607C" end
-                end
-
-                if h_color ~= color then
-                    meta.color = h_color
-                    meta.is_phrase = is_phrase
-                    meta.matching_terms = matching_terms
-                    meta.priority = 3
-                end
-            end
-            token_meta[j] = meta
-        end
-
-        -- Step 2: Semantic Punctuation Coloring (Subtitle-wide & Space-Agnostic)
-        local function find_visible_neighbor(idx, direction)
-            local k = idx + direction
-            while k >= 1 and k <= #entry.words do
-                local m = token_meta[k]
-                if m and not m.text:match("^%s*$") then return m end
-                k = k + direction
-            end
-            return nil
-        end
-
-        for j_idx, _ in ipairs(entry.words) do
-            local meta = token_meta[j_idx]
-            if meta and meta.priority == 0 and not meta.is_word then
-                local prev_meta = find_visible_neighbor(j_idx, -1)
-                local next_meta = find_visible_neighbor(j_idx, 1)
-
-                if prev_meta and (prev_meta.priority == 1 or prev_meta.priority == 2) then
-                    meta.color = prev_meta.color
-                    meta.priority = prev_meta.priority
-                elseif prev_meta and prev_meta.priority == 3 and prev_meta.is_phrase then
-                    local p_orange = 0
-                    local p_purple = 0
-                    local p_txt = (prev_meta.text .. meta.text):lower()
-                    for _, m_obj in ipairs(prev_meta.matching_terms or {}) do
-                        if m_obj.text:lower():find(p_txt, 1, true) then
-                            if m_obj.is_split then p_purple = p_purple + 1
-                            else p_orange = p_orange + 1 end
-                        end
-                    end
-                    if p_orange > 0 or p_purple > 0 then
-                        local p_color = prev_meta.color
-                        if p_orange > 0 and p_purple > 0 then
-                            local mix_depth = math.min((p_orange + (prev_meta.purple_depth or 0)) - 1, 3)
-                            if mix_depth == 1 then p_color = Options.anki_mix_depth_1 or "4A4AD3"
-                            elseif mix_depth == 2 then p_color = Options.anki_mix_depth_2 or "3636A8"
-                            elseif mix_depth >= 3 then p_color = Options.anki_mix_depth_3 or "151578" end
-                        elseif p_orange > 0 then
-                            local o_depth = math.min(p_orange, 3)
-                            if o_depth == 1 then p_color = Options.anki_highlight_depth_1
-                            elseif o_depth == 2 then p_color = Options.anki_highlight_depth_2
-                            else p_color = Options.anki_highlight_depth_3 end
-                        elseif p_purple > 0 then
-                            local p_depth = math.min(prev_meta.purple_depth or 1, 3)
-                            if p_depth == 1 then p_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                            elseif p_depth == 2 then p_color = Options.anki_split_depth_2 or "D97496"
-                            else p_color = Options.anki_split_depth_3 or "B3607C" end
-                        end
-                        meta.color = p_color
-                        meta.priority = 3
-                    end
-                elseif next_meta and (next_meta.priority == 1 or next_meta.priority == 2) then
-                    meta.color = next_meta.color
-                    meta.priority = next_meta.priority
-                elseif next_meta and next_meta.priority == 3 and next_meta.is_phrase then
-                    local p_orange = 0
-                    local p_purple = 0
-                    local n_txt = (meta.text .. next_meta.text):lower()
-                    for _, m_obj in ipairs(next_meta.matching_terms or {}) do
-                        if m_obj.text:lower():find(n_txt, 1, true) then
-                            if m_obj.is_split then p_purple = p_purple + 1
-                            else p_orange = p_orange + 1 end
-                        end
-                    end
-                    if p_orange > 0 or p_purple > 0 then
-                        local n_color = next_meta.color
-                        if p_orange > 0 and p_purple > 0 then
-                            local mix_depth = math.min((p_orange + (next_meta.purple_depth or 0)) - 1, 3)
-                            if mix_depth == 1 then n_color = Options.anki_mix_depth_1 or "4A4AD3"
-                            elseif mix_depth == 2 then n_color = Options.anki_mix_depth_2 or "3636A8"
-                            elseif mix_depth >= 3 then n_color = Options.anki_mix_depth_3 or "151578" end
-                        elseif p_orange > 0 then
-                            local o_depth = math.min(p_orange, 3)
-                            if o_depth == 1 then n_color = Options.anki_highlight_depth_1
-                            elseif o_depth == 2 then n_color = Options.anki_highlight_depth_2
-                            else n_color = Options.anki_highlight_depth_3 end
-                        elseif p_purple > 0 then
-                            local p_depth = math.min(next_meta.purple_depth or 1, 3)
-                            if p_depth == 1 then n_color = Options.anki_split_depth_1 or Options.dw_split_select_color or "FF88B0"
-                            elseif p_depth == 2 then n_color = Options.anki_split_depth_2 or "D97496"
-                            else n_color = Options.anki_split_depth_3 or "B3607C" end
-                        end
-                        meta.color = n_color
-                        meta.priority = 3
-                    end
-                end
-            end
-        end
-
         local entry_ass_vlines = {}
         for _, vl_indices in ipairs(entry.vlines) do
-            local formatted_words = {}
-            for _, j in ipairs(vl_indices) do
-                local meta = token_meta[j]
-                if meta.priority == 3 or (meta.priority == 0 and meta.is_phrase) then
-                    table.insert(formatted_words, format_highlighted_word({text = meta.text}, meta.color, color, meta.is_phrase, "0", false))
-                elseif meta.priority == 1 or meta.priority == 2 then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta.color, meta.text, color))
-                else
-                    table.insert(formatted_words, meta.text)
-                end
-            end
             local line_ass = ""
-            for idx, fw in ipairs(formatted_words) do
-                local t_idx = vl_indices[idx]
-                local t_raw = entry.words[t_idx].text
+            for idx, j in ipairs(vl_indices) do
+                local meta = entry.token_meta[j]
+                local t_raw = meta.text
+                
+                if meta.priority > 0 then
+                    local h_color = meta.color
+                    line_ass = line_ass .. string.format("{\\c&H%s&}%s{\\c&H%s&}", h_color, t_raw, color)
+                else
+                    line_ass = line_ass .. t_raw
+                end
+                
+                -- Inter-token spacing (if not verbatim)
                 local next_v_idx = vl_indices[idx+1]
-                local next_t_raw = next_v_idx and entry.words[next_v_idx].text or nil
-                
-                line_ass = line_ass .. fw
-                
-                if next_t_raw and not Options.dw_original_spacing then
-                    if t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
-                       next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$") then
-                    else
+                if next_v_idx and not Options.dw_original_spacing then
+                    local next_t_raw = entry.token_meta[next_v_idx].text
+                    if not (t_raw:match("^[/-]$") or t_raw:match("^\226\128\147$") or t_raw:match("^\226\128\148$") or t_raw:match("^[%[%]%(%){}]$") or
+                            next_t_raw:match("^[/-]$") or next_t_raw:match("^\226\128\147$") or next_t_raw:match("^\226\128\148$") or next_t_raw:match("^[%[%]%(%){}]$")) then
                         line_ass = line_ass .. " "
                     end
                 end
             end
             table.insert(entry_ass_vlines, line_ass)
         end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
         table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
+        
+        current_y = current_y + entry.height
+        if layout_i < #layout then
+            current_y = current_y + calculate_sub_gap("dw", f_size, Options.dw_line_height_mul, Options.dw_vsp)
+        end
     end
-    
+
     local d_gap = Options.dw_double_gap
     local vsp_base = Options.dw_vsp
     local b_gap_mul = Options.dw_block_gap_mul or 0
-
     local function get_separator(prev_is_active)
         local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
         local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
@@ -3323,20 +3338,15 @@ local function draw_dw(subs, view_center, active_idx)
     end
 
     local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
-        end
+    for i, _ in ipairs(layout) do
+        if i == 1 then block_text = lines_ass[i]
+        else block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. lines_ass[i] end
     end
+    
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+    local final_ass = string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
         Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
     
-    -- Update Cache
     DW_DRAW_CACHE.view_center = view_center
     DW_DRAW_CACHE.active_idx = active_idx
     DW_DRAW_CACHE.cl = FSM.DW_CURSOR_LINE
