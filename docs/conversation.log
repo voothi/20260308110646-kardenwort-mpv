@@ -942,4 +942,9 @@
 20260430150502 x opsx-apply openspec\changes\20260430145112-surgical-transfer-post-rollback-improvements
 20260430153016 x Error
 20260430153805 x This is bad.
+20260430162527 What has changed between the current version 89a4d4736a7e50b71cdbafce959387f12a130a32 and the older 131f53065fb99d73754ebf81b0ac1a71d5da93fe and the even older 24a21be2ca417a4edbd9e6bff6d30ff647707f15
+20260430172108 Check for compliance with all openspec\specs
+20260430174230 Based on this audit, the codebase is in a stable, compliant state. - Okay.
+
+
 
