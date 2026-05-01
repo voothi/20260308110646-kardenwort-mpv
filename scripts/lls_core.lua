@@ -12,7 +12,7 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 local manage_dw_bindings
 local update_interactive_bindings
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
-DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1 }
+DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
 local Options = {
     -- AutoPause
@@ -3371,10 +3371,13 @@ end
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     if target_line_idx == -1 or not Tracks.sec.subs or #Tracks.sec.subs == 0 then return "" end
     
-    -- Cache check (Task 4.3)
+    -- Cache check (Task 1.3)
     if DW_TOOLTIP_DRAW_CACHE.target_idx == target_line_idx and 
        DW_TOOLTIP_DRAW_CACHE.osd_y == osd_y and 
-       DW_TOOLTIP_DRAW_CACHE.version == FSM.LAYOUT_VERSION then
+       DW_TOOLTIP_DRAW_CACHE.version == FSM.LAYOUT_VERSION and
+       DW_TOOLTIP_DRAW_CACHE.cl == FSM.DW_CURSOR_LINE and
+       DW_TOOLTIP_DRAW_CACHE.cw == FSM.DW_CURSOR_WORD and
+       DW_TOOLTIP_DRAW_CACHE.av == FSM.ANKI_VERSION then
         return DW_TOOLTIP_DRAW_CACHE.result
     end
 
@@ -3410,18 +3413,22 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         end
         
         local is_active = (i == center_idx)
-        local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
+        local base_color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local alpha_tag = string.format("{\\1a&H%s&}", calculate_ass_alpha(opacity))
-        local color_tag = string.format("{\\c&H%s&}", color)
+        
+        -- Task 1.1: Inject highlights (Mapping logic assumes 1:1 index alignment for secondary track)
+        local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time)
         
         local sub_visual_lines = {}
         for _, indices in ipairs(vline_indices) do
             local line_text = ""
             for _, idx in ipairs(indices) do
-                line_text = line_text .. tokens[idx].text
+                -- Task 1.2: Surgical word formatting
+                local tm = token_meta[idx]
+                line_text = line_text .. format_highlighted_word(tokens[idx], tm.color, base_color, tm.is_phrase, bold, true)
             end
-            table.insert(sub_visual_lines, color_tag .. alpha_tag .. line_text)
+            table.insert(sub_visual_lines, "{\\1c&H" .. base_color .. "&}" .. alpha_tag .. line_text)
             total_visual_lines = total_visual_lines + 1
         end
         
@@ -3468,13 +3475,16 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
 
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, bold, bord, shad, Options.tooltip_active_color, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
     DW_TOOLTIP_DRAW_CACHE.osd_y = osd_y
     DW_TOOLTIP_DRAW_CACHE.version = FSM.LAYOUT_VERSION
+    DW_TOOLTIP_DRAW_CACHE.cl = FSM.DW_CURSOR_LINE
+    DW_TOOLTIP_DRAW_CACHE.cw = FSM.DW_CURSOR_WORD
+    DW_TOOLTIP_DRAW_CACHE.av = FSM.ANKI_VERSION
     DW_TOOLTIP_DRAW_CACHE.result = ass
         
     return ass
