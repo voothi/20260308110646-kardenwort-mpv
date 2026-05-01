@@ -1043,7 +1043,8 @@
 20260501154851 Would you like me to create a change proposal to adapt the Search UI for multi-line wrapping? - Yes.
 20260501155154 opsx-apply openspec\changes\20260501154851-search-ui-wrapping-adaptation
 20260501160359 Would you like me to add the "Context-Aware Result Framing" requirement to the specs now? I can do this before we finalize and archive the change. - Yes.
-
+20260501160536 opsx-archive openspec\changes\20260501154851-search-ui-wrapping-adaptation
+20260501160627 Sync now
 
 
 
