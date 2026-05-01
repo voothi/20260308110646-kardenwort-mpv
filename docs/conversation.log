@@ -1134,10 +1134,11 @@
 20260502005630 Make sure that the order of subtitles in this list is in order - main, then below, next - second subtitles.
 20260502005850 opsx-propose based on conversation anchors 20260502003607 20260502003818 20260502004028 20260502004417 20260502004528 20260502004855 20260502005105 20260502005243 20260502005335 20260502005432 20260502005630
 20260502010306 opsx-apply 20260502005934-resume-last-file-session
-
-
-
-
-
+20260502010424 opsx-archive sync
+20260502010535 Add the ability to set the Font type Consolas, so it looks like a font drum_font_size = 34, drum_font_name = "Consolas", lls_core.lua#L26-27
+20260502010816 Synchronize so that in both scripts the fonts are the same in size and type at least.
+20260502010923 He's bigger
+20260502011020 Look, it’s already very similar, but 2 lines need to be corrected.
+20260502011135 Ok, now update as a spec specialist and technical writer the openspec\changes\archive\20260502005934-resume-last-file-session documentation and specs.
 
 

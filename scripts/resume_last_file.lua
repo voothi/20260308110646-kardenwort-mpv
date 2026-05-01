@@ -14,7 +14,9 @@ local opts = {
     -- Message prefix for OSD
     msg_prefix = "",
     -- OSD font size (set to 0 to use system default)
-    osd_font_size = 20,
+    osd_font_size = 34,
+    -- OSD font name (set to "" to use system default)
+    osd_font_name = "Consolas",
     -- Whether to show the OSD message with the filename
     show_filename = true,
     -- Whether to include information about connected subtitles in the OSD
@@ -61,6 +63,10 @@ mp.add_timeout(opts.startup_delay, function()
                     local msg = opts.msg_prefix .. filename
                     
                     if opts.show_filename then
+                        local osd = mp.create_osd_overlay("ass-events")
+                        osd.res_x = 1920
+                        osd.res_y = 1080
+                        
                         if opts.show_subtitles then
                             local dir, name = utils.split_path(last_path)
                             local base_name = name:gsub("%.%w+$", "")
@@ -86,16 +92,14 @@ mp.add_timeout(opts.startup_delay, function()
                             end
                         end
 
-                        if opts.osd_font_size > 0 then
-                            local old_size = mp.get_property("osd-font-size")
-                            mp.set_property("osd-font-size", opts.osd_font_size)
-                            mp.osd_message(msg, opts.osd_duration)
-                            mp.add_timeout(opts.osd_duration, function()
-                                mp.set_property("osd-font-size", old_size)
-                            end)
-                        else
-                            mp.osd_message(msg, opts.osd_duration)
-                        end
+                        local ass_msg = string.format("{\\an7}{\\pos(20,20)}{\\fs%d}{\\fn%s}{\\bord1.5}{\\shad1.0}%s", 
+                            opts.osd_font_size, opts.osd_font_name, msg:gsub("\n", "\\N"))
+                        osd.data = ass_msg
+                        osd:update()
+                        
+                        mp.add_timeout(opts.osd_duration, function()
+                            osd:remove()
+                        end)
                     end
                     
                     mp.msg.info("Resuming last session: " .. last_path)
