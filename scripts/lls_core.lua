@@ -45,7 +45,17 @@ local Options = {
     drum_block_gap_mul = -0.27,
     drum_gap_adj = 6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
-    osd_interactivity = true,     -- Enable mouse interaction for main subtitles
+    -- Interaction & Highlighting Toggles
+    osd_interactivity = true,      -- Global master toggle
+    dw_interactivity = true,       -- Drum Window interactivity
+    drum_interactivity = true,     -- Drum Mode interactivity
+    srt_interactivity = true,      -- Regular SRT interactivity
+    tooltip_interactivity = true,  -- Tooltip interactivity
+    
+    dw_sec_highlighting = true,    -- Secondary track highlights in Drum Window
+    drum_sec_highlighting = true,  -- Secondary track highlights in Drum Mode
+    srt_sec_highlighting = true,   -- Secondary track highlights in Regular SRT
+    tooltip_sec_highlighting = true, -- Highlights in Translation Tooltip
 
     -- SRT Style (Regular Mode)
     srt_font_size = 34,
@@ -2672,7 +2682,7 @@ local function is_inside_dw_selection(l, w)
     return true
 end
 
-local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, entry)
+local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, entry, force_plain)
     local token_meta = {}
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
     
@@ -2680,7 +2690,7 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
         local l_idx = t.logical_idx or (entry and entry.visual_to_logical[j])
         local meta = { text = t.text, color = base_color, is_word = t.is_word, is_phrase = false, priority = 0 }
         
-        if l_idx then
+        if l_idx and not force_plain then
             -- Level 1: Persistent Selection (Pink)
             local line_set = FSM.DW_CTRL_PENDING_SET[sub_idx]
             if line_set and line_set[l_idx] then
@@ -2929,7 +2939,7 @@ DRUM_DRAW_CACHE = {
     hit_zones = nil -- Cached geometry
 }
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones)
+local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain)
     if center_idx == -1 then return "" end
 
     -- Result cache: skip rebuild if nothing has changed since last call.
@@ -2989,7 +2999,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         -- Pass 1: Global Highlight Pre-Pass
         local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
                                         or (is_active and Options.srt_active_color or Options.srt_context_color)
-        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time)
+        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time, nil, force_plain)
         
         table.insert(sub_metas, m)
         total_h = total_h + m.total_height
@@ -3425,8 +3435,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
         local alpha_tag = string.format("{\\1a&H%s&}", calculate_ass_alpha(opacity))
         
-        -- Task 1.1: Inject highlights (Mapping logic assumes 1:1 index alignment for secondary track)
-        local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time)
+        -- Inject highlights (respecting secondary track toggle)
+        local force_plain = not Options.tooltip_sec_highlighting
+        local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time, nil, force_plain)
         
         local sub_visual_lines = {}
         local visual_lines_meta = {}
@@ -3664,7 +3675,7 @@ local function dw_hit_test(osd_x, osd_y)
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
-    if not FSM.DW_TOOLTIP_HIT_ZONES or FSM.DW_TOOLTIP_LINE == -1 then return nil, nil end
+    if not FSM.DW_TOOLTIP_HIT_ZONES or not Options.tooltip_interactivity then return nil, nil end
     
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
@@ -3714,12 +3725,21 @@ local function drum_osd_hit_test(osd_x, osd_y)
 end
 
 local function lls_hit_test_all(osd_x, osd_y)
+    if not Options.osd_interactivity then return nil, nil end
+    
     if FSM.DRUM_WINDOW ~= "OFF" then
-        local l, w = dw_tooltip_hit_test(osd_x, osd_y)
-        if l then return l, w end
-        return dw_hit_test(osd_x, osd_y)
+        if Options.dw_interactivity then
+            local l, w = dw_tooltip_hit_test(osd_x, osd_y)
+            if l then return l, w end
+            return dw_hit_test(osd_x, osd_y)
+        end
+        return nil, nil
     elseif Options.osd_interactivity then
-        return drum_osd_hit_test(osd_x, osd_y)
+        local is_drum = (FSM.DRUM == "ON")
+        local mode_enabled = is_drum and Options.drum_interactivity or Options.srt_interactivity
+        if mode_enabled then
+            return drum_osd_hit_test(osd_x, osd_y)
+        end
     end
     return nil, nil
 end
@@ -4606,12 +4626,13 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
         local idx = get_center_index(Tracks.pri.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, false)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
         local idx = get_center_index(Tracks.sec.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES)
+        local sec_plain = is_drum and (not Options.drum_sec_highlighting) or (not Options.srt_sec_highlighting)
+        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain)
     end
     
     drum_osd.data = ass_text
