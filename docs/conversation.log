@@ -991,4 +991,4 @@
 20260501094314 opsx-apply openspec\changes\20260501093901-optimize-speed-and-reliability-hot-paths openspec\changes\20260501023103-optimize-hot-paths
 20260501100247 You are like the main independent expert in caching and performance optimization, like the average model, check the final solution assembled by two AI models first it was big and then small openspec\changes\20260501023103-optimize-hot-paths openspec\changes\20260501093901-optimize-speed-and-reliability-hot-paths
 20260501100842 opsx-propose
-
+20260501101244 You are like an independent expert of the same rank as another big model, check and complete opsx-apply openspec\changes\20260501100842-fix-cache-integrity-after-audit

@@ -2146,15 +2146,28 @@ local function cmd_open_record_file()
         if err then mp.msg.warn("OPEN-RECORD error: " .. tostring(err)) end
     end)
 end
--- Centralized cache invalidation for all rendering layers
+-- Centralized cache invalidation for all rendering layers.
+-- INVARIANT: DRUM_DRAW_CACHE and DW_DRAW_CACHE are captured by upvalue.
+-- They MUST be defined at module scope before this function is called at runtime,
+-- otherwise the cache flushing will silently fail.
 local function flush_rendering_caches()
     FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
     FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
     
     -- Invalidate top-level ASS result caches
     FSM.DW_LAYOUT_CACHE = nil
-    if DRUM_DRAW_CACHE then DRUM_DRAW_CACHE.center_idx = -1 end
-    if DW_DRAW_CACHE then DW_DRAW_CACHE.view_center = -1 end
+    
+    if DRUM_DRAW_CACHE then 
+        DRUM_DRAW_CACHE.center_idx = -1 
+    else
+        mp.msg.warn("flush_rendering_caches: DRUM_DRAW_CACHE is nil (definition order bug)")
+    end
+    
+    if DW_DRAW_CACHE then 
+        DW_DRAW_CACHE.view_center = -1 
+    else
+        mp.msg.warn("flush_rendering_caches: DW_DRAW_CACHE is nil (definition order bug)")
+    end
 end
 
 
@@ -2923,7 +2936,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         
         -- If hit_zones was requested and we have it cached, populate it.
         if hit_zones and DRUM_DRAW_CACHE.hit_zones then
-            for k, v in pairs(DRUM_DRAW_CACHE.hit_zones) do hit_zones[k] = v end
+            for k, v in ipairs(DRUM_DRAW_CACHE.hit_zones) do hit_zones[k] = v end
         end
         return DRUM_DRAW_CACHE.result
     end
@@ -3082,7 +3095,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     -- If hit_zones was populated during this draw, cache it too.
     if hit_zones then
         DRUM_DRAW_CACHE.hit_zones = {}
-        for k, v in pairs(hit_zones) do DRUM_DRAW_CACHE.hit_zones[k] = v end
+        for k, v in ipairs(hit_zones) do DRUM_DRAW_CACHE.hit_zones[k] = v end
     else
         DRUM_DRAW_CACHE.hit_zones = nil
     end
@@ -3095,7 +3108,10 @@ end
 local function dw_build_layout(subs, view_center)
     -- Performance Cache Check: Re-use layout if viewport and subs haven't changed.
     -- This drastically reduces CPU load during mouse interaction and OSD updates.
-    if FSM.DW_LAYOUT_CACHE and FSM.DW_LAYOUT_CACHE.view_center == view_center and FSM.DW_LAYOUT_CACHE.subs_ptr == subs then
+    if FSM.DW_LAYOUT_CACHE and 
+       FSM.DW_LAYOUT_CACHE.view_center == view_center and 
+       FSM.DW_LAYOUT_CACHE.subs_ptr == subs and
+       FSM.DW_LAYOUT_CACHE.layout_version == FSM.LAYOUT_VERSION then
         return FSM.DW_LAYOUT_CACHE.layout, FSM.DW_LAYOUT_CACHE.total_height
     end
 
@@ -3130,6 +3146,8 @@ local function dw_build_layout(subs, view_center)
         local entry
         
         -- Sub-level Layout Cache: Reuse wrapped lines if track/options haven't changed.
+        -- NOTE: This cache is intentionally session-lived and accumulates across all visited
+        -- subtitles. It is evicted only via flush_rendering_caches() or track reload.
         if s.layout_cache and s.layout_cache.version == FSM.LAYOUT_VERSION then
             entry = s.layout_cache.entry
         else
@@ -3196,6 +3214,7 @@ local function dw_build_layout(subs, view_center)
     FSM.DW_LAYOUT_CACHE = {
         view_center = view_center,
         subs_ptr = subs,
+        layout_version = FSM.LAYOUT_VERSION,
         layout = layout,
         total_height = total_height
     }
@@ -3228,7 +3247,7 @@ local function draw_dw(subs, view_center, active_idx)
         
         -- Restore cached geometry
         if FSM.DW_HIT_ZONES and DW_DRAW_CACHE.hit_zones then
-            for k, v in pairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
+            for k, v in ipairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
         end
         return DW_DRAW_CACHE.result
     end
@@ -3338,7 +3357,7 @@ local function draw_dw(subs, view_center, active_idx)
     -- Cache geometry
     if FSM.DW_HIT_ZONES then
         DW_DRAW_CACHE.hit_zones = {}
-        for k, v in pairs(FSM.DW_HIT_ZONES) do DW_DRAW_CACHE.hit_zones[k] = v end
+        for k, v in ipairs(FSM.DW_HIT_ZONES) do DW_DRAW_CACHE.hit_zones[k] = v end
     else
         DW_DRAW_CACHE.hit_zones = nil
     end
