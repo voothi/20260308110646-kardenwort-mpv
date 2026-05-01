@@ -16,3 +16,19 @@ The tooltip rendering engine SHALL calculate the total vertical height of the to
 - **WHEN** the system calculates the `block_height` for vertical centering
 - **THEN** it SHALL sum the heights of every visual line and inter-line gap.
 - **AND** the final `osd_y` position SHALL ensure the entire multi-line block remains centered relative to the target primary subtitle line.
+
+### Requirement: Tooltip Cache Synchronization
+The tooltip rendering engine SHALL participate in the centralized cache invalidation system to prevent stale data display after track reloads or configuration updates.
+
+#### Scenario: Flushing Tooltip Caches
+- **WHEN** the `flush_rendering_caches()` function is executed
+- **THEN** the tooltip OSD overlay SHALL be cleared (`data = ""`).
+- **AND** the tooltip result cache SHALL be invalidated to force a full re-wrap on the next render request.
+
+### Requirement: Verbatim Secondary Track Fidelity
+The tooltip rendering engine SHALL preserve the raw, unnormalized content of secondary subtitles, adhering to the "Verbatim-first" architectural standard.
+
+#### Scenario: Rendering Original Spacing
+- **WHEN** a secondary subtitle is rendered in the tooltip
+- **THEN** the system SHALL use `get_sub_tokens(s, true)` to ensure original spacing and punctuation are preserved during the wrapping process.
+- **AND** no automated whitespace normalization or "cleaning" SHALL be applied to the tokens.

@@ -31,7 +31,14 @@ We will use a fixed `max_text_w = 1400` for the tooltip. Since the tooltip is an
 ### 4. Recursive Height Calculation
 The `block_height` calculation in `draw_dw_tooltip` will be updated to sum the heights of all *visual* lines across all logical subtitle blocks. This ensures that the vertical centering (`final_y`) and clamping logic correctly accounts for multi-line subtitles.
 
+### 5. Performance Caching (DW_TOOLTIP_DRAW_CACHE)
+To prevent redundant $O(N)$ layout evaluations during high-frequency mouse movement, we will implement a result cache for the tooltip. The rendering logic will return early if `target_line_idx`, `osd_y`, and `FSM.LAYOUT_VERSION` are identical to the previous call.
+
+### 6. Centralized Cache Invalidation
+The `draw_dw_tooltip` state and OSD overlay will be integrated into the global `flush_rendering_caches()` mechanism. This ensures that track reloads, option updates, or TSV refreshes immediately clear any pinned or forced tooltips, maintaining architectural consistency with the `v1.58.0` hardening.
+
 ## Risks / Trade-offs
 
 - **[Risk]** Tooltip height exceeding screen resolution → **[Mitigation]** The existing clamping logic already checks `screen_h - margin`. If a tooltip is exceptionally long, it will be pinned to the bottom edge.
-- **[Risk]** Increased CPU usage on mouse-move → **[Mitigation]** The wrapping heuristic is purely string/math based and avoids expensive `osd-overlay` commands. For ~5-7 lines of context, the impact is negligible.
+- **[Risk]** Stale tooltip state after track reload → **[Mitigation]** Explicit integration with `flush_rendering_caches()` to reset OSD and cache sentinels.
+- **[Risk]** Increased CPU usage on mouse-move → **[Mitigation]** Implementation of `DW_TOOLTIP_DRAW_CACHE` to bypass rendering when the cursor remains focused on the same subtitle line.

@@ -15,8 +15,14 @@
 - [ ] 3.2 Refactor the `block_height` calculation to sum the heights of every visual line plus inter-subtitle gaps.
 - [ ] 3.3 Ensure the `final_y` positioning logic and screen boundary clamping correctly use the updated `block_height`.
 
-## 4. Final Polish & Testing
+## 4. Cache Hardening & Performance
 
-- [ ] 4.1 Verify that long translations wrap cleanly without bleeding off the left edge.
-- [ ] 4.2 Test "double newline" gap behavior when subtitles are wrapped.
-- [ ] 4.3 Confirm that right-center alignment (`\an6`) is preserved across all visual lines.
+- [ ] 4.1 Define `DW_TOOLTIP_DRAW_CACHE` and implement result caching in `draw_dw_tooltip`.
+- [ ] 4.2 Update `flush_rendering_caches()` to clear `dw_tooltip_osd` and reset cache sentinels.
+- [ ] 4.3 Verify that `FSM.LAYOUT_VERSION` is respected as a cache invalidation sentinel.
+
+## 5. Final Polish & Testing
+
+- [ ] 5.1 Verify that long translations wrap cleanly without bleeding off the left edge.
+- [ ] 5.2 Test "double newline" gap behavior when subtitles are wrapped.
+- [ ] 5.3 Confirm that right-center alignment (`\an6`) is preserved across all visual lines.
