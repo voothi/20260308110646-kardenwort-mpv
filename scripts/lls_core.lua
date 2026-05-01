@@ -164,6 +164,8 @@ local Options = {
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
     tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
+    tooltip_highlight_color = "00CCFF",-- Gold highlight in BGR (Matches dw_highlight_color default)
+    tooltip_ctrl_select_color = "FF88FF",-- Neon pink (Matches dw_ctrl_select_color default)
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -2687,9 +2689,13 @@ local function is_inside_dw_selection(l, w)
     return true
 end
 
-local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, entry, force_plain)
+local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, entry, force_plain, h_color, ctrl_color)
     local token_meta = {}
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    
+    -- Fallbacks (Task 2.2)
+    h_color = h_color or Options.dw_highlight_color
+    ctrl_color = ctrl_color or Options.dw_ctrl_select_color
     
     for j, t in ipairs(tokens) do
         local l_idx = t.logical_idx or (entry and entry.visual_to_logical[j])
@@ -2699,7 +2705,7 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
             -- Level 1: Persistent Selection (Pink)
             local line_set = FSM.DW_CTRL_PENDING_SET[sub_idx]
             if line_set and line_set[l_idx] then
-                meta.color = Options.dw_ctrl_select_color
+                meta.color = ctrl_color
                 meta.priority = 1
             end
 
@@ -2708,7 +2714,7 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
                 local selected = is_inside_dw_selection(sub_idx, l_idx)
                 local is_focus_point = (sub_idx == cl and logical_cmp(l_idx, cw))
                 if selected or is_focus_point then
-                    meta.color = Options.dw_highlight_color
+                    meta.color = h_color
                     meta.priority = 2
                 end
             end
@@ -3004,7 +3010,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         -- Pass 1: Global Highlight Pre-Pass
         local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
                                         or (is_active and Options.srt_active_color or Options.srt_context_color)
-        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time, nil, force_plain)
+        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time, nil, force_plain, Options.dw_highlight_color, Options.dw_ctrl_select_color)
         
         table.insert(sub_metas, m)
         total_h = total_h + m.total_height
@@ -3293,7 +3299,7 @@ local function draw_dw(subs, view_center, active_idx)
         local i = entry.sub_idx
         local is_active = (i == active_idx)
         local base_color = is_active and Options.dw_active_color or Options.dw_context_color
-        entry.token_meta = populate_token_meta(subs, i, entry.words, base_color, subs[i].start_time, entry, not Options.dw_pri_highlighting)
+        entry.token_meta = populate_token_meta(subs, i, entry.words, base_color, subs[i].start_time, entry, not Options.dw_pri_highlighting, Options.dw_highlight_color, Options.dw_ctrl_select_color)
     end
 
 
@@ -3443,7 +3449,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         
         -- Inject highlights (respecting secondary track toggle)
         local force_plain = not Options.dw_sec_highlighting
-        local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time, nil, force_plain)
+        local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
         
         local sub_visual_lines = {}
         local visual_lines_meta = {}

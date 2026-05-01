@@ -1079,7 +1079,7 @@
 20260501193441 Still, let's talk about fonts again. Now, for some reason, yellow feels brighter anyway. Compare.
 20260501194758 Maybe we need to explicitly set the color for the tooltip mode as dw_highlight_color?
 20260501194956 We would add these to the Options table and mpv.conf: - Yes.
-
+20260501195226 opsx-apply openspec\changes\20260501195000-tooltip-highlight-calibration
 
 
 
