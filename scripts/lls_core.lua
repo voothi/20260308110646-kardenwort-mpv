@@ -3953,13 +3953,15 @@ local function dw_tooltip_mouse_update()
                 dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, target_y)
                 dw_tooltip_osd:update()
             else
-                if FSM.DW_TOOLTIP_LINE ~= -1 then
+                -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
+                if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
                     FSM.DW_TOOLTIP_LINE = -1
                     dw_tooltip_osd.data = ""
                     dw_tooltip_osd:update()
                 end
             end
-        else
+        elseif not FSM.DW_TOOLTIP_HOLDING then
+            -- Sticky Hover: Only dismiss on gaps if we are NOT holding RMB
             if FSM.DW_TOOLTIP_LINE ~= -1 then
                 FSM.DW_TOOLTIP_LINE = -1
                 dw_tooltip_osd.data = ""

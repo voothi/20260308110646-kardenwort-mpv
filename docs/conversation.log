@@ -1059,7 +1059,11 @@
 20260501170708 Rename what they were called openspec\changes\archive\2026-05-01-full-bidirectional-pointer-sync openspec\changes\archive\2026-05-01-sync-tooltip-highlights The label should not have appeared 2026-05-01
 20260501170826 opsx-explore Is it now possible to make it so that in window mode W in the tooltip window E (tooltip) you can select text as it now works in mode C, when the second subtitles are turned on by J, when you highlight in the upper second subtitles (Russian), this is reflected in the lower main ones. I would like it to work in a similar way in W window mode and I would be able to select Russian subtitles in the tooltip and see them highlighted in the main text.
 20260501173429 Okay, in general, but the tooktip window blinks every time you click on it with LMB, can this be fixed? 
-
+20260501174414 x Now, when the E tooltip window is active, can I select only the text in it within the transparent window, or can the text behind it also be selected by clicking on it? How does this work?
+20260501174703 x Add a "Block Shield" (the entire tooltip box captures all clicks)? - Yes.
+20260501174851 x Okay, but now if window E blinks, if the cursor is above it or next to it, when I hold down RMB and move it vertically for quick viewing, in this mode, can it be fixed or is it hindered by the fact that we implemented “Block Shield”?
+20260501175346 x Now in the E tooltip window, if you hold down LMB on a word, it starts flashing quickly between yellow and white.
+20260501180210 I rolled back to the moment 20260501173429, to "Block Shield", confirm that the "Surgical" behavior is now working well.
 
 
 
