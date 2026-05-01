@@ -1052,8 +1052,8 @@
 20260501163555 Check if my yellow pointer is now synchronized, if it is in one of the modes, when transitioning between them.
 20260501163905 There is also a mode without C, when it’s just one line, maybe it’s called SRT, create opsx-propose for this full bidirectional synchronization Defining Synchronization Parameters I'm working on a change proposal for full bidirectional synchronization of the yellow pointer across all modes: Drum Mode C, Drum Window W, and "Regular SRT." I'm currently focusing on defining the specific parameters needed for synchronization, especially in the "Mode without C (one line)" scenario.20260501163905 There is also a mode without C, when it’s just one line, maybe it’s called SRT, create opsx-propose for this full bidirectional synchronization Defining Synchronization Parameters I'm working on a change proposal for full bidirectional synchronization of the yellow pointer across all modes: Drum Mode C, Drum Window W, and "Regular SRT." I'm currently focusing on defining the specific parameters needed for synchronization, especially in the "Mode without C (one line)" scenario.
 20260501164327 opsx-apply openspec\changes\20260501163905-full-bidirectional-pointer-sync
-
-
+20260501165217 Well, is it possible then to make another improvement that will allow in W mode, just like now in C mode with two subtitles, to synchronize the selections between the window text and the E (tooltip) tooltip text?
+20260501165540 /opsx-propose 20260501165217-sync-tooltip-highlights
 
 
 
