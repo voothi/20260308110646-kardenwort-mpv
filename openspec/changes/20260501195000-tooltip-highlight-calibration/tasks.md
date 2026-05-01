@@ -44,3 +44,9 @@
 - [x] 7.3 Fix ASS tag bug in `draw_dw_tooltip`: migrate from `\3c` to `\4c` for background color and set both to `bg_color`.
 - [x] 7.4 Update `mpv.conf` to remove legacy `tooltip_font_bold` and use granular `active`/`context` boldness toggles (default `no`).
 - [x] 7.5 Verify visual parity: Tooltip should now match Drum/SRT weight and background aesthetic.
+
+## 8. Universal Border/Shadow Standardization
+
+- [x] 8.1 Update `draw_dw` to explicitly set `\3c` (border color) to `dw_bg_color`, matching `\4c` to prevent blooming.
+- [x] 8.2 Update `draw_drum` to explicitly set `\3c` (border color) to `bg_color` (derived from `prefix`), matching `\4c`.
+- [x] 8.3 Verify that all three rendering loops (`dw`, `drum`, `tooltip`) now use identical background styling tags.
