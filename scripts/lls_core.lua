@@ -4048,23 +4048,37 @@ local function ctrl_discard_set()
     end
 end
 
--- Context-Aware Escape: 3-step cancel then close window
--- Step 1: Clear pink (ctrl pending set) and multi-line yellow selection anchor
--- Step 2: Clear single-word yellow pointer; syncs cursor to active subtitle so
---         the next arrow keypress places the pointer at the first active word
--- Step 3: Close the Drum Window
+-- Context-Aware Escape: Sequential 4-stage cancel then close window
+-- Stage 1: Clear Pink Set (ctrl pending set)
+-- Stage 2: Clear Yellow Range (if anchor exists and is different from cursor)
+-- Stage 3: Clear Yellow Pointer (hides the highlight) and syncs cursor to active line
+-- Stage 4: Close the Drum Window
 local function cmd_dw_esc()
-    -- Step 1: pink set OR multi-line yellow anchor present → discard both
-    if next(FSM.DW_CTRL_PENDING_SET) or FSM.DW_ANCHOR_LINE ~= -1 then
-        ctrl_discard_set()
+    -- Stage 1: Clear Pink Set (Purple highlights)
+    if next(FSM.DW_CTRL_PENDING_SET) then
+        FSM.DW_CTRL_PENDING_SET = {}
+        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
         elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
     end
-    -- Step 2: single-word yellow cursor pointer present → hide it
+
+    -- Stage 2: Clear Yellow Range (multi-word selection)
+    -- get_dw_selection_bounds returns nil if it's a single-word pointer
+    if get_dw_selection_bounds() then
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
+        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        return
+    end
+
+    -- Stage 3: Clear Yellow Pointer
     if FSM.DW_CURSOR_WORD ~= -1 then
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
         -- Sync cursor line to the currently active (white) subtitle so that the
         -- next arrow navigation re-materialises the pointer at the right position
         if FSM.DW_ACTIVE_LINE ~= -1 then
@@ -4074,7 +4088,8 @@ local function cmd_dw_esc()
         elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
     end
-    -- Step 3: nothing left to clear → close the window
+
+    -- Stage 4: nothing left to clear → close the window
     cmd_toggle_drum_window(false)
 end
 
@@ -4083,9 +4098,9 @@ local function get_dw_selection_bounds()
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
     
     if al == -1 or aw == -1 or cl == -1 or cw == -1 then return nil end
-    if al == cl and aw == cw then return nil end -- Single word is not a "range selection" in this context
+    if al == cl and logical_cmp(aw, cw) then return nil end -- Single word is not a "range selection" in this context
     
-    if al < cl or (al == cl and aw <= cw) then
+    if al < cl or (al == cl and aw < cw + L_EPSILON) then
         return al, aw, cl, cw
     else
         return cl, cw, al, aw
