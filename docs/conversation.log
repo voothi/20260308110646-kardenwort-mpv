@@ -1005,4 +1005,16 @@
 20260501121425 opsx-explore Check for compliance with all openspec\specs
 20260501121734 No immediate code changes are required. The system maintains high architectural integrity. You may proceed with further feature development or archival of completed changes. - Okay
 20260501121941 create-release-2 v1.58.0 openspec\changes\archive\20260428075210-fix-drum-gap-sync-and-anchor openspec\changes\archive\20260428192102-normalize-tsv-ellipsis-spacing openspec\changes\archive\20260429000301-refine-phrase-generation-precision-anchoring openspec\changes\archive\20260429005929-sequential-anchoring-with-span-padding openspec\changes\archive\20260429012045-subtitle-line-sentence-boundaries openspec\changes\archive\20260429013212-configurable-abbreviation-detection openspec\changes\archive\20260429015128-fix-phrase-trailing-punctuation openspec\changes\archive\20260429022653-fix-context-punctuation openspec\changes\archive\20260429125303-fix-srt-drum-wrapping openspec\changes\archive\20260429130826-fix-srt-drum-wrapping-final openspec\changes\archive\20260429133044-fix-drum-osd-regressions openspec\changes\archive\20260429142144-fix-paired-export-consistency-and-spec-alignment openspec\changes\archive\20260429144946-fix-dangling-brackets-and-unify-cleaning openspec\changes\archive\20260429151207-fix-pink-selection-regressions-and-cleaning openspec\changes\archive\20260429185737-rework-string-preparation-for-export openspec\changes\archive\20260429195210-unify-subtitle-export-and-keyboard-granularity openspec\changes\archive\20260429212717-unify-global-highlighting openspec\changes\archive\20260430183833-fix-precision-selection-and-tokenization openspec\changes\archive\20260430233400-remove-sentence-restoration-and-align-export-logic openspec\changes\archive\20260501005019-fix-spec-compliance-regressions openspec\changes\archive\20260501013716-simplify-specs-and-fix-export-fidelity openspec\changes\archive\20260501015631-fix-export-fidelity-and-ordered-mapping openspec\changes\archive\20260501023103-optimize-hot-paths openspec\changes\archive\20260501093901-optimize-speed-and-reliability-hot-paths openspec\changes\archive\20260501100842-fix-cache-integrity-after-audit openspec\changes\archive\20260501103700-harden-rendering-caches-and-optimize-hot-paths openspec\changes\archive\20260501105900-harden-rendering-caches-and-fix-dead-code openspec\changes\archive\20260501111725-remediate-cache-shadowing-and-fix-word-logic openspec\changes\archive\20260501115216-archive-and-sync-performance-specs
+20260501130406 opsx-explore # In the tooltip window in the drum W window, make the transfer of long translated (second) subtitles as it was done for the main subtitles. ## Description 20260501021036-in-the-tooltip-window
+20260501130952 Would you like me to create an OpenSpec proposal for this implementation now? - Yes.
+
+
+
+
+
+
+
+
+
+
 

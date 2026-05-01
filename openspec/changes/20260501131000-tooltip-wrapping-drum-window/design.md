@@ -1,0 +1,37 @@
+## Context
+
+The Drum Window (DW) tooltip in `lls_core.lua` provides a context-aware view of translated (secondary) subtitles. While primary subtitles in Drum Mode use a sophisticated layout engine to handle long lines, the tooltip currently concatenates raw text, leading to overflows when translations are long.
+
+## Goals / Non-Goals
+
+**Goals:**
+- Implement word-wrapping for secondary subtitles in the DW tooltip.
+- Ensure the tooltip remains vertically centered and clamped to the screen boundaries.
+- Maintain visual parity with the primary subtitle wrapping heuristic.
+
+**Non-Goals:**
+- Implementing a full layout cache for the tooltip (heuristics are fast enough for the small line count).
+- Changing the primary subtitle wrapping logic.
+
+## Decisions
+
+### 1. Reuse `dw_get_str_width` Heuristic
+We will use the existing `dw_get_str_width(str, fs, font_name)` utility. This ensures that wrapping decisions in the tooltip perfectly match the main window's behavior without the overhead of real-time OSD measurement calls.
+
+### 2. Token-Based Wrapping Engine
+We will utilize `get_sub_tokens(sub, true)` to retrieve rich tokens. The wrapping logic will:
+- Iterate through tokens.
+- Calculate cumulative width.
+- Insert soft-wrap markers (`\N`) when `max_text_w` is exceeded.
+- Group tokens into visual lines.
+
+### 3. Maximum Width Configuration
+We will use a fixed `max_text_w = 1400` for the tooltip. Since the tooltip is anchored at `x=1800` (`\an6`), this ensures the text stays within screen bounds (leaving 400px margin on the left) while providing enough horizontal space for complex translations.
+
+### 4. Recursive Height Calculation
+The `block_height` calculation in `draw_dw_tooltip` will be updated to sum the heights of all *visual* lines across all logical subtitle blocks. This ensures that the vertical centering (`final_y`) and clamping logic correctly accounts for multi-line subtitles.
+
+## Risks / Trade-offs
+
+- **[Risk]** Tooltip height exceeding screen resolution → **[Mitigation]** The existing clamping logic already checks `screen_h - margin`. If a tooltip is exceptionally long, it will be pinned to the bottom edge.
+- **[Risk]** Increased CPU usage on mouse-move → **[Mitigation]** The wrapping heuristic is purely string/math based and avoids expensive `osd-overlay` commands. For ~5-7 lines of context, the impact is negligible.
