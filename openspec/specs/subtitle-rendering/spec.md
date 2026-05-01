@@ -125,14 +125,16 @@ The Drum Mode (Mode C) toggle SHALL control the rendering style (single-line vs 
 - **THEN** the system SHALL NOT change the subtitle visibility state
 - **AND** it SHALL display a warning OSD indicating that visibility is managed by the Drum Window.
 
-### Requirement: Automatic Line Wrapping (SRT & Drum)
-The OSD rendering engine SHALL automatically wrap subtitle lines that exceed the visual safe area (1860px) into multiple vertical lines to prevent text from bleeding off the screen.
+### Requirement: Automatic Line Wrapping (SRT, Drum & Tooltip)
+The OSD rendering engine SHALL automatically wrap subtitle lines that exceed the visual safe area into multiple vertical lines to prevent text from bleeding off the screen.
+- For Primary (SRT & Drum) subtitles, the safe area is defined as 1860px.
+- For Tooltip (Secondary) subtitles, the safe area is defined as 1400px.
 
 #### Scenario: Long Sentence Wrapping
-- **WHEN** an SRT subtitle contains a sentence longer than 1860px.
+- **WHEN** a subtitle (Primary or Secondary Tooltip) contains a sentence longer than its respective safe area.
 - **THEN** it SHALL be split into two or more visual lines.
-- **AND** each visual line SHALL be centered horizontally.
-- **AND** the system SHALL maintain accurate hit-testing (mouse interactivity) for every word on every wrapped visual line.
+- **AND** each visual line SHALL be aligned according to its mode's anchor (Center for Primary, Right for Tooltip).
+- **AND** the system SHALL maintain accurate hit-testing (where applicable) for every word on every wrapped visual line.
 
 #### Scenario: Empty Subtitle Slot Preservation
 - **WHEN** a context subtitle entry has empty text (e.g., a gap-filler line)
