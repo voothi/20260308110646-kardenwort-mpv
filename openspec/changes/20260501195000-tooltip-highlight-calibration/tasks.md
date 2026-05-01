@@ -45,8 +45,16 @@
 - [x] 7.4 Update `mpv.conf` to remove legacy `tooltip_font_bold` and use granular `active`/`context` boldness toggles (default `no`).
 - [x] 7.5 Verify visual parity: Tooltip should now match Drum/SRT weight and background aesthetic.
 
-## 8. Universal Border/Shadow Standardization
+## 9. Final Aesthetic Calibration (Post-Regression Analysis)
+2026-05-01: Analysis identified that opaque borders contribute to perceived "Boldness" even when \b0 is used.
 
-- [x] 8.1 Update `draw_dw` to explicitly set `\3c` (border color) to `dw_bg_color`, matching `\4c` to prevent blooming.
-- [x] 8.2 Update `draw_drum` to explicitly set `\3c` (border color) to `bg_color` (derived from `prefix`), matching `\4c`.
-- [x] 8.3 Verify that all three rendering loops (`dw`, `drum`, `tooltip`) now use identical background styling tags.
+- [ ] 9.1 Update `draw_dw` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `dw_bg_opacity`).
+- [ ] 9.2 Update `draw_drum` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `bg_opacity`).
+- [ ] 9.3 Update `draw_dw_tooltip` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `tooltip_bg_opacity`).
+- [ ] 9.4 Verify that "Yellow" highlights now appear with a true "Premium" (Regular) font weight without artificial border thickening.
+
+## 10. Final Verification
+
+- [ ] 10.1 Conduct a final expert-level regression analysis on commit `74263e43f0418b4950462b256989a61961b63d3b` against `v1.58.0`.
+- [ ] 10.2 Confirm zero regressions in O(1) performance and verbatim subtitle fidelity.
+- [ ] 10.3 Archive the change after user approval of the final aesthetic state.

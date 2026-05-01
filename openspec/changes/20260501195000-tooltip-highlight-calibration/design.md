@@ -25,10 +25,15 @@ In addition to color, highlight **boldness** is now decoupled per mode.
 - **Rationale**: Solves the "visual blooming" effect where bold highlights in high-contrast contexts (like the tooltip) feel overly bright compared to the main window.
 - **Implementation**: `format_highlighted_word` accepts a `force_bold` override. Rendering loops calculate this by checking `Options.anki_highlight_bold` for database matches (Priority 3) and `Options.<mode>_highlight_bold` for manual selections (Priority 1/2).
 
-### 4. Tooltip Glow Regression Fix
-The tooltip renderer was incorrectly using `\3c` for background colors.
-- **Decision**: Update `draw_dw_tooltip` to use `\4c` for background/shadow color and set both `\3c` and `\4c` to the same `bg_color`.
+### 4. Tooltip Glow Regression Fix (Aesthetic Parity)
+The tooltip renderer was incorrectly using `\3c` for background colors, causing visual "blooming."
+- **Decision**: Update `draw_dw_tooltip`, `draw_dw`, and `draw_drum` to synchronize `\3c` and `\4c` tags. Both are now explicitly set to the mode's `bg_color`.
 - **Rationale**: Resolves the "brighter and bolder" visual discrepancy (white shadow bleed) while ensuring a consistent dark aesthetic across all screens.
+
+### 5. Transparency Synchronization (Final Calibration)
+During regression analysis, it was identified that `\3a` (border transparency) must match `\4a` (shadow transparency) to achieve true "Premium" thinness.
+- **Decision**: All rendering loops must explicitly set `\3a` to the same value as `\4a` (derived from `bg_opacity`).
+- **Rationale**: Prevents an opaque border from adding artificial weight to the text, which otherwise causes "Thin" fonts to appear "Bold" in high-contrast environments.
 
 ## Risks / Trade-offs
 
