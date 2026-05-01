@@ -6106,23 +6106,20 @@ local function manage_search_bindings(enable)
                     -- Jump immediately as if Enter was pressed
                     local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX].idx
                     local sub = Tracks.pri.subs[selected_line]
-                                
-                                if sub.start_time then
-                                    mp.commandv("seek", sub.start_time, "absolute+exact")
-                                    FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
-                                end
-                                
-                                FSM.DW_CURSOR_LINE = selected_line
-                                FSM.DW_CURSOR_WORD = -1
-                                FSM.DW_VIEW_CENTER = selected_line
-                                FSM.DW_FOLLOW_PLAYER = true
-                                FSM.DW_ANCHOR_LINE = -1
-                                FSM.DW_ANCHOR_WORD = -1
-                                
-                                cmd_toggle_search()
-                            end
-                        end
+                    
+                    if sub.start_time then
+                        mp.commandv("seek", sub.start_time, "absolute+exact")
+                        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                     end
+                    
+                    FSM.DW_CURSOR_LINE = selected_line
+                    FSM.DW_CURSOR_WORD = -1
+                    FSM.DW_VIEW_CENTER = selected_line
+                    FSM.DW_FOLLOW_PLAYER = true
+                    FSM.DW_ANCHOR_LINE = -1
+                    FSM.DW_ANCHOR_WORD = -1
+                    
+                    cmd_toggle_search()
                 end
             end
         end
