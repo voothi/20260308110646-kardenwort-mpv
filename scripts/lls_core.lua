@@ -2783,13 +2783,14 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
     return token_meta
 end
 
-local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c)
+local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold)
     if type(word) == "table" then word = word.text end
     if not word then return "" end
     
     local c_tag = use_1c and "1c" or "c"
-    local b_on = Options.anki_highlight_bold and "{\\b1}" or ""
-    local b_off = Options.anki_highlight_bold and string.format("{\\b%s}", bold_state or "0") or ""
+    local is_bold = (force_bold ~= nil) and force_bold or Options.anki_highlight_bold
+    local b_on = is_bold and "{\\b1}" or ""
+    local b_off = is_bold and string.format("{\\b%s}", bold_state or "0") or ""
     
     if (h_color == base_color) then return word end
 
@@ -3075,10 +3076,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             local formatted_parts = {}
             for _, j in ipairs(vl.token_indices) do
                 local meta_item = token_meta[j]
-                if meta_item.priority == 3 or (meta_item.priority == 0 and meta_item.is_phrase) then
-                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true))
-                elseif meta_item.priority == 1 or meta_item.priority == 2 then
-                    table.insert(formatted_parts, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta_item.color, meta_item.text, base_color))
+                if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
+                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, (meta_item.priority == 3)))
                 else
                     table.insert(formatted_parts, meta_item.text)
                 end
@@ -3344,10 +3343,8 @@ local function draw_dw(subs, view_center, active_idx)
             local formatted_words = {}
             for _, j in ipairs(vl_indices) do
                 local meta_item = token_meta[j]
-                if meta_item.priority == 3 or (meta_item.priority == 0 and meta_item.is_phrase) then
-                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true))
-                elseif meta_item.priority == 1 or meta_item.priority == 2 then
-                    table.insert(formatted_words, string.format("{\\c&H%s&}%s{\\c&H%s&}", meta_item.color, meta_item.text, color))
+                if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
+                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, (meta_item.priority == 3)))
                 else
                     table.insert(formatted_words, meta_item.text)
                 end
@@ -3484,7 +3481,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                     })
                 end
                 
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true, (tm.priority == 3))
                 line_w = line_w + ww
             end
             table.insert(sub_visual_lines, "{\\1c&H" .. base_color .. "&}" .. alpha_tag .. line_text)

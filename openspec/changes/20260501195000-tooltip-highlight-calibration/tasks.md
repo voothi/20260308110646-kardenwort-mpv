@@ -28,3 +28,10 @@
 - [x] 5.2 Add corresponding `ctrl_select_color` options for all modes and tracks.
 - [x] 5.3 Update `draw_drum` to pass track-specific and mode-specific colors to `populate_token_meta`.
 - [x] 5.4 Update `mpv.conf` with all new color options in their respective sections.
+
+## 6. Boldness Synchronization
+
+- [x] 6.1 Refactor `format_highlighted_word` in `lls_core.lua` to accept a `force_bold` parameter.
+- [x] 6.2 Update `draw_dw_tooltip` to pass `tm.priority == 3` (only database matches) as the `force_bold` argument.
+- [x] 6.3 Update `draw_drum` to similarly synchronize boldness for primary and secondary tracks.
+- [x] 6.4 Verify that tooltip yellow highlights are now regular weight (matching the Drum Window).

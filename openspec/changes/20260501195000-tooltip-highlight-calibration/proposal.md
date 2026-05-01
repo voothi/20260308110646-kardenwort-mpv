@@ -5,8 +5,9 @@ Currently, the selection and highlighting logic across various modes (Drum Windo
 ## What Changes
 
 - **Universal Explicit Colors**: Introduce independent `highlight_color` and `ctrl_select_color` script options for every interaction mode and track (Drum Window, Tooltip, Drum Mode Pri/Sec, SRT Mode Pri/Sec).
-- **Architectural Parameterization**: Refactor the core `populate_token_meta` service to accept dynamic color palettes, eliminating hardcoded global lookups and ensuring architectural consistency.
-- **Independent Luminance Tuning**: Enable precise tuning of selection brightness per screen and per mode to account for different visual weights and contrast levels.
+- **Boldness Synchronization**: Synchronize highlight weight across all modes, ensuring that manual selections (Yellow/Pink) remain regular weight to match the Drum Window, while database matches remain bold.
+- **Architectural Parameterization**: Refactor the core `populate_token_meta` and `format_highlighted_word` services to accept dynamic color and boldness palettes.
+- **Independent Luminance Tuning**: Enable precise tuning of selection brightness and weight per screen and per mode.
 
 ## Capabilities
 
