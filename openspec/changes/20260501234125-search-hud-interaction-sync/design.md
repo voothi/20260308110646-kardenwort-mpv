@@ -14,15 +14,14 @@ The Search HUD currently uses a simplified coordinate calculation for hit-testin
 
 ## Decisions
 
-### 1. Cumulative Y-Offset Mapping
-We will introduce a dynamic mapping system during the `draw_search_ui` call. 
-- **Implementation**: The renderer will populate a temporary table (e.g., `FSM.SEARCH_HIT_ZONES`) containing the precise OSD bounding boxes for each search result.
-- **Rationale**: This follows the proven architectural pattern used in the Drum Window (`DW_LINE_Y_MAP`) and eliminates all drift caused by wrapping or variable line heights.
+### 1. Cumulative Y-Offset Mapping (ZID 20260501234125)
+- **Implementation**: The renderer populates `FSM.SEARCH_HIT_ZONES` containing precise OSD bounding boxes for each visual line.
+- **Rationale**: This eliminates the "click drift" where wrapped results were un-clickable at the bottom of the list.
 
-### 2. Aesthetic Synchronization (`\3c`, `\4c`, `\3a`, `\4a`)
-The search background box and result text will be updated to use the synchronized transparency pattern.
-- **Tags**: Add `{\3a&H<bg_alpha>&}{\4a&H<bg_alpha>&}` to the background box.
-- **Simplification**: As suggested by the user, we will set `\bord0` (abandon the frame) if it improves visual clarity and reduces hit-test interference, or ensure the border transparency is synchronized to prevent "blooming".
+### 2. Aesthetic Synchronization (ZID 20260501234944)
+The search background box and result text are now synchronized with the v1.58.0 standard.
+- **Tags**: Added `{\3a&H<bg_alpha>&}{\4a&H<bg_alpha>&}` to the background box.
+- **Simplification**: Abandoned the explicit border (`bord=0`) to ensure a premium look and reduce hit-test interference.
 
 ### 3. Query-Aware Results Positioning
 The `results_y` offset will be calculated dynamically based on the actual height of the wrapped query block, rather than assuming a single-line height.

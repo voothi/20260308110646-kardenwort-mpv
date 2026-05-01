@@ -13,11 +13,12 @@
 
 ## 3. Interaction Synchronization
 
-- [x] 3.1 Refactor `search_mouse_click` to use `FSM.SEARCH_HIT_ZONES` for O(1) hit-testing instead of fixed height calculations.
-- [x] 3.2 Verify that clicking on the last results in the dropdown works correctly even when previous results are wrapped.
-- [x] 3.3 Conduct a regression test to ensure keyboard navigation (UP/DOWN) remains synchronized with the visual selection.
+- [x] 3.1 Refactor `search_mouse_click` to use `FSM.SEARCH_HIT_ZONES` for O(1) hit-testing (ZID 20260501234944).
+- [x] 3.2 Resolved syntax error in logic block (ZID 20260501235540).
+- [x] 3.3 Verify clicking works correctly even when query wraps.
+- [x] 3.4 Conduct keyboard navigation regression test.
 
-## 4. Verification
+## 4. Verification (ZID 20260502000749)
 
 - [x] 4.1 Confirm "Surgical Precision" of click targets across different query lengths.
 - [x] 4.2 Verify aesthetic parity with v1.58.0 (no blooming, synchronized transparency).
