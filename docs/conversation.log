@@ -1106,7 +1106,7 @@
 20260501223500 Final verification of border transparency synchronization and aesthetic parity against v1.58.0 completed successfully.
 20260501223600 opsx-archive openspec\changes\20260501195000-tooltip-highlight-calibration
 20260501223933 Check formatting spec.md#L23-42
-
+20260501224204 Minimally invasive group parameters by srt, drum, dw, tooltip in one order mpv.conf Don't lose anything. Check again several times. Don't rebuild the entire file Move lines minimally.
 
 
 
