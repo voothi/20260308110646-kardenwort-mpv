@@ -2944,7 +2944,7 @@ DRUM_DRAW_CACHE = {
     hit_zones = nil -- Cached geometry
 }
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain)
+local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain, is_pri)
     if center_idx == -1 then return "" end
 
     -- Result cache: skip rebuild if nothing has changed since last call.
@@ -3024,6 +3024,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                 vl.y_bottom = vl.y_top + vl.height
                 vl.x_start = 960 - vl.total_width / 2
                 vl.sub_idx = m.sub_idx -- For hit-zone tracking
+                vl.is_pri = is_pri
                 table.insert(hit_zones, vl)
             end
         end
@@ -3705,7 +3706,7 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
 end
 
 local function drum_osd_hit_test(osd_x, osd_y)
-    if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then return nil, nil end
+    if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then return nil, nil, nil end
     
     for _, line in ipairs(FSM.DRUM_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
@@ -3722,11 +3723,11 @@ local function drum_osd_hit_test(osd_x, osd_y)
                         best_logical_idx = word.logical_idx
                     end
                 end
-                return line.sub_idx, best_logical_idx
+                return line.sub_idx, best_logical_idx, line.is_pri
             end
         end
     end
-    return nil, nil
+    return nil, nil, nil
 end
 
 local function lls_hit_test_all(osd_x, osd_y)
@@ -3747,18 +3748,10 @@ local function lls_hit_test_all(osd_x, osd_y)
         local sec_enabled = is_drum and Options.drum_sec_interactivity or Options.srt_sec_interactivity
         
         if pri_enabled or sec_enabled then
-            local line, word = drum_osd_hit_test(osd_x, osd_y)
+            local line, word, hit_pri = drum_osd_hit_test(osd_x, osd_y)
             if not line then return nil, nil end
             
-            -- Filter based on which screen was hit
-            local hit_pri = false
-            for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
-                if zone.sub_idx == line and zone.y_top == (is_drum and 95 or mp.get_property_number("sub-pos", 95)) then
-                    hit_pri = true
-                    break
-                end
-            end
-            
+            -- Simple, flat filtering based on which screen was hit
             if hit_pri and not pri_enabled then return nil, nil end
             if not hit_pri and not sec_enabled then return nil, nil end
             
@@ -4650,13 +4643,13 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
         local idx = get_center_index(Tracks.pri.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, false)
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, false, true)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
         local idx = get_center_index(Tracks.sec.subs, time_pos)
         local sec_plain = is_drum and (not Options.drum_sec_highlighting) or (not Options.srt_sec_highlighting)
-        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain)
+        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain, false)
     end
     
     drum_osd.data = ass_text
