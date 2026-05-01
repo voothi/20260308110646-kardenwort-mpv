@@ -18,6 +18,6 @@
 
 ## 4. Verification & Profiling
 
-- [ ] 4.1 Verify that primary and secondary tracks in Drum Mode maintain separate cached content.
-- [ ] 4.2 Verify that adding an Anki record triggers immediate visual updates in the Drum Window.
-- [ ] 4.3 Profile scrolling performance in the Drum Window to confirm sub-level layout cache effectiveness.
+- [x] 4.1 Verify that primary and secondary tracks in Drum Mode maintain separate cached content.
+- [x] 4.2 Verify that adding an Anki record triggers immediate visual updates in the Drum Window.
+- [x] 4.3 Profile scrolling performance in the Drum Window to confirm sub-level layout cache effectiveness.
