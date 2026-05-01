@@ -11,6 +11,7 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
+local DRUM_DRAW_CACHE, DW_DRAW_CACHE
 
 local Options = {
     -- AutoPause
@@ -890,12 +891,18 @@ end
 local CYRILLIC_UPPER = utf8_to_table("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ")
 local CYRILLIC_LOWER = utf8_to_table("абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß")
 
+local CYRILLIC_MAP = {}
+for i = 1, #CYRILLIC_UPPER do
+    CYRILLIC_MAP[CYRILLIC_UPPER[i]] = CYRILLIC_LOWER[i]
+end
+
+local WORD_CHAR_MAP = {}
+for _, ch in ipairs(CYRILLIC_UPPER) do WORD_CHAR_MAP[ch] = true end
+for _, ch in ipairs(CYRILLIC_LOWER) do WORD_CHAR_MAP[ch] = true end
+
 local function utf8_to_lower(str)
     local res = str:lower()
-    for i = 1, #CYRILLIC_UPPER do
-        res = res:gsub(CYRILLIC_UPPER[i], CYRILLIC_LOWER[i])
-    end
-    return res
+    return (res:gsub("[%z\1-\127\194-\244][\128-\191]*", CYRILLIC_MAP))
 end
 
 local function has_cyrillic(str)
@@ -907,11 +914,8 @@ local function is_word_char(c)
     if not c or #c == 0 then return false end
     -- ASCII alphanumeric + apostrophe
     if c:match("^[%w']$") then return true end
-    -- German/Russian/Cyrillic support
-    local u = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
-    local l = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
-    if u:find(c, 1, true) or l:find(c, 1, true) then return true end
-    return false
+    -- German/Russian/Cyrillic support via O(1) lookup map
+    return WORD_CHAR_MAP[c] == true
 end
 
 
@@ -2157,16 +2161,13 @@ local function flush_rendering_caches()
     -- Invalidate top-level ASS result caches
     FSM.DW_LAYOUT_CACHE = nil
     
+    -- Reset sentinel fields to force mismatch in draw high-level caches
     if DRUM_DRAW_CACHE then 
         DRUM_DRAW_CACHE.center_idx = -1 
-    else
-        mp.msg.warn("flush_rendering_caches: DRUM_DRAW_CACHE is nil (definition order bug)")
     end
     
     if DW_DRAW_CACHE then 
         DW_DRAW_CACHE.view_center = -1 
-    else
-        mp.msg.warn("flush_rendering_caches: DW_DRAW_CACHE is nil (definition order bug)")
     end
 end
 
@@ -2917,7 +2918,7 @@ end
 local DRUM_DRAW_CACHE = {
     subs_ptr = nil, center_idx = -1, highlight_count = 0,
     al = -1, aw = -1, cl = -1, cw = -1,
-    pending_version = 0, result = "",
+    pending_version = 0, layout_version = 0, result = "",
     hit_zones = nil -- Cached geometry
 }
 
@@ -2928,6 +2929,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     if DRUM_DRAW_CACHE.subs_ptr == subs and
        DRUM_DRAW_CACHE.center_idx      == center_idx and
        DRUM_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
+       DRUM_DRAW_CACHE.layout_version   == FSM.LAYOUT_VERSION and
        DRUM_DRAW_CACHE.al              == FSM.DW_ANCHOR_LINE and
        DRUM_DRAW_CACHE.aw              == FSM.DW_ANCHOR_WORD and
        DRUM_DRAW_CACHE.cl              == FSM.DW_CURSOR_LINE and
@@ -3085,6 +3087,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     DRUM_DRAW_CACHE.subs_ptr        = subs
     DRUM_DRAW_CACHE.center_idx      = center_idx
     DRUM_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
+    DRUM_DRAW_CACHE.layout_version  = FSM.LAYOUT_VERSION
     DRUM_DRAW_CACHE.al              = FSM.DW_ANCHOR_LINE
     DRUM_DRAW_CACHE.aw              = FSM.DW_ANCHOR_WORD
     DRUM_DRAW_CACHE.cl              = FSM.DW_CURSOR_LINE
@@ -3226,6 +3229,7 @@ end
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 local DW_DRAW_CACHE = {
     view_center = -1, active_idx = -1, highlight_count = 0,
+    subs_ptr = nil, layout_version = 0,
     cl = -1, cw = -1, al = -1, aw = -1,
     pending_version = 0, result = "",
     hit_zones = nil -- Cached geometry
@@ -3238,7 +3242,9 @@ local function draw_dw(subs, view_center, active_idx)
     -- FSM.DW_CTRL_PENDING_VERSION is incremented whenever the Pink set changes.
     if DW_DRAW_CACHE.view_center    == view_center and
        DW_DRAW_CACHE.active_idx     == active_idx and
+       DW_DRAW_CACHE.subs_ptr       == subs and
        DW_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
+       DW_DRAW_CACHE.layout_version  == FSM.LAYOUT_VERSION and
        DW_DRAW_CACHE.cl             == FSM.DW_CURSOR_LINE and
        DW_DRAW_CACHE.cw             == FSM.DW_CURSOR_WORD and
        DW_DRAW_CACHE.al             == FSM.DW_ANCHOR_LINE and
@@ -3346,7 +3352,9 @@ local function draw_dw(subs, view_center, active_idx)
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
     DW_DRAW_CACHE.active_idx     = active_idx
+    DW_DRAW_CACHE.subs_ptr       = subs
     DW_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
+    DW_DRAW_CACHE.layout_version  = FSM.LAYOUT_VERSION
     DW_DRAW_CACHE.cl             = FSM.DW_CURSOR_LINE
     DW_DRAW_CACHE.cw             = FSM.DW_CURSOR_WORD
     DW_DRAW_CACHE.al             = FSM.DW_ANCHOR_LINE
