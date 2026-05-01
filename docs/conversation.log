@@ -1067,6 +1067,7 @@
 20260501180737 You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert and specification architect, complement and update the current openspec\changes\20260501172103-tooltip-selection-synchronization improvement project, especially implemented and discussed cases and requirements, according to chat conversation anchors 20260501165718 20260501170417 20260501170708 20260501170826 20260501173429 20260501180210
 20260501181227 I also need to turn off the backlight for the dw, drum, srt, tooltip modes in the second subtitles, in the tooltip, in Options and in mpv.conf. Highlighting means any - added words and highlighted. Also make it a separate option to disable interactivity in these windows For each individual.
 20260501182151 Add to mpv.conf with comments.
+20260501183231 We need to change the names with the parameter, I think. I have 2 screens, 2 modes of using the utility, this is working with double subtitles (srt, drum C, the ability to disable the second subtitles J) and in window mode W (the ability to call up tooltip E, which works instead of the second subtitles, for translation). I need to be able to disable for each screen the existing functions used with it for two functions - interactivity and backlighting (any).
 
 
 

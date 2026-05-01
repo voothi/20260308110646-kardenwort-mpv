@@ -45,17 +45,22 @@ local Options = {
     drum_block_gap_mul = -0.27,
     drum_gap_adj = 6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
-    -- Interaction & Highlighting Toggles
-    osd_interactivity = true,      -- Global master toggle
-    dw_interactivity = true,       -- Drum Window interactivity
-    drum_interactivity = true,     -- Drum Mode interactivity
-    srt_interactivity = true,      -- Regular SRT interactivity
-    tooltip_interactivity = true,  -- Tooltip interactivity
-    
-    dw_sec_highlighting = true,    -- Secondary track highlights in Drum Window
-    drum_sec_highlighting = true,  -- Secondary track highlights in Drum Mode
-    srt_sec_highlighting = true,   -- Secondary track highlights in Regular SRT
-    tooltip_sec_highlighting = true, -- Highlights in Translation Tooltip
+    -- Interactivity Toggles (Per-Screen, Per-Mode)
+    osd_interactivity = true,       -- Master toggle
+    dw_pri_interactivity = true,    -- Drum Window: Main Text
+    dw_sec_interactivity = true,    -- Drum Window: Tooltip (E)
+    drum_pri_interactivity = true,  -- Drum Mode: Primary Track
+    drum_sec_interactivity = true,  -- Drum Mode: Secondary Track
+    srt_pri_interactivity = true,   -- Regular SRT: Primary Track
+    srt_sec_interactivity = true,   -- Regular SRT: Secondary Track
+
+    -- Highlighting Toggles (Per-Screen, Per-Mode)
+    dw_pri_highlighting = true,     -- Drum Window: Main Text
+    dw_sec_highlighting = true,     -- Drum Window: Tooltip (E)
+    drum_pri_highlighting = true,   -- Drum Mode: Primary Track
+    drum_sec_highlighting = true,   -- Drum Mode: Secondary Track
+    srt_pri_highlighting = true,    -- Regular SRT: Primary Track
+    srt_sec_highlighting = true,    -- Regular SRT: Secondary Track
 
     -- SRT Style (Regular Mode)
     srt_font_size = 34,
@@ -3287,7 +3292,7 @@ local function draw_dw(subs, view_center, active_idx)
         local i = entry.sub_idx
         local is_active = (i == active_idx)
         local base_color = is_active and Options.dw_active_color or Options.dw_context_color
-        entry.token_meta = populate_token_meta(subs, i, entry.words, base_color, subs[i].start_time, entry)
+        entry.token_meta = populate_token_meta(subs, i, entry.words, base_color, subs[i].start_time, entry, not Options.dw_pri_highlighting)
     end
 
 
@@ -3436,7 +3441,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local alpha_tag = string.format("{\\1a&H%s&}", calculate_ass_alpha(opacity))
         
         -- Inject highlights (respecting secondary track toggle)
-        local force_plain = not Options.tooltip_sec_highlighting
+        local force_plain = not Options.dw_sec_highlighting
         local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time, nil, force_plain)
         
         local sub_visual_lines = {}
@@ -3675,7 +3680,7 @@ local function dw_hit_test(osd_x, osd_y)
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
-    if not FSM.DW_TOOLTIP_HIT_ZONES or not Options.tooltip_interactivity then return nil, nil end
+    if not FSM.DW_TOOLTIP_HIT_ZONES or not Options.dw_sec_interactivity then return nil, nil end
     
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
@@ -3728,17 +3733,36 @@ local function lls_hit_test_all(osd_x, osd_y)
     if not Options.osd_interactivity then return nil, nil end
     
     if FSM.DRUM_WINDOW ~= "OFF" then
-        if Options.dw_interactivity then
+        if Options.dw_sec_interactivity then
             local l, w = dw_tooltip_hit_test(osd_x, osd_y)
             if l then return l, w end
+        end
+        if Options.dw_pri_interactivity then
             return dw_hit_test(osd_x, osd_y)
         end
         return nil, nil
-    elseif Options.osd_interactivity then
+    else
         local is_drum = (FSM.DRUM == "ON")
-        local mode_enabled = is_drum and Options.drum_interactivity or Options.srt_interactivity
-        if mode_enabled then
-            return drum_osd_hit_test(osd_x, osd_y)
+        local pri_enabled = is_drum and Options.drum_pri_interactivity or Options.srt_pri_interactivity
+        local sec_enabled = is_drum and Options.drum_sec_interactivity or Options.srt_sec_interactivity
+        
+        if pri_enabled or sec_enabled then
+            local line, word = drum_osd_hit_test(osd_x, osd_y)
+            if not line then return nil, nil end
+            
+            -- Filter based on which screen was hit
+            local hit_pri = false
+            for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
+                if zone.sub_idx == line and zone.y_top == (is_drum and 95 or mp.get_property_number("sub-pos", 95)) then
+                    hit_pri = true
+                    break
+                end
+            end
+            
+            if hit_pri and not pri_enabled then return nil, nil end
+            if not hit_pri and not sec_enabled then return nil, nil end
+            
+            return line, word
         end
     end
     return nil, nil
