@@ -141,9 +141,9 @@ local Options = {
     search_font_size = 34,
     search_results_font_size = 0,    -- 0 = 100%, -1 = 80%, >0 = fixed size
     search_bg_color = "000000",      -- black in BGR hex for ASS
-    search_bg_opacity = "20",        -- background opacity (00-FF, 00 is opaque)
-    search_text_color = "FFFFFF",
-    search_border_size = 2.0,
+    search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
+    search_text_color = "CCCCCC",
+    search_border_size = 1.5,
     search_shadow_offset = 1.0,
     search_line_height_mul = 1.2,
     search_hit_color = "0088FF",       -- Match highlighting (BGR)
@@ -5647,9 +5647,9 @@ local function draw_search_ui()
     ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
         box_x, box_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, input_box_h, input_box_h)
     
-    -- Draw Input Text
-    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
-        font_name, box_x + padding_x, box_y + padding_y, shad, font_size, "FFFFFF", display_query)
+    -- Draw Input Text (Task 3.2 Synchronized)
+    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s\n",
+        font_name, box_x + padding_x, box_y + padding_y, shad, opacity_hex, font_size, "FFFFFF", display_query)
         
     -- Draw Results Dropdown
     if #FSM.SEARCH_RESULTS > 0 then
@@ -5666,9 +5666,10 @@ local function draw_search_ui()
             if Options.search_results_font_size > 0 then
                 r_font_size = Options.search_results_font_size
             elseif Options.search_results_font_size == -1 then
-                r_font_size = font_size * 0.8
+                r_font_size = math.floor(font_size * 0.8)
             end
         end
+        local r_line_height = r_font_size * Options.search_line_height_mul
 
         local start_idx = math.max(1, FSM.SEARCH_SEL_IDX - math.floor(max_results_display / 2))
         if start_idx + max_results_display - 1 > #FSM.SEARCH_RESULTS then
@@ -5704,7 +5705,7 @@ local function draw_search_ui()
         end
 
         -- [Task 2.4] Use dynamic results_h
-        local results_h = total_results_vlines * line_height + padding_y * 2
+        local results_h = total_results_vlines * r_line_height + padding_y * 2
         
         -- Dropdown Backing with synchronized transparency (Task 1.2)
         ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
@@ -5751,14 +5752,14 @@ local function draw_search_ui()
                 table.insert(FSM.SEARCH_HIT_ZONES, {
                     result_idx = result_idx,
                     y_top = current_y,
-                    y_bottom = current_y + line_height
+                    y_bottom = current_y + r_line_height
                 })
 
                 -- [Task 3.2] Render at current_y
-                ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
-                    font_name, box_x + padding_x, current_y, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
+                ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+                    font_name, box_x + padding_x, current_y, opacity_hex, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
                 
-                current_y = current_y + line_height
+                current_y = current_y + r_line_height
             end
         end
     elseif FSM.SEARCH_QUERY ~= "" then
@@ -5777,8 +5778,8 @@ local function draw_search_ui()
                 r_font_size = font_size * 0.8
             end
         end
-        ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} No results found.\n",
-            font_name, box_x + padding_x, results_y + padding_y, r_font_size, "999999")
+        ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} No results found.\n",
+            font_name, box_x + padding_x, results_y + padding_y, opacity_hex, r_font_size, "999999")
     end
     
     return ass
@@ -6082,6 +6083,9 @@ local function manage_search_bindings(enable)
         
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
+                -- Interaction shield (Task 3.1 Hardening)
+                if FSM.DW_MOUSE_LOCK_UNTIL and mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL then return end
+                
                 if #FSM.SEARCH_RESULTS == 0 or not FSM.SEARCH_HIT_ZONES then return end
                 
                 local osd_x, osd_y = dw_get_mouse_osd()
