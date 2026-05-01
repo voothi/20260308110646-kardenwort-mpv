@@ -69,12 +69,20 @@ mp.add_timeout(opts.startup_delay, function()
                             if files then
                                 for _, f in ipairs(files) do
                                     if f:match("^" .. base_name:gsub("[%%()%.%+%-%*%?%[%]%^%$]", "%%%1") .. ".*%.[as][rs]t$") then
-                                        table.insert(subs_found, f:match("%.([^%.]+)$"):upper())
+                                        table.insert(subs_found, f)
                                     end
                                 end
                             end
                             if #subs_found > 0 then
-                                msg = msg .. " [" .. table.concat(subs_found, "/") .. "]"
+                                table.sort(subs_found, function(a, b)
+                                    -- Priority: push .ru to the end
+                                    local a_ru = a:lower():match("%.ru%.")
+                                    local b_ru = b:lower():match("%.ru%.")
+                                    if a_ru and not b_ru then return false end
+                                    if b_ru and not a_ru then return true end
+                                    return a:lower() < b:lower()
+                                end)
+                                msg = msg .. "\n" .. table.concat(subs_found, "\n")
                             end
                         end
 

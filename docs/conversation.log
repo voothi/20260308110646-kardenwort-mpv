@@ -1128,6 +1128,10 @@
 20260502004528 Strange symbols at the top.
 20260502004855 Add keys whether to display the OSD with the file name at all. Also additionally displays connected subtitles. So that you can have the option to hide.
 20260502005105 Rename show_osd to match show_subtitles
+20260502005243 Where is the message about subtitles?
+20260502005335 It is necessary to display the full names of the files.
+20260502005432 Just do it in a column, without prefixes and postfixes.
+20260502005630 Make sure that the order of subtitles in this list is in order - main, then below, next - second subtitles.
 
 
 
