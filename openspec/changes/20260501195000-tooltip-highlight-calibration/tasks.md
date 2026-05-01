@@ -29,9 +29,10 @@
 - [x] 5.3 Update `draw_drum` to pass track-specific and mode-specific colors to `populate_token_meta`.
 - [x] 5.4 Update `mpv.conf` with all new color options in their respective sections.
 
-## 6. Boldness Synchronization
+## 6. Universal Boldness Calibration
 
 - [x] 6.1 Refactor `format_highlighted_word` in `lls_core.lua` to accept a `force_bold` parameter.
-- [x] 6.2 Update `draw_dw_tooltip` to pass `tm.priority == 3` (only database matches) as the `force_bold` argument.
-- [x] 6.3 Update `draw_drum` to similarly synchronize boldness for primary and secondary tracks.
-- [x] 6.4 Verify that tooltip yellow highlights are now regular weight (matching the Drum Window).
+- [x] 6.2 Add independent `highlight_bold` toggles for Tooltip, Drum Window, Drum Mode (Pri/Sec), and SRT Mode (Pri/Sec) to `Options`.
+- [x] 6.3 Update rendering loops to pass mode-specific and track-specific boldness preferences to `format_highlighted_word`.
+- [x] 6.4 Update `mpv.conf` with the full suite of boldness toggles.
+- [x] 6.5 Verify that tooltip yellow highlights are regular weight by default but can be made bold via configuration.

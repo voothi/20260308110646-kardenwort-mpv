@@ -20,11 +20,11 @@ The `populate_token_meta` function is the central engine for colorizing interact
 - **Rationale**: This shifts the responsibility of palette selection to the high-level rendering loops (`draw_dw_core`, `draw_dw_tooltip`, `draw_drum`), which already have context about the current mode and track.
 - **Alternative**: Passing a "mode" string and having the service perform internal lookups was rejected as it would re-introduce coupling with the `Options` table structure.
 
-### 2. Uniform Track Calibration
-New options for `drum_pri/sec` and `srt_pri/sec` follow the same naming convention as existing track-specific toggles.
-- **Rationale**: Ensures a predictable configuration surface for power users.
+### 3. Universal Boldness Calibration
+In addition to color, highlight **boldness** is now decoupled per mode.
+- **Rationale**: Solves the "visual blooming" effect where bold highlights in high-contrast contexts (like the tooltip) feel overly bright compared to the main window.
+- **Implementation**: `format_highlighted_word` accepts a `force_bold` override. Rendering loops calculate this by checking `Options.anki_highlight_bold` for database matches (Priority 3) and `Options.<mode>_highlight_bold` for manual selections (Priority 1/2).
 
 ## Risks / Trade-offs
 
-- **[Risk] Configuration Complexity** → **Mitigation**: New options default to legacy values in the `Options` table, so only users who need specific calibration need to modify `mpv.conf`.
-- **[Trade-off] Redundant Arguments** → **Mitigation**: Using optional arguments with clear fallbacks ensures that existing logic (or future modes) can still function with standard project defaults.
+- **[Risk] Configuration Complexity** → **Mitigation**: New options default to legacy values (`false` for selections), maintaining the clean look of the current Drum Window calibration while allowing power users to opt into boldness where needed.

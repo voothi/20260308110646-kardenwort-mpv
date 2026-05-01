@@ -1083,6 +1083,8 @@
 20260501195623 Add also for other modes.
 20260501200219 You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert and specification architect, complement and update the current openspec\changes\20260501195000-tooltip-highlight-calibration improvement project, especially implemented and discussed cases and requirements, according to chat conversation anchors 20260501193441 20260501194758 20260501194956 20260501195226 20260501195623
 20260501200507 I can’t let go of this, yet in the tooltip the font appears bold. 
+20260501201143 Does it make sense to add tooltip_highlight_bold to Options and mpv.conf?
+20260501201238 Should I implement this full suite of boldness toggles now? - Yes.
 
 
 

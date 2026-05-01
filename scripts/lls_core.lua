@@ -49,6 +49,8 @@ local Options = {
     drum_sec_highlight_color = "00CCFF",
     drum_pri_ctrl_select_color = "FF88FF",
     drum_sec_ctrl_select_color = "FF88FF",
+    drum_pri_highlight_bold = false,
+    drum_sec_highlight_bold = false,
     -- Interactivity Toggles (Per-Screen, Per-Mode)
     osd_interactivity = true,       -- Master toggle
     dw_pri_interactivity = true,    -- Drum Window: Main Text
@@ -86,6 +88,8 @@ local Options = {
     srt_sec_highlight_color = "00CCFF",
     srt_pri_ctrl_select_color = "FF88FF",
     srt_sec_ctrl_select_color = "FF88FF",
+    srt_pri_highlight_bold = false,
+    srt_sec_highlight_bold = false,
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -119,6 +123,7 @@ local Options = {
     dw_context_size_mul = 1.0,
     dw_highlight_color = "00CCFF",-- Gold highlight in BGR
     dw_ctrl_select_color = "FF88FF",-- Neon pink for split-word select (pairing with purple)
+    dw_highlight_bold = false,
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
@@ -174,6 +179,7 @@ local Options = {
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
     tooltip_highlight_color = "00CCFF",-- Gold highlight in BGR (Matches dw_highlight_color default)
     tooltip_ctrl_select_color = "FF88FF",-- Neon pink (Matches dw_ctrl_select_color default)
+    tooltip_highlight_bold = false,
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -3024,8 +3030,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                                      or (is_pri and Options.srt_pri_highlight_color or Options.srt_sec_highlight_color)
         local c_color = is_drum_mode and (is_pri and Options.drum_pri_ctrl_select_color or Options.drum_sec_ctrl_select_color)
                                      or (is_pri and Options.srt_pri_ctrl_select_color or Options.srt_sec_ctrl_select_color)
+        local h_bold = is_drum_mode and (is_pri and Options.drum_pri_highlight_bold or Options.drum_sec_highlight_bold)
+                                    or (is_pri and Options.srt_pri_highlight_bold or Options.srt_sec_highlight_bold)
 
         m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time, nil, force_plain, h_color, c_color)
+        m.h_bold = h_bold
         
         table.insert(sub_metas, m)
         total_h = total_h + m.total_height
@@ -3077,7 +3086,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
             for _, j in ipairs(vl.token_indices) do
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
-                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, (meta_item.priority == 3)))
+                    local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or meta.h_bold
+                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold))
                 else
                     table.insert(formatted_parts, meta_item.text)
                 end
@@ -3344,7 +3354,8 @@ local function draw_dw(subs, view_center, active_idx)
             for _, j in ipairs(vl_indices) do
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
-                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, (meta_item.priority == 3)))
+                    local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
+                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold))
                 else
                     table.insert(formatted_words, meta_item.text)
                 end
@@ -3481,7 +3492,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                     })
                 end
                 
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true, (tm.priority == 3))
+                local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true, final_bold)
                 line_w = line_w + ww
             end
             table.insert(sub_visual_lines, "{\\1c&H" .. base_color .. "&}" .. alpha_tag .. line_text)
