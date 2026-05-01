@@ -4314,12 +4314,13 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             FSM.DW_MOUSE_DOWN_X, FSM.DW_MOUSE_DOWN_Y = osd_x, osd_y
 
             -- Dismiss tooltip on click and lock suppression for the current focus
+            local is_tooltip_hit = dw_tooltip_hit_test(osd_x, osd_y)
             local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
             
             if line_idx then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
 
-                if FSM.DW_TOOLTIP_LINE ~= -1 then
+                if FSM.DW_TOOLTIP_LINE ~= -1 and not is_tooltip_hit then
                     FSM.DW_TOOLTIP_LINE = -1
                     dw_tooltip_osd.data = ""
                     dw_tooltip_osd:update()

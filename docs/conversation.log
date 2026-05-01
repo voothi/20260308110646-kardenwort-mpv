@@ -1058,7 +1058,7 @@
 20260501170417 Coordinate together and archive with --sync, don't lose important details 20260501170334 opsx-archive openspec\changes\20260501163905-full-bidirectional-pointer-sync 20260501170359 opsx-archive openspec\changes\20260501165217-sync-tooltip-highlightsм
 20260501170708 Rename what they were called openspec\changes\archive\2026-05-01-full-bidirectional-pointer-sync openspec\changes\archive\2026-05-01-sync-tooltip-highlights The label should not have appeared 2026-05-01
 20260501170826 opsx-explore Is it now possible to make it so that in window mode W in the tooltip window E (tooltip) you can select text as it now works in mode C, when the second subtitles are turned on by J, when you highlight in the upper second subtitles (Russian), this is reflected in the lower main ones. I would like it to work in a similar way in W window mode and I would be able to select Russian subtitles in the tooltip and see them highlighted in the main text.
-
+20260501173429 Okay, in general, but the tooktip window blinks every time you click on it with LMB, can this be fixed? 
 
 
 
