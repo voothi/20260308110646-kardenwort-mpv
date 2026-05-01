@@ -5394,7 +5394,6 @@ end
 local function draw_search_ui()
     if not FSM.SEARCH_MODE then return "" end
     
-    local ass = ""
     local padding_x = 20
     local padding_y = 10
     local font_size = Options.search_font_size or Options.dw_font_size
@@ -5413,12 +5412,8 @@ local function draw_search_ui()
     local shad = Options.search_shadow_offset or 0.0
     
     local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity or "60")
-    
-    -- Draw Input Field Backing
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-        box_x, box_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, line_height + padding_y * 2, line_height + padding_y * 2)
-    
-    -- Draw Input Text
+
+    -- [Task 1.1] Process Query first to determine visual line count
     local display_query = ""
     local q_table = utf8_to_table(FSM.SEARCH_QUERY)
     
@@ -5449,12 +5444,30 @@ local function draw_search_ui()
             end
         end
         
-        -- End-of-line cursor or selection start/end
         if cur == #q_table and not has_sel then
             display_query = display_query .. "|"
         end
     end
 
+    -- Calculate visual lines for the query background
+    local stripped_query = display_query:gsub("{[^}]+}", "")
+    local query_char_tokens = {}
+    for c in stripped_query:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(query_char_tokens, {text = c})
+    end
+    
+    local query_vlines = wrap_tokens(query_char_tokens, box_w - padding_x * 2, font_size, font_name, true)
+    local query_line_count = math.max(1, #query_vlines)
+    
+    -- [Task 1.2] Calculate input_box_h dynamically
+    local input_box_h = query_line_count * line_height + padding_y * 2
+    
+    local ass = ""
+    -- [Task 1.3] Draw Input Field Backing with dynamic height
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        box_x, box_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, input_box_h, input_box_h)
+    
+    -- Draw Input Text
     ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
         font_name, box_x + padding_x, box_y + padding_y, shad, font_size, "FFFFFF", display_query)
         
@@ -5462,14 +5475,21 @@ local function draw_search_ui()
     if #FSM.SEARCH_RESULTS > 0 then
         local max_results_display = 8
         local display_count = math.min(#FSM.SEARCH_RESULTS, max_results_display)
-        local results_h = display_count * line_height + padding_y * 2
-        local results_y = box_y + line_height + padding_y * 2 + 5
+        -- [Task 2.1] results_y is relative to dynamic input_box_h
+        local results_y = box_y + input_box_h + 5
         
-        -- Dropdown Backing
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
-            
-        -- Scroll window mapping
+        -- [Task 2.2/2.3/3.1] Pre-calculate results layout with wrapping
+        local results_layout = {}
+        local total_results_vlines = 0
+        local r_font_size = font_size
+        if Options.search_results_font_size then
+            if Options.search_results_font_size > 0 then
+                r_font_size = Options.search_results_font_size
+            elseif Options.search_results_font_size == -1 then
+                r_font_size = font_size * 0.8
+            end
+        end
+
         local start_idx = math.max(1, FSM.SEARCH_SEL_IDX - math.floor(max_results_display / 2))
         if start_idx + max_results_display - 1 > #FSM.SEARCH_RESULTS then
             start_idx = math.max(1, #FSM.SEARCH_RESULTS - max_results_display + 1)
@@ -5480,54 +5500,83 @@ local function draw_search_ui()
             if result_idx > #FSM.SEARCH_RESULTS then break end
             
             local result_data = FSM.SEARCH_RESULTS[result_idx]
-            local sub_line_idx = result_data.idx
-            local sub_text = Tracks.pri.subs[sub_line_idx].text:gsub("\n", " ")
+            local sub_text = Tracks.pri.subs[result_data.idx].text:gsub("\n", " ")
             local raw_t_table = utf8_to_table(sub_text)
             
-            -- Truncate for display
+            -- Truncate for display (v1.58.0 standard)
             if #raw_t_table > 120 then 
                 local new_t = {}
                 for i = 1, 120 do table.insert(new_t, raw_t_table[i]) end
                 sub_text = table.concat(new_t) .. "..."
-                raw_t_table = utf8_to_table(sub_text)
             end
             
-            local item_y = results_y + padding_y + (k - 1) * line_height
+            -- Build tokens and wrap
+            local res_tokens = build_word_list_internal(sub_text, true)
+            local res_vlines = wrap_tokens(res_tokens, box_w - padding_x * 2, r_font_size, font_name, true)
+            
+            table.insert(results_layout, {
+                data = result_data,
+                vlines = res_vlines,
+                idx = result_idx,
+                tokens = res_tokens
+            })
+            total_results_vlines = total_results_vlines + #res_vlines
+        end
+
+        -- [Task 2.4] Use dynamic results_h
+        local results_h = total_results_vlines * line_height + padding_y * 2
+        
+        -- Dropdown Backing
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+            
+        -- [Task 3.2] Render using cumulative Y offset
+        local current_y = results_y + padding_y
+        for _, item in ipairs(results_layout) do
+            local result_data = item.data
+            local result_idx = item.idx
+            local res_vlines = item.vlines
+            local res_tokens = item.tokens
+            
             local is_selected = (result_idx == FSM.SEARCH_SEL_IDX)
             local base_color = is_selected and Options.search_sel_color or text_color
             local sel_bold = (is_selected and Options.search_sel_bold) and "{\\b1}" or ""
             local sel_bold_end = (is_selected and Options.search_sel_bold) and "{\\b0}" or ""
             
-            -- Construct highlighted string
-            local display_text = ""
+            -- Construct highlighted string for each visual line
             local hit_color = is_selected and (Options.search_query_hit_color or "FFFFFF") or Options.search_hit_color
             local hit_bold = Options.search_hit_bold and "{\\b1}" or ""
             local hit_bold_end = Options.search_hit_bold and "{\\b0}" or ""
-            
-            for i = 1, #raw_t_table do
-                local is_hit = result_data.hl and result_data.hl[i]
-                if is_hit then
-                    display_text = display_text .. string.format("%s{\\c&H%s&}%s%s{\\c&H%s&}", hit_bold, hit_color, raw_t_table[i], hit_bold_end, base_color)
-                else
-                    display_text = display_text .. raw_t_table[i]
+
+            local token_char_start = 1
+            for _, line_indices in ipairs(res_vlines) do
+                local display_text = ""
+                for ti, token_idx in ipairs(line_indices) do
+                    local t = res_tokens[token_idx]
+                    local t_table = utf8_to_table(t.text)
+                    for ci = 1, #t_table do
+                        local global_ci = token_char_start + ci - 1
+                        local is_hit = result_data.hl and result_data.hl[global_ci]
+                        if is_hit then
+                            display_text = display_text .. string.format("%s{\\c&H%s&}%s%s{\\c&H%s&}", hit_bold, hit_color, t_table[ci], hit_bold_end, base_color)
+                        else
+                            display_text = display_text .. t_table[ci]
+                        end
+                    end
+                    token_char_start = token_char_start + #t_table
                 end
+                
+                -- [Task 3.2] Render at current_y
+                ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
+                    font_name, box_x + padding_x, current_y, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
+                
+                current_y = current_y + line_height
             end
-            
-            local r_font_size = font_size
-            if Options.search_results_font_size then
-                if Options.search_results_font_size > 0 then
-                    r_font_size = Options.search_results_font_size
-                elseif Options.search_results_font_size == -1 then
-                    r_font_size = font_size * 0.8
-                end
-            end
-            ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
-                font_name, box_x + padding_x, item_y, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
         end
     elseif FSM.SEARCH_QUERY ~= "" then
         -- "No results"
         local results_h = line_height + padding_y * 2
-        local results_y = box_y + line_height + padding_y * 2 + 5
+        local results_y = box_y + input_box_h + 5
         
         ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
             box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
