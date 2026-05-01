@@ -882,14 +882,15 @@ local function utf8_to_table(str)
     return t
 end
 
+-- Module-scope Cyrillic case-mapping tables (created once at load time).
+-- Hoisted from utf8_to_lower() to eliminate per-call allocation overhead.
+local CYRILLIC_UPPER = utf8_to_table("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ")
+local CYRILLIC_LOWER = utf8_to_table("абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß")
+
 local function utf8_to_lower(str)
     local res = str:lower()
-    local upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ"
-    local lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß"
-    local u_table = utf8_to_table(upper)
-    local l_table = utf8_to_table(lower)
-    for i = 1, #u_table do
-        res = res:gsub(u_table[i], l_table[i])
+    for i = 1, #CYRILLIC_UPPER do
+        res = res:gsub(CYRILLIC_UPPER[i], CYRILLIC_LOWER[i])
     end
     return res
 end
@@ -1451,7 +1452,37 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     local has_phrase = false
     local matched_terms = {}
     local matching_source_terms = {}
-    for _, data in ipairs(FSM.ANKI_HIGHLIGHTS) do
+    -- Build the candidate list to scan.
+    -- Local Mode: binary-search ANKI_HIGHLIGHTS_SORTED to find only entries
+    -- within the extended time window, reducing O(H) to O(log H + W).
+    -- Global Mode: fall back to scanning all highlights (time-window disabled).
+    local candidates
+    if not Options.anki_global_highlight and FSM.ANKI_HIGHLIGHTS_SORTED and #FSM.ANKI_HIGHLIGHTS_SORTED > 0 then
+        local sub_start = subs[sub_idx].start_time
+        local sub_end   = subs[sub_idx].end_time
+        -- Use maximum possible window (base + multi-word extension for longest plausible term)
+        local max_window = Options.anki_local_fuzzy_window + (Options.anki_split_search_window or 15)
+        local t_lo = sub_start - max_window
+        local t_hi = sub_end   + max_window
+        local sorted = FSM.ANKI_HIGHLIGHTS_SORTED
+        -- Binary search: find first index where sorted[i].time >= t_lo
+        local lo, hi = 1, #sorted
+        local first = #sorted + 1
+        while lo <= hi do
+            local mid = math.floor((lo + hi) / 2)
+            if sorted[mid].time >= t_lo then first = mid; hi = mid - 1
+            else lo = mid + 1 end
+        end
+        candidates = {}
+        for k = first, #sorted do
+            if sorted[k].time > t_hi then break end
+            table.insert(candidates, FSM.ANKI_HIGHLIGHTS[sorted[k].idx])
+        end
+    else
+        candidates = FSM.ANKI_HIGHLIGHTS
+    end
+
+    for _, data in ipairs(candidates) do
         local term_key = data.term
         if not matched_terms[term_key] then
             local match_found = false
@@ -2299,8 +2330,24 @@ local function load_anki_tsv(force)
     f:close()
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
+
+    -- Build time-sorted index for O(log H) binary-search window lookups.
+    -- Each entry is {time, idx} where idx is the position in ANKI_HIGHLIGHTS.
+    local sorted = {}
+    for i, h in ipairs(new_highlights) do
+        table.insert(sorted, { time = h.time, idx = i })
+    end
+    table.sort(sorted, function(a, b) return a.time < b.time end)
+    FSM.ANKI_HIGHLIGHTS_SORTED = sorted
+
+    -- Flush stale __split_valid_indices caches: term set may have changed.
+    if Tracks.pri.subs then
+        for _, sub in ipairs(Tracks.pri.subs) do sub.__split_valid_indices = nil end
+    end
+    if Tracks.sec.subs then
+        for _, sub in ipairs(Tracks.sec.subs) do sub.__split_valid_indices = nil end
+    end
     
-    -- Update fingerprint for next time after successful load
     if info then
         FSM.ANKI_DB_MTIME = info.mtime
         FSM.ANKI_DB_SIZE = info.size
@@ -2401,6 +2448,19 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     f:close()
 
     table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos, index = item_index })
+    local new_h_idx = #FSM.ANKI_HIGHLIGHTS
+
+    -- Maintain the time-sorted index for binary-search window lookups.
+    -- New highlights are typically near current playback time, so scan from end.
+    if FSM.ANKI_HIGHLIGHTS_SORTED then
+        local sorted = FSM.ANKI_HIGHLIGHTS_SORTED
+        local ins_pos = #sorted + 1
+        for j = #sorted, 1, -1 do
+            if sorted[j].time <= time_pos then break end
+            ins_pos = j
+        end
+        table.insert(sorted, ins_pos, { time = time_pos, idx = new_h_idx })
+    end
     
     -- Performance Optimization: Update fingerprints so the next periodic sync 
     -- doesn't trigger a redundant re-parse for this local change.
@@ -2803,9 +2863,31 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
     }
 end
 
+-- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
+-- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
+local DRUM_DRAW_CACHE = {
+    center_idx = -1, highlight_count = 0,
+    al = -1, aw = -1, cl = -1, cw = -1,
+    pending_version = 0, result = ""
+}
+
 local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones)
     if center_idx == -1 then return "" end
-    
+
+    -- Result cache: skip rebuild if nothing has changed since last call.
+    -- hit_zones must be nil (non-interactive path) to use the cache;
+    -- when hit_zones is provided the caller expects fresh geometry every tick.
+    if not hit_zones and
+       DRUM_DRAW_CACHE.center_idx      == center_idx and
+       DRUM_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
+       DRUM_DRAW_CACHE.al              == FSM.DW_ANCHOR_LINE and
+       DRUM_DRAW_CACHE.aw              == FSM.DW_ANCHOR_WORD and
+       DRUM_DRAW_CACHE.cl              == FSM.DW_CURSOR_LINE and
+       DRUM_DRAW_CACHE.cw              == FSM.DW_CURSOR_WORD and
+       DRUM_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
+        return DRUM_DRAW_CACHE.result
+    end
+
     local is_drum = (FSM.DRUM == "ON")
     local context_lines = is_drum and Options.drum_context_lines or 0
     local half = context_lines
@@ -2944,6 +3026,18 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
     else
         ass = ass .. string.format("{\\pos(960, %d)}{\\an2}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
+    end
+
+    -- Update result cache before returning
+    if not hit_zones then
+        DRUM_DRAW_CACHE.center_idx      = center_idx
+        DRUM_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
+        DRUM_DRAW_CACHE.al              = FSM.DW_ANCHOR_LINE
+        DRUM_DRAW_CACHE.aw              = FSM.DW_ANCHOR_WORD
+        DRUM_DRAW_CACHE.cl              = FSM.DW_CURSOR_LINE
+        DRUM_DRAW_CACHE.cw              = FSM.DW_CURSOR_WORD
+        DRUM_DRAW_CACHE.pending_version = FSM.DW_CTRL_PENDING_VERSION or 0
+        DRUM_DRAW_CACHE.result          = ass
     end
 
     return ass
