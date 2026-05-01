@@ -1124,7 +1124,8 @@
 20260502003607 # How can I make MPV, when I start the program itself, automatically start the last video at the place where I finished watching it last time? ## Description So that you don’t have to search for the file and open it every time. Now when I run something other than a file, I see a black MPV window instead of a video.
 20260502003818 Okay, just make the message about opening the file 500 ms so that it is. Put this in the options at the top. Bring other variables that may be needed to the top too.
 20260502004028 OSD font size can be added there?
-
+20260502004417 osd_font_size = 8 doesn't change.
+20260502004528 Strange symbols at the top.
 
 
 

@@ -14,7 +14,7 @@ local opts = {
     -- Message prefix for OSD
     msg_prefix = "test:",
     -- OSD font size (set to 0 to use system default)
-    osd_font_size = 25
+    osd_font_size = 8
 }
 
 local utils = require 'mp.utils'
@@ -55,10 +55,19 @@ mp.add_timeout(opts.startup_delay, function()
                 if info then
                     local filename = last_path:match("([^/\\]+)$")
                     local msg = opts.msg_prefix .. filename
+                    
                     if opts.osd_font_size > 0 then
-                        msg = string.format("{\\fs%d}%s", opts.osd_font_size, msg)
+                        local old_size = mp.get_property("osd-font-size")
+                        mp.set_property("osd-font-size", opts.osd_font_size)
+                        mp.osd_message(msg, opts.osd_duration)
+                        -- Restore size after the message duration
+                        mp.add_timeout(opts.osd_duration, function()
+                            mp.set_property("osd-font-size", old_size)
+                        end)
+                    else
+                        mp.osd_message(msg, opts.osd_duration)
                     end
-                    mp.osd_message(msg, opts.osd_duration)
+                    
                     mp.msg.info("Resuming last session: " .. last_path)
                     mp.commandv("loadfile", last_path)
                 else
