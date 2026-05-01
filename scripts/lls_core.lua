@@ -2916,7 +2916,7 @@ end
 -- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
 -- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
 local DRUM_DRAW_CACHE = {
-    subs_ptr = nil, center_idx = -1, highlight_count = 0,
+    subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
     al = -1, aw = -1, cl = -1, cw = -1,
     pending_version = 0, layout_version = 0, result = "",
     hit_zones = nil -- Cached geometry
@@ -2928,6 +2928,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     -- Result cache: skip rebuild if nothing has changed since last call.
     if DRUM_DRAW_CACHE.subs_ptr == subs and
        DRUM_DRAW_CACHE.center_idx      == center_idx and
+       DRUM_DRAW_CACHE.is_drum         == (FSM.DRUM == "ON") and
        DRUM_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
        DRUM_DRAW_CACHE.layout_version   == FSM.LAYOUT_VERSION and
        DRUM_DRAW_CACHE.al              == FSM.DW_ANCHOR_LINE and
@@ -3086,6 +3087,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     -- Update result cache before returning
     DRUM_DRAW_CACHE.subs_ptr        = subs
     DRUM_DRAW_CACHE.center_idx      = center_idx
+    DRUM_DRAW_CACHE.is_drum         = (FSM.DRUM == "ON")
     DRUM_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
     DRUM_DRAW_CACHE.layout_version  = FSM.LAYOUT_VERSION
     DRUM_DRAW_CACHE.al              = FSM.DW_ANCHOR_LINE
@@ -3231,8 +3233,7 @@ local DW_DRAW_CACHE = {
     view_center = -1, active_idx = -1, highlight_count = 0,
     subs_ptr = nil, layout_version = 0,
     cl = -1, cw = -1, al = -1, aw = -1,
-    pending_version = 0, result = "",
-    hit_zones = nil -- Cached geometry
+    pending_version = 0, result = ""
 }
 
 local function draw_dw(subs, view_center, active_idx)
@@ -3251,10 +3252,6 @@ local function draw_dw(subs, view_center, active_idx)
        DW_DRAW_CACHE.aw             == FSM.DW_ANCHOR_WORD and
        DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
         
-        -- Restore cached geometry
-        if FSM.DW_HIT_ZONES and DW_DRAW_CACHE.hit_zones then
-            for k, v in ipairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
-        end
         return DW_DRAW_CACHE.result
     end
 
@@ -3362,14 +3359,6 @@ local function draw_dw(subs, view_center, active_idx)
     DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
     DW_DRAW_CACHE.result          = final_ass
     
-    -- Cache geometry
-    if FSM.DW_HIT_ZONES then
-        DW_DRAW_CACHE.hit_zones = {}
-        for k, v in ipairs(FSM.DW_HIT_ZONES) do DW_DRAW_CACHE.hit_zones[k] = v end
-    else
-        DW_DRAW_CACHE.hit_zones = nil
-    end
-
     return final_ass
 end
 
@@ -4658,6 +4647,7 @@ end
 local function cmd_toggle_anki_global()
     Options.anki_global_highlight = not Options.anki_global_highlight
     show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
+    flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
 end
@@ -4691,6 +4681,7 @@ local function cmd_toggle_drum()
         show_osd("Drum Mode: OFF")
     end
     update_interactive_bindings()
+    flush_rendering_caches()
     -- master_tick handles the sub-visibility property suppression
     drum_osd.data = ""
     drum_osd:update()
@@ -6289,6 +6280,13 @@ mp.observe_property("pause", "bool", function(name, paused)
     if not paused then
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
     end
+end)
+
+mp.observe_property("script-opts", "string", function()
+    options.read_options(Options, "lls")
+    flush_rendering_caches()
+    drum_osd:update()
+    if dw_osd then dw_osd:update() end
 end)
 
 mp.register_event("shutdown", function()
