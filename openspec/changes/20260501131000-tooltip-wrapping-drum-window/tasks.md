@@ -17,12 +17,12 @@
 
 ## 4. Cache Hardening & Performance
 
-- [ ] 4.1 Define `DW_TOOLTIP_DRAW_CACHE` and implement result caching in `draw_dw_tooltip`.
-- [ ] 4.2 Update `flush_rendering_caches()` to clear `dw_tooltip_osd` and reset cache sentinels.
-- [ ] 4.3 Verify that `FSM.LAYOUT_VERSION` is respected as a cache invalidation sentinel.
+- [ ] 4.1 Define `DW_TOOLTIP_DRAW_CACHE` sentinel in the global state (around Line 490).
+- [ ] 4.2 Update `flush_rendering_caches()` (Line 2154) to clear `dw_tooltip_osd` and reset the draw cache.
+- [ ] 4.3 Implement early-return logic in `draw_dw_tooltip` using the draw cache sentinel.
 
 ## 5. Final Polish & Testing
 
 - [ ] 5.1 Verify that long translations wrap cleanly without bleeding off the left edge.
-- [ ] 5.2 Test "double newline" gap behavior when subtitles are wrapped.
-- [ ] 5.3 Confirm that right-center alignment (`\an6`) is preserved across all visual lines.
+- [ ] 5.2 Test "double newline" gap behavior for wrapped subtitles in both `CLICK` and `TOGGLE` modes.
+- [ ] 5.3 Confirm that `\an6` right-alignment is preserved across all visual lines in the tooltip.

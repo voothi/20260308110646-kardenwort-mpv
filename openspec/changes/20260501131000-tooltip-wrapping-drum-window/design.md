@@ -37,8 +37,13 @@ To prevent redundant $O(N)$ layout evaluations during high-frequency mouse movem
 ### 6. Centralized Cache Invalidation
 The `draw_dw_tooltip` state and OSD overlay will be integrated into the global `flush_rendering_caches()` mechanism. This ensures that track reloads, option updates, or TSV refreshes immediately clear any pinned or forced tooltips, maintaining architectural consistency with the `v1.58.0` hardening.
 
+### 7. Alignment and Boundary Constraints
+- **Horizontal Anchor**: The tooltip is fixed at `x=1800` with `\an6` (Right Center). Wrapped lines MUST maintain right-alignment within the block.
+- **Max Width Safety**: A hard limit of `1400px` ensures a minimum `120px` right-margin and `400px` left-margin on standard 1080p displays.
+- **Overflow Handling**: Single tokens exceeding the maximum width SHALL be rendered in full, with wrapping occurring immediately after the oversized token.
+
 ## Risks / Trade-offs
 
-- **[Risk]** Tooltip height exceeding screen resolution → **[Mitigation]** The existing clamping logic already checks `screen_h - margin`. If a tooltip is exceptionally long, it will be pinned to the bottom edge.
+- **[Risk]** Tooltip height exceeding screen resolution → **[Mitigation]** The centering logic will use the sum of visual lines for `block_height`, and the existing clamping logic will anchor the block to the screen edges if it exceeds available vertical space.
 - **[Risk]** Stale tooltip state after track reload → **[Mitigation]** Explicit integration with `flush_rendering_caches()` to reset OSD and cache sentinels.
 - **[Risk]** Increased CPU usage on mouse-move → **[Mitigation]** Implementation of `DW_TOOLTIP_DRAW_CACHE` to bypass rendering when the cursor remains focused on the same subtitle line.
