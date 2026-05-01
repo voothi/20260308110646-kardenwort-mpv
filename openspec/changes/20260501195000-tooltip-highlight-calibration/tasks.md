@@ -48,10 +48,10 @@
 ## 9. Final Aesthetic Calibration (Post-Regression Analysis)
 2026-05-01: Analysis identified that opaque borders contribute to perceived "Boldness" even when \b0 is used.
 
-- [ ] 9.1 Update `draw_dw` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `dw_bg_opacity`).
-- [ ] 9.2 Update `draw_drum` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `bg_opacity`).
-- [ ] 9.3 Update `draw_dw_tooltip` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `tooltip_bg_opacity`).
-- [ ] 9.4 Verify that "Yellow" highlights now appear with a true "Premium" (Regular) font weight without artificial border thickening.
+- [x] 9.1 Update `draw_dw` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `dw_bg_opacity`).
+- [x] 9.2 Update `draw_drum` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `bg_opacity`).
+- [x] 9.3 Update `draw_dw_tooltip` to explicitly set `\3a` (border transparency) to match `\4a` (derived from `tooltip_bg_opacity`).
+- [x] 9.4 Verify that "Yellow" highlights now appear with a true "Premium" (Regular) font weight without artificial border thickening.
 
 ## 10. Final Verification
 

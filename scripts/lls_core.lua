@@ -3128,8 +3128,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s", 
-        bord, shad, bg_color, bg_color, calculate_ass_alpha(bg_opacity), vsp_tag)
+    local style_block = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s", 
+        bord, shad, bg_color, bg_color, calculate_ass_alpha(bg_opacity), calculate_ass_alpha(bg_opacity), vsp_tag)
 
     local ass = ""
     if is_top then
@@ -3396,8 +3396,9 @@ local function draw_dw(subs, view_center, active_idx)
     end
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
+    local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
+    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -3569,8 +3570,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
     local base_bold = Options.tooltip_context_bold and "1" or "0"
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
