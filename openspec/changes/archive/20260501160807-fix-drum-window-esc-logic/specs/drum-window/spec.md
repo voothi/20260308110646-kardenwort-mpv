@@ -1,9 +1,11 @@
 # Delta: Drum Window (Sequential Escape)
 
-## Modified Requirement: Cross-Mode Cursor Synchronization
+## MODIFIED Requirements
+
+### Requirement: Cross-Mode Cursor Synchronization
 The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mode C) and Drum Window (Mode W).
 
-### Scenario: Escape synchronization in Mode C (Refined)
+#### Scenario: Escape synchronization in Mode C (Refined)
 - **WHEN** Drum Mode (Mode C) is ON and the Drum Window (Mode W) is OFF
 - **WHEN** A selection (Pink, Yellow Range, or Pointer) exists and the user presses `Esc`
 - **THEN** The system SHALL evaluate and clear states in sequential order:

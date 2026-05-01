@@ -127,7 +127,6 @@ The transparency levels for active and context lines in the Drum Window MUST be 
 - **WHEN** the user sets `dw_context_opacity` to "00" in `mpv.conf`.
 - **THEN** all lines in the Drum Window SHALL be rendered with full saturation, matching the previous behavior.
 
-
 ### Requirement: OSD-Agnostic Track Loading
 The system SHALL index all dialogue lines from external subtitle files regardless of their character set or language, ensuring that both primary and secondary tracks are fully resident in memory.
 
@@ -137,36 +136,28 @@ The system SHALL index all dialogue lines from external subtitle files regardles
 - **AND** the Tracks.sec.subs table SHALL contain all dialogue entries for use in translation copy and tooltip rendering.
 
 ### Requirement: Cross-Mode Cursor Synchronization
-The yellow word indicator state must be synchronized with the currently active playback line regardless of whether the Drum Window is open or closed, as long as Drum Mode is active.
+The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mode C) and Drum Window (Mode W).
 
-#### Scenario: Escape synchronization in Mode C
+#### Scenario: Escape synchronization in Mode C (Refined)
 - **WHEN** Drum Mode (Mode C) is ON and the Drum Window (Mode W) is OFF
-- **WHEN** A yellow word indicator is visible and the user presses `Esc`
-- **THEN** The indicator must disappear immediately
-- **THEN** `FSM.DW_CURSOR_LINE` must be set to the currently active subtitle line index
-
-#### Scenario: Vertical arrow navigation after Escape
-- **WHEN** The indicator has been cleared with `Esc`
-- **WHEN** The user presses `Up` (or `Down`)
-- **THEN** A yellow word indicator must appear in the middle (x=960) of the subtitle line immediately above (or below) the active line.
-
-#### Scenario: Horizontal arrow navigation after Escape
-- **WHEN** The indicator has been cleared with `Esc`
-- **WHEN** The user presses `Right`
-- **THEN** The first word of the active subtitle line must be highlighted.
-- **WHEN** The user presses `Left`
-- **THEN** The last word of the active subtitle line must be highlighted.
+- **WHEN** A selection (Pink, Yellow Range, or Pointer) exists and the user presses `Esc`
+- **THEN** The system SHALL evaluate and clear states in sequential order:
+  1. Pink Set
+  2. Yellow Range (to Pointer)
+  3. Yellow Pointer
+- **AND** When the final Yellow Pointer is cleared, `FSM.DW_CURSOR_LINE` MUST be synchronized with the currently active playback line index.
 
 ### Requirement: Independent Mode C Viewport
-The cursor navigation in Mode C must not trigger viewport scrolling.
+The cursor navigation in Mode C MUST NOT trigger viewport scrolling.
 
 #### Scenario: Moving cursor in Mode C
 - **WHEN** The user navigates the cursor with arrows in Mode C
 - **THEN** The yellow indicator moves but the underlying subtitles stay fixed at the current video playback position.
 
 ### Requirement: Stability and Error Prevention
-The system must not crash when toggling modes or updating the OSD.
+The system MUST NOT crash when toggling modes or updating the OSD.
 
 #### Scenario: Opening Drum Window
 - **WHEN** The user toggles the Drum Window (Mode W) ON
 - **THEN** The window must initialize and render without Lua errors, even if it's the first render of the session.
+
