@@ -1048,6 +1048,7 @@
 20260501160807 Why now, to cancel the active selection using Esc, if a word is highlighted in yellow (there is a yellow pointer) in mode C or W, you need to press this key 2 times, as if several words were selected? This appeared after the transition to comma granularity, I think. Check it against the specifications. It should be so that if one word (or one other element like a comma) is highlighted in yellow, when you press Esc, the selection is removed, and when you press it again, the mode is exited. If 2 words are highlighted in yellow, then the first click removes the selection and one word remains highlighted, then as with one word. If it is highlighted in purple, then first the purple selection is removed, then as described with the yellow color.
 20260501162123 Error
 20260501162550 Okay opsx-archive openspec\changes\20260501160807-fix-drum-window-esc-logic
+20260501162857 Sync now
 
 
 
