@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.54.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.54.0) 
+[![Version](https://img.shields.io/badge/version-v1.58.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -85,7 +85,7 @@ This suite solves problems that standard video players and generic scripts ignor
 18. **Multi-Layout Shortcut Lists**: All major command parameters now support space, comma, or semicolon separated lists. Map `t`, `е`, and `MBTN_LEFT` to the same action simultaneously in `mpv.conf`.
 19. **Precision Context Verification**: Implements word-tokenized intersection for vocabulary matches, ensuring highlights persist through punctuation and formatting differences.
 20. **Embedded Subtitle Support**: The Drum Window (Mode W) now supports internal/embedded subtitle tracks in MKV files, providing a consistent experience across all media formats.
-21. **Footprint-based Precision Rendering**: Overhauled punctuation discipline with sub-token stack recalculation and 3-tier nesting gradients for superior visual hierarchical context.
+21. **Footprint-based Precision Rendering**: Overhauled punctuation discipline with sub-token stack recalculation and 3-tier nesting gradients. Implements a strictly **Surgical Highlighting** model that eliminates visual ambiguity by coloring only word-body tokens.
 22. **Zero-Overhead Periodic Sync**: Implements `mtime` + `size` fingerprinting to bypass expensive parsing and filesystem scanning for TSV and URL sidecars when data is unchanged.
 23. **Sticky Column Navigation**: Vertical keyboard movement in the Drum Window now preserves horizontal OSD position, snapping to the closest word on the target line for a professional, editor-like experience.
 24. **Freeze-Proof Export Engine**: A hardened string search logic with mandatory forward-progress guards and empty-term validation to eliminate UI freezes during selection.
@@ -95,6 +95,8 @@ This suite solves problems that standard video players and generic scripts ignor
 28. **Verbatim Selection with Context**: Compliant copy functionality that preserves punctuation and formatting while intelligently splicing focal lines into surrounding context.
 29. **Unified Source Fallback**: Automatically detects and extracts text from the most relevant subtitle track (Target vs Translation) during copy/Anki operations, eliminating track-switching friction.
 30. **Temporal Merging Guard**: Advanced navigation logic that prevents scrolling "stutter" by detecting and bridging natural gaps in subtitle timing during rapid seeks.
+31. **Hardened Performance Pipeline**: Systemic O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
+32. **Absolute Verbatim Export**: 100% fidelity mining that preserves all source formatting, hyphens, and whitespace, strictly adhering to the "Source as Truth" philosophy.
 
 [Return to Top](#table-of-contents)
 
@@ -473,8 +475,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1276 Commits (v1.54.0)
-- **Intensity Profile**: 5.7 Commits/Hour 
+- **Current Maturity**: ~1401 Commits (v1.58.0)
+- **Intensity Profile**: 5.3 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

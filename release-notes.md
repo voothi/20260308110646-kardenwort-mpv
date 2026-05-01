@@ -1,4 +1,38 @@
+# Release Notes - v1.58.0 (Hardened Performance & Verbatim Export)
+
+**Date**: 2026-05-01
+**Version**: v1.58.0
+**Implementation ZIDs**: 20260428075210, 20260428192102, 20260429000301, 20260429005929, 20260429012045, 20260429013212, 20260429015128, 20260429022653, 20260429125303, 20260429130826, 20260429133044, 20260429142144, 20260429144946, 20260429151207, 20260429185737, 20260429195210, 20260429212717, 20260430183833, 20260430233400, 20260501005019, 20260501013716, 20260501015631, 20260501023103, 20260501093901, 20260501100842, 20260501103700, 20260501105900, 20260501111725, 20260501115216
+
+## Highlights
+
+### 🚄 **Architectural Hardening & Performance**
+- **Massive Pipeline Audit**: Conducted a comprehensive hardening of the `lls_core.lua` rendering engine. Introduced O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
+- **Cache Integrity Enforcement**: Hardened `flush_rendering_caches()` with mode-specific invalidation sentinels (Drum vs. Normal) and active `script-opts` observation. This eliminates stale UI output and OSD-drift regressions.
+- **Hot-Path Optimization**: Migrated core loops to `ipairs()`-based iteration and implemented token-level highlight memoization, significantly reducing CPU overhead during high-frequency subtitle updates.
+- **Spec-Synchronized Performance**: Formally archived and synchronized 29 performance-driven OpenSpec changes into the project's canonical specification set.
+
+### 📋 **Absolute "Verbatim" Export Fidelity**
+- **Verbatim Mining Standard**: Achieved 100% verbatim data fidelity in Anki and Clipboard exports. All automated whitespace normalization and "smart" bracket/punctuation stripping have been removed from the extraction pipeline.
+- **Unified Export Engine**: Consistently preserves source formatting (hyphens, slashes, multiple spaces) across all selection modes via the refactored `prepare_export_text` service.
+- **Ordered Field Mapping**: Implemented deterministic, order-preserving field mapping for Anki TSV exports. Configuration via `anki_mapping.ini` now strictly respects the defined column sequence.
+- **Punctuation Parity**: Synchronized sentence boundary detection and terminal punctuation restoration across all mining modes, ensuring consistent card quality regardless of selection method.
+
+### 🎯 **"Surgical" Highlighting & Precision Selection**
+- **Surgical Highlighting Model**: Transitioned to a strictly "word-only" highlighting model. Database matches now only color alphanumeric tokens, leaving logistical symbols (brackets, commas, etc.) in the default OSD color to eliminate visual ambiguity.
+- **Character-Level Navigation**: Separated logistical symbols from word tokens to enable surgical, character-level navigation using the keyboard. Users can now land on and select individual punctuation marks without a mouse.
+- **Shift-Aware Precision**: Keyboard navigation in the Drum Window (Mode W) is now Shift-aware, allowing for precise, multi-symbol range selection identical to mouse-driven interaction.
+- **Semantic Punctuation Deprecation**: Removed "Semantic Punctuation" and "Atomic Token" color spreading in favor of a cleaner, more predictable visual interface that 100% matches the exported text.
+
+### 🛡️ **Stability & Regression Fixes**
+- **Drum OSD Stability**: Resolved vertical drift and layout synchronization issues in Drum Mode, ensuring pixel-perfect hit-testing during rapid navigation.
+- **Cache-Shadowing Remediation**: Systemically removed variable shadowing and redundant logic in the core script to prevent difficult-to-track state regressions.
+- **Manual Control Restoration**: Deprecated over-automated "smart" behaviors in favor of manual, user-driven precision, resulting in a more predictable and robust immersion experience.
+
+---
+
 # Release Notes - v1.54.0 (Search UI Refinement & Rendering Stability)
+
 
 **Date**: 2026-04-28
 **Version**: v1.54.0
