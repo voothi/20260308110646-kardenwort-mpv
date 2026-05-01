@@ -1069,7 +1069,7 @@
 20260501182151 Add to mpv.conf with comments.
 20260501183231 We need to change the names with the parameter, I think. I have 2 screens, 2 modes of using the utility, this is working with double subtitles (srt, drum C, the ability to disable the second subtitles J) and in window mode W (the ability to call up tooltip E, which works instead of the second subtitles, for translation). I need to be able to disable for each screen the existing functions used with it for two functions - interactivity and backlighting (any).
 20260501184952 What is it and why is it so nested and complex??
-
+20260501190102 Check that all parameters are valid and not just stubs. mpv.conf#L95-110
 
 
 

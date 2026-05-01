@@ -4643,7 +4643,8 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
         local idx = get_center_index(Tracks.pri.subs, time_pos)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, false, true)
+        local pri_plain = is_drum and (not Options.drum_pri_highlighting) or (not Options.srt_pri_highlighting)
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
