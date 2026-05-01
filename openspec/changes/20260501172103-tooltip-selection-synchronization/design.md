@@ -1,58 +1,39 @@
-## Context
-Currently, the Drum Window (Mode W) translation tooltip (E) is a non-interactive OSD overlay. While it displays the secondary subtitles (Russian), users cannot interact with it. In contrast, the Drum Mode (Mode C) allows interaction with both primary and secondary tracks because they share the same hit-zone storage and dispatcher. This design aims to bridge this gap by introducing hit-zone detection to the tooltip.
+# Design: Tooltip Selection Synchronization
 
-## Goals / Non-Goals
+## Overview
+This change implements high-fidelity interactive selection within the translation tooltip and synchronizes its highlight state with the primary Drum Window. It also introduces a flattened, track-aware hit-testing architecture and granular per-screen interaction controls.
 
-**Goals:**
-- Enable word-level mouse interaction in the translation tooltip.
-- Synchronize selection in the tooltip with the primary Drum Window text.
-- Maintain O(1) rendering performance.
-- Support all existing selection modes (single click, shift-select, drag).
+## Interaction Model
 
-**Non-Goals:**
-- Implementing separate cursor states for primary and secondary tracks (they should remain synchronized).
-- Changing the visual layout of the tooltip.
+### Architectural Pattern: Two-Screen (Pri/Sec) Granularity
+The system treats all viewing modes as a "Two-Screen" composition:
+- **Screen 1 (Primary)**: The target language track (Lower track in C/SRT, Main block in W).
+- **Screen 2 (Secondary)**: The translation track (Upper track in C/SRT, Tooltip in W).
 
-## Tooltip Interaction Architecture
+Configuration provides independent toggles for **Interactivity** and **Highlighting** (Backlight) for each screen in each mode, allowing users to isolate study focus.
 
-### 1. Unified Hit-Zone Pipeline (Surgical Model)
-Interaction in the Drum Window tooltip follows a **Surgical Model**. Hit zones are populated during the `draw_dw_tooltip` phase and cached in `DW_TOOLTIP_DRAW_CACHE`.
+### Refactored Interaction: Flattened Hit-Testing
+To eliminate nested complexity and improve performance, the hit-testing pipeline follows a "Track-Aware" model:
+- OSD renderers tag every hit-zone with an `is_pri` flag during generation.
+- Hit-testers return this flag as part of the match result.
+- The global dispatcher (`lls_hit_test_all`) performs flat, O(1) filtering against the `pri/sec` interactivity flags, avoiding expensive post-hit investigation loops.
+
+### Aesthetic Parity Standard
+Secondary subtitle text in all modes (Tooltip or Track 2) maintains a synchronized visual weight:
+- **Background**: `000000` (Pure Black) for maximum contrast parity with primary text.
+- **Border Weight**: Calibrated to `1.2` for mono-spaced Cyrillic to avoid perceived "boldness" in centered layouts.
+
+### Surgical Hit-Zone Pipeline
+Interaction follows a **Surgical Model**. Hit zones are populated during the rendering phase and cached in mode-specific draw caches.
 - **Granularity**: Hit zones are created at the word level within visual lines.
 - **Occlusion**: The tooltip (`z=25`) has priority over the Drum Window (`z=20`). Clicks land on tooltip words first.
-- **Pass-Through**: Clicks in "gaps" (between words or lines) pass through to the background Drum Window text, maintaining high-precision background interaction even while the tooltip is visible.
+- **Pass-Through**: Clicks in "gaps" (between words or lines) pass through to the background elements, maintaining high-precision background interaction.
 
-### 2. Stability and Flicker Prevention
+## Stability and Flicker Prevention
 To ensure a premium UX, the rendering pipeline implements two suppression mechanisms:
-- **Click-Blink Suppression**: The `is_tooltip_hit` check in the mouse handler prevents the tooltip from being dismissed (cleared) when clicking directly on it for selection.
-- **Sticky Quick-View**: During "Quick-View" (RMB-hold), the tooltip enters a "sticky" state. It ignores "nil" hit-tests (gaps) to prevent flickering, only updating its content when the cursor lands on a distinct subtitle line.
+- **Sticky Quick-View**: During RMB-hold, the tooltip maintains its last valid state even if the cursor passes through empty gaps between subtitle lines.
+- **Click-Blink Suppression**: The `is_tooltip_hit` check prevents OSD dismissal when the user clicks a valid word inside the tooltip.
 
-### 3. Coordinate Mapping (Right-Aligned an6)
-Coordinates are mapped relative to the `X=1800` anchor:
-- `x_start = 1800 - visual_line_width`
-- `y_top/y_bottom` calculated from the aggregate block height and vertical centering logic.
-
-### 4. Caching and Performance
-- `FSM.DW_TOOLTIP_HIT_ZONES` is stored in the draw cache.
-- $O(1)$ restoration of interaction data when serving from cache to prevent layout re-calculation overhead.
-
-## Decisions
-
-### 1. Unified Hit-Zone Storage
-Introduce `FSM.DW_TOOLTIP_HIT_ZONES` to store the visual coordinates of words in the tooltip. This separation from the main window's hit zones prevents collision confusion and allows for simpler coordinate mapping.
-
-### 2. Rendering-Integrated Hit-Zone Population
-Update `draw_dw_tooltip` to calculate word positions during the layout phase. 
-- **Vertical Alignment**: Calculate the Y offset for each visual line based on the centered `final_y` and `block_height`.
-- **Horizontal Alignment**: Since the tooltip uses `an6` (middle-right) at `X=1800`, the X-start for each line is derived as `1800 - line_width`.
-- **Caching**: Hit zones will be stored in `DW_TOOLTIP_DRAW_CACHE` to avoid re-calculation during static frames.
-
-### 3. Coordinate Mapping
-The hit-test function will use `dw_get_mouse_osd()` to retrieve aspect-ratio-corrected coordinates. The `dw_tooltip_hit_test` function will perform a simple linear scan through the active tooltip hit zones.
-
-### 4. Integration with `lls_hit_test_all`
-The master dispatcher `lls_hit_test_all` will be modified to prioritize the tooltip hit-test when the tooltip is visible. If a hit is detected, it will return the secondary track index and word index, which the existing mouse handler will then use to update the global state.
-
-## Risks / Trade-offs
-
-- **Hit Zone Density**: If a tooltip contains a large amount of text (e.g., many context lines), scanning many hit zones might impact performance. However, given the tooltip's size constraints (1400px width, limited lines), the number of zones will remain small enough for O(N) scanning to be negligible.
-- **Vertical Jitter**: If the tooltip shifts vertically due to automatic centering, hit testing must remain synchronized with the current render. Using the cached hit zones ensures they always match the visible text.
+## Cache Integrity
+- **O(1) Rendering**: All tooltip layout and hit-zone calculations are memoized in `DW_TOOLTIP_DRAW_CACHE`.
+- **Invalidation**: The tooltip cache is strictly invalidated by the global `flush_rendering_caches()` signal.

@@ -22,5 +22,8 @@
 - [x] 4.2 Confirm that Shift-Selection and Ctrl-Selection (Paired Set) work correctly through the tooltip interface.
 - [x] 4.3 Implement and verify "Sticky Quick-View" to prevent flickering during RMB-hold vertical movement.
 - [x] 4.4 Hardened interaction: Implemented `is_tooltip_hit` check to eliminate click-blinking.
-- [x] 4.5 Investigated "Block Shield" implementation; rejected in favor of "Surgical Model" with sticky logic to maintain background pass-through fidelity.
 - [x] 4.6 Regression test: Verified that hit-zones remain accurate and synchronized across all window aspect ratios.
+- [x] 4.7 Refactor: Implemented "Two-Screen" (Pri/Sec) parameter schema in `Options` and `mpv.conf`.
+- [x] 4.8 Optimization: Flattened hit-test dispatcher logic using track-aware `is_pri` flags.
+- [x] 4.9 Aesthetics: Synchronized Tooltip background and border weight with Drum Mode secondary track standards.
+- [x] 4.10 Audit: Verified all `mpv.conf` parameters are fully functional (no stubs).

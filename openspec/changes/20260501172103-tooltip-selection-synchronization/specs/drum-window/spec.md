@@ -16,12 +16,20 @@ The translation tooltip SHALL follow a "Surgical" interaction model, where mouse
 - **WHEN** the user clicks on a transparent "gap" between words or lines in the tooltip
 - **THEN** the click SHALL pass through to the underlying Drum Window elements.
 
-### Requirement: Sticky Quick-View Stability
-When the user is "Quick-Viewing" (holding RMB to hover over translations), the tooltip SHALL exhibit "sticky" behavior to prevent flickering in high-precision vertical movement.
-- **GIVEN** the user is holding the right mouse button (RMB) in Window Mode
-- **WHEN** the mouse moves through gaps or non-interactive areas between subtitle lines
-- **THEN** the system SHALL maintain the last valid tooltip content until a new valid subtitle line is hit.
-- **AND** the tooltip OSD SHALL NOT be cleared or update its content to empty during this transition.
+### Requirement: Two-Screen Interaction Controls
+The system SHALL provide granular toggles in `mpv.conf` to independently control the Primary (Screen 1) and Secondary (Screen 2) tracks for both **Interactivity** and **Highlighting**.
+- **Mode DW (W)**: `dw_pri_interactivity`, `dw_pri_highlighting`, `dw_sec_interactivity`, `dw_sec_highlighting`.
+- **Mode Drum (C)**: `drum_pri_interactivity`, `drum_pri_highlighting`, `drum_sec_interactivity`, `drum_sec_highlighting`.
+- **Mode SRT**: `srt_pri_interactivity`, `srt_pri_highlighting`, `srt_sec_interactivity`, `srt_sec_highlighting`.
+- **Global**: `osd_interactivity` SHALL act as the master toggle.
+
+### Requirement: Aesthetic Parity
+Secondary subtitles (including the Tooltip) SHALL be visually consistent with the primary track while maintaining specialized readability:
+- **Background Color**: SHALL be `000000` (Black) unless overridden.
+- **Border size**: SHALL be default to `1.2` for secondary tracks to normalize Cyrillic mono-spaced weight.
+
+### Requirement: No-Stub Verification
+Every parameter exposed in `mpv.conf` SHALL be fully wired to its respective logic in `lls_core.lua`. Hardcoded values in place of configured options are prohibited.
 
 #### Scenario: Tooltip Persistent Selection
 - **GIVEN** the translation tooltip is visible
