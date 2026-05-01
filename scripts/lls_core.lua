@@ -11,7 +11,8 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
-local DRUM_DRAW_CACHE, DW_DRAW_CACHE
+local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
+DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1 }
 
 local Options = {
     -- AutoPause
@@ -2167,6 +2168,17 @@ local function flush_rendering_caches()
     if DW_DRAW_CACHE then 
         DW_DRAW_CACHE.view_center = -1 
     end
+
+    if DW_TOOLTIP_DRAW_CACHE then
+        DW_TOOLTIP_DRAW_CACHE.target_idx = -1
+        DW_TOOLTIP_DRAW_CACHE.osd_y = -1
+        DW_TOOLTIP_DRAW_CACHE.version = -1
+    end
+    
+    if dw_tooltip_osd then
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
+    end
 end
 
 
@@ -3363,6 +3375,13 @@ end
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     if target_line_idx == -1 or not Tracks.sec.subs or #Tracks.sec.subs == 0 then return "" end
     
+    -- Cache lookup
+    if DW_TOOLTIP_DRAW_CACHE.target_idx == target_line_idx and 
+       DW_TOOLTIP_DRAW_CACHE.osd_y == osd_y and 
+       DW_TOOLTIP_DRAW_CACHE.version == FSM.LAYOUT_VERSION then
+        return nil -- No change, caller should not update OSD
+    end
+
     local primary_sub = subs[target_line_idx]
     if not primary_sub then return "" end
     
@@ -3377,50 +3396,92 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local fs = Options.tooltip_font_size
     local line_height = fs * Options.tooltip_line_height_mul
     local bold = Options.tooltip_font_bold and "1" or "0"
+    local max_text_w = 1400
     
-    local lines_ass = {}
+    local all_logical_entries = {}
+    local total_visual_lines = 0
+    
     for i = start_idx, end_idx do
-        local is_active = (i == center_idx)
-        local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
-        local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
-        local sub_text = Tracks.sec.subs[i].raw_text:gsub("\n", " ")
-        
-        table.insert(lines_ass, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_text))
+        local sub = Tracks.sec.subs[i]
+        local tokens = get_sub_tokens(sub, true)
+        if tokens and #tokens > 0 then
+            local current_v_lines = {}
+            local current_line_tokens = {}
+            local current_w = 0
+            
+            for _, t in ipairs(tokens) do
+                local tw = dw_get_str_width(t.text, fs, font_name)
+                
+                -- Wrapping logic: break if adding this token exceeds max width, 
+                -- UNLESS the current line is empty (to handle tokens > max_text_w)
+                if current_w + tw > max_text_w and #current_line_tokens > 0 then
+                    table.insert(current_v_lines, table.concat(current_line_tokens, ""))
+                    current_line_tokens = { t.text }
+                    current_w = tw
+                else
+                    table.insert(current_line_tokens, t.text)
+                    current_w = current_w + tw
+                end
+            end
+            
+            if #current_line_tokens > 0 then
+                table.insert(current_v_lines, table.concat(current_line_tokens, ""))
+            end
+            
+            if #current_v_lines > 0 then
+                table.insert(all_logical_entries, {
+                    idx = i,
+                    v_lines = current_v_lines
+                })
+                total_visual_lines = total_visual_lines + #current_v_lines
+            end
+        end
     end
+    
+    if #all_logical_entries == 0 then return "" end
     
     local d_gap = Options.tooltip_double_gap
     local vsp_base = Options.tooltip_vsp
     local b_gap_mul = Options.tooltip_block_gap_mul or 0
     local vsp_extra = d_gap and (fs * b_gap_mul / 2) or 0
-    local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-
-    local text_block = table.concat(lines_ass, separator)
+    local block_separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+    
+    local final_ass_blocks = {}
+    for _, entry in ipairs(all_logical_entries) do
+        local is_active = (entry.idx == center_idx)
+        local color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
+        local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
+        
+        -- Join visual lines within this logical subtitle with \N
+        local sub_content = table.concat(entry.v_lines, "\\N")
+        table.insert(final_ass_blocks, string.format("{\\c&H%s&}{\\1a&H%s&}%s", color, calculate_ass_alpha(opacity), sub_content))
+    end
+    
+    local text_block = table.concat(final_ass_blocks, block_separator)
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
     local shad = Options.tooltip_shadow_offset
     
-    -- Boundary clamping: Ensure the tooltip doesn't go off-screen
-    -- The actual height per logical line includes line_height_mul and vsp
-    local num_lines = end_idx - start_idx + 1
-    local visual_lines = Options.tooltip_double_gap and (2 * num_lines - 1) or num_lines
-    local layout_line_h = (fs * Options.tooltip_line_height_mul) + Options.tooltip_vsp
-    
-    -- Each logical block has its height, and we use the centralized gap calculation
-    -- to ensure parity between visual block_height and hit-testing zones.
+    -- Height calculation based on visual lines and inter-subtitle gaps
+    local num_logical = #all_logical_entries
     local total_gap = calculate_sub_gap("tooltip", fs, Options.tooltip_line_height_mul, Options.tooltip_vsp)
-    local block_height = (num_lines * layout_line_h)
-    if num_lines > 1 then
-        block_height = block_height + ((num_lines - 1) * total_gap)
+    
+    -- Base height from all visual lines
+    local block_height = (total_visual_lines * (fs * Options.tooltip_line_height_mul))
+    -- Add vsp for every line (including wrapped ones)
+    block_height = block_height + (total_visual_lines * Options.tooltip_vsp)
+    -- Add extra gaps between logical subtitles
+    if num_logical > 1 then
+        block_height = block_height + ((num_logical - 1) * total_gap)
     end
     
     local half_h = block_height / 2
     local margin = 20
-    local screen_h = 1080 -- Target OSD vertical resolution
+    local screen_h = 1080
     
-    -- Apply manual Y offset (unit: logical subtitle intervals)
-    -- The interval between the center of Line N and Line N+1
+    local layout_line_h = (fs * Options.tooltip_line_height_mul) + Options.tooltip_vsp
     local logical_interval = layout_line_h + total_gap
     local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
     
@@ -3430,9 +3491,12 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         final_y = screen_h - margin - half_h
     end
 
-    -- Single block positioning with \an6 (Right Center) ensures perfect vertical centering on final_y
+    -- Update cache
+    DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
+    DW_TOOLTIP_DRAW_CACHE.osd_y = osd_y
+    DW_TOOLTIP_DRAW_CACHE.version = FSM.LAYOUT_VERSION
+
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    -- \q2 ensures parity with hit-testing logic
     local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\1c&H%s&}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
         font_name, vsp_tag, final_y, fs, bold, bord, shad, Options.tooltip_active_color, bg_color, bg_alpha, text_block)
         
@@ -3689,8 +3753,10 @@ local function cmd_dw_tooltip_pin(tbl)
             FSM.DW_TOOLTIP_LINE = line_idx
             local y = FSM.DW_LINE_Y_MAP[line_idx] or osd_y
             local ass = draw_dw_tooltip(subs, line_idx, y)
-            dw_tooltip_osd.data = ass
-            dw_tooltip_osd:update()
+            if ass ~= nil then
+                dw_tooltip_osd.data = ass
+                dw_tooltip_osd:update()
+            end
         end
     elseif tbl.event == "up" then
         FSM.DW_TOOLTIP_HOLDING = false
@@ -3746,8 +3812,11 @@ local function cmd_dw_tooltip_toggle()
             -- Force a redraw or use a midpoint if we're desperate
             y = 540 -- center of 1080p OSD
         end
-        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
-        dw_tooltip_osd:update()
+        local ass = draw_dw_tooltip(subs, line_idx, y)
+        if ass ~= nil then
+            dw_tooltip_osd.data = ass
+            dw_tooltip_osd:update()
+        end
     end
 end
 
@@ -3773,8 +3842,11 @@ local function dw_tooltip_mouse_update()
             FSM.DW_TOOLTIP_LINE = target_l
             local y = FSM.DW_LINE_Y_MAP[target_l]
             if y then
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, y)
-                dw_tooltip_osd:update()
+                local ass = draw_dw_tooltip(subs, target_l, y)
+                if ass ~= nil then
+                    dw_tooltip_osd.data = ass
+                    dw_tooltip_osd:update()
+                end
             else
                 if dw_tooltip_osd.data ~= "" then
                     dw_tooltip_osd.data = ""
@@ -3825,8 +3897,11 @@ local function dw_tooltip_mouse_update()
             if target_y then
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 FSM.DW_TOOLTIP_LINE = target_l
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, target_y)
-                dw_tooltip_osd:update()
+                local ass = draw_dw_tooltip(subs, target_l, target_y)
+                if ass ~= nil then
+                    dw_tooltip_osd.data = ass
+                    dw_tooltip_osd:update()
+                end
             else
                 if FSM.DW_TOOLTIP_LINE ~= -1 then
                     FSM.DW_TOOLTIP_LINE = -1
