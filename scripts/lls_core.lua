@@ -3760,7 +3760,7 @@ local function dw_sync_cursor_to_mouse()
         line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
     end
 
-    if line_idx and word_idx then
+    if line_idx and line_idx > 0 and word_idx and word_idx ~= -1 then
         -- Selection & Hover Protection: ONLY update logical cursor if we ARE dragging.
         -- This prevents the active highlight from snapping to the mouse while scrolling
         -- unless the user is consciously selecting something.
@@ -4342,7 +4342,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             local is_tooltip_hit = dw_tooltip_hit_test(osd_x, osd_y)
             local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
             
-            if line_idx then
+            if line_idx and line_idx > 0 then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
 
                 if FSM.DW_TOOLTIP_LINE ~= -1 and not is_tooltip_hit then
@@ -4355,7 +4355,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 if on_down_callback then on_down_callback(tbl) end
 
                 -- Phase 2: Selection Logic (Only for words, if enabled)
-                if word_idx and updates_selection then
+                if word_idx and word_idx ~= -1 and updates_selection then
                     local is_inside = on_up_callback and is_inside_dw_selection(line_idx, word_idx)
                     FSM.DW_PROTECTED_SELECTION = is_inside and not is_shift
                     
@@ -4400,7 +4400,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             if (dx > 5 or dy > 5) and updates_selection then
                 local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
                 
-                if line_idx and word_idx then
+                if line_idx and line_idx > 0 and word_idx and word_idx ~= -1 then
                     if not FSM.DW_PROTECTED_SELECTION then
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx

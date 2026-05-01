@@ -1062,6 +1062,7 @@
 20260501174414 Now, when the E tooltip window is active, can I select only the text in it within the transparent window, or can the text behind it also be selected by clicking on it? How does this work?
 20260501174703 Add a "Block Shield" (the entire tooltip box captures all clicks)? - Yes.
 20260501174851 Okay, but now if window E blinks, if the cursor is above it or next to it, when I hold down RMB and move it vertically for quick viewing, in this mode, can it be fixed or is it hindered by the fact that we implemented “Block Shield”?
+20260501175346 Now in the E tooltip window, if you hold down LMB on a word, it starts flashing quickly between yellow and white.
 
 
 
