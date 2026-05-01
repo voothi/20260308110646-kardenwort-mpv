@@ -1016,6 +1016,7 @@
 20260501133008 The plan is surgically sound. You may proceed with implementation using /opsx:apply with absolute confidence. - Okay.
 20260501133122 Finally, you are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications for this project, check whether the execution of the openspec\changes\20260501131000-tooltip-wrapping-drum-window project will be completed in accordance with all openspec\specs and will not lead to a regression compared to v1.58.0?
 20260501133418 The plan is ready for implementation. No risks of architectural regression were identified. - Okay.
+20260501133503 Check that openspec\changes\20260501131000-tooltip-wrapping-drum-window\specs are complete and that they describe all cases and edge cases necessary for future adherence to the solution.
 
 
 

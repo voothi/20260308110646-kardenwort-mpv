@@ -32,3 +32,19 @@ The tooltip rendering engine SHALL preserve the raw, unnormalized content of sec
 - **WHEN** a secondary subtitle is rendered in the tooltip
 - **THEN** the system SHALL use `get_sub_tokens(s, true)` to ensure original spacing and punctuation are preserved during the wrapping process.
 - **AND** no automated whitespace normalization or "cleaning" SHALL be applied to the tokens.
+
+### Requirement: Oversized Token Handling
+The wrapping engine SHALL gracefully handle individual tokens that exceed the maximum defined width.
+
+#### Scenario: Single Token Wider Than Max Width
+- **WHEN** a single word or token is wider than the 1400px limit
+- **THEN** the system SHALL render the token in full on its own visual line.
+- **AND** it SHALL force a line break immediately after the oversized token.
+
+### Requirement: Anchor-Aligned Wrapping
+Wrapped visual lines within a translation block SHALL maintain consistent alignment with the tooltip's global anchor.
+
+#### Scenario: Right-Center Alignment Preservation
+- **WHEN** a translation is wrapped into multiple visual lines
+- **THEN** every visual line SHALL be right-aligned relative to the `x=1800` (`\an6`) anchor point.
+- **AND** the visual block SHALL appear to "grow" leftwards from the right edge as line lengths increase.
