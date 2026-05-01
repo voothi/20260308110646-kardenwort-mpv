@@ -48,3 +48,21 @@ Wrapped visual lines within a translation block SHALL maintain consistent alignm
 - **WHEN** a translation is wrapped into multiple visual lines
 - **THEN** every visual line SHALL be right-aligned relative to the `x=1800` (`\an6`) anchor point.
 - **AND** the visual block SHALL appear to "grow" leftwards from the right edge as line lengths increase.
+
+### Requirement: Vertical Boundary Clamping
+The tooltip system SHALL prevent multi-line subtitle blocks from extending beyond the physical screen boundaries.
+
+#### Scenario: Vertical Overflow Protection
+- **GIVEN** a tooltip containing multiple context lines or extremely long wrapped sentences
+- **WHEN** the aggregate `block_height` exceeds the available vertical resolution (1080px minus 20px safety margins)
+- **THEN** the system SHALL clamp the entire block to the top or bottom screen edge.
+- **AND** the positioning logic SHALL ensure the "Active" (center) translation remains as visible as possible.
+
+### Requirement: Context Gap Suppression
+The tooltip rendering engine SHALL suppress visual artifacts from empty or metadata-only subtitles.
+
+#### Scenario: Skipping Empty Logical Entries
+- **WHEN** a logical subtitle in the context range contains no renderable text
+- **THEN** it SHALL be excluded from the visual line list and height calculation.
+- **AND** the inter-subtitle gap SHALL NOT be applied for that entry.
+
