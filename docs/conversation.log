@@ -988,7 +988,7 @@
 20260501023538 opsx-apply
 20260501024406 opsx-explore Check that our solution is optimized for speed and reliability for our modes. Speed of scrolling, changing subtitles during playback, the speed of adding records and their highlighting.
 20260501093901 opsx-propose
-
+20260501094314 opsx-apply openspec\changes\20260501093901-optimize-speed-and-reliability-hot-paths openspec\changes\20260501023103-optimize-hot-paths
 
 
 

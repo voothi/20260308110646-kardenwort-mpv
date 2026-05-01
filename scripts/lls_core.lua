@@ -466,6 +466,7 @@ local FSM = {
 
     -- Performance Caches
     DW_LAYOUT_CACHE = nil,     -- Cached layout for the current viewport
+    LAYOUT_VERSION = 0,        -- Incremented when font/spacing options change
     -- Global Search State
     SEARCH_MODE = false,
     SEARCH_QUERY = "",
@@ -496,6 +497,8 @@ local FSM = {
 
     -- Anki Highlighter State
     ANKI_HIGHLIGHTS = {},
+    ANKI_HIGHLIGHTS_SORTED = {},
+    ANKI_VERSION = 0,             -- Version counter for cache invalidation
     ANKI_DB_PATH = nil,
     ANKI_DB_MTIME = 0,
     ANKI_DB_SIZE = 0
@@ -985,6 +988,8 @@ local function build_word_list_internal(text, keep_spaces)
             while i <= n and is_word_char(chars[i]) do i = i + 1 end
             token.text = table.concat(chars, "", start, i - 1)
             token.is_word = true
+            -- Optimization: Pre-calculate normalized lowercase for hot-path matching
+            token.lower_clean = utf8_to_lower(token.text:gsub("[%p%s]", ""))
             token.logical_idx = curr_logical_idx
             curr_logical_idx = curr_logical_idx + 1
             curr_sub_idx = 0.1
@@ -1399,13 +1404,12 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     if not target_token or not target_token.is_word then return 0, 0, false, {}, 0 end
     
     local target_l_idx = target_token.logical_idx
-    local target_word_text = target_token.text
-    local target_lower_full = utf8_to_lower(target_word_text:gsub("[%p%s]", ""))
-    if target_lower_full == "" then return 0, 0, false, {}, 0 end
+    local target_lower_full = target_token.lower_clean
+    if not target_lower_full or target_lower_full == "" then return 0, 0, false, {}, 0 end
 
     -- Extract subwords for partial matches within compounds (e.g. Netto/Globus, 20–25)
     local target_subsets = { [target_lower_full] = true }
-    for sw in target_word_text:gmatch("[^%s/-\226\128\147\226\128\148]+") do
+    for sw in target_token.text:gmatch("[^%s/-\226\128\147\226\128\148]+") do
         local csw = utf8_to_lower(sw:gsub("[%p%s]", ""))
         if csw ~= "" then target_subsets[csw] = true end
     end
@@ -2142,6 +2146,17 @@ local function cmd_open_record_file()
         if err then mp.msg.warn("OPEN-RECORD error: " .. tostring(err)) end
     end)
 end
+-- Centralized cache invalidation for all rendering layers
+local function flush_rendering_caches()
+    FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
+    FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
+    
+    -- Invalidate top-level ASS result caches
+    FSM.DW_LAYOUT_CACHE = nil
+    if DRUM_DRAW_CACHE then DRUM_DRAW_CACHE.center_idx = -1 end
+    if DW_DRAW_CACHE then DW_DRAW_CACHE.view_center = -1 end
+end
+
 
 local function load_anki_tsv(force)
     local tsv_path = get_tsv_path()
@@ -2348,10 +2363,7 @@ local function load_anki_tsv(force)
         for _, sub in ipairs(Tracks.sec.subs) do sub.__split_valid_indices = nil end
     end
     
-    if info then
-        FSM.ANKI_DB_MTIME = info.mtime
-        FSM.ANKI_DB_SIZE = info.size
-    end
+    flush_rendering_caches()
     print(string.format("[LLS] TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
 end
 
@@ -2462,6 +2474,8 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
         table.insert(sorted, ins_pos, { time = time_pos, idx = new_h_idx })
     end
     
+    flush_rendering_caches()
+    
     -- Performance Optimization: Update fingerprints so the next periodic sync 
     -- doesn't trigger a redundant re-parse for this local change.
     local info = utils.file_info(tsv_path)
@@ -2571,6 +2585,8 @@ local function update_media_state()
         Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
     end
 
+    flush_rendering_caches()
+
     -- Determine State
     if Tracks.pri.id == 0 and Tracks.sec.id == 0 then
         FSM.MEDIA_STATE = "NO_SUBS"
@@ -2663,7 +2679,27 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
 
             -- Level 3: Database Highlights (Orange/Purple)
             if meta.priority == 0 then
-                local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, sub_idx, j, t_pos)
+                local h_cache = t.highlight_cache
+                local orange_stack, purple_stack, is_phrase, matching_terms, purple_depth
+                
+                if h_cache and h_cache.version == FSM.ANKI_VERSION then
+                    orange_stack = h_cache.orange_stack
+                    purple_stack = h_cache.purple_stack
+                    is_phrase = h_cache.is_phrase
+                    matching_terms = h_cache.matching_terms
+                    purple_depth = h_cache.purple_depth
+                else
+                    orange_stack, purple_stack, is_phrase, matching_terms, purple_depth = calculate_highlight_stack(subs, sub_idx, j, t_pos)
+                    t.highlight_cache = {
+                        version = FSM.ANKI_VERSION,
+                        orange_stack = orange_stack,
+                        purple_stack = purple_stack,
+                        is_phrase = is_phrase,
+                        matching_terms = matching_terms,
+                        purple_depth = purple_depth
+                    }
+                end
+                
                 meta.purple_depth = purple_depth
                 local h_color = base_color
                 
@@ -2866,18 +2902,17 @@ end
 -- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
 -- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
 local DRUM_DRAW_CACHE = {
-    center_idx = -1, highlight_count = 0,
+    subs_ptr = nil, center_idx = -1, highlight_count = 0,
     al = -1, aw = -1, cl = -1, cw = -1,
-    pending_version = 0, result = ""
+    pending_version = 0, result = "",
+    hit_zones = nil -- Cached geometry
 }
 
 local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones)
     if center_idx == -1 then return "" end
 
     -- Result cache: skip rebuild if nothing has changed since last call.
-    -- hit_zones must be nil (non-interactive path) to use the cache;
-    -- when hit_zones is provided the caller expects fresh geometry every tick.
-    if not hit_zones and
+    if DRUM_DRAW_CACHE.subs_ptr == subs and
        DRUM_DRAW_CACHE.center_idx      == center_idx and
        DRUM_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
        DRUM_DRAW_CACHE.al              == FSM.DW_ANCHOR_LINE and
@@ -2885,6 +2920,11 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
        DRUM_DRAW_CACHE.cl              == FSM.DW_CURSOR_LINE and
        DRUM_DRAW_CACHE.cw              == FSM.DW_CURSOR_WORD and
        DRUM_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
+        
+        -- If hit_zones was requested and we have it cached, populate it.
+        if hit_zones and DRUM_DRAW_CACHE.hit_zones then
+            for k, v in pairs(DRUM_DRAW_CACHE.hit_zones) do hit_zones[k] = v end
+        end
         return DRUM_DRAW_CACHE.result
     end
 
@@ -3029,15 +3069,22 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     end
 
     -- Update result cache before returning
-    if not hit_zones then
-        DRUM_DRAW_CACHE.center_idx      = center_idx
-        DRUM_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
-        DRUM_DRAW_CACHE.al              = FSM.DW_ANCHOR_LINE
-        DRUM_DRAW_CACHE.aw              = FSM.DW_ANCHOR_WORD
-        DRUM_DRAW_CACHE.cl              = FSM.DW_CURSOR_LINE
-        DRUM_DRAW_CACHE.cw              = FSM.DW_CURSOR_WORD
-        DRUM_DRAW_CACHE.pending_version = FSM.DW_CTRL_PENDING_VERSION or 0
-        DRUM_DRAW_CACHE.result          = ass
+    DRUM_DRAW_CACHE.subs_ptr        = subs
+    DRUM_DRAW_CACHE.center_idx      = center_idx
+    DRUM_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
+    DRUM_DRAW_CACHE.al              = FSM.DW_ANCHOR_LINE
+    DRUM_DRAW_CACHE.aw              = FSM.DW_ANCHOR_WORD
+    DRUM_DRAW_CACHE.cl              = FSM.DW_CURSOR_LINE
+    DRUM_DRAW_CACHE.cw              = FSM.DW_CURSOR_WORD
+    DRUM_DRAW_CACHE.pending_version = FSM.DW_CTRL_PENDING_VERSION or 0
+    DRUM_DRAW_CACHE.result          = ass
+    
+    -- If hit_zones was populated during this draw, cache it too.
+    if hit_zones then
+        DRUM_DRAW_CACHE.hit_zones = {}
+        for k, v in pairs(hit_zones) do DRUM_DRAW_CACHE.hit_zones[k] = v end
+    else
+        DRUM_DRAW_CACHE.hit_zones = nil
     end
 
     return ass
@@ -3079,54 +3126,69 @@ local function dw_build_layout(subs, view_center)
     local total_height = 0
 
     for i = start_idx, end_idx do
-        local tokens = get_sub_tokens(subs[i])
-        if #tokens == 0 then tokens = {{text=""}} end
-
-        local logical_words = {}
-        local visual_to_logical = {} -- tokens[j] -> index in logical_words
-        local logical_to_visual = {} -- logical_words[k] -> index in tokens
+        local s = subs[i]
+        local entry
         
-        for j, t in ipairs(tokens) do
-            if t.logical_idx then
-                visual_to_logical[j] = t.logical_idx
-                logical_to_visual[t.logical_idx] = j
+        -- Sub-level Layout Cache: Reuse wrapped lines if track/options haven't changed.
+        if s.layout_cache and s.layout_cache.version == FSM.LAYOUT_VERSION then
+            entry = s.layout_cache.entry
+        else
+            local tokens = get_sub_tokens(s)
+            if #tokens == 0 then tokens = {{text=""}} end
+
+            local logical_words = {}
+            local visual_to_logical = {}
+            local logical_to_visual = {}
+            
+            for j, t in ipairs(tokens) do
+                if t.logical_idx then
+                    visual_to_logical[j] = t.logical_idx
+                    logical_to_visual[t.logical_idx] = j
+                end
+                if is_word_token(t) then
+                    table.insert(logical_words, t)
+                end
             end
-            if is_word_token(t) then
-                table.insert(logical_words, t)
+
+            local vlines = {}
+            local cur_indices = {}
+            local cur_w = 0
+
+            for j, w in ipairs(tokens) do
+                local ww = dw_get_str_width(w)
+                local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
+                if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+                    table.insert(vlines, cur_indices)
+                    cur_indices = {j}
+                    cur_w = ww
+                else
+                    table.insert(cur_indices, j)
+                    cur_w = cur_w + space + ww
+                end
             end
+            if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+            if #vlines == 0 then vlines = {{1}} end
+
+            local entry_h = #vlines * vline_h
+            entry = {
+                sub_idx = i,
+                words = tokens,
+                logical_words = logical_words,
+                visual_to_logical = visual_to_logical,
+                logical_to_visual = logical_to_visual,
+                height = entry_h,
+                vlines = vlines
+            }
+            
+            -- Memoize on the subtitle object
+            s.layout_cache = {
+                version = FSM.LAYOUT_VERSION,
+                entry = entry
+            }
         end
-
-        local vlines = {}
-        local cur_indices = {}
-        local cur_w = 0
-
-        for j, w in ipairs(tokens) do
-            local ww = dw_get_str_width(w)
-            -- If original spacing is ON, we don't add artificial space width
-            local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
-            if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-                table.insert(vlines, cur_indices)
-                cur_indices = {j}
-                cur_w = ww
-            else
-                table.insert(cur_indices, j)
-                cur_w = cur_w + space + ww
-            end
-        end
-        if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-        if #vlines == 0 then vlines = {{1}} end
-
-        local entry_h = #vlines * vline_h
-        table.insert(layout, {
-            sub_idx = i,
-            words = tokens, -- Use tokens for visual rendering
-            logical_words = logical_words,
-            visual_to_logical = visual_to_logical,
-            logical_to_visual = logical_to_visual,
-            height = entry_h,
-            vlines = vlines
-        })
-        total_height = total_height + entry_h
+        
+        table.insert(layout, entry)
+        total_height = total_height + entry.height
         if i < end_idx then total_height = total_height + sub_gap end
     end
 
@@ -3144,10 +3206,10 @@ end
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 local DW_DRAW_CACHE = {
-    view_center = -1, active_idx = -1,
+    view_center = -1, active_idx = -1, highlight_count = 0,
     cl = -1, cw = -1, al = -1, aw = -1,
-    pending_version = 0,
-    result = ""
+    pending_version = 0, result = "",
+    hit_zones = nil -- Cached geometry
 }
 
 local function draw_dw(subs, view_center, active_idx)
@@ -3155,13 +3217,19 @@ local function draw_dw(subs, view_center, active_idx)
     
     -- High-level Result Cache: Skip entire rendering if state is identical.
     -- FSM.DW_CTRL_PENDING_VERSION is incremented whenever the Pink set changes.
-    if DW_DRAW_CACHE.view_center == view_center and
-       DW_DRAW_CACHE.active_idx == active_idx and
-       DW_DRAW_CACHE.cl == FSM.DW_CURSOR_LINE and
-       DW_DRAW_CACHE.cw == FSM.DW_CURSOR_WORD and
-       DW_DRAW_CACHE.al == FSM.DW_ANCHOR_LINE and
-       DW_DRAW_CACHE.aw == FSM.DW_ANCHOR_WORD and
+    if DW_DRAW_CACHE.view_center    == view_center and
+       DW_DRAW_CACHE.active_idx     == active_idx and
+       DW_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
+       DW_DRAW_CACHE.cl             == FSM.DW_CURSOR_LINE and
+       DW_DRAW_CACHE.cw             == FSM.DW_CURSOR_WORD and
+       DW_DRAW_CACHE.al             == FSM.DW_ANCHOR_LINE and
+       DW_DRAW_CACHE.aw             == FSM.DW_ANCHOR_WORD and
        DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
+        
+        -- Restore cached geometry
+        if FSM.DW_HIT_ZONES and DW_DRAW_CACHE.hit_zones then
+            for k, v in pairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
+        end
         return DW_DRAW_CACHE.result
     end
 
@@ -3257,14 +3325,23 @@ local function draw_dw(subs, view_center, active_idx)
         Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, calculate_ass_alpha(Options.dw_bg_opacity), Options.dw_font_size, vsp_tag, block_text)
     
     -- Update Cache
-    DW_DRAW_CACHE.view_center = view_center
-    DW_DRAW_CACHE.active_idx = active_idx
-    DW_DRAW_CACHE.cl = FSM.DW_CURSOR_LINE
-    DW_DRAW_CACHE.cw = FSM.DW_CURSOR_WORD
-    DW_DRAW_CACHE.al = FSM.DW_ANCHOR_LINE
-    DW_DRAW_CACHE.aw = FSM.DW_ANCHOR_WORD
+    DW_DRAW_CACHE.view_center    = view_center
+    DW_DRAW_CACHE.active_idx     = active_idx
+    DW_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
+    DW_DRAW_CACHE.cl             = FSM.DW_CURSOR_LINE
+    DW_DRAW_CACHE.cw             = FSM.DW_CURSOR_WORD
+    DW_DRAW_CACHE.al             = FSM.DW_ANCHOR_LINE
+    DW_DRAW_CACHE.aw             = FSM.DW_ANCHOR_WORD
     DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
-    DW_DRAW_CACHE.result = final_ass
+    DW_DRAW_CACHE.result          = final_ass
+    
+    -- Cache geometry
+    if FSM.DW_HIT_ZONES then
+        DW_DRAW_CACHE.hit_zones = {}
+        for k, v in pairs(FSM.DW_HIT_ZONES) do DW_DRAW_CACHE.hit_zones[k] = v end
+    else
+        DW_DRAW_CACHE.hit_zones = nil
+    end
 
     return final_ass
 end
