@@ -1126,7 +1126,8 @@
 20260502004028 OSD font size can be added there?
 20260502004417 osd_font_size = 8 doesn't change.
 20260502004528 Strange symbols at the top.
-
+20260502004855 Add keys whether to display the OSD with the file name at all. Also additionally displays connected subtitles. So that you can have the option to hide.
+20260502005105 Rename show_osd to match show_subtitles
 
 
 

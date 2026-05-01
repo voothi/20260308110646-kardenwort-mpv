@@ -6,15 +6,19 @@
 -- =========================================================================
 local opts = {
     -- Duration of the OSD resume message in seconds (0.5 = 500ms)
-    osd_duration = 2,
+    osd_duration = 5,
     -- Delay before checking if we should resume on startup (seconds)
     startup_delay = 0.1,
     -- File to store the last played path
     state_file = "~~/resume_session.state",
     -- Message prefix for OSD
-    msg_prefix = "test:",
+    msg_prefix = "",
     -- OSD font size (set to 0 to use system default)
-    osd_font_size = 8
+    osd_font_size = 20,
+    -- Whether to show the OSD message with the filename
+    show_filename = true,
+    -- Whether to include information about connected subtitles in the OSD
+    show_subtitles = true
 }
 
 local utils = require 'mp.utils'
@@ -56,16 +60,34 @@ mp.add_timeout(opts.startup_delay, function()
                     local filename = last_path:match("([^/\\]+)$")
                     local msg = opts.msg_prefix .. filename
                     
-                    if opts.osd_font_size > 0 then
-                        local old_size = mp.get_property("osd-font-size")
-                        mp.set_property("osd-font-size", opts.osd_font_size)
-                        mp.osd_message(msg, opts.osd_duration)
-                        -- Restore size after the message duration
-                        mp.add_timeout(opts.osd_duration, function()
-                            mp.set_property("osd-font-size", old_size)
-                        end)
-                    else
-                        mp.osd_message(msg, opts.osd_duration)
+                    if opts.show_filename then
+                        if opts.show_subtitles then
+                            local dir, name = utils.split_path(last_path)
+                            local base_name = name:gsub("%.%w+$", "")
+                            local files = utils.readdir(dir)
+                            local subs_found = {}
+                            if files then
+                                for _, f in ipairs(files) do
+                                    if f:match("^" .. base_name:gsub("[%%()%.%+%-%*%?%[%]%^%$]", "%%%1") .. ".*%.[as][rs]t$") then
+                                        table.insert(subs_found, f:match("%.([^%.]+)$"):upper())
+                                    end
+                                end
+                            end
+                            if #subs_found > 0 then
+                                msg = msg .. " [" .. table.concat(subs_found, "/") .. "]"
+                            end
+                        end
+
+                        if opts.osd_font_size > 0 then
+                            local old_size = mp.get_property("osd-font-size")
+                            mp.set_property("osd-font-size", opts.osd_font_size)
+                            mp.osd_message(msg, opts.osd_duration)
+                            mp.add_timeout(opts.osd_duration, function()
+                                mp.set_property("osd-font-size", old_size)
+                            end)
+                        else
+                            mp.osd_message(msg, opts.osd_duration)
+                        end
                     end
                     
                     mp.msg.info("Resuming last session: " .. last_path)
