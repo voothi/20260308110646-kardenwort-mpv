@@ -58,11 +58,11 @@ The tooltip system SHALL prevent multi-line subtitle blocks from extending beyon
 - **THEN** the system SHALL clamp the entire block to the top or bottom screen edge.
 - **AND** the positioning logic SHALL ensure the "Active" (center) translation remains as visible as possible.
 
-### Requirement: Context Gap Suppression
-The tooltip rendering engine SHALL suppress visual artifacts from empty or metadata-only subtitles.
+### Requirement: Context Slot Preservation
+The tooltip rendering engine SHALL preserve visual slots for empty or metadata-only subtitles to maintain vertical synchronization with the primary Drum Window.
 
-#### Scenario: Skipping Empty Logical Entries
+#### Scenario: Preserving Empty Logical Entries
 - **WHEN** a logical subtitle in the context range contains no renderable text
-- **THEN** it SHALL be excluded from the visual line list and height calculation.
-- **AND** the inter-subtitle gap SHALL NOT be applied for that entry.
+- **THEN** it SHALL be rendered as a single empty visual line.
+- **AND** the standard inter-subtitle gap SHALL be applied after the entry.
 
