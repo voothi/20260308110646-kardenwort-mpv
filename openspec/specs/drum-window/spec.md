@@ -27,11 +27,21 @@ The Drum Window SHALL ensure that any active text selection, word-highlight, or 
 - **THEN** the system SHALL immediately update the selection range to include the word now under the mouse cursor at its new viewport position.
 - **AND** the selection SHALL NOT be cleared or disrupted by the scroll event.
 
+### Requirement: Drum Window Selection Priority
+The system SHALL prioritize the preservation of the active word pointer (Yellow Highlight) when opening the Drum Window and ensure the viewport alignment matches the cursor.
+
 #### Scenario: Visual Cursor Sync (Pointer Jump)
 - **WHEN** a mouse-based interaction occurs (e.g., clicking on a word with a pairing modifier)
 - **THEN** the system SHALL immediately synchronize the Drum Window cursor (Yellow Highlight) and the anchor point to the word under the mouse pointer.
 - **AND** this synchronization SHALL occur before the specific action logic (e.g., toggling) is executed.
 - **AND** the sticky horizontal navigation anchor (`FSM.DW_CURSOR_X`) SHALL be reset to ensure the next keyboard movement re-anchors to the new cursor position.
+
+#### Scenario: Opening Drum Window with active Pointer
+- **GIVEN** a word is already highlighted in Drum Mode (C) or Regular SRT mode.
+- **WHEN** the user opens the Drum Window (Mode W).
+- **THEN** the system SHALL NOT reset the pointer.
+- **AND** the word SHALL remain highlighted at the same index in the window.
+- **AND** the window viewport (`FSM.DW_VIEW_CENTER`) SHALL immediately jump to the line containing the pointer.
 
 ### Requirement: Exclusive UI Visibility
 The Drum Window SHALL maintain exclusive visibility over the active subtitle information, ensuring that native mpv subtitles do not overlap or leak through the UI regardless of media state changes or external property resets.
@@ -134,6 +144,15 @@ The system SHALL index all dialogue lines from external subtitle files regardles
 - **WHEN** an ASS subtitle track containing Cyrillic characters is loaded.
 - **THEN** the system SHALL NOT filter out these lines during the ingestion phase.
 - **AND** the Tracks.sec.subs table SHALL contain all dialogue entries for use in translation copy and tooltip rendering.
+
+### Requirement: Tooltip Content Rendering
+The Drum Window translation tooltip SHALL render secondary subtitles with full highlight synchronization, mirroring the selection state of the primary track.
+
+#### Scenario: Selection Sync in Tooltip
+- **GIVEN** a word or range is highlighted in Yellow or Pink in the Drum Window.
+- **WHEN** the tooltip (E) is displayed for the corresponding line.
+- **THEN** the secondary tokens in the tooltip SHALL be rendered with the same colors and bold styling as their primary counterparts, provided they share the same logical index.
+- **AND** the highlighting SHALL be "surgical," preserving the base color of punctuation and whitespace.
 
 ### Requirement: Cross-Mode Cursor Synchronization
 The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mode C) and Drum Window (Mode W).

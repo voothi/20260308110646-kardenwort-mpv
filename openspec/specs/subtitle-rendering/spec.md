@@ -40,6 +40,14 @@ The system SHALL ensure that the "active" subtitle (highlighted in white) remain
 - **WHEN** in Standard or Drum (C) modes
 - **THEN** the subtitle rendering SHALL follow the same highlighting logic as the Drum Window (Mode W), ensuring that the "focused" subtitle (returned by the centering logic) is always rendered in its active state.
 
+### Requirement: Universal Pointer Persistence
+The system SHALL maintain the visibility and logical anchoring of the word pointer (Yellow Highlight) across all subtitle rendering modes, including windowless (SRT) playback.
+
+#### Scenario: Pointer visibility in Regular SRT mode
+- **WHEN** the Drum Window (Mode W) is OFF and Drum Mode (Mode C) is OFF (Regular SRT mode).
+- **IF** `FSM.DW_CURSOR_WORD` is not -1.
+- **THEN** the active primary subtitle SHALL render with a yellow highlight on the specified word.
+
 
 ### Requirement: Sliding-Window Boundary Filling
 The system SHALL maintain a full range of visible context subtitles even when the active subtitle is near the start or end of the track, provided sufficient subtitles exist in the track.

@@ -1055,9 +1055,8 @@
 20260501165217 Well, is it possible then to make another improvement that will allow in W mode, just like now in C mode with two subtitles, to synchronize the selections between the window text and the E (tooltip) tooltip text?
 20260501165540 /opsx-propose 20260501165217-sync-tooltip-highlights
 20260501165718 opsx-apply openspec\changes\20260501165217-sync-tooltip-highlights
-
-
-
+20260501170417 Coordinate together and archive with --sync, don't lose important details 20260501170334 opsx-archive openspec\changes\20260501163905-full-bidirectional-pointer-sync 20260501170359 opsx-archive openspec\changes\20260501165217-sync-tooltip-highlightsм
+20260501170708 Rename what they were called openspec\changes\archive\2026-05-01-full-bidirectional-pointer-sync openspec\changes\archive\2026-05-01-sync-tooltip-highlights The label should not have appeared 2026-05-01
 
 
 
