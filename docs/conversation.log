@@ -1075,7 +1075,10 @@
 20260501180737 You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert and specification architect, complement and update the current openspec\changes\20260501172103-tooltip-selection-synchronization improvement project, especially implemented and discussed cases and requirements, according to chat conversation anchors 20260501183231 20260501184952 20260501190102 20260501190705 20260501191102
 20260501191958 opsx-apply openspec\changes\20260501172103-tooltip-selection-synchronizationv
 20260501192048 opsx-archive 20260501172103-tooltip-selection-synchronizationv
-
+20260501193429 The codebase is in a premium, release-ready state. - Okay.
+20260501193441 Still, let's talk about fonts again. Now, for some reason, yellow feels brighter anyway. Compare.
+20260501194758 Maybe we need to explicitly set the color for the tooltip mode as dw_highlight_color?
+20260501194956 We would add these to the Options table and mpv.conf: - Yes.
 
 
 
