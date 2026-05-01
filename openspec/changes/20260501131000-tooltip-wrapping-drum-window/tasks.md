@@ -16,7 +16,7 @@
 - [ ] 3.1 Update the logic to track the total count of *visual lines* (wrapped) across all logical entries.
 - [ ] 3.2 Refactor the `block_height` calculation to sum `(visual_lines * line_height)` plus the inter-subtitle gaps.
 - [ ] 3.3 Ensure the `final_y` positioning logic and screen boundary clamping correctly use the updated `block_height`.
-- [ ] 3.4 Implement skipping of empty or metadata-only logical subtitles to prevent vertical gap artifacts.
+- [ ] 3.4 Implement empty subtitle slot preservation by adding exactly one logical line height to the accumulator for empty text, ensuring precise vertical synchronization with the primary Drum Window.
 
 
 ## 4. Cache Hardening & Performance
