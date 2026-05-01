@@ -1,12 +1,12 @@
 ## Why
 
-Currently, the Translation Tooltip selection and highlighting logic is hardcoded to use the Drum Window's color settings (`dw_highlight_color` and `dw_ctrl_select_color`). This creates an architectural inconsistency and prevents independent calibration of selection brightness, which is especially noticeable when using the high-contrast `background-box` mode with the thicker `Consolas` font.
+Currently, the selection and highlighting logic across various modes (Drum Window, Drum Mode, Regular SRT) is hardcoded to use a single set of global color settings. This prevents independent calibration of selection brightness for different tracks (Primary vs. Secondary) and different rendering contexts, which is critical when balancing readability across diverse fonts (like Consolas) and high-contrast background modes.
 
 ## What Changes
 
-- **Explicit Tooltip Colors**: Introduce `tooltip_highlight_color` and `tooltip_ctrl_select_color` script options to decouple tooltip selection aesthetics from the main Drum Window.
-- **Color Parameterization**: Refactor the core `populate_token_meta` service to accept color parameters instead of relying on hardcoded global options.
-- **Independent Calibration**: Allow users to "cool down" or independenty tune the selection brightness in the tooltip mode to ensure optimal readability across different display environments.
+- **Universal Explicit Colors**: Introduce independent `highlight_color` and `ctrl_select_color` script options for every interaction mode and track (Drum Window, Tooltip, Drum Mode Pri/Sec, SRT Mode Pri/Sec).
+- **Architectural Parameterization**: Refactor the core `populate_token_meta` service to accept dynamic color palettes, eliminating hardcoded global lookups and ensuring architectural consistency.
+- **Independent Luminance Tuning**: Enable precise tuning of selection brightness per screen and per mode to account for different visual weights and contrast levels.
 
 ## Capabilities
 
@@ -15,10 +15,10 @@ Currently, the Translation Tooltip selection and highlighting logic is hardcoded
 
 ### Modified Capabilities
 - `drum-window-tooltip`: Add requirements for independent selection and multi-word highlight colors.
-- `rendering-optimization`: Update the `populate_token_meta` architectural invariant to support parameter-driven colorization for O(1) rendering efficiency.
+- `rendering-optimization`: Update the `populate_token_meta` architectural invariant to support parameter-driven colorization across all OSD rendering loops.
 
 ## Impact
 
-- **Affected Code**: `scripts/lls_core.lua` (Options, `populate_token_meta`, and rendering loops).
-- **Configuration**: `mpv.conf` will receive new `script-opts` for tooltip highlights.
-- **User Experience**: Improved aesthetic control and visual consistency across primary and secondary interactivity modes.
+- **Affected Code**: `scripts/lls_core.lua` (Options, `populate_token_meta`, `draw_drum`, `draw_dw_core`, and `draw_dw_tooltip`).
+- **Configuration**: `mpv.conf` will receive a comprehensive suite of new `script-opts` for granular highlight control.
+- **User Experience**: Professional-grade aesthetic control over interaction markers across dual-subtitle tracks.

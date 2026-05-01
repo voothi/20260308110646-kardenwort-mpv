@@ -1,30 +1,30 @@
 ## Context
 
-The `populate_token_meta` function is a central service in `lls_core.lua` responsible for determining the color and priority of tokens during rendering. It currently relies on global `Options` (specifically `dw_highlight_color` and `dw_ctrl_select_color`), which prevents the Translation Tooltip from having its own distinct selection aesthetics. With the transition to `Consolas` and high-contrast background boxes, the "yellow" selection can feel overly bright in the secondary tooltip context.
+The `populate_token_meta` function is the central engine for colorizing interactive tokens. Historically, it relied on a rigid set of global `dw_` options, which made it impossible to tune selection brightness independently for secondary tracks or specific viewing modes (SRT/Drum). As the project moves toward a "Unified interactivity and highlighting schema," we must decouple these visual markers from their hardcoded origins to support different display environments (e.g., contrasting primary vs. secondary track luminance).
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Decouple selection highlighting from the global `dw_` namespace.
-- Enable independent color calibration for the Translation Tooltip.
-- Maintain $O(1)$ rendering performance through efficient parameter passing.
+- Decouple selection highlighting from the global `dw_` namespace for all modes.
+- Enable independent color calibration for Tooltip, Drum Mode (Pri/Sec), and SRT Mode (Pri/Sec).
+- Preserve $O(1)$ rendering performance via efficient color parameter passing.
 
 **Non-Goals:**
-- Changing the default colors (they will remain identical unless overridden in `mpv.conf`).
-- Modifying the core hit-testing logic (only visual representation is affected).
+- Fragmenting the core logic (keeping a single source of truth for selection rules).
+- Changing default aesthetic values (maintaining backward compatibility).
 
 ## Decisions
 
-### 1. Parameterized `populate_token_meta`
-Instead of internalizing global lookups, `populate_token_meta` will accept `h_color` and `ctrl_color` as arguments.
-- **Rationale**: This allows the caller (Drum Window core vs. Tooltip renderer) to decide which palette to use without duplication of logic.
-- **Alternative**: Creating a `populate_tooltip_token_meta` function was rejected to avoid logic drift and code duplication.
+### 1. Parameterized Palette Injection
+`populate_token_meta` is refactored to accept `h_color` and `ctrl_color` as arguments.
+- **Rationale**: This shifts the responsibility of palette selection to the high-level rendering loops (`draw_dw_core`, `draw_dw_tooltip`, `draw_drum`), which already have context about the current mode and track.
+- **Alternative**: Passing a "mode" string and having the service perform internal lookups was rejected as it would re-introduce coupling with the `Options` table structure.
 
-### 2. Defaulting to `dw_` variants in `Options`
-The new `tooltip_` options will default to the existing `dw_` values in the `Options` table.
-- **Rationale**: Ensures backward compatibility and zero visual change for users who haven't customized their `mpv.conf`.
+### 2. Uniform Track Calibration
+New options for `drum_pri/sec` and `srt_pri/sec` follow the same naming convention as existing track-specific toggles.
+- **Rationale**: Ensures a predictable configuration surface for power users.
 
 ## Risks / Trade-offs
 
-- **[Risk] Parameter Pollution** → **Mitigation**: Use optional arguments with logical fallbacks (`or Options.dw_highlight_color`) to keep call sites clean where defaults are sufficient.
-- **[Trade-off] Slightly longer function signatures** → **Mitigation**: The architectural benefit of decoupling outweighs the negligible overhead of passing two additional strings.
+- **[Risk] Configuration Complexity** → **Mitigation**: New options default to legacy values in the `Options` table, so only users who need specific calibration need to modify `mpv.conf`.
+- **[Trade-off] Redundant Arguments** → **Mitigation**: Using optional arguments with clear fallbacks ensures that existing logic (or future modes) can still function with standard project defaults.
