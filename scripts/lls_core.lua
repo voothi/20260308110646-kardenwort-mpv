@@ -179,6 +179,8 @@ local Options = {
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
     tooltip_highlight_color = "00CCFF",-- Gold highlight in BGR (Matches dw_highlight_color default)
     tooltip_ctrl_select_color = "FF88FF",-- Neon pink (Matches dw_ctrl_select_color default)
+    tooltip_active_bold = false,
+    tooltip_context_bold = false,
     tooltip_highlight_bold = false,
 
     -- Navigation Repeat
@@ -3445,7 +3447,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local fs = Options.tooltip_font_size
     local line_height = fs * Options.tooltip_line_height_mul
-    local bold = Options.tooltip_font_bold and "1" or "0"
+    -- local bold = Options.tooltip_font_bold and "1" or "0" -- Moved per-line (Task 2.1)
     
     local max_text_w = 1400 -- Task 2.2 / Design Decision 3
     local lines_ass = {}
@@ -3467,6 +3469,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local is_active = (i == center_idx)
         local base_color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
         local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
+        local bold_state = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
         local alpha_tag = string.format("{\\1a&H%s&}", calculate_ass_alpha(opacity))
         
         -- Inject highlights (respecting secondary track toggle)
@@ -3493,10 +3496,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 end
                 
                 local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true, final_bold)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold)
                 line_w = line_w + ww
             end
-            local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold, base_color)
+            local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
             table.insert(sub_visual_lines, line_prefix .. alpha_tag .. line_text)
             table.insert(visual_lines_meta, {width = line_w, words = line_words})
             total_visual_lines = total_visual_lines + 1
@@ -3565,8 +3568,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
 
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
+    local base_bold = Options.tooltip_context_bold and "1" or "0"
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, text_block)
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
