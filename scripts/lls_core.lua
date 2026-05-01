@@ -45,6 +45,10 @@ local Options = {
     drum_block_gap_mul = -0.27,
     drum_gap_adj = 6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
+    drum_pri_highlight_color = "00CCFF",
+    drum_sec_highlight_color = "00CCFF",
+    drum_pri_ctrl_select_color = "FF88FF",
+    drum_sec_ctrl_select_color = "FF88FF",
     -- Interactivity Toggles (Per-Screen, Per-Mode)
     osd_interactivity = true,       -- Master toggle
     dw_pri_interactivity = true,    -- Drum Window: Main Text
@@ -78,6 +82,10 @@ local Options = {
     srt_vsp = 0,
     srt_block_gap_mul = -0.27,
     srt_line_height_mul = 0.87,     -- Vertical spacing multiplier
+    srt_pri_highlight_color = "00CCFF",
+    srt_sec_highlight_color = "00CCFF",
+    srt_pri_ctrl_select_color = "FF88FF",
+    srt_sec_ctrl_select_color = "FF88FF",
 
     -- Copy Mode
     copy_default_mode = "A",
@@ -3010,7 +3018,13 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
         -- Pass 1: Global Highlight Pre-Pass
         local base_color = is_drum_mode and (is_active and Options.drum_active_color or Options.drum_context_color)
                                         or (is_active and Options.srt_active_color or Options.srt_context_color)
-        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time, nil, force_plain, Options.dw_highlight_color, Options.dw_ctrl_select_color)
+        
+        local h_color = is_drum_mode and (is_pri and Options.drum_pri_highlight_color or Options.drum_sec_highlight_color)
+                                     or (is_pri and Options.srt_pri_highlight_color or Options.srt_sec_highlight_color)
+        local c_color = is_drum_mode and (is_pri and Options.drum_pri_ctrl_select_color or Options.drum_sec_ctrl_select_color)
+                                     or (is_pri and Options.srt_pri_ctrl_select_color or Options.srt_sec_ctrl_select_color)
+
+        m.token_meta = populate_token_meta(subs, i, m.tokens, base_color, subs[i].start_time, nil, force_plain, h_color, c_color)
         
         table.insert(sub_metas, m)
         total_h = total_h + m.total_height

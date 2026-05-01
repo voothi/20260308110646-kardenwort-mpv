@@ -21,3 +21,10 @@
 - [x] 4.1 Verify that changing `tooltip_highlight_color` in `mpv.conf` affects the tooltip but not the Drum Window.
 - [x] 4.2 Confirm that selection synchronization still works (logic remains shared, only aesthetics are decoupled).
 - [x] 4.3 Validate that no regressions occur in multi-word selection coloring.
+
+## 5. Universal Mode Decoupling
+
+- [x] 5.1 Add `drum_pri_highlight_color`, `drum_sec_highlight_color`, `srt_pri_highlight_color`, and `srt_sec_highlight_color` to `Options`.
+- [x] 5.2 Add corresponding `ctrl_select_color` options for all modes and tracks.
+- [x] 5.3 Update `draw_drum` to pass track-specific and mode-specific colors to `populate_token_meta`.
+- [x] 5.4 Update `mpv.conf` with all new color options in their respective sections.
