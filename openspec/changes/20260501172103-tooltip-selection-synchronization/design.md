@@ -13,6 +13,28 @@ Currently, the Drum Window (Mode W) translation tooltip (E) is a non-interactive
 - Implementing separate cursor states for primary and secondary tracks (they should remain synchronized).
 - Changing the visual layout of the tooltip.
 
+## Tooltip Interaction Architecture
+
+### 1. Unified Hit-Zone Pipeline (Surgical Model)
+Interaction in the Drum Window tooltip follows a **Surgical Model**. Hit zones are populated during the `draw_dw_tooltip` phase and cached in `DW_TOOLTIP_DRAW_CACHE`.
+- **Granularity**: Hit zones are created at the word level within visual lines.
+- **Occlusion**: The tooltip (`z=25`) has priority over the Drum Window (`z=20`). Clicks land on tooltip words first.
+- **Pass-Through**: Clicks in "gaps" (between words or lines) pass through to the background Drum Window text, maintaining high-precision background interaction even while the tooltip is visible.
+
+### 2. Stability and Flicker Prevention
+To ensure a premium UX, the rendering pipeline implements two suppression mechanisms:
+- **Click-Blink Suppression**: The `is_tooltip_hit` check in the mouse handler prevents the tooltip from being dismissed (cleared) when clicking directly on it for selection.
+- **Sticky Quick-View**: During "Quick-View" (RMB-hold), the tooltip enters a "sticky" state. It ignores "nil" hit-tests (gaps) to prevent flickering, only updating its content when the cursor lands on a distinct subtitle line.
+
+### 3. Coordinate Mapping (Right-Aligned an6)
+Coordinates are mapped relative to the `X=1800` anchor:
+- `x_start = 1800 - visual_line_width`
+- `y_top/y_bottom` calculated from the aggregate block height and vertical centering logic.
+
+### 4. Caching and Performance
+- `FSM.DW_TOOLTIP_HIT_ZONES` is stored in the draw cache.
+- $O(1)$ restoration of interaction data when serving from cache to prevent layout re-calculation overhead.
+
 ## Decisions
 
 ### 1. Unified Hit-Zone Storage

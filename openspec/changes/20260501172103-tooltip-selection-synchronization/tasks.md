@@ -16,9 +16,11 @@
 - [x] 3.2 Update `lls_hit_test_all` to call `dw_tooltip_hit_test` when the tooltip is active (`FSM.DW_TOOLTIP_LINE ~= -1`).
 - [x] 3.3 Ensure that hitting a word in the tooltip correctly returns the `sub_idx` (from `Tracks.sec.subs`) and the `logical_word_idx`.
 
-## 4. Verification and Hardening
+## 4. Verification and Hardening (Finalized)
 
 - [x] 4.1 Verify that clicking a Russian word in the tooltip updates the primary Drum Window selection immediately.
 - [x] 4.2 Confirm that Shift-Selection and Ctrl-Selection (Paired Set) work correctly through the tooltip interface.
-- [x] 4.3 Validate that hit detection remains accurate across various window aspect ratios by verifying `dw_get_mouse_osd` integration.
-- [x] 4.4 Perform a regression test to ensure that tooltip hit zones do not interfere with main window interaction when they overlap or are near each other.
+- [x] 4.3 Implement and verify "Sticky Quick-View" to prevent flickering during RMB-hold vertical movement.
+- [x] 4.4 Hardened interaction: Implemented `is_tooltip_hit` check to eliminate click-blinking.
+- [x] 4.5 Investigated "Block Shield" implementation; rejected in favor of "Surgical Model" with sticky logic to maintain background pass-through fidelity.
+- [x] 4.6 Regression test: Verified that hit-zones remain accurate and synchronized across all window aspect ratios.

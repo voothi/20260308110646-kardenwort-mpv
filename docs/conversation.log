@@ -1064,6 +1064,7 @@
 20260501174851 x Okay, but now if window E blinks, if the cursor is above it or next to it, when I hold down RMB and move it vertically for quick viewing, in this mode, can it be fixed or is it hindered by the fact that we implemented “Block Shield”?
 20260501175346 x Now in the E tooltip window, if you hold down LMB on a word, it starts flashing quickly between yellow and white.
 20260501180210 I rolled back to the moment 20260501173429, to "Block Shield", confirm that the "Surgical" behavior is now working well.
+20260501180737 You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert and specification architect, complement and update the current openspec\changes\20260501172103-tooltip-selection-synchronization improvement project, especially implemented and discussed cases and requirements, according to chat conversation anchors 20260501165718 20260501170417 20260501170708 20260501170826 20260501173429 20260501180210
 
 
 
