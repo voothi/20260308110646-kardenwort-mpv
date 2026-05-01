@@ -4048,6 +4048,20 @@ local function ctrl_discard_set()
     end
 end
 
+local function get_dw_selection_bounds()
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+    
+    if al == -1 or aw == -1 or cl == -1 or cw == -1 then return nil end
+    if al == cl and logical_cmp(aw, cw) then return nil end -- Single word is not a "range selection" in this context
+    
+    if al < cl or (al == cl and aw < cw + L_EPSILON) then
+        return al, aw, cl, cw
+    else
+        return cl, cw, al, aw
+    end
+end
+
 -- Context-Aware Escape: Sequential 4-stage cancel then close window
 -- Stage 1: Clear Pink Set (ctrl pending set)
 -- Stage 2: Clear Yellow Range (if anchor exists and is different from cursor)
@@ -4093,19 +4107,6 @@ local function cmd_dw_esc()
     cmd_toggle_drum_window(false)
 end
 
-local function get_dw_selection_bounds()
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    
-    if al == -1 or aw == -1 or cl == -1 or cw == -1 then return nil end
-    if al == cl and logical_cmp(aw, cw) then return nil end -- Single word is not a "range selection" in this context
-    
-    if al < cl or (al == cl and aw < cw + L_EPSILON) then
-        return al, aw, cl, cw
-    else
-        return cl, cw, al, aw
-    end
-end
 
 local function ctrl_toggle_word(line_idx, word_idx)
     if line_idx < 1 or word_idx < 0 then return end
