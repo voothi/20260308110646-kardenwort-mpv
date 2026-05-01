@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.58.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.0) 
+[![Version](https://img.shields.io/badge/version-v1.58.18-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.18) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -75,13 +75,13 @@ This suite solves problems that standard video players and generic scripts ignor
 8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
 9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events.
 10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session. Implements **Multi-Pivot Grounding** (`Line:Word:TermPos`) to mathematically eliminate highlight bleed.
-11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window.
+11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window. Supports **full bidirectional synchronization** of Yellow/Pink highlights.
 12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
 13. **Smart Stacking Engine**: Unified layout coordination for dual-track subtitles that restores manual positioning control while preventing visual overlap by default.
 14. **Selection Priority**: Persistent multi-word selections (Ctrl + LMB) now take visual precedence over transient cursor highlights.
 15. **Dynamic Source Discovery**: Automatically extracts YouTube/Source URLs from local metadata files (`.url`, `.txt`, `.md`) for zero-touch Anki metadata population.
 16. **Chromatic Selection Theme**: Implements a "Warm vs. Cool" workflow using Gold for contiguous and Neon Pink for split-phrase selections.
-17. **Hardware Interaction Shielding**: A bulletproof 150ms "interaction shield" that ignores mouse jitter and "ghost clicks" from remote control software immediately after keyboard commands.
+17. **Hardware Interaction Shielding**: A bulletproof 150ms "interaction shield" that ignores mouse jitter and "ghost clicks" from remote control software immediately after keyboard commands. Now **synchronized across all HUD modes** (Search, Drum, Tooltip).
 18. **Multi-Layout Shortcut Lists**: All major command parameters now support space, comma, or semicolon separated lists. Map `t`, `е`, and `MBTN_LEFT` to the same action simultaneously in `mpv.conf`.
 19. **Precision Context Verification**: Implements word-tokenized intersection for vocabulary matches, ensuring highlights persist through punctuation and formatting differences.
 20. **Embedded Subtitle Support**: The Drum Window (Mode W) now supports internal/embedded subtitle tracks in MKV files, providing a consistent experience across all media formats.
@@ -97,6 +97,7 @@ This suite solves problems that standard video players and generic scripts ignor
 30. **Temporal Merging Guard**: Advanced navigation logic that prevents scrolling "stutter" by detecting and bridging natural gaps in subtitle timing during rapid seeks.
 31. **Hardened Performance Pipeline**: Systemic O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
 32. **Absolute Verbatim Export**: 100% fidelity mining that preserves all source formatting, hyphens, and whitespace, strictly adhering to the "Source as Truth" philosophy.
+33. **Dynamic Search Wrapping**: The Search HUD now features a robust **multi-line wrapping engine** with pixel-perfect hit-testing, ensuring all results remain selectable regardless of layout complexity.
 
 [Return to Top](#table-of-contents)
 
@@ -114,12 +115,8 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 
 ### <span id="universal-subtitle-search"></span>Universal Subtitle Search
 A high-performance navigation overlay that decouples content lookup from playback.
-- **Cyrillic & German Parity**: Fully case-insensitive Russian search support and native input for German umlauts (`äöü`) and the eszett (`ß`).
-- **Professional Editing**: Support for `Ctrl+A` (Select All) and Bash-style `Ctrl+W` (Delete Word).
-- **Clipboard Integration**: Paste queries directly with `Ctrl+V` (EN) or `Ctrl+М` (RU).
-- **Hit Highlighting**: Elegant visual feedback highlighting matching characters (Subsequence-aware). **Fully configurable** via the `Options` table.
-- **Interactive Dropdown**: Navigate results via arrow keys or click directly on an item with the mouse to seek. **Styling (colors/bolding)** is now user-adjustable.
-- **Dynamic OSD Support**: Automatically overrides the global `osd-border-style` (e.g., from `background-box`) while active to ensure a clean, readable interface on top of the custom search panels.
+- **Dynamic Multi-Line Wrapping**: Both search queries and results now flow naturally across multiple visual lines, with the interface dynamically adjusting its height and dropdown position.
+- **Synchronized Hit-Testing**: Introduced pixel-perfect mouse interaction for wrapped results using `FSM.SEARCH_HIT_ZONES`. Click targets now track the visual OSD position of the text.
 - **Hard-Sync Logic**: Every jump uses explicit `seek absolute+exact` commands to ensure primary and secondary tracks are perfectly aligned.
 - **Toggle**: `Ctrl + F` (English) or `Ctrl + А` (Russian).
 
@@ -157,7 +154,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Stationary "Book Mode"**: Toggle with **`b`** to lock the viewport. Navigating through lines or selecting words won't cause the window to scroll or flicker, providing a stable, reading-focused experience.
 - **Selection Persistence**: Manual seeks via `a`/`d` no longer clear your yellow highlight, allowing you to check context and return to your pending export line.
 - **"Original Form" Display**: Toggle `dw_original_spacing` to perfectly mirror any subtitle's whitespace and character-stream formatting without sacrificing word-level selection.
-- **Contextual Tooltips**: Press **`e`** or **Right-Click** on any line to instantly see a translation hint. In "Hover Mode" (`n`), hints appear automatically as you scan the text.
+- **Contextual Tooltips**: Press **`e`** or **Right-Click** on any line to instantly see a translation hint. Supports **full word-wrapping** and **bidirectional highlight synchronization** with the primary window.
 - **Static Viewport**: The viewport remains stable while navigating via arrows, providing a flicker-free environment for reading and selection.
 - **Boundary-Aware Sliding Window**: The viewport intelligently shifts at track edges to maintain consistent line density and vertical positioning.
 - **Interaction Shielding & Stability**: Features a 150ms shield that silences the mouse arrow following keyboard navigation, preventing accidental pointer "jumps" when using remote controls.
@@ -475,8 +472,8 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1401 Commits (v1.58.0)
-- **Intensity Profile**: 5.3 Commits/Hour 
+- **Current Maturity**: ~1442 Commits (v1.58.18)
+- **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell

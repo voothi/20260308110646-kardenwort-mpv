@@ -1,3 +1,35 @@
+# Release Notes - v1.58.18 (Search HUD Revolution & Tooltip Sync)
+
+**Date**: 2026-05-02
+**Version**: v1.58.18
+**Implementation ZIDs**: 20260501131000, 20260501154851, 20260501160807, 20260501163905, 20260501165217, 20260501172103, 20260501195000, 20260501234125, 20260502002407
+
+## Highlights
+
+### 🔦 **Search HUD Revolution**
+- **Dynamic Multi-Line Wrapping**: Overhauled the Search HUD (Ctrl+F) with a token-aware wrapping engine. Both search queries and results now flow naturally across multiple lines, eliminating visual "bleeding" and overlaps.
+- **Synchronized Hit-Testing**: Introduced `FSM.SEARCH_HIT_ZONES` for pixel-perfect mouse interaction. Click targets now dynamically track the visual position of wrapped results, eliminating "click drift."
+- **Adaptive UI Layout**: The results dropdown now calculates its vertical offset based on the actual height of the wrapped query block, ensuring a seamless and responsive interface.
+- **"Premium" Aesthetic Sync**: Synchronized the Search HUD with the v1.58.0 baseline, implementing synchronized transparency (`\3a`, `\4a`) and borderless rendering for a sleek, modern look.
+
+### 🥁 **Drum Window Tooltip Evolution**
+- **Translation Word-Wrapping**: Implemented a sophisticated wrapping engine for the DW translation tooltip (Russian `у` / English `e`). Long translations are now gracefully wrapped to a 1400px maximum width.
+- **Full Bidirectional Pointer Sync**: Achieving 100% selection parity. Yellow Pointers and Pink Selection Sets are now bi-directionally synchronized between the primary subtitle and the translation tooltip.
+- **Surgical Tooltip Highlights**: The tooltip now utilizes the project's surgical highlighting model, colorizing alphanumeric tokens while preserving punctuation fidelity.
+- **High-Performance O(1) Cache**: Introduced `DW_TOOLTIP_DRAW_CACHE` to ensure zero UI latency during mouse movement and rapid navigation.
+
+### 🛡️ **Interaction Hardening & UX Stability**
+- **4-Stage Context-Aware Escape**: Refined the `Esc` key behavior into a sequential 4-stage logic: clear Pink Set → clear Yellow Range → clear Yellow Pointer → Exit. This eliminates the redundant extra-press regression for single-word highlights.
+- **Interaction Shield**: Standardized a 50ms "interaction shield" for search results to suppress hardware-level jitter and "ghost clicks" immediately following keyboard commands.
+- **Mode-Specific Calibration**: Introduced independent color and boldness calibration for manual selections, allowing users to decouple the luminance of manual focus from database match indicators.
+- **Flicker-Free "Quick-View"**: RMB-hold tooltips now implement "Sticky Quick-View" logic, maintaining visibility even when the cursor passes through empty gaps between subtitle blocks.
+
+### 🎨 **Aesthetic Calibration Sync**
+- **Uniformity Alignment**: Standardized ASS rendering tags (`\3c`, `\4c`, `\3a`, `\4a`) across SRT, Drum, DW, and Search modes to eliminate visual "blooming" and artificial font thickening.
+- **Hardened Configuration**: Consistently synchronized all Search HUD styling parameters in `mpv.conf`, including transparency, font weights, and border sizing.
+
+---
+
 # Release Notes - v1.58.0 (Hardened Performance & Verbatim Export)
 
 **Date**: 2026-05-01
