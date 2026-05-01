@@ -3904,7 +3904,9 @@ local function dw_tooltip_mouse_update()
     
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
-    
+    local is_shield_hit = (line_idx == -1)
+    if is_shield_hit then line_idx = nil end
+
     -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
     if FSM.DW_TOOLTIP_FORCE then
         local is_paused = mp.get_property_bool("pause", true)
@@ -3974,13 +3976,15 @@ local function dw_tooltip_mouse_update()
                 dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, target_y)
                 dw_tooltip_osd:update()
             else
-                if FSM.DW_TOOLTIP_LINE ~= -1 then
+                -- If we are holding RMB, we don't clear the data even if target_y is missing (prevents jitter)
+                if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
                     FSM.DW_TOOLTIP_LINE = -1
                     dw_tooltip_osd.data = ""
                     dw_tooltip_osd:update()
                 end
             end
-        else
+        elseif not FSM.DW_TOOLTIP_HOLDING and not is_shield_hit then
+            -- Sticky Shield/Hold: Only dismiss if NOT holding RMB and NOT hitting the shield
             if FSM.DW_TOOLTIP_LINE ~= -1 then
                 FSM.DW_TOOLTIP_LINE = -1
                 dw_tooltip_osd.data = ""
