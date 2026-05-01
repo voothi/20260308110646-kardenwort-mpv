@@ -332,7 +332,7 @@ function load_sub(path, is_ass)
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
                             local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
-                            raw_text = raw_text:gsub("%s+", " "):gsub("%z", ""):match("^%s*(.-)%s*$")
+                            raw_text = raw_text:gsub("%z", ""):match("^%s*(.-)%s*$")
                             if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
                                 local parsed_end = parse_time(end_str)
@@ -638,6 +638,8 @@ local function load_anki_mapping_ini()
         mapping = {},
         mapping_word = {},
         mapping_sentence = {},
+        ordered_word = {},
+        ordered_sentence = {},
         tts = {},
         settings = {}
     }
@@ -668,6 +670,7 @@ local function load_anki_mapping_ini()
                     v = v:match("^%s*(.-)%s*$")
                     if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
                     config.mapping_word[k] = v
+                    table.insert(config.ordered_word, k)
                 end
             elseif section == "fields_mapping.sentence" then
                 local k, v = clean_line:match("^([^=]+)=(.*)$")
@@ -676,6 +679,7 @@ local function load_anki_mapping_ini()
                     v = v:match("^%s*(.-)%s*$")
                     if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
                     config.mapping_sentence[k] = v
+                    table.insert(config.ordered_sentence, k)
                 end
             elseif section == "mapping" or section == "tts" or section == "settings" then
                 local k, v = clean_line:match("^([^=]+)=(.*)$")
@@ -1198,6 +1202,7 @@ local function prepare_export_text(params, options)
         if sub then
             local raw_text = sub.text:gsub("\n", " ")
             if params.word and params.word ~= -1 then
+                local tokens = build_word_list_internal(raw_text, true)
                 for _, t in ipairs(tokens) do
                     if logical_cmp(t.logical_idx, params.word) then
                         parts = {t.text}
@@ -2320,9 +2325,15 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     local mapping = config.mapping
 
     if is_sentence then
-        if next(config.mapping_sentence) then mapping = config.mapping_sentence end
+        if next(config.mapping_sentence) then 
+            mapping = config.mapping_sentence 
+            if #fields == 0 then fields = config.ordered_sentence end
+        end
     else
-        if next(config.mapping_word) then mapping = config.mapping_word end
+        if next(config.mapping_word) then 
+            mapping = config.mapping_word 
+            if #fields == 0 then fields = config.ordered_word end
+        end
     end
     
     local tts = config.tts
@@ -3716,8 +3727,6 @@ local function dw_anki_export_selection()
             for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
                     local text = subs[k].text:gsub("{[^}]+}", "")
-                    if Options.anki_strip_metadata then text = text:gsub("%b[]", " ") end
-                    text = text:gsub("%s+", " ")
                     
                     if k == p1_l then
                         -- Precision Anchor
@@ -3753,8 +3762,6 @@ local function dw_anki_export_selection()
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
                 if subs[k] then 
                     local text = subs[k].text:gsub("{[^}]+}", "")
-                    if Options.anki_strip_metadata then text = text:gsub("%b[]", " ") end
-                    text = text:gsub("%s+", " ")
                     
                     if k == cl then
                         local s = text:find(term, 1, true)
@@ -3778,10 +3785,6 @@ local function dw_anki_export_selection()
         if term and term ~= "" then
             -- Clean context: remove ASS tags
             context_line = context_line:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then
-                context_line = context_line:gsub("%b[]", " ")
-            end
-            context_line = context_line:gsub("%s+", " ")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
             local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos, advanced_index)
@@ -3927,8 +3930,6 @@ local function ctrl_commit_set(line_idx, word_idx)
     for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
         if subs[k] then 
             local text = subs[k].text:gsub("{[^}]+}", "")
-            if Options.anki_strip_metadata then text = text:gsub("%b[]", " ") end
-            text = text:gsub("%s+", " ")
             
             if k == p1_l then
                 local first_word = term:match("%S+") or ""
