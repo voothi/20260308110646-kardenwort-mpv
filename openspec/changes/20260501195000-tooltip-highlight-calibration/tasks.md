@@ -55,6 +55,6 @@
 
 ## 10. Final Verification
 
-- [ ] 10.1 Conduct a final expert-level regression analysis on commit `74263e43f0418b4950462b256989a61961b63d3b` against `v1.58.0`.
-- [ ] 10.2 Confirm zero regressions in O(1) performance and verbatim subtitle fidelity.
+- [x] 10.1 Conduct a final expert-level regression analysis on commit `74263e43f0418b4950462b256989a61961b63d3b` against `v1.58.0`.
+- [x] 10.2 Confirm zero regressions in O(1) performance and verbatim subtitle fidelity.
 - [ ] 10.3 Archive the change after user approval of the final aesthetic state.
