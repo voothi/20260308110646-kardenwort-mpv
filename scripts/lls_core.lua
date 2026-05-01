@@ -1392,10 +1392,7 @@ local function calculate_match_score(str, query)
     return score, all_indices
 end
 
-local function is_word_char(ch)
-    if not ch then return false end
-    return ch:match("[%w\128-\255]") ~= nil
-end
+
 
 
 local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
@@ -2164,6 +2161,7 @@ local function flush_rendering_caches()
     -- Reset sentinel fields to force mismatch in draw high-level caches
     if DRUM_DRAW_CACHE then 
         DRUM_DRAW_CACHE.center_idx = -1 
+        DRUM_DRAW_CACHE.is_drum = false
     end
     
     if DW_DRAW_CACHE then 
@@ -2915,7 +2913,7 @@ end
 
 -- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
 -- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
-local DRUM_DRAW_CACHE = {
+DRUM_DRAW_CACHE = {
     subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
     al = -1, aw = -1, cl = -1, cw = -1,
     pending_version = 0, layout_version = 0, result = "",
@@ -3229,7 +3227,7 @@ end
 
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
-local DW_DRAW_CACHE = {
+DW_DRAW_CACHE = {
     view_center = -1, active_idx = -1, highlight_count = 0,
     subs_ptr = nil, layout_version = 0,
     cl = -1, cw = -1, al = -1, aw = -1,
