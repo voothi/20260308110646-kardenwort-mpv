@@ -44,3 +44,11 @@
 - [x] 7.3 Fix ASS tag bug in `draw_dw_tooltip`: migrate from `\3c` to `\4c` for background color and set both to `bg_color`.
 - [x] 7.4 Update `mpv.conf` to remove legacy `tooltip_font_bold` and use granular `active`/`context` boldness toggles (default `no`).
 - [x] 7.5 Verify visual parity: Tooltip should now match Drum/SRT weight and background aesthetic.
+- [x] 7.6 Final Calibration: Ensure tooltip highlights strictly respect `tooltip_highlight_bold`, ignoring global match settings for a consistent 'Premium' look.
+
+## 8. Universal Architectural Decoupling
+
+- [x] 8.1 W Window (Drum Window): Force matches to respect `dw_highlight_bold`, decoupling from global `anki_highlight_bold`.
+- [x] 8.2 W Window (Drum Window): Add `\3c` tag to background style to eliminate border glow.
+- [x] 8.3 Video Overlays (Drum/SRT): Add `\3c` tag to subtitle background styles for clean, non-blooming edges.
+- [x] 8.4 Verification: Verify that database matches in W Window and Tooltip are now thin (Premium) as configured.

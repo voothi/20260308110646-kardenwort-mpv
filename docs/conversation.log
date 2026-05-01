@@ -1092,6 +1092,10 @@
 20260501202959 I restarted MPV, IDE. It didn't help. Bold type.
 20260501204237 opsx-explore Read the problem in scratch, I can’t get a normal font, thin in all modes when selecting text. Look at the photo there. scratch\20260430190546-okay-but-there-is-a scratch\20260501195000-tooltip-highlight-calibration It seems like this doesn't change the situation tooltip_font_bold=yes. Clearly there is a problem with the bold color. Find her. Review what we did. docs\conversation.log, read from it 20260501193441 20260501194758 20260501194956 20260501195226 20260501195623 20260501200219 20260501200507 20260501201143 20260501201238 20260501202121 20260501202236 20260501202447 20260501202622 20260501202959
 20260501205639 Why did you create openspec\changes\20260501204000-tooltip-aesthetic-calibration when I have openspec\changes\20260501195000-tooltip-highlight-calibration
+20260501205907 Look.
+20260501210605 Look now.
+20260501211031 opsx-explore Look, it's bold even in the W window, it's yellow. This is how it was, the problem is not solved, we have taken many steps, it seems to be in the wrong direction. media__1777659486441.png media__1777659678957.png
+20260501212253 Yes.
 
 
 
