@@ -25,6 +25,11 @@ In addition to color, highlight **boldness** is now decoupled per mode.
 - **Rationale**: Solves the "visual blooming" effect where bold highlights in high-contrast contexts (like the tooltip) feel overly bright compared to the main window.
 - **Implementation**: `format_highlighted_word` accepts a `force_bold` override. Rendering loops calculate this by checking `Options.anki_highlight_bold` for database matches (Priority 3) and `Options.<mode>_highlight_bold` for manual selections (Priority 1/2).
 
+### 4. Tooltip Glow Regression Fix
+The tooltip renderer was incorrectly using `\3c` for background colors.
+- **Decision**: Update `draw_dw_tooltip` to use `\4c` for background/shadow color and set both `\3c` and `\4c` to the same `bg_color`.
+- **Rationale**: Resolves the "brighter and bolder" visual discrepancy (white shadow bleed) while ensuring a consistent dark aesthetic across all screens.
+
 ## Risks / Trade-offs
 
 - **[Risk] Configuration Complexity** → **Mitigation**: New options default to legacy values (`false` for selections), maintaining the clean look of the current Drum Window calibration while allowing power users to opt into boldness where needed.

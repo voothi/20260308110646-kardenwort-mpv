@@ -36,3 +36,11 @@
 - [x] 6.3 Update rendering loops to pass mode-specific and track-specific boldness preferences to `format_highlighted_word`.
 - [x] 6.4 Update `mpv.conf` with the full suite of boldness toggles.
 - [x] 6.5 Verify that tooltip yellow highlights are regular weight by default but can be made bold via configuration.
+
+## 7. Glow Regression & Tooltip Unification
+
+- [x] 7.1 Add `tooltip_active_bold` and `tooltip_context_bold` to `Options` in `lls_core.lua`.
+- [x] 7.2 Update `draw_dw_tooltip` to use per-line `bold_state` derived from new active/context toggles.
+- [x] 7.3 Fix ASS tag bug in `draw_dw_tooltip`: migrate from `\3c` to `\4c` for background color and set both to `bg_color`.
+- [x] 7.4 Update `mpv.conf` to remove legacy `tooltip_font_bold` and use granular `active`/`context` boldness toggles (default `no`).
+- [x] 7.5 Verify visual parity: Tooltip should now match Drum/SRT weight and background aesthetic.
