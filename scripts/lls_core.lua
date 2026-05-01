@@ -488,6 +488,7 @@ local FSM = {
     DW_TOOLTIP_LOCKED_LINE = -1,
     DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
     DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
+    DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
     DW_SEEKING_MANUALLY = false,
@@ -3378,6 +3379,12 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
        DW_TOOLTIP_DRAW_CACHE.cl == FSM.DW_CURSOR_LINE and
        DW_TOOLTIP_DRAW_CACHE.cw == FSM.DW_CURSOR_WORD and
        DW_TOOLTIP_DRAW_CACHE.av == FSM.ANKI_VERSION then
+        
+        -- Restore hit zones from cache (Task 2.4)
+        if DW_TOOLTIP_DRAW_CACHE.hit_zones then
+            FSM.DW_TOOLTIP_HIT_ZONES = {}
+            for k, v in ipairs(DW_TOOLTIP_DRAW_CACHE.hit_zones) do FSM.DW_TOOLTIP_HIT_ZONES[k] = v end
+        end
         return DW_TOOLTIP_DRAW_CACHE.result
     end
 
@@ -3399,6 +3406,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local max_text_w = 1400 -- Task 2.2 / Design Decision 3
     local lines_ass = {}
     local total_visual_lines = 0 -- Task 3.1
+    local subtitle_metas = {} -- Storage for hit-zone calculation
     
     for i = start_idx, end_idx do
         local sub = Tracks.sec.subs[i]
@@ -3421,16 +3429,33 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time)
         
         local sub_visual_lines = {}
+        local visual_lines_meta = {}
         for _, indices in ipairs(vline_indices) do
             local line_text = ""
+            local line_w = 0
+            local line_words = {}
             for _, idx in ipairs(indices) do
-                -- Task 1.2: Surgical word formatting
+                local t = tokens[idx]
                 local tm = token_meta[idx]
-                line_text = line_text .. format_highlighted_word(tokens[idx], tm.color, base_color, tm.is_phrase, bold, true)
+                local ww = dw_get_str_width(t.text, fs, font_name)
+                
+                if t.is_word and t.logical_idx then
+                    table.insert(line_words, {
+                        logical_idx = t.logical_idx,
+                        x_offset = line_w,
+                        width = ww
+                    })
+                end
+                
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true)
+                line_w = line_w + ww
             end
             table.insert(sub_visual_lines, "{\\1c&H" .. base_color .. "&}" .. alpha_tag .. line_text)
+            table.insert(visual_lines_meta, {width = line_w, words = line_words})
             total_visual_lines = total_visual_lines + 1
         end
+        
+        table.insert(subtitle_metas, {sub_idx = i, visual_lines = visual_lines_meta})
         
         -- Task 2.3: Join visual lines within a subtitle with \N
         table.insert(lines_ass, table.concat(sub_visual_lines, "\\N"))
@@ -3474,6 +3499,24 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         final_y = screen_h - margin - half_h
     end
 
+    -- POPULATE HIT ZONES (Task 2.1 / 2.2 / 2.3)
+    FSM.DW_TOOLTIP_HIT_ZONES = {}
+    local cur_y = final_y - half_h
+    for _, sm in ipairs(subtitle_metas) do
+        for _, vl in ipairs(sm.visual_lines) do
+            table.insert(FSM.DW_TOOLTIP_HIT_ZONES, {
+                sub_idx = sm.sub_idx,
+                y_top = cur_y,
+                y_bottom = cur_y + layout_line_h,
+                x_start = 1800 - vl.width, -- Right-aligned an6 logic
+                total_width = vl.width,
+                words = vl.words
+            })
+            cur_y = cur_y + layout_line_h
+        end
+        cur_y = cur_y + total_gap
+    end
+
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
     local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
         font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
@@ -3486,6 +3529,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     DW_TOOLTIP_DRAW_CACHE.cw = FSM.DW_CURSOR_WORD
     DW_TOOLTIP_DRAW_CACHE.av = FSM.ANKI_VERSION
     DW_TOOLTIP_DRAW_CACHE.result = ass
+    
+    -- Cache hit zones (Task 2.4)
+    DW_TOOLTIP_DRAW_CACHE.hit_zones = {}
+    for k, v in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do DW_TOOLTIP_DRAW_CACHE.hit_zones[k] = v end
         
     return ass
 end
@@ -3616,6 +3663,31 @@ local function dw_hit_test(osd_x, osd_y)
     return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
 end
 
+local function dw_tooltip_hit_test(osd_x, osd_y)
+    if not FSM.DW_TOOLTIP_HIT_ZONES or FSM.DW_TOOLTIP_LINE == -1 then return nil, nil end
+    
+    for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
+        if osd_y >= line.y_top and osd_y <= line.y_bottom then
+            local rel_x = osd_x - line.x_start
+            if rel_x >= 0 and rel_x <= line.total_width then
+                -- Find closest word in this line
+                local best_logical_idx = nil
+                local min_dist = math.huge
+                for _, word in ipairs(line.words) do
+                    local center = word.x_offset + word.width / 2
+                    local dist = math.abs(rel_x - center)
+                    if dist < min_dist then
+                        min_dist = dist
+                        best_logical_idx = word.logical_idx
+                    end
+                end
+                return line.sub_idx, best_logical_idx
+            end
+        end
+    end
+    return nil, nil
+end
+
 local function drum_osd_hit_test(osd_x, osd_y)
     if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then return nil, nil end
     
@@ -3643,6 +3715,8 @@ end
 
 local function lls_hit_test_all(osd_x, osd_y)
     if FSM.DRUM_WINDOW ~= "OFF" then
+        local l, w = dw_tooltip_hit_test(osd_x, osd_y)
+        if l then return l, w end
         return dw_hit_test(osd_x, osd_y)
     elseif Options.osd_interactivity then
         return drum_osd_hit_test(osd_x, osd_y)
