@@ -173,10 +173,28 @@ The cursor navigation in Mode C MUST NOT trigger viewport scrolling.
 - **WHEN** The user navigates the cursor with arrows in Mode C
 - **THEN** The yellow indicator moves but the underlying subtitles stay fixed at the current video playback position.
 
+### Requirement: Two-Screen Interaction Controls
+The system SHALL provide granular toggles to independently control the Primary (Screen 1) and Secondary (Screen 2) tracks for both **Interactivity** and **Highlighting** across all viewing modes (DW, Drum, SRT).
+- **Primary Track (Screen 1)**: Controlled via `*_pri_interactivity` and `*_pri_highlighting`.
+- **Secondary Track (Screen 2)**: Controlled via `*_sec_interactivity` and `*_sec_highlighting`.
+- **Global Master**: `osd_interactivity` SHALL act as the final gate for all mouse-based subtitle interaction.
+
+### Requirement: Aesthetic Parity Standard
+Secondary subtitles (including the Tooltip) SHALL be visually consistent with the primary track while maintaining specialized readability:
+- **Background Color**: SHALL default to `000000` (Black) to ensure contrast parity.
+- **Border Weight**: SHALL be calibrated to `1.2` for secondary tracks to normalize mono-spaced Cyrillic visual weight.
+
+### Requirement: No-Stub Verification
+Every parameter exposed in the configuration (e.g., `mpv.conf`) SHALL be fully wired to its respective logic in the rendering and interaction pipeline. Hardcoded values that bypass user-configured options are prohibited.
+
+### Requirement: Flattened Hit-Testing Architecture
+To ensure high-performance interaction on dual-track OSDs, the hit-testing pipeline SHALL follow a flattened, track-aware model:
+- **Zone Tagging**: OSD hit-zones SHALL be explicitly tagged with an `is_pri` flag during generation.
+- **O(1) Dispatching**: The global hit-test dispatcher SHALL use this flag to perform flat filtering against interactivity toggles, avoiding expensive secondary search loops or post-hit investigations.
+
 ### Requirement: Stability and Error Prevention
 The system MUST NOT crash when toggling modes or updating the OSD.
 
 #### Scenario: Opening Drum Window
 - **WHEN** The user toggles the Drum Window (Mode W) ON
 - **THEN** The window must initialize and render without Lua errors, even if it's the first render of the session.
-
