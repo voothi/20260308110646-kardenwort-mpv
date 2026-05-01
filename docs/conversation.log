@@ -1018,8 +1018,9 @@
 20260501133418 The plan is ready for implementation. No risks of architectural regression were identified. - Okay.
 20260501133503 Check that openspec\changes\20260501131000-tooltip-wrapping-drum-window\specs are complete and that they describe all cases and edge cases necessary for future adherence to the solution.
 20260501133755 Check that openspec\changes\20260501131000-tooltip-wrapping-drum-window\specs are complete and that they describe all cases and edge cases necessary for future adherence to the solution.
-
-
+20260501133923 opsx-explore Verify that the resulting change draft openspec\changes\20260501131000-tooltip-wrapping-drum-window is consistent with all openspec\specs general specifications and architectural approaches and does not cause regression compared to v1.58.0.
+20260501134423 The draft is ready for implementation. It correctly identifies all necessary surgical injection points and adheres to the project's high-performance, verbatim-first standards. - Okay.
+20260501134628 You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications for this project, fix openspec\changes\20260501131000-tooltip-wrapping-drum-window. Critical Implementation Note. Check: Improved. Updates the block_height calculation to be visual-line-aware, which fixes potential centering and boundary clamping issues for multi-line translations. Resolve these issues fairly: Regression Risk Assessment
 
 
 

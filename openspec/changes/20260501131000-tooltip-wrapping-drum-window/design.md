@@ -29,7 +29,7 @@ We will utilize `get_sub_tokens(sub, true)` to retrieve rich tokens. The wrappin
 We will use a fixed `max_text_w = 1400` for the tooltip. Since the tooltip is anchored at `x=1800` (`\an6`), this ensures the text stays within screen bounds (leaving 400px margin on the left) while providing enough horizontal space for complex translations.
 
 ### 4. Recursive Height Calculation
-The `block_height` calculation in `draw_dw_tooltip` will be updated to sum the heights of all *visual* lines across all logical subtitle blocks. This ensures that the vertical centering (`final_y`) and clamping logic correctly accounts for multi-line subtitles.
+The `block_height` calculation in `draw_dw_tooltip` will be updated to sum the heights of all *visual* (wrapped) lines across all logical subtitle blocks, plus the appropriate inter-subtitle gaps (`calculate_sub_gap`). This ensures that the vertical centering (`final_y`) and clamping logic correctly accounts for multi-line subtitles, maintaining parity with the main Drum Window hit-testing zones.
 
 ### 5. Performance Caching (DW_TOOLTIP_DRAW_CACHE)
 To prevent redundant $O(N)$ layout evaluations during high-frequency mouse movement, we will implement a result cache for the tooltip. The rendering logic will return early if `target_line_idx`, `osd_y`, and `FSM.LAYOUT_VERSION` are identical to the previous call.

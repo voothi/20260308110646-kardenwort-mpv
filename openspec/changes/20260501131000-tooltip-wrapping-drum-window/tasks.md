@@ -13,16 +13,16 @@
 
 ## 3. Dynamic Layout & Positioning
 
-- [ ] 3.1 Update the `num_lines` and `visual_lines` calculation to accurately reflect the total count of wrapped lines.
-- [ ] 3.2 Refactor the `block_height` calculation to sum the heights of every visual line plus inter-subtitle gaps.
+- [ ] 3.1 Update the logic to track the total count of *visual lines* (wrapped) across all logical entries.
+- [ ] 3.2 Refactor the `block_height` calculation to sum `(visual_lines * line_height)` plus the inter-subtitle gaps.
 - [ ] 3.3 Ensure the `final_y` positioning logic and screen boundary clamping correctly use the updated `block_height`.
 - [ ] 3.4 Implement skipping of empty or metadata-only logical subtitles to prevent vertical gap artifacts.
 
 
 ## 4. Cache Hardening & Performance
 
-- [ ] 4.1 Define `DW_TOOLTIP_DRAW_CACHE` sentinel in the global state (around Line 490).
-- [ ] 4.2 Update `flush_rendering_caches()` (Line 2154) to clear `dw_tooltip_osd` and reset the draw cache.
+- [ ] 4.1 Initialize `DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1 }` at module scope (Line 14).
+- [ ] 4.2 Update `flush_rendering_caches()` (Line 2154) to clear `dw_tooltip_osd` and reset the cache fields (target_idx/osd_y/version).
 - [ ] 4.3 Implement early-return logic in `draw_dw_tooltip` using the draw cache sentinel.
 
 ## 5. Final Polish & Testing

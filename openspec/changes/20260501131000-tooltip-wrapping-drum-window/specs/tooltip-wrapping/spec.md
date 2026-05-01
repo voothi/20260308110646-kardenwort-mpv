@@ -14,7 +14,7 @@ The tooltip rendering engine SHALL calculate the total vertical height of the to
 #### Scenario: Centering Multi-Line Tooltips
 - **GIVEN** a tooltip containing multiple secondary subtitles, some of which are wrapped into multiple lines
 - **WHEN** the system calculates the `block_height` for vertical centering
-- **THEN** it SHALL sum the heights of every visual line and inter-line gap.
+- **THEN** it SHALL sum the heights of every *visual line* (wrapped) and every *inter-subtitle gap* within the block.
 - **AND** the final `osd_y` position SHALL ensure the entire multi-line block remains centered relative to the target primary subtitle line.
 
 ### Requirement: Tooltip Cache Synchronization

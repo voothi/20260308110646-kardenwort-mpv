@@ -13,7 +13,11 @@ The core intention is to transition the tooltip from a "raw text dump" to a "str
 ```lua
 dw_tooltip_osd.data = ""
 dw_tooltip_osd:update()
-DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1 }
+if DW_TOOLTIP_DRAW_CACHE then
+    DW_TOOLTIP_DRAW_CACHE.target_idx = -1
+    DW_TOOLTIP_DRAW_CACHE.osd_y = -1
+    DW_TOOLTIP_DRAW_CACHE.version = -1
+end
 ```
 
 ### Anchor B: Rendering Pipeline
@@ -40,23 +44,29 @@ for i = start_idx, end_idx do
     
     for _, t in ipairs(tokens) do
         local tw = dw_get_str_width(t.text, fs, font_name)
-        local space = (#current_line_tokens > 0) and space_w or 0
-        
-        if current_w + space + tw > max_w and #current_line_tokens > 0 then
-            table.insert(vlines, table.concat(current_line_tokens, " "))
+        if current_w + tw > max_w and #current_line_tokens > 0 then
+            table.insert(vlines, table.concat(current_line_tokens, ""))
             current_line_tokens = {t.text}
             current_w = tw
         else
             table.insert(current_line_tokens, t.text)
-            current_w = current_w + space + tw
+            current_w = current_w + tw
         end
     end
     if #current_line_tokens > 0 then 
-        table.insert(vlines, table.concat(current_line_tokens, " ")) 
+        table.insert(vlines, table.concat(current_line_tokens, "")) 
     end
     
-    -- Store vlines for later height summation and join with \N
+    -- Join visual lines with \N and store for the final block
+    local logical_block_ass = table.concat(vlines, "\\N")
+    table.insert(all_blocks_ass, logical_block_ass)
+    total_visual_lines = total_visual_lines + #vlines
 end
+
+-- Final height and assembly
+local num_logical = #all_blocks_ass
+local block_height = (total_visual_lines * line_height) + ((num_logical - 1) * total_gap)
+local text_block = table.concat(all_blocks_ass, separator)
 ```
 
 ## 4. Edge Case Management
