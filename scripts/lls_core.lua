@@ -3502,8 +3502,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     -- POPULATE HIT ZONES (Task 2.1 / 2.2 / 2.3)
     FSM.DW_TOOLTIP_HIT_ZONES = {}
     local cur_y = final_y - half_h
+    local max_visual_w = 0 -- For Block Shield calculation
+
     for _, sm in ipairs(subtitle_metas) do
         for _, vl in ipairs(sm.visual_lines) do
+            if vl.width > max_visual_w then max_visual_w = vl.width end
             table.insert(FSM.DW_TOOLTIP_HIT_ZONES, {
                 sub_idx = sm.sub_idx,
                 y_top = cur_y,
@@ -3517,10 +3520,18 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         cur_y = cur_y + total_gap
     end
 
+    -- Record Aggregate Box for Block Shielding
+    FSM.DW_TOOLTIP_HIT_ZONES.aggregate = {
+        y_top = final_y - half_h,
+        y_bottom = final_y + half_h,
+        x_start = 1800 - max_visual_w - 10, -- 10px comfort margin
+        x_end = 1820 -- Small margin on the right
+    }
+
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
     local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4a&H%s&}{\\q2}%s",
         font_name, vsp_tag, final_y, fs, bold, bord, shad, bg_color, bg_alpha, text_block)
-        
+    
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
     DW_TOOLTIP_DRAW_CACHE.osd_y = osd_y
@@ -3533,6 +3544,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     -- Cache hit zones (Task 2.4)
     DW_TOOLTIP_DRAW_CACHE.hit_zones = {}
     for k, v in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do DW_TOOLTIP_DRAW_CACHE.hit_zones[k] = v end
+    DW_TOOLTIP_DRAW_CACHE.hit_zones.aggregate = FSM.DW_TOOLTIP_HIT_ZONES.aggregate
         
     return ass
 end
@@ -3666,6 +3678,13 @@ end
 local function dw_tooltip_hit_test(osd_x, osd_y)
     if not FSM.DW_TOOLTIP_HIT_ZONES or FSM.DW_TOOLTIP_LINE == -1 then return nil, nil end
     
+    -- Block Shield: If the tooltip is active, we check if the mouse is anywhere in its bounding box.
+    local agg = FSM.DW_TOOLTIP_HIT_ZONES.aggregate
+    if not agg or osd_x < agg.x_start or osd_x > agg.x_end or osd_y < agg.y_top or osd_y > agg.y_bottom then
+        return nil, nil
+    end
+
+    -- Inside the shield! Now try to find a specific word.
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
             local rel_x = osd_x - line.x_start
@@ -3685,7 +3704,9 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
             end
         end
     end
-    return nil, nil
+
+    -- Hit the shield but no word: return sentinel to block background interaction.
+    return -1, -1
 end
 
 local function drum_osd_hit_test(osd_x, osd_y)
