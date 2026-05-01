@@ -242,7 +242,7 @@ local Options = {
     anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: D17500)
     anki_highlight_depth_2 = "005DAE",
     anki_highlight_depth_3 = "003C88",
-    anki_split_depth_1 = "FF0080",        -- Purple/Violet (BGR: 8000FF)
+    anki_split_depth_1 = "FF88B0",        -- Purple/Violet (BGR: B088FF)
     anki_split_depth_2 = "D10069",
     anki_split_depth_3 = "A30052",
     anki_mix_depth_1 = "4A4AD3",          -- Brick (BGR: D34A4A)
@@ -5588,7 +5588,7 @@ local function draw_search_ui()
     local bg_color = Options.search_bg_color or "181818"
     local border_color = "666666"
     local text_color = Options.search_text_color or "FFFFFF"
-    local bord = Options.search_border_size or 2.0
+    local bord = 0 -- Simplified Search UI (Task 1.3)
     local shad = Options.search_shadow_offset or 0.0
     
     local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity or "60")
@@ -5643,9 +5643,9 @@ local function draw_search_ui()
     local input_box_h = query_line_count * line_height + padding_y * 2
     
     local ass = ""
-    -- [Task 1.3] Draw Input Field Backing with dynamic height
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-        box_x, box_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, input_box_h, input_box_h)
+    -- [Task 1.3] Draw Input Field Backing with dynamic height and synchronized transparency
+    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+        box_x, box_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, input_box_h, input_box_h)
     
     -- Draw Input Text
     ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s\n",
@@ -5706,11 +5706,12 @@ local function draw_search_ui()
         -- [Task 2.4] Use dynamic results_h
         local results_h = total_results_vlines * line_height + padding_y * 2
         
-        -- Dropdown Backing
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+        -- Dropdown Backing with synchronized transparency (Task 1.2)
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
             
-        -- [Task 3.2] Render using cumulative Y offset
+        -- [Task 3.1] Render using cumulative Y offset and populate hit-zones
+        FSM.SEARCH_HIT_ZONES = {}
         local current_y = results_y + padding_y
         for _, item in ipairs(results_layout) do
             local result_data = item.data
@@ -5746,6 +5747,13 @@ local function draw_search_ui()
                     token_char_start = token_char_start + #t_table
                 end
                 
+                -- [Task 3.1] Populate hit-zones for this visual line
+                table.insert(FSM.SEARCH_HIT_ZONES, {
+                    result_idx = result_idx,
+                    y_top = current_y,
+                    y_bottom = current_y + line_height
+                })
+
                 -- [Task 3.2] Render at current_y
                 ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&HFF&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
                     font_name, box_x + padding_x, current_y, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
@@ -5758,8 +5766,8 @@ local function draw_search_ui()
         local results_h = line_height + padding_y * 2
         local results_y = box_y + input_box_h + 5
         
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\4a&HFF&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, bord, border_color, bg_color, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x, results_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
             
         local r_font_size = font_size
         if Options.search_results_font_size then
@@ -6074,43 +6082,30 @@ local function manage_search_bindings(enable)
         
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
-                if #FSM.SEARCH_RESULTS == 0 then return end
+                if #FSM.SEARCH_RESULTS == 0 or not FSM.SEARCH_HIT_ZONES then return end
                 
                 local osd_x, osd_y = dw_get_mouse_osd()
                 
-                -- Check if inside the dropdown Box
-                local font_size = Options.dw_font_size
-                local line_height = font_size * 1.2
-                local padding_y = 10
+                -- Global constraints (Task 3.1 Synchronized)
                 local box_w = 1200
                 local box_x = 960 - (box_w / 2)
-                local box_y = 50
-                local results_y = box_y + line_height + padding_y * 2 + 5
                 
-                local max_results_display = 8
-                local display_count = math.min(#FSM.SEARCH_RESULTS, max_results_display)
-                local results_h = display_count * line_height + padding_y * 2
-                
-                if osd_x >= box_x and osd_x <= box_x + box_w then
-                    if osd_y >= results_y and osd_y <= results_y + results_h then
-                        -- Calculate which item was clicked
-                        local rel_y = osd_y - (results_y + padding_y)
-                        if rel_y >= 0 and rel_y <= display_count * line_height then
-                            local item_idx = math.floor(rel_y / line_height) + 1
-                            item_idx = math.max(1, math.min(display_count, item_idx))
-                            
-                            local start_idx = math.max(1, FSM.SEARCH_SEL_IDX - math.floor(max_results_display / 2))
-                            if start_idx + max_results_display - 1 > #FSM.SEARCH_RESULTS then
-                                start_idx = math.max(1, #FSM.SEARCH_RESULTS - max_results_display + 1)
-                            end
-                            
-                            local result_idx = start_idx + item_idx - 1
-                            if result_idx <= #FSM.SEARCH_RESULTS then
-                                FSM.SEARCH_SEL_IDX = result_idx
-                                
-                                -- Jump immediately as if Enter was pressed
-                                local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX].idx
-                                local sub = Tracks.pri.subs[selected_line]
+                if osd_x < box_x or osd_x > box_x + box_w then return end
+
+                local found_idx = -1
+                for _, zone in ipairs(FSM.SEARCH_HIT_ZONES) do
+                    if osd_y >= zone.y_top and osd_y <= zone.y_bottom then
+                        found_idx = zone.result_idx
+                        break
+                    end
+                end
+
+                if found_idx ~= -1 then
+                    FSM.SEARCH_SEL_IDX = found_idx
+                    
+                    -- Jump immediately as if Enter was pressed
+                    local selected_line = FSM.SEARCH_RESULTS[FSM.SEARCH_SEL_IDX].idx
+                    local sub = Tracks.pri.subs[selected_line]
                                 
                                 if sub.start_time then
                                     mp.commandv("seek", sub.start_time, "absolute+exact")
