@@ -4599,11 +4599,14 @@ local function master_tick()
     local dw_active = (FSM.DRUM_WINDOW ~= "OFF")
     
     -- Independent OSD render decisions:
-    -- 1. Always use OSD if Drum Mode is ON (Drum Mode auto-disables for ASS anyway)
-    -- 2. Use OSD for SRT if configured.
-    -- 3. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
-    local pri_use_osd = FSM.native_sub_vis and ((FSM.DRUM == "ON") or (use_osd_for_srt and not Tracks.pri.is_ass))
-    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (use_osd_for_srt and not Tracks.sec.is_ass))
+    -- 1. Always use OSD if Drum Mode is ON.
+    -- 2. Use OSD for SRT if custom fonts are configured.
+    -- 3. [20260501163905] Force OSD if a highlight (Yellow Pointer or Pink Set) exists on the active line.
+    -- 4. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
+    local has_ptr = (FSM.DW_CURSOR_WORD ~= -1 and active_idx == FSM.DW_CURSOR_LINE)
+    local has_pink = (FSM.DW_CTRL_PENDING_SET[active_idx] ~= nil)
+    local pri_use_osd = FSM.native_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.pri.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
+    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
 
     if dw_active or pri_use_osd or sec_use_osd then
         -- Suppression Logic
@@ -6072,14 +6075,15 @@ function cmd_toggle_drum_window()
         local time_pos = mp.get_property_number("time-pos")
         if FSM.DW_CURSOR_LINE == -1 then
             FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
-            FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
         end
+        
+        -- Always sync view center to cursor line on opening
+        FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+        
         FSM.DW_SEEKING_MANUALLY = false
         FSM.DW_SEEK_TARGET = -1
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
-        FSM.DW_CURSOR_WORD = -1
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
+        -- [20260501163905] DO NOT reset CURSOR_WORD/ANCHOR here to allow cross-mode synchronization
         FSM.DW_FOLLOW_PLAYER = true
         
         if not FSM.SEARCH_MODE then
