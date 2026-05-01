@@ -14,9 +14,9 @@ The search system SHALL correctly process multi-byte characters, including Cyril
 - **WHEN** the user presses Backspace on a Russian character in the search bar
 - **THEN** the system SHALL correctly identify the multi-byte sequence and remove the entire character.
 
-### Requirement: Mouse-Interactive Result List
-The search overlay SHALL support mouse-based selection of search results using OSD-coordinate hit-testing.
+### Requirement: Layout-Aware Mouse-Interactive Result List
+The search overlay SHALL support precise mouse-based selection of search results using OSD-coordinate hit-testing that accounts for multi-line wrapping in both the search query and the results list.
 
-#### Scenario: Clicking a search result
-- **WHEN** the user clicks on an item in the search results dropdown
-- **THEN** the system SHALL jump to the corresponding time in the media.
+#### Scenario: Clicking a wrapped search result
+- **WHEN** the user clicks on an item in the search results dropdown (even if wrapped)
+- **THEN** the system SHALL correctly map the click coordinates to the logical result index and jump to the corresponding time.

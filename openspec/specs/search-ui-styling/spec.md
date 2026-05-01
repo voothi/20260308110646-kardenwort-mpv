@@ -52,3 +52,12 @@ The search results dropdown SHALL maintain a centered visual "frame" around the 
 - **WHEN** more than 8 results are available and the user navigates through them
 - **THEN** the system SHALL display a sliding window of 8 results where the selected result is centered (e.g., if index 10 is selected, the window shows results 6 through 13).
 
+
+### Requirement: Search Aesthetic Parity
+The Search HUD SHALL adhere to the v1.58.0 "Premium" aesthetic standards, ensuring visual uniformity with other HUD modes.
+- The system SHALL use synchronized `\3a` and `\4a` tags matching the background opacity for all Search UI components.
+- The background backing SHALL set `\bord0` (abandon explicit frame) to ensure a minimalist visual hierarchy and eliminate edge-click interference.
+
+#### Scenario: Background Box Rendering
+- **WHEN** the Search HUD background box is rendered
+- **THEN** it SHALL use synchronized transparency and no explicit border.
