@@ -2795,8 +2795,8 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     
     local c_tag = use_1c and "1c" or "c"
     local is_bold = (force_bold ~= nil) and force_bold or Options.anki_highlight_bold
-    local b_on = is_bold and "{\\b1}" or ""
-    local b_off = is_bold and string.format("{\\b%s}", bold_state or "0") or ""
+    local b_on = string.format("{\\b%s}", is_bold and "1" or "0")
+    local b_off = string.format("{\\b%s}", bold_state or "0")
     
     if (h_color == base_color) then return word end
 
@@ -3496,7 +3496,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold, true, final_bold)
                 line_w = line_w + ww
             end
-            table.insert(sub_visual_lines, "{\\1c&H" .. base_color .. "&}" .. alpha_tag .. line_text)
+            local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold, base_color)
+            table.insert(sub_visual_lines, line_prefix .. alpha_tag .. line_text)
             table.insert(visual_lines_meta, {width = line_w, words = line_words})
             total_visual_lines = total_visual_lines + 1
         end

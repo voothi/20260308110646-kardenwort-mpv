@@ -1085,6 +1085,11 @@
 20260501200507 I can’t let go of this, yet in the tooltip the font appears bold. 
 20260501201143 Does it make sense to add tooltip_highlight_bold to Options and mpv.conf?
 20260501201238 Should I implement this full suite of boldness toggles now? - Yes.
+20260501202121 Just compare these pictures. Where is yellow brighter? 
+20260501202236 In fact, my situation is exactly like in picture 2, what’s the problem?
+20260501202447 If you refresh or restart now, your tooltip will "cool down" and match Picture 1. You finally have the same "Premium" font weight across both screens. - Check the code, I have no changes if they were intended in this message.
+20260501202622 Save the file, you didn’t write it down.
+20260501202959 I restarted MPV, IDE. It didn't help. Bold type.
 
 
 
