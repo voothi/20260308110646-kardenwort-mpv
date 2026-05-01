@@ -42,6 +42,12 @@ The `draw_dw_tooltip` state and OSD overlay will be integrated into the global `
 - **Max Width Safety**: A hard limit of `1400px` ensures a minimum `120px` right-margin and `400px` left-margin on standard 1080p displays.
 - **Overflow Handling**: Single tokens exceeding the maximum width SHALL be rendered in full, with wrapping occurring immediately after the oversized token.
 
+### 8. Logical Canvas and Scaling Consistency
+The wrapping threshold (1400px) and positioning constants (x=1800) are designed around the project's established **$1920 \times 1080$ logical coordinate system**. 
+- **Universality**: This approach is universal across physical monitor resolutions because `mpv` automatically scales this logical canvas. 
+- **Architectural Parity**: Maintaining hardcoded constants (calibrated for the `v1.58.0` baseline) ensures that the tooltip remains perfectly aligned with the Drum Window's main text area, which follows the same coordinate abstraction.
+- **Limitation**: This solution is optimized for standard 16:9 and 16:10 aspect ratios. Ultrawide or vertical displays will still see correctly wrapped text, but the 400px left-margin may appear wider or narrower relative to the total screen width.
+
 ## Risks / Trade-offs
 
 - **[Risk]** Tooltip height exceeding screen resolution → **[Mitigation]** The centering logic will use the sum of visual lines for `block_height`, and the existing clamping logic will anchor the block to the screen edges if it exceeds available vertical space.
