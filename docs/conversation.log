@@ -1204,6 +1204,8 @@
 20260502151132 Besides color, what about established domain terms?
 20260502151844 opsx-propose anchors from 20260502143929 to 20260502151132
 20260502152621 opsx-apply 20260502151844-standardized-terminology-and-historicity.
+20260502153208 Probably you need to add srt, drum, dw, tooltip modes. C drum mode, normal mode, W drum window mode, W window mode, E tooltip window, search box, Ctrl F search box, Context Copy mode, Book Mode, reading mode, Copy Subtitle Mode, take other modes from specs, their archived from docs\conversation.log file, from README, release-notes.
+20260502153948 What else can we extract from mpv.conf in terms of terms? What from the code?
 
 
 

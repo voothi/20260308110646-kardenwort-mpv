@@ -17,6 +17,11 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Translation Tooltip** | UX | The secondary subtitle hint (Balloon) toggled by `e` (RU `у`). |
 | **Book Mode** | Navigation | A stationary viewport state where navigation doesn't reset scrolling (formerly "Reading Mode"). |
 | **Context Copy Mode** | Logic | The mechanism for exporting multi-line subtitle blocks to the clipboard (formerly "Copy Subtitle Mode"). |
+| **Token Meta** | Logic | The centralized metadata object tracking word-level state, colors, and hit-zones. |
+| **Safety Gap** | Layout | The mandatory vertical offset (5%) between primary and secondary OSD tracks. |
+| **Aural Buffer** | Timing | The temporal padding (`pause_padding`) added before autopause to prevent syllable clipping. |
+| **Consolas Calibration** | Rendering | The font-specific multipliers (`char_width`, `line_height`) used for pixel-perfect hit-testing. |
+| **Viewport Margin** | UI | The number of context lines kept visible during vertical scrolling (`scrolloff`). |
 | **Surgical Highlighting** | Logic | Coloring only alphanumeric tokens while preserving white punctuation. |
 | **Warm Path** | Interaction | Contiguous selection (**Gold**) resulting in an **Orange** match. |
 | **Cool Path** | Interaction | Non-contiguous/split selection (**Pink**) resulting in a **Purple** match. |
