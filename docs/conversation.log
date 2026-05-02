@@ -1241,7 +1241,7 @@
 20260502213504 opsx-archive --sync openspec\changes\20260502211505-prioritize-selection-in-context-copy
 20260502223454 Make it work more reliably when paired with GoldenDict via the clipboard. Now there are gaps for some reason. Maybe this is due to the latest modification to the response time? I can make this a separate parameter to try debug?
 20260502225817 Add to mpv.conf.
-
+20260503000621 opsx-archive openspec\changes\20260502223822-improve-clipboard-reliability-for-goldendict
 
 
 
