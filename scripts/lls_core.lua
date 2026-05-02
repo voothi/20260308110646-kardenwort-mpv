@@ -2890,7 +2890,7 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
     return token_meta
 end
 
-local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold)
+local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold, is_manual)
     if type(word) == "table" then word = word.text end
     if not word then return "" end
     
@@ -2901,11 +2901,11 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     
     if (h_color == base_color) then return word end
 
-    if is_phrase then
-        -- Full highlighting for phrases (continuous flow)
+    if is_phrase or is_manual then
+        -- Full highlighting for phrases or manual user focus (Gold/Pink)
         return string.format("%s{\\%s&H%s&}%s{\\%s&H%s&}%s", b_on, c_tag, h_color, word, c_tag, base_color, b_off)
     else
-        -- Surgical highlighting for single words (professional look: punctuation uncolored)
+        -- Surgical highlighting for automated database matches (Surgical Punctuation)
         local pre = word:match("^[%p%s]*")
         local suf = word:match("[%p%s]*$")
         local mid = ""
@@ -2915,6 +2915,7 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
         if mid ~= "" then
             return string.format("%s%s{\\%s&H%s&}%s%s{\\%s&H%s&}%s", pre, b_on, c_tag, h_color, mid, b_off, c_tag, base_color, suf)
         else
+            -- Professional look: single-word database matches keep their surrounding punctuation uncolored
             return word
         end
     end
@@ -3456,7 +3457,8 @@ local function draw_dw(subs, view_center, active_idx)
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
-                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold))
+                    local is_manual = (meta_item.priority == 1 or meta_item.priority == 2)
+                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold, is_manual))
                 else
                     table.insert(formatted_words, meta_item.text)
                 end
@@ -5331,6 +5333,7 @@ local function cmd_dw_word_move(dir, shift)
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
+    dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
 
     if not shift then
         FSM.DW_ANCHOR_LINE = -1
