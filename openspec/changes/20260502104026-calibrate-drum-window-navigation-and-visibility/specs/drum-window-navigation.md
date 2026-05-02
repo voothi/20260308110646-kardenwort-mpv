@@ -19,3 +19,4 @@
 - **AND** the user presses RIGHT.
 - **THEN** the yellow pointer SHALL highlight the FIRST valid token of the current line.
 - **AND** if the user presses LEFT, it SHALL highlight the LAST valid token of the current line.
+- **AND** if the user presses UP or DOWN, it SHALL jump to the closest word to the horizontal center (X=960) on the target line.
