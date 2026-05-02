@@ -194,6 +194,8 @@ Options = {
     -- System
     tick_rate = 0.05,
     osd_duration = 0.5,
+    win_clipboard_retries = 5,
+    win_clipboard_retry_delay = 50, -- milliseconds
 
     -- Drum Window
     dw_font_size = 34,
@@ -5727,7 +5729,7 @@ local function set_clipboard(text)
     local platform = package.config:sub(1,1)
     if platform == "\\" then
         local safe_txt = text:gsub("'", "''")
-        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt 5; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 50 } }", safe_txt)
+        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt %d; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds %d } }", Options.win_clipboard_retries, safe_txt, Options.win_clipboard_retry_delay)
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
     else
         local un = io.popen("uname -a")
