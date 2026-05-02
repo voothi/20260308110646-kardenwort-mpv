@@ -5286,6 +5286,9 @@ local function cmd_dw_word_move(dir, shift)
         if next_idx >= 1 and next_idx <= #logical_tokens then
             target_token = logical_tokens[next_idx]
         end
+    elseif FSM.DW_CURSOR_WORD == -1 then
+        -- Activation: Nothing selected (e.g. after Esc), RIGHT enters at start, LEFT enters at end of current line
+        target_token = (dir > 0) and logical_tokens[1] or logical_tokens[#logical_tokens]
     else
         -- Transition: We are on a symbol (fractional) but moving in word-only mode (no shift)
         if dir > 0 then

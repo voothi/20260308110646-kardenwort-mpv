@@ -1165,6 +1165,7 @@
 20260502104000 opsx-propose anchors 20260502095036 20260502100149 20260502101357 2026050210305020260502104000 opsx-propose anchors 20260502095036 20260502100149 20260502101357 20260502103050
 20260502104817 opsx-apply 20260502104026-calibrate-drum-window-navigation-and-visibility
 20260502105029 You did not identify one more behavior that I originally wanted to talk about, this is on what line and in what position the yellow word cursor appears when you press LEFT and RIGHT. The behavior of UP and DOWN now seems to have not changed and is correct. This will also need to be captured in 20260502104026-calibrate-drum-window-navigation-and-visibility, if not already in the general specifications.
+20260502105526 That’s right, but you still can’t figure out what will happen if you do this after Esc, after resetting all selections. What happens if you press LEFT and RIGTH after that. My last message was in this context, in this use case.
 
 
 
