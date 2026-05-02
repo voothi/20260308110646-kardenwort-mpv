@@ -11,8 +11,14 @@
 #### Scenario: Line Wrap Alignment
 - **WHEN** the user navigates RIGHT from the last token of a line.
 - **THEN** the yellow pointer SHALL jump to the FIRST valid token of the next line.
-- **WHEN** the user navigates LEFT from the first token of a line.
+- **AND** if the user navigates LEFT from the first token of a line.
 - **THEN** the yellow pointer SHALL jump to the LAST valid token of the previous line.
+
+#### Scenario: Visual Line Navigation (Wrapped Subtitles)
+- **WHEN** a single subtitle is wrapped into multiple visual lines.
+- **AND** the user navigates UP or DOWN.
+- **THEN** the pointer SHALL move to the adjacent visual line within the SAME subtitle first.
+- **AND** only if the edge of the subtitle is reached SHALL it jump to the next subtitle.
 
 #### Scenario: Entry from Null Selection (Post-Esc)
 - **WHEN** the Drum Window has no active selection (`DW_CURSOR_WORD = -1`).

@@ -5082,9 +5082,22 @@ local function dw_compute_word_center_x(sub)
     return nil
 end
 
+local function dw_get_word_visual_line(sub, logical_idx)
+    if not sub or not sub.layout_cache or not sub.layout_cache.entry then return -1, 0 end
+    local entry = sub.layout_cache.entry
+    local v_idx = entry.logical_to_visual[logical_idx]
+    if not v_idx then return -1, 0 end
+    for i, vl in ipairs(entry.vlines) do
+        for _, idx in ipairs(vl) do
+            if idx == v_idx then return i, #entry.vlines end
+        end
+    end
+    return -1, 0
+end
+
 -- Returns the logical word index on sub whose OSD x-center is closest to target_x.
 -- Falls back to first word if nothing found.
-local function dw_closest_word_at_x(sub, target_x, word_only)
+local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
     if not sub then return -1 end
     local tokens = get_sub_tokens(sub)
     local space_w = dw_get_str_width(" ")
@@ -5118,8 +5131,9 @@ local function dw_closest_word_at_x(sub, target_x, word_only)
     local best_dist = math.huge
 
     -- For multi-vline subtitles, target_x may sit on any visual row.
-    -- We search ALL vlines and pick the globally closest word.
-    for _, vl_indices in ipairs(vlines) do
+    -- We search vlines (optionally filtered) and pick the globally closest word.
+    for i, vl_indices in ipairs(vlines) do
+        if not vl_filter or i == vl_filter then
         local vl_width = 0
         for k, wi in ipairs(vl_indices) do
             vl_width = vl_width + dw_get_str_width(tokens[wi])
@@ -5223,9 +5237,23 @@ local function cmd_dw_line_move(dir, shift)
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE]) or 960
     end
     
+    -- Intra-subtitle Vertical Navigation: 
+    -- If the current subtitle is multi-line, try moving between visual lines first.
+    if FSM.DW_CURSOR_WORD ~= -1 then
+        local cur_vl, total_vl = dw_get_word_visual_line(subs[line_idx], FSM.DW_CURSOR_WORD)
+        local target_vl = cur_vl + dir
+        if target_vl >= 1 and target_vl <= total_vl then
+            local w = dw_closest_word_at_x(subs[line_idx], FSM.DW_CURSOR_X, true, target_vl)
+            if w ~= -1 then
+                FSM.DW_CURSOR_WORD = w
+                return
+            end
+        end
+    end
+
     -- Scan for the target line that contains a valid word.
     -- If no word is currently selected (e.g. after Esc), we first try to land on the CURRENT line.
-    local start_scan_line = FSM.DW_CURSOR_LINE
+    local start_scan_line = line_idx
     if FSM.DW_CURSOR_WORD ~= -1 then
         start_scan_line = start_scan_line + dir
     end
