@@ -1,6 +1,7 @@
 local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
+local msg = require 'mp.msg'
 
 print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_script_directory() or "<unknown dir>"))
 
@@ -13,6 +14,89 @@ local manage_dw_bindings
 local update_interactive_bindings
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
+
+
+-- =========================================================================
+-- DIAGNOSTIC & LOGGING SYSTEM
+-- =========================================================================
+local Diagnostic = {
+    ERROR = 0, WARN = 1, INFO = 2, DEBUG = 3, TRACE = 4,
+    LEVEL_MAP = { ["error"] = 0, ["warn"] = 1, ["info"] = 2, ["debug"] = 3, ["trace"] = 4 },
+    SEEN = {}
+}
+
+Diagnostic.log = function(level, text, dedupe_key)
+    local current_level = Diagnostic.LEVEL_MAP[Options.log_level:lower()] or Diagnostic.INFO
+    if level > current_level then return end
+    
+    if dedupe_key then
+        if Diagnostic.SEEN[dedupe_key] then return end
+        Diagnostic.SEEN[dedupe_key] = true
+    end
+    
+    local prefix = "[LLS]"
+    if level == Diagnostic.ERROR then 
+        msg.error(prefix .. " " .. text)
+    elseif level == Diagnostic.WARN then
+        msg.warn(prefix .. " " .. text)
+    elseif level == Diagnostic.INFO then
+        msg.info(prefix .. " " .. text)
+    elseif level == Diagnostic.DEBUG then
+        msg.verbose(prefix .. " " .. text)
+    elseif level == Diagnostic.TRACE then
+        msg.debug(prefix .. " " .. text)
+    end
+end
+
+Diagnostic.error = function(text, key) Diagnostic.log(Diagnostic.ERROR, text, key) end
+Diagnostic.warn  = function(text, key) Diagnostic.log(Diagnostic.WARN, text, key) end
+Diagnostic.info  = function(text, key) Diagnostic.log(Diagnostic.INFO, text, key) end
+Diagnostic.debug = function(text, key) Diagnostic.log(Diagnostic.DEBUG, text, key) end
+Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, key) end
+
+local function is_valid_mpv_key(k_str)
+    if not k_str or k_str == "" then return false end
+    local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
+    local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
+    if count > 1 and base:match("[%z\128-\255]") then return false end
+    return true
+end
+
+local function validate_config()
+    local errors = {}
+    local function check_keys(opt_val, opt_name)
+        if not opt_val or opt_val == "" then return end
+        for key in opt_val:gmatch("[^%s,;]+") do
+            if not is_valid_mpv_key(key) then
+                table.insert(errors, string.format("Invalid key name in '%s': '%s' (multicharacter non-ASCII names are not supported).", opt_name, key))
+            end
+        end
+    end
+    
+    local key_opts = {
+        "dw_key_add", "dw_key_pair", "dw_key_select", "dw_key_seek_prev", "dw_key_seek_next",
+        "dw_key_search", "dw_key_copy", "dw_key_seek", "dw_key_esc", "dw_key_jump_left",
+        "dw_key_jump_right", "dw_key_jump_select_left", "dw_key_jump_select_right",
+        "dw_key_scroll_up", "dw_key_scroll_down", "dw_key_jump_select_up",
+        "dw_key_jump_select_down", "dw_key_select_left", "dw_key_select_right",
+        "dw_key_select_up", "dw_key_select_down", "dw_key_open_record",
+        "dw_key_cycle_copy_mode", "dw_key_toggle_copy_context", "dw_key_tooltip_pin",
+        "dw_key_tooltip_hover", "dw_key_tooltip_toggle", "key_sub_pos_up", "key_sub_pos_down",
+        "key_sec_sub_pos_up", "key_sec_sub_pos_down"
+    }
+    
+    for _, opt in ipairs(key_opts) do check_keys(Options[opt], "lls-" .. opt) end
+    
+    if #errors > 0 then
+        local summary = "CONFIGURATION HEALTH CHECK FAILED:\n"
+        for _, err in ipairs(errors) do summary = summary .. "  - " .. err .. "\n" end
+        summary = summary .. "Please correct these in your mpv.conf to avoid unexpected behavior."
+        Diagnostic.warn(summary)
+    else
+        Diagnostic.debug("Configuration health check passed.")
+    end
+end
+
 
 local Options = {
     -- AutoPause
@@ -249,6 +333,7 @@ local Options = {
     anki_mix_depth_2 = "3636A8",
     anki_mix_depth_3 = "151578",
     anki_global_highlight = false,
+    log_level = "info",
     anki_sync_period = 5,
     anki_context_lines = 6,
     anki_local_fuzzy_window = 10.0,
@@ -2070,14 +2155,14 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             end
         end
         
-        print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
+        Diagnostic.debug(string.format("Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
     else
-        print(string.format("[LLS] Truncation Trace: Words: %d | Limit: %d | no anchor", #words, limit))
+        Diagnostic.debug(string.format("Truncation Trace: Words: %d | Limit: %d | no anchor", #words, limit))
     end
     if first_idx then
-        print(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
+        Diagnostic.trace(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
     else
-        print("  - FAILED to detect span, falling back to full sentence")
+        Diagnostic.debug("  - FAILED to detect span, falling back to full sentence")
         return sentence
     end
     
@@ -2091,7 +2176,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         local pad = Options.anki_context_span_pad
         local crop_start = math.max(1, first_idx - pad)
         local crop_end   = math.min(#words, last_idx + pad)
-        print(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
+        Diagnostic.trace(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
         local f_byte = (crop_start == 1) and 1 or nil
         local l_byte = (crop_end == #words) and #sentence or nil
         local curr = 1
@@ -2124,7 +2209,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         context_start = math.max(1, context_start - shift)
     end
     
-    print(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
+    Diagnostic.trace(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
     
     local f_byte = (context_start == 1) and 1 or nil
     local l_byte = (context_end == #words) and #sentence or nil
@@ -2260,7 +2345,7 @@ local function load_anki_tsv(force, quiet)
     local f = io.open(tsv_path, "r")
     if not f then
         FSM.ANKI_HIGHLIGHTS = {}
-        print("[LLS] TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
+        Diagnostic.info("TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
         
         -- Build header from actual config fields; fall back to generic defaults
         -- if no mapping is configured. This mirrors save_anki_tsv_row's header logic.
@@ -2291,11 +2376,11 @@ local function load_anki_tsv(force, quiet)
             wf:close()
             f = io.open(tsv_path, "r") -- Re-open for reading
             if not f then 
-                print("[LLS] TSV creation failed - path may be read-only")
+                Diagnostic.error("TSV creation failed - path may be read-only")
                 return 
             end
         else
-            print("[LLS] TSV creation failed - could not open for writing")
+            Diagnostic.error("TSV creation failed - could not open for writing")
             return 
         end
     end
@@ -2418,8 +2503,11 @@ local function load_anki_tsv(force, quiet)
     end
     
     flush_rendering_caches()
-    if not quiet or #new_highlights > 0 then
-        print(string.format("[LLS] TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
+    local msg_text = string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE))
+    if quiet then
+        Diagnostic.debug(msg_text)
+    else
+        Diagnostic.info(msg_text)
     end
 end
 
@@ -3912,7 +4000,7 @@ local function cmd_dw_tooltip_toggle()
     
     -- If already forced ON, always toggle OFF regardless of current target match
     if FSM.DW_TOOLTIP_FORCE then
-        print("[LLS] TOOLTIP TOGGLE: OFF")
+        Diagnostic.info("TOOLTIP TOGGLE: OFF")
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_LINE = -1
         dw_tooltip_osd.data = ""
@@ -3936,7 +4024,7 @@ local function cmd_dw_tooltip_toggle()
     end
     
     if line_idx ~= -1 then
-        print("[LLS] TOOLTIP TOGGLE: ON")
+        Diagnostic.info("TOOLTIP TOGGLE: ON")
         FSM.DW_TOOLTIP_FORCE = true
         FSM.DW_TOOLTIP_LINE = line_idx
         -- Use mapped Y if available, otherwise find it or fallback to a reasonable offset
@@ -4826,7 +4914,7 @@ local function master_tick()
     end
     end, debug.traceback)
     if not ok then
-        print("[LLS ERROR] master_tick crash: " .. tostring(err))
+        Diagnostic.error("master_tick crash: " .. tostring(err))
     end
 end
 mp.add_periodic_timer(Options.tick_rate, master_tick)
@@ -5355,24 +5443,6 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
         {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
     }
-
-    local BLACKLISTED_KEYS = BLACKLISTED_KEYS or {}
-    -- Helper to validate key strings before passing to mpv
-    local function is_valid_mpv_key(k_str)
-        if not k_str or k_str == "" then return false end
-        -- Strip modifiers for validation
-        local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
-        -- If it contains non-ASCII characters and is longer than 1 character, it's likely an invalid name (e.g. 'ВВЕРХ')
-        local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
-        if count > 1 and base:match("[%z\128-\255]") then
-            if not BLACKLISTED_KEYS[k_str] then
-                print("[LLS WARNING] Skipping invalid key binding: '" .. k_str .. "'. MPV does not support multicharacter non-ASCII key names. Use English names (LEFT, UP, etc) in input.conf.")
-                BLACKLISTED_KEYS[k_str] = true
-            end
-            return false
-        end
-        return true
-    end
 
     for _, k in ipairs(kb_keys) do 
         k.is_kb = true
@@ -6213,7 +6283,7 @@ function cmd_toggle_search()
 end
 
 function cmd_toggle_drum_window()
-    print("[LLS] TOGGLE CALLED: FSM.DRUM_WINDOW=" .. tostring(FSM.DRUM_WINDOW))
+    Diagnostic.debug("TOGGLE CALLED: FSM.DRUM_WINDOW=" .. tostring(FSM.DRUM_WINDOW))
     -- Snapshot FSM state before any mutation so we can roll back on error
     local prev_drum_window = FSM.DRUM_WINDOW
     local ok, err = xpcall(function()
@@ -6230,7 +6300,7 @@ function cmd_toggle_drum_window()
 
 
     if FSM.DRUM_WINDOW == "OFF" then
-        print("[LLS] OPENING DRUM WINDOW...")
+        Diagnostic.info("OPENING DRUM WINDOW...")
         -- Update state immediately for responsiveness
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
@@ -6275,7 +6345,7 @@ function cmd_toggle_drum_window()
             show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
         end
     else
-        print("[LLS] CLOSING DRUM WINDOW...")
+        Diagnostic.info("CLOSING DRUM WINDOW...")
         -- Update state immediately
         FSM.DRUM_WINDOW = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
@@ -6296,7 +6366,7 @@ function cmd_toggle_drum_window()
     if not ok then
         -- Roll back FSM state to prevent phantom window open/close on next toggle
         FSM.DRUM_WINDOW = prev_drum_window
-        print("[LLS ERROR] Drum Window Toggle: " .. tostring(err))
+        Diagnostic.error("Drum Window Toggle: " .. tostring(err))
         show_osd("LLS ERROR: " .. tostring(err):sub(1, 100))
     end
 
@@ -6540,25 +6610,25 @@ end
 
 mp.observe_property("sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
-    if not ok then print("[LLS ERROR] sid observer: " .. tostring(err)) end
+    if not ok then Diagnostic.error("sid observer: " .. tostring(err)) end
 end)
 mp.observe_property("secondary-sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
-    if not ok then print("[LLS ERROR] sec-sid observer: " .. tostring(err)) end
+    if not ok then Diagnostic.error("sec-sid observer: " .. tostring(err)) end
 end)
 mp.observe_property("track-list", "native", function()
     local ok, err = xpcall(update_media_state, debug.traceback)
-    if not ok then print("[LLS ERROR] track-list observer: " .. tostring(err)) end
+    if not ok then Diagnostic.error("track-list observer: " .. tostring(err)) end
     if Options.font_scaling_enabled then
         local ok2, err2 = xpcall(update_font_scale, debug.traceback)
-        if not ok2 then print("[LLS ERROR] font-scaling: " .. tostring(err2)) end
+        if not ok2 then Diagnostic.error("font-scaling: " .. tostring(err2)) end
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
     dw_tooltip_osd:update()
     if Options.font_scaling_enabled then
         local ok, err = xpcall(update_font_scale, debug.traceback)
-        if not ok then print("[LLS ERROR] osd-dim observer: " .. tostring(err)) end
+        if not ok then Diagnostic.error("osd-dim observer: " .. tostring(err)) end
     end
 end)
 
@@ -6570,6 +6640,7 @@ end)
 
 mp.observe_property("script-opts", "string", function()
     options.read_options(Options, "lls")
+    validate_config()
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
@@ -6628,10 +6699,13 @@ if Options.anki_sync_period > 0 then
             drum_osd:update()
             if dw_osd then dw_osd:update() end
         end, debug.traceback)
-        if not ok then print("[LLS ERROR] periodic sync: " .. tostring(err)) end
+        if not ok then Diagnostic.error("periodic sync: " .. tostring(err)) end
     end)
 end
-print("[LLS] SCRIPT LOADED SUCCESSFULLY")
+options.read_options(Options, "lls")
+validate_config()
+Diagnostic.info("SCRIPT LOADED SUCCESSFULLY")
+
 ---------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
 ---------------------------------------------------------------------------
