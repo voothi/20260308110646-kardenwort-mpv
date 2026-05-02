@@ -4,6 +4,9 @@
 -- =========================================================================
 -- OPTIONS
 -- =========================================================================
+local utils = require 'mp.utils'
+local options = require 'mp.options'
+
 local opts = {
     -- Duration of the OSD resume message in seconds (0.5 = 500ms)
     osd_duration = 5,
@@ -23,7 +26,8 @@ local opts = {
     show_subtitles = false
 }
 
-local utils = require 'mp.utils'
+options.read_options(opts, "resume_last_file")
+
 local state_path = mp.command_native({"expand-path", opts.state_file})
 
 -- Function to save the current file path
