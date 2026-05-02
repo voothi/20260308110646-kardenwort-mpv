@@ -5123,7 +5123,7 @@ local function ensure_sub_layout(sub)
         entry = {
             vlines = vlines,
             logical_to_visual = logical_to_visual,
-            tokens = tokens
+            words = tokens
         }
     }
     return sub.layout_cache.entry
@@ -5149,10 +5149,10 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
     local entry = ensure_sub_layout(sub)
     if not entry then return -1 end
     
-    local tokens = entry.tokens
+    local words = entry.words
     local vlines = entry.vlines
     local visual_to_logical = {}
-    for j, t in ipairs(tokens) do
+    for j, t in ipairs(words or {}) do
         if t.logical_idx then visual_to_logical[j] = t.logical_idx end
     end
     
