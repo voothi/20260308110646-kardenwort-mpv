@@ -61,3 +61,10 @@ The Search HUD SHALL adhere to the v1.58.0 "Premium" aesthetic standards, ensuri
 #### Scenario: Background Box Rendering
 - **WHEN** the Search HUD background box is rendered
 - **THEN** it SHALL use synchronized transparency and no explicit border.
+
+### Requirement: Search Hit Color Synchronization
+The Search HUD match highlighting SHALL synchronize with the "Warm Path" color standard.
+
+#### Scenario: Rendering Search Matches
+- **WHEN** a search query matches text in the results
+- **THEN** the match SHALL be rendered in `Orange (BGR: 0088FF | RGB: #FF8800)`
