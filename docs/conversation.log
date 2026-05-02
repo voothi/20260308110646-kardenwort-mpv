@@ -1179,6 +1179,7 @@
 20260502122640 For the double subtitle mode srt, drum, such transitions still do not work after launch, I tried disabling the second subtitles using J, but it did not help. For some reason this starts to work if you switch to W mode and back. Then, using the UP DOWN keys in mode C, `Logistikstandorte` `erreichbar` will also begin to be highlighted. And so, only `erreichbar` stands out.
 20260502123152 Error
 20260502123337 An error appears when you try to press UP or DOWN in any of the modes.
+20260502123519 Error
 
 
 

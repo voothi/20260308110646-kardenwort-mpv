@@ -5178,9 +5178,9 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
                 if l_idx then
                     local valid = false
                     if word_only then
-                        valid = tokens[wi].is_word
+                        valid = words[wi].is_word
                     else
-                        valid = not tokens[wi].text:match("^%s*$")
+                        valid = not words[wi].text:match("^%s*$")
                     end
                     
                     if valid then
