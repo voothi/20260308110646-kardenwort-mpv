@@ -1,5 +1,8 @@
-## ADDED Requirements
+# Drum Window Navigation
 
+## Purpose
+Define the scrolling, targeting, and state management behavior for the primary navigation mode.
+## Requirements
 ### Requirement: Unified ensure visible logic
 The Drum Window SHALL implement a `dw_ensure_visible(line_idx, paged)` function that supports both incremental and jump-based scrolling.
 
@@ -37,9 +40,41 @@ The Drum Window SHALL maintain separate states for the active video subtitle (wh
 - **WHEN** Book Mode is ON and the user navigates via `a`/`d` (with `DW_FOLLOW_PLAYER` active)
 - **THEN** a `Ctrl+C` command SHALL prioritize copying the white (active/navigated) line if no specific word or range selection is active on the yellow pointer.
 
-### Requirement: High-Performance Navigation
-### Historical Regression Context
+### Requirement: Targeted Vertical Navigation
+The Drum Window SHALL implement word-aware vertical navigation that prioritizes valid word tokens over punctuation and whitespace during line transitions.
 
+#### Scenario: Jumping over symbolic lines
+- **WHEN** the user is on a line with words and presses DOWN
+- **AND** the next line contains only punctuation (e.g., "...")
+- **THEN** the system SHALL jump to the first line below the current one that contains at least one token where `is_word` is true.
+
+#### Scenario: Word-only vertical targeting
+- **WHEN** the user navigates UP or DOWN
+- **THEN** the yellow navigation pointer SHALL exclusively snap to tokens where `is_word` is true.
+- **AND** if the target line contains multiple words, the one closest to the current horizontal X-center SHALL be selected.
+
+### Requirement: Precision Horizontal Navigation
+The Drum Window SHALL maintain character-level precision for horizontal navigation and mouse interaction to support surgical selection of all logical tokens (including punctuation and symbols).
+
+#### Scenario: Selecting punctuation via keyboard
+- **WHEN** the user is on a word and presses RIGHT
+- **AND** the next token is a punctuation marker (e.g., a bracket "[")
+- **THEN** the yellow pointer SHALL land on and highlight the punctuation token.
+
+#### Scenario: Selecting punctuation via mouse
+- **WHEN** the user clicks on a punctuation token in the Drum Window
+- **THEN** the yellow pointer SHALL land on and highlight that specific punctuation token.
+
+### Requirement: Virtual Seek Target
+The system SHALL calculate the next seek target based on a virtual `DW_SEEK_TARGET` to bypass engine latency during rapid seeking.
+
+#### Scenario: Virtual Seek Target
+- **WHEN** the user holds `d` for rapid seeking
+- **THEN** the system SHALL calculate the next seek target based on a virtual `DW_SEEK_TARGET` to bypass engine latency.
+
+## Context
+
+### Historical Regression Context
 This implementation reconciles several critical project states to prevent known regressions:
 
 - **Commit `af9c776` Alignment**: Restored the edge-aware "Paged" jump targeting. When playing, the system jumps so the active line is at the top margin, maximizing visible upcoming context.
@@ -47,7 +82,3 @@ This implementation reconciles several critical project states to prevent known 
   - In Book Mode, manual seeking (`a`/`d`) moves only the video focus (white).
   - In Regular Mode, selection follows player but word-focus resets on every line change to prevent "phantom" yellow highlights.
 - **Commit `38d2f94` Regression Fix**: Resolved responsiveness issues where `a`/`d` were blocked by conflicting repeat timers.
-
-#### Scenario: Virtual Seek Target
-- **WHEN** the user holds `d` for rapid seeking
-- **THEN** the system SHALL calculate the next seek target based on a virtual `DW_SEEK_TARGET` to bypass engine latency.
