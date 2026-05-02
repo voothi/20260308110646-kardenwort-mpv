@@ -1140,5 +1140,13 @@
 20260502010923 He's bigger
 20260502011020 Look, it’s already very similar, but 2 lines need to be corrected.
 20260502011135 Ok, now update as a spec specialist and technical writer the openspec\changes\archive\20260502005934-resume-last-file-session documentation and specs.
+20260502081833 # There are some messages in the console, this is spam? Is it possible to make sure that such a message does not arrive once every 10 seconds, but only if there is a problem or if the payload is loaded?
+20260502082515 This change will not quietly and implicitly hide errors, will it not worsen the debug in the future by such silence?
+20260502082748 Think about how else you can improve and come up with opsx-propose with specs, see dialogue anchors 20260502081833 20260502082515
+
+
+
+
+
 
 

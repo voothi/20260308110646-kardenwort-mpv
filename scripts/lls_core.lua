@@ -2212,7 +2212,7 @@ local function flush_rendering_caches()
 end
 
 
-local function load_anki_tsv(force)
+local function load_anki_tsv(force, quiet)
     local tsv_path = get_tsv_path()
     if not tsv_path then return end
     
@@ -2418,7 +2418,9 @@ local function load_anki_tsv(force)
     end
     
     flush_rendering_caches()
-    print(string.format("[LLS] TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
+    if not quiet or #new_highlights > 0 then
+        print(string.format("[LLS] TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
+    end
 end
 
 local function save_anki_tsv_row(term, context, time_pos, item_index)
@@ -5353,6 +5355,25 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
         {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
     }
+
+    local BLACKLISTED_KEYS = BLACKLISTED_KEYS or {}
+    -- Helper to validate key strings before passing to mpv
+    local function is_valid_mpv_key(k_str)
+        if not k_str or k_str == "" then return false end
+        -- Strip modifiers for validation
+        local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
+        -- If it contains non-ASCII characters and is longer than 1 character, it's likely an invalid name (e.g. 'ВВЕРХ')
+        local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
+        if count > 1 and base:match("[%z\128-\255]") then
+            if not BLACKLISTED_KEYS[k_str] then
+                print("[LLS WARNING] Skipping invalid key binding: '" .. k_str .. "'. MPV does not support multicharacter non-ASCII key names. Use English names (LEFT, UP, etc) in input.conf.")
+                BLACKLISTED_KEYS[k_str] = true
+            end
+            return false
+        end
+        return true
+    end
+
     for _, k in ipairs(kb_keys) do 
         k.is_kb = true
         table.insert(keys, k) 
@@ -5425,8 +5446,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
-        if active then 
-            if k.key and not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
+        if active and k.key and is_valid_mpv_key(k.key) then 
+            if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 if k.complex then
                     mp.add_forced_key_binding(k.key, k.name, k.fn, {complex = true})
                 else
@@ -6603,7 +6624,7 @@ if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
         local ok, err = xpcall(function()
             find_source_url()
-            load_anki_tsv(true)
+            load_anki_tsv(false, true)
             drum_osd:update()
             if dw_osd then dw_osd:update() end
         end, debug.traceback)
