@@ -1181,6 +1181,7 @@
 20260502123337 An error appears when you try to press UP or DOWN in any of the modes.
 20260502123519 Error
 20260502123811 This problem has been resolved, now it works in all modes, just look at the clipboard error in the console.
+20260502124850 Our is_manual backlight is not working again, which we just fixed in 20260502101357, but I noticed that it works well in W window mode.
 
 
 

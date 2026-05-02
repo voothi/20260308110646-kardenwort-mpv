@@ -3189,7 +3189,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or meta.h_bold
-                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold))
+                    local is_man = (meta_item.priority == 1 or meta_item.priority == 2)
+                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold, is_man))
                 else
                     table.insert(formatted_parts, meta_item.text)
                 end
@@ -3598,7 +3599,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 end
                 
                 local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold)
+                local is_man = (tm.priority == 1 or tm.priority == 2)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
