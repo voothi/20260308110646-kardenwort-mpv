@@ -1216,7 +1216,8 @@
 20260502160453 Give the terms ZID and my approach. Let me explain that the weak model is Gemini 3 Flash, the strong model, the pro model, senior, senior, the large model is Gemini 3.1 Pro (high) or Opus 4.6, the middle model is Gemini 3.1 Pro (low), Sonnet 4.6. Say the IDE is Antigravity.
 20260502161006 LMB, RMB, MMB are mouse keys. Basic specifications, current, general - openspec\specs. Change projects - openspec\changes. Archive of changes openspec\changes\archive
 20260502161257 Main config mpv.conf. Key mapping input.conf. Cofig anki field mapping script-opts\anki_mapping.ini
-
+20260502161510 docs\rfcs is the old release folder using the SDD methodology.
+20260502161621 SDD methodologists and openspec
 
 
 
