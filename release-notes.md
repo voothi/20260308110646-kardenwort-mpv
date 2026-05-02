@@ -1,4 +1,46 @@
+# Release Notes - v1.58.30 (Session Resumption & Smart Diagnostics)
+
+**Date**: 2026-05-02
+**Version**: v1.58.30
+**Implementation ZIDs**: 20260502005934, 20260502082941, 20260502093650, 20260502104026, 20260502135022, 20260502151844
+
+## Highlights
+
+### 🔄 **Intelligent Session Management**
+- **Automated Last-Session Resumption**: Implemented a decoupled session manager that tracks and restores the last active media path upon a blank application launch.
+- **High-Resolution Session OSD**: Utilizes a 1920x1080 virtual canvas for consistent, premium typography and layout synchronization during session recovery.
+- **Linguistic Prioritization**: Custom sort predicate ensures primary target languages remain the visual anchor during session OSD rendering.
+
+### 🛡️ **Smart Diagnostics & Logging**
+- **Level-Aware Logging Interface**: Unified `Diagnostic` module with `info`, `warn`, `error`, `debug`, and `trace` levels, mapped to native MPV messaging.
+- **Console Spam Elimination**: Intelligent log deduplication prevents repetitive messages from background tasks and configuration errors.
+- **Startup Health-Check**: Consolidates keybinding and configuration validation into a single, professional summary reported exactly once per session.
+- **Layout-Agnostic Debugging**: Native binding for `ё` ensures the debug console is accessible regardless of the active keyboard layout.
+
+### 🥁 **Drum Window Navigation Refinement**
+- **Word-Only Vertical Navigation**: UP/DOWN keys now strictly target words and skip lines containing only punctuation, eliminating "disappearing pointer" issues.
+- **Intelligent Vertical Entry**: Multi-line subtitles are now visual-line-aware, with deterministic landing logic (top for DOWN, bottom for UP jumps).
+- **Viewport Tracking**: Horizontal word jumps now trigger automatic viewport scrolling, ensuring the cursor remains visible during rapid navigation.
+- **Unified Layout Engine**: `ensure_sub_layout` provides a single point of truth for tokenization and wrapping across all rendering modes (SRT, Drum, DW, Tooltip).
+
+### 🎨 **Aesthetic Calibration & Highlight Hardening**
+- **Surgical Highlight Visibility**: Forced full-token coloring for manual user actions (Yellow/Pink) ensures unambiguous focus on punctuation and symbols while maintaining minimalist aesthetics for database matches.
+- **Blooming Elimination**: Highlights now utilize opaque black borders (`\3a&H00&`) to eliminate blurring effects on high-intensity colors.
+- **Mandatory Weight Reset**: Decoupled selection weights from global styles, enforcing a "Premium" regular weight (`\b0`) for manual selections.
+- **Parameterized Formatter**: Enhanced `format_highlighted_word` to maintain visual context and prevent opacity regressions across complex rendering loops.
+
+### 📚 **Terminology & Historicity Standardization**
+- **Project Ground Truth**: Established a centralized Historicity and Terminology Specification to reconcile legacy naming (e.g., Reel → Drum, Yellow → Gold).
+- **Dual-Notation Color Specs**: Mandatory BGR (mpv-native) and RGB (standard) hex notation for all documentation and code comments.
+- **Evolution Ledger**: ZID-anchored tracking of terminology transitions to ensure architectural integrity and AI consistency.
+
+### 🔧 **Windows Stability Fixes**
+- **Robust Clipboard Logic**: Implemented an exponential backoff retry loop for PowerShell `Set-Clipboard` operations to mitigate system-level resource locks.
+
+---
+
 # Release Notes - v1.58.18 (Search HUD Revolution & Tooltip Sync)
+
 
 **Date**: 2026-05-02
 **Version**: v1.58.18

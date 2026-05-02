@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.58.18-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.18) 
+[![Version](https://img.shields.io/badge/version-v1.58.30-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.30) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -98,6 +98,10 @@ This suite solves problems that standard video players and generic scripts ignor
 31. **Hardened Performance Pipeline**: Systemic O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
 32. **Absolute Verbatim Export**: 100% fidelity mining that preserves all source formatting, hyphens, and whitespace, strictly adhering to the "Source as Truth" philosophy.
 33. **Dynamic Search Wrapping**: The Search HUD now features a robust **multi-line wrapping engine** with pixel-perfect hit-testing, ensuring all results remain selectable regardless of layout complexity.
+34. **Intelligent Session Resumption**: Automatically reloads the last active media path on blank launch with high-resolution visual confirmation using a decoupled session manager.
+35. **Smart Diagnostics & Logging**: Level-aware logging with log deduplication and single-summary startup health checks to eliminate console spam and report configuration errors professionally.
+36. **Standardized Historicity**: Centralized "Ground Truth" for terminology and dual-notation color specifications (BGR/RGB) ensures long-term architectural integrity and AI consistency.
+37. **Visual Line Awareness**: Vertical navigation in the Drum Window is now visual-line aware for multi-line wrapped subtitles, with deterministic landing logic and viewport tracking.
 
 [Return to Top](#table-of-contents)
 
@@ -463,7 +467,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
 3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
 4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.54.0 settings.
+5.  **Restart**: Relaunch mpv to apply the optimized v1.58.30 settings.
 
 [Return to Top](#table-of-contents)
 
@@ -472,7 +476,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1442 Commits (v1.58.18)
+- **Current Maturity**: ~1541 Commits (v1.58.30)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
