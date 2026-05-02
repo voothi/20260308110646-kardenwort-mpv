@@ -26,7 +26,8 @@ local Diagnostic = {
 }
 
 Diagnostic.log = function(level, text, dedupe_key)
-    local current_level = Diagnostic.LEVEL_MAP[Options.log_level:lower()] or Diagnostic.INFO
+    local log_level_str = (Options and Options.log_level) or "info"
+    local current_level = Diagnostic.LEVEL_MAP[log_level_str:lower()] or Diagnostic.INFO
     if level > current_level then return end
     
     if dedupe_key then
