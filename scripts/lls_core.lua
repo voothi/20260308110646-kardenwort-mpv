@@ -5083,16 +5083,20 @@ local function dw_compute_word_center_x(sub)
 end
 
 local function dw_get_word_visual_line(sub, logical_idx)
-    if not sub or not sub.layout_cache or not sub.layout_cache.entry then return -1, 0 end
+    if not sub then return 1, 1 end
+    if not sub.layout_cache or not sub.layout_cache.entry then 
+        -- If no cache (Standard Drum OSD), assume single visual line
+        return 1, 1 
+    end
     local entry = sub.layout_cache.entry
     local v_idx = entry.logical_to_visual[logical_idx]
-    if not v_idx then return -1, 0 end
+    if not v_idx then return 1, 1 end
     for i, vl in ipairs(entry.vlines) do
         for _, idx in ipairs(vl) do
             if idx == v_idx then return i, #entry.vlines end
         end
     end
-    return -1, 0
+    return 1, 1
 end
 
 -- Returns the logical word index on sub whose OSD x-center is closest to target_x.
@@ -5224,6 +5228,7 @@ local function cmd_dw_line_move(dir, shift)
     -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
     if FSM.DW_CURSOR_LINE == -1 then
         FSM.DW_CURSOR_LINE = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
+        Diagnostic.debug("NAV-RECOVERY: Snapped to line " .. FSM.DW_CURSOR_LINE)
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
@@ -5521,10 +5526,10 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
         end, Options.dw_key_pair_mod), complex = true},
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = function() cmd_dw_word_move(-1, false) end},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = function() cmd_dw_word_move(1, false) end},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = function() cmd_dw_line_move(-1, false) end},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = function() cmd_dw_line_move(1, false) end},
+        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function() cmd_dw_word_move(-1, false) end, "ЛЕВЫЙ")},
+        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function() cmd_dw_word_move(1, false) end, "ПРАВЫЙ")},
+        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function() cmd_dw_line_move(-1, false) end, "ВВЕРХ")},
+        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function() cmd_dw_line_move(1, false) end, "ВНИЗ")},
     }
 
     for _, k in ipairs(kb_keys) do 

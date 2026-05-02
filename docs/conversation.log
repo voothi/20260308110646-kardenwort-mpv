@@ -1173,7 +1173,9 @@
 20260502114026 Error
 20260502114235 Error
 20260502114516 Okay, first phase, now let's make sure that when setting the pointer when UP or DOWN on such a long subtitle, priority is given to the very first part of it. The fact is that now I have `erreichbar` in `der Region um Straubing gibt es weitere massive Logistikstandorte, die oft über die A3 oder B20 in 15 bis 30 Minuten erreichbar sind.`, see photo, but this is the last part, moved. And `Logistikstandorte` should stand out. This is the first part of the question. In the second phase, we will need to modify the script so that it is intelligent, understanding that we have moved from DOWN, from above to this long line, and we need to go through these transferred parts (lines) from top to bottom, and similarly when we access it from below using UP.
-
+20260502115801 x Okay, but check that it works in srt, drum, dw, tooltip modes. That this will work from the start of the application.
+20260502120129 x But this does not work in srt, drum modes, but it works in dw immediately after startup.
+20260502120655 Okay, but check that it works in drum mode after start. Now I can’t switch because I’m in dw mode between parts of the transferred subtitle.
 
 
 
