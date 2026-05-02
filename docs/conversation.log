@@ -1158,7 +1158,7 @@
 20260502091938 Okay, but this piece of code seems complicated file.lua#L5221-5230
 20260502093650 opsx-propose take note and take into account conversation anchors in the specifications 20260502090751 20260502091405 20260502091938
 20260502094132 opsx-apply 20260502093650-refine-drum-window-navigation
-
+20260502095036 opsx-explore Check that LEFT RIGHT now works correctly in the text, and check which word should be highlighted in which line (subtitle). Check out the spec for a refresher on this. Compare with the previous version when it worked correctly 41d7084e50823b2c30051063e2576df19cd443d1 20260501160717.
 
 
 
