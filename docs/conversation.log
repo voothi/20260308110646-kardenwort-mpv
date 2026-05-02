@@ -1192,7 +1192,7 @@
 20260502132004 opsx-explore I have a problem with the bold yellow color of the selection, I need to check that the text outline for the yellow, pink selection in all modes srt, dw, drum, tooltip works correctly, that there is a tag there, it is not lost. We did something in v1.58.0. Do a trace, determine what's going on. It feels like the borders, a few pixels that should be shadow or blur, are filled with color, making the text look loud and bold.
 20260502134337 Opacity has stopped working.
 20260502135019 opsx-propose anchors 20260502132004 20260502134337
-
+20260502140024 Sync now
 
 
 

@@ -15,3 +15,12 @@ The following ASS tags are mandatory for all LLS renderers:
 
 ## Opacity and Alpha
 All transparency settings must be processed through the `calculate_ass_alpha` utility to ensure consistent interpretation of the `00-FF` (hex) scale across `\1a`, `\3a`, and `\4a`.
+
+## Transparency Management
+
+### Requirement: Alpha Context Synchronization
+The rendering engine SHALL preserve global `bg_opacity` settings across all OSD layers by explicitly restoring the background alpha context after every surgical tag injection.
+
+#### Scenario: Navigating with transparent background
+- **WHEN** the `dw_bg_opacity` is set to a non-zero value (semi-transparent)
+- **THEN** all rendered subtitle lines SHALL maintain their intended transparency even when containing high-intensity interactive highlights.
