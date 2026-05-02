@@ -30,6 +30,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Surgical Highlighting** | Logic | Coloring only alphanumeric tokens while preserving white punctuation. |
 | **Warm Path** | Interaction | Contiguous selection (**Gold**) resulting in an **Orange** match. |
 | **Cool Path** | Interaction | Non-contiguous/split selection (**Pink**) resulting in a **Purple** match. |
+| **Kardenwort MPV** | Branding | The modern name of the suite (formerly "mpv Language Acquisition Suite"). |
 | **Follow Mode** | UI | Viewport state that automatically tracks active playback. |
 | **Manual Mode** | UI | Viewport state where scrolling is user-controlled (scrolling "frozen"). |
 | **Edge-scrolling** | UI | Automatic scrolling when the cursor hits viewport boundaries. |
@@ -44,6 +45,8 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 When processing user requests referencing legacy terms or analyzing ZIDs from previous versions, the agent SHALL apply the following mappings:
 | Legacy Term | Subject | Modern Equivalent | Transition ZID |
 | :--- | :--- | :--- | :--- |
+| `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
+| `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
 | `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `autopause.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `copy_sub.lua` | Script | `lls_core.lua` | 20260408221530 |
