@@ -3,7 +3,6 @@ local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
 
-print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_script_directory() or "<unknown dir>"))
 
 -- =========================================================================
 -- LLS CORE CONFIGURATION
@@ -12,6 +11,7 @@ print("[LLS] SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_scrip
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
+local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
@@ -53,6 +53,8 @@ Diagnostic.warn  = function(text, key) Diagnostic.log(Diagnostic.WARN, text, key
 Diagnostic.info  = function(text, key) Diagnostic.log(Diagnostic.INFO, text, key) end
 Diagnostic.debug = function(text, key) Diagnostic.log(Diagnostic.DEBUG, text, key) end
 Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, key) end
+
+Diagnostic.info("SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_script_directory() or "<unknown dir>"))
 
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
@@ -98,7 +100,7 @@ local function validate_config()
 end
 
 
-local Options = {
+Options = {
     -- AutoPause
     autopause_default = true,
     karaoke_every_word = false,
