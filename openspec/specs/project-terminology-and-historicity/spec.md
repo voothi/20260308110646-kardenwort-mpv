@@ -10,6 +10,10 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 
 | Term | Subject | Definition |
 | :--- | :--- | :--- |
+| **DualSub / DualSubs** | Core | The practice of displaying two subtitle tracks (Target + Translation) simultaneously. |
+| **Primary Track** | Core | The target-language subtitle track (the focus of acquisition). |
+| **Secondary Track** | Core | The native-language translation subtitle track (the reference). |
+| **Interleaved Tracks**| Logic | A single `.ass` file containing alternating tracks that require de-duplication/merging. |
 | **SRT Mode** | Core UI | The standard subtitle display mode (formerly "Normal Mode"). |
 | **Drum Mode (Mode C)** | Core UI | A playback mode that dims context lines to highlight the active subtitle (formerly "Reel Mode"). |
 | **Drum Window (Mode W)** | Core UI | The primary high-precision OSD viewport for reading and word-level navigation (formerly "Static Reading Mode"). |
