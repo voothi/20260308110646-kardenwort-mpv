@@ -27,6 +27,12 @@ The project environment uses a specific set of terms to describe its tooling and
 | **OpenSpec** | Methodology | The modern, agentic-centric specification framework for active development. |
 | **SDD** | Methodology | **Software Design Document**: The legacy planning methodology (now archived). |
 
+### Requirement: The ZID Traceability Model
+The project utilizes a timestamp-based anchoring system (**ZID**) to ensure absolute traceability:
+- **ZID (Zettelkasten Identifier)**: A unique `yyyyMMddHHmmss` string generated for every interaction and commit.
+- **Git Commit Linking**: Every commit SHALL include the ZID of the request that triggered it.
+- **Rationale**: This creates an immutable link between the **Source Code** (Git), the **Conversation** (`conversation.log`), and the **Activity Log** (AI session), allowing developers to reconstruct the exact context of any change by following the closest timestamp delta.
+
 ### Requirement: Canonical Thesaurus Adherence
 The AI agent and developers SHALL prioritize the following canonical terms over generic descriptions:
 
