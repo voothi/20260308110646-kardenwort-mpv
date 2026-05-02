@@ -463,11 +463,36 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 
 ## Installation
 
-1.  **Locate Config**: Open `%APPDATA%\mpv\` (Windows).
-2.  **Deploy**: Copy `mpv.conf`, `input.conf`, and the `scripts/` folder into the directory.
-3.  **Self-Documenting Hotkeys**: `input.conf` is fully commented with detailed explanations for every key. Refer to it as your primary manual.
-4.  **Scripts**: The core logic is powered by the unified `lls_core.lua` script. Ensure it's saved with **UTF-8** encoding.
-5.  **Restart**: Relaunch mpv to apply the optimized v1.58.30 settings.
+### 1. Deployment (Windows)
+Choose a permanent directory for the suite (e.g., `U:\voothi\20260308110646-kardenwort-mpv`).
+
+*   **Via Release Archive**:
+    Download the **Source code (zip)** from the [Latest Release](https://github.com/voothi/20260308110646-kardenwort-mpv/releases) and extract it.
+*   **Via Git Clone**:
+    ```powershell
+    git clone https://github.com/voothi/20260308110646-kardenwort-mpv.git
+    ```
+
+### 2. Integration Strategies
+To connect the suite with your `mpv` instance, use one of the following methods:
+
+#### **A. Portable / AppData Placement**
+Copy the contents (`mpv.conf`, `input.conf`, and `scripts/`) into:
+- The **root folder** of your `mpv` installation (next to `mpv.exe`).
+- **OR** the standard config path: `%APPDATA%\mpv\`
+
+#### **B. Symbolic Linking (Junctions)**
+For advanced users, it is recommended to use a **Junction** or **Hardlink** to keep the configuration synchronized with the source repository. 
+You can use the [voothi/createjunction](https://github.com/voothi/20251206145855-createjunction) utility to link your distribution:
+```powershell
+# Link the distribution to the mpv config directory
+createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
+```
+
+### 3. Verification
+1.  **Encoding**: Confirm that `lls_core.lua` is in **UTF-8** format.
+2.  **Activation**: Relaunch `mpv`. The specialized OSD should be active upon loading media.
+3.  **Hotkeys**: Refer to the commented `input.conf` as your primary manual.
 
 [Return to Top](#table-of-contents)
 
