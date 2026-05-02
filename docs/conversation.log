@@ -1151,6 +1151,6 @@
 20260502084442 Enrich the specs and documentation openspec\changes\20260502082941-smart-logging-and-diagnostics with new details from conversation anchors 20260502082748 20260502083251 20260502083750 20260502083959 20260502084111 20260502084327
 20260502084812 Look at what's in the console at startup, is this a problem?
 20260502085343 Okay, are there any other problems, now the console is cleaner
-
+20260502085923 It is necessary to bind `ё` to opening the debug console as with `\``
 
 
