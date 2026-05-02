@@ -5134,34 +5134,35 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
     -- We search vlines (optionally filtered) and pick the globally closest word.
     for i, vl_indices in ipairs(vlines) do
         if not vl_filter or i == vl_filter then
-        local vl_width = 0
-        for k, wi in ipairs(vl_indices) do
-            vl_width = vl_width + dw_get_str_width(tokens[wi])
-            if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
-        end
-        local vl_left = 960 - vl_width / 2
-        local pos = 0
-        for k, wi in ipairs(vl_indices) do
-            local ww = dw_get_str_width(tokens[wi])
-            local l_idx = visual_to_logical[wi]
-            if l_idx then
-                local valid = false
-                if word_only then
-                    valid = tokens[wi].is_word
-                else
-                    valid = not tokens[wi].text:match("^%s*$")
-                end
-                
-                if valid then
-                    local cx = vl_left + pos + ww / 2
-                    local dist = math.abs(cx - target_x)
-                    if dist < best_dist then
-                        best_dist = dist
-                        best_logical = l_idx
+            local vl_width = 0
+            for k, wi in ipairs(vl_indices) do
+                vl_width = vl_width + dw_get_str_width(tokens[wi])
+                if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+            end
+            local vl_left = 960 - vl_width / 2
+            local pos = 0
+            for k, wi in ipairs(vl_indices) do
+                local ww = dw_get_str_width(tokens[wi])
+                local l_idx = visual_to_logical[wi]
+                if l_idx then
+                    local valid = false
+                    if word_only then
+                        valid = tokens[wi].is_word
+                    else
+                        valid = not tokens[wi].text:match("^%s*$")
+                    end
+                    
+                    if valid then
+                        local cx = vl_left + pos + ww / 2
+                        local dist = math.abs(cx - target_x)
+                        if dist < best_dist then
+                            best_dist = dist
+                            best_logical = l_idx
+                        end
                     end
                 end
+                pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
             end
-            pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
         end
     end
 

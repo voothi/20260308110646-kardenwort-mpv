@@ -1170,6 +1170,7 @@
 20260502110715 Now it does not work immediately after startup, I mean that in srt, drum mode, but it works in dw mode.
 20260502112024 Can we make it so that when you press UP DOWN, the pointer first appears on the current line, and then when you click again on the normal case, it moves along the lines, and not like now, when it pops up again on the next line?
 20260502112840 Well, this behavior will need to be written down in specs, let's look at this case again, with long lines with visual wrapping using our complex mechanism, see the photo, which shows that when you press UP or DOWN, the yellow pointer is in the center, in the part that was moved, now when you click UP, my pointer goes straight to the previous subtitle, and this is logical, but to me you need to do it cleverly so that instead, that first part of the long subtitle, in the middle, is highlighted first. This is necessary for more optimized navigation through material with long subtitles, no matter how many parts our mechanism divides and transfers this long subtitle.
+20260502114026 Error
 
 
 
