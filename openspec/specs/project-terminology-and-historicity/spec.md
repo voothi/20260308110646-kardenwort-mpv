@@ -30,6 +30,13 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Surgical Highlighting** | Logic | Coloring only alphanumeric tokens while preserving white punctuation. |
 | **Warm Path** | Interaction | Contiguous selection (**Gold**) resulting in an **Orange** match. |
 | **Cool Path** | Interaction | Non-contiguous/split selection (**Pink**) resulting in a **Purple** match. |
+| **Follow Mode** | UI | Viewport state that automatically tracks active playback. |
+| **Manual Mode** | UI | Viewport state where scrolling is user-controlled (scrolling "frozen"). |
+| **Edge-scrolling** | UI | Automatic scrolling when the cursor hits viewport boundaries. |
+| **Smart Spacebar** | Logic | Multi-modal playback key handling Pause, Autopause, and Resume. |
+| **Karaoke Merging** | Logic | Process of reassembling fragmented word tokens into chronological sentences. |
+| **Language-Aware Context** | Logic | Filtering context extraction to exclude translations (e.g. via Cyrillic detection). |
+| **Layout Agnosticism** | UX | Mapping standard keys across multiple keyboard layouts (EN/RU). |
 | **Interaction Shield** | Stability | A 50-150ms suppression window to ignore hardware jitter (ghost-clicks). |
 | **Grounded Match** | Accuracy | Highlighting anchored to a specific `logical_idx` and `time_pos`. |
 
@@ -37,6 +44,10 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 When processing user requests referencing legacy terms or analyzing ZIDs from previous versions, the agent SHALL apply the following mappings:
 | Legacy Term | Subject | Modern Equivalent | Transition ZID |
 | :--- | :--- | :--- | :--- |
+| `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `autopause.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `copy_sub.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `fixed_font.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `Normal Mode` | UI Mode | `SRT Mode` | Early Development |
 | `Reel Mode` | UI Mode | `Drum Mode` | 20260412105348 |
 | `Window Mode` | UI Mode | `Drum Window` | 20260414115025 |
