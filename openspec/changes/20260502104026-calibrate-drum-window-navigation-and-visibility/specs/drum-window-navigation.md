@@ -33,3 +33,9 @@
 - **WHEN** the script starts AND no subtitle is currently active (e.g., at 00:00).
 - **AND** the user presses a navigation key (UP, DOWN, LEFT, RIGHT).
 - **THEN** the system SHALL initialize `DW_CURSOR_LINE` to the first subtitle (for DOWN/RIGHT) or last subtitle (for UP/LEFT) and begin navigation.
+
+### Requirement: Architectural Integrity and Parity
+- **Consistency**: All navigational logic and visual highlighting (e.g., Yellow Pointer, Pink Selection) MUST behave identically across all three rendering layers: **Drum Window (W)**, **Drum OSD (C)**, and **Translation Tooltip (E)**.
+- **Unified Layout**: To prevent regressions in wrapped text navigation, ALL components MUST utilize the `ensure_sub_layout` unified engine to determine visual line boundaries and word coordinates.
+- **Backlight Persistence**: Manual highlights (is_manual) MUST preserve their full token boundaries (including punctuation) in all viewing modes, bypassing the surgical punctuation logic reserved for automated database matches.
+- **Defensive Design**: Core navigation functions SHALL implement safety fallbacks for missing layout data (e.g., on-demand layout building) to ensure zero-crash startup performance in OSD mode.
