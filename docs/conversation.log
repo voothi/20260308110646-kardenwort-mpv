@@ -1209,6 +1209,8 @@
 20260502154245 Not enough, we need to go through each folder in openspec, read the files in it, extract new terms from there, technical, domain, timestamp. 
 20260502154615 You have written down everything you need in openspec\changes\20260502151844-standardized-terminology-and-historicity?
 20260502154921 Look at this docs folder, look in the renaming files there for new terms.
+20260502155311 How did the name of the project change? README.md?
+20260502155744 Look, search in Git, the project was renamed in README, it was in the name Learning, it became Aquisiton
 
 
 

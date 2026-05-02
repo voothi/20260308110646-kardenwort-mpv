@@ -45,6 +45,8 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 When processing user requests referencing legacy terms or analyzing ZIDs from previous versions, the agent SHALL apply the following mappings:
 | Legacy Term | Subject | Modern Equivalent | Transition ZID |
 | :--- | :--- | :--- | :--- |
+| `mpv Language Learning Suite`| Project | `mpv Language Acquisition Suite`| 20260310145846 |
+| `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
 | `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
 | `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
