@@ -2890,7 +2890,7 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
     return token_meta
 end
 
-local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold, is_manual)
+local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold, is_manual, bg_color)
     if type(word) == "table" then word = word.text end
     if not word then return "" end
     
@@ -2901,9 +2901,16 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     
     if (h_color == base_color) then return word end
 
+    -- Standardized highlight tags to prevent blooming/thickness regressions (Task 1.1)
+    -- We explicitly inject border/shadow colors and opaque alphas to ensure "Premium" regular weight
+    -- and sharp outlines regardless of global background settings.
+    bg_color = bg_color or "000000"
+    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H00&\\4a&H00&}", c_tag, h_color, bg_color, bg_color)
+    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H00&\\4a&H00&}", c_tag, base_color, bg_color, bg_color)
+
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
-        return string.format("%s{\\%s&H%s&}%s{\\%s&H%s&}%s", b_on, c_tag, h_color, word, c_tag, base_color, b_off)
+        return string.format("%s%s%s%s%s", b_on, h_tags, word, r_tags, b_off)
     else
         -- Surgical highlighting for automated database matches (Surgical Punctuation)
         local pre = word:match("^[%p%s]*")
@@ -2913,7 +2920,7 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
             mid = word:sub(#pre + 1, #word - #suf)
         end
         if mid ~= "" then
-            return string.format("%s%s{\\%s&H%s&}%s%s{\\%s&H%s&}%s", pre, b_on, c_tag, h_color, mid, b_off, c_tag, base_color, suf)
+            return string.format("%s%s%s%s%s%s%s", pre, b_on, h_tags, mid, b_off, r_tags, suf)
         else
             -- Professional look: single-word database matches keep their surrounding punctuation uncolored
             return word
@@ -3190,7 +3197,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or meta.h_bold
                     local is_man = (meta_item.priority == 1 or meta_item.priority == 2)
-                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold, is_man))
+                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold, is_man, is_drum and Options.drum_bg_color or Options.srt_bg_color))
                 else
                     table.insert(formatted_parts, meta_item.text)
                 end
@@ -3229,8 +3236,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
-    local style_block = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s", 
-        bord, shad, bg_color, bg_color, calculate_ass_alpha(bg_opacity), calculate_ass_alpha(bg_opacity), vsp_tag)
+    local style_block = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H00&}{\\4a&H00&}{\\q2}%s", 
+        bord, shad, bg_color, bg_color, vsp_tag)
 
     local ass = ""
     if is_top then
@@ -3459,7 +3466,7 @@ local function draw_dw(subs, view_center, active_idx)
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
                     local is_manual = (meta_item.priority == 1 or meta_item.priority == 2)
-                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold, is_manual))
+                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold, is_manual, Options.dw_bg_color))
                 else
                     table.insert(formatted_words, meta_item.text)
                 end
@@ -3499,8 +3506,8 @@ local function draw_dw(subs, view_center, active_idx)
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H00&}{\\4a&H00&}{\\q2}{\\fs%d}%s%s", 
+        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, Options.dw_font_size, vsp_tag, block_text)
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -3600,7 +3607,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 
                 local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
                 local is_man = (tm.priority == 1 or tm.priority == 2)
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, Options.tooltip_bg_color)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
@@ -3673,8 +3680,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
     local base_bold = Options.tooltip_context_bold and "1" or "0"
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
+    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H00&}{\\4a&H00&}{\\q2}%s",
+        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, text_block)
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
