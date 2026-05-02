@@ -47,3 +47,9 @@
 - **AND** the user performs the FIRST navigation action before a subtitle has naturally become active.
 - **THEN** the system SHALL automatically snap `DW_CURSOR_LINE` to the active playback line or the nearest boundary (1 or #subs) to prevent navigation deadlocks.
 - **AND** a diagnostic log `NAV-RECOVERY` SHALL be emitted to the console for verification.
+
+### Requirement: Architectural Integrity and Parity
+- **Consistency**: All navigational logic and visual highlighting (e.g., Yellow Pointer, Pink Selection) MUST behave identically across all three rendering layers: **Drum Window (W)**, **Drum OSD (C)**, and **Translation Tooltip (E)**.
+- **Unified Layout**: To prevent regressions in wrapped text navigation, ALL components MUST utilize the `ensure_sub_layout` unified engine to determine visual line boundaries and word coordinates.
+- **Backlight Persistence**: Manual highlights (is_manual) MUST preserve their full token boundaries (including punctuation) in all viewing modes, bypassing the surgical punctuation logic reserved for automated database matches.
+- **Defensive Design**: Core navigation functions SHALL implement safety fallbacks for missing layout data (e.g., on-demand layout building) to ensure zero-crash startup performance in OSD mode.

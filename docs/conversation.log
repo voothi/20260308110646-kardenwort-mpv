@@ -1184,6 +1184,7 @@
 20260502124850 Our is_manual backlight is not working again, which we just fixed in 20260502101357, but I noticed that it works well in W window mode.
 20260502125646 Okay, but how can you protect yourself from such incidents when making changes in the future?
 20260502125858 For now, let's just write this requirement in the specs and leave the refactoring for another session.
+20260502130639 You definitely haven’t deleted the necessary information, check?
 
 
 
