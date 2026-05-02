@@ -23,3 +23,7 @@
 - [x] 3.8 Verify that UP/DOWN first activates the pointer on the current line if nothing was selected.
 - [x] 3.9 Verify that UP/DOWN navigates between visual lines of a wrapped subtitle before jumping.
 - [x] 3.10 Verify that entering a wrapped subtitle from top lands on the FIRST visual line, and from bottom on the LAST.
+- [x] 3.11 Implement `ensure_sub_layout` to provide a unified layout cache for OSD and Window modes.
+- [x] 3.12 Implement `Set-Clipboard` retry loop in PowerShell to handle Windows external lock exceptions.
+- [x] 3.13 Fix `is_manual` regression in Drum OSD and Translation Tooltip rendering loops.
+- [x] 3.14 Formalize "Architectural Integrity and Parity" requirements in the specification.
