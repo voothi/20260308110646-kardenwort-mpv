@@ -11,6 +11,7 @@ The project environment uses a specific set of terms to describe its tooling and
 | Term | Subject | Definition |
 | :--- | :--- | :--- |
 | **ZID** | Methodology | **Zettelkasten Identifier** (`yyyyMMddHHmmss`) used to link commits, logs, and AI conversations. |
+| **Kardenwort Ecosystem**| Project | An open-source suite of linguistic utilities on GitHub (e.g. En, De) for language acquisition. |
 | **Antigravity** | Infrastructure | The agentic AI coding IDE used for project development. |
 | **Weak Model** | AI Tier | Low-latency models (e.g. **Gemini 3 Flash**) used for routine auditing and simple edits. |
 | **Middle Model** | AI Tier | Balanced models (e.g. **Gemini 3.1 Pro (low)**, **Sonnet 4.6**) for feature implementation. |
