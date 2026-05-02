@@ -1242,3 +1242,18 @@
 20260502223454 Make it work more reliably when paired with GoldenDict via the clipboard. Now there are gaps for some reason. Maybe this is due to the latest modification to the response time? I can make this a separate parameter to try debug?
 20260502225817 Add to mpv.conf.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
