@@ -29,9 +29,11 @@ The project environment uses a specific set of terms to describe its tooling and
 
 ### Requirement: The ZID Traceability Model
 The project utilizes a timestamp-based anchoring system (**ZID**) to ensure absolute traceability:
-- **ZID (Zettelkasten Identifier)**: A unique `yyyyMMddHHmmss` string generated for every interaction and commit.
+- **ZID (Zettelkasten Identifier)**: A unique `yyyyMMddHHmmss` string generated for every interaction and commit. It is **project-unique**, serving as a one-to-one primary key for any event or record.
 - **Git Commit Linking**: Every commit SHALL include the ZID of the request that triggered it.
-- **Rationale**: This creates an immutable link between the **Source Code** (Git), the **Conversation** (`conversation.log`), and the **Activity Log** (AI session), allowing developers to reconstruct the exact context of any change by following the closest timestamp delta.
+- **Conversation Anchors**: Every AI message (to and from chat) and major artifact (Release Notes, Specifications) SHALL be prefixed with a ZID tag.
+- **Unified Registry**: The `conversation.log` acts as the **Single Source of Truth** and central register for all anchors, complementing the user's private **Linguistic Journal**.
+- **Rationale**: This creates an immutable link between the **Source Code** (Git), the **Conversation** (`conversation.log`), and the **Activity Log** (AI session). These anchors allow the AI and user to refer back to any specific point in history with 100% conceptual precision.
 
 ### Requirement: Canonical Thesaurus Adherence
 The AI agent and developers SHALL prioritize the following canonical terms over generic descriptions:

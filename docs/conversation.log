@@ -1221,6 +1221,8 @@
 20260502161822 General log log of requests docs\conversation.log, which can be used to compare with project artifacts, git history. Central register of requests.
 20260502162110 Kardenwort is an open project of utilities on Github for working with languages ​​(En, De)
 20260502162232 Linking via ZID - an approach to tracing a project by timestamp, why am I writing it in a Git Message.
+20260502162415 A single source and register while our journal remains. AI chat also communicates via ZID, each message to and from chat is accompanied by a ZID tag at the beginning. The repository itself also has a label, features have a label, and release notes. These are also called conversation anchors. I can refer to the anchor. 
+20260502162711 It should be added that ZID is basically unique in the context of the project
 
 
 
