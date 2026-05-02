@@ -5216,36 +5216,21 @@ local function cmd_dw_line_move(dir, shift)
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE]) or 960
     end
     
-    local target_line = FSM.DW_CURSOR_LINE + dir
-    local found = false
-    while target_line >= 1 and target_line <= #subs do
-        local best_w = dw_closest_word_at_x(subs[target_line], FSM.DW_CURSOR_X, true)
-        if best_w ~= -1 then
-            FSM.DW_CURSOR_LINE = target_line
-            FSM.DW_CURSOR_WORD = best_w
-            found = true
+    -- Scan for the next line that contains a valid word
+    for l = FSM.DW_CURSOR_LINE + dir, (dir > 0 and #subs or 1), dir do
+        local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true)
+        if w ~= -1 then
+            FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
             break
         end
-        target_line = target_line + dir
     end
 
-    if not found then
-        dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
-        return
+    if not shift then
+        FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD = -1, -1
     end
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-    
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
-    
-    if not shift then
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
-    else
-        if FSM.DW_CURSOR_WORD == -1 then
-            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X, true)
-        end
-    end
 end
 
 local function cmd_dw_word_move(dir, shift)
