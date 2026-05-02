@@ -1167,6 +1167,8 @@
 20260502105029 You did not identify one more behavior that I originally wanted to talk about, this is on what line and in what position the yellow word cursor appears when you press LEFT and RIGHT. The behavior of UP and DOWN now seems to have not changed and is correct. This will also need to be captured in 20260502104026-calibrate-drum-window-navigation-and-visibility, if not already in the general specifications.
 20260502105526 That’s right, but you still can’t figure out what will happen if you do this after Esc, after resetting all selections. What happens if you press LEFT and RIGTH after that. My last message was in this context, in this use case.
 20260502110601 It is necessary to describe in the specification how this works for UP DOWN.
+20260502110715 Now it does not work immediately after startup, I mean that in srt, drum mode, but it works in dw mode.
+20260502112024 Can we make it so that when you press UP DOWN, the pointer first appears on the current line, and then when you click again on the normal case, it moves along the lines, and not like now, when it pops up again on the next line?
 
 
 

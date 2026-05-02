@@ -19,3 +19,5 @@
 - [x] 3.4 Verify that LEFT/RIGHT line-wrapping correctly lands on the start/end of the adjacent line.
 - [x] 3.5 Verify that LEFT/RIGHT after Esc (null selection) enters the start/end of the CURRENT line.
 - [x] 3.6 Verify that UP/DOWN after Esc (null selection) targets the word closest to the center (X=960) on the adjacent line.
+- [x] 3.7 Verify that navigation works immediately after startup even if no subtitle is active.
+- [x] 3.8 Verify that UP/DOWN first activates the pointer on the current line if nothing was selected.

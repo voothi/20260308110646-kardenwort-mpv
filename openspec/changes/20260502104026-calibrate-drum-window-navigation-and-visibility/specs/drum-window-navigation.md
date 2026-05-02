@@ -19,4 +19,10 @@
 - **AND** the user presses RIGHT.
 - **THEN** the yellow pointer SHALL highlight the FIRST valid token of the current line.
 - **AND** if the user presses LEFT, it SHALL highlight the LAST valid token of the current line.
-- **AND** if the user presses UP or DOWN, it SHALL jump to the closest word to the horizontal center (X=960) on the target line.
+- **AND** if the user presses UP or DOWN, it SHALL first attempt to activate the pointer on the CURRENT line (closest word to X=960). 
+- **AND** only if a second press occurs (or no words exist on the current line) SHALL it jump to adjacent lines.
+
+#### Scenario: Startup Recovery (No Initial Selection)
+- **WHEN** the script starts AND no subtitle is currently active (e.g., at 00:00).
+- **AND** the user presses a navigation key (UP, DOWN, LEFT, RIGHT).
+- **THEN** the system SHALL initialize `DW_CURSOR_LINE` to the first subtitle (for DOWN/RIGHT) or last subtitle (for UP/LEFT) and begin navigation.

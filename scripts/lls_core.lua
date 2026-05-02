@@ -5206,6 +5206,11 @@ local function cmd_dw_line_move(dir, shift)
     
     FSM.DW_FOLLOW_PLAYER = false
     
+    -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
+    if FSM.DW_CURSOR_LINE == -1 then
+        FSM.DW_CURSOR_LINE = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
+    end
+    
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         local start_word = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
@@ -5218,8 +5223,14 @@ local function cmd_dw_line_move(dir, shift)
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE]) or 960
     end
     
-    -- Scan for the next line that contains a valid word
-    for l = FSM.DW_CURSOR_LINE + dir, (dir > 0 and #subs or 1), dir do
+    -- Scan for the target line that contains a valid word.
+    -- If no word is currently selected (e.g. after Esc), we first try to land on the CURRENT line.
+    local start_scan_line = FSM.DW_CURSOR_LINE
+    if FSM.DW_CURSOR_WORD ~= -1 then
+        start_scan_line = start_scan_line + dir
+    end
+
+    for l = start_scan_line, (dir > 0 and #subs or 1), dir do
         local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true)
         if w ~= -1 then
             FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
@@ -5242,6 +5253,14 @@ local function cmd_dw_word_move(dir, shift)
     FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
+    
+    -- Recovery: If no cursor line is set (e.g. at startup or no active sub), 
+    -- try to snap to the active line or the first/last sub.
+    if line_idx == -1 then
+        line_idx = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
+        FSM.DW_CURSOR_LINE = line_idx
+    end
+
     local raw_sub = subs[line_idx]
     if not raw_sub then return end
     
