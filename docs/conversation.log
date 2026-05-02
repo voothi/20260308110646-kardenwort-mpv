@@ -1233,6 +1233,7 @@
 20260502170926 /opsx-explore You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications, configuration guru and diff-guru for this project, with surgical precision check the current version d4ad502fff6da61f936e93c19f73af0021f36908 20260502170221 for regression compared to v1.58.18, and for compliance, impeccable adherence to the current general openspec\specs specifications, it is necessary to synchronize.
 20260502171805 Conclusion: The current codebase is architecturally sound and functionally superior to the v1.58.18 baseline. No regressions were found during this surgical audit. All specifications are in 100% sync. - Okay.
 20260502172139 create-release-2 v1.58.30 openspec\changes\archive\20260502005934-resume-last-file-session openspec\changes\archive\20260502082941-smart-logging-and-diagnostics openspec\changes\archive\20260502093650-refine-drum-window-navigation openspec\changes\archive\20260502104026-calibrate-drum-window-navigation-and-visibility openspec\changes\archive\20260502135022-calibrate-highlight-aesthetics openspec\changes\archive\20260502151844-standardized-terminology-and-historicity
+20260502203812 Add to installation instructions for Windows in README. 
 
 
 
