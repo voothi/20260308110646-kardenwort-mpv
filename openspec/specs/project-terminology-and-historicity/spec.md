@@ -35,6 +35,14 @@ The project utilizes a timestamp-based anchoring system (**ZID**) to ensure abso
 - **Unified Registry**: The `conversation.log` acts as the **Single Source of Truth** and central register for all anchors, complementing the user's private **Linguistic Journal**.
 - **Rationale**: This creates an immutable link between the **Source Code** (Git), the **Conversation** (`conversation.log`), and the **Activity Log** (AI session). These anchors allow the AI and user to refer back to any specific point in history with 100% conceptual precision.
 
+### Requirement: Global Operational Rules (GEMINI.md)
+The following mandatory rules govern all technical interactions within the project:
+- **Environment**: Development is strictly limited to **Windows 11** and the **Antigravity IDE**.
+- **Shell**: Use **PowerShell** only. Avoid `grep`, `ls`, or other Unix-native utilities.
+- **Git Protocol**: NEVER perform `Merge` or mutate Git history (Rebase/Force-Push) without direct user instructions.
+- **ZID Generation**: At the start of every response, the agent MUST execute `python U:\voothi\20241116203211-zid\zid.py` to obtain the current ZID anchor.
+- **Traceability Delta**: When correlating ZIDs between Git commits and the `conversation.log`, allow for a small temporal delta. While the log entry typically precedes the Git commit, the sequence may occasionally be reversed; always look for the closest matching points in the timeline.
+
 ### Requirement: Canonical Thesaurus Adherence
 The AI agent and developers SHALL prioritize the following canonical terms over generic descriptions:
 
