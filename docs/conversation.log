@@ -1153,4 +1153,16 @@
 20260502085343 Okay, are there any other problems, now the console is cleaner
 20260502085923 It is necessary to bind `ё` to opening the debug console as with `\``
 20260502084442 Enrich the specs and documentation openspec\changes\20260502082941-smart-logging-and-diagnostics with new details from conversation anchors 20260502084442 20260502084812 20260502085343 20260502085923
+20260502090751 opsx-explore # Make sure that in modes W, C the yellow highlight pointer moves up or down only to words, not to characters. ## Description Nowadays such a transition sometimes ends up on a sign, on a point, for example, and this discourages the user, since there is a feeling that the pointer has disappeared. 20260502020737-make-sure-that-in
+20260502091405 I rolled back your changes without agreeing with me, I clarify that it is important for me that the LEFT RIGHT navigation remains as before, so that I can highlight characters, see the specifications on this matter.
+
+
+
+
+
+
+
+
+
+
 

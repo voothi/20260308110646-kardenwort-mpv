@@ -5082,7 +5082,7 @@ end
 
 -- Returns the logical word index on sub whose OSD x-center is closest to target_x.
 -- Falls back to first word if nothing found.
-local function dw_closest_word_at_x(sub, target_x)
+local function dw_closest_word_at_x(sub, target_x, word_only)
     if not sub then return -1 end
     local tokens = get_sub_tokens(sub)
     local space_w = dw_get_str_width(" ")
@@ -5129,8 +5129,14 @@ local function dw_closest_word_at_x(sub, target_x)
             local ww = dw_get_str_width(tokens[wi])
             local l_idx = visual_to_logical[wi]
             if l_idx then
-                -- Ignore pure whitespace for mouse hit-testing
-                if not tokens[wi].text:match("^%s*$") then
+                local valid = false
+                if word_only then
+                    valid = tokens[wi].is_word
+                else
+                    valid = not tokens[wi].text:match("^%s*$")
+                end
+                
+                if valid then
                     local cx = vl_left + pos + ww / 2
                     local dist = math.abs(cx - target_x)
                     if dist < best_dist then
@@ -5143,7 +5149,7 @@ local function dw_closest_word_at_x(sub, target_x)
         end
     end
 
-    return best_logical or get_first_valid_word_idx(sub)
+    return best_logical or (not word_only and get_first_valid_word_idx(sub) or -1)
 end
 
 
@@ -5210,19 +5216,34 @@ local function cmd_dw_line_move(dir, shift)
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE]) or 960
     end
     
-    FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, FSM.DW_CURSOR_LINE + dir))
+    local target_line = FSM.DW_CURSOR_LINE + dir
+    local found = false
+    while target_line >= 1 and target_line <= #subs do
+        local best_w = dw_closest_word_at_x(subs[target_line], FSM.DW_CURSOR_X, true)
+        if best_w ~= -1 then
+            FSM.DW_CURSOR_LINE = target_line
+            FSM.DW_CURSOR_WORD = best_w
+            found = true
+            break
+        end
+        target_line = target_line + dir
+    end
+
+    if not found then
+        dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+        return
+    end
+    
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
     
     if not shift then
-        -- Navigate to the closest word under the sticky horizontal position.
-        FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X)
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     else
         if FSM.DW_CURSOR_WORD == -1 then
-            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X)
+            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[FSM.DW_CURSOR_LINE], FSM.DW_CURSOR_X, true)
         end
     end
 end
