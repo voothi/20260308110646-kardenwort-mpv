@@ -4828,7 +4828,7 @@ end
 
 update_interactive_bindings = function()
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
-    local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
+    local osd_on = (FSM.DRUM == "ON" or FSM.MEDIA_STATE:match("SRT")) and Options.osd_interactivity
     
     local need_mouse = dw_on or osd_on
     local need_kb = dw_on or osd_on
@@ -6737,6 +6737,9 @@ mp.register_event("shutdown", function()
         manage_dw_bindings(false)
     end
 end)
+
+-- Initial binding sync
+update_interactive_bindings()
 
 -- Register Bindings
 mp.add_key_binding(nil, "toggle-autopause", cmd_toggle_autopause)
