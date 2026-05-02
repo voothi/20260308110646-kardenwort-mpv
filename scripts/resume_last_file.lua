@@ -18,9 +18,9 @@ local opts = {
     -- OSD font name (set to "" to use system default)
     osd_font_name = "Consolas",
     -- Whether to show the OSD message with the filename
-    show_filename = true,
+    show_filename = false,
     -- Whether to include information about connected subtitles in the OSD
-    show_subtitles = true
+    show_subtitles = false
 }
 
 local utils = require 'mp.utils'
