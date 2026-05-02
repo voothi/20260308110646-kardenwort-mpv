@@ -1228,7 +1228,7 @@
 20260502163345 You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced specifications architect and diff-guru, do it opsx-archive --sync openspec\changes\20260502151844-standardized-terminology-and-historicity
 20260502164458 opsx-explore # Analyze and reduce the cyclomatic complexity of the code, improve its readability, reliability, conciseness and understandability due to this. ## Description 20260502091727-analyze-and-reduce-the
 20260502164849 opsx-propose
-
+20260502165252 opsx-explore # Write tests for the project. ## Description We have the specifications. How can we emulate the behavior of the interface via the command line? Make flags, utility options? Emulate color, check it. Do I understand correctly that such tests can be a mechanism for automated acceptance of work on draft specifications? It's like a specification, but in reverse. Staging and acceptance by another system. My problem is that functions that worked before the project change often break, but this is revealed during the user's work. Probably tests created based on cases from specifications are more likely integration tests than unit tests? Another thing here is that checking for regression using an AI agent consumes a large number of tokens every time, this is an expensive pleasure. 20260426231819-write-tests-for-the
 
 
 
