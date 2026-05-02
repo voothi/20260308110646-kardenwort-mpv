@@ -5167,13 +5167,13 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
         if not vl_filter or i == vl_filter then
             local vl_width = 0
             for k, wi in ipairs(vl_indices) do
-                vl_width = vl_width + dw_get_str_width(tokens[wi])
+                vl_width = vl_width + dw_get_str_width(words[wi])
                 if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
             end
             local vl_left = 960 - vl_width / 2
             local pos = 0
             for k, wi in ipairs(vl_indices) do
-                local ww = dw_get_str_width(tokens[wi])
+                local ww = dw_get_str_width(words[wi])
                 local l_idx = visual_to_logical[wi]
                 if l_idx then
                     local valid = false
