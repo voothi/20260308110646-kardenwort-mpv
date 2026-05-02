@@ -5716,7 +5716,7 @@ local function set_clipboard(text)
     local platform = package.config:sub(1,1)
     if platform == "\\" then
         local safe_txt = text:gsub("'", "''")
-        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value '%s'", safe_txt)
+        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt 5; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 50 } }", safe_txt)
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
     else
         local un = io.popen("uname -a")
