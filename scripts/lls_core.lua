@@ -5082,13 +5082,57 @@ local function dw_compute_word_center_x(sub)
     return nil
 end
 
-local function dw_get_word_visual_line(sub, logical_idx)
-    if not sub then return 1, 1 end
-    if not sub.layout_cache or not sub.layout_cache.entry then 
-        -- If no cache (Standard Drum OSD), assume single visual line
-        return 1, 1 
+local function ensure_sub_layout(sub)
+    if not sub then return nil end
+    if sub.layout_cache and sub.layout_cache.version == FSM.LAYOUT_VERSION then
+        return sub.layout_cache.entry
     end
-    local entry = sub.layout_cache.entry
+
+    local tokens = get_sub_tokens(sub)
+    if #tokens == 0 then tokens = {{text=""}} end
+    local font_size = Options.dw_font_size
+    local font_name = Options.dw_font_name
+    local max_w = 1860
+    local space_w = dw_get_str_width(" ", font_size, font_name)
+
+    local logical_to_visual = {}
+    for j, t in ipairs(tokens) do
+        if t.logical_idx then logical_to_visual[t.logical_idx] = j end
+    end
+
+    local vlines = {}
+    local cur_indices = {}
+    local cur_w = 0
+    for j, w in ipairs(tokens) do
+        local ww = dw_get_str_width(w, font_size, font_name)
+        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
+        if cur_w + space + ww > max_w and #cur_indices > 0 then
+            table.insert(vlines, cur_indices)
+            cur_indices = {j}
+            cur_w = ww
+        else
+            table.insert(cur_indices, j)
+            cur_w = cur_w + space + ww
+        end
+    end
+    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+    if #vlines == 0 then vlines = {{1}} end
+
+    sub.layout_cache = {
+        version = FSM.LAYOUT_VERSION,
+        entry = {
+            vlines = vlines,
+            logical_to_visual = logical_to_visual,
+            tokens = tokens
+        }
+    }
+    return sub.layout_cache.entry
+end
+
+local function dw_get_word_visual_line(sub, logical_idx)
+    local entry = ensure_sub_layout(sub)
+    if not entry then return 1, 1 end
+    
     local v_idx = entry.logical_to_visual[logical_idx]
     if not v_idx then return 1, 1 end
     for i, vl in ipairs(entry.vlines) do
@@ -5102,34 +5146,17 @@ end
 -- Returns the logical word index on sub whose OSD x-center is closest to target_x.
 -- Falls back to first word if nothing found.
 local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
-    if not sub then return -1 end
-    local tokens = get_sub_tokens(sub)
-    local space_w = dw_get_str_width(" ")
-    local max_text_w = 1860
-
-    -- Replicate word-wrap.
-    local vlines = {}
-    local cur_indices = {}
-    local cur_w = 0
-    for j, w in ipairs(tokens) do
-        local ww = dw_get_str_width(w)
-        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
-        if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-            table.insert(vlines, cur_indices)
-            cur_indices = {j}
-            cur_w = ww
-        else
-            table.insert(cur_indices, j)
-            cur_w = cur_w + space + ww
-        end
-    end
-    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-    if #vlines == 0 then return get_first_valid_word_idx(sub) end
-
+    local entry = ensure_sub_layout(sub)
+    if not entry then return -1 end
+    
+    local tokens = entry.tokens
+    local vlines = entry.vlines
     local visual_to_logical = {}
     for j, t in ipairs(tokens) do
         if t.logical_idx then visual_to_logical[j] = t.logical_idx end
     end
+    
+    local space_w = dw_get_str_width(" ")
 
     local best_logical = nil
     local best_dist = math.huge
