@@ -21,7 +21,7 @@ The system SHALL provide a configuration option `search_results_font_size` to sc
 - **THEN** the search results dropdown is rendered at 80% of the search bar's font size
 
 ### Requirement: High-Contrast Active Selection
-The active search result SHALL be rendered in bright white (`FFFFFF`) to clearly distinguish it from surrounding context results, which SHALL be rendered in a dimmer grey (`search_text_color`, default `CCCCCC`).
+The active search result SHALL be rendered in bright white (BGR: FFFFFF | RGB: #FFFFFF) to clearly distinguish it from surrounding context results, which SHALL be rendered in a dimmer grey (`search_text_color`, default `CCCCCC`).
 
 #### Scenario: Active Selection Contrast
 - **WHEN** navigating through search results

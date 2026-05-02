@@ -7,9 +7,9 @@ Define the visual language and rendering priorities for the unified Drum Window,
 
 ### Requirement: Interaction and Selection Priority
 Manual user selections SHALL always carry higher visual priority than automated database highlights.
-- **Secondary Priority**: Transient cursor-based hover / focus range. Rendered in **Gold (#00CCFF)**.
+- **Secondary Priority**: Transient cursor-based hover / focus range. Rendered in **Gold (BGR: 00CCFF | RGB: #FFCC00)**.
 - **Visual Parity (is_manual)**: Manual user selections (Gold/Pink) SHALL override surgical highlighting rules to ensure visual feedback on all token types, including punctuation.
-- *Terminology Update*: The term "Vibrant Yellow" is deprecated in favor of the standardized **Gold** indicator.
+- *Terminology Update*: The term "Vibrant Yellow" is deprecated in favor of the standardized **Gold (BGR: 00CCFF | RGB: #FFCC00)** indicator.
 
 #### Scenario: Punctuation Focus Visibility
 - **WHEN** the navigation focus (Gold) or manual selection (Pink) resides on a punctuation-only token.
@@ -38,12 +38,12 @@ The rendering engine SHALL evaluate every word against the database using a tier
 
 #### Phase 1: Contiguous Adjacency (Orange)
 - **Condition**: Both Sequential Adjacency (exact word sequence) AND Contextual Grounding (Multi-Pivot/Neighborhood) are satisfied.
-- **Visual**: **Orange (#FF8800)**.
+- **Visual**: **Orange (BGR: 0088FF | RGB: #FF8800)**.
 - **Goal**: Highlight "Perfect" matches that exist exactly as saved.
 
 #### Phase 2: Split Match (Purple)
 - **Condition**: Contextually grounded via high-recall neighborhoods, but words are fragmented and lack strict sequence adjancency.
-- **Visual**: **Purple (#AA88FF)**.
+- **Visual**: **Purple (BGR: FF88B0 | RGB: #B088FF)**.
 - **Goal**: Highlight "Cool Path" pair-selected phrases or high-recall single vocabulary words scattered in a segment.
 
 ### Requirement: Match Integrity Conjunction
