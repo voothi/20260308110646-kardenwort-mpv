@@ -1185,11 +1185,8 @@
 20260502125646 Okay, but how can you protect yourself from such incidents when making changes in the future?
 20260502125858 For now, let's just write this requirement in the specs and leave the refactoring for another session.
 20260502130639 You definitely haven’t deleted the necessary information, check?
-
-
-
-
-
+20260502130952 opsx-apply openspec\changes\20260502104026-calibrate-drum-window-navigation-and-visibility
+20260502131355 opsx-archive openspec\changes\20260502104026-calibrate-drum-window-navigation-and-visibility20260502131355 opsx-archive openspec\changes\20260502104026-calibrate-drum-window-navigation-and-visibility
 
 
 

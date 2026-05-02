@@ -59,7 +59,49 @@ The Drum Window SHALL maintain character-level precision for horizontal navigati
 #### Scenario: Selecting punctuation via keyboard
 - **WHEN** the user is on a word and presses RIGHT
 - **AND** the next token is a punctuation marker (e.g., a bracket "[")
-- **THEN** the yellow pointer SHALL land on and highlight the punctuation token.
+- **AND** the yellow pointer SHALL landing on and highlight the punctuation token.
+
+#### Scenario: Viewport Follow (Horizontal Jump)
+- **WHEN** the user navigates LEFT or RIGHT past the horizontal bounds of a line.
+- **THEN** the Drum Window SHALL jump to the new line AND immediately call the viewport tracking engine (`dw_ensure_visible`) to follow the cursor.
+
+### Requirement: Visual Line Navigation (Wrapped Subtitles)
+The system SHALL implement "visual-line-aware" navigation for subtitles that are wrapped into multiple rows due to length or font size.
+
+#### Scenario: Visual Line Traversal
+- **WHEN** a single subtitle is wrapped into multiple visual lines.
+- **AND** the user navigates UP or DOWN.
+- **THEN** the pointer SHALL move to the adjacent visual line within the SAME subtitle first.
+- **AND** only if the edge of the subtitle is reached SHALL it jump to the next subtitle.
+
+#### Scenario: Intelligent Vertical Entry (Directional Landing)
+- **WHEN** jumping to a NEW subtitle via UP or DOWN.
+- **THEN** the pointer SHALL land on the FIRST visual line (if moving DOWN) or the LAST visual line (if moving UP) to maintain logical reading flow.
+
+### Requirement: Multi-Mode Highlighting Parity (is_manual)
+All navigational logic and visual highlighting (e.g., Yellow Pointer, Pink Selection) MUST behave identically across all interactive rendering layers: **Drum Window (W)**, **Drum OSD (C)**, and **Translation Tooltip (E)**.
+
+#### Scenario: Manual Highlighting Persistence
+- **WHEN** a user performs a manual navigation or selection action.
+- **THEN** the system MUST ensure the highlight covers the ENTIRE token (including punctuation).
+- **AND** this behavior SHALL bypass the surgical punctuation stripping used for automated database matches.
+
+### Requirement: Startup and Recovery Logic
+The system SHALL ensure that navigation is available immediately upon script initialization, even before a subtitle has naturally become active.
+
+#### Scenario: Entry from Null Selection (Post-Esc)
+- **WHEN** the Drum Window has no active selection (`DW_CURSOR_WORD = -1`).
+- **AND** the user presses DOWN.
+- **THEN** the yellow pointer SHALL activate on the FIRST visual line of the current logical line.
+- **AND** if the user presses UP, it SHALL activate on the LAST visual line.
+
+#### Scenario: Startup Snap
+- **WHEN** the application starts AND the user performs a navigation action before playback has reached a subtitle.
+- **THEN** the system SHALL automatically snap the cursor to the nearest boundary (start or end of track) to prevent navigation deadlocks.
+
+### Requirement: Architectural Integrity
+- **Unified Engine**: ALL rendering and navigation components MUST utilize the unified `ensure_sub_layout` engine to ensure visual line boundaries are calculated consistently across all modes.
+- **Defensive Design**: Core navigation functions SHALL implement safety fallbacks for missing layout data to ensure crash-free performance during transient states.
 
 #### Scenario: Selecting punctuation via mouse
 - **WHEN** the user clicks on a punctuation token in the Drum Window
