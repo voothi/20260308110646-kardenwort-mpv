@@ -29,6 +29,11 @@ The current LLS script uses unstructured `print()` statements for all logging. T
 5.  **Early Startup Robustness**: To ensure logging is available from the first line of execution:
     - The `Options` table is forward-declared at the script head to prevent scope errors in diagnostic closures.
     - `Diagnostic.log` implements a safety fallback: if `Options` is not yet initialized, the system defaults to `info` verbosity.
+6.  **Config Cleanup Strategy**: The health check identified existing multicharacter Cyrillic aliases (e.g., `ЛЕВЫЙ`) as invalid key names. Decisions:
+    - Purge these invalid aliases from both script defaults and `mpv.conf`.
+    - Retain single-character layout-switching keys (e.g., `п`, `а`) as they are valid MPV key names.
+7.  **Lifecycle Noise Reduction**: Demote routine transitions (e.g., `OPENING/CLOSING DRUM WINDOW`) from `info` to `debug` level to ensure a truly silent startup for the user.
+8.  **Layout-Agnostic Diagnostics**: Bind `ё` (Cyrillic layout equivalent of backtick) to `console/enable` to ensure users can access the debug console regardless of their active keyboard layout.
 
 ## Risks / Trade-offs
 

@@ -34,3 +34,17 @@ The diagnostic system SHALL remain functional even if script options or other gl
 #### Scenario: Logging during early initialization
 - **WHEN** `Diagnostic.info` is called before the `Options` table is populated
 - **THEN** the system SHALL output the message to the console using a default verbosity level without throwing a Lua error.
+
+### Requirement: Lifecycle Noise Reduction
+The system SHALL ensure that routine lifecycle events that do not require user intervention are logged at a non-intrusive level.
+
+#### Scenario: Opening and closing the Drum Window during startup
+- **WHEN** the script opens or closes the Drum Window as part of an automated state sync
+- **THEN** the system SHALL log these events at the `Debug` level, ensuring they do not appear in the default `Info` view.
+
+### Requirement: Layout-Agnostic Diagnostic Access
+The system SHALL ensure that diagnostic tools remain accessible regardless of the user's keyboard layout.
+
+#### Scenario: Opening the console with Cyrillic layout
+- **WHEN** the user is in a Cyrillic layout and presses the `ё` key
+- **THEN** the system SHALL trigger the `console/enable` command, mirroring the behavior of the English backtick (`) key.

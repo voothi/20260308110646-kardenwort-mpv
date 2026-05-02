@@ -16,3 +16,6 @@
 - [x] 3.2 Implement `validate_config()` to check for invalid keybindings (Cyrillic names, etc.) and missing files.
 - [x] 3.3 Call `validate_config()` during initialization and output a single summary warning if issues are found.
 - [x] 3.4 Clean up the one-time warning logic from `manage_dw_bindings` in favor of the new centralized validation.
+- [x] 3.5 Purge invalid multicharacter Cyrillic aliases from `lls_core.lua` and `mpv.conf`.
+- [x] 3.6 Demote `OPENING/CLOSING DRUM WINDOW` logs to `Diagnostic.debug`.
+- [x] 3.7 Bind `ё` to `console/enable` in `input.conf` for layout-agnostic debugging.
