@@ -1236,9 +1236,7 @@
 20260502203812 Add to installation instructions for Windows in README. 
 20260502211437 # In the Context Copy ON mode, it is necessary that if there is an active selection or just a yellow cursor, this selection is copied, and not the subtitle text with context, and if there is no selection, then all this text is copied. ## Description Such a priority so that I can regulate this Esc. 20260502211056-in-the-context-copy
 20260502212339 Is it possible to simplify this code? lls_core.lua#L6705-6725
-
-
-
+20260502213504 opsx-archive --sync openspec\changes\20260502211505-prioritize-selection-in-context-copy
 
 
 

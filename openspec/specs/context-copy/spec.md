@@ -21,12 +21,26 @@ The system SHALL continue searching the subtitle array until the specified numbe
 - **WHEN** the user requests 2 lines of context
 - **THEN** the system SHALL continue its search beyond adjacent entries if those entries are merged or filtered.
 
-### Requirement: Contextual Drum Copy
-The Drum Window copy command (`Ctrl+C`) SHALL support context-aware extraction when enabled.
+### Requirement: Selection Priority in Context Copy
+The system SHALL prioritize manual selections (word pointer or range selection) over context-aware text harvesting when `COPY_CONTEXT` is enabled.
 
-#### Scenario: Verbatim Selection with Context
-- **WHEN** a specific word or range of words is selected in the Drum Window and `COPY_CONTEXT` is "ON".
-- **THEN** the clipboard SHALL contain the selected text wrapped with `copy_context_lines` from the surrounding subtitle track, preserving the specific selected subset.
+#### Scenario: Copying with active pointer and context ON
+- **WHEN** the user has a "yellow cursor" (word pointer) on a specific word in the Drum Window.
+- **AND** `COPY_CONTEXT` is "ON".
+- **AND** the user triggers the copy command.
+- **THEN** only the highlighted word SHALL be copied to the clipboard.
+
+#### Scenario: Copying with active range and context ON
+- **WHEN** the user has selected a range of words in the Drum Window.
+- **AND** `COPY_CONTEXT` is "ON".
+- **AND** the user triggers the copy command.
+- **THEN** only the selected range SHALL be copied to the clipboard.
+
+#### Scenario: Regulating Context Copy via Esc
+- **WHEN** the user has a selection and `COPY_CONTEXT` is "ON".
+- **AND** the user presses `Esc` to clear the selection.
+- **AND** the user triggers the copy command.
+- **THEN** the system SHALL harvest and copy the surrounding dialogue context.
 
 ### Requirement: Formatting Preservation (Copy As Is)
 The system SHALL preserve all textual formatting markers, including brackets and internal punctuation, during all copy operations to satisfy "Copy as is" requirements.
