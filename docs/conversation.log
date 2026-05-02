@@ -1172,6 +1172,7 @@
 20260502112840 Well, this behavior will need to be written down in specs, let's look at this case again, with long lines with visual wrapping using our complex mechanism, see the photo, which shows that when you press UP or DOWN, the yellow pointer is in the center, in the part that was moved, now when you click UP, my pointer goes straight to the previous subtitle, and this is logical, but to me you need to do it cleverly so that instead, that first part of the long subtitle, in the middle, is highlighted first. This is necessary for more optimized navigation through material with long subtitles, no matter how many parts our mechanism divides and transfers this long subtitle.
 20260502114026 Error
 20260502114235 Error
+20260502114516 Okay, first phase, now let's make sure that when setting the pointer when UP or DOWN on such a long subtitle, priority is given to the very first part of it. The fact is that now I have `erreichbar` in `der Region um Straubing gibt es weitere massive Logistikstandorte, die oft über die A3 oder B20 in 15 bis 30 Minuten erreichbar sind.`, see photo, but this is the last part, moved. And `Logistikstandorte` should stand out. This is the first part of the question. In the second phase, we will need to modify the script so that it is intelligent, understanding that we have moved from DOWN, from above to this long line, and we need to go through these transferred parts (lines) from top to bottom, and similarly when we access it from below using UP.
 
 
 

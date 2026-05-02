@@ -19,14 +19,15 @@
 - **AND** the user navigates UP or DOWN.
 - **THEN** the pointer SHALL move to the adjacent visual line within the SAME subtitle first.
 - **AND** only if the edge of the subtitle is reached SHALL it jump to the next subtitle.
+- **AND** when jumping to a NEW subtitle, it SHALL land on the FIRST visual line (if moving DOWN) or the LAST visual line (if moving UP).
 
 #### Scenario: Entry from Null Selection (Post-Esc)
 - **WHEN** the Drum Window has no active selection (`DW_CURSOR_WORD = -1`).
 - **AND** the user presses RIGHT.
 - **THEN** the yellow pointer SHALL highlight the FIRST valid token of the current line.
 - **AND** if the user presses LEFT, it SHALL highlight the LAST valid token of the current line.
-- **AND** if the user presses UP or DOWN, it SHALL first attempt to activate the pointer on the CURRENT line (closest word to X=960). 
-- **AND** only if a second press occurs (or no words exist on the current line) SHALL it jump to adjacent lines.
+- **AND** if the user presses DOWN, it SHALL activate the pointer on the FIRST visual line of the current subtitle.
+- **AND** if the user presses UP, it SHALL activate the pointer on the LAST visual line of the current subtitle.
 
 #### Scenario: Startup Recovery (No Initial Selection)
 - **WHEN** the script starts AND no subtitle is currently active (e.g., at 00:00).

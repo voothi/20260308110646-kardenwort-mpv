@@ -22,3 +22,4 @@
 - [x] 3.7 Verify that navigation works immediately after startup even if no subtitle is active.
 - [x] 3.8 Verify that UP/DOWN first activates the pointer on the current line if nothing was selected.
 - [x] 3.9 Verify that UP/DOWN navigates between visual lines of a wrapped subtitle before jumping.
+- [x] 3.10 Verify that entering a wrapped subtitle from top lands on the FIRST visual line, and from bottom on the LAST.

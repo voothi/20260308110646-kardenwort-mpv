@@ -5262,7 +5262,19 @@ local function cmd_dw_line_move(dir, shift)
     end
 
     for l = start_scan_line, (dir > 0 and #subs or 1), dir do
-        local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true)
+        local target_vl = nil
+        -- Entering a NEW subtitle OR re-activating after Esc: land on appropriate edge
+        if l ~= line_idx or FSM.DW_CURSOR_WORD == -1 then
+            if dir > 0 then
+                target_vl = 1 -- Entry from top: land on first visual line
+            else
+                -- Entry from bottom: land on last visual line
+                local entry = subs[l].layout_cache and subs[l].layout_cache.entry
+                target_vl = entry and #entry.vlines or 1
+            end
+        end
+
+        local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true, target_vl)
         if w ~= -1 then
             FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
             break
