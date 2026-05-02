@@ -27,3 +27,10 @@ The system SHALL perform a comprehensive configuration and dependency check duri
 #### Scenario: Initialization with malformed keys
 - **WHEN** the script starts and detects multiple malformed key strings in `mpv.conf`
 - **THEN** it SHALL output a single structured block summarizing all detected errors before continuing execution.
+
+### Requirement: Early Startup Safety
+The diagnostic system SHALL remain functional even if script options or other global state are not yet fully initialized.
+
+#### Scenario: Logging during early initialization
+- **WHEN** `Diagnostic.info` is called before the `Options` table is populated
+- **THEN** the system SHALL output the message to the console using a default verbosity level without throwing a Lua error.

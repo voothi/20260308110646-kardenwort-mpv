@@ -94,9 +94,9 @@ local function validate_config()
         local summary = "CONFIGURATION HEALTH CHECK FAILED:\n"
         for _, err in ipairs(errors) do summary = summary .. "  - " .. err .. "\n" end
         summary = summary .. "Please correct these in your mpv.conf to avoid unexpected behavior."
-        Diagnostic.warn(summary)
+        Diagnostic.warn(summary, "startup-health-check")
     else
-        Diagnostic.debug("Configuration health check passed.")
+        Diagnostic.debug("Configuration health check passed.", "startup-health-check")
     end
 end
 
@@ -2505,12 +2505,17 @@ local function load_anki_tsv(force, quiet)
         for _, sub in ipairs(Tracks.sec.subs) do sub.__split_valid_indices = nil end
     end
     
+    FSM.ANKI_DB_MTIME = info and info.mtime or 0
+    FSM.ANKI_DB_SIZE = info and info.size or 0
+
     flush_rendering_caches()
     local msg_text = string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE))
+    local dedupe_key = "tsv-load-" .. tostring(FSM.ANKI_DB_MTIME) .. "-" .. tostring(FSM.ANKI_DB_SIZE)
+    
     if quiet then
-        Diagnostic.debug(msg_text)
+        Diagnostic.debug(msg_text, dedupe_key)
     else
-        Diagnostic.info(msg_text)
+        Diagnostic.info(msg_text, dedupe_key)
     end
 end
 
