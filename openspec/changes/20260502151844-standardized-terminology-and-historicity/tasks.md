@@ -21,5 +21,6 @@
 
 ## 5. Final Validation
 
-- [x] 5.1 Perform a project-wide audit for legacy color mentions ("Yellow", "Blue", "Green") to ensure they are documented in the historicity ledger.
-- [x] 5.2 Finalize and archive the change.
+- [x] 5.1 Perform a project-wide audit for legacy color mentions ("Yellow", "Blue", "Green") and functional modes ("Reel", "Reading").
+- [x] 5.2 Extract and document technical architecture terms (FSM, Master Tick, UPSR, Isotropic Mapping) from the `openspec/specs` folders.
+- [x] 5.3 Finalize and archive the change.

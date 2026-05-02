@@ -18,6 +18,11 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Book Mode** | Navigation | A stationary viewport state where navigation doesn't reset scrolling (formerly "Reading Mode"). |
 | **Context Copy Mode** | Logic | The mechanism for exporting multi-line subtitle blocks to the clipboard (formerly "Copy Subtitle Mode"). |
 | **Token Meta** | Logic | The centralized metadata object tracking word-level state, colors, and hit-zones. |
+| **FSM (Finite State Machine)** | Logic | The master controller managing mode transitions (SRT, Drum, Search) and state flags. |
+| **Master Tick** | Engine | The 0.05s central execution loop (`master_tick()`) that funnels all periodic OSD updates. |
+| **Isotropic Mapping** | Rendering | Scaling the X/Y grid based on height (`oh / 1080`) to ensure resolution-independent hit-testing. |
+| **UPSR** | Logic | **Unified Punctuation Spacing Rule**: Central engine (`compose_term_smart`) for joining word tokens. |
+| **Atomic Tokens** | Parsing | Symbols like `[` `]` `/` `-` treated as distinct logical entities for surgical selection. |
 | **Safety Gap** | Layout | The mandatory vertical offset (5%) between primary and secondary OSD tracks. |
 | **Aural Buffer** | Timing | The temporal padding (`pause_padding`) added before autopause to prevent syllable clipping. |
 | **Consolas Calibration** | Rendering | The font-specific multipliers (`char_width`, `line_height`) used for pixel-perfect hit-testing. |
