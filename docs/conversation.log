@@ -1196,13 +1196,13 @@
 20260502140845 /opsx-explore You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications, configuration guru and diff-guru for this project, with surgical precision check the current version 48d25097a820a1583326f60ac2ca465505eafc33 20260502140234 for regression compared to v1.58.0, and for compliance, impeccable adherence to the current general openspec\specs specifications, it is necessary to synchronize.
 20260502142203 I am prepared to implement the required synchronization fixes for resume_last_file.lua if you wish to proceed. - Accept.
 20260502142316 I have successfully completed the surgical synchronization and codebase hardening. The project is now in 100% architectural alignment with the v1.58.18 baseline and the associated OpenSpec specifications. - Okay.
-
-
-
-
-
-
-
+20260502143929 opsx-explore # Implement a document on the historicity of renamings. ## Description We changed the color. Ours was red, then it became bright yellow, then it became gold for highlighting. There was also a different color to pink. There was blue for active subtitles. Look what else we changed. Find color inconsistencies in the current code with the documentation and ask me. Based on the answer, we will clarify this in our document. We also need to compile a thesaurus, a dictionary of terms from our application area, collect what we called the different functions of the program, and bring it all into a decent form. This document will allow the AI ​​agent to better search for historical information by linking data.
+20260502145225 I also need to add a field with the date of such a change or appearance of the term in use. It should be like a correspondence table, flat, two-link, links can be connected in this table by separate records. Conventionally, 3 fields, Date, Record, Record. Come up with a better idea if you have any ideas.
+20260502145949 Review. > Question: Should we re-implement Blue for active subtitles, or was this a previous state that has been permanently superseded by White? No, don't change it, the blue color was before white to highlight active subtitles. > Question: In your thesaurus, should we reserve "Yellow" strictly for the transient Yellow Pointer and "Gold" for the resulting Contiguous Selection? Yellow (bright yellow) color was before gold. Now we only use gold. But I can still mention yellow in requests. > Better Idea: In our new document, I will list both RGB and BGR values to prevent future AI agents from hallucinating colors based on the notation flip. Okay, that's it.
+20260502150821 Wouldn't it be a better idea to do this in the form of specifications, since this is mostly what the AI ​​agent needs to work?
+20260502150821 Wouldn't it be a better idea to do this in the form of specifications, since this is mostly what the AI ​​agent needs to work?
+20260502151132 Besides color, what about established domain terms?
+20260502151844 opsx-propose anchors from 20260502143929 to 20260502151132
 
 
 
