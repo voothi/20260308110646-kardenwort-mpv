@@ -16,3 +16,4 @@
 - [x] 3.1 Perform physical MPV testing to confirm punctuation focus visibility.
 - [x] 3.2 Verify that the "Surgical" look is preserved for automated database matches (Priority 3).
 - [x] 3.3 Confirm that all changes are synchronized with the `openspec` delta requirements.
+- [x] 3.4 Verify that LEFT/RIGHT line-wrapping correctly lands on the start/end of the adjacent line.

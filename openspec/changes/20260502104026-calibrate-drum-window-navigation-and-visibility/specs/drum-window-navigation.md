@@ -7,3 +7,9 @@
 #### Scenario: Viewport Follow (Horizontal Jump)
 - **WHEN** the user navigates LEFT or RIGHT past the horizontal bounds of a line.
 - **THEN** the Drum Window SHALL jump to the new line AND immediately call the viewport tracking engine (`dw_ensure_visible`) to follow the cursor.
+
+#### Scenario: Line Wrap Alignment
+- **WHEN** the user navigates RIGHT from the last token of a line.
+- **THEN** the yellow pointer SHALL jump to the FIRST valid token of the next line.
+- **WHEN** the user navigates LEFT from the first token of a line.
+- **THEN** the yellow pointer SHALL jump to the LAST valid token of the previous line.
