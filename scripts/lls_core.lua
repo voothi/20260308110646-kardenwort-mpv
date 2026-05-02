@@ -6513,56 +6513,58 @@ end
 
 
 
+local function get_clipboard_text_smart(time_pos, line_idx)
+    local cl = line_idx or FSM.DW_CURSOR_LINE
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cw = FSM.DW_CURSOR_WORD
+
+    -- 0. Smart Fallback / Focus
+    if cl == -1 then
+        if FSM.BOOK_MODE and FSM.DW_FOLLOW_PLAYER and al == -1 and cw == -1 then
+            cl = FSM.DW_ACTIVE_LINE
+        elseif time_pos then
+            cl = get_center_index(Tracks.pri.subs, time_pos)
+        else
+            cl = FSM.DW_ACTIVE_LINE
+        end
+    end
+    if cl == -1 then return nil, false end
+
+    -- 1. Selection Priority (Pointer/Range)
+    local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
+    if p1_l or cw ~= -1 then
+        local params = p1_l and { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
+                             or { type = "POINT", line = cl, word = cw }
+        
+        return prepare_export_text(params, { 
+            copy_mode = FSM.COPY_MODE, 
+            filter_russian = Options.copy_filter_russian 
+        }), false
+    end
+
+    -- 2. Context Priority
+    if FSM.COPY_CONTEXT == "ON" then
+        local ctx = get_copy_context_text(time_pos, cl)
+        if ctx and ctx ~= "" then
+            return ctx:gsub("{[^}]+}", ""):gsub("\n", " "), true
+        end
+    end
+
+    -- 3. Standard Fallback
+    return prepare_export_text({ type = "POINT", line = cl }, { 
+        copy_mode = FSM.COPY_MODE, 
+        filter_russian = Options.copy_filter_russian 
+    }), false
+end
+
+
 function cmd_dw_copy()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
-    local cl = FSM.DW_CURSOR_LINE
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cw = FSM.DW_CURSOR_WORD
-
-    -- 0. Smart Focus Fallback for Book Mode
-    if FSM.BOOK_MODE and FSM.DW_FOLLOW_PLAYER and al == -1 and cw == -1 then
-        cl = FSM.DW_ACTIVE_LINE
-    end
-    if cl == -1 then cl = FSM.DW_ACTIVE_LINE end
-    if cl == -1 then return end
-
-    local final_text = ""
-    local is_context = false
+    local final_text, is_context = get_clipboard_text_smart()
     
-    -- [20260502] Priority Shift: Selection (Pointer/Range) takes precedence over Context Copy
-    local has_selection = (al ~= -1 and aw ~= -1) or (cw ~= -1)
-
-    -- 1. Check for Context Copy (Only if NO selection is active)
-    if not has_selection and FSM.COPY_CONTEXT == "ON" then
-        local ctx = get_copy_context_text(nil, cl)
-        if ctx and ctx ~= "" then
-            final_text = ctx:gsub("{[^}]+}", ""):gsub("\n", " ")
-            is_context = true
-        end
-    end
-
-    -- 2. Standard Selection Copy (Verbatim)
-    if final_text == "" then
-        local params = {}
-        if al ~= -1 and aw ~= -1 and cl ~= -1 and cw ~= -1 then
-            params = { type = "RANGE", p1_l = al, p1_w = aw, p2_l = cl, p2_w = cw }
-            -- Ensure p1 is before p2 for prepare_export_text
-            if params.p1_l > params.p2_l or (params.p1_l == params.p2_l and params.p1_w > params.p2_w) then
-                params.p1_l, params.p1_w, params.p2_l, params.p2_w = params.p2_l, params.p2_w, params.p1_l, params.p1_w
-            end
-        else
-            params = { type = "POINT", line = cl, word = cw }
-        end
-        
-        final_text = prepare_export_text(params, { 
-            copy_mode = FSM.COPY_MODE,
-            filter_russian = Options.copy_filter_russian 
-        })
-    end
-    
-    if final_text ~= "" then
+    if final_text and final_text ~= "" then
         set_clipboard(final_text)
         local label = is_context and "Context" or "DW"
         show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
@@ -6694,57 +6696,9 @@ local function cmd_copy_sub()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
-    local final_text = ""
-    local is_context = false
+    local final_text, is_context = get_clipboard_text_smart(time_pos)
 
-    -- [20260502] Priority Shift: Selection takes precedence even in global copy
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cw = FSM.DW_CURSOR_WORD
-    local has_selection = (al ~= -1 and aw ~= -1) or (cw ~= -1)
-
-    if has_selection then
-        local cl = FSM.DW_CURSOR_LINE
-        if cl == -1 then cl = get_center_index(Tracks.pri.subs, time_pos) end
-        
-        if cl ~= -1 then
-            local params = {}
-            if al ~= -1 and aw ~= -1 and cw ~= -1 then
-                params = { type = "RANGE", p1_l = al, p1_w = aw, p2_l = cl, p2_w = cw }
-                if params.p1_l > params.p2_l or (params.p1_l == params.p2_l and params.p1_w > params.p2_w) then
-                    params.p1_l, params.p1_w, params.p2_l, params.p2_w = params.p2_l, params.p2_w, params.p1_l, params.p1_w
-                end
-            else
-                params = { type = "POINT", line = cl, word = cw }
-            end
-            
-            final_text = prepare_export_text(params, { 
-                copy_mode = FSM.COPY_MODE, 
-                filter_russian = Options.copy_filter_russian 
-            })
-        end
-    end
-
-    -- 1. Check for Context Copy (Only if no selection)
-    if final_text == "" and FSM.COPY_CONTEXT == "ON" then
-        local ctx = get_copy_context_text(time_pos)
-        if ctx and ctx ~= "" then 
-            final_text = ctx:gsub("{[^}]+}", ""):gsub("\n", " ")
-            is_context = true
-        end
-    end
-    
-    -- 2. Standard Copy (Active Line)
-    if final_text == "" then
-        local cl = get_center_index(Tracks.pri.subs, time_pos)
-        if cl ~= -1 then
-            final_text = prepare_export_text({ type = "POINT", line = cl }, { 
-                copy_mode = FSM.COPY_MODE, 
-                filter_russian = Options.copy_filter_russian 
-            })
-        end
-    end
-
-    if final_text ~= "" then
+    if final_text and final_text ~= "" then
         set_clipboard(final_text)
         
         local words, wcount = {}, 0

@@ -17,4 +17,8 @@
 - [x] 3.1 Verify that with Context Copy ON, clicking a word in the Drum Window and pressing Copy copies ONLY that word.
 - [x] 3.2 Verify that with Context Copy ON, selecting a range in the Drum Window and pressing Copy copies ONLY that range.
 - [x] 3.3 Verify that with Context Copy ON and NO selection, pressing Copy copies the context.
-- [x] 3.4 Verify that pressing `Esc` clear selections and allows the next Copy to use context.
+## 4. Refactoring and Simplification
+
+- [x] 4.1 Extract unified copy extraction logic into `get_clipboard_text_smart`.
+- [x] 4.2 Simplify `cmd_dw_copy` using the new helper.
+- [x] 4.3 Simplify `cmd_copy_sub` using the new helper.
