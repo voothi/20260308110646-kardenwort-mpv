@@ -1161,8 +1161,8 @@
 20260502095036 opsx-explore Check that LEFT RIGHT now works correctly in the text, and check which word should be highlighted in which line (subtitle). Check out the spec for a refresher on this. Compare with the previous version when it worked correctly 41d7084e50823b2c30051063e2576df19cd443d1 20260501160717.
 20260502100149 x Look, in this version 24a21be2ca417a4edbd9e6bff6d30ff647707f15 20260429024003 v1.54.12 it still worked differently, correctly.
 20260502101357 I rolled back your latest changes, let's implement them according to my notes, 1. Fixed Invisible Punctuation Focus - I’m not sure that the solution is elegant with force_full, I didn’t understand, but the task itself is relevant and posed correctly; 2. Fixed Missing Viewport Scroll - Looks like it's true, let's do it; 3. Navigation Behavior Analysis (v1.54.12 vs. Current) - This is not relevant, it works correctly in the current version, check that this is reflected in the specification in its current form.
-
-
+20260502103050 Review, 1. Refined Visibility Fix (Elegant "Manual" Detection) - OK; 2. Viewport Scroll Restoration - This now works correctly; 3. Specification Sync - OK.
+20260502104000 opsx-propose anchors 20260502095036 20260502100149 20260502101357 2026050210305020260502104000 opsx-propose anchors 20260502095036 20260502100149 20260502101357 20260502103050
 
 
 
