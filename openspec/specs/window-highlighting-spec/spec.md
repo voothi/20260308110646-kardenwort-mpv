@@ -8,7 +8,12 @@ Define the visual language and rendering priorities for the unified Drum Window,
 ### Requirement: Interaction and Selection Priority
 Manual user selections SHALL always carry higher visual priority than automated database highlights.
 - **Secondary Priority**: Transient cursor-based hover / focus range. Rendered in **Gold (#00CCFF)**.
+- **Visual Parity (is_manual)**: Manual user selections (Gold/Pink) SHALL override surgical highlighting rules to ensure visual feedback on all token types, including punctuation.
 - *Terminology Update*: The term "Vibrant Yellow" is deprecated in favor of the standardized **Gold** indicator.
+
+#### Scenario: Punctuation Focus Visibility
+- **WHEN** the navigation focus (Gold) or manual selection (Pink) resides on a punctuation-only token.
+- **THEN** the rendering engine SHALL color the entire token, bypassing the "surgical" uncolored-punctuation logic used for automated matches.
 
 ### Requirement: Quick Focus Feedback
 #### Scenario: Jump to Segment (Double-Click / Enter)
