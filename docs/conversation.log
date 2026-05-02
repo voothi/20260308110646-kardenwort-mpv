@@ -1211,7 +1211,11 @@
 20260502154921 Look at this docs folder, look in the renaming files there for new terms.
 20260502155311 How did the name of the project change? README.md?
 20260502155744 Look, search in Git, the project was renamed in README, it was in the name Learning, it became Aquisiton
-
+20260502160050 Give general terms for this area DualSub, Dual Subtitles
+20260502160333 Add terms describing the indentation fields in Book Mode 3 lines at the bottom and top, field, search box. Fuzzy search and other terms from here.
+20260502160453 Give the terms ZID and my approach. Let me explain that the weak model is Gemini 3 Flash, the strong model, the pro model, senior, senior, the large model is Gemini 3.1 Pro (high) or Opus 4.6, the middle model is Gemini 3.1 Pro (low), Sonnet 4.6. Say the IDE is Antigravity.
+20260502161006 LMB, RMB, MMB are mouse keys. Basic specifications, current, general - openspec\specs. Change projects - openspec\changes. Archive of changes openspec\changes\archive
+20260502161257 Main config mpv.conf. Key mapping input.conf. Cofig anki field mapping script-opts\anki_mapping.ini
 
 
 

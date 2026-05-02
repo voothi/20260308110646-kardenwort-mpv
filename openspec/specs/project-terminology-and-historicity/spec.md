@@ -5,6 +5,26 @@ Define the project's canonical language, color space, and historical evolution t
 
 ## Requirements
 
+### Requirement: Infrastructure & Ecosystem Vocabulary
+The project environment uses a specific set of terms to describe its tooling and methodology:
+
+| Term | Subject | Definition |
+| :--- | :--- | :--- |
+| **ZID** | Methodology | **Zettelkasten Identifier** (`yyyyMMddHHmmss`) used to link commits, logs, and AI conversations. |
+| **Antigravity** | Infrastructure | The agentic AI coding IDE used for project development. |
+| **Weak Model** | AI Tier | Low-latency models (e.g. **Gemini 3 Flash**) used for routine auditing and simple edits. |
+| **Middle Model** | AI Tier | Balanced models (e.g. **Gemini 3.1 Pro (low)**, **Sonnet 4.6**) for feature implementation. |
+| **Senior / Pro Model** | AI Tier | High-reasoning models (e.g. **Gemini 3.1 Pro (high)**, **Opus 4.6**) for architecture. |
+| **OpenSpec Core** | Organization | The `openspec/specs` directory containing current, general system specifications. |
+| **Change Project** | Organization | The `openspec/changes` directory containing active feature implementations. |
+| **Change Archive** | Organization | The `openspec/changes/archive` directory containing historical completed tasks. |
+| **mpv.conf** | Configuration | The primary player and script configuration file. |
+| **input.conf** | Configuration | The centralized keybinding configuration file. |
+| **anki_mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`script-opts/anki_mapping.ini`). |
+| **Legacy Release Store**| Organization | The `docs/rfcs` directory containing historical releases using the **SDD** methodology. |
+| **OpenSpec** | Methodology | The modern, agentic-centric specification framework for active development. |
+| **SDD** | Methodology | **Software Design Document**: The legacy planning methodology (now archived). |
+
 ### Requirement: Canonical Thesaurus Adherence
 The AI agent and developers SHALL prioritize the following canonical terms over generic descriptions:
 
@@ -14,6 +34,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Primary Track** | Core | The target-language subtitle track (the focus of acquisition). |
 | **Secondary Track** | Core | The native-language translation subtitle track (the reference). |
 | **Interleaved Tracks**| Logic | A single `.ass` file containing alternating tracks that require de-duplication/merging. |
+| **LMB / RMB / MMB** | Mouse | **Left**, **Right**, and **Middle** mouse buttons respectively. |
 | **SRT Mode** | Core UI | The standard subtitle display mode (formerly "Normal Mode"). |
 | **Drum Mode (Mode C)** | Core UI | A playback mode that dims context lines to highlight the active subtitle (formerly "Reel Mode"). |
 | **Drum Window (Mode W)** | Core UI | The primary high-precision OSD viewport for reading and word-level navigation (formerly "Static Reading Mode"). |
@@ -31,6 +52,10 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Aural Buffer** | Timing | The temporal padding (`pause_padding`) added before autopause to prevent syllable clipping. |
 | **Consolas Calibration** | Rendering | The font-specific multipliers (`char_width`, `line_height`) used for pixel-perfect hit-testing. |
 | **Viewport Margin** | UI | The number of context lines kept visible during vertical scrolling (`scrolloff`). |
+| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrolls. |
+| **Fuzzy Search** | Search | Logic allowing typos and non-contiguous character matching in the Search HUD. |
+| **Order-Independent Search**| Search | Keyword matching that ignores the sequence of words in the query. |
+| **Query Buffer** | Search | The active text input field in the Search HUD. |
 | **Surgical Highlighting** | Logic | Coloring only alphanumeric tokens while preserving white punctuation. |
 | **Warm Path** | Interaction | Contiguous selection (**Gold**) resulting in an **Orange** match. |
 | **Cool Path** | Interaction | Non-contiguous/split selection (**Pink**) resulting in a **Purple** match. |
