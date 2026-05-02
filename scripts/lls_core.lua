@@ -6531,8 +6531,11 @@ function cmd_dw_copy()
     local final_text = ""
     local is_context = false
     
-    -- 1. Check for Context Copy
-    if FSM.COPY_CONTEXT == "ON" then
+    -- [20260502] Priority Shift: Selection (Pointer/Range) takes precedence over Context Copy
+    local has_selection = (al ~= -1 and aw ~= -1) or (cw ~= -1)
+
+    -- 1. Check for Context Copy (Only if NO selection is active)
+    if not has_selection and FSM.COPY_CONTEXT == "ON" then
         local ctx = get_copy_context_text(nil, cl)
         if ctx and ctx ~= "" then
             final_text = ctx:gsub("{[^}]+}", ""):gsub("\n", " ")
@@ -6694,8 +6697,35 @@ local function cmd_copy_sub()
     local final_text = ""
     local is_context = false
 
-    -- 1. Check for Context Copy
-    if FSM.COPY_CONTEXT == "ON" then
+    -- [20260502] Priority Shift: Selection takes precedence even in global copy
+    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
+    local cw = FSM.DW_CURSOR_WORD
+    local has_selection = (al ~= -1 and aw ~= -1) or (cw ~= -1)
+
+    if has_selection then
+        local cl = FSM.DW_CURSOR_LINE
+        if cl == -1 then cl = get_center_index(Tracks.pri.subs, time_pos) end
+        
+        if cl ~= -1 then
+            local params = {}
+            if al ~= -1 and aw ~= -1 and cw ~= -1 then
+                params = { type = "RANGE", p1_l = al, p1_w = aw, p2_l = cl, p2_w = cw }
+                if params.p1_l > params.p2_l or (params.p1_l == params.p2_l and params.p1_w > params.p2_w) then
+                    params.p1_l, params.p1_w, params.p2_l, params.p2_w = params.p2_l, params.p2_w, params.p1_l, params.p1_w
+                end
+            else
+                params = { type = "POINT", line = cl, word = cw }
+            end
+            
+            final_text = prepare_export_text(params, { 
+                copy_mode = FSM.COPY_MODE, 
+                filter_russian = Options.copy_filter_russian 
+            })
+        end
+    end
+
+    -- 1. Check for Context Copy (Only if no selection)
+    if final_text == "" and FSM.COPY_CONTEXT == "ON" then
         local ctx = get_copy_context_text(time_pos)
         if ctx and ctx ~= "" then 
             final_text = ctx:gsub("{[^}]+}", ""):gsub("\n", " ")
