@@ -55,7 +55,8 @@ Diagnostic.info  = function(text, key) Diagnostic.log(Diagnostic.INFO, text, key
 Diagnostic.debug = function(text, key) Diagnostic.log(Diagnostic.DEBUG, text, key) end
 Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, key) end
 
-Diagnostic.info("SCRIPT INITIALIZING: " .. (mp.get_script_directory and mp.get_script_directory() or "<unknown dir>"))
+local script_dir = mp.get_script_directory and mp.get_script_directory()
+Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "lls_core"))
 
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
@@ -6308,7 +6309,7 @@ function cmd_toggle_drum_window()
 
 
     if FSM.DRUM_WINDOW == "OFF" then
-        Diagnostic.info("OPENING DRUM WINDOW...")
+        Diagnostic.debug("OPENING DRUM WINDOW...")
         -- Update state immediately for responsiveness
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
@@ -6353,7 +6354,7 @@ function cmd_toggle_drum_window()
             show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
         end
     else
-        Diagnostic.info("CLOSING DRUM WINDOW...")
+        Diagnostic.debug("CLOSING DRUM WINDOW...")
         -- Update state immediately
         FSM.DRUM_WINDOW = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
