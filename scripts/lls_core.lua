@@ -566,6 +566,7 @@ local FSM = {
     COPY_CONTEXT = "OFF",
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
+    CALIBRATION_MODE = false,
 
     -- Transients
     last_paused_sub_end = nil,
@@ -657,6 +658,11 @@ dw_tooltip_osd.res_x = 1920
 dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
 
+local calibration_osd = mp.create_osd_overlay("ass-events")
+calibration_osd.res_x = 1920
+calibration_osd.res_y = 1080
+calibration_osd.z = 35
+
 local dw_ensure_visible -- forward declaration
 
 -- =========================================================================
@@ -689,6 +695,77 @@ function cmd_toggle_copy_ctx()
     end
     FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
     show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
+end
+
+function cmd_toggle_calibration()
+    FSM.CALIBRATION_MODE = not FSM.CALIBRATION_MODE
+    if not FSM.CALIBRATION_MODE then
+        calibration_osd.data = ""
+        calibration_osd:update()
+        manage_calibration_bindings(false)
+        show_osd("Calibration Mode: OFF")
+    else
+        manage_calibration_bindings(true)
+        show_osd("Calibration Mode: ON (Boxes Visible)")
+        flush_rendering_caches()
+        if drum_osd then drum_osd:update() end
+        if dw_osd then dw_osd:update() end
+    end
+end
+
+local function adj_cal_val(opt, delta, min, max, fmt)
+    Options[opt] = math.max(min or 0, math.min(max or 999, Options[opt] + delta))
+    show_osd(string.format(fmt or (opt .. ": %.3f"), Options[opt]))
+    flush_rendering_caches()
+    if drum_osd then drum_osd:update() end
+    if dw_osd then dw_osd:update() end
+end
+
+function cmd_save_calibration()
+    local config_path = mp.find_config_file("mpv.conf")
+    if not config_path then
+        show_osd("Save Failed: mpv.conf not found")
+        return
+    end
+    
+    local f = io.open(config_path, "a")
+    if not f then
+        show_osd("Save Failed: Could not open mpv.conf for appending")
+        return
+    end
+    
+    local zid = os.date("%Y%m%d%H%M%S")
+    f:write(string.format("\n# CALIBRATION [%s]\n", zid))
+    f:write(string.format("script-opts-append=lls-dw_char_width=%.4f\n", Options.dw_char_width))
+    f:write(string.format("script-opts-append=lls-dw_line_height_mul=%.2f\n", Options.dw_line_height_mul))
+    f:write(string.format("script-opts-append=lls-dw_vsp=%d\n", Options.dw_vsp))
+    f:write(string.format("script-opts-append=lls-dw_block_gap_mul=%.2f\n", Options.dw_block_gap_mul))
+    f:write("# END CALIBRATION\n")
+    f:close()
+    
+    show_osd("Calibration SAVED to mpv.conf")
+    cmd_toggle_calibration()
+end
+
+local CAL_BINDINGS = {
+    {"[", function() adj_cal_val("dw_char_width", -0.005, 0.1, 2.0) end},
+    {"]", function() adj_cal_val("dw_char_width", 0.005, 0.1, 2.0) end},
+    {"{", function() adj_cal_val("dw_line_height_mul", -0.05, 0.5, 3.0) end},
+    {"}", function() adj_cal_val("dw_line_height_mul", 0.05, 0.5, 3.0) end},
+    {"Shift+[", function() adj_cal_val("dw_vsp", -1, -50, 100, "VSP: %d") end},
+    {"Shift+]", function() adj_cal_val("dw_vsp", 1, -50, 100, "VSP: %d") end},
+    {"Alt+[", function() adj_cal_val("dw_block_gap_mul", -0.05, -1.0, 5.0) end},
+    {"Alt+]", function() adj_cal_val("dw_block_gap_mul", 0.05, -1.0, 5.0) end},
+    {"ENTER", function() cmd_save_calibration() end},
+    {"ESC", function() cmd_toggle_calibration() end},
+}
+
+function manage_calibration_bindings(enable)
+    if enable then
+        mp.set_key_bindings(CAL_BINDINGS, "calibration", "force")
+    else
+        mp.set_key_bindings({}, "calibration", "force")
+    end
 end
 
 function get_copy_context_text(time_pos, line_idx)
@@ -2300,6 +2377,7 @@ local function flush_rendering_caches()
         DW_TOOLTIP_DRAW_CACHE.version = -1
     end
     dw_tooltip_osd.data = ""
+    calibration_osd.data = ""
 end
 
 
@@ -3009,6 +3087,86 @@ local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
     end
     if #cur_indices > 0 then table.insert(vlines, cur_indices) end
     return vlines
+end
+
+local function render_calibration_overlay()
+    if not FSM.CALIBRATION_MODE then
+        calibration_osd.data = ""
+        calibration_osd:update()
+        return
+    end
+
+    local ass = {}
+    table.insert(ass, "{\\an7\\pos(0,0)}")
+    
+    -- 1. Render Drum/SRT Hit Zones
+    if FSM.DRUM_HIT_ZONES then
+        for _, zone in ipairs(FSM.DRUM_HIT_ZONES) do
+            local x1, y1 = zone.x_start, zone.y_top
+            local x2, y2 = x1 + zone.total_width, zone.y_bottom
+            table.insert(ass, string.format("{\\1c&HFFFF00&\\1a&H80&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", x1, y1, x2, y1, x2, y2, x1, y2))
+            if zone.words then
+                for _, w in ipairs(zone.words) do
+                    local wx1, wy1 = x1 + w.x_offset, y1
+                    local wx2, wy2 = wx1 + w.width, y2
+                    table.insert(ass, string.format("{\\1c&HFF00FF&\\1a&H60&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", wx1, wy1, wx2, wy1, wx2, wy2, wx1, wy2))
+                end
+            end
+        end
+    end
+    
+    -- 2. Render Drum Window Hit Zones
+    if FSM.DRUM_WINDOW ~= "OFF" and FSM.DW_LAYOUT_CACHE then
+        local layout = FSM.DW_LAYOUT_CACHE.layout
+        local total_h = FSM.DW_LAYOUT_CACHE.total_height
+        local cur_y = 540 - (total_h / 2)
+        local lh_mul = Options.dw_line_height_mul
+        local vline_h_base = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+        local space_w = dw_get_str_width(" ")
+        
+        for i, entry in ipairs(layout) do
+            local sub_y = cur_y
+            for vi, vl_indices in ipairs(entry.vlines) do
+                local vl_y1 = sub_y + (vi - 1) * vline_h_base
+                local vl_y2 = vl_y1 + vline_h_base
+                
+                -- Calculate width
+                local vl_w = 0
+                for _, wi in ipairs(vl_indices) do
+                    vl_w = vl_w + dw_get_str_width(entry.words[wi])
+                end
+                if not Options.dw_original_spacing then
+                    vl_w = vl_w + (#vl_indices - 1) * space_w
+                end
+                
+                local vl_x1 = 960 - vl_w / 2
+                local vl_x2 = vl_x1 + vl_w
+                
+                table.insert(ass, string.format("{\\1c&HFFFF00&\\1a&H80&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", vl_x1, vl_y1, vl_x2, vl_y1, vl_x2, vl_y2, vl_x1, vl_y2))
+                
+                -- Words
+                local wx = vl_x1
+                for _, wi in ipairs(vl_indices) do
+                    local ww = dw_get_str_width(entry.words[wi])
+                    local wx2 = wx + ww
+                    table.insert(ass, string.format("{\\1c&HFF00FF&\\1a&H60&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", wx, vl_y1, wx2, vl_y1, wx2, vl_y2, wx, vl_y2))
+                    wx = wx + ww + (Options.dw_original_spacing and 0 or space_w)
+                end
+            end
+            cur_y = cur_y + entry.height
+            if i < #layout then
+                cur_y = cur_y + calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
+            end
+        end
+    end
+
+    -- Status HUD
+    local status = string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&}CHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f", 
+        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)
+    table.insert(ass, status)
+
+    calibration_osd.data = table.concat(ass, "\n")
+    calibration_osd:update()
 end
 
 local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line_height_mul, vsp)
@@ -4749,6 +4907,10 @@ local function tick_dw(time_pos, active_idx)
     dw_osd.data = draw_dw(subs, FSM.DW_VIEW_CENTER, active_idx)
     dw_osd:update()
     
+    if FSM.CALIBRATION_MODE then
+        render_calibration_overlay()
+    end
+    
     dw_tooltip_mouse_update()
 end
 
@@ -4804,6 +4966,10 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     
     drum_osd.data = ass_text
     drum_osd:update()
+    
+    if FSM.CALIBRATION_MODE then
+        render_calibration_overlay()
+    end
 end
 
 -- =========================================================================
@@ -6759,11 +6925,20 @@ mp.observe_property("script-opts", "string", function()
 end)
 
 mp.register_event("shutdown", function()
+    if FSM.CALIBRATION_MODE then
+        manage_calibration_bindings(false)
+    end
     if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         manage_dw_bindings(false)
+    end
+end)
+
+mp.register_event("file-loaded", function()
+    if FSM.CALIBRATION_MODE then
+        cmd_toggle_calibration()
     end
 end)
 
@@ -6786,6 +6961,7 @@ mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t)
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
+mp.add_key_binding("B", "toggle-calibration", cmd_toggle_calibration)
 
 local function register_global_position_keys()
     local function bind(opt, name, fn)
