@@ -5768,7 +5768,8 @@ local function set_clipboard(text)
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     if Options.goldendict_trigger == "yes" and platform == "\\" then
         -- Using .NET SendWait for more robust global hotkey injection
-        local trigger_cmd = "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('^!+n')"
+        -- Note: In .NET SendKeys, '%' is Alt (unlike WScript.Shell where '!' is Alt)
+        local trigger_cmd = "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('^%+q')"
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
 end
