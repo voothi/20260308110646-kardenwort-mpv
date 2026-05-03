@@ -651,6 +651,7 @@ local FSM = {
 
     -- Transients
     last_paused_sub_end = nil,
+    last_time_pos = nil,
     space_down_time = 0,
     initial_pause_state = true,
     native_sub_vis = mp.get_property_bool("sub-visibility", true),
@@ -4897,9 +4898,33 @@ end
 -- =========================================================================
 
 local function tick_autopause(time_pos)
+    -- [v1.58.45] Manual Seek Detection
+    -- If time_pos jumps significantly (manual seek via script or native mpv),
+    -- we MUST reset last_paused_sub_end to allow pausing at the same subtitle again.
+    if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
+        FSM.last_paused_sub_end = nil
+    end
+    FSM.last_time_pos = time_pos
+
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
-    local sub_end = mp.get_property_number("sub-end")
+    -- [v1.58.45] Precise Manual Autopause
+    -- Prefer our parsed subtitles table for exact timing. Native 'sub-end' can be 
+    -- flaky or laggy during rapid seeking.
+    local sub_end = nil
+    local subs = Tracks.pri.subs
+    if subs and #subs > 0 then
+        local idx = get_center_index(subs, time_pos)
+        if idx ~= -1 then
+            sub_end = subs[idx].end_time
+        end
+    end
+    
+    -- Fallback to native property if logic memory is empty
+    if not sub_end then
+        sub_end = mp.get_property_number("sub-end")
+    end
+
     if sub_end == nil or (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
         return
     end
