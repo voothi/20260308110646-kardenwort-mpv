@@ -5786,32 +5786,48 @@ local function set_clipboard(text, mode)
     -- [v1.58.38] Professional Layout-Independent Trigger (VK-based)
     if Options.gd_trigger_enabled == "yes" and platform == "\\" and (mode == "side" or mode == "main") then
         local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
-        local primary = user_hotkey:match("[^%s,;]+") or ""
-        primary = primary:lower()
-        
-        -- Map common keys to Virtual Key (VK) codes
+        -- [v1.58.40] Expanded VK mapping for layout-independent triggers
         local vk_codes = {
-            ctrl = 0x11, alt = 0x12, shift = 0x10,
-            q = 0x51, n = 0x4E, ["1"] = 0x31
+            ctrl = 0x11, alt = 0x12, shift = 0x10, win = 0x5B,
+            a = 0x41, b = 0x42, c = 0x43, d = 0x44, e = 0x45, f = 0x46, g = 0x47, h = 0x48, i = 0x49,
+            j = 0x4A, k = 0x4B, l = 0x4C, m = 0x4D, n = 0x4E, o = 0x4F, p = 0x50, q = 0x51, r = 0x52,
+            s = 0x53, t = 0x54, u = 0x55, v = 0x56, w = 0x57, x = 0x58, y = 0x59, z = 0x5A,
+            ["0"] = 0x30, ["1"] = 0x31, ["2"] = 0x32, ["3"] = 0x33, ["4"] = 0x34,
+            ["5"] = 0x35, ["6"] = 0x36, ["7"] = 0x37, ["8"] = 0x38, ["9"] = 0x39,
+            f1 = 0x70, f2 = 0x71, f3 = 0x72, f4 = 0x73, f5 = 0x74, f6 = 0x75,
+            f7 = 0x76, f8 = 0x77, f9 = 0x78, f10 = 0x79, f11 = 0x7A, f12 = 0x7B,
+            -- Cyrillic equivalents (ЙЦУКЕН)
+            ["й"] = 0x51, ["ц"] = 0x57, ["у"] = 0x45, ["к"] = 0x52, ["е"] = 0x54, ["н"] = 0x59, ["г"] = 0x55, ["ш"] = 0x49, ["щ"] = 0x4F, ["з"] = 0x50,
+            ["ф"] = 0x41, ["ы"] = 0x53, ["в"] = 0x44, ["а"] = 0x46, ["п"] = 0x47, ["р"] = 0x48, ["о"] = 0x4A, ["л"] = 0x4B, ["д"] = 0x4C,
+            ["я"] = 0x5A, ["ч"] = 0x58, ["с"] = 0x43, ["м"] = 0x56, ["и"] = 0x42, ["т"] = 0x4E, ["ь"] = 0x4D, ["б"] = 0xBC, ["ю"] = 0xBE
         }
         
-        local events = {}
-        local modifiers = { "ctrl", "alt", "shift" }
-        for _, mod in ipairs(modifiers) do
-            if primary:find(mod) then table.insert(events, {vk_codes[mod], 0}) end
+        local all_events = {}
+        for hotkey in user_hotkey:gmatch("[^%s,;]+") do
+            local primary = hotkey:lower()
+            local events = {}
+            local modifiers = { "ctrl", "alt", "shift", "win" }
+            for _, mod in ipairs(modifiers) do
+                if primary:find(mod) then table.insert(events, {vk_codes[mod], 0}) end
+            end
+            
+            -- Get the main key (the last part)
+            local key = primary:match("[^+]+$")
+            if key and vk_codes[key] then
+                table.insert(events, {vk_codes[key], 0}) -- Down
+                table.insert(events, {vk_codes[key], 2}) -- Up
+            end
+            
+            -- Release modifiers in reverse order
+            for i = #events - 1, 1, -1 do
+                if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
+            end
+            
+            for _, ev in ipairs(events) do table.insert(all_events, ev) end
         end
         
-        -- Get the main key (the last letter/number)
-        local key = primary:match("[^+]+$")
-        if key and vk_codes[key] then
-            table.insert(events, {vk_codes[key], 0}) -- Down
-            table.insert(events, {vk_codes[key], 2}) -- Up
-        end
-        
-        -- Release modifiers in reverse order
-        for i = #events - 1, 1, -1 do
-            if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
-        end
+        if #all_events == 0 then return end
+
         
         -- [v1.58.56] Configurable Trigger Lock (Prevent AHK Recursion)
         local now = mp.get_time()
@@ -5826,7 +5842,7 @@ local function set_clipboard(text, mode)
         if Options.gd_trigger_method == "python" then
             local delay = (mode == "main") and Options.python_trigger_delay_main or Options.python_trigger_delay_popup
             local py_cmd = string.format("import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ", delay)
-            for _, ev in ipairs(events) do
+            for _, ev in ipairs(all_events) do
                 py_cmd = py_cmd .. string.format("u.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
             end
             mp.command_native_async({
@@ -5841,9 +5857,10 @@ local function set_clipboard(text, mode)
             local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
             local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
             
-            for _, ev in ipairs(events) do
+            for _, ev in ipairs(all_events) do
                 script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
             end
+
             
             mp.command_native_async({
                 name = "subprocess",

@@ -1338,6 +1338,6 @@
 20260503192115 create-release-2 v1.58.38 openspec\changes\archive\20260502211505-prioritize-selection-in-context-copy openspec\changes\archive\20260502223822-improve-clipboard-reliability-for-goldendict openspec\changes\archive\20260503131410-harden-clipboard-reliability openspec\changes\archive\20260503190627-fix-ghost-tooltip-hit-zones
 20260502170926 /opsx-explore You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications, configuration guru and diff-guru for this project, with surgical precision check the current version 72e9b3e35ddf8225ba55704478fa6a31ff9dfc9a 20260503192709 for regression compared to v1.58.30, and for compliance, impeccable adherence to the current general openspec\specs specifications, it is necessary to synchronize.
 20260503193636 The current implementation is in impeccable adherence to the established specifications. The recent refactoring has successfully unified the clipboard logic, hardened interaction hit-zones, and eliminated long-standing "ghost" interference issues. - Okay.
-
+20260503201804 Check why it doesn't work mpv.conf#L372
 
 
