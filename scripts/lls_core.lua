@@ -654,6 +654,7 @@ local FSM = {
     last_time_pos = nil,
     IGNORE_NEXT_JUMP = false,
     LOOP_MODE = "OFF",
+    LOOP_ARMED = false,
     LOOP_START = nil,
     LOOP_END = nil,
     space_down_time = 0,
@@ -4945,8 +4946,19 @@ end
 local function tick_loop(time_pos)
     if FSM.LOOP_MODE ~= "ON" then return end
     if not FSM.LOOP_START or not FSM.LOOP_END then return end
-    
+
+    -- [v1.58.50] Arm guard: only allow the loop to fire after the player
+    -- has been observed clearly INSIDE the subtitle at least once.
+    -- This prevents an immediate seek-back when 's' is pressed mid-subtitle.
+    if not FSM.LOOP_ARMED then
+        if time_pos < FSM.LOOP_END - Options.pause_padding then
+            FSM.LOOP_ARMED = true
+        end
+        return
+    end
+
     if time_pos >= FSM.LOOP_END - Options.pause_padding then
+        FSM.LOOP_ARMED = false  -- reset for the next iteration
         FSM.IGNORE_NEXT_JUMP = true
         mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
     end
@@ -4979,12 +4991,14 @@ local function master_tick()
             FSM.last_paused_sub_end = nil
             if FSM.LOOP_MODE == "ON" then
                 -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
+                -- Also reset LOOP_ARMED so the arming check runs for the new location.
                 local subs = Tracks.pri.subs
                 if subs and #subs > 0 then
                     local idx = get_center_index(subs, time_pos)
                     if idx ~= -1 then
                         FSM.LOOP_START = subs[idx].start_time
                         FSM.LOOP_END = subs[idx].end_time
+                        FSM.LOOP_ARMED = false
                         show_osd("Loop: Line " .. idx)
                     end
                 end
@@ -5619,9 +5633,10 @@ local function cmd_replay_sub()
             show_osd("Loop Subtitle: OFF")
         else
             FSM.LOOP_MODE = "ON"
+            FSM.LOOP_ARMED = false  -- Must observe inside subtitle before firing
             FSM.LOOP_START = sub.start_time
             FSM.LOOP_END = sub.end_time
-            show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
+            show_osd("Loop: ON (Line " .. idx .. ")")
         end
     else
         -- Manual Replay Mode (Autopause is ON)
