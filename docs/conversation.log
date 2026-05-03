@@ -1318,7 +1318,10 @@
 20260503164723 Write a comment
 20260503164808 You should have added it to the top of the block header.
 20260503165247 You proposed a solution via python vk injector - anchor 20260503160632, commit 20260503160809, can you make this implementation, but included as an option in mpv.conf?
-
+20260503170318 In python window opens, but there is no request.
+20260503170635 This problem is only in the main mode of the window, when I launch it via ahk ctrl alt shift 1
+20260503171257 Add the setting parameter to mpv.conf with a comment in the block header. local py_cmd = "import ctypes, time; time.sleep(0.5);
+20260503171625 I need to make a separate trigger for the pop window mode and a separate one for main.
 
 
 
