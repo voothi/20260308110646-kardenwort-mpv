@@ -1347,8 +1347,8 @@
 20260503205105 A false positive occurs if you press RU `у`, works the same way as when pressed Shift+у, although in mpv.conf I don't have that setting and `у` shouldn't work.
 20260503205811 Called anyway, hasn't changed.
 20260503211027 Look, trace, solve the problem with false positives, the small model failed. Conversation Anchors 20260503204110 20260503205105 20260503205811 Commit before changes 73fac732cc184a5f44d86e2a5ea092cbd7173f30 20260503204057, what to compare the initial state with
-
-
+20260503212543 Okay, now as a specifications architect and a pedant and a brainiac, do opsx-propose, conversation anchors 20260503204110..20260503211027
+20260503213007 opsx-apply 20260503212729-fix-hotkey-false-positives
 
 
 
