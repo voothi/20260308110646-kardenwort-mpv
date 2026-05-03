@@ -4733,8 +4733,8 @@ local function cmd_dw_double_click()
 end
 
 local function tick_dw(time_pos, active_idx)
+    if FSM.CALIBRATION_MODE then return end
     local subs = Tracks.pri.subs
-    if #subs == 0 or not active_idx or active_idx == -1 then return end
     
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
@@ -4762,8 +4762,8 @@ local function tick_dw(time_pos, active_idx)
 end
 
 local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
-    -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
-    if FSM.DRUM_WINDOW ~= "OFF" then return end
+    -- Don't render Drum Mode OSD while Drum Window or Calibration is active
+    if FSM.DRUM_WINDOW ~= "OFF" or FSM.CALIBRATION_MODE then return end
     
     local is_drum = (FSM.DRUM == "ON")
     
@@ -6965,12 +6965,13 @@ function render_calibration_overlay()
             -- Box (Magenta)
             local w = dw_get_str_width(pattern, fs)
             if w and w > 0 then
-                 table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+                 -- Explicitly avoid \r here to prevent alignment drift
+                 table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
                     x, y, math.floor(w), math.floor(w), math.floor(lh), math.floor(lh)))
             end
             
-            -- Text
-            table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
+            -- Text (No \r)
+            table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
         end
         
         calibration_osd.data = table.concat(ass, "")
