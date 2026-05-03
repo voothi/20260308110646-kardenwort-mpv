@@ -210,6 +210,8 @@ Options = {
 
     -- Drum Window
     dw_font_size = 34,
+    gd_trigger_lock_duration = 2.0,
+    dw_key_copy = "Ctrl+c Ctrl+с",
     dw_lines_visible = 15,        -- how many lines visible in the window
     dw_scrolloff = 3,             -- margin lines at top/bottom before scrolling
     dw_bg_color = "000000",       -- Black (BGR: 000000 | RGB: #000000)
@@ -5633,7 +5635,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
     parse_and_collect(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
     parse_and_collect(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-    parse_and_collect(Options.key_copy_popup, "dw-copy", nil, function() cmd_dw_copy("side") end, false)
+    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy("none") end, false)
+    parse_and_collect(Options.key_copy_popup, "dw-copy-popup", nil, function() cmd_dw_copy("side") end, false)
     parse_and_collect(Options.key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
     parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
     parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
@@ -6875,7 +6878,8 @@ mp.add_key_binding(nil, "toggle-sub-visibility", cmd_toggle_sub_vis)
 mp.add_key_binding(nil, "cycle-secondary-pos", cmd_cycle_sec_pos)
 mp.add_key_binding(nil, "cycle-sec-sid", cmd_cycle_sec_sid)
 mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
-mp.add_key_binding(nil, "copy-subtitle", function() cmd_copy_sub("side") end)
+mp.add_key_binding(nil, "copy-subtitle", function() cmd_copy_sub("none") end)
+mp.add_key_binding(nil, "copy-subtitle-popup", function() cmd_copy_sub("side") end)
 mp.add_key_binding(nil, "copy-subtitle-main", function() cmd_copy_sub("main") end)
 
 -- [v1.58.40] Global Ctrl+Alt+C binding for main GoldenDict window
