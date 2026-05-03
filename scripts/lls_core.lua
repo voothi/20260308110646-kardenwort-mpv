@@ -202,6 +202,7 @@ Options = {
     gd_hotkey_main = "Ctrl+Alt+Shift+1",
     gd_trigger_method = "powershell", -- "powershell" or "python"
     python_path = "python",
+    python_trigger_delay = 0.5,
 
     -- Drum Window
     dw_font_size = 34,
@@ -5804,9 +5805,9 @@ local function set_clipboard(text, mode)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
-        -- [v1.58.51] Python Timing Fix (Increased Buffer for Main Mode)
+        -- [v1.58.52] Configurable Python Trigger Delay
         if Options.gd_trigger_method == "python" then
-            local py_cmd = "import ctypes, time; time.sleep(0.5); u=ctypes.windll.user32; "
+            local py_cmd = string.format("import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ", Options.python_trigger_delay)
             for _, ev in ipairs(events) do
                 py_cmd = py_cmd .. string.format("u.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
             end
