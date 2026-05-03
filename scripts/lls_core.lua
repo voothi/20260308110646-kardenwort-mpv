@@ -184,7 +184,9 @@ Options = {
     copy_filter_russian = true,
     copy_context_lines = 2,
     copy_word_limit = 3,
-    copy_osd_cooldown = 1.5,
+    copy_osd_cooldown = 3.0,
+    key_copy_popup = "Ctrl+c Ctrl+с",
+    key_copy_main = "Alt+c Alt+с",
 
     -- Toggle Positions
     -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
@@ -296,8 +298,6 @@ Options = {
     dw_key_seek_prev = "a ф",
     dw_key_seek_next = "d в",
     dw_key_search = "Ctrl+f Ctrl+а",
-    dw_key_copy = "Ctrl+c Ctrl+с",
-    dw_key_copy_main = "Ctrl+Alt+c Ctrl+Alt+с",
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
     dw_key_select_extend = "Shift+MBTN_LEFT",
@@ -5632,8 +5632,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
     parse_and_collect(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
     parse_and_collect(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy("side") end, false)
-    parse_and_collect(Options.dw_key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
+    parse_and_collect(Options.key_copy_popup, "dw-copy", nil, function() cmd_dw_copy("side") end, false)
+    parse_and_collect(Options.key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
     parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
     parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
     parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
@@ -5805,6 +5805,15 @@ local function set_clipboard(text, mode)
         for i = #events - 1, 1, -1 do
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
+        
+        -- [v1.58.55] Global Trigger Lock (Prevent AHK Recursion)
+        local now = mp.get_time()
+        if (now - (FSM.LAST_TRIGGER_TIME or 0)) < 2.0 then
+            -- A trigger was recently fired, likely by the user.
+            -- Any subsequent ^c from AHK should just update the clipboard without re-triggering.
+            return
+        end
+        FSM.LAST_TRIGGER_TIME = now
         
         -- [v1.58.53] Independent Mode Delays (Popup/Main)
         if Options.gd_trigger_method == "python" then
@@ -6878,7 +6887,8 @@ local function register_global_copy_keys()
             i = i + 1
         end
     end
-    bind(Options.dw_key_copy_main, "lls-global-copy-main", function() cmd_copy_sub("main") end)
+    bind(Options.key_copy_popup, "lls-global-copy-side", function() cmd_copy_sub("side") end)
+    bind(Options.key_copy_main, "lls-global-copy-main", function() cmd_copy_sub("main") end)
 end
 register_global_copy_keys()
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
