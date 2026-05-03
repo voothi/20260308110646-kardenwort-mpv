@@ -6940,46 +6940,46 @@ function render_calibration_overlay()
 
     local ass = {}
     
-    local function add_box(x1, y1, x2, y2, color, alpha)
-        table.insert(ass, string.format("{\\an7\\pos(0,0)\\1c&H%s&\\1a&H%s&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", 
-            color, alpha, x1, y1, x2, y1, x2, y2, x1, y2))
+    -- 1. Full Screen Blackout (to isolate calibration)
+    table.insert(ass, "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H10&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}")
+
+    local function add_box(x, y, w, h, color, alpha)
+        table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&H%s&\\1a&H%s&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+            x, y, color, alpha, math.floor(w), math.floor(w), math.floor(h), math.floor(h)))
     end
 
-    -- 1. Status HUD
-    table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&HFFFFFF&}CALIBRATION MODE\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
+    -- 2. Status HUD
+    table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE (v1.59)\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
         Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul, Options.dw_font_size))
 
-    -- 2. Full Page Test Pattern (Emulating Reel B / Drum Window)
-    local pattern = "ALIGN-TEST-ABC-123-abc-098-!@#$%^&*"
+    -- 3. Test Pattern
+    local pattern = "ALIGNMENT-TEST-WORD-TOKEN-12345-!@#$%-hyphenated-word-test"
     local fs = Options.dw_font_size
     local lh = fs * Options.dw_line_height_mul
     local vsp = Options.dw_vsp
     
-    local rows = 18
+    local rows = 15
     local total_h = rows * (lh + vsp)
-    local cur_y = 540 - (total_h / 2)
+    local start_y = 540 - (total_h / 2)
     
-    for i = 1, rows do
-        local y1 = math.floor(cur_y)
-        local y2 = math.floor(y1 + lh)
-        local x1 = 100
+    for i = 0, rows - 1 do
+        local y = math.floor(start_y + i * (lh + vsp))
+        local x = 100
+        
+        -- Cyan Line Box (Ground Truth for Line Height)
+        local total_w = dw_get_str_width(pattern, fs)
+        add_box(x, y, total_w, lh, "FFFF00", "80")
         
         -- Text
-        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x1, y1, fs, pattern))
+        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
         
-        -- Line Box (Cyan)
-        local w = dw_get_str_width(pattern, fs)
-        add_box(x1, y1, math.floor(x1 + w), y2, "FFFF00", "80")
-        
-        -- Word Boxes (Magenta)
-        local wx = x1
-        for word in pattern:gmatch("[^- ]+") do
+        -- Magenta Word Boxes (Ground Truth for Char Width)
+        local cur_x = x
+        for word in pattern:gmatch("[^-]+") do
             local ww = dw_get_str_width(word, fs)
-            add_box(math.floor(wx), y1, math.floor(wx + ww), y2, "FF00FF", "60")
-            wx = wx + ww + dw_get_str_width("-", fs)
+            add_box(cur_x, y, ww, lh, "FF00FF", "40")
+            cur_x = cur_x + ww + dw_get_str_width("-", fs)
         end
-        
-        cur_y = cur_y + lh + vsp
     end
     
     calibration_osd.data = table.concat(ass, "")
