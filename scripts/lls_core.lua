@@ -107,14 +107,20 @@ local function expand_ru_keys(key_string, opt_name)
             }
             
             if is_explicit_shift then
-                -- Shift+e -> Shift+у, Shift+У
-                add(mods .. ru_base)
-                if ru_upper[ru_base] then add(mods .. ru_upper[ru_base]) end
+                -- [v1.58.42 FIX] Shift+e -> "У" only (uppercase Cyrillic, no Shift+ prefix).
+                -- Rationale: mpv on Windows normalizes Shift+CyrillicLower == CyrillicUpper.
+                -- Registering "Shift+у" is equivalent to "У" in mpv's input table, BUT
+                -- some Windows mpv builds also match "Shift+у" against the bare key "у",
+                -- creating a false positive. The correct and unambiguous form is the uppercase
+                -- character alone (stripped of the Shift+ modifier for the RU variant).
+                -- Non-Shift modifiers (Ctrl, Alt) are preserved.
+                local other_mods = mods:gsub("[Ss]hift%+", "")
+                if ru_upper[ru_base] then add(other_mods .. ru_upper[ru_base]) end
             elseif is_implicit_shift then
-                -- E -> У (Only)
+                -- E -> У (Only) — implicit shift via uppercase EN letter
                 if ru_upper[ru_base] then add(mods .. ru_upper[ru_base]) end
             else
-                -- e -> у (Only)
+                -- e -> у (Only) — strict lowercase, no bleed into shifted variants
                 add(mods .. ru_base)
             end
         end
