@@ -5774,9 +5774,7 @@ local function set_clipboard(text, mode)
         local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
         
         -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
-        -- Support multiple alternatives (take first)
-        local raw_hotkey = user_hotkey:match("[^%s,;]+") or ""
-        raw_hotkey = raw_hotkey:lower()
+        local raw_hotkey = user_hotkey:lower()
         local sendkeys_map = {
             ["ctrl%+"] = "^",
             ["alt%+"] = "%%",
