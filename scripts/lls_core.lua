@@ -198,6 +198,7 @@ Options = {
     win_clipboard_retry_delay = 50, -- milliseconds
     goldendict_trigger = "no",
     goldendict_hotkey = "Ctrl+Alt+Shift+Q",
+    goldendict_hotkey_main = "Ctrl+Alt+Shift+1",
 
     -- Drum Window
     dw_font_size = 34,
@@ -291,6 +292,7 @@ Options = {
     dw_key_seek_next = "d в",
     dw_key_search = "Ctrl+f Ctrl+а",
     dw_key_copy = "Ctrl+c Ctrl+с",
+    dw_key_copy_main = "Ctrl+Alt+c Ctrl+Alt+с",
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
     dw_key_select_extend = "Shift+MBTN_LEFT",
@@ -5625,7 +5627,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
     parse_and_collect(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
     parse_and_collect(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy() end, false)
+    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy("side") end, false)
+    parse_and_collect(Options.dw_key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
     parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
     parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
     parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
@@ -5727,7 +5730,8 @@ local function get_clipboard()
     return ""
 end
 
-local function set_clipboard(text)
+local function set_clipboard(text, mode)
+    mode = mode or "side"
     -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
     local platform = package.config:sub(1,1)
@@ -5765,22 +5769,25 @@ local function set_clipboard(text)
         end
     end
 
-    -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
-    -- This bypasses AHK polling latency by directly notifying the dictionary tool.
+    -- [v1.58.32] Optional explicit trigger for GoldenDict scan/main popups.
     if Options.goldendict_trigger == "yes" and platform == "\\" then
+        local user_hotkey = (mode == "main") and Options.goldendict_hotkey_main or Options.goldendict_hotkey
+        
         -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
-        local raw_hotkey = Options.goldendict_hotkey:lower()
+        local raw_hotkey = user_hotkey:lower()
         local sendkeys_map = {
             ["ctrl%+"] = "^",
             ["alt%+"] = "%%",
             ["shift%+"] = "+",
-            ["win%+"] = "^{ESC}" -- Limited support for Win key in SendKeys
+            ["win%+"] = "^{ESC}"
         }
         for k, v in pairs(sendkeys_map) do
             raw_hotkey = raw_hotkey:gsub(k, v)
         end
         
-        -- Using .NET SendWait for more robust global hotkey injection
+        -- Special case: digit hotkeys (like ^%+1) need braces in some versions of SendKeys
+        -- but usually ^%+1 is fine.
+        
         local trigger_cmd = string.format("[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
@@ -6588,14 +6595,14 @@ local function get_clipboard_text_smart(time_pos, line_idx)
 end
 
 
-function cmd_dw_copy()
+function cmd_dw_copy(mode)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
     local final_text, is_context = get_clipboard_text_smart()
     
     if final_text and final_text ~= "" then
-        set_clipboard(final_text)
+        set_clipboard(final_text, mode)
         local label = is_context and "Context" or "DW"
         show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
     end
@@ -6722,14 +6729,14 @@ end
 -- SYSTEM EVENTS
 -- =========================================================================
 
-local function cmd_copy_sub()
+local function cmd_copy_sub(mode)
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
     local final_text, is_context = get_clipboard_text_smart(time_pos)
 
     if final_text and final_text ~= "" then
-        set_clipboard(final_text)
+        set_clipboard(final_text, mode)
         
         local words, wcount = {}, 0
         for w in final_text:gmatch("%S+") do
@@ -6804,7 +6811,8 @@ mp.add_key_binding(nil, "toggle-sub-visibility", cmd_toggle_sub_vis)
 mp.add_key_binding(nil, "cycle-secondary-pos", cmd_cycle_sec_pos)
 mp.add_key_binding(nil, "cycle-sec-sid", cmd_cycle_sec_sid)
 mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
-mp.add_key_binding(nil, "copy-subtitle", cmd_copy_sub)
+mp.add_key_binding(nil, "copy-subtitle", function() cmd_copy_sub("side") end)
+mp.add_key_binding(nil, "copy-subtitle-main", function() cmd_copy_sub("main") end)
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
