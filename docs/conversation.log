@@ -1242,9 +1242,14 @@
 20260502223454 Make it work more reliably when paired with GoldenDict via the clipboard. Now there are gaps for some reason. Maybe this is due to the latest modification to the response time? I can make this a separate parameter to try debug?
 20260502225817 Add to mpv.conf.
 20260503000621 opsx-archive openspec\changes\20260502223822-improve-clipboard-reliability-for-goldendict
-
-
-
+20260503102132 x opsx-propose Would you like a Visual Debug Mode that simply renders the hit-zones so you can tune them with keys? - Yes.
+20260503103950 x opsx-apply 20260503010003-make-a-calibration-mode
+20260503104529 x Error
+20260503104955 x Here's the picture in different modes
+20260503105217 x Now this is the picture
+20260503105414 x It doesn't look like it's working at all. Don't you want to submit your text for testing without relying on the current subtitle modes, and there are many of them? This would make the task easier. Test subtitles with hyphens, long, the entire screen, as much as possible around the edges so that it is filled with text. Because inaccuracy and deviation tend to accumulate around the edges.
+20260503105414 x It doesn't look like it's working at all. Don't you want to submit your text for testing without relying on the current subtitle modes, and there are many of them? This would make the task easier. Test subtitles with hyphens, long, the entire screen, as much as possible around the edges so that it is filled with text. Because inaccuracy and deviation tend to accumulate around the edges.
+20260503110010 x Something doesn't seem like a separate mode, similar to the W reel window mode, where I would see your test text filling the entire screen, line by word, with the ability to calibrate.
 
 
 
