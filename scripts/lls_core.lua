@@ -5767,7 +5767,8 @@ local function set_clipboard(text)
     -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     if Options.goldendict_trigger == "yes" and platform == "\\" then
-        local trigger_cmd = "$wshell = New-Object -ComObject WScript.Shell; $wshell.SendKeys('^!+n')"
+        -- Using .NET SendWait for more robust global hotkey injection
+        local trigger_cmd = "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('^!+n')"
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
 end
