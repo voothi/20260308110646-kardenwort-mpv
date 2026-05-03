@@ -184,6 +184,7 @@ Options = {
     copy_filter_russian = true,
     copy_context_lines = 2,
     copy_word_limit = 3,
+    copy_osd_cooldown = 1.5,
 
     -- Toggle Positions
     -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
@@ -6629,8 +6630,12 @@ function cmd_dw_copy(mode)
     
     if final_text and final_text ~= "" then
         set_clipboard(final_text, mode)
-        local label = is_context and "Context" or "DW"
-        show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
+        local now = mp.get_time()
+        if (now - (FSM.LAST_OSD_TIME or 0)) > Options.copy_osd_cooldown then
+            local label = is_context and "Context" or "DW"
+            show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
+            FSM.LAST_OSD_TIME = now
+        end
     end
 end
 
@@ -6764,13 +6769,17 @@ local function cmd_copy_sub(mode)
     if final_text and final_text ~= "" then
         set_clipboard(final_text, mode)
         
-        local words, wcount = {}, 0
-        for w in final_text:gmatch("%S+") do
-            if wcount < Options.copy_word_limit then table.insert(words, w) end
-            wcount = wcount + 1
+        local now = mp.get_time()
+        if (now - (FSM.LAST_OSD_TIME or 0)) > Options.copy_osd_cooldown then
+            local words, wcount = {}, 0
+            for w in final_text:gmatch("%S+") do
+                if wcount < Options.copy_word_limit then table.insert(words, w) end
+                wcount = wcount + 1
+            end
+            local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
+            show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
+            FSM.LAST_OSD_TIME = now
         end
-        local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
-        show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
     else
         show_osd("No subtitle to copy")
     end
