@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.58.30-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.30) 
+[![Version](https://img.shields.io/badge/version-v1.58.38-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.38) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -102,6 +102,11 @@ This suite solves problems that standard video players and generic scripts ignor
 35. **Smart Diagnostics & Logging**: Level-aware logging with log deduplication and single-summary startup health checks to eliminate console spam and report configuration errors professionally.
 36. **Standardized Historicity**: Centralized "Ground Truth" for terminology and dual-notation color specifications (BGR/RGB) ensures long-term architectural integrity and AI consistency.
 37. **Visual Line Awareness**: Vertical navigation in the Drum Window is now visual-line aware for multi-line wrapped subtitles, with deterministic landing logic and viewport tracking.
+38. **Triple-Tier Decoupled Copy Engine**: Introduced a sophisticated clipboard architecture that separates standard copying from dictionary lookups (Popup vs. Main window).
+39. **Multi-Method Trigger Bridge**: High-performance Win32 bridge using PowerShell (Add-Type) or instantaneous Python/ctypes injection to eliminate dictionary lookup latency.
+40. **Global Trigger Recursion Lock**: Implemented a time-based guard to prevent AHK-generated `^c` loops, ensuring clean synchronization with external dictionary tools.
+41. **Prioritized Selection in Context Copy**: Manual selections (word/range) now take absolute priority over "Context Copy" mode, allowing for precise term extraction even when multi-line harvesting is active.
+42. **Ghost Hit-Zone Elimination**: Explicit lifecycle management for tooltip hit-zones prevents interaction bleed-through and ensures the Drum Window remains fully interactive after tooltip dismissal.
 
 [Return to Top](#table-of-contents)
 
@@ -220,7 +225,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `m` | `ь` | Toggle **Mute** |
 | `0` / `9` | `0` / `9` | Adjust **Volume** (Up / Down) |
 | `[` / `]` | `х` / `ъ` | Decrease / Increase **Playback Speed** (10%) |
-| `{` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
+| `順` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
 | `BS` | `BS` | **Reset Playback Speed** (Set to 1.0) |
 | `.` / `,` | `ю` / `б` | Frame Step Forward / Backward |
 | `v` | `м` | Toggle **Fullscreen** |
@@ -401,6 +406,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `lls-anki_split_depth_1/2/3` | - | Colors for split-phrase matches (Light -> Deep Purple). |
 | `lls-anki_mix_depth_1/2/3` | - | Colors for mixed/overlapping matches (Light -> Deep Blue). |
 | `lls-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
+| `lls-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
 | `lls-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
 | `lls-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
 | `lls-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
@@ -501,7 +507,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1541 Commits (v1.58.30)
+- **Current Maturity**: ~1586 Commits (v1.58.38)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

@@ -1335,7 +1335,7 @@
 20260503190617 opsx-propose
 20260503191023 opsx-apply openspec\changes\20260503190627-fix-ghost-tooltip-hit-zones
 20260503191813 It seems the problem is solved, do it opsx-archive --sync openspec\changes\20260503190627-fix-ghost-tooltip-hit-zones
-
+20260503192115 create-release-2 v1.58.38 openspec\changes\archive\20260502211505-prioritize-selection-in-context-copy openspec\changes\archive\20260502223822-improve-clipboard-reliability-for-goldendict openspec\changes\archive\20260503131410-harden-clipboard-reliability openspec\changes\archive\20260503190627-fix-ghost-tooltip-hit-zones
 
 
 

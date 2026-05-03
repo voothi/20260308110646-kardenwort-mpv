@@ -1,3 +1,26 @@
+# Release Notes - v1.58.38 (Hardened Clipboard Bridge & Precision Selection)
+
+**Date**: 2026-05-03
+**Version**: v1.58.38
+**Implementation ZIDs**: 20260502211505, 20260502223822, 20260503131410, 20260503190627, 20260503192335
+
+## Highlights
+
+### 📋 **Hardened Clipboard Bridge & Reliability**
+- **Triple-Tier Decoupled Copy Engine**: Introduced a sophisticated clipboard architecture that separates standard copying from dictionary lookups (Popup vs. Main window).
+- **Global Trigger Lock**: Implemented a time-based recursion guard to prevent AHK-generated `^c` loops, ensuring clean synchronization without redundant UI triggers.
+- **Multi-Method Trigger Engine**: High-performance Win32 bridge using PowerShell (Add-Type) or instantaneous Python/ctypes injection, reducing lookup latency to near-zero.
+- **Configurable Retry Logic**: Exposed `win_clipboard_retries` and `win_clipboard_retry_delay` for fine-tuning Windows clipboard performance and mitigating resource locks.
+- **OSD Stabilization**: Added a configurable `copy_osd_cooldown` to suppress redundant notification flashes during rapid clipboard operations.
+
+### 🎯 **Precision Selection & Hit-Zone Hardening**
+- **Prioritized Selection in Context Copy**: Manual selections (word/range) now take absolute priority over "Context Copy" mode. Users can now copy specific terms even when multi-line context harvesting is active.
+- **Regulated Context Copy via Esc**: Refined the `Esc` key logic to clear manual selections first, allowing for a seamless transition between precise term copying and contextual harvesting.
+- **Ghost Hit-Zone Elimination**: Fixed "Interaction Leakage" by explicitly clearing tooltip hit-zones upon dismissal. This prevents "dead zones" in the Drum Window where inactive tooltips would intercept mouse clicks.
+- **Hit-Test Guarding**: Added secondary validation to the tooltip hit-test engine, ensuring interaction is only possible when a tooltip is logically active.
+
+---
+
 # Release Notes - v1.58.30 (Session Resumption & Smart Diagnostics)
 
 **Date**: 2026-05-02
