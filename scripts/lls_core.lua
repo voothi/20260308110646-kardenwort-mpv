@@ -5610,8 +5610,6 @@ local function cmd_replay_sub()
             FSM.LOOP_MODE = "ON"
             FSM.LOOP_START = sub.start_time
             FSM.LOOP_END = sub.end_time
-            FSM.IGNORE_NEXT_JUMP = true
-            mp.commandv("seek", sub.start_time, "absolute+exact")
             show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
         end
     else
