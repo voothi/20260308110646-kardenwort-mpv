@@ -74,11 +74,21 @@ local EN_RU_MAP = {
     ["y"]="н", ["z"]="я", ["["]="х", ["]"]="ъ", [";"]="ж", ["'"]="э", [","]="б", ["."]="ю", ["`"]="ё"
 }
 
-local function expand_ru_keys(key_string)
+local function expand_ru_keys(key_string, opt_name)
     if not key_string or key_string == "" then return {} end
     local results = {}
+    local seen = {}
+    
+    local function add(k)
+        if k and k ~= "" and not seen[k] then
+            table.insert(results, k)
+            seen[k] = true
+        end
+    end
+
     for key in key_string:gmatch("[^%s,;]+") do
-        table.insert(results, key)
+        add(key)
+        
         -- Attempt to find RU equivalent
         local mods = key:match("^(.*%+)") or ""
         local base = key:sub(#mods + 1)
@@ -97,18 +107,24 @@ local function expand_ru_keys(key_string)
             }
             
             if is_explicit_shift then
-                -- Shift+e -> Shift+у, Shift+У (Safe redundancy for various layouts)
-                table.insert(results, mods .. ru_base)
-                if ru_upper[ru_base] then table.insert(results, mods .. ru_upper[ru_base]) end
+                -- Shift+e -> Shift+у, Shift+У
+                add(mods .. ru_base)
+                if ru_upper[ru_base] then add(mods .. ru_upper[ru_base]) end
             elseif is_implicit_shift then
                 -- E -> У (Only)
-                if ru_upper[ru_base] then table.insert(results, mods .. ru_upper[ru_base]) end
+                if ru_upper[ru_base] then add(mods .. ru_upper[ru_base]) end
             else
                 -- e -> у (Only)
-                table.insert(results, mods .. ru_base)
+                add(mods .. ru_base)
             end
         end
     end
+    
+    if opt_name and Options.log_level == "debug" then
+        local list = table.concat(results, ", ")
+        Diagnostic.debug(string.format("Expanded %s: %s -> [%s]", opt_name, key_string, list))
+    end
+    
     return results
 end
 
@@ -5653,7 +5669,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     local function parse_and_collect(key_string, base_name, mouse_fn, key_fn, updates_selection, complex)
         if not key_string or key_string == "" then return end
         local i = 1
-        local expanded_keys = expand_ru_keys(key_string)
+        local expanded_keys = expand_ru_keys(key_string, base_name)
         for _, key in ipairs(expanded_keys) do
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
@@ -5712,8 +5728,15 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
         if active and k.key and is_valid_mpv_key(k.key) then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
+                local wrapped_fn = function(t)
+                    if t and t.event == "down" then
+                        Diagnostic.debug(string.format("DW TRIGGER: key='%s' binding='%s'", t.key or "unknown", k.name))
+                    end
+                    return k.fn(t)
+                end
+
                 if k.complex then
-                    mp.add_forced_key_binding(k.key, k.name, k.fn, {complex = true})
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
                 else
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
@@ -5721,7 +5744,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                        or k.key == "ENTER" or k.key == "KP_ENTER" then
                         settings = "repeatable"
                     end
-                    mp.add_forced_key_binding(k.key, k.name, k.fn, settings)
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, settings)
                 end
             end
         else mp.remove_key_binding(k.name) end
@@ -6971,9 +6994,13 @@ local function register_global_copy_keys()
     local function bind(opt, name, fn)
         if not opt or opt == "" then return end
         local i = 1
-        local expanded_keys = expand_ru_keys(opt)
+        local expanded_keys = expand_ru_keys(opt, name)
         for _, key in ipairs(expanded_keys) do
-            mp.add_key_binding(key, name .. "-" .. i, fn)
+            local wrapped_fn = function(t)
+                Diagnostic.debug(string.format("GLOBAL TRIGGER: key='%s' binding='%s'", (t and t.key) or "unknown", name .. "-" .. i))
+                return fn(t)
+            end
+            mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
             i = i + 1
         end
     end
@@ -6995,9 +7022,13 @@ local function register_global_position_keys()
     local function bind(opt, name, fn)
         if not opt or opt == "" then return end
         local i = 1
-        local expanded_keys = expand_ru_keys(opt)
+        local expanded_keys = expand_ru_keys(opt, name)
         for _, key in ipairs(expanded_keys) do
-            mp.add_key_binding(key, name .. "-" .. i, fn)
+            local wrapped_fn = function(t)
+                Diagnostic.debug(string.format("GLOBAL POS TRIGGER: key='%s' binding='%s'", (t and t.key) or "unknown", name .. "-" .. i))
+                return fn(t)
+            end
+            mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
             i = i + 1
         end
     end
