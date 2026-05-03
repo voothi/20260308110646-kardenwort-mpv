@@ -5767,14 +5767,19 @@ local function set_clipboard(text)
 
     -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
+    -- [v1.58.36] Robust GoldenDict trigger (Improved layout/modifier stability)
     if Options.goldendict_trigger == "yes" and platform == "\\" then
-        -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
-        local raw_hotkey = Options.goldendict_hotkey:lower()
+        local user_hotkey = Options.goldendict_hotkey or ""
+        
+        -- Take only the first combination if a list is provided
+        local raw_hotkey = user_hotkey:match("[^%s,;]+") or ""
+        raw_hotkey = raw_hotkey:lower()
+        
         local sendkeys_map = {
             ["ctrl%+"] = "^",
             ["alt%+"] = "%%",
             ["shift%+"] = "+",
-            ["win%+"] = "^{ESC}" -- Limited support for Win key in SendKeys
+            ["win%+"] = "^{ESC}"
         }
         for k, v in pairs(sendkeys_map) do
             raw_hotkey = raw_hotkey:gsub(k, v)
