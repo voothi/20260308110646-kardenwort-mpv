@@ -567,6 +567,7 @@ local FSM = {
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
     CALIBRATION_MODE = false,
+    CALIBRATION_PAGE = false,
 
     -- Transients
     last_paused_sub_end = nil,
@@ -699,18 +700,20 @@ end
 
 function cmd_toggle_calibration()
     FSM.CALIBRATION_MODE = not FSM.CALIBRATION_MODE
-    if not FSM.CALIBRATION_MODE then
-        calibration_osd.data = ""
-        calibration_osd:update()
-        manage_calibration_bindings(false)
-        show_osd("Calibration Mode: OFF")
+    FSM.CALIBRATION_PAGE = false
+    manage_calibration_bindings(FSM.CALIBRATION_MODE)
+    if FSM.CALIBRATION_MODE then
+        show_osd("Calibration Mode: ON (T for full page)")
     else
-        manage_calibration_bindings(true)
-        show_osd("Calibration Mode: ON (Boxes Visible)")
-        flush_rendering_caches()
-        if drum_osd then drum_osd:update() end
-        if dw_osd then dw_osd:update() end
+        show_osd("Calibration Mode: OFF")
     end
+    flush_rendering_caches()
+end
+
+function cmd_toggle_calibration_page()
+    FSM.CALIBRATION_PAGE = not FSM.CALIBRATION_PAGE
+    flush_rendering_caches()
+    show_osd("Calibration Mode: " .. (FSM.CALIBRATION_PAGE and "PAGE" or "LIVE"))
 end
 
 local function adj_cal_val(opt, delta, min, max, fmt)
@@ -758,7 +761,7 @@ local CAL_BINDINGS = {
     {"Alt+]", function() adj_cal_val("dw_block_gap_mul", 0.05, -1.0, 5.0) end},
     {"ENTER", function() cmd_save_calibration() end},
     {"ESC", function() cmd_toggle_calibration() end},
-    {"T", function() cmd_calibration_test_pattern() end},
+    {"T", function() cmd_toggle_calibration_page() end},
 }
 
 function cmd_calibration_test_pattern()
@@ -3113,10 +3116,60 @@ local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
     return vlines
 end
 
+local function render_full_page_calibration()
+    local ass = {}
+    local fs = Options.dw_font_size
+    local lh = fs * Options.dw_line_height_mul
+    local vsp = Options.dw_vsp
+    local pattern = "ALIGNMENT-CALIBRATION-PATTERN-1234567890-ABCDEFGHIJKLM-NOPQRSTUVWXYZ"
+    
+    local rows = 18
+    local total_h = rows * lh + (rows - 1) * vsp
+    local start_y = 540 - (total_h / 2)
+    
+    local function add_b(bx1, by1, bx2, by2, color, alpha)
+        table.insert(ass, string.format("{\\an7\\pos(0,0)\\1c&H%s&\\1a&H%s&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", 
+            color, alpha, bx1, by1, bx2, by1, bx2, by2, bx1, by2))
+    end
+
+    for r = 0, rows - 1 do
+        local y1 = math.floor(start_y + r * (lh + vsp))
+        local y2 = math.floor(y1 + lh)
+        local x1 = 100
+        
+        -- Text
+        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x1, y1, fs, pattern))
+        
+        -- Line box (Cyan)
+        local w = dw_get_str_width(pattern, fs)
+        add_b(x1, y1, math.floor(x1 + w), y2, "FFFF00", "80")
+        
+        -- Word boxes (Magenta)
+        local cur_x = x1
+        for word in pattern:gmatch("[^-]+") do
+            local ww = dw_get_str_width(word, fs)
+            add_b(math.floor(cur_x), y1, math.floor(cur_x + ww), y2, "FF00FF", "60")
+            cur_x = cur_x + ww + dw_get_str_width("-", fs)
+        end
+    end
+    
+    -- Status HUD
+    local status = string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&HFFFFFF&}CALIBRATION PAGE (T to toggle live)\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d", 
+        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp)
+    
+    calibration_osd.data = table.concat(ass, "") .. status
+    calibration_osd:update()
+end
+
 local function render_calibration_overlay()
     if not FSM.CALIBRATION_MODE then
         calibration_osd.data = ""
         calibration_osd:update()
+        return
+    end
+
+    if FSM.CALIBRATION_PAGE then
+        render_full_page_calibration()
         return
     end
 
