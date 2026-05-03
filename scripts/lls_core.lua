@@ -206,6 +206,7 @@ Options = {
     python_path = "python",
     python_trigger_delay_popup = 0.1,
     python_trigger_delay_main = 0.5,
+    gd_trigger_lock_duration = 2.0,
 
     -- Drum Window
     dw_font_size = 34,
@@ -5806,9 +5807,9 @@ local function set_clipboard(text, mode)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
-        -- [v1.58.55] Global Trigger Lock (Prevent AHK Recursion)
+        -- [v1.58.56] Configurable Trigger Lock (Prevent AHK Recursion)
         local now = mp.get_time()
-        if (now - (FSM.LAST_TRIGGER_TIME or 0)) < 2.0 then
+        if (now - (FSM.LAST_TRIGGER_TIME or 0)) < Options.gd_trigger_lock_duration then
             -- A trigger was recently fired, likely by the user.
             -- Any subsequent ^c from AHK should just update the clipboard without re-triggering.
             return
