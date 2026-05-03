@@ -1,10 +1,17 @@
 ## 1. Core Logic Refactoring
 
-- [x] 1.1 Implement `gd_` prefix naming convention in `Options` and `mpv.conf`
-- [x] 1.2 Implement dual-mode lookup support (`side` vs `main`) in all copy commands
-- [x] 1.3 Implement Win32 `keybd_event` VK-based injection engine
-- [x] 1.4 Refactor `set_clipboard` to be layout-independent and non-blocking (async)
-- [x] 1.5 Register global `Ctrl+Alt+C` binding for main dictionary window
+- [x] **Phase 1: Unified Clipboard Abstraction**
+  - [x] Refactor `set_clipboard` to handle mode-based triggering.
+  - [x] Implement unified OSD with cooldown suppression.
+- [x] **Phase 2: High-Performance Trigger Bridge**
+  - [x] Implement PowerShell Win32 `keybd_event` injector.
+  - [x] Implement Python `ctypes` injector with configurable delays.
+- [x] **Phase 3: Triple-Tier Decoupling**
+  - [x] Decouple Standard Copy (`Ctrl+C`) from dictionary lookups.
+  - [x] Implement separate `key_copy_popup` and `key_copy_main` configurability.
+- [x] **Phase 4: Recursion Hardening**
+  - [x] Implement `gd_trigger_lock_duration` to prevent AHK loop feedback.
+  - [x] Synchronize documentation and `mpv.conf` schema.
 
 ## 2. Verification
 

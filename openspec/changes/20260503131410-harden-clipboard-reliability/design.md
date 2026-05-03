@@ -4,28 +4,45 @@ Intermittent clipboard synchronization failures and keyboard layout inconsistenc
 
 ## Goals / Non-Goals
 
-**Goals:**
-- Provide a 100% layout-independent trigger for GoldenDict (EN/RU).
-- Support dual-mode lookups (Side Popup vs. Main Window).
-- Eliminate "garbage" character injection (`q`, `й`) during hotkey triggering.
-- Ensure non-blocking execution of the notification bridge.
+# Design: Hardened Clipboard State Machine (v1.58.58)
 
-**Non-Goals:**
-- Modifying external AHK scripts (logic must be layout-agnostic on the MPV side).
+## Architectural Overview
+The bridge is designed as a non-blocking, event-driven service that mediates between MPV's Lua environment and the Windows operating system. It prioritizes **Atomicity** (ensuring clipboard data is ready before signaling) and **Idempotency** (ignoring redundant signals).
 
-## Decisions
+## State Management
+A global Finite State Machine (FSM) tracks trigger timing to ensure that programmatically generated copy events (feedback from AHK) do not cause cascading UI lookups.
 
-### 1. Unified Naming Standard
-- **Decision**: Adopt the `gd_` prefix for all dictionary bridge settings and `dw_` for trigger keys.
-- **Rationale**: Clearer separation of concerns in `mpv.conf` between the notification mechanism and the player's keybindings.
+| Parameter | Type | Purpose |
+| :--- | :--- | :--- |
+| `gd_trigger_lock_duration` | `float` | Duration to ignore subsequent trigger calls (sec) |
+| `copy_osd_cooldown` | `float` | Suppression window for duplicate OSD messages (sec) |
+| `gd_trigger_method` | `enum` | Selection between `powershell` and `python` engines |
 
-### 2. Layout-Independent VK Injection
-- **Decision**: Use Win32 `keybd_event` via PowerShell `Add-Type` to send raw Virtual Key (VK) signals.
-- **Rationale**: Unlike character-based `SendKeys`, VK codes are layout-agnostic and avoid "typing" letters, preventing search field pollution.
+## Component Breakdown
 
-### 3. Dual-Mode Triggering
-- **Decision**: Implement a `mode` parameter in copy commands to differentiate between `side` (popup) and `main` (full window) lookups.
-- **Rationale**: Matches the existing AHK architecture while providing precise control from the player.
+### 1. The Trigger Abstraction Layer
+The `set_clipboard` function acts as the gateway. It handles three distinct operational modes:
+- **`none`**: Standard clipboard persistence only.
+- **`side`**: Activates the GoldenDict Popup (Scan mode).
+- **`main`**: Activates the GoldenDict Main window.
+
+### 2. Multi-Engine VK Injection
+The engine translates human-readable hotkeys (e.g., `Ctrl+Alt+Shift+Q`) into raw Virtual Key (VK) codes. 
+- **Python Engine**: Uses `ctypes.windll.user32.keybd_event`. 
+- **PowerShell Engine**: Uses `Add-Type` to define a P/Invoke signature for `keybd_event`.
+
+### 3. Synchronization Buffering
+To eliminate "empty search" errors, the Python engine utilizes configurable delays:
+- `python_trigger_delay_popup` (default 0.1s)
+- `python_trigger_delay_main` (default 0.5s)
+
+## Sequence Diagram
+1. User presses `Alt+C` (Main Lookup).
+2. MPV updates clipboard and sets `FSM.LAST_TRIGGER_TIME`.
+3. MPV fires the Python trigger after `0.5s` delay.
+4. GoldenDict activates.
+5. AHK sends `^c` back to MPV to ensure sync.
+6. MPV receives `^c`, but the `gd_trigger_lock_duration` blocks a second trigger.
 
 ### 4. Asynchronous Bridge
 - **Decision**: Execute the PowerShell notification process asynchronously via `mp.command_native_async`.

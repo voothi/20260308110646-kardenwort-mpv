@@ -1322,11 +1322,14 @@
 20260503170635 This problem is only in the main mode of the window, when I launch it via ahk ctrl alt shift 1
 20260503171257 Add the setting parameter to mpv.conf with a comment in the block header. local py_cmd = "import ctypes, time; time.sleep(0.5);
 20260503171625 I need to make a separate trigger for the pop window mode and a separate one for main.
-
-
-
-
-
+20260503173127 I think that the error and problem is in the logic, there is no need to assign anything to Ctrl C other than copying to the clipboard, this launches a window when gd-main.ahk is launched, look. This is the problem with its appearance after opening main by Ctrl Alt C.
+20260503174231 Is it possible to set like script-opts-append=lls-dw_key_copy_main=Alt+c Alt+c the ability to set keyboard shortcuts for a popup window?
+20260503175957 Would you like me to make this 2.0 value a configurable parameter in mpv.conf (e.g., lls-gd_trigger_lock_duration)? - Yes.
+20260503181236 Why did I change honorifics from Ctrl C to Shift C, but Ctrl C still works?? mpv.conf#L376-377
+20260503181551 Again, script-opts-append=lls-key_copy_popup=Shift+c Shift+с it doesn't work.
+20260503181916 You don’t understand the situation correctly at all, apparently, we should have a function for copying to the buffer using Ctrl C and separately 2 combinations for GD.
+20260503182433 Check again.
+20260503183242 Check the final solution in code, update as diff-master-guru, pedant, spec architect openspec\changes\20260503131410-harden-clipboard-reliability according to discussed anchors 20260503162204 20260503162522 20260503163011 20260503164100 20260503164312 20260503164621 20260503164723 20260503164808 20260503165247 20260503170318 20260503170635 20260503171257 20260503171625 20260503173127 20260503174231 20260503175957 20260503181236 20260503181551 20260503181916 20260503182433
 
 
 

@@ -1,13 +1,28 @@
-## Why
+## Proposal: High-Performance Hardened Clipboard Bridge (v1.58.58)
 
-Clipboard synchronization between `kardenwort-mpv` and GoldenDict was prone to race conditions and keyboard layout conflicts (EN/RU). Character-based hotkey injection often resulted in "garbage" text (e.g., `q`, `й`) appearing in search fields, while AHK polling introduced unpredictable latency.
+## Problem Statement
+The GoldenDict clipboard synchronization bridge suffered from three primary failure modes:
+1. **Recursion Loops**: AHK's mandatory `^c` feedback triggered redundant dictionary lookups in MPV (Ghost Windows).
+2. **Synchronization Race Conditions**: Dictionary triggers firing before the OS clipboard buffer was fully committed.
+3. **Trigger Latency**: Overhead of PowerShell process initialization (~1s).
 
-## What Changes
+## Proposed Solution
+Implement a **Triple-Tier Decoupled Copy Engine** with a multi-method trigger abstraction:
 
-- **Layout-Independent VK Engine**: Implemented raw Win32 `keybd_event` injection via PowerShell, ensuring the trigger works identically across all keyboard layouts without typing "ghost" characters.
-- **Dual-Mode Lookup Support**: Added independent notification paths for "Side Popup" and "Main Window" modes, triggered by standard and context-aware copy operations.
-- **Asynchronous Execution**: Fully decoupled the notification bridge from the MPV main thread to ensure zero UI stutter.
-- **Unified Naming**: Standardized configuration keys (`gd_trigger_enabled`, `gd_hotkey_...`) for improved maintainability.
+1. **Decoupled Actions**: 
+   - `Standard Copy`: Pure clipboard update (mode `none`).
+   - `Popup Lookup`: Copy + Popup hotkey (mode `side`).
+   - `Main Lookup`: Copy + Main window hotkey (mode `main`).
+2. **Global Trigger Lock**: A time-based recursion block (`gd_trigger_lock_duration`) to ignore AHK-generated `^c` signals.
+3. **Multi-Method Trigger Engine**:
+   - `PowerShell`: Dependency-free Win32 bridge using `Add-Type`.
+   - `Python`: Instantaneous `ctypes` injection with configurable `python_trigger_delay`.
+4. **OSD Stabilization**: Configurable `copy_osd_cooldown` to suppress redundant notification flashes.
+
+## Anchor Traceability
+- Logic Refinement: 20260503173127, 20260503181916, 20260503182433
+- Python Injector: 20260503165247, 20260503170635
+- Configurable Delays: 20260503171625, 20260503175957
 
 ## Capabilities
 
