@@ -200,6 +200,8 @@ Options = {
     gd_trigger_enabled = "no",
     gd_hotkey_popup = "Ctrl+Alt+Shift+Q",
     gd_hotkey_main = "Ctrl+Alt+Shift+1",
+    gd_trigger_method = "powershell", -- "powershell" or "python"
+    python_path = "python",
 
     -- Drum Window
     dw_font_size = 34,
@@ -5802,21 +5804,35 @@ local function set_clipboard(text, mode)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
-        -- [v1.58.39] Robust VK Injector via PowerShell Add-Type
-        local type_name = "Win32K" .. os.time()
-        local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
-        local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
-        
-        for _, ev in ipairs(events) do
-            script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
+        -- [v1.58.49] Multi-Method Dictionary Trigger (Powershell/Python)
+        if Options.gd_trigger_method == "python" then
+            local py_cmd = "import ctypes; u=ctypes.windll.user32; "
+            for _, ev in ipairs(events) do
+                py_cmd = py_cmd .. string.format("u.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
+            end
+            mp.command_native_async({
+                name = "subprocess",
+                args = {Options.python_path, "-c", py_cmd},
+                playback_only = false,
+                capture_stdout = false, capture_stderr = false
+            }, function() end)
+        else
+            -- Robust VK Injector via PowerShell Add-Type (Default)
+            local type_name = "Win32K" .. os.time()
+            local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
+            local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
+            
+            for _, ev in ipairs(events) do
+                script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
+            end
+            
+            mp.command_native_async({
+                name = "subprocess",
+                args = {"powershell", "-NoProfile", "-Command", script},
+                playback_only = false,
+                capture_stdout = false, capture_stderr = false
+            }, function() end)
         end
-        
-        mp.command_native_async({
-            name = "subprocess",
-            args = {"powershell", "-NoProfile", "-Command", script},
-            playback_only = false,
-            capture_stdout = false, capture_stderr = false
-        }, function() end)
     end
 end
 
