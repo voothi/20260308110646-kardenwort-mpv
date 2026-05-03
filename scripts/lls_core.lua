@@ -6848,6 +6848,12 @@ function cmd_toggle_calibration()
     if FSM.CALIBRATION_MODE then
         FSM.native_sub_vis = mp.get_property_bool("sub-visibility", true)
         mp.set_property_bool("sub-visibility", false)
+        
+        -- Hide regular OSDs
+        drum_osd.data = ""
+        drum_osd:update()
+        if dw_osd then dw_osd.data = ""; dw_osd:update() end
+        
         show_osd("Calibration Mode: ON")
     else
         if FSM.native_sub_vis ~= nil then
@@ -6856,8 +6862,8 @@ function cmd_toggle_calibration()
         show_osd("Calibration Mode: OFF")
         calibration_osd.data = ""
         calibration_osd:update()
+        flush_rendering_caches()
     end
-    flush_rendering_caches()
 end
 
 local function adj_cal_val(opt, delta, min, max, fmt)
@@ -6948,22 +6954,37 @@ function render_calibration_overlay()
     local vsp = Options.dw_vsp
     local pattern = "ALIGNMENT-TEST-WORD-TOKEN-ABC-123-!@#$%"
     
-    local ass = {string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.64\\NCW: %.3f\\NLH: %.2f\\NVSP: %d\\NBLOCK_GAP: %.2f", 
-        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)}
+    local ass = {
+        "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H60&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}",
+        string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.65\\NCW: %.3f\\NLH: %.2f\\NVSP: %d\\NBLOCK_GAP: %.2f", 
+        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)
+    }
     
-    for i=0, 12 do
-        local x = 100
+    for i=0, 10 do
+        local x = 200
         local y = 150 + i * (lh + vsp)
         
-        -- Box (Magenta)
-        local w = dw_get_str_width(pattern, fs)
-        if w and w > 0 then
-             table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
-                x, y, math.floor(w), math.floor(w), math.floor(lh), math.floor(lh)))
+        -- 1. Full Line Box (Cyan)
+        local total_w = dw_get_str_width(pattern, fs)
+        if total_w and total_w > 0 then
+             table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&HFFFF00&\\1a&H80&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+                x, y, math.floor(total_w), math.floor(total_w), math.floor(lh), math.floor(lh)))
         end
         
-        -- Text
-        table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
+        -- 2. Word Boxes (Magenta)
+        local cur_x = x
+        for word in pattern:gmatch("[^-]+") do
+            local ww = dw_get_str_width(word, fs)
+            if ww and ww > 0 then
+                table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&HFF00FF&\\1a&H40&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+                    math.floor(cur_x), y, math.floor(ww), math.floor(ww), math.floor(lh), math.floor(lh)))
+                local hyphen_w = dw_get_str_width("-", fs) or (fs * 0.3)
+                cur_x = cur_x + ww + hyphen_w
+            end
+        end
+
+        -- 3. Text (White)
+        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
     end
     
     calibration_osd.data = table.concat(ass, "")
