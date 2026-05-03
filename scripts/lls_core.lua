@@ -370,6 +370,7 @@ Options = {
     dw_key_search = "Ctrl+f",
 
     dw_key_seek = "ENTER KP_ENTER",
+    dw_key_replay = "s",
     dw_key_esc = "ESC",
     dw_key_select_extend = "Shift+MBTN_LEFT",
     dw_key_mouse_seek = "MBTN_LEFT_DBL",
@@ -5537,6 +5538,22 @@ local function cmd_dw_word_move(dir, shift)
 end
 
 
+local function cmd_replay_sub()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+    
+    local time_pos = mp.get_property_number("time-pos")
+    if not time_pos then return end
+    
+    local idx = get_center_index(subs, time_pos)
+    if idx == -1 then return end
+    
+    local sub = subs[idx]
+    if sub and sub.start_time then
+        mp.commandv("seek", sub.start_time, "absolute+exact")
+        show_osd("Replaying line: " .. idx)
+    end
+end
 
 local function cmd_dw_seek_selected()
     local subs = Tracks.pri.subs
@@ -5713,6 +5730,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.key_copy_popup, "dw-copy-popup", nil, function() cmd_dw_copy("side") end, false)
     parse_and_collect(Options.key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
     parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
+    parse_and_collect(Options.dw_key_replay, "dw-replay", nil, function() cmd_replay_sub() end, false)
     parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
     parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
     parse_and_collect(Options.dw_key_jump_right, "dw-jump-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, false) end, false)
@@ -7019,6 +7037,7 @@ mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
+mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
@@ -7044,6 +7063,20 @@ local function register_global_position_keys()
     bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
 end
 register_global_position_keys()
+
+local function register_global_playback_keys()
+    local function bind(opt, name, fn)
+        if not opt or opt == "" then return end
+        local i = 1
+        local expanded_keys = expand_ru_keys(opt, name)
+        for _, key in ipairs(expanded_keys) do
+            mp.add_key_binding(key, name .. "-" .. i, fn)
+            i = i + 1
+        end
+    end
+    bind(Options.dw_key_replay, "lls-global-replay", cmd_replay_sub)
+end
+register_global_playback_keys()
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
