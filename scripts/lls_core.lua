@@ -5769,10 +5769,9 @@ local function set_clipboard(text)
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     -- [v1.58.36] Robust GoldenDict trigger (Improved layout/modifier stability)
     if Options.goldendict_trigger == "yes" and platform == "\\" then
-        local user_hotkey = Options.goldendict_hotkey or ""
         
-        -- Take only the first combination if a list is provided
-        local raw_hotkey = user_hotkey:match("[^%s,;]+") or ""
+        -- We only take the FIRST combination to avoid duplicate triggers and "garbage" text
+        local raw_hotkey = Options.goldendict_hotkey:match("[^%s,;]+") or ""
         raw_hotkey = raw_hotkey:lower()
         
         local sendkeys_map = {
@@ -5785,8 +5784,9 @@ local function set_clipboard(text)
             raw_hotkey = raw_hotkey:gsub(k, v)
         end
         
-        -- Using .NET SendWait for more robust global hotkey injection
-        local trigger_cmd = string.format("[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
+        -- Using a tiny 10ms delay to ensure modifiers are captured.
+        -- This is the minimum required to prevent "garbage" characters while feeling instant.
+        local trigger_cmd = string.format("Start-Sleep -m 10; [void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
 end
