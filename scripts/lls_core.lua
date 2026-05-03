@@ -196,9 +196,9 @@ Options = {
     osd_duration = 0.5,
     win_clipboard_retries = 5,
     win_clipboard_retry_delay = 50, -- milliseconds
-    goldendict_trigger = "no",
-    goldendict_hotkey = "Ctrl+Alt+Shift+Q",
-    goldendict_hotkey_main = "Ctrl+Alt+Shift+1",
+    gd_trigger_enabled = "no",
+    gd_hotkey_popup = "Ctrl+Alt+Shift+Q",
+    gd_hotkey_main = "Ctrl+Alt+Shift+1",
 
     -- Drum Window
     dw_font_size = 34,
@@ -5770,8 +5770,8 @@ local function set_clipboard(text, mode)
     end
 
     -- [v1.58.32] Optional explicit trigger for GoldenDict scan/main popups.
-    if Options.goldendict_trigger == "yes" and platform == "\\" then
-        local user_hotkey = (mode == "main") and Options.goldendict_hotkey_main or Options.goldendict_hotkey
+    if Options.gd_trigger_enabled == "yes" and platform == "\\" then
+        local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
         
         -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
         local raw_hotkey = user_hotkey:lower()

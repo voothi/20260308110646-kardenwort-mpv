@@ -11,5 +11,5 @@ The `set_clipboard(text)` function SHALL utilize the fastest available platform-
 The system SHALL allow users to define the GoldenDict trigger hotkey using standard naming (e.g., `Ctrl+Alt+Shift+Q`) in `mpv.conf`, which the script SHALL automatically translate into the internal platform-specific format.
 
 #### Scenario: Custom hotkey trigger
-- **WHEN** `lls-goldendict_hotkey` is set to `Ctrl+Alt+Shift+Q`
+- **WHEN** `lls-gd_hotkey_popup` is set to `Ctrl+Alt+Shift+Q`
 - **THEN** the system SHALL send the correct `.NET` sequence (`^%+q`) to the OS after copying
