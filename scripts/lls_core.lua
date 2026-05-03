@@ -66,6 +66,43 @@ local function is_valid_mpv_key(k_str)
     return true
 end
 
+-- [v1.58.40] Automatic Russian Layout Expansion
+local EN_RU_MAP = {
+    ["a"]="ф", ["b"]="и", ["c"]="с", ["d"]="в", ["e"]="у", ["f"]="а", ["g"]="п", ["h"]="р",
+    ["i"]="ш", ["j"]="о", ["k"]="л", ["l"]="д", ["m"]="ь", ["n"]="т", ["o"]="щ", ["p"]="з",
+    ["q"]="й", ["r"]="к", ["s"]="ы", ["t"]="е", ["u"]="г", ["v"]="м", ["w"]="ц", ["x"]="ч",
+    ["y"]="н", ["z"]="я", ["["]="х", ["]"]="ъ", [";"]="ж", ["'"]="э", [","]="б", ["."]="ю", ["`"]="ё"
+}
+
+local function expand_ru_keys(key_string)
+    if not key_string or key_string == "" then return {} end
+    local results = {}
+    for key in key_string:gmatch("[^%s,;]+") do
+        table.insert(results, key)
+        -- Attempt to find RU equivalent
+        local mods = key:match("^(.*%+)") or ""
+        local base = key:sub(#mods + 1)
+        local ru_base = EN_RU_MAP[base:lower()]
+        if ru_base then
+            -- Bind lowercase
+            table.insert(results, mods .. ru_base)
+            -- If Shift is present, also bind uppercase to handle different mpv versions/layouts
+            if mods:lower():find("shift") then
+                local ru_upper = {
+                    ["ф"]="Ф", ["и"]="И", ["с"]="С", ["в"]="В", ["у"]="У", ["а"]="А", ["п"]="П", ["р"]="Р",
+                    ["ш"]="Ш", ["о"]="О", ["л"]="Л", ["д"]="Д", ["ь"]="Ь", ["т"]="Т", ["щ"]="Щ", ["з"]="З",
+                    ["й"]="Й", ["к"]="К", ["ы"]="Ы", ["е"]="Е", ["г"]="Г", ["м"]="М", ["ц"]="Ц", ["ч"]="Ч",
+                    ["н"]="Н", ["я"]="Я", ["х"]="Х", ["ъ"]="Ъ", ["ж"]="Ж", ["э"]="Э", ["б"]="Б", ["ю"]="Ю", ["ё"]="Ё"
+                }
+                if ru_upper[ru_base] then
+                    table.insert(results, mods .. ru_upper[ru_base])
+                end
+            end
+        end
+    end
+    return results
+end
+
 local function validate_config()
     local errors = {}
     local function check_keys(opt_val, opt_name)
@@ -5605,7 +5642,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     local function parse_and_collect(key_string, base_name, mouse_fn, key_fn, updates_selection, complex)
         if not key_string or key_string == "" then return end
         local i = 1
-        for key in key_string:gmatch("[^%s,;]+") do
+        local expanded_keys = expand_ru_keys(key_string)
+        for _, key in ipairs(expanded_keys) do
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
@@ -6907,7 +6945,8 @@ local function register_global_copy_keys()
     local function bind(opt, name, fn)
         if not opt or opt == "" then return end
         local i = 1
-        for key in opt:gmatch("[^%s,;]+") do
+        local expanded_keys = expand_ru_keys(opt)
+        for _, key in ipairs(expanded_keys) do
             mp.add_key_binding(key, name .. "-" .. i, fn)
             i = i + 1
         end
