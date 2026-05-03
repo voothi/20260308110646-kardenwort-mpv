@@ -6862,8 +6862,8 @@ function cmd_toggle_calibration()
         show_osd("Calibration Mode: OFF")
         calibration_osd.data = ""
         calibration_osd:update()
-        flush_rendering_caches()
     end
+    flush_rendering_caches()
 end
 
 local function adj_cal_val(opt, delta, min, max, fmt)
