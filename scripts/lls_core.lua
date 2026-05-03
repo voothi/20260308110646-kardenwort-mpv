@@ -5727,12 +5727,13 @@ local function get_clipboard()
 end
 
 local function set_clipboard(text)
-    -- Try native mpv setter first (fastest, bypassing shell overhead)
-    -- [v1.58.32] Prioritizing native property to reduce latency for GoldenDict bridge.
-    local success = pcall(function() mp.set_property("clipboard", text) end)
-    if success then return end
-
+    -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
+    -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
     local platform = package.config:sub(1,1)
+    if platform ~= "\\" then
+        local success = pcall(function() mp.set_property("clipboard", text) end)
+        if success then return end
+    end
     if platform == "\\" then
         local safe_txt = text:gsub("'", "''")
         local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt %d; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds %d } }", Options.win_clipboard_retries, safe_txt, Options.win_clipboard_retry_delay)
