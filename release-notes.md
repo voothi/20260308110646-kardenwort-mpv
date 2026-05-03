@@ -1,4 +1,29 @@
+# Release Notes - v1.58.42 (Layout-Agnostic Hotkeys & Collision Hardening)
+
+**Date**: 2026-05-03
+**Version**: v1.58.42
+**Implementation ZIDs**: 20260503203618, 20260503212729
+
+## Highlights
+
+### ⌨️ **Layout-Agnostic Hotkey Expansion**
+- **Automatic Multi-Layout Registration**: Introduced a dynamic expansion engine (`expand_ru_keys`) that automatically registers Russian layout equivalents for every configured English binding. Users no longer need to manually specify dual-layout shortcuts in `mpv.conf`.
+- **Comprehensive Cyrillic VK Mapping**: The GoldenDict trigger engine now natively supports the full Cyrillic alphanumeric set, mapping them to their physical Virtual Key (VK) counterparts for reliable dictionary lookups regardless of the active system layout.
+- **Multi-Delimiter Hotkey Configuration**: Configuration strings for dictionary triggers now support space, comma, or semicolon as delimiters, allowing for sequences of backup hotkeys.
+
+### 🛡️ **Shift-Modifier & Collision Hardening**
+- **Surgical Shift Normalization**: Eliminated "false positive" triggers on Windows where unshifted Russian keys (e.g., `у`) would incorrectly fire Shift-modified actions. The engine now uses strict case-parity, mapping `Shift+e` directly to the uppercase `У` character to align with mpv's internal input table.
+- **Explicit vs. Implicit Shift Guarding**: Refined the expansion logic to strictly differentiate between explicit `Shift+` modifiers and implicit shift via uppercase characters, ensuring unambiguous binding resolution.
+- **Simplified Configuration Schema**: Cleaned up default `mpv.conf` options by removing redundant manually-defined Cyrillic hotkeys, relying entirely on the hardened dynamic expansion engine.
+
+### 🔦 **Diagnostic Observability & Health**
+- **Granular Trigger Logging**: Added high-resolution diagnostic tracing that records both the physical key pressed and the logical script-binding triggered (at `debug` log level), significantly simplifying the debugging of complex hotkey conflicts.
+- **Enhanced Configuration Health-Check**: Updated the startup diagnostic module to validate and report layout-agnostic binding states, ensuring a professional and stable "First Run" experience.
+
+---
+
 # Release Notes - v1.58.38 (Hardened Clipboard Bridge & Precision Selection)
+
 
 **Date**: 2026-05-03
 **Version**: v1.58.38

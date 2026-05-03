@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.58.38-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.38) 
+[![Version](https://img.shields.io/badge/version-v1.58.42-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.42) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -65,7 +65,7 @@ While this project focuses on the **consumption** of material, it is designed to
 ## Distinctive Advantages
 
 This suite solves problems that standard video players and generic scripts ignore:
-1.  **Dual-Layout Keybindings**: Native support for both English and Cyrillic keyboard layouts. Your hotkeys work flawlessly without needing to constantly switch your system input language.
+1.  **Layout-Agnostic Hotkey Expansion**: Zero-config support for both English and Cyrillic layouts. The engine automatically registers Russian counterparts for all bindings, ensuring shortcuts work flawlessly without manual configuration or system language switching.
 2.  **Karaoke-Ready Autopause**: Unlike standard autopause scripts that stutter on `.ass` word-by-word highlights, this suite precisely scans for formatting tags to stop *only* when a phrase is complete.
 3.  **Non-Intrusive OSD Design**: All status popups (Play/Pause, Layout, Visibility) are minimized and pushed to the **Left-Center** of the screen. Your visual field remains 100% clear.
 4.  **ASS Mathematics Protection**: The suite dynamically sizes simple text, but completely respects the baked-in layout geometry of complex immersive video files.
@@ -507,7 +507,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1586 Commits (v1.58.38)
+- **Current Maturity**: ~1603 Commits (v1.58.42)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

@@ -1350,9 +1350,9 @@
 20260503212543 Okay, now as a specifications architect and a pedant and a brainiac, do opsx-propose, conversation anchors 20260503204110..20260503211027
 20260503213007 opsx-apply 20260503212729-fix-hotkey-false-positives
 20260503213109 opsx-archive --sync 20260503212729-fix-hotkey-false-positives
-
-
-
+20260503213412 /opsx-explore You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications, configuration guru and diff-guru for this project, with surgical precision check the current version 727ee8c0970070cc7127d8d024c4127d7ded5f18 20260503213213 for regression compared to v1.58.38, and for compliance, impeccable adherence to the current general openspec\specs specifications, it is necessary to synchronize.
+20260503213832 Audit Target: Commit 727ee8c (20260503213213) Baseline: v1.58.38 Status: PASSED (Full Compliance, Zero Regressions) - Okay.
+20260503213844 create-release-2 v1.58.42 openspec\changes\archive\20260503203618-layout-agnostic-hotkeys openspec\changes\archive\20260503212729-fix-hotkey-false-positives
 
 
 
