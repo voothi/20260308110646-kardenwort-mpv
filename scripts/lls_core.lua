@@ -5804,9 +5804,9 @@ local function set_clipboard(text, mode)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
-        -- [v1.58.49] Multi-Method Dictionary Trigger (Powershell/Python)
+        -- [v1.58.51] Python Timing Fix (Increased Buffer for Main Mode)
         if Options.gd_trigger_method == "python" then
-            local py_cmd = "import ctypes; u=ctypes.windll.user32; "
+            local py_cmd = "import ctypes, time; time.sleep(0.5); u=ctypes.windll.user32; "
             for _, ev in ipairs(events) do
                 py_cmd = py_cmd .. string.format("u.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
             end

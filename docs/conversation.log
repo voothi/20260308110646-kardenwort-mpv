@@ -1309,6 +1309,15 @@
 20260503160419 Okay, it works, the question is the speed of displaying the window using ctrl+c and ctrl+alt+c, is it possible to speed up the display, what’s with the delays? Is it possible not to change ahk?
 20260503160819 But this requires python, another dependency, you don’t need that. What about the delays in the apk? What did we change today?
 20260503161543 Optimize the current code without changing your approach too much.
+20260503162204 Update openspec\changes\20260503131400-harden-clipboard-reliability based on the current code, based on anchors 20260503120727 20260503131332 20260503132841 20260503133128 20260503133535 20260503134038 20260503135030 20260503135239 20260503135646 20260503140143 20260503140808 20260503141124 20260503142057 20260503142313 20260503142538 20260503142730 20260503142801 20260503143319 20260503143637 20260503144938 20260503150357 20260503151340 20260503151606 20260503152802 20260503153113 20260503153750 20260503154030 20260503154335 20260503154647 20260503154820 20260503155759 20260503155853 20260503160006 20260503160419 20260503160819 20260503161543
+20260503162522 And openspec\changes\20260503131400-harden-clipboard-reliability itself does not need to be updated?
+20260503163011 Is it correct that now when I press Ctrl C I see the OSD message about copying 2 times? The first, then a second later the second and already the GD window.
+20260503164100 Apply again, just don’t change anything regarding working with PowerShell and keys.
+20260503164312 No, there I call the external script ahk and it also copies, apparently this is the reason.
+20260503164621 Place the variable in a custom parameter in mpv.conf lls_core.lua#L6632-6637
+20260503164723 Write a comment
+20260503164808 You should have added it to the top of the block header.
+20260503165247 You proposed a solution via python vk injector - anchor 20260503160632, commit 20260503160809, can you make this implementation, but included as an option in mpv.conf?
 
 
 
