@@ -11,6 +11,8 @@ local msg = require 'mp.msg'
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
+local flush_rendering_caches
+local render_calibration_overlay
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -855,7 +857,7 @@ function manage_calibration_bindings(enable)
     end
 end
 
-local function render_calibration_overlay()
+function render_calibration_overlay()
     if not FSM.CALIBRATION_MODE then
         calibration_osd.data = ""
         calibration_osd:update()
@@ -2432,7 +2434,7 @@ end
 -- INVARIANT: DRUM_DRAW_CACHE and DW_DRAW_CACHE are captured by upvalue.
 -- They MUST be defined at module scope before this function is called at runtime,
 -- otherwise the cache flushing will silently fail.
-local function flush_rendering_caches()
+function flush_rendering_caches()
     FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
     FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
     

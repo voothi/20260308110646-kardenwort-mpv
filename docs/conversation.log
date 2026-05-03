@@ -1251,6 +1251,7 @@
 20260503105414 x It doesn't look like it's working at all. Don't you want to submit your text for testing without relying on the current subtitle modes, and there are many of them? This would make the task easier. Test subtitles with hyphens, long, the entire screen, as much as possible around the edges so that it is filled with text. Because inaccuracy and deviation tend to accumulate around the edges.
 20260503110010 x Something doesn't seem like a separate mode, similar to the W reel window mode, where I would see your test text filling the entire screen, line by word, with the ability to calibrate.
 20260503110549 This doesn't work again, I rolled back to 20260503000621, I need you to re-implement /opsx-propose Visual Debug Mode, but based on the W window, in a separate Shift B mode. Also make a hybrid of this approach and the Fully Automated solution. I see it as a separate window of reel B, which is filled with your test text, emulating subtitles.
+20260503111240 Error
 
 
 
