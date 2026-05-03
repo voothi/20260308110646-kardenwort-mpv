@@ -1273,6 +1273,52 @@
 20260503115025 x What is this?
 20260503115121 x I stop working with you on this task, thank you, rest until next time.
 20260503115450 I rolled back to 20260503000621.
+20260503120727 opsx-explore How to improve the reliability of copying, now from my kardenwort-mpv utility it sometimes skips copying, when the kardenwort-mpv utility writes that it was copied, the word ends up in the clipboard, I see it in the clipboard manager, but the side window does not appear gd-main.ahk gd-side.ahk The utility is located here `..\20260308110646-kardenwort-mpv`
+20260503131332 opsx-propose
+20260503132841 We can move the test test_clipboard_util.ahk in a folder separate for such things, can create it if it doesn’t exist yet. Also rename according to best practice?
+20260503133128 You, as a specification architect and pedant, update the openspec\changes\20260503131400-harden-clipboard-reliability specs based on anchors 20260503120727 20260503131332 20260503132841
+20260503133535 Show me now a document that I can transfer to the chat in another project `..\20260308110646-kardenwort-mpv` for drawing up a propose based on it. Or create such a propose from this chat, in the catalog `..\20260308110646-kardenwort-mpv\openspec\changes\20260503131410-harden-clipboard-reliability`
+20260503134038 Now explain, when I copy Ctrl C in the kardenwort-mpv (mpv.exe) program window, I get a message that it has been copied, but it is not copied to the clipboard, what could have broken?
+20260503135030 Okay, but goldendict_trigger doesn't work.
+20260503135239 Doesn't work.
+20260503135646 Well, it worked, only the combinations need to be put into mpv.conf and translated into the combinations accepted in this file, understandable to the user, saving him from the specifics of the .NET, AHK implementation.
+20260503140143 Okay, but we only did this for gb-side.apk, and I need to do Ctrl Alt C in a similar way so that gb-main.ahk is called.
+20260503140808 Improve your naming lls_core.lua#L199-201
+20260503141124 I don’t understand, you should somehow process Ctrl+Alt+C in mpv, not just Ctrl C? Now only Ctrl+Alt+C works
+20260503142057 No, you are always wrong, here are the correct combinations gd_hotkey_popup = "Ctrl+Alt+Shift+Q", gd_hotkey_main = "Ctrl+Alt+Shift+1", which are in AHK
+20260503142313 But how does this work, where are these Ctrl C, Ctrl Alt C set in the code? Is it hardwired?
+20260503142538 These are both in mpv.conf with comments dw_key_copy = "Ctrl+c Ctrl+c", dw_key_copy_main = "Ctrl+Alt+c Ctrl+Alt+c"? And in Options?
+20260503142730 This is a pretty good naming? mpv.conf#L363-367
+20260503142801 How will copying dw_key_copy_main work if gd_trigger_enabled=no?
+20260503143319 I updated the combinations to work in EN/RU mpv.conf#L363-367
+20260503143637 Roll back changes to this, it stopped working in Ctrl C lls_core.lua#L5776-5781
+20260503144938 Make it work in EN/RU mpv.conf#L364-367 No loops, write the combinations explicitly script-opts-append=lls-gd_hotkey_popup=Ctrl+Alt+Shift+q Ctrl+Alt+Shift+й
+20260503150357 Figure out why it doesn't work for me, garbage gets into the search, 2 windows open according to This is what I see in the GD search field Spezialisiert auf Warehousing und KontraktlogistikQ I just need these 2 modes in EN/RU to work correctly, windows corresponding to the call appear, there is no garbage, it works reliably. Figure out the config, I agree not to explicitly indicate the combination with RU there, only EN, the main thing is that it works. You can't change.ahk
+20260503151340 Still being added q Q йq 
+20260503151606 Kicks out the program
+20260503152802 I rolled it back mpv to 20260503135848, see how you can improve the simplified version, with one window, so that it works in EN/RU
+20260503153113 I don't need a delay.
+20260503153750 Look again and improve.
+20260503154030 I added a combination for RU, but it doesn’t work, remove it as well and do it asynchronously.
+20260503154335 I added script-opts-append=lls-goldendict_hotkey=Ctrl+Alt+Shift+q Ctrl+Alt+Shift+й Why does this not work in RU, the GD window is not called?
+20260503154647 Error
+20260503154820 Okay, let's now try to take the modification from commit 20260503151103 189e4a03c73d0fe025afb71f362ffcf919de2c02, add a second parameter, rename the variables, and carefully, minimally invasively implement it based on the current version.
+20260503155759 Where are the ctrl+alt+c combinations in mpv.conf?
+20260503155853 Check mpv.conf#L361-365
+20260503160006 Why is Ctrl+Alt+c now calling popup?
+20260503160419 Okay, it works, the question is the speed of displaying the window using ctrl+c and ctrl+alt+c, is it possible to speed up the display, what’s with the delays? Is it possible not to change ahk?
+20260503160819 But this requires python, another dependency, you don’t need that. What about the delays in the apk? What did we change today?
+20260503161543 Optimize the current code without changing your approach too much.
+
+
+
+
+
+
+
+
+
+
 
 
 

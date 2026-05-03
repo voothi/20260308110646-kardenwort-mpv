@@ -1,15 +1,15 @@
 ## MODIFIED Requirements
 
-### Requirement: Low-Latency Clipboard Setting
-The `set_clipboard(text)` function SHALL utilize the fastest available platform-specific method (e.g., MPV native `clipboard` property) before falling back to shell-based utilities.
+### Requirement: Layout-Agnostic Dictionary Trigger
+The `set_clipboard(text, mode)` function SHALL explicitly notify the dictionary tool using a layout-independent mechanism (e.g., Virtual Key signals) to ensure reliable operation across EN/RU keyboard layouts.
 
-#### Scenario: Native clipboard update
-- **WHEN** the host environment supports a native clipboard API
-- **THEN** the system SHALL update the clipboard without spawning a shell process
+#### Scenario: Multi-layout popup trigger
+- **WHEN** the user is in Russian layout and triggers a "side" copy
+- **THEN** the system SHALL send the raw VK signal for `Ctrl+Alt+Shift+Q` without typing the character `й`
 
-### Requirement: User-Friendly Hotkey Configuration
-The system SHALL allow users to define the GoldenDict trigger hotkey using standard naming (e.g., `Ctrl+Alt+Shift+Q`) in `mpv.conf`, which the script SHALL automatically translate into the internal platform-specific format.
+### Requirement: Unified Multi-Mode Configuration
+The system SHALL expose a consistent `gd_` prefix for all dictionary-related settings in `mpv.conf`, supporting independent hotkeys for "Popup" and "Main Window" modes.
 
-#### Scenario: Custom hotkey trigger
-- **WHEN** `lls-goldendict_hotkey` is set to `Ctrl+Alt+Shift+Q`
-- **THEN** the system SHALL send the correct `.NET` sequence (`^%+q`) to the OS after copying
+#### Scenario: Independent mode triggering
+- **WHEN** `gd_hotkey_popup` and `gd_hotkey_main` are configured
+- **THEN** the system SHALL dispatch the corresponding notification signal based on the copy command context (`side` vs. `main`)
