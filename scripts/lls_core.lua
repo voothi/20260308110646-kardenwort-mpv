@@ -5801,18 +5801,15 @@ local function set_clipboard(text, mode)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
-        -- [v1.58.39] Robust VK Injector via PowerShell Add-Type
-        local type_name = "Win32K" .. os.time()
-        local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
-        local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
-        
+        -- [v1.58.41] High-Performance VK Injector via Python (Instant execution)
+        local script = "import ctypes; u32 = ctypes.windll.user32; "
         for _, ev in ipairs(events) do
-            script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
+            script = script .. string.format("u32.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
         end
         
         mp.command_native_async({
             name = "subprocess",
-            args = {"powershell", "-NoProfile", "-Command", script},
+            args = {"python", "-c", script},
             playback_only = false,
             capture_stdout = false, capture_stderr = false
         }, function() end)
