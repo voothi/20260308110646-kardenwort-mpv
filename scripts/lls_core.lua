@@ -5806,6 +5806,15 @@ local function set_clipboard(text, mode)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
+        -- [v1.58.55] Global Trigger Lock (Prevent AHK Recursion)
+        local now = mp.get_time()
+        if (now - (FSM.LAST_TRIGGER_TIME or 0)) < 2.0 then
+            -- A trigger was recently fired, likely by the user.
+            -- Any subsequent ^c from AHK should just update the clipboard without re-triggering.
+            return
+        end
+        FSM.LAST_TRIGGER_TIME = now
+
         -- [v1.58.53] Independent Mode Delays (Popup/Main)
         if Options.gd_trigger_method == "python" then
             local delay = (mode == "main") and Options.python_trigger_delay_main or Options.python_trigger_delay_popup
