@@ -6938,65 +6938,15 @@ function render_calibration_overlay()
         return
     end
 
-    local ok, err = xpcall(function()
-        local ass = {}
-        
-        -- 1. Dim Background
-        table.insert(ass, "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H80&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}")
-
-        local function add_box(bx, by, bw, bh, bcolor, balpha)
-            table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)\\1c&H%s&\\1a&H%s&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
-                bx, by, bcolor, balpha, math.floor(bw), math.floor(bw), math.floor(bh), math.floor(bh)))
-        end
-
-        -- 2. Status HUD
-        table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE (v1.62)\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
-            Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul, Options.dw_font_size))
-
-        -- 3. Test Pattern
-        local pattern = "ALIGNMENT-TEST-WORD-TOKEN-12345-!@#$%-hyphenated-word-test"
-        local fs = Options.dw_font_size
-        local lh = fs * Options.dw_line_height_mul
-        local vsp = Options.dw_vsp
-        
-        local rows = 12
-        local total_h = rows * (lh + vsp)
-        local start_y = 540 - (total_h / 2)
-        
-        for i = 0, rows - 1 do
-            local y = math.floor(start_y + i * (lh + vsp))
-            local x = 100
-            
-            -- Text (Opaque White)
-            table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}{\\1a&H00&}%s", x, y, fs, pattern))
-            
-            -- Line Box
-            local total_w = dw_get_str_width(pattern, fs)
-            if total_w and total_w > 0 then
-                add_box(x, y, total_w, lh, "FFFF00", "80")
-            end
-            
-            -- Magenta Word Boxes
-            local cur_x = x
-            for word in pattern:gmatch("[^-]+") do
-                local ww = dw_get_str_width(word, fs)
-                if ww and ww > 0 then
-                    add_box(cur_x, y, ww, lh, "FF00FF", "40")
-                    local hyphen_w = dw_get_str_width("-", fs) or (fs * 0.3)
-                    cur_x = cur_x + ww + hyphen_w
-                end
-            end
-        end
-        
-        calibration_osd.data = table.concat(ass, "")
-        calibration_osd:update()
-    end, debug.traceback)
+    local ass = {"{\\an7\\pos(100,100)}{\\fs50}{\\1c&H00FFFF&}CALIBRATION TEST MODE v1.63\\N\\N"}
+    local pattern = "ALIGNMENT-TEST-WORD-TOKEN-ABC-123-!@#$%"
     
-    if not ok then
-        calibration_osd.data = "{\\an7\\pos(50,50)}{\\fs30}{\\1c&H0000FF&}CALIBRATION ERROR: " .. tostring(err)
-        calibration_osd:update()
-        mp.msg.error("Calibration Error: " .. tostring(err))
+    for i=1, 15 do
+        table.insert(ass, string.format("{\\fs34}{\\1c&HFFFFFF&}%s\\N", pattern))
     end
+    
+    calibration_osd.data = table.concat(ass, "")
+    calibration_osd:update()
 end
 
 mp.add_key_binding("B", "toggle-calibration", cmd_toggle_calibration)
