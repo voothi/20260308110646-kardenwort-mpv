@@ -758,7 +758,31 @@ local CAL_BINDINGS = {
     {"Alt+]", function() adj_cal_val("dw_block_gap_mul", 0.05, -1.0, 5.0) end},
     {"ENTER", function() cmd_save_calibration() end},
     {"ESC", function() cmd_toggle_calibration() end},
+    {"T", function() cmd_calibration_test_pattern() end},
 }
+
+function cmd_calibration_test_pattern()
+    local test_subs = {}
+    local pattern = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-abcdefghijklmnopqrstuvwxyz-0123456789-!@#$%^&*()_+"
+    for i=1, 40 do
+        -- Create a mix of short and long lines to test wrapping and edge alignment
+        local text = "L" .. i .. ": " .. pattern
+        if i % 3 == 0 then text = text .. " " .. pattern end
+        if i % 5 == 0 then text = text .. " (HYPHEN-TEST-LONG-STRING-WITHOUT-SPACES-TO-FORCE-OVERFLOW-CHECK)" end
+        
+        table.insert(test_subs, {
+            start_time = i,
+            end_time = i + 1,
+            text = text
+        })
+    end
+    Tracks.pri.subs = test_subs
+    FSM.DW_VIEW_CENTER = 20
+    FSM.DW_ACTIVE_LINE = 20
+    FSM.DRUM_WINDOW = "DOCKED"
+    flush_rendering_caches()
+    show_osd("Calibration Pattern Loaded (Press Shift+B twice to reset)")
+end
 
 function manage_calibration_bindings(enable)
     if enable then
@@ -3123,21 +3147,25 @@ local function render_calibration_overlay()
     if FSM.DRUM_WINDOW ~= "OFF" and FSM.DW_LAYOUT_CACHE then
         local layout = FSM.DW_LAYOUT_CACHE.layout
         local total_h = FSM.DW_LAYOUT_CACHE.total_height
+        local active_idx = FSM.DW_LAYOUT_CACHE.active_idx
         local cur_y = 540 - (total_h / 2)
         local lh_mul = Options.dw_line_height_mul
-        local vline_h_base = (Options.dw_font_size * lh_mul) + Options.dw_vsp
         local space_w = dw_get_str_width(" ")
         
         for i, entry in ipairs(layout) do
             local sub_y = cur_y
+            local is_active = (entry.sub_idx == active_idx)
+            local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+            local vline_h = (f_size * lh_mul) + Options.dw_vsp
+            
             for vi, vl_indices in ipairs(entry.vlines) do
-                local vl_y1 = math.floor(sub_y + (vi - 1) * vline_h_base)
-                local vl_y2 = math.floor(vl_y1 + vline_h_base)
+                local vl_y1 = math.floor(sub_y + (vi - 1) * vline_h)
+                local vl_y2 = math.floor(vl_y1 + vline_h)
                 
                 -- Calculate width
                 local vl_w = 0
                 for _, wi in ipairs(vl_indices) do
-                    vl_w = vl_w + dw_get_str_width(entry.words[wi])
+                    vl_w = vl_w + dw_get_str_width(entry.words[wi], f_size)
                 end
                 if not Options.dw_original_spacing then
                     vl_w = vl_w + (#vl_indices - 1) * space_w
@@ -3151,7 +3179,7 @@ local function render_calibration_overlay()
                 -- Words
                 local wx = vl_x1
                 for _, wi in ipairs(vl_indices) do
-                    local ww = dw_get_str_width(entry.words[wi])
+                    local ww = dw_get_str_width(entry.words[wi], f_size)
                     local wx2 = math.floor(wx + ww)
                     local wx1_f = math.floor(wx)
                     add_box(wx1_f, vl_y1, wx2, vl_y2, "FF00FF", "60")
@@ -3160,7 +3188,7 @@ local function render_calibration_overlay()
             end
             cur_y = cur_y + entry.height
             if i < #layout then
-                cur_y = cur_y + calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
+                cur_y = cur_y + calculate_sub_gap("dw", f_size, lh_mul, Options.dw_vsp)
             end
         end
     end
@@ -3438,11 +3466,12 @@ end
 
 
 -- Unified layout engine: wraps subtitle words into visual lines
-local function dw_build_layout(subs, view_center)
+local function dw_build_layout(subs, view_center, active_idx)
     -- Performance Cache Check: Re-use layout if viewport and subs haven't changed.
     -- This drastically reduces CPU load during mouse interaction and OSD updates.
     if FSM.DW_LAYOUT_CACHE and 
        FSM.DW_LAYOUT_CACHE.view_center == view_center and 
+       FSM.DW_LAYOUT_CACHE.active_idx == active_idx and 
        FSM.DW_LAYOUT_CACHE.subs_ptr == subs and
        FSM.DW_LAYOUT_CACHE.layout_version == FSM.LAYOUT_VERSION then
         return FSM.DW_LAYOUT_CACHE.layout, FSM.DW_LAYOUT_CACHE.total_height
@@ -3466,8 +3495,6 @@ local function dw_build_layout(subs, view_center)
     end_idx = math.min(#subs, end_idx)
 
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
-    local sub_gap = calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
 
@@ -3476,6 +3503,10 @@ local function dw_build_layout(subs, view_center)
 
     for i = start_idx, end_idx do
         local s = subs[i]
+        local is_active = (i == active_idx)
+        local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+        local vline_h = (f_size * lh_mul) + Options.dw_vsp
+        local s_gap = calculate_sub_gap("dw", f_size, lh_mul, Options.dw_vsp)
         local entry
         
         -- Sub-level Layout Cache: Reuse wrapped lines if track/options haven't changed.
@@ -3520,14 +3551,12 @@ local function dw_build_layout(subs, view_center)
             if #cur_indices > 0 then table.insert(vlines, cur_indices) end
             if #vlines == 0 then vlines = {{1}} end
 
-            local entry_h = #vlines * vline_h
             entry = {
                 sub_idx = i,
                 words = tokens,
                 logical_words = logical_words,
                 visual_to_logical = visual_to_logical,
                 logical_to_visual = logical_to_visual,
-                height = entry_h,
                 vlines = vlines
             }
             
@@ -3538,14 +3567,16 @@ local function dw_build_layout(subs, view_center)
             }
         end
         
+        entry.height = #entry.vlines * vline_h
         table.insert(layout, entry)
         total_height = total_height + entry.height
-        if i < end_idx then total_height = total_height + sub_gap end
+        if i < end_idx then total_height = total_height + s_gap end
     end
 
     -- Store in cache before returning
     FSM.DW_LAYOUT_CACHE = {
         view_center = view_center,
+        active_idx = active_idx,
         subs_ptr = subs,
         layout_version = FSM.LAYOUT_VERSION,
         layout = layout,
@@ -3585,7 +3616,7 @@ local function draw_dw(subs, view_center, active_idx)
 
     local ass = ""
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
-    local layout, total_height = dw_build_layout(subs, view_center)
+    local layout, total_height = dw_build_layout(subs, view_center, active_idx)
     local lh_mul = Options.dw_line_height_mul
     local current_y = 540 - (total_height / 2)
     FSM.DW_LINE_Y_MAP = {}
