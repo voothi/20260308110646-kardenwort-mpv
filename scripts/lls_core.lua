@@ -652,6 +652,7 @@ local FSM = {
     -- Transients
     last_paused_sub_end = nil,
     last_time_pos = nil,
+    IGNORE_NEXT_JUMP = false,
     LOOP_MODE = "OFF",
     LOOP_START = nil,
     LOOP_END = nil,
@@ -4901,14 +4902,6 @@ end
 -- =========================================================================
 
 local function tick_autopause(time_pos)
-    -- [v1.58.45] Manual Seek Detection
-    -- If time_pos jumps significantly (manual seek via script or native mpv),
-    -- we MUST reset last_paused_sub_end to allow pausing at the same subtitle again.
-    if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
-        FSM.last_paused_sub_end = nil
-    end
-    FSM.last_time_pos = time_pos
-
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
     -- [v1.58.45] Precise Manual Autopause
@@ -4954,6 +4947,7 @@ local function tick_loop(time_pos)
     if not FSM.LOOP_START or not FSM.LOOP_END then return end
     
     if time_pos >= FSM.LOOP_END - Options.pause_padding then
+        FSM.IGNORE_NEXT_JUMP = true
         mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
     end
 end
@@ -4976,6 +4970,20 @@ local function master_tick()
     local ok, err = xpcall(function()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
+
+    -- [v1.58.46] Universal Manual Seek Detection
+    -- Detects any significant jump (native keys, script keys, or mouse)
+    if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
+        if not FSM.IGNORE_NEXT_JUMP then
+            FSM.last_paused_sub_end = nil
+            if FSM.LOOP_MODE == "ON" then
+                FSM.LOOP_MODE = "OFF"
+                show_osd("Loop Subtitle: OFF (Manual Walk)")
+            end
+        end
+    end
+    FSM.IGNORE_NEXT_JUMP = false
+    FSM.last_time_pos = time_pos
 
     -- Execute Autopause or Loop
     if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
@@ -5602,12 +5610,15 @@ local function cmd_replay_sub()
             FSM.LOOP_MODE = "ON"
             FSM.LOOP_START = sub.start_time
             FSM.LOOP_END = sub.end_time
+            FSM.IGNORE_NEXT_JUMP = true
             mp.commandv("seek", sub.start_time, "absolute+exact")
             show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
         end
     else
         -- Manual Replay Mode (Autopause is ON)
         FSM.LOOP_MODE = "OFF"
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.last_paused_sub_end = nil -- Ensure it re-pauses at the end
         mp.commandv("seek", sub.start_time, "absolute+exact")
         show_osd("Replaying line: " .. idx)
     end
