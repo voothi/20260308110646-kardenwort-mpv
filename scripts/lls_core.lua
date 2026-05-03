@@ -5798,9 +5798,13 @@ local function set_clipboard(text)
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
         
-        local script = "Add-Type '@\nusing System;using System.Runtime.InteropServices;public class K{[DllImport(\"user32.dll\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);}\n@'; "
+        -- [v1.58.39] Robust VK Injector via PowerShell Add-Type
+        local type_name = "Win32K" .. os.time()
+        local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
+        local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
+        
         for _, ev in ipairs(events) do
-            script = script .. string.format("[K]::keybd_event(0x%X,0,%d,[UIntPtr]::Zero);", ev[1], ev[2])
+            script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
         end
         
         mp.command_native_async({
