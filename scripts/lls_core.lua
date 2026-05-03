@@ -5824,7 +5824,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.key_copy_popup, "dw-copy-popup", nil, function() cmd_dw_copy("side") end, false)
     parse_and_collect(Options.key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
     parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
-    parse_and_collect(Options.dw_key_replay, "dw-replay", nil, function() cmd_replay_sub() end, false)
+    -- Note: replay handled via global named 'replay-subtitle' binding (no DW-local duplicate)
     parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
     parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
     parse_and_collect(Options.dw_key_jump_right, "dw-jump-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, false) end, false)
@@ -7168,7 +7168,8 @@ local function register_global_playback_keys()
             i = i + 1
         end
     end
-    bind(Options.dw_key_replay, "lls-global-replay", cmd_replay_sub)
+    -- Note: replay-subtitle is handled globally via the named binding in input.conf.
+    -- No direct key binding needed here to avoid double-fire collision.
 end
 register_global_playback_keys()
 
