@@ -3096,19 +3096,24 @@ local function render_calibration_overlay()
         return
     end
 
-    local ass_draw = {}
+    local ass = {}
     
+    local function add_box(x1, y1, x2, y2, color, alpha)
+        table.insert(ass, string.format("{\\an7\\pos(0,0)\\1c&H%s&\\1a&H%s&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", 
+            color, alpha, x1, y1, x2, y1, x2, y2, x1, y2))
+    end
+
     -- 1. Render Drum/SRT Hit Zones
     if FSM.DRUM_HIT_ZONES then
         for _, zone in ipairs(FSM.DRUM_HIT_ZONES) do
             local x1, y1 = math.floor(zone.x_start), math.floor(zone.y_top)
             local x2, y2 = math.floor(x1 + zone.total_width), math.floor(zone.y_bottom)
-            table.insert(ass_draw, string.format("{\\1c&HFFFF00&\\1a&H80&}m %d %d l %d %d %d %d %d %d", x1, y1, x2, y1, x2, y2, x1, y2))
+            add_box(x1, y1, x2, y2, "FFFF00", "80")
             if zone.words then
                 for _, w in ipairs(zone.words) do
                     local wx1, wy1 = math.floor(x1 + w.x_offset), y1
                     local wx2, wy2 = math.floor(wx1 + w.width), y2
-                    table.insert(ass_draw, string.format("{\\1c&HFF00FF&\\1a&H60&}m %d %d l %d %d %d %d %d %d", wx1, wy1, wx2, wy1, wx2, wy2, wx1, wy2))
+                    add_box(wx1, wy1, wx2, wy2, "FF00FF", "60")
                 end
             end
         end
@@ -3141,7 +3146,7 @@ local function render_calibration_overlay()
                 local vl_x1 = math.floor(960 - vl_w / 2)
                 local vl_x2 = math.floor(vl_x1 + vl_w)
                 
-                table.insert(ass_draw, string.format("{\\1c&HFFFF00&\\1a&H80&}m %d %d l %d %d %d %d %d %d", vl_x1, vl_y1, vl_x2, vl_y1, vl_x2, vl_y2, vl_x1, vl_y2))
+                add_box(vl_x1, vl_y1, vl_x2, vl_y2, "FFFF00", "80")
                 
                 -- Words
                 local wx = vl_x1
@@ -3149,7 +3154,7 @@ local function render_calibration_overlay()
                     local ww = dw_get_str_width(entry.words[wi])
                     local wx2 = math.floor(wx + ww)
                     local wx1_f = math.floor(wx)
-                    table.insert(ass_draw, string.format("{\\1c&HFF00FF&\\1a&H60&}m %d %d l %d %d %d %d %d %d", wx1_f, vl_y1, wx2, vl_y1, wx2, vl_y2, wx1_f, vl_y2))
+                    add_box(wx1_f, vl_y1, wx2, vl_y2, "FF00FF", "60")
                     wx = wx + ww + (Options.dw_original_spacing and 0 or space_w)
                 end
             end
@@ -3160,13 +3165,11 @@ local function render_calibration_overlay()
         end
     end
 
-    local final_ass = "{\\an7\\pos(0,0)\\p1}" .. table.concat(ass_draw, " ") .. "{\\p0}"
-    
     -- Status HUD
-    local status = string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&}CHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f", 
+    local status = string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&HFFFFFF&}CHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f", 
         Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)
     
-    calibration_osd.data = final_ass .. status
+    calibration_osd.data = table.concat(ass, "") .. status
     calibration_osd:update()
 end
 
