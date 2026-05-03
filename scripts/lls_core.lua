@@ -6846,8 +6846,13 @@ function cmd_toggle_calibration()
     FSM.CALIBRATION_MODE = not FSM.CALIBRATION_MODE
     manage_calibration_bindings(FSM.CALIBRATION_MODE)
     if FSM.CALIBRATION_MODE then
+        FSM.native_sub_vis = mp.get_property_bool("sub-visibility", true)
+        mp.set_property_bool("sub-visibility", false)
         show_osd("Calibration Mode: ON")
     else
+        if FSM.native_sub_vis ~= nil then
+            mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
+        end
         show_osd("Calibration Mode: OFF")
         calibration_osd.data = ""
         calibration_osd:update()
@@ -6938,11 +6943,27 @@ function render_calibration_overlay()
         return
     end
 
-    local ass = {"{\\an7\\pos(100,100)}{\\fs50}{\\1c&H00FFFF&}CALIBRATION TEST MODE v1.63\\N\\N"}
+    local fs = Options.dw_font_size
+    local lh = fs * Options.dw_line_height_mul
+    local vsp = Options.dw_vsp
     local pattern = "ALIGNMENT-TEST-WORD-TOKEN-ABC-123-!@#$%"
     
-    for i=1, 15 do
-        table.insert(ass, string.format("{\\fs34}{\\1c&HFFFFFF&}%s\\N", pattern))
+    local ass = {string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.64\\NCW: %.3f\\NLH: %.2f\\NVSP: %d\\NBLOCK_GAP: %.2f", 
+        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)}
+    
+    for i=0, 12 do
+        local x = 100
+        local y = 150 + i * (lh + vsp)
+        
+        -- Box (Magenta)
+        local w = dw_get_str_width(pattern, fs)
+        if w and w > 0 then
+             table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+                x, y, math.floor(w), math.floor(w), math.floor(lh), math.floor(lh)))
+        end
+        
+        -- Text
+        table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
     end
     
     calibration_osd.data = table.concat(ass, "")
