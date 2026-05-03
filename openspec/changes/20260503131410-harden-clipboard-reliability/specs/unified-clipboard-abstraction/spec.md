@@ -7,9 +7,9 @@ The `set_clipboard(text)` function SHALL utilize the fastest available platform-
 - **WHEN** the host environment supports a native clipboard API
 - **THEN** the system SHALL update the clipboard without spawning a shell process
 
-### Requirement: Explicit Post-Copy Hooks
-The system SHALL support an optional hook to trigger a keyboard shortcut (e.g., GoldenDict scan popup) immediately after a successful clipboard update.
+### Requirement: User-Friendly Hotkey Configuration
+The system SHALL allow users to define the GoldenDict trigger hotkey using standard naming (e.g., `Ctrl+Alt+Shift+Q`) in `mpv.conf`, which the script SHALL automatically translate into the internal platform-specific format.
 
-#### Scenario: Automatic GoldenDict trigger
-- **WHEN** `lls-goldendict_trigger` is enabled
-- **THEN** the system SHALL send `^!+n` after `set_clipboard` completes
+#### Scenario: Custom hotkey trigger
+- **WHEN** `lls-goldendict_hotkey` is set to `Ctrl+Alt+Shift+Q`
+- **THEN** the system SHALL send the correct `.NET` sequence (`^%+q`) to the OS after copying

@@ -197,6 +197,7 @@ Options = {
     win_clipboard_retries = 5,
     win_clipboard_retry_delay = 50, -- milliseconds
     goldendict_trigger = "no",
+    goldendict_hotkey = "Ctrl+Alt+Shift+Q",
 
     -- Drum Window
     dw_font_size = 34,
@@ -5767,9 +5768,20 @@ local function set_clipboard(text)
     -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     if Options.goldendict_trigger == "yes" and platform == "\\" then
+        -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
+        local raw_hotkey = Options.goldendict_hotkey:lower()
+        local sendkeys_map = {
+            ["ctrl%+"] = "^",
+            ["alt%+"] = "%%",
+            ["shift%+"] = "+",
+            ["win%+"] = "^{ESC}" -- Limited support for Win key in SendKeys
+        }
+        for k, v in pairs(sendkeys_map) do
+            raw_hotkey = raw_hotkey:gsub(k, v)
+        end
+        
         -- Using .NET SendWait for more robust global hotkey injection
-        -- Note: In .NET SendKeys, '%' is Alt (unlike WScript.Shell where '!' is Alt)
-        local trigger_cmd = "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('^%+q')"
+        local trigger_cmd = string.format("[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
 end
