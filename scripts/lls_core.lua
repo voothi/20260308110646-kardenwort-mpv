@@ -5091,6 +5091,9 @@ mp.add_periodic_timer(Options.tick_rate, master_tick)
 
 local function cmd_toggle_autopause()
     FSM.AUTOPAUSE = (FSM.AUTOPAUSE == "ON") and "OFF" or "ON"
+    if FSM.AUTOPAUSE == "ON" then
+        FSM.LOOP_MODE = "OFF"
+    end
     show_osd("Autopause: " .. FSM.AUTOPAUSE)
 end
 
@@ -5607,15 +5610,25 @@ local function cmd_replay_sub()
     local sub = subs[idx]
     if not sub or not sub.start_time then return end
 
-    -- [v1.58.47] Unified Loop Toggle (No immediate jump)
-    if FSM.LOOP_MODE == "ON" then
-        FSM.LOOP_MODE = "OFF"
-        show_osd("Loop Subtitle: OFF")
+    if FSM.AUTOPAUSE == "OFF" then
+        -- Toggle Loop Mode (No immediate jump, seamless looping)
+        if FSM.LOOP_MODE == "ON" then
+            FSM.LOOP_MODE = "OFF"
+            show_osd("Loop Subtitle: OFF")
+        else
+            FSM.LOOP_MODE = "ON"
+            FSM.LOOP_START = sub.start_time
+            FSM.LOOP_END = sub.end_time
+            show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
+        end
     else
-        FSM.LOOP_MODE = "ON"
-        FSM.LOOP_START = sub.start_time
-        FSM.LOOP_END = sub.end_time
-        show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
+        -- Manual Replay Mode (Autopause is ON)
+        -- Immediate jump, no looping. "Conservative and controlled."
+        FSM.LOOP_MODE = "OFF"
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.last_paused_sub_end = nil -- Ensure it re-pauses at the end
+        mp.commandv("seek", sub.start_time, "absolute+exact")
+        show_osd("Replaying line: " .. idx)
     end
 end
 
