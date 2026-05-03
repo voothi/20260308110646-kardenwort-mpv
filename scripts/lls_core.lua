@@ -6952,19 +6952,22 @@ function render_calibration_overlay()
     
     local ass = {
         "{\\q2}", -- No wrapping
-        -- HUD (Absolute Reset)
-        string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION v1.85\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f\\N[Shift+Up/Down]: VSP %d\\N[Enter]: Save", 
+        -- HUD
+        string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION v1.90\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f\\N[Shift+Up/Down]: VSP %d\\N[Enter]: Save", 
             Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp)
     }
     
+    -- Create a "box string" made of block characters
+    local box_str = ""
+    for i=1, #pattern do box_str = box_str .. "█" end
+    
     for i=0, 10 do
-        local x = 300
+        local x = 200
         local y = 150 + i * (lh + vsp)
         
-        -- Single Atomic Event: Box + Text
-        local w = dw_get_str_width(pattern, fs) or 800
-        local line = string.format("{\\r}{\\an7\\pos(%d,%d)}{\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}{\\1c&HFFFFFF&}{\\1a&H00&}{\\fs%d}%s", 
-            x, y, math.floor(w), math.floor(w), math.floor(lh), math.floor(lh), fs, pattern)
+        -- Render the block string first (as the box) then the text on top
+        local line = string.format("{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFF00FF&\\1a&H60&}%s{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&\\1a&H00&}%s", 
+            x, y, fs, box_str, x, y, fs, pattern)
         table.insert(ass, line)
     end
     
