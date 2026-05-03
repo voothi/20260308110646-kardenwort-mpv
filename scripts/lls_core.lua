@@ -4971,25 +4971,34 @@ local function master_tick()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
-    -- [v1.58.46] Universal Manual Seek Detection
+    -- [v1.58.48] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
     if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
         if not FSM.IGNORE_NEXT_JUMP then
             FSM.last_paused_sub_end = nil
             if FSM.LOOP_MODE == "ON" then
-                FSM.LOOP_MODE = "OFF"
-                show_osd("Loop Subtitle: OFF (Manual Walk)")
+                -- Persistent Loop: Update boundaries to the new location instead of disabling
+                local subs = Tracks.pri.subs
+                if subs and #subs > 0 then
+                    local idx = get_center_index(subs, time_pos)
+                    if idx ~= -1 then
+                        FSM.LOOP_START = subs[idx].start_time
+                        FSM.LOOP_END = subs[idx].end_time
+                        show_osd("Loop Updated: Line " .. idx)
+                    end
+                end
             end
         end
     end
     FSM.IGNORE_NEXT_JUMP = false
     FSM.last_time_pos = time_pos
 
-    -- Execute Loop or Autopause
+    -- Execute Autopause and Loop
+    if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
+        tick_autopause(time_pos)
+    end
     if FSM.LOOP_MODE == "ON" then
         tick_loop(time_pos)
-    elseif FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
-        tick_autopause(time_pos)
     end
 
     -- Sync active line for Drum/DW logic
