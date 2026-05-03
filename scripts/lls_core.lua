@@ -5730,7 +5730,7 @@ local function get_clipboard()
     return ""
 end
 
-local function set_clipboard(text, mode)
+local function set_clipboard(text, mode, label)
     -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
     local platform = package.config:sub(1,1)
@@ -5800,19 +5800,20 @@ local function set_clipboard(text, mode)
         for i = #events - 1, 1, -1 do
             if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
         end
+
+        local sendkeys_map = { ["ctrl%+"] = "^", ["alt%+"] = "%%", ["shift%+"] = "+", ["win%+"] = "^{ESC}" }
+        local raw_hotkey = primary
+        for k, v in pairs(sendkeys_map) do raw_hotkey = raw_hotkey:gsub(k, v) end
         
-        -- [v1.58.39] Robust VK Injector via PowerShell Add-Type
-        local type_name = "Win32K" .. os.time()
-        local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
-        local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
-        
-        for _, ev in ipairs(events) do
-            script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
-        end
+        -- [v1.58.46] Unified OSD & Optimized PowerShell Trigger
+        local display_text = text:gsub("%s+", " "):sub(1, 40) .. (#text > 40 and "..." or "")
+        show_osd((label or "Copied") .. ": " .. display_text)
+
+        local trigger_cmd = string.format("Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
         
         mp.command_native_async({
             name = "subprocess",
-            args = {"powershell", "-NoProfile", "-Command", script},
+            args = {"powershell", "-NoProfile", "-Command", trigger_cmd},
             playback_only = false,
             capture_stdout = false, capture_stderr = false
         }, function() end)
@@ -6628,9 +6629,7 @@ function cmd_dw_copy(mode)
     local final_text, is_context = get_clipboard_text_smart()
     
     if final_text and final_text ~= "" then
-        set_clipboard(final_text, mode)
-        local label = is_context and "Context" or "DW"
-        show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
+        set_clipboard(final_text, mode, is_context and "Context" or "DW")
     end
 end
 
@@ -6762,15 +6761,7 @@ local function cmd_copy_sub(mode)
     local final_text, is_context = get_clipboard_text_smart(time_pos)
 
     if final_text and final_text ~= "" then
-        set_clipboard(final_text, mode)
-        
-        local words, wcount = {}, 0
-        for w in final_text:gmatch("%S+") do
-            if wcount < Options.copy_word_limit then table.insert(words, w) end
-            wcount = wcount + 1
-        end
-        local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
-        show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
+        set_clipboard(final_text, mode, FSM.COPY_MODE)
     else
         show_osd("No subtitle to copy")
     end
