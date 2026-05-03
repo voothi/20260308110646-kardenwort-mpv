@@ -5784,10 +5784,15 @@ local function set_clipboard(text)
             raw_hotkey = raw_hotkey:gsub(k, v)
         end
         
-        -- Using a tiny 10ms delay to ensure modifiers are captured.
-        -- This is the minimum required to prevent "garbage" characters while feeling instant.
-        local trigger_cmd = string.format("Start-Sleep -m 10; [void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
-        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
+        -- [v1.58.37] Async trigger for instant MPV response
+        local trigger_cmd = string.format("[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
+        mp.command_native_async({
+            name = "subprocess",
+            args = {"powershell", "-NoProfile", "-Command", trigger_cmd},
+            playback_only = false,
+            capture_stdout = false,
+            capture_stderr = false
+        }, function() end)
     end
 end
 
