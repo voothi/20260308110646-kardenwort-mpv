@@ -146,7 +146,7 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 - **End of Phrase**: By default, it pauses only when the sentence is finished (detecting the end of the `{\c}` tag sequence).
 - **Word by Word**: Toggle with `K` to pause after every word highlighted in your karaoke tracks.
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
-- **Toggle**: `P` (English) or `З` (Russian).
+- **Toggle**: `s` (English) or `ы` (Russian).
 
 ### <span id="drum-mode"></span>Drum Mode (Dynamic Multi-line Flow)
 The primary immersion mode designed for rapid reading and phrasal awareness during playback.
@@ -154,13 +154,13 @@ The primary immersion mode designed for rapid reading and phrasal awareness duri
 - **Dynamic Vertical Tracking**: Real-time position syncing with `secondary-sub-pos`. Adjust the entire block height on-the-fly using `Shift+R` / `Shift+T`.
 - **Minimalist Aesthetic**: Forces an ultra-clean `outline-and-shadow` style to ensure maximum readability against any video background, decoupling it from regular subtitle styles.
 - **Dual-Track Synergy**: Seamlessly renders both primary and secondary tracks in a unified stack, providing instant translation context without visual clutter.
-- **Toggle**: `C` (English) or `С` (Russian).
+- **Toggle**: `x` (English) or `ч` (Russian).
 
 ### <span id="static-reading-mode"></span>Static Reading Mode (Drum Window)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
 - **Advanced Mouse Selection**: Experience text-editor smooth interactions. Click and drag (`LMB`) to instantly highlight ranges, or `Shift+Click` to extend. Hardware-accelerated for 60fps tracking.
 - **Actionable Text**: Double-Click any subtitle word to instantly seek video playback to that exact phrase and re-center the viewport.
-- **Stationary "Book Mode"**: Toggle with **`b`** to lock the viewport. Navigating through lines or selecting words won't cause the window to scroll or flicker, providing a stable, reading-focused experience.
+- **Stationary "Book Mode"**: Toggle with **`Z`** / **`Я`** to lock the viewport. Navigating through lines or selecting words won't cause the window to scroll or flicker, providing a stable, reading-focused experience.
 - **Selection Persistence**: Manual seeks via `a`/`d` no longer clear your yellow highlight, allowing you to check context and return to your pending export line.
 - **"Original Form" Display**: Toggle `dw_original_spacing` to perfectly mirror any subtitle's whitespace and character-stream formatting without sacrificing word-level selection.
 - **Contextual Tooltips**: Press **`e`** or **Right-Click** on any line to instantly see a translation hint. Supports **full word-wrapping** and **bidirectional highlight synchronization** with the primary window.
@@ -170,7 +170,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
 - **Sticky Column Navigation**: Vertical movement (Arrows Up/Down) now preserves the horizontal OSD position, mimicking the VSCode carriage transition for more predictable keyboard navigation.
 - **Performance Layout Cache**: A structure-aware caching engine that eliminates redundant OSD calculations during mouse movement, ensuring a smooth 60fps interaction experience.
-- **Toggle**: `W` (English) or `Ц` (Russian).
+- **Toggle**: `z` (English) or `я` (Russian).
 
 ### <span id="anki-mining"></span>Anki Highlighting & Export
 A specialized subsystem that bridges the gap between immersion and flashcard creation.
@@ -185,7 +185,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 - **Automatic Sanitization**: Strips leading/trailing punctuation and bracketed metadata (e.g. `[Musik]`) to ensure cards are optimized for dictionary matching. Smart joiners preserve hyphens/slashes in German compounds.
 - **Drag-to-Pair (Range Conversion)**: High-performance mining upgrade. Contiguous yellow selection ranges can now be converted into discrete paired selection sets (Pink) in a single action via keyboard (`t`) or Ctrl+Drag.
 - **Dynamic Context**: The engine intelligently scans surrounding lines to capture grammatically complete sentences for your flashcards.
-- **Instant Record Access**: Press **`o`** within the Drum Window to instantly open your active TSV database in your default editor.
+- **Instant Record Access**: Press **`b`** within the Drum Window to instantly open your active TSV database in your default editor.
 - **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
 - **Zero-Latency Mining**: In-memory row injection provides instantaneous feedback when saving words, bypassing the performance penalty of full TSV re-parsing.
 
@@ -194,8 +194,8 @@ A sophisticated extraction tool that supports substring and multi-line range sel
 - **Range Selection**: Hold **`Shift`** with navigation keys to select exact word ranges or multiple consecutive subtitle lines.
 - **Substring Copy**: `Ctrl+C` aggregates only the highlighted words into a clean, format-free clipboard export.
 - **Symmetrical Traversal**: Intelligently leaps across dual-track layouts to retrieve pure target-language lines.
-- **Copy Modes**: Toggle between Target text and Translation chunks (Toggle: `Z` / `Я`).
-- **Context expansion**: Request surrounding sentences to export chronological paragraphs (Toggle: `X` / `Ч`). Requires separate subtitle files.
+- **Copy Modes**: Toggle between Target text and Translation chunks (Toggle: `Q` / `Й`).
+- **Context expansion**: Request surrounding sentences to export chronological paragraphs (Toggle: `W` / `Ц`). Requires separate subtitle files.
 
 ### Smart Spacebar
 A custom key handler that distinguishes between quick taps and long holds.
@@ -217,38 +217,37 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | Key (EN) | Key (RU) | Action |
 |---|---|---|
 | `RIGHT` / `LEFT` | `RIGHT` / `LEFT` | Exact **2-second** seek forward / backward |
-| `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** (Window Mode / Global) |
 | `a` / `d` | `ф` / `в` | **Seek** to previous / next subtitle line |
-| `q` / `Q` | `й` / `Й` | **Quit** / Quit and save position |
+| `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** |
+| `1` / `2` | `1` / `2` | Decrease / Increase **Contrast** |
+| `~` / `ё` | `~` / `ё` | **Quit** |
+| `Q` / `Й` | `Q` / `Й` | Cycle **Copy Mode** (Drum Window) |
+| `W` / `Ц` | `W` / `Ц` | Toggle **Context Copy** (Drum Window) |
+| `E` / `У` | `E` / `У` | Toggle **Hover Tooltips** (Drum Window) |
+| `F` / `А` | `F` / `А` | Toggle **Karaoke Mode** (Autopause granularity) |
+| `X` / `Ч` | `X` / `Ч` | Cycle **Secondary Position** (Top ↔ Bottom) |
+| `C` / `С` | `C` / `С` | **Cycle Secondary Track** (Translation) |
+| `s` / `ы` | `s` / `ы` | Toggle **Autopause** (ON/OFF) |
+| `S` / `Ы` | `S` / `Ы` | Toggle **Autopause** (ON/OFF) |
+| `z` / `я` | `z` / `я` | Toggle **Static Reading Mode** (Drum Window) |
+| `Z` / `Я` | `Z` / `Я` | Toggle **Book Mode** (Drum Window) |
+| `x` / `ч` | `x` / `ч` | Toggle **Drum Mode** (Dynamic Multi-line Context) |
+| `c` / `с` | `c` / `с` | Toggle **Subtitle Visibility** (Styled OSD) |
+| `b` / `и` | `b` / `и` | **Open Record File** (Active TSV database) |
+| `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
+| `R` / `T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
 | `SPACE` / `LMB` | `SPACE` / `LMB` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
 | `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
 | `m` | `ь` | Toggle **Mute** |
 | `0` / `9` | `0` / `9` | Adjust **Volume** (Up / Down) |
 | `[` / `]` | `х` / `ъ` | Decrease / Increase **Playback Speed** (10%) |
-| `順` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
+| `{` / `}` | `Х` / `Ъ` | Halve / Double **Playback Speed** |
 | `BS` | `BS` | **Reset Playback Speed** (Set to 1.0) |
 | `.` / `,` | `ю` / `б` | Frame Step Forward / Backward |
-| `v` | `м` | Toggle **Fullscreen** |
-| `W` / `E` | `Ц` / `У` | **Panscan** (Zoom Out / In) |
-| `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
-| `Shift+R` / `Shift+T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
-| `j` | `о` | **Cycle Secondary Track** (Translation) |
-| `s` | `ы` | Toggle Subtitle Visibility (Styled OSD) |
-| `e` | `у` | **Toggle Tooltip** (Reading Mode Only) |
-| `y` | `н` | Toggle Secondary Position (**Top ↔ Bottom**, SRT only) |
-| `c` | `с` | Toggle **Drum Mode** (Dynamic Multi-line Context) |
-| `w` | `ц` | Toggle **Static Reading Mode** (Drum Window) |
-| `b` | `и` | Toggle **Book Mode** (Static Viewport Lock) |
-| `n` | `т` | Toggle **Hover Tooltips** (Reading Mode) |
+| `v` / `м` | `v` / `м` | Toggle **Fullscreen** |
 | `h` | `р` | Toggle **Global Highlighting** (Anki Matches) |
-| `o` | `щ` | **Open Record File** (Active TSV database) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+c` | `Ctrl+с` | **Copy Subtitle** (Extract clean text to clipboard) |
-| `x` / `X` | `ч` / `Ч` | Toggle **Context Copy** (Include surrounding lines) |
-| `z` / `Z` | `я` / `Я` | Cycle **Copy Mode** (Target ↔ Translation) |
-| `p` / `P` | `з` / `З` | Toggle **Autopause** (ON/OFF) |
-| `k` / `K` | `л` / `Л` | Toggle **Karaoke Mode** (Word-by-Word / End-of-Phrase) |
-| `S` | `Ы` | Take a **Screenshot** |
 
 [Return to Top](#table-of-contents)
 
@@ -422,15 +421,17 @@ These parameters allow remapping internal script actions in `mpv.conf`. Values c
 | `lls-dw_key_search` | `Ctrl+f Ctrl+а` |
 | `lls-dw_key_add` | `g п MBTN_MID` |
 | `lls-dw_key_pair` | `f а Ctrl+MBTN_LEFT` |
-| `lls-dw_key_open_record` | `o щ` |
+| `lls-dw_key_open_record` | `b и` |
 | `lls-dw_key_select` | `MBTN_LEFT` |
 | `lls-dw_key_tooltip_pin` | `MBTN_RIGHT` |
-| `lls-dw_key_tooltip_hover` | `n т` |
+| `lls-dw_key_tooltip_hover` | `E У` |
 | `lls-dw_key_tooltip_toggle` | `e у` |
 | `lls-dw_key_mouse_seek` | `MBTN_LEFT_DBL` |
 | `lls-dw_key_scroll_up/down` | `Ctrl+UP/DOWN` |
 | `lls-key_sub_pos_up/down` | `r/t к/е` |
 | `lls-key_sec_sub_pos_up/down`| `R/T К/Е` |
+| `lls-dw_key_cycle_copy_mode` | `Q Й` |
+| `lls-dw_key_toggle_copy_context`| `W Ц` |
 
 #### **Mapping Keywords**
 When configuring `anki_mapping.ini`, use these keywords to pull dynamic data:
