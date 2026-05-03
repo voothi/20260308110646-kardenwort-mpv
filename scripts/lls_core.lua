@@ -185,7 +185,7 @@ Options = {
     copy_context_lines = 2,
     copy_word_limit = 3,
     copy_osd_cooldown = 3.0,
-    key_copy_popup = "Ctrl+c Ctrl+с",
+    key_copy_popup = "Shift+C Shift+С",
     key_copy_main = "Alt+c Alt+с",
 
     -- Toggle Positions
@@ -210,7 +210,6 @@ Options = {
 
     -- Drum Window
     dw_font_size = 34,
-    gd_trigger_lock_duration = 2.0,
     dw_key_copy = "Ctrl+c Ctrl+с",
     dw_lines_visible = 15,        -- how many lines visible in the window
     dw_scrolloff = 3,             -- margin lines at top/bottom before scrolling
@@ -5781,7 +5780,7 @@ local function set_clipboard(text, mode)
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     -- [v1.58.36] Robust GoldenDict trigger (Improved layout/modifier stability)
     -- [v1.58.38] Professional Layout-Independent Trigger (VK-based)
-    if Options.gd_trigger_enabled == "yes" and platform == "\\" then
+    if Options.gd_trigger_enabled == "yes" and platform == "\\" and (mode == "side" or mode == "main") then
         local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
         local primary = user_hotkey:match("[^%s,;]+") or ""
         primary = primary:lower()
