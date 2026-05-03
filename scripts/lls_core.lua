@@ -83,24 +83,29 @@ local function expand_ru_keys(key_string)
         local mods = key:match("^(.*%+)") or ""
         local base = key:sub(#mods + 1)
         
-        -- Detect Shift: either explicit "Shift+" or implicit uppercase single char "A"
-        local is_shift = mods:lower():find("shift") or (#base == 1 and base:match("%u"))
+        -- Detect Shift states
+        local is_explicit_shift = mods:lower():find("shift")
+        local is_implicit_shift = (#base == 1 and base:match("%u"))
         
         local ru_base = EN_RU_MAP[base:lower()]
         if ru_base then
-            -- Bind lowercase
-            table.insert(results, mods .. ru_base)
-            -- If Shift is present, also bind uppercase to handle different mpv versions/layouts
-            if is_shift then
-                local ru_upper = {
-                    ["ф"]="Ф", ["и"]="И", ["с"]="С", ["в"]="В", ["у"]="У", ["а"]="А", ["п"]="П", ["р"]="Р",
-                    ["ш"]="Ш", ["о"]="О", ["л"]="Л", ["д"]="Д", ["ь"]="Ь", ["т"]="Т", ["щ"]="Щ", ["з"]="З",
-                    ["й"]="Й", ["к"]="К", ["ы"]="Ы", ["е"]="Е", ["г"]="Г", ["м"]="М", ["ц"]="Ц", ["ч"]="Ч",
-                    ["н"]="Н", ["я"]="Я", ["х"]="Х", ["ъ"]="Ъ", ["ж"]="Ж", ["э"]="Э", ["б"]="Б", ["ю"]="Ю", ["ё"]="Ё"
-                }
-                if ru_upper[ru_base] then
-                    table.insert(results, mods .. ru_upper[ru_base])
-                end
+            local ru_upper = {
+                ["ф"]="Ф", ["и"]="И", ["с"]="С", ["в"]="В", ["у"]="У", ["а"]="А", ["п"]="П", ["р"]="Р",
+                ["ш"]="Ш", ["о"]="О", ["л"]="Л", ["д"]="Д", ["ь"]="Ь", ["т"]="Т", ["щ"]="Щ", ["з"]="З",
+                ["й"]="Й", ["к"]="К", ["ы"]="Ы", ["е"]="Е", ["г"]="Г", ["м"]="М", ["ц"]="Ц", ["ч"]="Ч",
+                ["н"]="Н", ["я"]="Я", ["х"]="Х", ["ъ"]="Ъ", ["ж"]="Ж", ["э"]="Э", ["б"]="Б", ["ю"]="Ю", ["ё"]="Ё"
+            }
+            
+            if is_explicit_shift then
+                -- Shift+e -> Shift+у, Shift+У (Safe redundancy for various layouts)
+                table.insert(results, mods .. ru_base)
+                if ru_upper[ru_base] then table.insert(results, mods .. ru_upper[ru_base]) end
+            elseif is_implicit_shift then
+                -- E -> У (Only)
+                if ru_upper[ru_base] then table.insert(results, mods .. ru_upper[ru_base]) end
+            else
+                -- e -> у (Only)
+                table.insert(results, mods .. ru_base)
             end
         end
     end
@@ -226,8 +231,8 @@ Options = {
     copy_context_lines = 2,
     copy_word_limit = 3,
     copy_osd_cooldown = 3.0,
-    key_copy_popup = "Shift+C Shift+С",
-    key_copy_main = "Alt+c Alt+с",
+    key_copy_popup = "Shift+C",
+    key_copy_main = "Alt+c",
 
     -- Toggle Positions
     -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
@@ -331,16 +336,17 @@ Options = {
     seek_hold_rate = 10,
 
     -- Anki Highlighter
-    dw_key_add = "g п MBTN_MID Ctrl+MBTN_MID",
-    dw_key_pair = "f а Ctrl+MBTN_LEFT",
+    dw_key_add = "g MBTN_MID Ctrl+MBTN_MID",
+    dw_key_pair = "f Ctrl+MBTN_LEFT",
     dw_key_select = "MBTN_LEFT",
     dw_key_pair_mod = "Ctrl",
     dw_key_tooltip_pin = "MBTN_RIGHT",
-    dw_key_tooltip_hover = "n т",
-    dw_key_tooltip_toggle = "e у",
-    dw_key_seek_prev = "a ф",
-    dw_key_seek_next = "d в",
-    dw_key_search = "Ctrl+f Ctrl+а",
+    dw_key_tooltip_hover = "n",
+    dw_key_tooltip_toggle = "e",
+    dw_key_seek_prev = "a",
+    dw_key_seek_next = "d",
+    dw_key_search = "Ctrl+f",
+
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_esc = "ESC",
     dw_key_select_extend = "Shift+MBTN_LEFT",
@@ -370,15 +376,16 @@ Options = {
     search_key_end = "END",
     search_key_enter = "ENTER",
     search_key_esc = "ESC",
-    search_key_paste = "Ctrl+v Ctrl+м",
-    search_key_select_all = "Ctrl+a Ctrl+ф",
-    search_key_delete_word = "Ctrl+w Ctrl+ц",
+    search_key_paste = "Ctrl+v",
+    search_key_select_all = "Ctrl+a",
+    search_key_delete_word = "Ctrl+w",
     search_key_click = "MBTN_LEFT",
-    dw_key_open_record = "o щ",
-    key_sub_pos_up = "r к",
-    key_sub_pos_down = "t е",
-    key_sec_sub_pos_up = "R К",
-    key_sec_sub_pos_down = "T Е",
+    dw_key_open_record = "o",
+    key_sub_pos_up = "r",
+    key_sub_pos_down = "t",
+    key_sec_sub_pos_up = "R",
+    key_sec_sub_pos_down = "T",
+
     anki_context_max_words = 40,
     anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
     anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: 0075D1 | RGB: #D17500)
@@ -6939,8 +6946,15 @@ mp.register_event("shutdown", function()
     end
 end)
 
+-- =========================================================================
+-- INITIALIZATION
+-- =========================================================================
+options.read_options(Options, "lls")
+validate_config()
+
 -- Register Bindings
 mp.add_key_binding(nil, "toggle-autopause", cmd_toggle_autopause)
+
 mp.add_key_binding(nil, "toggle-karaoke-mode", cmd_toggle_karaoke)
 mp.add_key_binding(nil, "smart-space", cmd_smart_space, {complex=true})
 mp.add_key_binding(nil, "toggle-drum-mode", cmd_toggle_drum)
@@ -7005,9 +7019,8 @@ if Options.anki_sync_period > 0 then
         if not ok then Diagnostic.error("periodic sync: " .. tostring(err)) end
     end)
 end
-options.read_options(Options, "lls")
-validate_config()
 Diagnostic.info("SCRIPT LOADED SUCCESSFULLY")
+
 
 ---------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
