@@ -1340,4 +1340,4 @@
 20260503193636 The current implementation is in impeccable adherence to the established specifications. The recent refactoring has successfully unified the clipboard logic, hardened interaction hit-zones, and eliminated long-standing "ghost" interference issues. - Okay.
 20260503201804 Check why it doesn't work mpv.conf#L372
 20260503202541 Doesn't work in RU mpv.conf#L371-377
-
+20260503203533 opsx-propose anchors 20260502170926 20260503193636 20260503201804 20260503202541
