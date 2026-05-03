@@ -5768,30 +5768,46 @@ local function set_clipboard(text)
     -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     -- [v1.58.36] Robust GoldenDict trigger (Improved layout/modifier stability)
+    -- [v1.58.38] Professional Layout-Independent Trigger (VK-based)
     if Options.goldendict_trigger == "yes" and platform == "\\" then
+        local user_hotkey = Options.goldendict_hotkey or ""
+        local primary = user_hotkey:match("[^%s,;]+") or ""
+        primary = primary:lower()
         
-        -- We only take the FIRST combination to avoid duplicate triggers and "garbage" text
-        local raw_hotkey = Options.goldendict_hotkey:match("[^%s,;]+") or ""
-        raw_hotkey = raw_hotkey:lower()
-        
-        local sendkeys_map = {
-            ["ctrl%+"] = "^",
-            ["alt%+"] = "%%",
-            ["shift%+"] = "+",
-            ["win%+"] = "^{ESC}"
+        -- Map common keys to Virtual Key (VK) codes
+        local vk_codes = {
+            ctrl = 0x11, alt = 0x12, shift = 0x10,
+            q = 0x51, n = 0x4E, ["1"] = 0x31
         }
-        for k, v in pairs(sendkeys_map) do
-            raw_hotkey = raw_hotkey:gsub(k, v)
+        
+        local events = {}
+        local modifiers = { "ctrl", "alt", "shift" }
+        for _, mod in ipairs(modifiers) do
+            if primary:find(mod) then table.insert(events, {vk_codes[mod], 0}) end
         end
         
-        -- [v1.58.37] Async trigger for instant MPV response
-        local trigger_cmd = string.format("[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
+        -- Get the main key (the last letter/number)
+        local key = primary:match("[^+]+$")
+        if key and vk_codes[key] then
+            table.insert(events, {vk_codes[key], 0}) -- Down
+            table.insert(events, {vk_codes[key], 2}) -- Up
+        end
+        
+        -- Release modifiers in reverse order
+        for i = #events - 1, 1, -1 do
+            if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
+        end
+        
+        local script = "Add-Type '@\nusing System;using System.Runtime.InteropServices;public class K{[DllImport(\"user32.dll\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);}\n@'; "
+        for _, ev in ipairs(events) do
+            script = script .. string.format("[K]::keybd_event(0x%X,0,%d,[UIntPtr]::Zero);", ev[1], ev[2])
+        end
+        
         mp.command_native_async({
             name = "subprocess",
-            args = {"powershell", "-NoProfile", "-Command", trigger_cmd},
+            args = {"powershell", "-NoProfile", "-Command", script},
             playback_only = false,
-            capture_stdout = false,
-            capture_stderr = false
+            capture_stdout = false, capture_stderr = false
         }, function() end)
     end
 end
