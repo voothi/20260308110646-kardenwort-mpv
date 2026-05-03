@@ -6946,20 +6946,27 @@ function render_calibration_overlay()
     end
 
     local fs = Options.dw_font_size or 40
-    local lh = fs * (Options.dw_line_height_mul or 1.0)
-    local pattern = "CALIBRATION-TEST-LINE-v1.80"
-    local w = dw_get_str_width(pattern, fs)
+    local lh = fs * (Options.dw_line_height_mul or 0.8)
+    local vsp = Options.dw_vsp or 0
+    local pattern = "ALIGNMENT-TEST-WORD-TOKEN-ABC-123-!@#$%"
     
     local ass = {
-        "{\\q2}", -- Disable wrapping
-        -- HUD
-        string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION v1.80\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f", 
-            Options.dw_char_width, Options.dw_line_height_mul),
-        -- Test Line
-        string.format("{\\an7\\pos(200,200)}{\\1c&HFF00FF&\\1a&H80&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
-            math.floor(w), math.floor(w), math.floor(lh), math.floor(lh)),
-        string.format("{\\an7\\pos(200,200)}{\\fs%d}{\\1c&HFFFFFF&}%s", fs, pattern)
+        "{\\q2}", -- No wrapping
+        -- HUD (Absolute Reset)
+        string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION v1.85\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f\\N[Shift+Up/Down]: VSP %d\\N[Enter]: Save", 
+            Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp)
     }
+    
+    for i=0, 10 do
+        local x = 300
+        local y = 150 + i * (lh + vsp)
+        
+        -- Single Atomic Event: Box + Text
+        local w = dw_get_str_width(pattern, fs) or 800
+        local line = string.format("{\\r}{\\an7\\pos(%d,%d)}{\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}{\\1c&HFFFFFF&}{\\1a&H00&}{\\fs%d}%s", 
+            x, y, math.floor(w), math.floor(w), math.floor(lh), math.floor(lh), fs, pattern)
+        table.insert(ass, line)
+    end
     
     calibration_osd.data = table.concat(ass, "")
     calibration_osd:update()
