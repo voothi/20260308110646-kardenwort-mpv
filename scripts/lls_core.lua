@@ -3096,20 +3096,19 @@ local function render_calibration_overlay()
         return
     end
 
-    local ass = {}
-    table.insert(ass, "{\\an7\\pos(0,0)}")
+    local ass_draw = {}
     
     -- 1. Render Drum/SRT Hit Zones
     if FSM.DRUM_HIT_ZONES then
         for _, zone in ipairs(FSM.DRUM_HIT_ZONES) do
-            local x1, y1 = zone.x_start, zone.y_top
-            local x2, y2 = x1 + zone.total_width, zone.y_bottom
-            table.insert(ass, string.format("{\\1c&HFFFF00&\\1a&H80&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", x1, y1, x2, y1, x2, y2, x1, y2))
+            local x1, y1 = math.floor(zone.x_start), math.floor(zone.y_top)
+            local x2, y2 = math.floor(x1 + zone.total_width), math.floor(zone.y_bottom)
+            table.insert(ass_draw, string.format("{\\1c&HFFFF00&\\1a&H80&}m %d %d l %d %d %d %d %d %d", x1, y1, x2, y1, x2, y2, x1, y2))
             if zone.words then
                 for _, w in ipairs(zone.words) do
-                    local wx1, wy1 = x1 + w.x_offset, y1
-                    local wx2, wy2 = wx1 + w.width, y2
-                    table.insert(ass, string.format("{\\1c&HFF00FF&\\1a&H60&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", wx1, wy1, wx2, wy1, wx2, wy2, wx1, wy2))
+                    local wx1, wy1 = math.floor(x1 + w.x_offset), y1
+                    local wx2, wy2 = math.floor(wx1 + w.width), y2
+                    table.insert(ass_draw, string.format("{\\1c&HFF00FF&\\1a&H60&}m %d %d l %d %d %d %d %d %d", wx1, wy1, wx2, wy1, wx2, wy2, wx1, wy2))
                 end
             end
         end
@@ -3127,8 +3126,8 @@ local function render_calibration_overlay()
         for i, entry in ipairs(layout) do
             local sub_y = cur_y
             for vi, vl_indices in ipairs(entry.vlines) do
-                local vl_y1 = sub_y + (vi - 1) * vline_h_base
-                local vl_y2 = vl_y1 + vline_h_base
+                local vl_y1 = math.floor(sub_y + (vi - 1) * vline_h_base)
+                local vl_y2 = math.floor(vl_y1 + vline_h_base)
                 
                 -- Calculate width
                 local vl_w = 0
@@ -3139,17 +3138,18 @@ local function render_calibration_overlay()
                     vl_w = vl_w + (#vl_indices - 1) * space_w
                 end
                 
-                local vl_x1 = 960 - vl_w / 2
-                local vl_x2 = vl_x1 + vl_w
+                local vl_x1 = math.floor(960 - vl_w / 2)
+                local vl_x2 = math.floor(vl_x1 + vl_w)
                 
-                table.insert(ass, string.format("{\\1c&HFFFF00&\\1a&H80&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", vl_x1, vl_y1, vl_x2, vl_y1, vl_x2, vl_y2, vl_x1, vl_y2))
+                table.insert(ass_draw, string.format("{\\1c&HFFFF00&\\1a&H80&}m %d %d l %d %d %d %d %d %d", vl_x1, vl_y1, vl_x2, vl_y1, vl_x2, vl_y2, vl_x1, vl_y2))
                 
                 -- Words
                 local wx = vl_x1
                 for _, wi in ipairs(vl_indices) do
                     local ww = dw_get_str_width(entry.words[wi])
-                    local wx2 = wx + ww
-                    table.insert(ass, string.format("{\\1c&HFF00FF&\\1a&H60&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", wx, vl_y1, wx2, vl_y1, wx2, vl_y2, wx, vl_y2))
+                    local wx2 = math.floor(wx + ww)
+                    local wx1_f = math.floor(wx)
+                    table.insert(ass_draw, string.format("{\\1c&HFF00FF&\\1a&H60&}m %d %d l %d %d %d %d %d %d", wx1_f, vl_y1, wx2, vl_y1, wx2, vl_y2, wx1_f, vl_y2))
                     wx = wx + ww + (Options.dw_original_spacing and 0 or space_w)
                 end
             end
@@ -3160,12 +3160,13 @@ local function render_calibration_overlay()
         end
     end
 
+    local final_ass = "{\\an7\\pos(0,0)\\p1}" .. table.concat(ass_draw, " ") .. "{\\p0}"
+    
     -- Status HUD
     local status = string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&}CHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f", 
         Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)
-    table.insert(ass, status)
-
-    calibration_osd.data = table.concat(ass, "\n")
+    
+    calibration_osd.data = final_ass .. status
     calibration_osd:update()
 end
 
