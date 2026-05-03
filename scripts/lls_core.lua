@@ -82,12 +82,16 @@ local function expand_ru_keys(key_string)
         -- Attempt to find RU equivalent
         local mods = key:match("^(.*%+)") or ""
         local base = key:sub(#mods + 1)
+        
+        -- Detect Shift: either explicit "Shift+" or implicit uppercase single char "A"
+        local is_shift = mods:lower():find("shift") or (#base == 1 and base:match("%u"))
+        
         local ru_base = EN_RU_MAP[base:lower()]
         if ru_base then
             -- Bind lowercase
             table.insert(results, mods .. ru_base)
             -- If Shift is present, also bind uppercase to handle different mpv versions/layouts
-            if mods:lower():find("shift") then
+            if is_shift then
                 local ru_upper = {
                     ["ф"]="Ф", ["и"]="И", ["с"]="С", ["в"]="В", ["у"]="У", ["а"]="А", ["п"]="П", ["р"]="Р",
                     ["ш"]="Ш", ["о"]="О", ["л"]="Л", ["д"]="Д", ["ь"]="Ь", ["т"]="Т", ["щ"]="Щ", ["з"]="З",
@@ -5845,12 +5849,20 @@ local function set_clipboard(text, mode)
             local primary = hotkey:lower()
             local events = {}
             local modifiers = { "ctrl", "alt", "shift", "win" }
+            
+            -- [v1.58.42] Handle implicit shift from uppercase keys (e.g. "Ctrl+Alt+Q")
+            local main_key = hotkey:match("[^+]+$")
+            local needs_shift = (main_key and #main_key == 1 and main_key:match("%u")) or primary:find("shift")
+
             for _, mod in ipairs(modifiers) do
-                if primary:find(mod) then table.insert(events, {vk_codes[mod], 0}) end
+                if mod ~= "shift" and primary:find(mod) then 
+                    table.insert(events, {vk_codes[mod], 0}) 
+                end
             end
+            if needs_shift then table.insert(events, {vk_codes.shift, 0}) end
             
             -- Get the main key (the last part)
-            local key = primary:match("[^+]+$")
+            local key = main_key:lower()
             if key and vk_codes[key] then
                 table.insert(events, {vk_codes[key], 0}) -- Down
                 table.insert(events, {vk_codes[key], 2}) -- Up
@@ -6969,7 +6981,8 @@ local function register_global_position_keys()
     local function bind(opt, name, fn)
         if not opt or opt == "" then return end
         local i = 1
-        for key in opt:gmatch("[^%s,;]+") do
+        local expanded_keys = expand_ru_keys(opt)
+        for _, key in ipairs(expanded_keys) do
             mp.add_key_binding(key, name .. "-" .. i, fn)
             i = i + 1
         end
