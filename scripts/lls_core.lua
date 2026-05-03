@@ -4985,11 +4985,11 @@ local function master_tick()
     FSM.IGNORE_NEXT_JUMP = false
     FSM.last_time_pos = time_pos
 
-    -- Execute Autopause or Loop
-    if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
-        tick_autopause(time_pos)
-    elseif FSM.AUTOPAUSE == "OFF" and FSM.LOOP_MODE == "ON" then
+    -- Execute Loop or Autopause
+    if FSM.LOOP_MODE == "ON" then
         tick_loop(time_pos)
+    elseif FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
+        tick_autopause(time_pos)
     end
 
     -- Sync active line for Drum/DW logic
@@ -5082,9 +5082,6 @@ mp.add_periodic_timer(Options.tick_rate, master_tick)
 
 local function cmd_toggle_autopause()
     FSM.AUTOPAUSE = (FSM.AUTOPAUSE == "ON") and "OFF" or "ON"
-    if FSM.AUTOPAUSE == "ON" then
-        FSM.LOOP_MODE = "OFF"
-    end
     show_osd("Autopause: " .. FSM.AUTOPAUSE)
 end
 
@@ -5601,24 +5598,15 @@ local function cmd_replay_sub()
     local sub = subs[idx]
     if not sub or not sub.start_time then return end
 
-    if FSM.AUTOPAUSE == "OFF" then
-        -- Toggle Loop Mode
-        if FSM.LOOP_MODE == "ON" then
-            FSM.LOOP_MODE = "OFF"
-            show_osd("Loop Subtitle: OFF")
-        else
-            FSM.LOOP_MODE = "ON"
-            FSM.LOOP_START = sub.start_time
-            FSM.LOOP_END = sub.end_time
-            show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
-        end
-    else
-        -- Manual Replay Mode (Autopause is ON)
+    -- [v1.58.47] Unified Loop Toggle (No immediate jump)
+    if FSM.LOOP_MODE == "ON" then
         FSM.LOOP_MODE = "OFF"
-        FSM.IGNORE_NEXT_JUMP = true
-        FSM.last_paused_sub_end = nil -- Ensure it re-pauses at the end
-        mp.commandv("seek", sub.start_time, "absolute+exact")
-        show_osd("Replaying line: " .. idx)
+        show_osd("Loop Subtitle: OFF")
+    else
+        FSM.LOOP_MODE = "ON"
+        FSM.LOOP_START = sub.start_time
+        FSM.LOOP_END = sub.end_time
+        show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
     end
 end
 
