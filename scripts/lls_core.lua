@@ -6915,6 +6915,18 @@ function cmd_save_calibration()
     end
 end
 
+function manage_calibration_bindings(enable)
+    if enable then
+        for i, k in ipairs(CAL_KEYS) do
+            mp.add_forced_key_binding(k[1], "cal-" .. i, k[2])
+        end
+    else
+        for i, k in ipairs(CAL_KEYS) do
+            mp.remove_key_binding("cal-" .. i)
+        end
+    end
+end
+
 function render_calibration_overlay()
     if not FSM.CALIBRATION_MODE then
         calibration_osd.data = ""
@@ -6929,8 +6941,8 @@ function render_calibration_overlay()
         local pattern = "ALIGNMENT-TEST-WORD-TOKEN-ABC-123-!@#$%"
         
         local ass = {
-            "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H00&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}",
-            string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.70\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f\\N[Shift+Up/Down]: VSP %d\\N[Enter]: Save", 
+            "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H80&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}",
+            string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.71\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f\\N[Shift+Up/Down]: VSP %d\\N[Enter]: Save", 
                 Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp)
         }
         
