@@ -1331,7 +1331,9 @@
 20260503182433 Check again.
 20260503183242 Check the final solution in code, update as diff-master-guru, pedant, spec architect openspec\changes\20260503131410-harden-clipboard-reliability according to discussed anchors 20260503162204 20260503162522 20260503163011 20260503164100 20260503164312 20260503164621 20260503164723 20260503164808 20260503165247 20260503170318 20260503170635 20260503171257 20260503171625 20260503173127 20260503174231 20260503175957 20260503181236 20260503181551 20260503181916 20260503182433
 20260503183832 opsx-archive --sync openspec\changes\20260503131410-harden-clipboard-reliability
-
+20260503184829 opsx-explore There is an issue with calibration accuracy being lost in W window mode after enabling E prompt window. Why might this happen? How to fix it reliably? This may have appeared relatively recently.
+20260503190617 opsx-propose
+20260503191023 opsx-apply openspec\changes\20260503190627-fix-ghost-tooltip-hit-zones
 
 
 

@@ -3841,7 +3841,7 @@ local function dw_hit_test(osd_x, osd_y)
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
-    if not FSM.DW_TOOLTIP_HIT_ZONES or not Options.dw_sec_interactivity then return nil, nil end
+    if not FSM.DW_TOOLTIP_HIT_ZONES or not Options.dw_sec_interactivity or FSM.DW_TOOLTIP_LINE == -1 then return nil, nil end
     
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
@@ -4098,10 +4098,11 @@ local function dw_tooltip_mouse_update()
                 dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, y)
                 dw_tooltip_osd:update()
             else
-                if dw_tooltip_osd.data ~= "" then
-                    dw_tooltip_osd.data = ""
-                    dw_tooltip_osd:update()
-                end
+            if dw_tooltip_osd.data ~= "" then
+                dw_tooltip_osd.data = ""
+                dw_tooltip_osd:update()
+                FSM.DW_TOOLTIP_HIT_ZONES = nil
+            end
             end
         end
         return
@@ -4113,6 +4114,7 @@ local function dw_tooltip_mouse_update()
             FSM.DW_TOOLTIP_LINE = -1
             dw_tooltip_osd.data = ""
             dw_tooltip_osd:update()
+            FSM.DW_TOOLTIP_HIT_ZONES = nil
         end
         return
     end
@@ -4155,6 +4157,7 @@ local function dw_tooltip_mouse_update()
                     FSM.DW_TOOLTIP_LINE = -1
                     dw_tooltip_osd.data = ""
                     dw_tooltip_osd:update()
+                    FSM.DW_TOOLTIP_HIT_ZONES = nil
                 end
             end
         elseif not FSM.DW_TOOLTIP_HOLDING then
@@ -4163,6 +4166,7 @@ local function dw_tooltip_mouse_update()
                 FSM.DW_TOOLTIP_LINE = -1
                 dw_tooltip_osd.data = ""
                 dw_tooltip_osd:update()
+                FSM.DW_TOOLTIP_HIT_ZONES = nil
             end
         end
     else
