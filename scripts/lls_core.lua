@@ -6794,7 +6794,6 @@ mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
-mp.add_key_binding("B", "toggle-calibration", cmd_toggle_calibration)
 
 local function register_global_position_keys()
     local function bind(opt, name, fn)
@@ -6986,3 +6985,5 @@ function render_calibration_overlay()
     calibration_osd.data = table.concat(ass, "")
     calibration_osd:update()
 end
+
+mp.add_key_binding("B", "toggle-calibration", cmd_toggle_calibration)

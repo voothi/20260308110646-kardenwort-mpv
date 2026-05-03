@@ -1253,6 +1253,7 @@
 20260503110549 This doesn't work again, I rolled back to 20260503000621, I need you to re-implement /opsx-propose Visual Debug Mode, but based on the W window, in a separate Shift B mode. Also make a hybrid of this approach and the Fully Automated solution. I see it as a separate window of reel B, which is filled with your test text, emulating subtitles.
 20260503111240 Error
 20260503111455 Error
+20260503111651 The mode is not activated by Shift B.
 
 
 
