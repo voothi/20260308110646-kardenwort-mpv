@@ -6940,16 +6940,16 @@ function render_calibration_overlay()
 
     local ass = {}
     
-    -- 1. Dim Background (Subtle dimming instead of blackout)
+    -- 1. Dim Background
     table.insert(ass, "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H80&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}")
 
     local function add_box(x, y, w, h, color, alpha)
-        table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&H%s&\\1a&H%s&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+        table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)\\1c&H%s&\\1a&H%s&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
             x, y, color, alpha, math.floor(w), math.floor(w), math.floor(h), math.floor(h)))
     end
 
-    -- 2. Status HUD (Top Right)
-    table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE (v1.60)\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
+    -- 2. Status HUD
+    table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE (v1.61)\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
         Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul, Options.dw_font_size))
 
     -- 3. Test Pattern
@@ -6966,14 +6966,14 @@ function render_calibration_overlay()
         local y = math.floor(start_y + i * (lh + vsp))
         local x = 100
         
-        -- Cyan Line Box
+        -- Text (Opaque White)
+        table.insert(ass, string.format("{\\r}{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}{\\1a&H00&}%s", x, y, fs, pattern))
+        
+        -- Line Box
         local total_w = dw_get_str_width(pattern, fs)
         if total_w and total_w > 0 then
             add_box(x, y, total_w, lh, "FFFF00", "80")
         end
-        
-        -- Text
-        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
         
         -- Magenta Word Boxes
         local cur_x = x
@@ -6981,7 +6981,8 @@ function render_calibration_overlay()
             local ww = dw_get_str_width(word, fs)
             if ww and ww > 0 then
                 add_box(cur_x, y, ww, lh, "FF00FF", "40")
-                cur_x = cur_x + ww + dw_get_str_width("-", fs)
+                local hyphen_w = dw_get_str_width("-", fs) or (fs * 0.3)
+                cur_x = cur_x + ww + hyphen_w
             end
         end
     end
