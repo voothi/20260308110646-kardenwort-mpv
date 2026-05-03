@@ -4954,6 +4954,13 @@ local function tick_loop(time_pos)
             FSM.LOOP_ARMED = false
             FSM.IGNORE_NEXT_JUMP = true
             mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
+            
+            -- [v1.58.51] Spacebar Override: If holding Space, break the loop
+            -- so it repeats once and then continues over the subtitle border.
+            if FSM.SPACEBAR == "HOLDING" then
+                FSM.LOOP_MODE = "OFF"
+                show_osd("Loop: OFF (Space Override)")
+            end
         end
     else
         FSM.LOOP_ARMED = true
