@@ -196,6 +196,7 @@ Options = {
     osd_duration = 0.5,
     win_clipboard_retries = 5,
     win_clipboard_retry_delay = 50, -- milliseconds
+    goldendict_trigger = "no",
 
     -- Drum Window
     dw_font_size = 34,
@@ -5726,6 +5727,11 @@ local function get_clipboard()
 end
 
 local function set_clipboard(text)
+    -- Try native mpv setter first (fastest, bypassing shell overhead)
+    -- [v1.58.32] Prioritizing native property to reduce latency for GoldenDict bridge.
+    local success = pcall(function() mp.set_property("clipboard", text) end)
+    if success then return end
+
     local platform = package.config:sub(1,1)
     if platform == "\\" then
         local safe_txt = text:gsub("'", "''")
@@ -5755,6 +5761,13 @@ local function set_clipboard(text)
                 f:close()
             end
         end
+    end
+
+    -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
+    -- This bypasses AHK polling latency by directly notifying the dictionary tool.
+    if Options.goldendict_trigger == "yes" and platform == "\\" then
+        local trigger_cmd = "$wshell = New-Object -ComObject WScript.Shell; $wshell.SendKeys('^!+n')"
+        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
 end
 
