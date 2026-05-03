@@ -1262,6 +1262,7 @@
 20260503112743 Something has appeared, is this the target state?
 20260503112857 The fields appeared, but something was wrong.
 20260503113055 Now, when I pressed Shift B, the screen blinked for a moment and nothing happened, there are no errors in the console.
+20260503113509 We are back to the state of only a translucent window, the console is clear of errors. This was at anchor 20260503112603, and at 20260503111058 it began to be resolved.
 
 
 
