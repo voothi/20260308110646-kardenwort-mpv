@@ -12,11 +12,11 @@ The current hotkey and trigger system in Kardenwort-mpv is sensitive to the acti
 ## Capabilities
 
 ### New Capabilities
-- `layout-agnostic-hotkeys`: Specification for the automatic expansion and mapping of keys across different keyboard layouts (English/Russian).
+- `layout-agnostic-hotkeys`: The system MUST provide automatic expansion and mapping of keys across different keyboard layouts (English/Russian).
 
 ### Modified Capabilities
-- `coordinated-input-system`: Requirements for layout-aware input handling and automatic key expansion.
-- `unified-clipboard-abstraction`: Requirements for layout-agnostic `key_copy_popup` and `key_copy_main` triggers.
+- `coordinated-input-system`: The system MUST support layout-aware input handling and automatic key expansion.
+- `unified-clipboard-abstraction`: The system MUST provide layout-agnostic `key_copy_popup` and `key_copy_main` triggers.
 
 ## Impact
 
