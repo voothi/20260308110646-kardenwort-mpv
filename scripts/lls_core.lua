@@ -652,6 +652,9 @@ local FSM = {
     -- Transients
     last_paused_sub_end = nil,
     last_time_pos = nil,
+    LOOP_MODE = "OFF",
+    LOOP_START = nil,
+    LOOP_END = nil,
     space_down_time = 0,
     initial_pause_state = true,
     native_sub_vis = mp.get_property_bool("sub-visibility", true),
@@ -4946,6 +4949,15 @@ local function tick_autopause(time_pos)
     FSM.last_paused_sub_end = sub_end
 end
 
+local function tick_loop(time_pos)
+    if FSM.LOOP_MODE ~= "ON" then return end
+    if not FSM.LOOP_START or not FSM.LOOP_END then return end
+    
+    if time_pos >= FSM.LOOP_END - Options.pause_padding then
+        mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
+    end
+end
+
 -- =========================================================================
 -- MASTER TICK LOOP
 -- =========================================================================
@@ -4965,9 +4977,11 @@ local function master_tick()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
-    -- Execute Autopause
+    -- Execute Autopause or Loop
     if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
         tick_autopause(time_pos)
+    elseif FSM.AUTOPAUSE == "OFF" and FSM.LOOP_MODE == "ON" then
+        tick_loop(time_pos)
     end
 
     -- Sync active line for Drum/DW logic
@@ -5060,6 +5074,9 @@ mp.add_periodic_timer(Options.tick_rate, master_tick)
 
 local function cmd_toggle_autopause()
     FSM.AUTOPAUSE = (FSM.AUTOPAUSE == "ON") and "OFF" or "ON"
+    if FSM.AUTOPAUSE == "ON" then
+        FSM.LOOP_MODE = "OFF"
+    end
     show_osd("Autopause: " .. FSM.AUTOPAUSE)
 end
 
@@ -5574,7 +5591,23 @@ local function cmd_replay_sub()
     if idx == -1 then return end
     
     local sub = subs[idx]
-    if sub and sub.start_time then
+    if not sub or not sub.start_time then return end
+
+    if FSM.AUTOPAUSE == "OFF" then
+        -- Toggle Loop Mode
+        if FSM.LOOP_MODE == "ON" then
+            FSM.LOOP_MODE = "OFF"
+            show_osd("Loop Subtitle: OFF")
+        else
+            FSM.LOOP_MODE = "ON"
+            FSM.LOOP_START = sub.start_time
+            FSM.LOOP_END = sub.end_time
+            mp.commandv("seek", sub.start_time, "absolute+exact")
+            show_osd("Loop Subtitle: ON (Line " .. idx .. ")")
+        end
+    else
+        -- Manual Replay Mode (Autopause is ON)
+        FSM.LOOP_MODE = "OFF"
         mp.commandv("seek", sub.start_time, "absolute+exact")
         show_osd("Replaying line: " .. idx)
     end
