@@ -8,11 +8,8 @@ local msg = require 'mp.msg'
 -- LLS CORE CONFIGURATION
 -- =========================================================================
 
--- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
-local flush_rendering_caches
-local render_calibration_overlay
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -764,153 +761,7 @@ function get_copy_context_text(time_pos, line_idx)
 end
 
 
--- =========================================================================
--- CALIBRATION MODE (Visual Debugging)
--- =========================================================================
 
-function cmd_toggle_calibration()
-    FSM.CALIBRATION_MODE = not FSM.CALIBRATION_MODE
-    manage_calibration_bindings(FSM.CALIBRATION_MODE)
-    if FSM.CALIBRATION_MODE then
-        show_osd("Calibration Mode: ON")
-    else
-        show_osd("Calibration Mode: OFF")
-        calibration_osd.data = ""
-        calibration_osd:update()
-    end
-    flush_rendering_caches()
-end
-
-local function adj_cal_val(opt, delta, min, max, fmt)
-    Options[opt] = math.max(min or 0, math.min(max or 999, Options[opt] + delta))
-    show_osd(string.format(fmt or (opt .. ": %.3f"), Options[opt]))
-    flush_rendering_caches()
-end
-
-function cmd_save_calibration()
-    local path = mp.command_native({"expand-path", "~~/mpv.conf"})
-    local f = io.open(path, "r")
-    if not f then show_osd("Error: Could not open mpv.conf"); return end
-    
-    local lines = {}
-    local keys_to_save = {
-        "dw_char_width", "dw_line_height_mul", "dw_vsp", "dw_block_gap_mul", "dw_font_size"
-    }
-    local handled = {}
-    
-    for line in f:lines() do
-        local matched = false
-        for _, k in ipairs(keys_to_save) do
-            local pattern = "^%s*script%-opts%-append=lls%-" .. k .. "="
-            if line:match(pattern) then
-                table.insert(lines, string.format("script-opts-append=lls-%s=%.3f", k, Options[k]))
-                handled[k] = true
-                matched = true
-                break
-            end
-        end
-        if not matched then table.insert(lines, line) end
-    end
-    f:close()
-    
-    -- Append missing ones
-    for _, k in ipairs(keys_to_save) do
-        if not handled[k] then
-            table.insert(lines, string.format("script-opts-append=lls-%s=%.3f", k, Options[k]))
-        end
-    end
-    
-    local f2 = io.open(path, "w")
-    if f2 then
-        f2:write(table.concat(lines, "\n") .. "\n")
-        f2:close()
-        show_osd("Calibration saved to mpv.conf")
-    else
-        show_osd("Error: Could not write to mpv.conf")
-    end
-end
-
-local CAL_KEYS = {
-    {"[", function() adj_cal_val("dw_char_width", -0.005) end},
-    {"]", function() adj_cal_val("dw_char_width", 0.005) end},
-    {"{", function() adj_cal_val("dw_line_height_mul", -0.01) end},
-    {"}", function() adj_cal_val("dw_line_height_mul", 0.01) end},
-    {"Shift+[", function() adj_cal_val("dw_font_size", -1, 1, 200, "dw_font_size: %d") end},
-    {"Shift+]", function() adj_cal_val("dw_font_size", 1, 1, 200, "dw_font_size: %d") end},
-    {"Alt+{", function() adj_cal_val("dw_vsp", -1, -50, 100, "dw_vsp: %d") end},
-    {"Alt+}", function() adj_cal_val("dw_vsp", 1, -50, 100, "dw_vsp: %d") end},
-    {"Alt+[", function() adj_cal_val("dw_block_gap_mul", -0.05, -1.0, 5.0) end},
-    {"Alt+]", function() adj_cal_val("dw_block_gap_mul", 0.05, -1.0, 5.0) end},
-    {"ENTER", function() cmd_save_calibration() end},
-    {"ESC", function() cmd_toggle_calibration() end},
-}
-
-function manage_calibration_bindings(enable)
-    if enable then
-        for i, k in ipairs(CAL_KEYS) do
-            mp.add_forced_key_binding(k[1], "cal-" .. i, k[2])
-        end
-    else
-        for i, k in ipairs(CAL_KEYS) do
-            mp.remove_key_binding("cal-" .. i)
-        end
-    end
-end
-
-function render_calibration_overlay()
-    if not FSM.CALIBRATION_MODE then
-        calibration_osd.data = ""
-        calibration_osd:update()
-        return
-    end
-
-    local ass = {}
-    
-    local function add_box(x1, y1, x2, y2, color, alpha)
-        table.insert(ass, string.format("{\\an7\\pos(0,0)\\1c&H%s&\\1a&H%s&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", 
-            color, alpha, x1, y1, x2, y1, x2, y2, x1, y2))
-    end
-
-    -- 1. Status HUD
-    table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&HFFFFFF&}CALIBRATION MODE\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
-        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul, Options.dw_font_size))
-
-    -- 2. Full Page Test Pattern (Emulating Reel B / Drum Window)
-    local pattern = "ALIGN-TEST-ABC-123-abc-098-!@#$%^&*"
-    local fs = Options.dw_font_size
-    local lh = fs * Options.dw_line_height_mul
-    local vsp = Options.dw_vsp
-    
-    local rows = 18
-    local total_h = rows * (lh + vsp)
-    local cur_y = 540 - (total_h / 2)
-    
-    for i = 1, rows do
-        local y1 = math.floor(cur_y)
-        local y2 = math.floor(y1 + lh)
-        local x1 = 100
-        
-        -- Text
-        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x1, y1, fs, pattern))
-        
-        -- Line Box (Cyan)
-        local w = dw_get_str_width(pattern, fs)
-        add_box(x1, y1, math.floor(x1 + w), y2, "FFFF00", "80")
-        
-        -- Word Boxes (Magenta)
-        local wx = x1
-        for word in pattern:gmatch("[^- ]+") do
-            local ww = dw_get_str_width(word, fs)
-            add_box(math.floor(wx), y1, math.floor(wx + ww), y2, "FF00FF", "60")
-            wx = wx + ww + dw_get_str_width("-", fs)
-        end
-        
-        cur_y = cur_y + lh + vsp
-    end
-    
-    calibration_osd.data = table.concat(ass, "")
-    calibration_osd:update()
-end
 
 
 local ANKI_MAPPING_CACHE = nil
@@ -6987,3 +6838,151 @@ local function recover_native_osd_style()
     end
 end
 recover_native_osd_style()
+
+-- =========================================================================
+-- CALIBRATION MODE (Visual Debugging)
+-- =========================================================================
+
+function cmd_toggle_calibration()
+    FSM.CALIBRATION_MODE = not FSM.CALIBRATION_MODE
+    manage_calibration_bindings(FSM.CALIBRATION_MODE)
+    if FSM.CALIBRATION_MODE then
+        show_osd("Calibration Mode: ON")
+    else
+        show_osd("Calibration Mode: OFF")
+        calibration_osd.data = ""
+        calibration_osd:update()
+    end
+    flush_rendering_caches()
+end
+
+local function adj_cal_val(opt, delta, min, max, fmt)
+    Options[opt] = math.max(min or 0, math.min(max or 999, Options[opt] + delta))
+    show_osd(string.format(fmt or (opt .. ": %.3f"), Options[opt]))
+    flush_rendering_caches()
+end
+
+function cmd_save_calibration()
+    local path = mp.command_native({"expand-path", "~~/mpv.conf"})
+    local f = io.open(path, "r")
+    if not f then show_osd("Error: Could not open mpv.conf"); return end
+    
+    local lines = {}
+    local keys_to_save = {
+        "dw_char_width", "dw_line_height_mul", "dw_vsp", "dw_block_gap_mul", "dw_font_size"
+    }
+    local handled = {}
+    
+    for line in f:lines() do
+        local matched = false
+        for _, k in ipairs(keys_to_save) do
+            local pattern = "^%s*script%-opts%-append=lls%-" .. k .. "="
+            if line:match(pattern) then
+                table.insert(lines, string.format("script-opts-append=lls-%s=%.3f", k, Options[k]))
+                handled[k] = true
+                matched = true
+                break
+            end
+        end
+        if not matched then table.insert(lines, line) end
+    end
+    f:close()
+    
+    -- Append missing ones
+    for _, k in ipairs(keys_to_save) do
+        if not handled[k] then
+            table.insert(lines, string.format("script-opts-append=lls-%s=%.3f", k, Options[k]))
+        end
+    end
+    
+    local f2 = io.open(path, "w")
+    if f2 then
+        f2:write(table.concat(lines, "\n") .. "\n")
+        f2:close()
+        show_osd("Calibration saved to mpv.conf")
+    else
+        show_osd("Error: Could not write to mpv.conf")
+    end
+end
+
+local CAL_KEYS = {
+    {"[", function() adj_cal_val("dw_char_width", -0.005) end},
+    {"]", function() adj_cal_val("dw_char_width", 0.005) end},
+    {"{", function() adj_cal_val("dw_line_height_mul", -0.01) end},
+    {"}", function() adj_cal_val("dw_line_height_mul", 0.01) end},
+    {"Shift+[", function() adj_cal_val("dw_font_size", -1, 1, 200, "dw_font_size: %d") end},
+    {"Shift+]", function() adj_cal_val("dw_font_size", 1, 1, 200, "dw_font_size: %d") end},
+    {"Alt+{", function() adj_cal_val("dw_vsp", -1, -50, 100, "dw_vsp: %d") end},
+    {"Alt+}", function() adj_cal_val("dw_vsp", 1, -50, 100, "dw_vsp: %d") end},
+    {"Alt+[", function() adj_cal_val("dw_block_gap_mul", -0.05, -1.0, 5.0) end},
+    {"Alt+]", function() adj_cal_val("dw_block_gap_mul", 0.05, -1.0, 5.0) end},
+    {"ENTER", function() cmd_save_calibration() end},
+    {"ESC", function() cmd_toggle_calibration() end},
+}
+
+function manage_calibration_bindings(enable)
+    if enable then
+        for i, k in ipairs(CAL_KEYS) do
+            mp.add_forced_key_binding(k[1], "cal-" .. i, k[2])
+        end
+    else
+        for i, k in ipairs(CAL_KEYS) do
+            mp.remove_key_binding("cal-" .. i)
+        end
+    end
+end
+
+function render_calibration_overlay()
+    if not FSM.CALIBRATION_MODE then
+        calibration_osd.data = ""
+        calibration_osd:update()
+        return
+    end
+
+    local ass = {}
+    
+    local function add_box(x1, y1, x2, y2, color, alpha)
+        table.insert(ass, string.format("{\\an7\\pos(0,0)\\1c&H%s&\\1a&H%s&\\p1}m %d %d l %d %d %d %d %d %d{\\p0}", 
+            color, alpha, x1, y1, x2, y1, x2, y2, x1, y2))
+    end
+
+    -- 1. Status HUD
+    table.insert(ass, string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&HFFFFFF&}CALIBRATION MODE\\NCHAR_WIDTH: %.3f\\NLINE_HEIGHT_MUL: %.2f\\NVSP: %d\\NBLOCK_GAP_MUL: %.2f\\NFONT_SIZE: %d", 
+        Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul, Options.dw_font_size))
+
+    -- 2. Full Page Test Pattern (Emulating Reel B / Drum Window)
+    local pattern = "ALIGN-TEST-ABC-123-abc-098-!@#$%^&*"
+    local fs = Options.dw_font_size
+    local lh = fs * Options.dw_line_height_mul
+    local vsp = Options.dw_vsp
+    
+    local rows = 18
+    local total_h = rows * (lh + vsp)
+    local cur_y = 540 - (total_h / 2)
+    
+    for i = 1, rows do
+        local y1 = math.floor(cur_y)
+        local y2 = math.floor(y1 + lh)
+        local x1 = 100
+        
+        -- Text
+        table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x1, y1, fs, pattern))
+        
+        -- Line Box (Cyan)
+        local w = dw_get_str_width(pattern, fs)
+        add_box(x1, y1, math.floor(x1 + w), y2, "FFFF00", "80")
+        
+        -- Word Boxes (Magenta)
+        local wx = x1
+        for word in pattern:gmatch("[^- ]+") do
+            local ww = dw_get_str_width(word, fs)
+            add_box(math.floor(wx), y1, math.floor(wx + ww), y2, "FF00FF", "60")
+            wx = wx + ww + dw_get_str_width("-", fs)
+        end
+        
+        cur_y = cur_y + lh + vsp
+    end
+    
+    calibration_osd.data = table.concat(ass, "")
+    calibration_osd:update()
+end
