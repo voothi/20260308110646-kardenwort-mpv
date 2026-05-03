@@ -2354,7 +2354,7 @@ end
 -- INVARIANT: DRUM_DRAW_CACHE and DW_DRAW_CACHE are captured by upvalue.
 -- They MUST be defined at module scope before this function is called at runtime,
 -- otherwise the cache flushing will silently fail.
-local function flush_rendering_caches()
+function flush_rendering_caches()
     FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
     FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
     
