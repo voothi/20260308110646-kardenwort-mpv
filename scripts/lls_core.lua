@@ -5774,6 +5774,7 @@ local function set_clipboard(text, mode)
         local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
         
         -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
+        -- Concatenate multiple alternatives to ensure trigger regardless of layout
         local raw_hotkey = user_hotkey:lower()
         local sendkeys_map = {
             ["ctrl%+"] = "^",
@@ -5784,6 +5785,7 @@ local function set_clipboard(text, mode)
         for k, v in pairs(sendkeys_map) do
             raw_hotkey = raw_hotkey:gsub(k, v)
         end
+        raw_hotkey = raw_hotkey:gsub("%s+", "") -- Remove spaces between combinations
         
         -- Special case: digit hotkeys (like ^%+1) need braces in some versions of SendKeys
         -- but usually ^%+1 is fine.
