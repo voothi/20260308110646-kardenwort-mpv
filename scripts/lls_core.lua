@@ -4971,20 +4971,21 @@ local function master_tick()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
-    -- [v1.58.48] Universal Manual Seek Detection
+    -- [v1.58.49] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
     if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
         if not FSM.IGNORE_NEXT_JUMP then
+            -- Any manual navigation resets Autopause state so it fires again at the new location.
             FSM.last_paused_sub_end = nil
             if FSM.LOOP_MODE == "ON" then
-                -- Persistent Loop: Update boundaries to the new location instead of disabling
+                -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
                 local subs = Tracks.pri.subs
                 if subs and #subs > 0 then
                     local idx = get_center_index(subs, time_pos)
                     if idx ~= -1 then
                         FSM.LOOP_START = subs[idx].start_time
                         FSM.LOOP_END = subs[idx].end_time
-                        show_osd("Loop Updated: Line " .. idx)
+                        show_osd("Loop: Line " .. idx)
                     end
                 end
             end
@@ -4994,10 +4995,11 @@ local function master_tick()
     FSM.last_time_pos = time_pos
 
     -- Execute Autopause and Loop
+    -- IMPORTANT: Loop Mode is only valid when Autopause is OFF.
+    -- When Autopause is ON, the 's' key provides manual one-shot replay instead.
     if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" then
         tick_autopause(time_pos)
-    end
-    if FSM.LOOP_MODE == "ON" then
+    elseif FSM.AUTOPAUSE == "OFF" and FSM.LOOP_MODE == "ON" then
         tick_loop(time_pos)
     end
 
