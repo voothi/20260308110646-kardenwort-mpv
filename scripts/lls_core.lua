@@ -6915,33 +6915,6 @@ function cmd_save_calibration()
     end
 end
 
-local CAL_KEYS = {
-    {"[", function() adj_cal_val("dw_char_width", -0.005) end},
-    {"]", function() adj_cal_val("dw_char_width", 0.005) end},
-    {"{", function() adj_cal_val("dw_line_height_mul", -0.01) end},
-    {"}", function() adj_cal_val("dw_line_height_mul", 0.01) end},
-    {"Shift+[", function() adj_cal_val("dw_font_size", -1, 1, 200, "dw_font_size: %d") end},
-    {"Shift+]", function() adj_cal_val("dw_font_size", 1, 1, 200, "dw_font_size: %d") end},
-    {"Alt+{", function() adj_cal_val("dw_vsp", -1, -50, 100, "dw_vsp: %d") end},
-    {"Alt+}", function() adj_cal_val("dw_vsp", 1, -50, 100, "dw_vsp: %d") end},
-    {"Alt+[", function() adj_cal_val("dw_block_gap_mul", -0.05, -1.0, 5.0) end},
-    {"Alt+]", function() adj_cal_val("dw_block_gap_mul", 0.05, -1.0, 5.0) end},
-    {"ENTER", function() cmd_save_calibration() end},
-    {"ESC", function() cmd_toggle_calibration() end},
-}
-
-function manage_calibration_bindings(enable)
-    if enable then
-        for i, k in ipairs(CAL_KEYS) do
-            mp.add_forced_key_binding(k[1], "cal-" .. i, k[2])
-        end
-    else
-        for i, k in ipairs(CAL_KEYS) do
-            mp.remove_key_binding("cal-" .. i)
-        end
-    end
-end
-
 function render_calibration_overlay()
     if not FSM.CALIBRATION_MODE then
         calibration_osd.data = ""
@@ -6955,18 +6928,37 @@ function render_calibration_overlay()
         local vsp = Options.dw_vsp or 0
         local pattern = "ALIGNMENT-TEST-WORD-TOKEN-ABC-123-!@#$%"
         
-        local ass = {string.format("{\\r}{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.68\\NCW: %.3f\\NLH: %.2f\\NVSP: %d\\NBG: %.2f", 
-            Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp, Options.dw_block_gap_mul)}
+        local ass = {
+            "{\\an7\\pos(0,0)\\1c&H000000&\\1a&H00&\\p1}m 0 0 l 1920 0 1920 1080 0 1080{\\p0}",
+            string.format("{\\an9\\pos(1900,20)}{\\fs24\\bord1\\3c&H000000&\\1c&H00FFFF&}CALIBRATION MODE v1.70\\N[Left/Right]: CW %.3f\\N[Up/Down]: LH %.2f\\N[Shift+Up/Down]: VSP %d\\N[Enter]: Save", 
+                Options.dw_char_width, Options.dw_line_height_mul, Options.dw_vsp)
+        }
         
-        for i=0, 10 do
-            local x = 200
+        for i=0, 12 do
+            local x = 300
             local y = 150 + i * (lh + vsp)
-            local w = dw_get_str_width(pattern, fs) or 800
             
-            -- Single event: Box followed by Text at the same \pos
-            local line = string.format("{\\an7\\pos(%d,%d)}{\\1c&HFF00FF&\\1a&H60&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}{\\fs%d}{\\1c&HFFFFFF&}{\\1a&H00&}%s", 
-                x, y, math.floor(w), math.floor(w), math.floor(lh), math.floor(lh), fs, pattern)
-            table.insert(ass, line)
+            -- Full Line Box (Cyan)
+            local total_w = dw_get_str_width(pattern, fs)
+            if total_w and total_w > 0 then
+                 table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&HFFFF00&\\1a&H80&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+                    x, y, math.floor(total_w), math.floor(total_w), math.floor(lh), math.floor(lh)))
+            end
+            
+            -- Word Boxes (Magenta)
+            local cur_x = x
+            for word in pattern:gmatch("[^-]+") do
+                local ww = dw_get_str_width(word, fs)
+                if ww and ww > 0 then
+                    table.insert(ass, string.format("{\\an7\\pos(%d,%d)\\1c&HFF00FF&\\1a&H40&\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}", 
+                        math.floor(cur_x), y, math.floor(ww), math.floor(ww), math.floor(lh), math.floor(lh)))
+                    local h_w = dw_get_str_width("-", fs) or (fs * 0.3)
+                    cur_x = cur_x + ww + h_w
+                end
+            end
+
+            -- Text (White)
+            table.insert(ass, string.format("{\\an7\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%s", x, y, fs, pattern))
         end
         
         calibration_osd.data = table.concat(ass, "")
@@ -6974,10 +6966,20 @@ function render_calibration_overlay()
     end, debug.traceback)
     
     if not ok then
-        mp.msg.error("Calibration Render Error: " .. tostring(err))
         calibration_osd.data = "{\\an7\\pos(50,50)}{\\fs30}{\\1c&H0000FF&}CALIBRATION ERROR: " .. tostring(err)
         calibration_osd:update()
     end
 end
+
+local CAL_KEYS = {
+    {"LEFT", function() adj_cal_val("dw_char_width", -0.005) end},
+    {"RIGHT", function() adj_cal_val("dw_char_width", 0.005) end},
+    {"UP", function() adj_cal_val("dw_line_height_mul", -0.01) end},
+    {"DOWN", function() adj_cal_val("dw_line_height_mul", 0.01) end},
+    {"Shift+UP", function() adj_cal_val("dw_vsp", 1, -50, 100, "dw_vsp: %d") end},
+    {"Shift+DOWN", function() adj_cal_val("dw_vsp", -1, -50, 100, "dw_vsp: %d") end},
+    {"ENTER", function() cmd_save_calibration() end},
+    {"ESC", function() cmd_toggle_calibration() end},
+}
 
 mp.add_key_binding("B", "toggle-calibration", cmd_toggle_calibration)
