@@ -5730,7 +5730,7 @@ local function get_clipboard()
     return ""
 end
 
-local function set_clipboard(text)
+local function set_clipboard(text, mode)
     -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
     local platform = package.config:sub(1,1)
