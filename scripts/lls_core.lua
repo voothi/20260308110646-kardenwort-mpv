@@ -5773,9 +5773,10 @@ local function set_clipboard(text, mode)
     if Options.gd_trigger_enabled == "yes" and platform == "\\" then
         local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
         
-        -- Translate user-friendly "Ctrl+Alt+Shift+N" to .NET SendKeys format
-        -- Concatenate multiple alternatives to ensure trigger regardless of layout
-        local raw_hotkey = user_hotkey:lower()
+        -- We only take the FIRST combination to avoid duplicate triggers and "garbage" text
+        local raw_hotkey = user_hotkey:match("[^%s,;]+") or ""
+        raw_hotkey = raw_hotkey:lower()
+        
         local sendkeys_map = {
             ["ctrl%+"] = "^",
             ["alt%+"] = "%%",
@@ -5785,12 +5786,10 @@ local function set_clipboard(text, mode)
         for k, v in pairs(sendkeys_map) do
             raw_hotkey = raw_hotkey:gsub(k, v)
         end
-        raw_hotkey = raw_hotkey:gsub("%s+", "") -- Remove spaces between combinations
         
-        -- Special case: digit hotkeys (like ^%+1) need braces in some versions of SendKeys
-        -- but usually ^%+1 is fine.
-        
-        local trigger_cmd = string.format("[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
+        -- Using .NET SendWait with a 20ms delay to ensure modifiers are captured
+        -- This prevents the hotkey letter (e.g., 'Q') from being typed as text.
+        local trigger_cmd = string.format("Start-Sleep -m 20; [void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.SendKeys]::SendWait('%s')", raw_hotkey)
         utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", trigger_cmd}, cancellable = false })
     end
 end
