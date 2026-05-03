@@ -6813,6 +6813,20 @@ mp.add_key_binding(nil, "cycle-sec-sid", cmd_cycle_sec_sid)
 mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
 mp.add_key_binding(nil, "copy-subtitle", function() cmd_copy_sub("side") end)
 mp.add_key_binding(nil, "copy-subtitle-main", function() cmd_copy_sub("main") end)
+
+-- [v1.58.33] Bind Ctrl+Alt+C globally if defined in options
+local function register_global_copy_keys()
+    local function bind(opt, name, fn)
+        if not opt or opt == "" then return end
+        local i = 1
+        for key in opt:gmatch("[^%s,;]+") do
+            mp.add_key_binding(key, name .. "-" .. i, fn)
+            i = i + 1
+        end
+    end
+    bind(Options.dw_key_copy_main, "lls-global-copy-main", function() cmd_copy_sub("main") end)
+end
+register_global_copy_keys()
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
 mp.add_key_binding(nil, "toggle-copy-context", cmd_toggle_copy_ctx)
 mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
