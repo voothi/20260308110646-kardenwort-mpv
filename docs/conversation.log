@@ -1334,7 +1334,7 @@
 20260503184829 opsx-explore There is an issue with calibration accuracy being lost in W window mode after enabling E prompt window. Why might this happen? How to fix it reliably? This may have appeared relatively recently.
 20260503190617 opsx-propose
 20260503191023 opsx-apply openspec\changes\20260503190627-fix-ghost-tooltip-hit-zones
-
+20260503191813 It seems the problem is solved, do it opsx-archive --sync openspec\changes\20260503190627-fix-ghost-tooltip-hit-zones
 
 
 
