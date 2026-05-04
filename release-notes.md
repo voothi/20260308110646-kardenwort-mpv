@@ -1,3 +1,31 @@
+# Release Notes - v1.58.48 (Subtitle Replay Loop & Hotkey Optimization)
+
+**Date**: 2026-05-04
+**Version**: v1.58.48
+**Implementation ZIDs**: 20260504021904, 20260504023848
+
+## Highlights
+
+### 🔄 **Adaptive Subtitle Replay & Looping**
+- **Mode-Aware Replay Engine**: Introduced a dual-mode replay system (triggered via `s` / `ы`) that adapts to the active workflow. In **Autopause OFF** (Streaming Mode), it toggles persistent loops. In **Autopause ON** (Manual Mode), it executes one-shot replays.
+- **Arming Guard & Delayed Seeks**: Prevent mid-subtitle interruptions. Replay commands are now "armed" and executed precisely at subtitle boundaries, ensuring a fluid and professional immersion experience.
+- **Hardware Ghosting Workaround**: Implemented a "Sticky Hold" finite state machine (FSM) recovery mechanism to defeat hardware-level keyboard ghosting that previously dropped Spacebar signals when the replay key was pressed.
+- **Spacebar Loop Override**: Users can now break out of a persistent loop by simply holding the Space key at the loop boundary, enabling seamless transitions to the next phrase.
+
+### ⌨️ **Hotkey Layout Optimization**
+- **Surgical Key Reshuffle**: Optimized the primary control layout to prioritize the new Replay functionality while maintaining accessibility for core toggles.
+  - `s` / `ы`: Subtitle Replay (formerly Sub Visibility).
+  - `c` / `с`: Subtitle Visibility (formerly Drum Mode).
+  - `x` / `ч`: Drum Mode (formerly Copy Context).
+  - `W` / `Ц`: Copy Context (formerly on `x`).
+- **Autopause Ergonomics**: Migrated the master Autopause toggle to `S` / `Ы` (formerly `p` / `з`), centralizing playback automation controls around the home row.
+
+### 🛡️ **Compliance & Synchronization Audit**
+- **Spec-Driven Hardening**: Formally archived and synchronized the `subtitle-replay-loop` specification.
+- **Russian Layout Parity**: Ensured 100% functional parity for the new control scheme across both English and Russian keyboard layouts.
+
+---
+
 # Release Notes - v1.58.42 (Layout-Agnostic Hotkeys & Collision Hardening)
 
 **Date**: 2026-05-03

@@ -4908,7 +4908,7 @@ end
 local function tick_autopause(time_pos)
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
-    -- [v1.58.45] Precise Manual Autopause
+    -- [v1.58.48] Precise Manual Autopause
     -- Prefer our parsed subtitles table for exact timing. Native 'sub-end' can be 
     -- flaky or laggy during rapid seeking.
     local sub_end = nil
@@ -4956,7 +4956,7 @@ local function tick_loop(time_pos)
             FSM.IGNORE_NEXT_JUMP = true
             mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
             
-            -- [v1.58.51] Spacebar Override: If holding Space, break the loop
+            -- [v1.58.48] Spacebar Override: If holding Space, break the loop
             -- so it repeats once and then continues over the subtitle border.
             if FSM.SPACEBAR == "HOLDING" then
                 FSM.LOOP_MODE = "OFF"
@@ -5001,7 +5001,7 @@ local function master_tick()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
-    -- [v1.58.49] Universal Manual Seek Detection
+    -- [v1.58.48] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
     if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
         if not FSM.IGNORE_NEXT_JUMP then
@@ -5653,7 +5653,7 @@ local function cmd_replay_sub()
     local is_near_end = (time_pos >= sub.end_time - Options.pause_padding - 0.2)
     local is_paused = mp.get_property_bool("pause")
 
-    -- [v1.58.53] Sticky Hold Workaround for Hardware Ghosting
+    -- [v1.58.48] Sticky Hold Workaround for Hardware Ghosting
     -- If 's' is pressed, the keyboard matrix might send a fake 'Space UP' event just before 's' DOWN.
     -- If Space was held, or released within the last 300ms, we assume they are still intending to hold it.
     local was_holding_space = (FSM.SPACEBAR == "HOLDING") or 
@@ -6087,7 +6087,7 @@ local function set_clipboard(text, mode)
         if #all_events == 0 then return end
 
         
-        -- [v1.58.56] Configurable Trigger Lock (Prevent AHK Recursion)
+        -- [v1.58.48] Configurable Trigger Lock (Prevent AHK Recursion)
         local now = mp.get_time()
         if (now - (FSM.LAST_TRIGGER_TIME or 0)) < Options.gd_trigger_lock_duration then
             -- A trigger was recently fired, likely by the user.
@@ -6096,7 +6096,7 @@ local function set_clipboard(text, mode)
         end
         FSM.LAST_TRIGGER_TIME = now
         
-        -- [v1.58.53] Independent Mode Delays (Popup/Main)
+        -- [v1.58.48] Independent Mode Delays (Popup/Main)
         if Options.gd_trigger_method == "python" then
             local delay = (mode == "main") and Options.python_trigger_delay_main or Options.python_trigger_delay_popup
             local py_cmd = string.format("import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ", delay)
