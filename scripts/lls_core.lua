@@ -523,29 +523,33 @@ end
 
 function load_sub(path, is_ass)
     if not path or path == "" then return {} end
-    local f = io.open(path, "r")
-    if not f then return {} end
+    Diagnostic.info("Loading subtitle file: " .. tostring(path))
+    local content = mp.utils.read_file(path)
+    if not content then 
+        Diagnostic.error("Failed to read subtitle file: " .. tostring(path))
+        return {} 
+    end
     
     local subs = {}
     local current_sub = nil
-
+    
     if is_ass then
-        for line in f:lines() do
+        for line in content:gmatch("([^\r\n]+)") do
             if line:match("^Dialogue:") then
                 local first_colon = line:find(":")
                 if first_colon then
-                    local content = line:sub(first_colon + 1)
-                    content = content:gsub("^%s+", "")
+                    local line_content = line:sub(first_colon + 1)
+                    line_content = line_content:gsub("^%s+", "")
                     local parts = {}
                     local last_pos = 1
                     for i = 1, 9 do
-                        local comma_pos = content:find(",", last_pos)
+                        local comma_pos = line_content:find(",", last_pos)
                         if not comma_pos then break end
-                        table.insert(parts, content:sub(last_pos, comma_pos - 1))
+                        table.insert(parts, line_content:sub(last_pos, comma_pos - 1))
                         last_pos = comma_pos + 1
                     end
                     if #parts == 9 then
-                        local text = content:sub(last_pos)
+                        local text = line_content:sub(last_pos)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
@@ -557,7 +561,6 @@ function load_sub(path, is_ass)
                                 local merged = false
                                 local prev = subs[#subs]
                                 if prev and prev.raw_text == raw_text then
-                                    -- Only merge if consecutive and close (gap <= 200ms)
                                     if parsed_start <= prev.end_time + 0.2 then
                                         prev.end_time = math.max(prev.end_time, parsed_end)
                                         merged = true
@@ -580,7 +583,7 @@ function load_sub(path, is_ass)
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
     else
         local state = "ID"
-        for raw_line in f:lines() do
+        for raw_line in content:gmatch("([^\r\n]+)") do
             local line = clean_text_srt(raw_line)
             if line == "" then
                 if current_sub and current_sub.text ~= "" then
@@ -588,7 +591,6 @@ function load_sub(path, is_ass)
                     local merged = false
                     local prev = subs[#subs]
                     if prev and prev.raw_text == current_sub.raw_text then
-                        -- Only merge if consecutive and close (gap <= 200ms)
                         if current_sub.start_time <= prev.end_time + 0.2 then
                             prev.end_time = math.max(prev.end_time, current_sub.end_time)
                             merged = true
@@ -606,10 +608,10 @@ function load_sub(path, is_ass)
                     state = "TIME"
                 end
             elseif state == "TIME" then
-                local start_str, end_str = string.match(line, "(%S+)%s+%-%->%s+(%S+)")
-                if start_str and end_str then
-                    current_sub.start_time = parse_time(start_str)
-                    current_sub.end_time = parse_time(end_str)
+                local s, e = line:match("^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>(%d%d:%d%d:%d%d[,.]%d%d%d)")
+                if s and e then
+                    current_sub.start_time = parse_time(s)
+                    current_sub.end_time = parse_time(e)
                     state = "TEXT"
                 end
             elseif state == "TEXT" then
@@ -622,22 +624,13 @@ function load_sub(path, is_ass)
         end
         if current_sub and current_sub.text ~= "" then
             current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-            local merged = false
-            local prev = subs[#subs]
-            if prev and prev.raw_text == current_sub.raw_text then
-                -- Only merge if consecutive and close (gap <= 200ms)
-                if current_sub.start_time <= prev.end_time + 0.2 then
-                    prev.end_time = math.max(prev.end_time, current_sub.end_time)
-                    merged = true
-                end
-            end
-            if not merged then
-                table.insert(subs, current_sub)
-            end
+            table.insert(subs, current_sub)
         end
     end
-    f:close()
-    table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+    
+    if subs and #subs > 0 then
+        Diagnostic.info(string.format("Parsed %d subtitles from %s", #subs, path))
+    end
     return subs
 end
 
@@ -2451,13 +2444,13 @@ local function load_anki_tsv(force, quiet)
         term_header_name = config.fields[term_cols[1]]
     end
 
-    local f = io.open(tsv_path, "r")
-    if not f then
+    -- Use utils.read_file for robust UTF-8 path handling on Windows
+    local content = utils.read_file(tsv_path)
+    if not content then
         FSM.ANKI_HIGHLIGHTS = {}
         Diagnostic.info("TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
         
         -- Build header from actual config fields; fall back to generic defaults
-        -- if no mapping is configured. This mirrors save_anki_tsv_row's header logic.
         local header_line
         if #config.fields > 0 then
             header_line = table.concat(config.fields, "\t")
@@ -2465,27 +2458,20 @@ local function load_anki_tsv(force, quiet)
             header_line = "Term\tSentence\tTime"
         end
 
-        -- Find the deck column index (same logic as save_anki_tsv_row)
         local deck_col = -1
         for i, fld in ipairs(config.fields) do
             local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
-            if src == "deck_name" then
-                deck_col = i
-                break
-            end
+            if src == "deck_name" then deck_col = i; break end
         end
 
-        local wf = io.open(tsv_path, "w")
-        if wf then
-            -- Write #deck directive first, then field headers — matches save_anki_tsv_row order
-            if deck_col > 0 then
-                wf:write(string.format("#deck column:%d\n", deck_col))
-            end
-            wf:write(header_line .. "\n")
-            wf:close()
-            f = io.open(tsv_path, "r") -- Re-open for reading
-            if not f then 
-                Diagnostic.error("TSV creation failed - path may be read-only")
+        local f = io.open(tsv_path, "w")
+        if f then
+            if deck_col > 0 then f:write(string.format("#deck column:%d\n", deck_col)) end
+            f:write(header_line .. "\n")
+            f:close()
+            content = utils.read_file(tsv_path)
+            if not content then 
+                Diagnostic.error("TSV creation failed - could not read back file")
                 return 
             end
         else
@@ -2497,7 +2483,7 @@ local function load_anki_tsv(force, quiet)
 
     local new_highlights = {}
 
-    for line in f:lines() do
+    for line in content:gmatch("([^\r\n]+)") do
         if not line:match("^#") then
             local fields = {}
             for field in (line .. "\t"):gmatch("([^\t]*)\t") do
