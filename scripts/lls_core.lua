@@ -2845,6 +2845,9 @@ local function update_media_state()
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
         Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
     end
+    if not Tracks.pri.path and Tracks.pri.id ~= 0 then
+        Diagnostic.warn(string.format("Primary track (ID %d) is embedded/metadata (no file path). Immersion features like the Drum Window require an external .srt/.ass file.", Tracks.pri.id))
+    end
     if Tracks.sec.path and #Tracks.sec.subs == 0 then
         Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
     end
