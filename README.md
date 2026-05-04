@@ -36,6 +36,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
+  - [Visual Keyboard Layout (English)](#visual-keyboard-layout-english)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Installation](#installation)
 - [Development Analytics](#development-analytics)
@@ -258,6 +259,52 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `h` | `р` | Toggle **Global Highlighting** (Anki Matches) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+c` | `Ctrl+с` | **Copy Subtitle** (Extract clean text to clipboard) |
+ 
+### Visual Keyboard Layout (English)
+
+```text
++-----------------------------------------------------------+
+|  ` ~  | 1 ! | 2 @ | 3 # | 4 $ | 5 % | 6 ^ | 7 & |
+|  Quit |  Contrast |     |     |     |     |     |
++-----------------------------------------------------------+
+|  TAB  |  Q   |  W  |  E  |  R  |  T  |
+|  OSC  | Cycle| Ctxt| Tltp| Sub | Sub |
+|  Vis  | Mode | Tgl | Tgl |  Up | Down|
++-----------------------------------------------------------+
+|  CAPS |  A  |  S  |  D  |  F  |  G  |
+|       | Prev| REPL| Next| Kara| Add |
+|       | Sub | LOOP| Sub | Tgl | Word|
++-----------------------------------------------------------+
+|   SHIFT   |  Z  |  X  |  C  |  V  |  B  |
+|   Select  | Drum| Drum| Vis | Full| Open|
+|   Extend  | Win | Mode| Tgl | Scrn| Rec |
++-----------------------------------------------------------+
+|  CTRL  |  GUI  |  ALT  |           SPACEBAR               |
+| (Copy) |       |       |       SMART SPACE (HOLD=PLAY)    |
+| (Search)       |       |        TAP = PLAY/PAUSE TOGGLE   |
++-----------------------------------------------------------+
+
++-----------------------------------------------------------+
+| 8 * | 9 ( | 0 ) | - _ | = + | BACKSPACE |
+|     |   Volume  |     |     | RESET Spd |
++-----------------------------------------------------------+
+|  Y  |  U  |  I  |  O  |  P  |  [  |  ]  |    \    |
+|     |     |     | Open|     | Spd | Spd |         |
+|     |     |     | Rec |     | Down| Up  |         |
++-----------------------------------------------------------+
+|  H  |  J  |  K  |  L  |  ;  |  '  |    ENTER    |
+| Tgl |     |     |     |     |     |     Seek    |
+| High|     |     |     |     |     |    (Drum)   |
++-----------------------------------------------------------+
+|  N  |  M  |  ,  |  .  |  /  |      SHIFT      |
+|     | Mute| Frm | Frm |     |      Select     |
+|     |     | Back| Fwd |     |      Extend     |
++-----------------------------------------------------------+
+|   SPACEBAR    |  ALT  |  GUI  |  CTRL  |
+|               |       |       | Search |
+|               |       |       | Overlay|
++-----------------------------------------------------------+
+```
 
 [Return to Top](#table-of-contents)
 
