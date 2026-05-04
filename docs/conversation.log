@@ -1372,8 +1372,8 @@
 20260504015815 No, it doesn’t work, once again, I’m fine, let’s look at it, without the relatively new repeat functionality, I can press the space bar in the auto-pause mode and hold it as long as I want, my recording will go continuously until the moment of release on some subtitle and then playback will stop at the end of this subtitle. This should work with repeat as well. The repeat should be harmoniously woven into the existing, established system of working with the shift key.
 20260504020433 It seems that this only works within one subtitle, that is, I start playback and press s. I press the spacebar, the next one starts on it, I also press s and hold the spacebar, but this no longer works, the recording stops. 
 20260504021350 Let's try to solve by hypothesis with the fact that pressing s interferes with the status of the space bar.
-
-
+20260504023403 opsx-apply 20260504021904-refine-subtitle-replay-looping
+20260504023600
 
 
 

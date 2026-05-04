@@ -20,4 +20,21 @@ The user requires a robust, layout-agnostic, dual-mode subtitle replay and loopi
 ## Impact
 
 - `scripts/lls_core.lua`: Significant changes to the `master_tick`, `tick_loop`, `tick_autopause`, and the introduction of `tick_scheduled_replay`. Spacebar event tracking expanded to defeat hardware ghosting.
-- `input.conf`: Removed double/triple bindings for replay commands to prevent event collisions.
+- `input.conf`: Removed double/triple bindings for replay collisions.
+
+## References
+
+- **Initial Commit**: `3318c953f763099327f21b4f5401d3373c1c7107`
+- **Dialogue Anchors**:
+  - `20260504003137`: Initial replay function request.
+  - `20260504003516`: Hotkey assignment to `s`.
+  - `20260504004117`: Request for manual control in Autopause ON.
+  - `20260504005552`: Differentiation between persistent loop and manual mode.
+  - `20260504010222`: Navigation freedom during loop.
+  - `20260504010554`: Non-interrupted current playback.
+  - `20260504011009`: Parity between OFF/ON modes.
+  - `20260504011801`: Conservative behavior in Autopause ON.
+  - `20260504012741`: Prevention of mid-subtitle rewinds.
+  - `20260504014731`: Introduction of semi-automatic mode requirements.
+  - `20260504015815`: Identification of spacebar release issues.
+  - `20260504021350`: Ghost release hypothesis and solution path.
