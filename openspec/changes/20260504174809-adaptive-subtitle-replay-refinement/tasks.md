@@ -3,14 +3,14 @@
 **ID**: 20260504174809-adaptive-subtitle-replay-refinement
 
 ## Phase 1: Configuration & FSM
-- [ ] 1.1 Add `replay_ms` and `replay_count` to `Options` in `lls_core.lua`.
-- [ ] 1.2 Initialize `REPLAY_ITERATIONS` and `GHOST_HOLD_EXPIRY` in `FSM`.
+- [x] 1.1 Add `replay_ms` and `replay_count` to `Options` in `lls_core.lua`.
+- [x] 1.2 Initialize `REPLAY_ITERATIONS` and `GHOST_HOLD_EXPIRY` in `FSM`.
 
 ## Phase 2: Implementation
-- [ ] 2.1 Update `cmd_replay_sub` to implement adaptive start point logic.
-- [ ] 2.2 Update `tick_scheduled_replay` to support `REPLAY_ITERATIONS`.
-- [ ] 2.3 Implement the `GHOST_HOLD_EXPIRY` check in `master_tick`.
-- [ ] 2.4 Update `cmd_smart_space` to clear `GHOST_HOLD_EXPIRY` on down events.
+- [x] 2.1 Update `cmd_replay_sub` to implement adaptive start point logic.
+- [x] 2.2 Update `tick_scheduled_replay` to support `REPLAY_ITERATIONS`.
+- [x] 2.3 Implement the `GHOST_HOLD_EXPIRY` check in `master_tick`.
+- [x] 2.4 Update `cmd_smart_space` to clear `GHOST_HOLD_EXPIRY` on down events.
 
 ## Phase 3: Verification
 - [ ] 3.1 Verify "Ghost Release" fix: hold Space, press S, release Space during replay -> should pause at end.

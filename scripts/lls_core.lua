@@ -441,7 +441,9 @@ Options = {
     -- Colors
     dw_split_select_color = "FF88B0",
     dw_mouse_shield_ms = 50,       -- Interaction Shield window (ms)
-    sentence_word_threshold = 3
+    sentence_word_threshold = 3,
+    replay_ms = 3000,              -- Fixed window for adaptive replay (ms)
+    replay_count = 1               -- Number of iterations for the replay command
 }
 options.read_options(Options, "lls")
 
@@ -659,6 +661,8 @@ local FSM = {
     LOOP_END = nil,
     SCHEDULED_REPLAY_START = nil,
     SCHEDULED_REPLAY_END = nil,
+    REPLAY_REMAINING = 0,
+    GHOST_HOLD_EXPIRY = nil,
     space_down_time = 0,
     space_up_time = 0,
     initial_pause_state = true,
@@ -4963,12 +4967,21 @@ local function tick_scheduled_replay(time_pos)
     if not FSM.SCHEDULED_REPLAY_START or not FSM.SCHEDULED_REPLAY_END then return false end
     
     if time_pos >= FSM.SCHEDULED_REPLAY_END - Options.pause_padding then
-        FSM.IGNORE_NEXT_JUMP = true
-        FSM.last_paused_sub_end = nil
-        mp.commandv("seek", FSM.SCHEDULED_REPLAY_START, "absolute+exact")
-        FSM.SCHEDULED_REPLAY_START = nil
-        FSM.SCHEDULED_REPLAY_END = nil
-        return true
+        if FSM.REPLAY_REMAINING > 1 then
+            FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
+            FSM.IGNORE_NEXT_JUMP = true
+            FSM.last_paused_sub_end = nil
+            mp.commandv("seek", FSM.SCHEDULED_REPLAY_START, "absolute+exact")
+            return true
+        else
+            FSM.REPLAY_REMAINING = 0
+            FSM.IGNORE_NEXT_JUMP = true
+            FSM.last_paused_sub_end = nil
+            mp.commandv("seek", FSM.SCHEDULED_REPLAY_START, "absolute+exact")
+            FSM.SCHEDULED_REPLAY_START = nil
+            FSM.SCHEDULED_REPLAY_END = nil
+            return true
+        end
     end
     return false
 end
@@ -4991,6 +5004,15 @@ local function master_tick()
     local ok, err = xpcall(function()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
+
+    -- [v1.58.48] Ghost Hold Recovery
+    -- If Space is 'HOLDING' due to a suspected ghost event at 's' press,
+    -- but no physical 'DOWN' event has refreshed it within 2 seconds, revert to IDLE.
+    if FSM.SPACEBAR == "HOLDING" and FSM.GHOST_HOLD_EXPIRY and mp.get_time() > FSM.GHOST_HOLD_EXPIRY then
+        FSM.SPACEBAR = "IDLE"
+        FSM.GHOST_HOLD_EXPIRY = nil
+        Diagnostic.debug("GHOST_HOLD expired, resetting to IDLE")
+    end
 
     -- [v1.58.48] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
@@ -5154,6 +5176,7 @@ end
 
 local function cmd_smart_space(table)
     if table.event == "down" then
+        FSM.GHOST_HOLD_EXPIRY = nil -- User is physically holding, clear ghost timer
         if FSM.SPACEBAR == "IDLE" then
             FSM.SPACEBAR = "HOLDING"
             FSM.space_down_time = mp.get_time()
@@ -5668,6 +5691,13 @@ local function cmd_replay_sub()
     
     if was_holding_space then
         FSM.SPACEBAR = "HOLDING" -- Force restore state
+        FSM.GHOST_HOLD_EXPIRY = mp.get_time() + 2.0 -- 2 second safety window for desync recovery
+    end
+
+    -- Calculate adaptive replay start
+    local replay_start = sub.start_time
+    if Options.replay_ms > 0 then
+        replay_start = math.max(sub.start_time, time_pos - Options.replay_ms/1000)
     end
 
     if FSM.AUTOPAUSE == "OFF" then
@@ -5677,13 +5707,13 @@ local function cmd_replay_sub()
             show_osd("Loop Subtitle: OFF")
         else
             FSM.LOOP_MODE = "ON"
-            FSM.LOOP_START = sub.start_time
+            FSM.LOOP_START = replay_start
             FSM.LOOP_END = sub.end_time
             if is_near_end or is_paused then
                 -- Already at end/paused, jump now
                 FSM.LOOP_ARMED = false
                 FSM.IGNORE_NEXT_JUMP = true
-                mp.commandv("seek", sub.start_time, "absolute+exact")
+                mp.commandv("seek", replay_start, "absolute+exact")
                 if is_paused then mp.set_property_bool("pause", false) end
             else
                 -- In middle, arm to jump at end
@@ -5698,18 +5728,21 @@ local function cmd_replay_sub()
             -- Already at end, replay now
             FSM.IGNORE_NEXT_JUMP = true
             FSM.last_paused_sub_end = nil
-            mp.commandv("seek", sub.start_time, "absolute+exact")
+            FSM.REPLAY_REMAINING = Options.replay_count
+            mp.commandv("seek", replay_start, "absolute+exact")
             if is_paused then mp.set_property_bool("pause", false) end
-            show_osd("Replaying line: " .. idx)
+            show_osd("Replaying line: " .. idx .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
         else
             -- In middle, schedule for end
             if FSM.SCHEDULED_REPLAY_START then
                 FSM.SCHEDULED_REPLAY_START = nil
                 FSM.SCHEDULED_REPLAY_END = nil
+                FSM.REPLAY_REMAINING = 0
                 show_osd("Scheduled Replay: OFF")
             else
-                FSM.SCHEDULED_REPLAY_START = sub.start_time
+                FSM.SCHEDULED_REPLAY_START = replay_start
                 FSM.SCHEDULED_REPLAY_END = sub.end_time
+                FSM.REPLAY_REMAINING = Options.replay_count
                 show_osd("Scheduled Replay: ON (Line " .. idx .. ")")
             end
         end
