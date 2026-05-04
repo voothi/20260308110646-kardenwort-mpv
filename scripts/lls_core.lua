@@ -4950,7 +4950,21 @@ local function tick_autopause(time_pos)
     local sub_end = nil
     local subs = Tracks.pri.subs
     if subs and #subs > 0 then
-        local idx = get_center_index(subs, time_pos)
+        -- Find the latest subtitle that started at or before current time.
+        -- We don't use get_center_index here because it might jump to the NEXT
+        -- subtitle if it's closer, causing us to miss the padding window of the current one.
+        local low, high = 1, #subs
+        local idx = -1
+        while low <= high do
+            local mid = math.floor((low + high) / 2)
+            if subs[mid].start_time <= time_pos then
+                idx = mid
+                low = mid + 1
+            else
+                high = mid - 1
+            end
+        end
+        
         if idx ~= -1 then
             sub_end = subs[idx].end_time
         end
