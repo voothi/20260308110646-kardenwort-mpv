@@ -16,6 +16,7 @@
 - [x] 2.7 Unify `replay_count` logic for both `Autopause ON` and `OFF`.
 - [x] 2.8 Silence `tick_autopause` during active replay/loop.
 - [x] 2.9 Simplify `Autopause OFF` OSD and behavior (Flashback).
+- [x] 2.10 Implement `replay_autostop` for flexible completion logic.
 
 ## Phase 3: Finalization
 - [x] 3.1 Update `mpv.conf` with new defaults.
