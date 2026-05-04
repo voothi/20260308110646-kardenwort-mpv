@@ -1,5 +1,5 @@
 -- =========================================================================
--- KARDENWORT Language Learning Suite (LLS) Core
+-- KARDENWORT Language Acquisition Suite (LAS) Core
 -- Version: v1.58.50
 -- Purpose: Language Acquisition through Subtitle-Driven Immersion
 -- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
@@ -533,7 +533,8 @@ end
 function clean_text_srt(line)
     if not line then return "" end
     line = line:gsub("^\xEF\xBB\xBF", "")
-    return line:gsub("\r", ""):gsub("<[^>]+>", ""):gsub("%z", "")
+    line = line:gsub("\r", ""):gsub("<[^>]+>", ""):gsub("%z", "")
+    return line:gsub("^%s*(.-)%s*$", "%1")
 end
 
 function load_sub(path, is_ass)
@@ -2500,97 +2501,99 @@ local function load_anki_tsv(force, quiet)
     local new_highlights = {}
 
     for line in (content .. "\n"):gmatch("(.-)\r?\n") do
-        if not line:match("^#") then
-            local fields = {}
-            for field in (line .. "\t"):gmatch("([^\t]*)\t") do
-                table.insert(fields, field)
-            end
-            -- Check time boundary minimums
-            if #fields > 0 then
-                local t = ""
-                for _, col_idx in ipairs(term_cols) do
-                    if fields[col_idx] and fields[col_idx] ~= "" then
-                        t = fields[col_idx]
-                        break
-                    end
+        pcall(function()
+            if not line:match("^#") then
+                local fields = {}
+                for field in (line .. "\t"):gmatch("([^\t]*)\t") do
+                    table.insert(fields, field)
                 end
-                
-                local c = ""
-                for _, col_idx in ipairs(ctx_cols) do
-                    if fields[col_idx] and fields[col_idx] ~= "" then
-                        c = fields[col_idx]
-                        break
-                    end
-                end
-
-                -- If the TSV row did not export the term (e.g. phrase cards with no WordSource),
-                -- we simply fall back to treating the entire SentenceSource context as the highlight target!
-                if t == "" and c ~= "" then
-                    t = c
-                end
-
-                local time_val = tonumber(fields[time_col])
-                if not time_val or time_val <= 0 then
-                    for k = #fields, math.max(1, #fields - 10), -1 do
-                        if tonumber(fields[k]) and tostring(fields[k]):match("^%d+%.%d+$") then
-                            time_val = tonumber(fields[k])
+                -- Check time boundary minimums
+                if #fields > 0 then
+                    local t = ""
+                    for _, col_idx in ipairs(term_cols) do
+                        if fields[col_idx] and fields[col_idx] ~= "" then
+                            t = fields[col_idx]
                             break
                         end
                     end
-                    time_val = time_val or 0
-                end
-                
-                local idx_val = (index_col > 0) and fields[index_col] or nil
-                if type(idx_val) == "string" then idx_val = idx_val:gsub("\r", "") end
-                if idx_val == "" then idx_val = nil end
-                -- Try to convert to number only if it's a simple integer; otherwise keep as grounding string
-                if idx_val and idx_val:match("^%-?%d+$") then
-                    idx_val = tonumber(idx_val)
-                end
-                
-                local is_header = (t == "WordSource" or t == "Term" or (term_header_name and t == term_header_name))
-                if t and t ~= "" and not is_header then
-                    local data = { term = t, context = c, time = time_val, index = idx_val }
-                    -- Pre-parse Advanced Pivot Grounding coordinates (Multi-Anchor support)
-                    if idx_val then
-                        data.__pivots = {}
-                        local min_l = math.huge
-                        local max_l = -math.huge
-                        local min_w = 1000
-                        local max_w = 0
-                        
-                        for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
-                            local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
-                            if l_off then
-                                local r_l = tonumber(l_off)
-                                local r_w = tonumber(p_idx)
-                                table.insert(data.__pivots, {l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos)})
-                                
-                                if r_l < min_l then min_l = r_l; min_w = r_w
-                                elseif r_l == min_l then if r_w < min_w then min_w = r_w end end
-                                
-                                if r_l > max_l then max_l = r_l; max_w = r_w
-                                elseif r_l == max_l then if r_w > max_w then max_w = r_w end end
-                            else
-                                local single = tonumber(part)
-                                if single then 
-                                    table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) 
-                                    if 0 < min_l then min_l = 0; min_w = single end
-                                    if 0 > max_l then max_l = 0; max_w = single end
-                                    if single < min_w and min_l == 0 then min_w = single end
-                                    if single > max_w and max_l == 0 then max_w = single end
-                                end
+                    
+                    local c = ""
+                    for _, col_idx in ipairs(ctx_cols) do
+                        if fields[col_idx] and fields[col_idx] ~= "" then
+                            c = fields[col_idx]
+                            break
+                        end
+                    end
+
+                    -- If the TSV row did not export the term (e.g. phrase cards with no WordSource),
+                    -- we simply fall back to treating the entire SentenceSource context as the highlight target!
+                    if t == "" and c ~= "" then
+                        t = c
+                    end
+
+                    local time_val = tonumber(fields[time_col])
+                    if not time_val or time_val <= 0 then
+                        for k = #fields, math.max(1, #fields - 10), -1 do
+                            if tonumber(fields[k]) and tostring(fields[k]):match("^%d+%.%d+$") then
+                                time_val = tonumber(fields[k])
+                                break
                             end
                         end
-                        data.__min_l = (min_l == math.huge) and 0 or min_l
-                        data.__max_l = (max_l == -math.huge) and 0 or max_l
-                        data.__min_w = min_w
-                        data.__max_w = max_w
+                        time_val = time_val or 0
                     end
-                    table.insert(new_highlights, data)
+                    
+                    local idx_val = (index_col > 0) and fields[index_col] or nil
+                    if type(idx_val) == "string" then idx_val = idx_val:gsub("\r", "") end
+                    if idx_val == "" then idx_val = nil end
+                    -- Try to convert to number only if it's a simple integer; otherwise keep as grounding string
+                    if idx_val and idx_val:match("^%-?%d+$") then
+                        idx_val = tonumber(idx_val)
+                    end
+                    
+                    local is_header = (term_header_name and t == term_header_name)
+                    if t and t ~= "" and not is_header then
+                        local data = { term = t, context = c, time = time_val, index = idx_val }
+                        -- Pre-parse Advanced Pivot Grounding coordinates (Multi-Anchor support)
+                        if idx_val then
+                            data.__pivots = {}
+                            local min_l = math.huge
+                            local max_l = -math.huge
+                            local min_w = 1000
+                            local max_w = 0
+                            
+                            for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
+                                local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                                if l_off then
+                                    local r_l = tonumber(l_off)
+                                    local r_w = tonumber(p_idx)
+                                    table.insert(data.__pivots, {l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos)})
+                                    
+                                    if r_l < min_l then min_l = r_l; min_w = r_w
+                                    elseif r_l == min_l then if r_w < min_w then min_w = r_w end end
+                                    
+                                    if r_l > max_l then max_l = r_l; max_w = r_w
+                                    elseif r_l == max_l then if r_w > max_w then max_w = r_w end end
+                                else
+                                    local single = tonumber(part)
+                                    if single then 
+                                        table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1}) 
+                                        if 0 < min_l then min_l = 0; min_w = single end
+                                        if 0 > max_l then max_l = 0; max_w = single end
+                                        if single < min_w and min_l == 0 then min_w = single end
+                                        if single > max_w and max_l == 0 then max_w = single end
+                                    end
+                                end
+                            end
+                            data.__min_l = (min_l == math.huge) and 0 or min_l
+                            data.__max_l = (max_l == -math.huge) and 0 or max_l
+                            data.__min_w = min_w
+                            data.__max_w = max_w
+                        end
+                        table.insert(new_highlights, data)
+                    end
                 end
             end
-        end
+        end)
     end
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
