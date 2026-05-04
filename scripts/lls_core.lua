@@ -2786,6 +2786,49 @@ end
 
 local function update_media_state()
     load_anki_tsv()
+    
+    local track_list = mp.get_property_native("track-list") or {}
+    
+    -- [v1.58.51] Smart Auto-Selection: 
+    -- If the current primary/secondary tracks have no file path (likely embedded metadata),
+    -- attempt to automatically switch to the first available external subtitle tracks.
+    if not FSM.__auto_track_selected then
+        local valid_ids = {}
+        for _, t in ipairs(track_list) do
+            if t.type == "sub" and t.external and t["external-filename"] then
+                table.insert(valid_ids, t.id)
+            end
+        end
+        
+        local sid = mp.get_property_number("sid", 0)
+        local ssid = mp.get_property_number("secondary-sid", 0)
+        
+        local sid_valid = false
+        local ssid_valid = false
+        for _, t in ipairs(track_list) do
+            if t.type == "sub" and t.id == sid and t.external and t["external-filename"] then sid_valid = true end
+            if t.type == "sub" and t.id == ssid and t.external and t["external-filename"] then ssid_valid = true end
+        end
+        
+        local changed = false
+        if sid ~= 0 and not sid_valid and #valid_ids > 0 then
+            Diagnostic.info("Primary track is metadata. Auto-selecting external: " .. valid_ids[1])
+            mp.set_property_number("sid", valid_ids[1])
+            sid = valid_ids[1]
+            changed = true
+        end
+        
+        if ssid ~= 0 and not ssid_valid and #valid_ids > 1 then
+            local next_id = (valid_ids[1] == sid) and valid_ids[2] or valid_ids[1]
+            Diagnostic.info("Secondary track is metadata. Auto-selecting external: " .. next_id)
+            mp.set_property_number("secondary-sid", next_id)
+            changed = true
+        end
+        
+        FSM.__auto_track_selected = true
+        if changed then return end -- Update will re-trigger
+    end
+
     Tracks.pri.id = mp.get_property_number("sid", 0)
     Tracks.sec.id = mp.get_property_number("secondary-sid", 0)
     
@@ -7300,3 +7343,7 @@ local function recover_native_osd_style()
     end
 end
 recover_native_osd_style()
+
+mp.register_event("file-loaded", function()
+    FSM.__auto_track_selected = false
+end)

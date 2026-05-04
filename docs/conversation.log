@@ -1402,6 +1402,7 @@
 20260504193600 Such a picture.
 20260504193837 This is what we see.
 20260504194039 Subtitles are not detected.
+20260504194507 On one video that had built-in subtitles it seemed to work, but on another similar one without them it didn’t. Also, the old ones stopped detecting second subtitles.
 
 
 
