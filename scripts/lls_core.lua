@@ -528,7 +528,7 @@ function load_sub(path, is_ass)
         Diagnostic.error("Failed to open subtitle file: " .. tostring(path))
         return {} 
     end
-    Diagnostic.debug("Loading subtitle file: " .. tostring(path))
+    Diagnostic.info("Loading subtitle file: " .. tostring(path))
     
     local subs = {}
     local current_sub = nil
@@ -2801,7 +2801,7 @@ local function update_media_state()
     
     for _, t in ipairs(track_list) do
         if t.type == "sub" then
-            Diagnostic.debug(string.format("Track %d: type=%s selected=%s external=%s codec=%s path=%s", 
+            Diagnostic.info(string.format("Track %d: type=%s selected=%s external=%s codec=%s path=%s", 
                 t.id, t.type, tostring(t.selected), tostring(t.external), tostring(t.codec), tostring(t["external-filename"])))
             local is_ass = false
             local path = nil
@@ -7225,6 +7225,14 @@ mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
 mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
+mp.add_key_binding("F1", "dump-lls-state", function()
+    Diagnostic.info(string.format("--- LLS STATE DUMP ---"))
+    Diagnostic.info(string.format("MEDIA_STATE: %s", FSM.MEDIA_STATE))
+    Diagnostic.info(string.format("Tracks: pri_id=%s, sec_id=%s", tostring(Tracks.pri.id), tostring(Tracks.sec.id)))
+    Diagnostic.info(string.format("Primary Path: %s, Loaded: %s", tostring(Tracks.pri.path), tostring(#Tracks.pri.subs > 0)))
+    Diagnostic.info(string.format("Secondary Path: %s, Loaded: %s", tostring(Tracks.sec.path), tostring(#Tracks.sec.subs > 0)))
+    Diagnostic.info(string.format("-----------------------"))
+end)
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 
