@@ -10,6 +10,21 @@ local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
 
+-- Fallback for older mpv versions missing utils.read_file
+local function safe_read_file(path)
+    if not path or path == "" then return nil end
+    if utils and utils.read_file then
+        return utils.read_file(path)
+    end
+    local f = io.open(path, "rb")
+    if f then
+        local content = f:read("*a")
+        f:close()
+        return content
+    end
+    return nil
+end
+
 
 -- =========================================================================
 -- LLS CORE CONFIGURATION
@@ -524,7 +539,7 @@ end
 function load_sub(path, is_ass)
     if not path or path == "" then return {} end
     Diagnostic.info("Loading subtitle file: " .. tostring(path))
-    local content = mp.utils.read_file(path)
+    local content = safe_read_file(path)
     if not content then 
         Diagnostic.error("Failed to read subtitle file: " .. tostring(path))
         return {} 
@@ -2445,7 +2460,8 @@ local function load_anki_tsv(force, quiet)
     end
 
     -- Use utils.read_file for robust UTF-8 path handling on Windows
-    local content = utils.read_file(tsv_path)
+    -- Use safe_read_file for robust path handling and version compatibility
+    local content = safe_read_file(tsv_path)
     if not content then
         FSM.ANKI_HIGHLIGHTS = {}
         Diagnostic.info("TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
@@ -2469,7 +2485,7 @@ local function load_anki_tsv(force, quiet)
             if deck_col > 0 then f:write(string.format("#deck column:%d\n", deck_col)) end
             f:write(header_line .. "\n")
             f:close()
-            content = utils.read_file(tsv_path)
+            content = safe_read_file(tsv_path)
             if not content then 
                 Diagnostic.error("TSV creation failed - could not read back file")
                 return 
