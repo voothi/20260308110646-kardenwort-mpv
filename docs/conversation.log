@@ -1396,6 +1396,7 @@
 20260504184346 opsx-apply openspec\changes\20260504174809-adaptive-subtitle-replay-refinement
 20260504184435 opsx-archive --sync 20260504174809-adaptive-subtitle-replay-refinement
 20260504184940 Look at the branch that died by mistake and transfer the necessary information from it to my current commit. a9b1ce2a757f4ccd9b7693a8103087296afd4591
+20260504190548 Add the combination to input.conf Shift+ё to existing Shift+`
 
 
 
