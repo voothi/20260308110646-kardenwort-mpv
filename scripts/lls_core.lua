@@ -4824,16 +4824,7 @@ local function tick_dw(time_pos, active_idx)
     
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
-        if not FSM.BOOK_MODE then
-            if FSM.DW_VIEW_CENTER ~= active_idx then
-                FSM.DW_VIEW_CENTER = active_idx
-                if FSM.DW_ANCHOR_LINE == -1 then
-                    FSM.DW_CURSOR_LINE = active_idx
-                    FSM.DW_CURSOR_WORD = -1
-                    FSM.DW_CURSOR_X = nil
-                end
-            end
-        elseif not FSM.DW_SEEKING_MANUALLY then
+        if FSM.BOOK_MODE and not FSM.DW_SEEKING_MANUALLY then
             -- Book Mode: Line-by-line scrolling during playback
             dw_ensure_visible(active_idx, true)
         end
@@ -5043,6 +5034,22 @@ local function master_tick()
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
             FSM.DW_ACTIVE_LINE = active_idx
+            
+            -- Universal Cursor Synchronization
+            -- Ensures that the "copy focus" always tracks playback when in follow mode,
+            -- even if the Drum Window is closed (e.g., purely in Drum Mode on-screen).
+            if FSM.DW_FOLLOW_PLAYER then
+                if not FSM.BOOK_MODE then
+                    if FSM.DW_VIEW_CENTER ~= active_idx then
+                        FSM.DW_VIEW_CENTER = active_idx
+                        if FSM.DW_ANCHOR_LINE == -1 then
+                            FSM.DW_CURSOR_LINE = active_idx
+                            FSM.DW_CURSOR_WORD = -1
+                            FSM.DW_CURSOR_X = nil
+                        end
+                    end
+                end
+            end
         end
     end
 
