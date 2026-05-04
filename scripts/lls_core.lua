@@ -4901,6 +4901,8 @@ end
 -- =========================================================================
 
 local function tick_autopause(time_pos)
+    if FSM.AUTOPAUSE ~= "ON" or FSM.SPACEBAR ~= "IDLE" then return end
+    if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
     -- [v1.58.48] Precise Manual Autopause
