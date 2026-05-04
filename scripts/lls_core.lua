@@ -450,7 +450,8 @@ Options = {
     dw_mouse_shield_ms = 50,       -- Interaction Shield window (ms)
     sentence_word_threshold = 3,
     replay_ms = 2000,              -- Fixed window for adaptive replay (ms)
-    replay_count = 1               -- Number of iterations for the replay command
+    replay_count = 1,              -- Number of iterations for the replay command
+    replay_autostop = true         -- Whether to pause after iterations (Autopause ON only)
 }
 options.read_options(Options, "lls")
 
@@ -4993,7 +4994,7 @@ local function tick_scheduled_replay(time_pos)
             FSM.REPLAY_REMAINING = 0
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
-            if FSM.SPACEBAR == "IDLE" then
+            if FSM.SPACEBAR == "IDLE" and Options.replay_autostop then
                 mp.set_property_bool("pause", true)
             end
             return true
