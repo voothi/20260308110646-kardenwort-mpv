@@ -549,7 +549,7 @@ function load_sub(path, is_ass)
     local current_sub = nil
     
     if is_ass then
-        for line in content:gmatch("([^\r\n]+)") do
+        for line in (content .. "\n"):gmatch("(.-)\r?\n") do
             if line:match("^Dialogue:") then
                 local first_colon = line:find(":")
                 if first_colon then
@@ -598,7 +598,7 @@ function load_sub(path, is_ass)
         table.sort(subs, function(a, b) return a.start_time < b.start_time end)
     else
         local state = "ID"
-        for raw_line in content:gmatch("([^\r\n]+)") do
+        for raw_line in (content .. "\n"):gmatch("(.-)\r?\n") do
             local line = clean_text_srt(raw_line)
             if line == "" then
                 if current_sub and current_sub.text ~= "" then
@@ -633,7 +633,7 @@ function load_sub(path, is_ass)
                 if current_sub.text == "" then
                     current_sub.text = line
                 else
-                    current_sub.text = current_sub.text .. "\n" .. line
+                    current_sub.text = current_sub.text .. " \n " .. line
                 end
             end
         end
@@ -2499,7 +2499,7 @@ local function load_anki_tsv(force, quiet)
 
     local new_highlights = {}
 
-    for line in content:gmatch("([^\r\n]+)") do
+    for line in (content .. "\n"):gmatch("(.-)\r?\n") do
         if not line:match("^#") then
             local fields = {}
             for field in (line .. "\t"):gmatch("([^\t]*)\t") do
