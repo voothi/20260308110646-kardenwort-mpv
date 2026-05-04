@@ -1383,7 +1383,7 @@
 20260504034919 opsx-archive --sync 20260504033538-fix-drum-mode-cursor-desync
 20260504035132 How to make sure that the mpv window does not close automatically at the end of the video?
 20260504035801 create-release-2 v1.58.49 openspec\changes\archive\20260504033538-fix-drum-mode-cursor-desync 20260504035132
-
+20260504173340 opsx-explore Look, I have defined the purpose of this repeat function, it is necessary for the user to be able to repeat the current subtitle or a certain place of the recording around the place when he pressed this button, to clarify the information, to try to hear the pronunciation better, by pressing one key (S), in any mode. The point is that scrolling through a subtitle or a part of a recording for 2 seconds is not a problem, we already have convenient tools for that (a, d (Shift+)), but the user may want to be able to do it on a single key, relieving the cognitive and muscular load at the moment of high concentration on the material. All I want, and I've determined this time, is for the S key to be able to listen to the current subtitle one or more more times (must be set) or to set in ms in the config a portion of the recording at a moment, must be counted as the size of the context, as we count in subtitles (before and after the current one). But since subtitles can be long, we may want to set this segment from the point to include the part of the phrase we want to re-listen to. No extra keys need to be made, there should only be one. Yes, and loop mode as is standard in mpv, but adapted for our work with subtitles, we will not do it yet, we have enough convenient for it works manual scrolling between subtitles.
 
 
 
