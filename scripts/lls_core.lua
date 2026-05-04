@@ -197,6 +197,8 @@ Options = {
     autopause_default = true,
     karaoke_every_word = false,
     pause_padding = 0.15,
+    audio_padding_start = 0,
+    audio_padding_end = 0,
     karaoke_token = "{\\c}",
     space_tap_delay = 0.2,
 
@@ -4834,7 +4836,8 @@ local function cmd_dw_double_click()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
         end
 
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local seek_time = math.max(0, sub.start_time - (Options.audio_padding_start / 1000))
+        mp.commandv("seek", seek_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
@@ -4958,7 +4961,10 @@ local function tick_autopause(time_pos)
         sub_end = mp.get_property_number("sub-end")
     end
 
-    if sub_end == nil or (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
+    if sub_end == nil then return end
+
+    local effective_sub_end = sub_end + (Options.audio_padding_end / 1000)
+    if (effective_sub_end - time_pos) >= Options.pause_padding or (effective_sub_end - time_pos) <= 0 then
         return
     end
 
@@ -5768,7 +5774,8 @@ local function cmd_dw_seek_selected()
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
-            mp.commandv("seek", sub.start_time, "absolute+exact")
+            local seek_time = math.max(0, sub.start_time - (Options.audio_padding_start / 1000))
+            mp.commandv("seek", seek_time, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
@@ -5800,7 +5807,8 @@ local function cmd_dw_seek_delta(dir)
     FSM.DW_SEEK_TARGET = target_idx
     local sub = subs[target_idx]
     if sub and sub.start_time then
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local seek_time = math.max(0, sub.start_time - (Options.audio_padding_start / 1000))
+        mp.commandv("seek", seek_time, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
