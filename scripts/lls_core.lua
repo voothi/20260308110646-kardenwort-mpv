@@ -4949,12 +4949,21 @@ local function tick_loop(time_pos)
         if FSM.LOOP_ARMED then
             FSM.LOOP_ARMED = false
             FSM.IGNORE_NEXT_JUMP = true
-            mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
+            
+            if FSM.REPLAY_REMAINING > 1 then
+                FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
+                mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
+            else
+                FSM.REPLAY_REMAINING = 0
+                FSM.LOOP_MODE = "OFF"
+                show_osd("Loop: OFF (Complete)")
+            end
             
             -- [v1.58.48] Spacebar Override: If holding Space, break the loop
             -- so it repeats once and then continues over the subtitle border.
             if FSM.SPACEBAR == "HOLDING" then
                 FSM.LOOP_MODE = "OFF"
+                FSM.REPLAY_REMAINING = 0
                 show_osd("Loop: OFF (Space Override)")
             end
         end
@@ -5696,6 +5705,7 @@ local function cmd_replay_sub()
         -- Toggle Loop Mode (Fixed Segment)
         if FSM.LOOP_MODE == "ON" then
             FSM.LOOP_MODE = "OFF"
+            FSM.REPLAY_REMAINING = 0
             show_osd("Loop: OFF")
         else
             FSM.LOOP_MODE = "ON"
@@ -5703,9 +5713,10 @@ local function cmd_replay_sub()
             FSM.LOOP_END = replay_end
             FSM.LOOP_ARMED = false
             FSM.IGNORE_NEXT_JUMP = true
+            FSM.REPLAY_REMAINING = Options.replay_count
             mp.commandv("seek", replay_start, "absolute+exact")
             if is_paused then mp.set_property_bool("pause", false) end
-            show_osd("Loop Segment: ON (" .. Options.replay_ms .. "ms)")
+            show_osd("Loop Segment: ON (" .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or "") .. ")")
         end
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)

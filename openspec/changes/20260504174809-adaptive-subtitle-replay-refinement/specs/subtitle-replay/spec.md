@@ -13,8 +13,8 @@
 - **REQ-1.4**: Subtitle boundaries SHALL be ignored for the purpose of calculating the replay segment.
 
 ### 2. Multi-Iteration Support
-- **REQ-2.1**: The script SHALL support replaying the segment `N` times as defined by `Options.replay_count`.
-- **REQ-2.2**: In `Autopause ON` mode, the player SHALL perform the iterations and THEN pause at the end of the final iteration (unless Space is held).
+- **REQ-2.1**: The script SHALL support replaying the segment `N` times as defined by `Options.replay_count` in BOTH `Autopause ON` and `Autopause OFF` modes.
+- **REQ-2.2**: After `N` iterations, the loop/replay SHALL be automatically deactivated, and the player SHALL either pause (Autopause ON) or continue (Autopause OFF).
 
 ### 3. Ghosting Resistance (Sticky Hold Recovery)
 - **REQ-3.1**: When `s` is pressed while Space is up but was released within 300ms, the script SHALL force `FSM.SPACEBAR` to `"HOLDING"`.

@@ -13,6 +13,7 @@
 - [x] 2.4 Update `cmd_smart_space` to clear `GHOST_HOLD_EXPIRY` on down events.
 - [x] 2.5 Transition `cmd_replay_sub` to subtitle-independent fixed-window logic.
 - [x] 2.6 Update `tick_scheduled_replay` to ensure pause at end of segment.
+- [x] 2.7 Unify `replay_count` logic for both `Autopause ON` and `OFF`.
 
 ## Phase 3: Verification
 - [ ] 3.1 Verify "Ghost Release" fix: hold Space, press S, release Space during replay -> should pause at end.
