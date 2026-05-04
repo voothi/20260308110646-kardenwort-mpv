@@ -4958,7 +4958,6 @@ local function tick_loop(time_pos)
             else
                 FSM.REPLAY_REMAINING = 0
                 FSM.LOOP_MODE = "OFF"
-                show_osd("Loop: OFF (Complete)")
             end
             
             -- [v1.58.48] Spacebar Override: If holding Space, break the loop
@@ -4966,7 +4965,6 @@ local function tick_loop(time_pos)
             if FSM.SPACEBAR == "HOLDING" then
                 FSM.LOOP_MODE = "OFF"
                 FSM.REPLAY_REMAINING = 0
-                show_osd("Loop: OFF (Space Override)")
             end
         end
     else
@@ -5701,22 +5699,18 @@ local function cmd_replay_sub()
     local replay_end = time_pos
 
     if FSM.AUTOPAUSE == "OFF" then
-        -- Toggle Loop Mode (Fixed Segment)
-        if FSM.LOOP_MODE == "ON" then
-            FSM.LOOP_MODE = "OFF"
-            FSM.REPLAY_REMAINING = 0
-            show_osd("Loop: OFF")
-        else
-            FSM.LOOP_MODE = "ON"
-            FSM.LOOP_START = replay_start
-            FSM.LOOP_END = replay_end
-            FSM.LOOP_ARMED = false
-            FSM.IGNORE_NEXT_JUMP = true
-            FSM.REPLAY_REMAINING = Options.replay_count
-            mp.commandv("seek", replay_start, "absolute+exact")
-            if is_paused then mp.set_property_bool("pause", false) end
-            show_osd("Loop Segment: ON (" .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or "") .. ")")
-        end
+        -- Autopause OFF: "Flashback" Replay (Finite Segment)
+        -- No toggling: each press restarts the replay window
+        FSM.LOOP_MODE = "ON"
+        FSM.LOOP_START = replay_start
+        FSM.LOOP_END = replay_end
+        FSM.LOOP_ARMED = false
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.REPLAY_REMAINING = Options.replay_count
+        
+        mp.commandv("seek", replay_start, "absolute+exact")
+        if is_paused then mp.set_property_bool("pause", false) end
+        show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
         FSM.LOOP_MODE = "OFF"

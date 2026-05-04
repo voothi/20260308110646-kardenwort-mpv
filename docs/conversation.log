@@ -1389,6 +1389,7 @@
 20260504180815 In the Autopause OFF mode, the number of loops should be regulated by a single parameter as for Autopause ON.
 20260504181434 Some large number of unnecessary plays in Autopause ON
 20260504181647 If the interval spans the previous subtitle, then the repeat gets stuck at the end of that subtitle, which is bad.
+20260504182015 The Autopause ON mode is good, but there are comments about Autopause OFF, in this mode everything works somehow complicated, some uninformative OSD messages appear, it should work extremely simply, according to our approach of working in a stream, without stops and unnecessary starts and stops, when we press s we should work as in ON, but without stopping after repeating.
 
 
 
