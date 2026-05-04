@@ -1387,6 +1387,7 @@
 20260504175320 opsx-apply 20260504174809-adaptive-subtitle-replay-refinement
 20260504180213 Let's do this, let's get rid of the boundaries of subtitles altogether and leave only the range of the track.
 20260504180815 In the Autopause OFF mode, the number of loops should be regulated by a single parameter as for Autopause ON.
+20260504181434 Some large number of unnecessary plays in Autopause ON
 
 
 
