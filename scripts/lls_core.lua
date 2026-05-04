@@ -623,7 +623,7 @@ function load_sub(path, is_ass)
                     state = "TIME"
                 end
             elseif state == "TIME" then
-                local s, e = line:match("^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>(%d%d:%d%d:%d%d[,.]%d%d%d)")
+                local s, e = line:match("^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>%s*(%d%d:%d%d:%d%d[,.]%d%d%d)")
                 if s and e then
                     current_sub.start_time = parse_time(s)
                     current_sub.end_time = parse_time(e)
@@ -2431,6 +2431,7 @@ local function load_anki_tsv(force, quiet)
 
     if fingerprint_match and not force and next(FSM.ANKI_HIGHLIGHTS) ~= nil then
         -- Fingerprint matches and we have data: skip expensive reload
+        Diagnostic.debug("TSV reload skipped: fingerprint matches and cache is populated.")
         return 
     end
 
@@ -2616,7 +2617,7 @@ local function load_anki_tsv(force, quiet)
     FSM.ANKI_DB_SIZE = info and info.size or 0
 
     flush_rendering_caches()
-    local msg_text = string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE))
+    Diagnostic.info(string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
     local dedupe_key = "tsv-load-" .. tostring(FSM.ANKI_DB_MTIME) .. "-" .. tostring(FSM.ANKI_DB_SIZE)
     
     if quiet then
@@ -2798,6 +2799,7 @@ local function update_media_state()
     
     for _, t in ipairs(track_list) do
         if t.type == "sub" then
+            Diagnostic.debug(string.format("Detected Track %d: type=%s, codec=%s, external=%s, path=%s", t.id, t.type, t.codec or "nil", tostring(t.external), t["external-filename"] or "nil"))
             local is_ass = false
             local path = nil
             
@@ -2835,6 +2837,30 @@ local function update_media_state()
         FSM.DW_LAYOUT_CACHE = nil
     end
     if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
+
+    -- Smart Auto-Selection: if primary track has no path (metadata only), switch to first external one
+    if Tracks.pri.id ~= 0 and not Tracks.pri.path and not FSM.__auto_track_selected then
+        for _, t in ipairs(track_list) do
+            if t.type == "sub" and t.external and t["external-filename"] then
+                Diagnostic.info("Auto-selecting Track " .. t.id .. " as primary.")
+                mp.set_property("sid", t.id)
+                FSM.__auto_track_selected = true
+                return -- Let the next tick process the new sid
+            end
+        end
+    end
+
+    -- Secondary Auto-Selection: if primary is secured but secondary is missing, try to find a second external track
+    if Tracks.pri.path and Tracks.sec.id == 0 and not FSM.__auto_track_selected_sec then
+        for _, t in ipairs(track_list) do
+            if t.type == "sub" and t.external and t["external-filename"] and t.id ~= Tracks.pri.id then
+                Diagnostic.info("Auto-selecting Track " .. t.id .. " as secondary.")
+                mp.set_property("secondary-sid", t.id)
+                FSM.__auto_track_selected_sec = true
+                return
+            end
+        end
+    end
 
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
