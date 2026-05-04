@@ -1393,5 +1393,4 @@
 20260504182514 Okay, it works, we’ve sorted out these cases, it seems, put the documentation in order according to our improvements, I’ll give you the following dialogue anchors as a hint 20260504173340 20260504175320 20260504180213 20260504180815 20260504181434 20260504181647 20260504182015. Comb the solution, make it production ready. Subtract the excess, optimize, add parameters to mpv.conf, add a comment in the block header.
 20260504183516 Okay, update the documentation on this change again, the main thing is the specs.
 20260504184346 opsx-apply openspec\changes\20260504174809-adaptive-subtitle-replay-refinement
-
-
+20260504184435 opsx-archive --sync 20260504174809-adaptive-subtitle-replay-refinement
