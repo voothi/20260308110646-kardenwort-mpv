@@ -4980,6 +4980,9 @@ local function tick_scheduled_replay(time_pos)
             mp.commandv("seek", FSM.SCHEDULED_REPLAY_START, "absolute+exact")
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
+            if FSM.SPACEBAR == "IDLE" then
+                mp.set_property_bool("pause", true)
+            end
             return true
         end
     end
@@ -5668,19 +5671,9 @@ end
 
 
 local function cmd_replay_sub()
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-    
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
-    local idx = get_center_index(subs, time_pos)
-    if idx == -1 then return end
-    
-    local sub = subs[idx]
-    if not sub or not sub.start_time then return end
-
-    local is_near_end = (time_pos >= sub.end_time - Options.pause_padding - 0.2)
     local is_paused = mp.get_property_bool("pause")
 
     -- [v1.58.48] Sticky Hold Workaround for Hardware Ghosting
@@ -5694,58 +5687,38 @@ local function cmd_replay_sub()
         FSM.GHOST_HOLD_EXPIRY = mp.get_time() + 2.0 -- 2 second safety window for desync recovery
     end
 
-    -- Calculate adaptive replay start
-    local replay_start = sub.start_time
-    if Options.replay_ms > 0 then
-        replay_start = math.max(sub.start_time, time_pos - Options.replay_ms/1000)
-    end
+    -- [v1.58.49] Fixed Window Replay (Subtitle Independent)
+    -- As per user request: "get rid of the boundaries of subtitles altogether and leave only the range of the track"
+    local replay_start = math.max(0, time_pos - Options.replay_ms/1000)
+    local replay_end = time_pos
 
     if FSM.AUTOPAUSE == "OFF" then
-        -- Toggle Loop Mode (Seamless looping)
+        -- Toggle Loop Mode (Fixed Segment)
         if FSM.LOOP_MODE == "ON" then
             FSM.LOOP_MODE = "OFF"
-            show_osd("Loop Subtitle: OFF")
+            show_osd("Loop: OFF")
         else
             FSM.LOOP_MODE = "ON"
             FSM.LOOP_START = replay_start
-            FSM.LOOP_END = sub.end_time
-            if is_near_end or is_paused then
-                -- Already at end/paused, jump now
-                FSM.LOOP_ARMED = false
-                FSM.IGNORE_NEXT_JUMP = true
-                mp.commandv("seek", replay_start, "absolute+exact")
-                if is_paused then mp.set_property_bool("pause", false) end
-            else
-                -- In middle, arm to jump at end
-                FSM.LOOP_ARMED = true
-            end
-            show_osd("Loop: ON (Line " .. idx .. ")")
-        end
-    else
-        -- Autopause ON Mode: Scheduled Replay / Immediate Replay
-        FSM.LOOP_MODE = "OFF"
-        if is_near_end or is_paused then
-            -- Already at end, replay now
+            FSM.LOOP_END = replay_end
+            FSM.LOOP_ARMED = false
             FSM.IGNORE_NEXT_JUMP = true
-            FSM.last_paused_sub_end = nil
-            FSM.REPLAY_REMAINING = Options.replay_count
             mp.commandv("seek", replay_start, "absolute+exact")
             if is_paused then mp.set_property_bool("pause", false) end
-            show_osd("Replaying line: " .. idx .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
-        else
-            -- In middle, schedule for end
-            if FSM.SCHEDULED_REPLAY_START then
-                FSM.SCHEDULED_REPLAY_START = nil
-                FSM.SCHEDULED_REPLAY_END = nil
-                FSM.REPLAY_REMAINING = 0
-                show_osd("Scheduled Replay: OFF")
-            else
-                FSM.SCHEDULED_REPLAY_START = replay_start
-                FSM.SCHEDULED_REPLAY_END = sub.end_time
-                FSM.REPLAY_REMAINING = Options.replay_count
-                show_osd("Scheduled Replay: ON (Line " .. idx .. ")")
-            end
+            show_osd("Loop Segment: ON (" .. Options.replay_ms .. "ms)")
         end
+    else
+        -- Autopause ON Mode: Immediate Replay (Fixed Segment)
+        FSM.LOOP_MODE = "OFF"
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.last_paused_sub_end = nil
+        FSM.REPLAY_REMAINING = Options.replay_count
+        FSM.SCHEDULED_REPLAY_START = replay_start
+        FSM.SCHEDULED_REPLAY_END = replay_end
+        
+        mp.commandv("seek", replay_start, "absolute+exact")
+        if is_paused then mp.set_property_bool("pause", false) end
+        show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
 end
 

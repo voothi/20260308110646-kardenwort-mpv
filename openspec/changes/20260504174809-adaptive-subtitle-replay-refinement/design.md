@@ -10,11 +10,8 @@ The `cmd_replay_sub` function will be updated to compute `FSM.REPLAY_START` and 
 
 **Logic**:
 ```lua
-local replay_start = sub.start_time
-if Options.replay_ms > 0 then
-    replay_start = math.max(sub.start_time, time_pos - Options.replay_ms/1000)
-end
-local replay_end = sub.end_time
+local replay_start = time_pos - Options.replay_ms/1000
+local replay_end = time_pos
 ```
 
 ### 2. Multi-Iteration Controller
