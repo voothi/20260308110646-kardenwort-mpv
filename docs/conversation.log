@@ -1414,6 +1414,15 @@
 20260504204556 Check the solution, clean it up. f94ee87ad4a7a7962e52e8abb50a64f3d83fb196..ebd113a9a510a6413b6a3545cc520f59c792f2ca
 20260505004540 opsx-propose
 20260505004902 opsx-apply openspec\changes\20260505004553-regression-audit-sync
+20260505005649 opsx-explore Can we implement a task option to set the subtitle overlap time when running, when starting, when stopping at subtitle boundaries? I imagine this as the Audio Padding Start Audio Padding End mode, which, when set in ms, allows you to make the subtitle playback overlap and the ending as well. In Replay mode this can be omitted, I think. This needs to be enabled and set via mpv.conf. It should work in Autostop ON/OFF. In OFF, when scrolling a, d, double click the mouse, etc. This is necessary because now in the Autostop OFF mode, for example, we have a problem with the fact that the subtitles are stopped at a small indentation in order to be positioned on the current subtitle, but this does not allow you to listen to it completely when autopausing.
+20260505012126 opsx-propose
+
+
+
+
+
+
+
 
 
 
