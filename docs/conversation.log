@@ -1373,7 +1373,8 @@
 20260504020433 It seems that this only works within one subtitle, that is, I start playback and press s. I press the spacebar, the next one starts on it, I also press s and hold the spacebar, but this no longer works, the recording stops. 
 20260504021350 Let's try to solve by hypothesis with the fact that pressing s interferes with the status of the space bar.
 20260504023403 opsx-apply 20260504021904-refine-subtitle-replay-looping
-20260504023600
+20260504023609 opsx-archive --sync 20260504021904-refine-subtitle-replay-looping
+
 
 
 
