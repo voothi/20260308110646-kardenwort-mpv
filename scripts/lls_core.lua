@@ -659,6 +659,7 @@ local FSM = {
     LOOP_END = nil,
     SCHEDULED_REPLAY_START = nil,
     SCHEDULED_REPLAY_END = nil,
+    REPLAY_ACTIVE_UNTIL_END = false,
     space_down_time = 0,
     initial_pause_state = true,
     native_sub_vis = mp.get_property_bool("sub-visibility", true),
@@ -4930,6 +4931,15 @@ local function tick_autopause(time_pos)
 
     if FSM.last_paused_sub_end == sub_end then return end
 
+    -- [v1.58.52] Hardware Ghosting Override: If the user was holding Space when they pressed 's',
+    -- but the OS/mpv dropped the key signal (fake 'up' event), we forcefully skip this pause
+    -- to guarantee it goes over the border smoothly.
+    if FSM.REPLAY_ACTIVE_UNTIL_END then
+        FSM.REPLAY_ACTIVE_UNTIL_END = false
+        FSM.last_paused_sub_end = sub_end
+        return
+    end
+
     local raw_text_primary = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
     local raw_text_secondary = mp.get_property("secondary-sub-text") or ""
     
@@ -5008,6 +5018,7 @@ local function master_tick()
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
+            FSM.REPLAY_ACTIVE_UNTIL_END = false
             if FSM.LOOP_MODE == "ON" then
                 -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
                 local subs = Tracks.pri.subs
@@ -5679,6 +5690,7 @@ local function cmd_replay_sub()
             -- Already at end, replay now
             FSM.IGNORE_NEXT_JUMP = true
             FSM.last_paused_sub_end = nil
+            if FSM.SPACEBAR == "HOLDING" then FSM.REPLAY_ACTIVE_UNTIL_END = true end
             mp.commandv("seek", sub.start_time, "absolute+exact")
             if is_paused then mp.set_property_bool("pause", false) end
             show_osd("Replaying line: " .. idx)
@@ -5687,10 +5699,12 @@ local function cmd_replay_sub()
             if FSM.SCHEDULED_REPLAY_START then
                 FSM.SCHEDULED_REPLAY_START = nil
                 FSM.SCHEDULED_REPLAY_END = nil
+                FSM.REPLAY_ACTIVE_UNTIL_END = false
                 show_osd("Scheduled Replay: OFF")
             else
                 FSM.SCHEDULED_REPLAY_START = sub.start_time
                 FSM.SCHEDULED_REPLAY_END = sub.end_time
+                if FSM.SPACEBAR == "HOLDING" then FSM.REPLAY_ACTIVE_UNTIL_END = true end
                 show_osd("Scheduled Replay: ON (Line " .. idx .. ")")
             end
         end
