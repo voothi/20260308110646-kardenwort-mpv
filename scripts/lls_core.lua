@@ -2431,7 +2431,6 @@ local function load_anki_tsv(force, quiet)
 
     if fingerprint_match and not force and next(FSM.ANKI_HIGHLIGHTS) ~= nil then
         -- Fingerprint matches and we have data: skip expensive reload
-        Diagnostic.debug("TSV reload skipped: fingerprint matches and cache is populated.")
         return 
     end
 
@@ -2617,7 +2616,7 @@ local function load_anki_tsv(force, quiet)
     FSM.ANKI_DB_SIZE = info and info.size or 0
 
     flush_rendering_caches()
-    Diagnostic.info(string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE)))
+    local msg_text = string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE))
     local dedupe_key = "tsv-load-" .. tostring(FSM.ANKI_DB_MTIME) .. "-" .. tostring(FSM.ANKI_DB_SIZE)
     
     if quiet then
@@ -2799,7 +2798,6 @@ local function update_media_state()
     
     for _, t in ipairs(track_list) do
         if t.type == "sub" then
-            Diagnostic.debug(string.format("Detected Track %d: type=%s, codec=%s, external=%s, path=%s", t.id, t.type, t.codec or "nil", tostring(t.external), t["external-filename"] or "nil"))
             local is_ass = false
             local path = nil
             
