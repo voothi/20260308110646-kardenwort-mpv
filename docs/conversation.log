@@ -1381,7 +1381,8 @@
 20260504033312 You, being a big model and an expert in the field of programming, check the conclusions of the small model against the facts and, as a specification architect and pedant, draw up a detailed plan opsx-propose, which can be entrusted to a small model
 20260504033930 opsx-apply 20260504033538-fix-drum-mode-cursor-desync
 20260504034919 opsx-archive --sync 20260504033538-fix-drum-mode-cursor-desync
-
+20260504035132 How to make sure that the mpv window does not close automatically at the end of the video?
+20260504035801 create-release-2 v1.58.49 openspec\changes\archive\20260504033538-fix-drum-mode-cursor-desync 20260504035132
 
 
 

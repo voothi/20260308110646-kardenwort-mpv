@@ -1,3 +1,21 @@
+# Release Notes - v1.58.49 (Drum Mode Cursor Fix & Window Persistence)
+
+**Date**: 2026-05-04
+**Version**: v1.58.49
+**Implementation ZIDs**: 20260504033538, 20260504035338
+
+## Highlights
+
+### 🎯 **Universal Drum Mode Cursor Sync**
+- **Authoritative Tracking**: Fixed a critical state desync where the subtitle clipboard focus (`FSM.DW_CURSOR_LINE`) would become "stuck" during continuous playback in Drum Mode.
+- **Global Heartbeat Integration**: Migrated the cursor synchronization logic from the localized Drum Window loop to the global `master_tick` heartbeat. This ensures the internal copy pointer always perfectly matches the active on-screen subtitle across all display modes.
+- **Improved Follow Logic**: Selection resets and viewport center updates are now unified, guaranteeing that `Ctrl+C` captures the currently playing line even when the dedicated reading window is closed.
+
+### 🖼️ **Interface & Persistence**
+- **Window Persistence**: Added `keep-open=yes` to the standard configuration. The mpv window will now remain open at the last frame when a video finishes, preventing unexpected application closure during intensive study sessions.
+
+---
+
 # Release Notes - v1.58.48 (Subtitle Replay Loop & Hotkey Optimization)
 
 **Date**: 2026-05-04

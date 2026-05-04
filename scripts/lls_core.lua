@@ -5035,7 +5035,7 @@ local function master_tick()
         if active_idx ~= -1 then
             FSM.DW_ACTIVE_LINE = active_idx
             
-            -- Universal Cursor Synchronization
+            -- [v1.58.49] Universal Cursor Synchronization
             -- Ensures that the "copy focus" always tracks playback when in follow mode,
             -- even if the Drum Window is closed (e.g., purely in Drum Mode on-screen).
             if FSM.DW_FOLLOW_PLAYER then
