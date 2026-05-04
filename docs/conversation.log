@@ -1397,6 +1397,12 @@
 20260504184435 opsx-archive --sync 20260504174809-adaptive-subtitle-replay-refinement
 20260504184940 Look at the branch that died by mistake and transfer the necessary information from it to my current commit. a9b1ce2a757f4ccd9b7693a8103087296afd4591
 20260504190548 Add the combination to input.conf Shift+ё to existing Shift+`
+20260504192137 x Why are subtitles not loading in this project? C:\Users\voothi\Desktop\20260504191156 20260504192310 Why doesn't the console open?
+20260504193014 x There is only such information.
+20260504193600 x Such a picture.
+20260504193837 x This is what we see.
+20260504194039 x Subtitles are not detected.
+20260504194507 x On one video that had built-in subtitles it seemed to work, but on another similar one without them it didn’t. Also, the old ones stopped detecting second subtitles.
 
 
 
