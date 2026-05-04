@@ -1,27 +1,29 @@
-# Specification: Adaptive Subtitle Replay
+# Specification: Unified Adaptive Replay (Flashback)
 
 **ID**: subtitle-replay-refinement
-**Scope**: Subtitle Replay (`s` key)
-**Status**: DRAFT
+**Scope**: Unified Replay System (`s` key)
+**Status**: FINAL
+**ZID**: 20260504182747
 
 ## Functional Requirements
 
-### 1. Adaptive Segment Calculation
-- **REQ-1.1**: The script SHALL calculate the replay start point based strictly on `Options.replay_ms` relative to the time of the keypress (`T_now`).
-- **REQ-1.2**: The replay start point SHALL be `T_now - Options.replay_ms/1000`.
-- **REQ-1.3**: The replay end point SHALL be `T_now`.
-- **REQ-1.4**: Subtitle boundaries SHALL be ignored for the purpose of calculating the replay segment.
+### 1. Subtitle-Independent Fixed-Window Replay
+- **REQ-1.1**: The `S` key SHALL trigger a replay anchored to the current playback position (`T_now`).
+- **REQ-1.2**: The replay segment SHALL be calculated as `[T_now - Options.replay_ms, T_now]`.
+- **REQ-1.3**: Subtitle boundaries SHALL be ignored during segment calculation to allow for cross-subtitle phrase repetition.
+- **REQ-1.4**: The `tick_autopause` controller SHALL be silenced during the replay to prevent interruptions at intermediate subtitle boundaries.
 
-### 2. Multi-Iteration Support
+### 2. Unified Multi-Iteration Controller
 - **REQ-2.1**: The script SHALL support replaying the segment `N` times as defined by `Options.replay_count` in BOTH `Autopause ON` and `Autopause OFF` modes.
-- **REQ-2.2**: After `N` iterations, the loop/replay SHALL be automatically deactivated, and the player SHALL either pause (Autopause ON) or continue (Autopause OFF).
+- **REQ-2.2**: After `N` iterations, the replay SHALL be automatically deactivated.
+- **REQ-2.3**: In `Autopause ON` mode, the player SHALL pause after the final iteration.
+- **REQ-2.4**: In `Autopause OFF` mode, the player SHALL continue playback forward without interruption.
 
-### 3. Ghosting Resistance (Sticky Hold Recovery)
-- **REQ-3.1**: When `s` is pressed while Space is up but was released within 300ms, the script SHALL force `FSM.SPACEBAR` to `"HOLDING"`.
-- **REQ-3.2**: This forced `"HOLDING"` state SHALL expire after 2 seconds of playback.
-- **REQ-3.3**: Upon expiry, the state SHALL revert to `"IDLE"`, allowing normal `Autopause` behavior to resume if the user has physically released the key.
-- **REQ-3.4**: A physical "Space DOWN" event SHALL cancel the expiry timer.
+### 3. Hardware Ghosting Resistance (Sticky Hold Recovery)
+- **REQ-3.1**: When `s` is pressed, if a "Space UP" event occurred within the last 300ms, the script SHALL force `FSM.SPACEBAR` to `"HOLDING"`.
+- **REQ-3.2**: This forced state SHALL have a 2-second temporal leash (`FSM.GHOST_HOLD_EXPIRY`).
+- **REQ-3.3**: If no physical "Space DOWN" is received within the leash, the state SHALL automatically revert to `"IDLE"`.
 
-### 4. Mode-Aware Behavior
-- **REQ-4.1**: In `Autopause OFF`, the `s` key SHALL toggle a persistent loop.
-- **REQ-4.2**: In `Autopause ON`, the `s` key SHALL schedule a one-shot (or multi-iteration) replay.
+### 4. User Experience (OSD)
+- **REQ-4.1**: OSD feedback SHALL be concise (e.g., "Replay: 2000ms").
+- **REQ-4.2**: Mode transitions and iteration finishes SHALL be silent in `Autopause OFF` to maintain streaming immersion.

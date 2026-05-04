@@ -1,3 +1,10 @@
+-- =========================================================================
+-- KARDENWORT Language Learning Suite (LLS) Core
+-- Version: v1.58.50
+-- Purpose: Language Acquisition through Subtitle-Driven Immersion
+-- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
+-- =========================================================================
+
 local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'

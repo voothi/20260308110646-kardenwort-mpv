@@ -1,4 +1,4 @@
-# Tasks: Adaptive Subtitle Replay Refinement
+# Tasks: Unified Adaptive Replay Refinement
 
 **ID**: 20260504174809-adaptive-subtitle-replay-refinement
 
@@ -14,8 +14,10 @@
 - [x] 2.5 Transition `cmd_replay_sub` to subtitle-independent fixed-window logic.
 - [x] 2.6 Update `tick_scheduled_replay` to ensure pause at end of segment.
 - [x] 2.7 Unify `replay_count` logic for both `Autopause ON` and `OFF`.
+- [x] 2.8 Silence `tick_autopause` during active replay/loop.
+- [x] 2.9 Simplify `Autopause OFF` OSD and behavior (Flashback).
 
-## Phase 3: Verification
-- [ ] 3.1 Verify "Ghost Release" fix: hold Space, press S, release Space during replay -> should pause at end.
-- [ ] 3.2 Verify adaptive segment: long sub, press S mid-way -> should jump back X ms, not to start.
-- [ ] 3.3 Verify repeat count: set `replay_count = 2`, press S -> should play twice then pause.
+## Phase 3: Finalization
+- [x] 3.1 Update `mpv.conf` with new defaults.
+- [x] 3.2 Add block header comment in `lls_core.lua`.
+- [x] 3.3 Final audit and cleanup.
