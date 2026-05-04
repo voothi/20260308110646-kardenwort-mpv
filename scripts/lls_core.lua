@@ -2592,7 +2592,6 @@ local function load_anki_tsv(force, quiet)
             end
         end
     end
-    f:close()
     
     FSM.ANKI_HIGHLIGHTS = new_highlights
 

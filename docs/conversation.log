@@ -1405,6 +1405,7 @@
 20260504194507 x On one video that had built-in subtitles it seemed to work, but on another similar one without them it didn’t. Also, the old ones stopped detecting second subtitles.
 20260504195913 The problem seems to be in the names of the files, if the files are called Paketzustellerin in der Vorweihnachtszeit.de.srt Paketzustellerin in der Vorweihnachtszeit.ru.srt it doesn't work. If 20260504193411-paketzustellerin-in-der-vorweihnachtszeit.de.srt 20260504193411-paketzustellerin-in-der-vorweihnachtszeit.mp4 20260504193411-paketzustellerin-in-der-vorweihnachtszeit.ru.srt 20260504193411-paketzustellerin-in-der-vorweihnachtszeit.tsv works.
 20260504200814 Error
+20260504201102 Error
 
 
 
