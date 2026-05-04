@@ -524,7 +524,11 @@ end
 function load_sub(path, is_ass)
     if not path or path == "" then return {} end
     local f = io.open(path, "r")
-    if not f then return {} end
+    if not f then 
+        Diagnostic.error("Failed to open subtitle file: " .. tostring(path))
+        return {} 
+    end
+    Diagnostic.debug("Loading subtitle file: " .. tostring(path))
     
     local subs = {}
     local current_sub = nil
@@ -2797,6 +2801,8 @@ local function update_media_state()
     
     for _, t in ipairs(track_list) do
         if t.type == "sub" then
+            Diagnostic.debug(string.format("Track %d: type=%s selected=%s external=%s codec=%s path=%s", 
+                t.id, t.type, tostring(t.selected), tostring(t.external), tostring(t.codec), tostring(t["external-filename"])))
             local is_ass = false
             local path = nil
             
