@@ -5003,7 +5003,8 @@ local function tick_loop(time_pos)
     if FSM.LOOP_MODE ~= "ON" then return end
     if not FSM.LOOP_START or not FSM.LOOP_END then return end
 
-    if time_pos >= FSM.LOOP_END - Options.pause_padding then
+    local effective_loop_end = FSM.LOOP_END + (Options.audio_padding_end / 1000)
+    if time_pos >= effective_loop_end - Options.pause_padding then
         if FSM.LOOP_ARMED then
             FSM.LOOP_ARMED = false
             FSM.IGNORE_NEXT_JUMP = true
@@ -5031,7 +5032,8 @@ end
 local function tick_scheduled_replay(time_pos)
     if not FSM.SCHEDULED_REPLAY_START or not FSM.SCHEDULED_REPLAY_END then return false end
     
-    if time_pos >= FSM.SCHEDULED_REPLAY_END - Options.pause_padding then
+    local effective_replay_end = FSM.SCHEDULED_REPLAY_END + (Options.audio_padding_end / 1000)
+    if time_pos >= effective_replay_end - Options.pause_padding then
         if FSM.REPLAY_REMAINING > 1 then
             FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
             FSM.IGNORE_NEXT_JUMP = true
@@ -5093,7 +5095,7 @@ local function master_tick()
                 if subs and #subs > 0 then
                     local idx = get_center_index(subs, time_pos)
                     if idx ~= -1 then
-                        FSM.LOOP_START = subs[idx].start_time
+                        FSM.LOOP_START = math.max(0, subs[idx].start_time - (Options.audio_padding_start / 1000))
                         FSM.LOOP_END = subs[idx].end_time
                         FSM.LOOP_ARMED = true
                         show_osd("Loop: Line " .. idx)
