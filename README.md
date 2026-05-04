@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.58.42-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.42) 
+[![Version](https://img.shields.io/badge/version-v1.58.48-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.48) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -27,6 +27,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
 - [Intelligent Scripts](#intelligent-scripts)
   - [Universal Subtitle Search](#universal-subtitle-search)
+  - [Adaptive Subtitle Replay & Looping](#adaptive-subtitle-replay--looping)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
   - [Drum Mode (Dynamic Multi-line Flow)](#drum-mode)
   - [Static Reading Mode (Drum Window)](#static-reading-mode)
@@ -107,6 +108,7 @@ This suite solves problems that standard video players and generic scripts ignor
 40. **Global Trigger Recursion Lock**: Implemented a time-based guard to prevent AHK-generated `^c` loops, ensuring clean synchronization with external dictionary tools.
 41. **Prioritized Selection in Context Copy**: Manual selections (word/range) now take absolute priority over "Context Copy" mode, allowing for precise term extraction even when multi-line harvesting is active.
 42. **Ghost Hit-Zone Elimination**: Explicit lifecycle management for tooltip hit-zones prevents interaction bleed-through and ensures the Drum Window remains fully interactive after tooltip dismissal.
+43. **Adaptive Subtitle Replay & Looping**: A dual-mode replay engine (triggered via `s` / `ы`) that adapts to the active workflow. Implements **Sticky Hold** FSM logic to defeat hardware ghosting and supports **Spacebar Overrides** for seamless loop breaking.
 
 [Return to Top](#table-of-contents)
 
@@ -140,13 +142,21 @@ A high-performance navigation overlay that decouples content lookup from playbac
 | `Shift + LEFT/RIGHT` | Select text range within query |
 | `HOME` / `END` | Jump cursor to start/end of query |
 | `ESC` | Discard query or close search |
+| `MBTN_LEFT` | Click result to seek and close search |
+
+### Adaptive Subtitle Replay & Looping
+A robust, mode-aware replay system designed to eliminate friction during continuous immersion.
+- **Dual-Mode Logic**: Triggered via `s` / `ы`. In **Autopause OFF** mode, it toggles a persistent subtitle loop. In **Autopause ON** mode, it performs a one-shot manual replay.
+- **Delayed Execution**: Prevents mid-phrase seeks by "arming" the command and waiting for the subtitle boundary before jumping back.
+- **Sticky Hold Recovery**: Defeats hardware keyboard ghosting on Windows by automatically recovering the "Space-hold" state if the signal drops during a replay trigger.
+- **Toggle**: `s` (English) or `ы` (Russian).
 
 ### Karaoke-Safe Autopause
 Advanced pause logic designed specifically for immersion students using `.ass` karaoke-formatted subtitles.
 - **End of Phrase**: By default, it pauses only when the sentence is finished (detecting the end of the `{\c}` tag sequence).
 - **Word by Word**: Toggle with `K` to pause after every word highlighted in your karaoke tracks.
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
-- **Toggle**: `s` (English) or `ы` (Russian).
+- **Toggle**: `S` (English) or `Ы` (Russian).
 
 ### <span id="drum-mode"></span>Drum Mode (Dynamic Multi-line Flow)
 The primary immersion mode designed for rapid reading and phrasal awareness during playback.
@@ -227,7 +237,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `F` / `А` | `F` / `А` | Toggle **Karaoke Mode** (Autopause granularity) |
 | `X` / `Ч` | `X` / `Ч` | Cycle **Secondary Position** (Top ↔ Bottom) |
 | `C` / `С` | `C` / `С` | **Cycle Secondary Track** (Translation) |
-| `s` / `ы` | `s` / `ы` | Toggle **Autopause** (ON/OFF) |
+| `s` / `ы` | `s` / `ы` | **Subtitle Replay** (Loop / One-shot) |
 | `S` / `Ы` | `S` / `Ы` | Toggle **Autopause** (ON/OFF) |
 | `z` / `я` | `z` / `я` | Toggle **Static Reading Mode** (Drum Window) |
 | `Z` / `Я` | `Z` / `Я` | Toggle **Book Mode** (Drum Window) |
@@ -508,7 +518,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1603 Commits (v1.58.42)
+- **Current Maturity**: ~1603 Commits (v1.58.48)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
