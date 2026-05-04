@@ -1377,8 +1377,8 @@
 20260503213412 /opsx-explore You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications, configuration guru and diff-guru for this project, with surgical precision check the current version a4d5708659659d6f25f78449d0b33e4764fb14f5 20260504023707 for regression compared to v1.58.42, and for compliance, impeccable adherence to the current general openspec\specs specifications, it is necessary to synchronize.
 20260504024409 Rename the release in v1.58.48
 20260504024852 Update README.md
-
-
+20260504031844 opsx-explore Why is the problem that the current subtitle is not being copied now when working in Autopause ON mode, when I navigate using only the space bar? The first subtitle is copied when you start working, and the next one when you go to it and stop, using Ctrl + C is not copied, it is copied instead (white, current), all the previous ones and then the same, if you go through another one, the first one will still be copied, not the second or third. This is resolved as soon as you press a or d. I tested in Drum Mode ON. There doesn't seem to be this problem in Drum Window ON mode.
+20260504033312 You, being a big model and an expert in the field of programming, check the conclusions of the small model against the facts and, as a specification architect and pedant, draw up a detailed plan opsx-propose, which can be entrusted to a small model
 
 
 
