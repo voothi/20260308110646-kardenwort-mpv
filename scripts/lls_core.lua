@@ -199,6 +199,8 @@ Options = {
     pause_padding = 0.15,
     karaoke_token = "{\\c}",
     space_tap_delay = 0.2,
+    audio_padding_start = 0,
+    audio_padding_end = 0,
 
     -- Drum Mode
     drum_font_size = 34,
@@ -486,11 +488,16 @@ end
 
 function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
+    
+    local pad_start = (Options.audio_padding_start or 0) / 1000
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+
     local low, high = 1, #subs
     local best = -1
     while low <= high do
         local mid = math.floor((low + high) / 2)
-        if subs[mid].start_time <= time_pos then
+        -- Binary search for the latest sub that "contains" or is "before" time_pos with padding
+        if (subs[mid].start_time - pad_start) <= time_pos then
             best = mid
             low = mid + 1
         else
@@ -500,12 +507,15 @@ function get_center_index(subs, time_pos)
     
     if best == -1 then return 1 end
     
-    if time_pos <= subs[best].end_time then
+    -- If we are in the padded range of 'best', return it
+    if time_pos <= (subs[best].end_time + pad_end) then
         return best
     end
     
+    -- Gap Logic (if not in padded range of 'best')
     if best < #subs then
         local next_sub = subs[best + 1]
+        -- Closest boundary logic for gaps: pick the sub whose technical boundary is closer
         if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
             return best
         else
@@ -4834,7 +4844,8 @@ local function cmd_dw_double_click()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
         end
 
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local seek_time = math.max(0, sub.start_time - (Options.audio_padding_start / 1000))
+        mp.commandv("seek", seek_time, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
@@ -4944,23 +4955,50 @@ local function tick_autopause(time_pos)
     -- [v1.58.48] Precise Manual Autopause
     -- Prefer our parsed subtitles table for exact timing. Native 'sub-end' can be 
     -- flaky or laggy during rapid seeking.
-    local sub_end = nil
     local subs = Tracks.pri.subs
-    if subs and #subs > 0 then
-        local idx = get_center_index(subs, time_pos)
-        if idx ~= -1 then
-            sub_end = subs[idx].end_time
+    if not subs or #subs == 0 then return end
+
+    -- [v1.58.50] Sequential Multi-Candidate Watcher
+    -- We scan the current and previous subtitles to ensure that overlapping padding
+    -- doesn't cause us to 'skip' a stop.
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+    
+    -- Find latest started index (technical start)
+    local low, high = 1, #subs
+    local idx = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            idx = mid
+            low = mid + 1
+        else
+            high = mid - 1
         end
     end
-    
-    -- Fallback to native property if logic memory is empty
-    if not sub_end then
-        sub_end = mp.get_property_number("sub-end")
+
+    if idx == -1 then return end
+
+    local trigger_sub_end = nil
+    local start_search = math.max(1, idx - 2) -- Check last 3 subtitles for safety
+    for i = start_search, idx do
+        local sub = subs[i]
+        local effective_sub_end = sub.end_time + pad_end
+        local trigger_point = effective_sub_end - Options.pause_padding
+        
+        -- Sticky Trigger: If we crossed the line and haven't paused yet for this sub
+        if time_pos >= trigger_point then
+            if FSM.last_paused_sub_end ~= sub.end_time then
+                -- Safety: don't trigger for ancient subtitles if we seeked manually
+                if time_pos < effective_sub_end + 1.0 then
+                    trigger_sub_end = sub.end_time
+                    break -- Prioritize the earliest one in the chain
+                end
+            end
+        end
     end
 
-    if sub_end == nil or (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
-        return
-    end
+    if not trigger_sub_end then return end
+    local sub_end = trigger_sub_end
 
     if FSM.last_paused_sub_end == sub_end then return end
 
@@ -4983,7 +5021,8 @@ local function tick_loop(time_pos)
     if FSM.LOOP_MODE ~= "ON" then return end
     if not FSM.LOOP_START or not FSM.LOOP_END then return end
 
-    if time_pos >= FSM.LOOP_END - Options.pause_padding then
+    local effective_loop_end = FSM.LOOP_END + (Options.audio_padding_end / 1000)
+    if time_pos >= effective_loop_end - Options.pause_padding then
         if FSM.LOOP_ARMED then
             FSM.LOOP_ARMED = false
             FSM.IGNORE_NEXT_JUMP = true
@@ -5011,7 +5050,8 @@ end
 local function tick_scheduled_replay(time_pos)
     if not FSM.SCHEDULED_REPLAY_START or not FSM.SCHEDULED_REPLAY_END then return false end
     
-    if time_pos >= FSM.SCHEDULED_REPLAY_END - Options.pause_padding then
+    local effective_replay_end = FSM.SCHEDULED_REPLAY_END + (Options.audio_padding_end / 1000)
+    if time_pos >= effective_replay_end - Options.pause_padding then
         if FSM.REPLAY_REMAINING > 1 then
             FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
             FSM.IGNORE_NEXT_JUMP = true
@@ -5073,7 +5113,7 @@ local function master_tick()
                 if subs and #subs > 0 then
                     local idx = get_center_index(subs, time_pos)
                     if idx ~= -1 then
-                        FSM.LOOP_START = subs[idx].start_time
+                        FSM.LOOP_START = math.max(0, subs[idx].start_time - (Options.audio_padding_start / 1000))
                         FSM.LOOP_END = subs[idx].end_time
                         FSM.LOOP_ARMED = true
                         show_osd("Loop: Line " .. idx)
@@ -5734,6 +5774,20 @@ local function cmd_replay_sub()
     local replay_start = math.max(0, time_pos - Options.replay_ms/1000)
     local replay_end = time_pos
 
+    -- Expert Snap: If we are within a subtitle's padding zone, snap the logical end
+    -- to the technical end so that the padding is applied consistently.
+    local subs = Tracks.pri.subs
+    if subs and #subs > 0 then
+        local idx = get_center_index(subs, time_pos)
+        if idx ~= -1 then
+            local sub = subs[idx]
+            local pad_end = (Options.audio_padding_end or 0) / 1000
+            if time_pos > sub.end_time and time_pos <= sub.end_time + pad_end then
+                replay_end = sub.end_time
+            end
+        end
+    end
+
     if FSM.AUTOPAUSE == "OFF" then
         -- Autopause OFF: "Flashback" Replay (Finite Segment)
         -- No toggling: each press restarts the replay window
@@ -5768,7 +5822,8 @@ local function cmd_dw_seek_selected()
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
-            mp.commandv("seek", sub.start_time, "absolute+exact")
+            local seek_time = math.max(0, sub.start_time - (Options.audio_padding_start / 1000))
+            mp.commandv("seek", seek_time, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
@@ -5800,7 +5855,8 @@ local function cmd_dw_seek_delta(dir)
     FSM.DW_SEEK_TARGET = target_idx
     local sub = subs[target_idx]
     if sub and sub.start_time then
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local seek_time = math.max(0, sub.start_time - (Options.audio_padding_start / 1000))
+        mp.commandv("seek", seek_time, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
