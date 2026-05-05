@@ -4979,16 +4979,25 @@ local function tick_autopause(time_pos)
 
     if idx == -1 then return end
 
-    local candidates = { subs[idx] }
-    if idx > 1 then table.insert(candidates, subs[idx-1]) end
-
     local trigger_sub_end = nil
-    for _, sub in ipairs(candidates) do
+    local start_search = math.max(1, idx - 2) -- Check last 3 subtitles just to be sure
+    for i = start_search, idx do
+        local sub = subs[i]
         local effective_sub_end = sub.end_time + pad_end
-        if (effective_sub_end - time_pos) < Options.pause_padding and (effective_sub_end - time_pos) > 0 then
+        
+        -- Trigger point: padding_end - pause_padding
+        local trigger_point = effective_sub_end - Options.pause_padding
+        
+        -- If we have crossed the trigger point...
+        if time_pos >= trigger_point then
+            -- ...and we haven't already paused for this specific subtitle end...
             if FSM.last_paused_sub_end ~= sub.end_time then
-                trigger_sub_end = sub.end_time
-                break
+                -- ...and we aren't so far past it that it's obviously a different phrase 
+                -- (e.g., more than 1s past the padded end)
+                if time_pos < effective_sub_end + 1.0 then
+                    trigger_sub_end = sub.end_time
+                    break -- Prioritize the earliest one found
+                end
             end
         end
     end
