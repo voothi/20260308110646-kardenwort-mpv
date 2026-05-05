@@ -16,7 +16,11 @@ The secondary subtitle cycle MUST only include external subtitle tracks that are
 - **THEN** Pressing `Shift+c` MUST NOT select that same track as the secondary subtitle, jumping to the next available supported track instead.
 
 ## Requirement: OSD Transparency
-The OSD MUST inform the user when tracks are being hidden from the cycle.
+The system SHALL inform the user when unsupported or conflict-avoided tracks are hidden from the cycle.
+
+### Scenario: User Feedback for Hidden Tracks
+- **WHEN** internal tracks are hidden or the primary track is skipped during a `Shift+c` cycle
+- **THEN** the OSD MUST display a count of hidden tracks in square brackets (e.g., `[N built-in hidden]`).
 
 ### Scenario: Informative OSD Suffix
 - **WHEN** Built-in tracks are detected in the media file

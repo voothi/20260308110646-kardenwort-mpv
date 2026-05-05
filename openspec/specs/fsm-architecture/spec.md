@@ -88,3 +88,32 @@ The system SHALL centralize all core language learning features (Autopause, Cont
 - **WHEN** multiple features are enabled simultaneously
 - **THEN** their logic SHALL be executed sequentially within the centralized core to prevent race conditions.
 
+
+### Requirement: Immersion Mode Transition FSM
+The system SHALL manage subtitle transitions based on the `FSM.IMMERSION_MODE` state to accommodate both cinematic and intensive study workflows.
+
+#### Scenario: Phrases Mode Jerk-Back
+- **WHEN** `FSM.IMMERSION_MODE == "PHRASE"` and a natural transition occurs from subtitle `i` to `i+1`
+- **THEN** if the padded start of `i+1` is earlier than the padded end of `i`, the system SHALL perform a "Jerk-Back" seek to the padded start of `i+1` to ensure card integrity.
+
+#### Scenario: Movie Mode Seamless Handover
+- **WHEN** `FSM.IMMERSION_MODE == "MOVIE"`
+- **THEN** the system SHALL calculate a gapless handover point where subtitle `i` ends exactly at the padded start of `i+1`, preventing audio repeats.
+
+### Requirement: Deterministic Focus Sentinel
+The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding.
+
+#### Scenario: Subtitle Tail Protection
+- **WHEN** playback continues past the technical duration of a subtitle
+- **THEN** the sentinel SHALL remain locked until the playhead exits the `[Start-Pad, End+Pad]` window.
+
+### Requirement: Behavioral Parameterization
+The system SHALL externalize all state transition thresholds to allow for hardware-specific tuning and scientific reliability.
+
+#### Scenario: Manual Navigation Settle Period
+- **WHEN** a manual seek is detected
+- **THEN** the system SHALL suspend automated FSM corrections for a duration defined by `Options.nav_cooldown` (Default: 0.5s).
+
+#### Scenario: Overlap Precision
+- **WHEN** calculating transition points
+- **THEN** a tolerance defined by `Options.nav_tolerance` (Default: 0.05s) SHALL be applied to handle floating-point rounding errors.
