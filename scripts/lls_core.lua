@@ -473,6 +473,105 @@ Options = {
 options.read_options(Options, "lls")
 
 -- =========================================================================
+-- STATE MACHINE
+-- =========================================================================
+
+local FSM = {
+    -- Media Context
+    MEDIA_STATE = "NO_SUBS", -- NO_SUBS, SINGLE_SRT, SINGLE_ASS, DUAL_SRT, DUAL_ASS, DUAL_MIXED
+    
+    -- Feature States
+    AUTOPAUSE = Options.autopause_default and "ON" or "OFF",
+    KARAOKE = Options.karaoke_every_word and "WORD" or "PHRASE",
+    SPACEBAR = "IDLE",
+    DRUM = "OFF",
+    COPY_MODE = "A",
+    COPY_CONTEXT = "OFF",
+    BOOK_MODE = Options.book_mode or false,
+    OSC_VIS = 0, -- 0=auto, 1=always, 2=never
+    ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
+
+    -- Transients
+    last_paused_sub_end = nil,
+    last_time_pos = nil,
+    IGNORE_NEXT_JUMP = false,
+    LOOP_MODE = "OFF",
+    LOOP_ARMED = false,
+    LOOP_START = nil,
+    LOOP_END = nil,
+    SCHEDULED_REPLAY_START = nil,
+    SCHEDULED_REPLAY_END = nil,
+    REPLAY_REMAINING = 0,
+    GHOST_HOLD_EXPIRY = nil,
+    space_down_time = 0,
+    space_up_time = 0,
+    initial_pause_state = true,
+    native_sub_vis = mp.get_property_bool("sub-visibility", true),
+    native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true),
+    native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
+
+    -- Drum Window State
+    DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
+    DW_CURSOR_LINE = -1,       -- Current line focused by word nav
+    DW_CURSOR_WORD = -1,       -- Word index in the current line
+    DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
+    DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
+    DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
+    DW_VIEW_CENTER = -1,       -- Viewport center line index
+    DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
+    DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
+    DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
+    DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
+    DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
+
+    -- Performance Caches
+    DW_LAYOUT_CACHE = nil,     -- Cached layout for the current viewport
+    LAYOUT_VERSION = 0,        -- Incremented when font/spacing options change
+    -- Global Search State
+    SEARCH_MODE = false,
+    SEARCH_QUERY = "",
+    SEARCH_RESULTS = {},
+    SEARCH_SEL_IDX = 1,
+    SEARCH_CURSOR = 0,
+    SEARCH_ANCHOR = -1,
+
+    -- Transient UI State
+    saved_osd_border_style = nil,
+    DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
+
+    -- Tooltip State
+    DW_TOOLTIP_LINE = -1,
+    DW_TOOLTIP_MODE = "CLICK",
+    DW_TOOLTIP_HOLDING = false,
+    DW_TOOLTIP_LOCKED_LINE = -1,
+    DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
+    DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
+    DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
+    DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
+    DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
+    DW_SEEKING_MANUALLY = false,
+    DW_SEEK_TARGET = -1,
+    DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
+
+    -- Repeat Timer
+    SEEK_REPEAT_TIMER = nil,
+
+    -- Anki Highlighter State
+    ANKI_HIGHLIGHTS = {},
+    ANKI_HIGHLIGHTS_SORTED = {},
+    ANKI_VERSION = 0,             -- Version counter for cache invalidation
+    ANKI_DB_PATH = nil,
+    ANKI_DB_MTIME = 0,
+    ANKI_DB_SIZE = 0
+}
+
+local Tracks = {
+    pri = { id = 0, is_ass = false, path = nil, subs = {} },
+    sec = { id = 0, is_ass = false, path = nil, subs = {} }
+}
+
+-- =========================================================================
 -- CORE UTILITIES (Moved up for visibility)
 -- =========================================================================
 
@@ -677,104 +776,6 @@ function load_sub(path, is_ass)
     return subs
 end
 
--- =========================================================================
--- STATE MACHINE
--- =========================================================================
-
-local FSM = {
-    -- Media Context
-    MEDIA_STATE = "NO_SUBS", -- NO_SUBS, SINGLE_SRT, SINGLE_ASS, DUAL_SRT, DUAL_ASS, DUAL_MIXED
-    
-    -- Feature States
-    AUTOPAUSE = Options.autopause_default and "ON" or "OFF",
-    KARAOKE = Options.karaoke_every_word and "WORD" or "PHRASE",
-    SPACEBAR = "IDLE",
-    DRUM = "OFF",
-    COPY_MODE = "A",
-    COPY_CONTEXT = "OFF",
-    BOOK_MODE = Options.book_mode or false,
-    OSC_VIS = 0, -- 0=auto, 1=always, 2=never
-    ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
-
-    -- Transients
-    last_paused_sub_end = nil,
-    last_time_pos = nil,
-    IGNORE_NEXT_JUMP = false,
-    LOOP_MODE = "OFF",
-    LOOP_ARMED = false,
-    LOOP_START = nil,
-    LOOP_END = nil,
-    SCHEDULED_REPLAY_START = nil,
-    SCHEDULED_REPLAY_END = nil,
-    REPLAY_REMAINING = 0,
-    GHOST_HOLD_EXPIRY = nil,
-    space_down_time = 0,
-    space_up_time = 0,
-    initial_pause_state = true,
-    native_sub_vis = mp.get_property_bool("sub-visibility", true),
-    native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true),
-    native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
-
-    -- Drum Window State
-    DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
-    DW_CURSOR_LINE = -1,       -- Current line focused by word nav
-    DW_CURSOR_WORD = -1,       -- Word index in the current line
-    DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
-    DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
-    DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
-    DW_VIEW_CENTER = -1,       -- Viewport center line index
-    DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
-    DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
-    DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
-    DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
-    DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
-    DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
-
-    -- Performance Caches
-    DW_LAYOUT_CACHE = nil,     -- Cached layout for the current viewport
-    LAYOUT_VERSION = 0,        -- Incremented when font/spacing options change
-    -- Global Search State
-    SEARCH_MODE = false,
-    SEARCH_QUERY = "",
-    SEARCH_RESULTS = {},
-    SEARCH_SEL_IDX = 1,
-    SEARCH_CURSOR = 0,
-    SEARCH_ANCHOR = -1,
-
-    -- Transient UI State
-    saved_osd_border_style = nil,
-    DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
-
-    -- Tooltip State
-    DW_TOOLTIP_LINE = -1,
-    DW_TOOLTIP_MODE = "CLICK",
-    DW_TOOLTIP_HOLDING = false,
-    DW_TOOLTIP_LOCKED_LINE = -1,
-    DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
-    DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
-    DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
-    DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
-    DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
-    DW_SEEKING_MANUALLY = false,
-    DW_SEEK_TARGET = -1,
-    DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
-
-    -- Repeat Timer
-    SEEK_REPEAT_TIMER = nil,
-
-    -- Anki Highlighter State
-    ANKI_HIGHLIGHTS = {},
-    ANKI_HIGHLIGHTS_SORTED = {},
-    ANKI_VERSION = 0,             -- Version counter for cache invalidation
-    ANKI_DB_PATH = nil,
-    ANKI_DB_MTIME = 0,
-    ANKI_DB_SIZE = 0
-}
-
-local Tracks = {
-    pri = { id = 0, is_ass = false, path = nil, subs = {} },
-    sec = { id = 0, is_ass = false, path = nil, subs = {} }
-}
 
 -- UI State pointers for Drum Mode OSD
 local drum_osd = mp.create_osd_overlay("ass-events")
