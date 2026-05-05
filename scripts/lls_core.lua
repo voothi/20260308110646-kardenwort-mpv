@@ -4895,6 +4895,7 @@ local function cmd_dw_double_click()
 
         local s, _ = get_effective_boundaries(sub, line_idx)
         mp.commandv("seek", s, "absolute+exact")
+        FSM.last_paused_sub_end = nil
         -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
         -- at the post-seek mouse position.
         FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
@@ -5883,6 +5884,7 @@ local function cmd_dw_seek_selected()
 
             local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
+            FSM.last_paused_sub_end = nil
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
@@ -5924,6 +5926,7 @@ local function cmd_dw_seek_delta(dir)
     if sub and sub.start_time then
         local s, _ = get_effective_boundaries(sub, target_idx)
         mp.commandv("seek", s, "absolute+exact")
+        FSM.last_paused_sub_end = nil
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         

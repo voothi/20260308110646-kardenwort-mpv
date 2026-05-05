@@ -1438,6 +1438,7 @@
 20260505100657 It’s gotten worse, I can’t move a, d between subtitles, it gets stuck. Look at the state diagram of this process, FSM, solve the problem.
 20260505101100 It looks like the padding end has stopped working.
 20260505101459 In Movie mode, padding should also work, but not overlap as it was before 20260505094627.
+20260505101930 When rewinding one by one subtitle, it plays and does not stop in Autopause ON, Immersion Mode both. It was ok in 71bfa6a4342a884fd2d949f5bb8ae0da132c1728
 
 
 
