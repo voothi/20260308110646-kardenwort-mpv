@@ -476,7 +476,15 @@ Options = {
     key_cycle_immersion_mode = "O Щ", -- Hotkey to cycle Phrase/Movie modes
     immersion_mode_default = "PHRASE", -- Default mode at startup ("PHRASE" or "MOVIE")
     seek_time_delta = 2,           -- Amount to seek in seconds for relative time navigation
-    seek_osd_duration = 2.0        -- Duration of the centered seek OSD message (sec)
+    seek_osd_duration = 2.0,       -- Duration of the centered seek OSD message (sec)
+    seek_font_size = 60,
+    seek_font_name = "Consolas",
+    seek_font_bold = false,
+    seek_color = "FFFFFF",
+    seek_bg_color = "000000",
+    seek_bg_opacity = "60",
+    seek_border_size = 1.5,
+    seek_shadow_offset = 1.0
 }
 options.read_options(Options, "lls")
 
@@ -591,9 +599,21 @@ function show_osd(msg, dur)
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
 end
 
-function show_osd_center(msg, dur)
-    local style = mp.get_property("osd-ass-cc/0") or ""
-    mp.osd_message(style .. "{\\an5}{\\fs60}" .. msg, dur or Options.seek_osd_duration)
+function show_seek_osd(msg, alignment)
+    local ass = ""
+    ass = ass .. string.format("{\\an%d}", alignment)
+    ass = ass .. string.format("{\\fn%s}", Options.seek_font_name)
+    ass = ass .. string.format("{\\fs%d}", Options.seek_font_size)
+    ass = ass .. string.format("{\\b%d}", Options.seek_font_bold and 1 or 0)
+    ass = ass .. string.format("{\\1c&H%s&}", Options.seek_color)
+    ass = ass .. string.format("{\\3c&H%s&}", Options.seek_bg_color)
+    ass = ass .. string.format("{\\4c&H%s&}", Options.seek_bg_color)
+    ass = ass .. string.format("{\\3a&H%s&}", Options.seek_bg_opacity)
+    ass = ass .. string.format("{\\4a&H%s&}", Options.seek_bg_opacity)
+    ass = ass .. string.format("{\\bord%g}", Options.seek_border_size)
+    ass = ass .. string.format("{\\shad%g}", Options.seek_shadow_offset)
+    
+    mp.osd_message(ass .. msg, Options.seek_osd_duration)
 end
 
 function has_cyrillic(str)
@@ -5968,7 +5988,8 @@ local function cmd_seek_time(dir)
     
     mp.commandv("seek", delta, "relative+exact")
     local prefix = (delta > 0) and "+" or ""
-    show_osd_center(prefix .. tostring(delta))
+    local alignment = (delta > 0) and 6 or 4
+    show_seek_osd(prefix .. tostring(delta), alignment)
 end
 
 

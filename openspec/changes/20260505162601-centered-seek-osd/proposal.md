@@ -4,15 +4,15 @@ Users currently lack clear visual feedback for time-based seeking (LEFT/RIGHT, S
 
 ## What Changes
 
-- **New Options**: Introduce `seek_time_delta` (amount to seek) and `seek_osd_duration` (how long to show the message).
-- **Script-Driven Seeking**: Implement `lls-seek_time_forward` and `lls-seek_time_backward` in `lls_core.lua` to handle both the seek operation and the custom OSD.
-- **Centered OSD**: Display a large, centered message (e.g., `+2` or `-2`) using `{\an5}` alignment.
+- **New Options**: Introduce `seek_time_delta` (amount to seek), `seek_osd_duration`, and a full set of styling parameters (`seek_font_name`, `seek_font_size`, `seek_color`, etc.).
+- **Directional OSD**: Display messages on the left (`{\an4}`) for backward seeks and on the right (`{\an6}`) for forward seeks.
+- **Script-Driven Seeking**: Implement `lls-seek_time_forward` and `lls-seek_time_backward` in `lls_core.lua` to handle the seek operation, directional logic, and custom OSD styling.
 - **Key Binding Updates**: Remap `LEFT`, `RIGHT`, `Shift+A`, and `Shift+D` in `input.conf` to use the new script bindings.
 
 ## Capabilities
 
 ### New Capabilities
-- `centered-seek-feedback`: Implementation of high-visibility, centered OSD feedback for relative time seeking.
+- `directional-seek-feedback`: Implementation of high-visibility, directional OSD feedback (Left/Right) with dedicated styling parameters.
 
 ### Modified Capabilities
 - `layout-agnostic-seeking`: Expand requirement to include script-mediated time seeking with visual confirmation.

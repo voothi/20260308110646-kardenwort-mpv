@@ -1,21 +1,21 @@
-## 1. Configuration Hardening
+## 1. Configuration Expansion
 
-- [x] 1.1 Add `seek_time_delta` (default 2) to `Options` in `lls_core.lua`
-- [x] 1.2 Add `seek_osd_duration` (default 2.0) to `Options` in `lls_core.lua`
-- [x] 1.3 Add corresponding `script-opts-append` entries in `mpv.conf` for both new options
+- [x] 1.1 Expand `Options` in `lls_core.lua` with `seek_font_name`, `seek_font_size`, `seek_font_bold`, `seek_color`, `seek_bg_color`, `seek_bg_opacity`, `seek_border_size`, `seek_shadow_offset`
+- [x] 1.2 `seek_time_delta` and `seek_osd_duration` are already present
+- [x] 1.3 Add all new styling options to `mpv.conf` with `script-opts-append`
 
-## 2. OSD Refinement
+## 2. Directional OSD Implementation
 
-- [x] 2.1 Implement `show_osd_center(msg, dur)` in `lls_core.lua` using `{\an5}` alignment
-- [x] 2.2 Increase font size for centered OSD (e.g., `{\fs60}`) for better visibility
+- [x] 2.1 Update `show_osd_center` to `show_seek_osd(msg, alignment)` in `lls_core.lua`
+- [x] 2.2 Implement directional logic: `-` seeks use `{\an4}`, `+` seeks use `{\an6}`
+- [x] 2.3 Apply the new `Options.seek_*` styling parameters to the OSD message string
 
-## 3. Script-Driven Seeking
+## 3. Script-Driven Seeking (Refinement)
 
-- [x] 3.1 Implement `cmd_seek_time(delta)` in `lls_core.lua` that executes seek and shows centered OSD
-- [x] 3.2 Add script bindings `lls-seek_time_forward` and `lls-seek_time_backward` to `lls_core.lua`
+- [x] 3.1 `cmd_seek_time(delta)` and script bindings are already present
+- [x] 3.2 Update `cmd_seek_time` to call the new `show_seek_osd` with correct alignment
 
-## 4. Input Configuration
+## 4. Layout Verification
 
-- [x] 4.1 Update `input.conf` to bind `LEFT` and `RIGHT` to the new script commands
-- [x] 4.2 Update `input.conf` to bind `A` and `D` (Shift+A/D) to the new script commands
-- [x] 4.3 Ensure Russian layout keys (`Ф`, `В`) are correctly mapped via `lls_core` expansion logic
+- [x] 4.1 Key bindings in `input.conf` are already updated
+- [x] 4.2 Verify that Russian keys (`Ф`, `В`) correctly trigger the directional OSD

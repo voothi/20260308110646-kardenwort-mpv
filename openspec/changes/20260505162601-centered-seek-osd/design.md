@@ -5,8 +5,8 @@ The current seeking system uses native mpv `seek` commands for time-based naviga
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide large, centered OSD feedback (e.g., `+2`) for time-based seeks.
-- Centralize seek amount configuration in `mpv.conf` via script options.
+- Provide large, directional OSD feedback (Left for backward, Right for forward) for time-based seeks.
+- Implement dedicated styling parameters for seek OSD in `mpv.conf` (matching other mode schemas).
 - Maintain layout symmetry across English and Russian keyboard configurations.
 
 **Non-Goals:**
@@ -19,13 +19,13 @@ The current seeking system uses native mpv `seek` commands for time-based naviga
   - **Rationale**: By wrapping native `seek` commands in script bindings (`lls-seek_time_forward/backward`), we can inject custom ASS-styled OSD messages that are independent of global mpv OSD levels.
   - **Alternative**: Listen to native seek properties. **Rejection**: Less precise control over the visual feedback timing and content.
 
-- **Decision 2: Dead-Center ASS Alignment (`{\an5}`)**
-  - **Rationale**: Center-center alignment is the most distinctive for critical behavioral feedback, creating a "HUD" experience that feels premium and intentional.
-  - **Alternative**: Standard middle-left (`{\an4}`). **Rejection**: Less impact; current `show_osd` uses `{\an4}` for general messages, so `{\an5}` provides visual distinction for seeks.
+- **Decision 2: Directional ASS Alignment (`{\an4}` / `{\an6}`)**
+  - **Rationale**: Using the left-middle (`{\an4}`) for backward seeks and right-middle (`{\an6}`) for forward seeks provides intuitive spatial reinforcement of the navigation direction.
+  - **Alternative**: Dead-center (`{\an5}`). **Rejection**: Directional positioning is more informative and visually dynamic.
 
-- **Decision 3: Unified `seek_time_delta` Parameter**
-  - **Rationale**: Users want a single "knob" to adjust their preferred skip distance.
-  - **Alternative**: Multiple parameters for different keys. **Rejection**: Unnecessary complexity; most users prefer a consistent delta for all primary time-seek keys.
+- **Decision 3: Dedicated Style Schema for Seeks**
+  - **Rationale**: Providing `seek_font_size`, `seek_color`, etc., ensures the seek OSD can be styled independently of general OSD or other mode-specific text (SRT/Drum), satisfying the requirement for granular control.
+  - **Alternative**: Use general OSD styling. **Rejection**: Limits user customization.
 
 ## Risks / Trade-offs
 
