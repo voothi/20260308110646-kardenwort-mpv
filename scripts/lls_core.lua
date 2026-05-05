@@ -4542,7 +4542,7 @@ local function dw_anki_export_selection()
             local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos, advanced_index)
             -- Use the multi-index generated above
             save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
-            show_osd("Saved: " .. term)
+            show_osd("Anki Highlight Saved: " .. term)
 
             -- In-memory update was already performed by save_anki_tsv_row.
             -- Removing redundant full-file reload to prevent UI stuttering.
@@ -4724,7 +4724,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     local advanced_index = table.concat(indices, ",")
     
     save_anki_tsv_row(term, extract_anki_context(context_line, term, Options.anki_context_max_words, pivot_pos, advanced_index), subs[p1_l].start_time + 0.001, advanced_index)
-    show_osd("Saved: " .. term)
+    show_osd("Anki Paired Saved: " .. term)
 
     
     -- Clear set
@@ -7372,7 +7372,7 @@ local function cmd_cycle_sec_sid()
         end
     end
     
-    local final_msg = "Secondary Subtitles: " .. label
+    local final_msg = "Secondary Sub: " .. label
     if internal_count > 0 then
         final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
     end
@@ -7413,7 +7413,7 @@ local function cmd_copy_sub(mode)
                 wcount = wcount + 1
             end
             local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
-            show_osd(FSM.COPY_MODE .. ": " .. osd_t)
+            show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
             FSM.LAST_OSD_TIME = now
         end
     else
