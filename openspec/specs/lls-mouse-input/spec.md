@@ -2,9 +2,7 @@
 
 ## Purpose
 Provide a robust, high-precision mouse interaction model for the Drum Window that accommodates hardware jitter (ghost clicks), minimalist input devices (remote controls), and variable viewport scrolling.
-
 ## Requirements
-
 ### Requirement: Systemic Interaction Shield Lockout
 The interaction engine SHALL enforce a uniform 150ms lockout for all mouse events following a keyboard-based interaction, governed by a single configurable parameter (`Options.dw_mouse_shield_ms`).
 - **Interaction Shielding**: All navigational and input handlers (Arrows, Enter, a/d, Double-Click Seek, etc.) MUST set `FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)`.
@@ -26,17 +24,33 @@ The system SHALL ensure the logical focus and highlight anchor are synchronized 
 - **Rationale**: Prevents actions from being applied to a previously "hovered" word if the pointer has jumped due to hardware latency.
 - **Shield Constraint**: Synchronization logic SHALL be bypassed if an active Interaction Shield is in effect, preventing the pointer from "grabbing" new words during rapid UI transitions (like re-centering after a seek).
 
+#### Scenario: Pointer jump synchronization
+- **WHEN** the user initiates a click action
+- **THEN** the system SHALL perform a final hit-test at the current mouse coordinates before processing the event.
+- **AND** the logical focus SHALL be updated to match the word currently under the pointer.
+
 ### Requirement: Zero-Collapse Clamping
 The hit-testing engine SHALL implement logical index clamping for margin and line gap areas.
 - **Boundary Behavior**: Dragging into line gaps or past line ends SHALL snap the selection to the nearest boundary word's logical index.
 - **Punctuation Support**: Clicks on punctuation or spaces SHALL NOT trigger "clamping" to a word if they have their own unique fractional logical index; they SHALL be selectable as discrete tokens.
 - **Goal**: Prevent selection "collapse" or "breakage" caused by returning non-selectable visual token indices.
 
+#### Scenario: Dragging into vertical margins
+- **WHEN** the user drags the mouse into the vertical gap between lines
+- **THEN** the hit-test SHALL return the logical index of the closest word on the adjacent line.
+- **AND** the selection range SHALL remain contiguous.
+
 ### Requirement: Range-Locked Selection Protection
 The system SHALL implement a "Protected Selection" state to prevent accidental collapse of existing multi-word selections during mouse interaction.
 - **State Flag**: `FSM.DW_PROTECTED_SELECTION` (boolean).
 - **Protection Logic**: When a mouse button press is initiated inside an already active selection range, the system SHALL set `FSM.DW_PROTECTED_SELECTION = true`.
 - **Export Consistency**: If the protection flag is set, subsequent MMB release events SHALL commit the *existing* selection range to Anki, even if the mouse pointer has moved slightly.
+
+#### Scenario: Clicking within an existing selection
+- **WHEN** a multi-word selection is active
+- **AND** the user clicks MMB inside that selection range
+- **THEN** the existing selection SHALL NOT be cleared or modified.
+- **AND** the whole range SHALL be exported upon button release.
 
 ### Requirement: Stream-Agnostic Initialization
 Drum Window activation SHALL support internal and embedded subtitle streams that lack local file paths, provided subtitle segments are loaded in the engine's memory.
@@ -74,13 +88,16 @@ The system SHALL support a configurable hotkey to toggle Phase 2 "Hover Mode".
 - **THEN** the system SHALL swap `FSM.DW_TOOLTIP_MODE` between "CLICK" and "HOVER"
 
 ### Requirement: State-Aware Scroll Synchronization
-The mouse input system SHALL ensure that viewport-altering events (scrolling) only synchronize the logical cursor state when an active user-initiated interaction (dragging) is in progress.
+The mouse input system SHALL ensure that viewport-altering events (scrolling) only synchronize the logical cursor state when an active user-initiated interaction (dragging) is in progress **AND the Drum Window is NOT OFF**.
 - **Passive Scroll Stability**: Passive scrolling SHALL NOT update highlight coordinates based on mouse position.
 - **Active Drag Sync**: Scrolling while holding a button SHALL continuously update hit-test coordinates.
+- **Auto-scroll Guard**: The viewport auto-scroll mechanism SHALL be strictly disabled when `FSM.DRUM_WINDOW == "OFF"`.
 
-#### Scenario: Drag-Selection Hit-Test Refresh
-- **WHEN** a mouse wheel event is processed during an active drag operation
-- **THEN** the system SHALL recalculate the hit-test and update the logical cursor to match the new word under the pointer.
+#### Scenario: Auto-scroll suppressed in OSD mode
+- **WHEN** the Drum Window is `OFF`
+- **AND** the user clicks and holds the mouse button on a subtitle at the edge of the screen
+- **THEN** the system SHALL NOT increment or decrement the selection cursor index.
+- **AND** the selection range SHALL NOT expand beyond the initially clicked word or line.
 
 ### Requirement: Ctrl Modifier Key State Tracking
 The mouse input system SHALL track the held/released state of the Ctrl key while the Drum Window is active, exposing a `ctrl_held` boolean for use by gesture dispatchers.
@@ -112,8 +129,13 @@ When `ctrl_held` is true, MMB press events SHALL be routed to the Ctrl-accumulat
 - **THEN** the system SHALL pass the event to the `ctrl-multiselect` commit handler.
 
 ### Requirement: Gesture Routing (Warm vs. Cool)
+The system SHALL distinguish between contiguous selection gestures and paired/accumulated selection gestures based on modifier state.
 - **Warm Path (Contiguous)**: LMB/MMB without `Ctrl` -> Contiguous Drag/Selection.
 - **Cool Path (Paired)**: Interactions with `Ctrl` (or specific Pairing keys) -> Addition to `ctrl_pending_set`.
+
+#### Scenario: Warm path selection
+- **WHEN** the user interacts with the mouse without holding Ctrl
+- **THEN** the system SHALL treat the interaction as a standard word or range selection.
 
 ### Requirement: OSD Hit-Testing
 The system SHALL implement a hit-testing mechanism for `drum_osd` that correctly identifies which word and subtitle index the mouse is hovering over, regardless of the screen resolution or aspect ratio.
@@ -135,3 +157,4 @@ The OSD interaction logic SHALL automatically synchronize with changes to `sub-p
 #### Scenario: Adjusting subtitle position via hotkey
 - **WHEN** the user presses `r` or `t` to move the subtitles vertically
 - **THEN** the system SHALL immediately update the hit-zone metadata to reflect the new visual position of the words
+

@@ -88,17 +88,15 @@ The system SHALL centralize all core language learning features (Autopause, Cont
 - **WHEN** multiple features are enabled simultaneously
 - **THEN** their logic SHALL be executed sequentially within the centralized core to prevent race conditions.
 
-
 ### Requirement: Immersion Mode Transition FSM
-The system SHALL manage subtitle transitions based on the `FSM.IMMERSION_MODE` state to accommodate both cinematic and intensive study workflows.
+The system SHALL ensure that transitions between Immersion Modes (`MOVIE`, `PHRASE`) do not trigger unintended seeking or playback behavior.
+- **State Alignment**: When toggling to `PHRASE` mode, the system SHALL immediately synchronize `FSM.ACTIVE_IDX` with the current subtitle index based on `time-pos`.
+- **Efficacy**: This synchronization MUST occur before the next tick of the master loop to prevent "Jerk Back" logic from detecting a phantom subtitle boundary.
 
-#### Scenario: Phrases Mode Jerk-Back
-- **WHEN** `FSM.IMMERSION_MODE == "PHRASE"` and a natural transition occurs from subtitle `i` to `i+1`
-- **THEN** if the padded start of `i+1` is earlier than the padded end of `i`, the system SHALL perform a "Jerk-Back" seek to the padded start of `i+1` to ensure card integrity.
-
-#### Scenario: Movie Mode Seamless Handover
-- **WHEN** `FSM.IMMERSION_MODE == "MOVIE"`
-- **THEN** the system SHALL calculate a gapless handover point where subtitle `i` ends exactly at the padded start of `i+1`, preventing audio repeats.
+#### Scenario: Syncing state on Phrase mode toggle
+- **WHEN** the user toggles from `MOVIE` to `PHRASE` mode
+- **THEN** the system SHALL calculate the current `active_idx` and store it in `FSM.ACTIVE_IDX` immediately.
+- **AND** the subsequent tick loop SHALL NOT trigger a "Jerk Back" seek if the playback position is at a subtitle boundary.
 
 ### Requirement: Deterministic Focus Sentinel
 The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding.
@@ -110,6 +108,10 @@ The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus 
 ### Requirement: Behavioral Parameterization
 The system SHALL externalize all state transition thresholds to allow for hardware-specific tuning and scientific reliability.
 
+#### Scenario: Tuning the settle period
+- **WHEN** the user modifies `Options.nav_cooldown`
+- **THEN** the FSM SHALL apply the new duration to subsequent seek events without requiring a reload.
+
 #### Scenario: Manual Navigation Settle Period
 - **WHEN** a manual seek is detected
 - **THEN** the system SHALL suspend automated FSM corrections for a duration defined by `Options.nav_cooldown` (Default: 0.5s).
@@ -117,3 +119,4 @@ The system SHALL externalize all state transition thresholds to allow for hardwa
 #### Scenario: Overlap Precision
 - **WHEN** calculating transition points
 - **THEN** a tolerance defined by `Options.nav_tolerance` (Default: 0.05s) SHALL be applied to handle floating-point rounding errors.
+
