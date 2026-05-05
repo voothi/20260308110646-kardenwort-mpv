@@ -488,11 +488,16 @@ end
 
 function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
+    
+    local pad_start = (Options.audio_padding_start or 0) / 1000
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+
     local low, high = 1, #subs
     local best = -1
     while low <= high do
         local mid = math.floor((low + high) / 2)
-        if subs[mid].start_time <= time_pos then
+        -- Binary search for the latest sub that "contains" or is "before" time_pos with padding
+        if (subs[mid].start_time - pad_start) <= time_pos then
             best = mid
             low = mid + 1
         else
@@ -502,12 +507,15 @@ function get_center_index(subs, time_pos)
     
     if best == -1 then return 1 end
     
-    if time_pos <= subs[best].end_time then
+    -- If we are in the padded range of 'best', return it
+    if time_pos <= (subs[best].end_time + pad_end) then
         return best
     end
     
+    -- Gap Logic (if not in padded range of 'best')
     if best < #subs then
         local next_sub = subs[best + 1]
+        -- Closest boundary logic for gaps: pick the sub whose technical boundary is closer
         if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
             return best
         else
@@ -4947,30 +4955,15 @@ local function tick_autopause(time_pos)
     -- [v1.58.48] Precise Manual Autopause
     -- Prefer our parsed subtitles table for exact timing. Native 'sub-end' can be 
     -- flaky or laggy during rapid seeking.
-    local sub_end = nil
     local subs = Tracks.pri.subs
+    local sub_end = nil
     if subs and #subs > 0 then
-        -- Find the latest subtitle that started at or before current time.
-        -- We don't use get_center_index here because it might jump to the NEXT
-        -- subtitle if it's closer, causing us to miss the padding window of the current one.
-        local low, high = 1, #subs
-        local idx = -1
-        while low <= high do
-            local mid = math.floor((low + high) / 2)
-            if subs[mid].start_time <= time_pos then
-                idx = mid
-                low = mid + 1
-            else
-                high = mid - 1
-            end
-        end
-        
+        local idx = get_center_index(subs, time_pos)
         if idx ~= -1 then
             sub_end = subs[idx].end_time
         end
     end
     
-    -- Fallback to native property if logic memory is empty
     if not sub_end then
         sub_end = mp.get_property_number("sub-end")
     end
@@ -5755,6 +5748,20 @@ local function cmd_replay_sub()
     -- As per user request: "get rid of the boundaries of subtitles altogether and leave only the range of the track"
     local replay_start = math.max(0, time_pos - Options.replay_ms/1000)
     local replay_end = time_pos
+
+    -- Expert Snap: If we are within a subtitle's padding zone, snap the logical end
+    -- to the technical end so that the padding is applied consistently.
+    local subs = Tracks.pri.subs
+    if subs and #subs > 0 then
+        local idx = get_center_index(subs, time_pos)
+        if idx ~= -1 then
+            local sub = subs[idx]
+            local pad_end = (Options.audio_padding_end or 0) / 1000
+            if time_pos > sub.end_time and time_pos <= sub.end_time + pad_end then
+                replay_end = sub.end_time
+            end
+        end
+    end
 
     if FSM.AUTOPAUSE == "OFF" then
         -- Autopause OFF: "Flashback" Replay (Finite Segment)
