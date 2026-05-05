@@ -915,7 +915,7 @@ function cmd_cycle_copy_mode()
     FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
     
     local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
-    show_osd(label)
+    show_osd("Copy Mode: " .. label)
 end
 
 function cmd_cycle_immersion_mode()
@@ -930,7 +930,7 @@ function cmd_cycle_immersion_mode()
             FSM.ACTIVE_IDX = get_center_index(subs, time_pos)
         end
     end
-    show_osd(FSM.IMMERSION_MODE)
+    show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
 end
 
 function cmd_toggle_copy_ctx()
@@ -943,7 +943,7 @@ function cmd_toggle_copy_ctx()
         return
     end
     FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
-    show_osd(FSM.COPY_CONTEXT)
+    show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
 end
 
 function get_copy_context_text(time_pos, line_idx)
@@ -5368,15 +5368,15 @@ local function cmd_toggle_autopause()
         FSM.SCHEDULED_REPLAY_START = nil
         FSM.SCHEDULED_REPLAY_END = nil
     end
-    show_osd(FSM.AUTOPAUSE)
+    show_osd("Autopause: " .. FSM.AUTOPAUSE)
 end
 
 local function cmd_toggle_karaoke()
     FSM.KARAOKE = (FSM.KARAOKE == "WORD") and "PHRASE" or "WORD"
     if FSM.KARAOKE == "WORD" then
-        show_osd("EVERY WORD", Options.osd_duration + 0.5)
+        show_osd("Pause Mode: EVERY WORD", Options.osd_duration + 0.5)
     else
-        show_osd("END OF PHRASE")
+        show_osd("Pause Mode: END OF PHRASE")
     end
 end
 
@@ -5400,7 +5400,7 @@ end
 
 local function cmd_toggle_anki_global()
     Options.anki_global_highlight = not Options.anki_global_highlight
-    show_osd(Options.anki_global_highlight and "ON" or "OFF")
+    show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
@@ -5432,10 +5432,10 @@ local function cmd_toggle_drum()
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
         if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
 
-        show_osd("ON")
+        show_osd(string.format("Drum Mode: ON [Double Gap: %s]", Options.drum_double_gap and "YES" or "NO"))
     else
         FSM.DRUM = "OFF"
-        show_osd("OFF")
+        show_osd("Drum Mode: OFF")
     end
     update_interactive_bindings()
     flush_rendering_caches()
@@ -7138,7 +7138,7 @@ function cmd_toggle_drum_window()
         if FSM.DRUM_WINDOW == "DOCKED" then
             local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
-            show_osd("ON")
+            show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
         end
     else
 
@@ -7157,14 +7157,14 @@ function cmd_toggle_drum_window()
 
         -- Restore subtitle visibility
         FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
-        show_osd("OFF")
+        show_osd("Drum Window: OFF")
     end
     end, debug.traceback)
     if not ok then
         -- Roll back FSM state to prevent phantom window open/close on next toggle
         FSM.DRUM_WINDOW = prev_drum_window
         Diagnostic.error("Drum Window Toggle: " .. tostring(err))
-        show_osd("LLS ERROR: " .. tostring(err):sub(1, 100))
+        show_osd("Drum Window: LLS ERROR: " .. tostring(err):sub(1, 100))
     end
 
 end
@@ -7175,9 +7175,9 @@ function toggle_book_mode()
         if FSM.DRUM_WINDOW == "OFF" then
             cmd_toggle_drum_window()
         end
-        show_osd("ON")
+        show_osd("Book Mode: ON")
     else
-        show_osd("OFF")
+        show_osd("Book Mode: OFF")
     end
 end
 
@@ -7263,28 +7263,28 @@ local function cmd_toggle_sub_vis()
         mp.set_property_bool("secondary-sub-visibility", false)
     end
     
-    show_osd(nxt and "ON" or "OFF")
+    show_osd("Subtitle Visibility: " .. (nxt and "ON" or "OFF"))
     master_tick()
 end
 
 local function cmd_cycle_sec_pos()
     if Tracks.sec.id == 0 then
-        show_osd("No secondary subtitle loaded")
+        show_osd("Secondary Sub Pos: No secondary subtitle loaded")
         return
     end
     if Tracks.sec.is_ass then
-        show_osd("Not available (ASS controls positioning)")
+        show_osd("Secondary Sub Pos: Not available (ASS controls positioning)")
         return
     end
     if FSM.DRUM == "ON" then
         FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
-        show_osd((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM")
+        show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
     else
         local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
         local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", n)
-        show_osd((n < 50) and "TOP" or "BOTTOM")
+        show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
     end
 end
 
@@ -7372,7 +7372,7 @@ local function cmd_cycle_sec_sid()
         end
     end
     
-    local final_msg = "" .. label
+    local final_msg = "Secondary Subtitles: " .. label
     if internal_count > 0 then
         final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
     end
@@ -7385,7 +7385,7 @@ local function cmd_toggle_osc()
     if FSM.OSC_VIS == 1 then lbl, cmd = "ALWAYS", "always"
     elseif FSM.OSC_VIS == 2 then lbl, cmd = "NEVER", "never" end
     mp.commandv("script-message", "osc-visibility", cmd, "no-osd")
-    show_osd(lbl)
+    show_osd("OSC Visibility: " .. lbl)
 end
 
 -- =========================================================================
