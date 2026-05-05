@@ -1473,6 +1473,8 @@
 20260505145727 ZID Traceability: 20260505145230 Status: Delta Proposed, Synchronized, and Archived. - Okay.
 20260505150016 # In Immersion Mode PHRASE, when the first subtitle is played again, it switches to the last subtitle.
 20260505151007 opsx-apply 20260505150404-cyclic-subtitle-nav
+20260505152417 This does not work in drum mode, it does not work when going back from last to first by pressing d.
+20260505153542 Yes, I see the Wrapped to START message.
 
 
 

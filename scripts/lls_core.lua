@@ -5915,14 +5915,12 @@ local function cmd_dw_seek_delta(dir)
     end
     
     
-    local target_idx = base_idx + dir
+    local target_idx = ((base_idx + dir - 1) % #subs) + 1
     local wrapped_msg = nil
-    if target_idx < 1 then 
-        target_idx = #subs 
-        wrapped_msg = "Wrapped to END"
-    elseif target_idx > #subs then 
-        target_idx = 1 
+    if dir > 0 and target_idx < base_idx then
         wrapped_msg = "Wrapped to START"
+    elseif dir < 0 and target_idx > base_idx then
+        wrapped_msg = "Wrapped to END"
     end
     
     FSM.DW_SEEK_TARGET = target_idx
@@ -5930,7 +5928,7 @@ local function cmd_dw_seek_delta(dir)
     local sub = subs[target_idx]
     if sub and sub.start_time then
         local s, _ = get_effective_boundaries(sub, target_idx)
-        mp.commandv("seek", s, "absolute+exact")
+        mp.commandv("seek", math.max(0, s), "absolute+exact")
         FSM.ACTIVE_IDX = target_idx
         FSM.last_paused_sub_end = nil
         FSM.DW_FOLLOW_PLAYER = true
