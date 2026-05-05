@@ -1,26 +1,40 @@
-## Why
+# OpenSpec: Directional Seek OSD
 
-Users currently lack clear visual feedback for time-based seeking (LEFT/RIGHT, Shift+A/Shift+D), making it difficult to judge the skip distance without looking at the timeline. Standard mpv OSD is often small or disabled. A centered, minimalist feedback improves focus and provides a premium, "wow" interaction experience.
+**ID**: 20260505162601-centered-seek-osd
+**ZID**: 20260505201004
+**Status**: Implementation Complete
+
+## Objective
+Implement a professional, directional On-Screen Display (OSD) feedback system for relative time-based seeking. The system provides visual confirmation of seek direction, cumulative session tracking (YouTube-style), and granular styling controls consistent with the Kardenwort immersion suite.
 
 ## What Changes
 
-- **New Options**: Introduce `seek_time_delta` (amount to seek), `seek_osd_duration`, a full set of styling parameters, and `seek_show_accumulator`.
-- **Cumulative Accumulator**: Track and display the total seek amount (YouTube-style, e.g., `+2`, `+4`, `+6`) when multiple seeks are performed within the OSD window in the same direction.
-- **Directional OSD**: Display messages on the left (`{\an4}`) for backward seeks and on the right (`{\an6}`) for forward seeks.
-- **Script-Driven Seeking**: Implement `lls-seek_time_forward` and `lls-seek_time_backward` in `lls_core.lua` with state tracking for the accumulator.
-- **Key Binding Updates**: Remap `LEFT`, `RIGHT`, `Shift+A`, and `Shift+D` in `input.conf` to use the new script bindings.
+### 1. Directional Feedback System
+- **Dynamic Positioning**: OSD messages appear on the left (`{\an4}`) for backward seeks and on the right (`{\an6}`) for forward seeks.
+- **Fixed Vertical Anchor**: Messages are vertically centered on the screen to avoid overlap with subtitle tracks.
+- **Dedicated Overlay**: Uses a dedicated `mp.create_osd_overlay("ass-events")` with a fixed resolution (derived from `Options.font_base_height`) to ensure consistent scaling across all monitor resolutions.
 
-## Capabilities
+### 2. YouTube-Style Cumulative Accumulator
+- **Intelligent Tracking**: Tracks consecutive seeks within a configurable window (`seek_osd_duration`).
+- **Cumulative Display**: Displays the total skipped distance for the current session (e.g., `+2` -> `+4` -> `+6`) instead of just the increment.
+- **Directional Reset**: Instantly resets the accumulator if the seek direction changes (e.g., skips forward then skips back).
+- **Session Indication**: The OSD duration acts as an "active rewind/forward session" indicator.
 
-### New Capabilities
-- `directional-seek-feedback`: Implementation of high-visibility, directional OSD feedback (Left/Right) with dedicated styling parameters and a cumulative seek accumulator.
+### 3. Granular Styling & Templates
+- **Configurable Styles**: Full suite of parameters in `mpv.conf` (font, size, color, background opacity, border, shadow).
+- **Format Templates**:
+    - `seek_msg_format`: Template for single/disconnected seeks (e.g., `%p%v`).
+    - `seek_msg_cumulative_format`: Template for cumulative sessions (e.g., `%P%V`).
+    - **Placeholders**: Support for `%p` (instant prefix), `%v` (instant value), `%P` (acc prefix), and `%V` (acc value).
+- **Robust Replacement**: Table-based `gsub` engine to handle `%` placeholders reliably.
 
-### Modified Capabilities
-- `layout-agnostic-seeking`: Expand requirement to include script-mediated time seeking with visual confirmation.
-- `centralized-script-options`: Register new behavioral parameters for seek delta and OSD duration.
+### 4. Architectural Integration
+- **Options Alignment**: All styling and logic parameters are exposed via `Options` and synchronized with `mp.options.read_options`.
+- **Global Resolution**: Derives `res_x` and `res_y` from `Options.font_base_height` to eliminate hardcoding and ensure suite-wide UI consistency.
+- **Scoped UI Pointers**: Properly forward-declared and scoped OSD overlay and timer objects.
 
-## Impact
-
-- **lls_core.lua**: Core logic for the new seek commands and OSD rendering.
-- **input.conf**: Shift from native `seek` to `script-binding`.
-- **mpv.conf**: Exposure of new user-tunable parameters.
+## Technical Details
+- **Logic File**: `scripts/lls_core.lua`
+- **Command Handling**: `cmd_seek_time` manages the state machine (Accumulator, Direction, Timer).
+- **Rendering**: `show_seek_osd` handles ASS-based rendering using the dedicated overlay.
+- **Configuration**: `mpv.conf` holds all user-tunable parameters under the `lls-` prefix.

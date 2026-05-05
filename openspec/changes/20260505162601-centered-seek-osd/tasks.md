@@ -1,27 +1,36 @@
-## 1. Configuration Expansion
+# Tasks: Directional Seek OSD
 
-- [x] 1.1 `seek_font_*` and `seek_color` options are already present
-- [x] 1.2 Add `seek_show_accumulator` (default `yes`) to `Options` in `lls_core.lua`
-- [x] 1.3 Add `seek_show_accumulator` to `mpv.conf`
+**ID**: 20260505162601-centered-seek-osd
+**ZID**: 20260505201004
 
-## 2. State Tracking Implementation
+## 1. Directional OSD & Positioning
 
-- [x] 2.1 Initialize `FSM.SEEK_ACCUMULATOR = 0`, `FSM.SEEK_LAST_TIME = 0`, and `FSM.SEEK_PRESS_COUNT = 0` in `lls_core.lua`
-- [x] 2.2 Implement accumulator and press count logic in `cmd_seek_time`:
-    - Increment `SEEK_PRESS_COUNT` if within window.
-    - Reset to 1 if window expired.
-- [x] 2.3 Only show the bracketed accumulator if `SEEK_PRESS_COUNT >= 2`.
+- [x] 1.1 Implement `show_seek_osd` with `alignment` parameter (`4` for LEFT, `6` for RIGHT).
+- [x] 1.2 Create a dedicated OSD overlay (`seek_osd`) with 1080p-relative resolution (`Options.font_base_height`).
+- [x] 1.3 Implement vertically centered positioning (`cy = Options.font_base_height / 2`).
 
-## 3. OSD Refinement (Accumulator)
+## 2. Granular Styling Parameters
 
-- [x] 3.1 Update `show_seek_osd` or its caller to format the cumulative string: `+2 (+4)`
-- [x] 3.2 Ensure the OSD message duration is correctly handled to act as a "rewind ongoing" indicator.
+- [x] 2.1 Add styling options (`seek_font_name`, `seek_font_size`, `seek_color`, etc.) to the `Options` table.
+- [x] 2.2 Expose styling parameters in `mpv.conf` via `script-opts-append`.
+- [x] 2.3 Ensure the OSD uses these parameters via ASS tag formatting.
 
-## 4. Verification
+## 3. YouTube-Style Accumulator Logic
 
-- [x] 4.1 Test consecutive seeks within the duration and verify the accumulator increments.
-- [x] 4.2 Verify that the accumulator resets after the OSD disappears.
+- [x] 3.1 Implement session-based accumulation in `cmd_seek_time`.
+- [x] 3.2 Add direction-change reset: Reset accumulator if `dir` flips during a session.
+- [x] 3.3 Implement table-based `gsub` template engine for `%p`, `%v`, `%P`, `%V` placeholders.
+- [x] 3.4 Support `seek_msg_format` and `seek_msg_cumulative_format` in `mpv.conf`.
 
-## 5. Architectural Alignment
+## 4. Architectural Cleanup & Reliability
 
-- [x] 5.1 Unify OSD resolutions using `Options.font_base_height` across all overlays (Seek, Drum, search, Tooltip) to avoid hardcoding 1920x1080.
+- [x] 4.1 Fix Lua scope errors by correctly ordering forward declarations of UI objects.
+- [x] 4.2 Fix nil-value errors for newly introduced styling options (e.g., `seek_shadow_offset`).
+- [x] 4.3 Unify resolution settings across all immersion engine overlays to respect `Options.font_base_height`.
+
+## 5. Verification
+
+- [x] 5.1 Verify that single seeks show the standard format (`+2`).
+- [x] 5.2 Verify that rapid consecutive seeks show the cumulative total (`+4`, `+6`).
+- [x] 5.3 Verify that switching direction (LEFT/RIGHT) starts a new counter.
+- [x] 5.4 Confirm that styling (size, color) correctly follows `mpv.conf` overrides.
