@@ -4593,6 +4593,21 @@ end
 -- Stage 2: Clear Yellow Range (if anchor exists and is different from cursor)
 -- Stage 3: Clear Yellow Pointer (hides the highlight) and syncs cursor to active line
 -- Stage 4: Close the Drum Window
+local function dw_reset_selection()
+    FSM.DW_CTRL_PENDING_SET = {}
+    FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_CURSOR_WORD = -1
+    FSM.DW_CURSOR_X = nil
+    if FSM.DW_ACTIVE_LINE ~= -1 then
+        FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
+    end
+    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
+    elseif FSM.DRUM == "ON" then drum_osd:update() end
+end
+
+
 local function cmd_dw_esc()
     -- Stage 1: Clear Pink Set (Purple highlights)
     if next(FSM.DW_CTRL_PENDING_SET) then
@@ -4613,24 +4628,11 @@ local function cmd_dw_esc()
         return
     end
 
-    -- Stage 3: Clear Yellow Pointer
+    -- Stage 3: Clear Yellow Pointer & Full Reset
     if FSM.DW_CURSOR_WORD ~= -1 then
-        FSM.DW_CURSOR_WORD = -1
-        FSM.DW_CURSOR_X = nil
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
-        -- Sync cursor line to the currently active (white) subtitle so that the
-        -- next arrow navigation re-materialises the pointer at the right position
-        if FSM.DW_ACTIVE_LINE ~= -1 then
-            FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
-        end
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
-        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        dw_reset_selection()
         return
     end
-
-    -- Stage 4: nothing left to clear → close the window
-    cmd_toggle_drum_window(false)
 end
 
 
