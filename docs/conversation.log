@@ -1493,5 +1493,6 @@
 20260505173015 Place the template settings for this message in the mpv.conf variable
 20260505174007 This naming is not clear, or write a better comment and or change the naming @code_block 
 20260505174231 Error
+20260505174435 x Okay, there is no error, but I set this format script-opts-append=lls-seek_msg_cumulative_format=%p%v %P%V, but it displays as %p%v
 
 
