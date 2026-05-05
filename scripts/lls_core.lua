@@ -2913,28 +2913,6 @@ local function update_media_state()
     end
     if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
 
-    -- [v1.58.52] DEPRECATED: Auto-selection logic moved to manual control to prevent loop spam.
-    -- if Tracks.pri.id ~= 0 and not Tracks.pri.path and not FSM.__auto_track_selected then
-    --     for _, t in ipairs(track_list) do
-    --         if t.type == "sub" and t.external and t["external-filename"] then
-    --             Diagnostic.info("Auto-selecting Track " .. t.id .. " as primary.")
-    --             mp.set_property("sid", t.id)
-    --             FSM.__auto_track_selected = true
-    --             return -- Let the next tick process the new sid
-    --         end
-    --     end
-    -- end
-    -- if Tracks.pri.path and Tracks.sec.id == 0 and not FSM.__auto_track_selected_sec then
-    --     for _, t in ipairs(track_list) do
-    --         if t.type == "sub" and t.external and t["external-filename"] and t.id ~= Tracks.pri.id then
-    --             Diagnostic.info("Auto-selecting Track " .. t.id .. " as secondary.")
-    --             mp.set_property("secondary-sid", t.id)
-    --             FSM.__auto_track_selected_sec = true
-    --             return
-    --         end
-    --     end
-    -- end
-
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
         Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
@@ -7197,7 +7175,8 @@ local function cmd_cycle_sec_sid()
     local current_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
     local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
     
-    local supported = {0}
+    -- Filter for supported tracks (External files only)
+    local supported = {0} -- Always include OFF (0)
     for _, t in ipairs(tracks) do
         if t.type == "sub" and t.external then
             local tid = tonumber(t.id)
@@ -7223,7 +7202,6 @@ local function cmd_cycle_sec_sid()
         next_sid = supported[2] or 0
     end
 
-    Diagnostic.info("Secondary Cycle: " .. current_sid .. " -> " .. next_sid)
     if next_sid == 0 then
         mp.set_property("secondary-sid", "no")
     else
