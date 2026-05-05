@@ -572,7 +572,11 @@ local FSM = {
     ANKI_VERSION = 0,             -- Version counter for cache invalidation
     ANKI_DB_PATH = nil,
     ANKI_DB_MTIME = 0,
-    ANKI_DB_SIZE = 0
+    ANKI_DB_SIZE = 0,
+
+    -- Navigation OSD Delta State [v1.58.52]
+    NAV_ACCUMULATED_DELTA = 0,
+    NAV_LAST_TIME = 0
 }
 
 local Tracks = {
@@ -587,6 +591,12 @@ local Tracks = {
 function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
+end
+
+function show_osd_center(msg, dur)
+    local style = mp.get_property("osd-ass-cc/0") or ""
+    -- an5: middle-center, fs40: large font, b1: bold
+    mp.osd_message(style .. "{\\an5}{\\fs40}{\\b1}" .. msg, dur or Options.osd_duration)
 end
 
 function has_cyrillic(str)
@@ -5925,7 +5935,21 @@ local function cmd_dw_seek_delta(dir)
     end
     
     FSM.DW_SEEK_TARGET = target_idx
-    if wrapped_msg then show_osd(wrapped_msg) end
+    
+    -- [v1.58.52] Navigation Delta OSD (Middle of screen)
+    local now = mp.get_time()
+    if (now - (FSM.NAV_LAST_TIME or 0)) < 0.8 then
+        FSM.NAV_ACCUMULATED_DELTA = (FSM.NAV_ACCUMULATED_DELTA or 0) + dir
+    else
+        FSM.NAV_ACCUMULATED_DELTA = dir
+    end
+    FSM.NAV_LAST_TIME = now
+
+    local sign = (FSM.NAV_ACCUMULATED_DELTA > 0) and "+" or ""
+    local osd_msg = sign .. FSM.NAV_ACCUMULATED_DELTA
+    if wrapped_msg then osd_msg = wrapped_msg .. " (" .. osd_msg .. ")" end
+    show_osd_center(osd_msg)
+
     local sub = subs[target_idx]
     if sub and sub.start_time then
         local s, _ = get_effective_boundaries(sub, target_idx)
@@ -6010,6 +6034,10 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function() cmd_dw_word_move(1, false) end, "ПРАВЫЙ")},
         {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function() cmd_dw_line_move(-1, false) end, "ВВЕРХ")},
         {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function() cmd_dw_line_move(1, false) end, "ВНИЗ")},
+        {key = "A", name = "dw-seek-prev-2", fn = nav(function(t) cmd_seek_with_repeat(-2, t) end, "A"), complex = true},
+        {key = "D", name = "dw-seek-next-2", fn = nav(function(t) cmd_seek_with_repeat(2, t) end, "D"), complex = true},
+        {key = "Ф", name = "dw-seek-prev-2-ru", fn = nav(function(t) cmd_seek_with_repeat(-2, t) end, "Ф"), complex = true},
+        {key = "В", name = "dw-seek-next-2-ru", fn = nav(function(t) cmd_seek_with_repeat(2, t) end, "В"), complex = true},
     }
 
     for _, k in ipairs(kb_keys) do 
@@ -7403,6 +7431,8 @@ mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
 mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
+mp.add_key_binding(nil, "lls-seek_prev_2", function(t) cmd_seek_with_repeat(-2, t) end, {complex = true})
+mp.add_key_binding(nil, "lls-seek_next_2", function(t) cmd_seek_with_repeat(2, t) end, {complex = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 
