@@ -4422,6 +4422,33 @@ end
 
 
 
+local function dw_reset_selection()
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_CURSOR_WORD = -1
+    FSM.DW_CURSOR_X = nil
+    FSM.DW_FOLLOW_PLAYER = true
+    
+    if FSM.DW_ACTIVE_LINE ~= -1 then
+        FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
+    end
+    
+    FSM.DW_TOOLTIP_LINE = -1
+    FSM.DW_TOOLTIP_FORCE = false
+    FSM.DW_TOOLTIP_LOCKED_LINE = -1
+    FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+    
+    drum_osd:update()
+    if dw_osd then dw_osd:update() end
+    if dw_tooltip_osd then 
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update() 
+        FSM.DW_TOOLTIP_HIT_ZONES = nil
+    end
+end
+
+
+
 local function dw_anki_export_selection()
     local ok, err = pcall(function()
         local subs = Tracks.pri.subs
@@ -4546,14 +4573,7 @@ local function dw_anki_export_selection()
 
             -- In-memory update was already performed by save_anki_tsv_row.
             -- Removing redundant full-file reload to prevent UI stuttering.
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = -1
-            FSM.DW_CURSOR_X = nil
-            
-            drum_osd:update()
-            if dw_osd then dw_osd:update() end
-            if dw_tooltip_osd then dw_tooltip_osd:update() end
+            dw_reset_selection()
         end
     end)
     
@@ -4730,13 +4750,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     -- Clear set
     FSM.DW_CTRL_PENDING_SET = {}
     
-    -- Clear selection pointer to immediately show the new highlight color
-    FSM.DW_ANCHOR_LINE = -1
-    FSM.DW_ANCHOR_WORD = -1
-    FSM.DW_CURSOR_WORD = -1
-    FSM.DW_CURSOR_X = nil
-    
-    dw_osd:update()
+    dw_reset_selection()
 end
 
 

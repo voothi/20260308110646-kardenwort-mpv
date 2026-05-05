@@ -1498,4 +1498,4 @@
 20260505201138 specs
 20260505201341 opsx-archive 20260505162601-centered-seek-osd
 20260505204828 Sync now
-
+20260505221149 # The state after adding a word, it is no longer marked in yellow, it has been added, the subtitles continue, but how does it change? ## Description After adding a word you need to reset the selection.
