@@ -7177,17 +7177,31 @@ local function cmd_cycle_sec_sid()
     
     -- Filter for supported tracks (External files only)
     local supported = {0} -- Always include OFF (0)
+    local internal_count = 0
     for _, t in ipairs(tracks) do
-        if t.type == "sub" and t.external then
-            local tid = tonumber(t.id)
-            -- Skip the track that is already selected as primary to avoid conflicts
-            if tid and tid ~= primary_sid then 
-                table.insert(supported, tid) 
+        if t.type == "sub" then
+            if t.external then
+                local tid = tonumber(t.id)
+                -- Skip the track that is already selected as primary to avoid conflicts
+                if tid and tid ~= primary_sid then 
+                    table.insert(supported, tid) 
+                end
+            else
+                internal_count = internal_count + 1
             end
         end
     end
     table.sort(supported)
-    
+
+    if #supported <= 1 then
+        local msg = "Secondary Subtitles: None available"
+        if internal_count > 0 then msg = msg .. " [" .. internal_count .. " built-in unsupported]" end
+        show_osd(msg)
+        mp.set_property("secondary-sid", "no")
+        return
+    end
+
+    -- Find next sid in the supported list
     local next_sid = 0
     local found = false
     for i = 1, #supported do
@@ -7218,7 +7232,12 @@ local function cmd_cycle_sec_sid()
             end
         end
     end
-    show_osd("Secondary Subtitles: " .. label)
+    
+    local final_msg = "Secondary Subtitles: " .. label
+    if internal_count > 0 then
+        final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
+    end
+    show_osd(final_msg)
 end
 
 local function cmd_toggle_osc()
