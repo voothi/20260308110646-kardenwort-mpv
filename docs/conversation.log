@@ -1442,6 +1442,9 @@
 20260505102530 Okay, check that everything is in order, that there are no errors or unnecessary things, that we have taken into account edge cases according to the FSM state and transition diagram, that there is no regression, all requirements are met. Compared to 71bfa6a4342a884fd2d949f5bb8ae0da132c1728, current version a4218c4ade9ada2a2ab0b56a25782fb830cf9206.
 20260505103233 You have implemented all the changes, I only see                         Diagnostic.debug("Jerk Back triggered to " .. active_idx)? Then, again there is a stuck subtitle.
 20260505103700 Scrolling by d on this subtitle gets stuck and jerks, does not go further, I can only click with the mouse through the subtitle and continue.
+20260505104615 Construct a state diagram, is it now true that the Movie and Phrase modes differ only in that subtitles are allowed in Phrase?
+20260505104807 This is strong logic, are there any omissions here? No recourse? Are all corner cases scientific?
+20260505105019 Are there any hardcoded magic numbers in this code?
 
 
 

@@ -468,7 +468,11 @@ Options = {
     replay_count = 2,              -- Number of iterations for the replay command
     replay_autostop = true,        -- Whether to pause after iterations (Autopause ON only)
     audio_padding_start = 200,    -- Pre-roll buffer in ms
-    audio_padding_end = 200       -- Post-roll buffer in ms
+    audio_padding_end = 200,      -- Post-roll buffer in ms
+    -- [v1.58.51] Behavioral Parameters
+    nav_cooldown = 0.5,           -- Settle period after manual seek (sec)
+    nav_tolerance = 0.05,         -- Overlap priority threshold (sec)
+    autopause_overshoot = 0.1      -- Permitted overshoot past boundary (sec)
 }
 options.read_options(Options, "lls")
 
@@ -649,7 +653,7 @@ function get_center_index(subs, time_pos)
     if best < #subs then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(next_sub, best + 1)
-        if time_pos >= s_next - 0.05 then
+        if time_pos >= s_next - Options.nav_tolerance then
             return best + 1
         end
     end
@@ -4894,7 +4898,7 @@ local function cmd_dw_double_click()
         FSM.IGNORE_NEXT_JUMP = true
         FSM.ACTIVE_IDX = line_idx
         FSM.JUST_JERKED_TO = -1
-        FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5
+        FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
         local s, _ = get_effective_boundaries(sub, line_idx)
         mp.commandv("seek", s, "absolute+exact")
@@ -5037,7 +5041,7 @@ local function tick_autopause(time_pos)
     -- Check if we've reached the end of the padded window
     -- Use an inclusive check to ensure we don't skip the pause frame.
     local diff = sub_end - time_pos
-    if diff > Options.pause_padding or diff < -0.1 then
+    if diff > Options.pause_padding or diff < -Options.autopause_overshoot then
         return
     end
 
@@ -5189,7 +5193,7 @@ local function master_tick()
             if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
                 if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
-                    if s_next and (time_pos - s_next) > 0.05 then
+                    if s_next and (time_pos - s_next) > Options.nav_tolerance then
                         mp.commandv("seek", s_next, "absolute+exact")
                         FSM.IGNORE_NEXT_JUMP = true 
                         FSM.JUST_JERKED_TO = active_idx
@@ -5882,7 +5886,7 @@ local function cmd_dw_seek_selected()
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
             FSM.JUST_JERKED_TO = -1
-            FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5
+            FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
             local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
@@ -5911,7 +5915,7 @@ local function cmd_dw_seek_delta(dir)
     -- to prevent "Magnetic Snapping" back to the previous line.
     FSM.IGNORE_NEXT_JUMP = true
     FSM.JUST_JERKED_TO = -1
-    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5 -- 500ms cooldown for smart logic
+    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown -- Settle period for smart logic
     
     local current_idx = get_center_index(subs, time_pos)
     if current_idx == -1 then return end
