@@ -167,6 +167,17 @@ The `Esc` key MUST follow a strict staged hierarchy for clearing state:
 2. Stage 2: Clear Range Selection (Yellow).
 3. Stage 3: Full Pointer Reset & Cursor Synchronization.
 
+### Requirement: Post-Export Selection Reset
+The system MUST automatically perform a full selection reset (equivalent to Stage 3 of the Esc handler) immediately after a successful Anki export operation.
+
+#### Scenario: Saving a Single Word
+- **WHEN** the user saves a word via the `g` key
+- **THEN** the yellow selection range and pointer MUST be cleared upon successful export.
+
+#### Scenario: Saving a Paired Set
+- **WHEN** the user saves a pink paired set via the `f` key
+- **THEN** the entire paired set AND the active yellow selection MUST be cleared.
+
 ### Requirement: Immersion Input Blocking
 Subtitle positioning controls MUST be intercepted and suppressed when the Drum Window or Drum Mode is active to prevent accidental visual disruption.
 
