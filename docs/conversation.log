@@ -1445,6 +1445,8 @@
 20260505104615 Construct a state diagram, is it now true that the Movie and Phrase modes differ only in that subtitles are allowed in Phrase?
 20260505104807 This is strong logic, are there any omissions here? No recourse? Are all corner cases scientific?
 20260505105019 Are there any hardcoded magic numbers in this code?
+20260505105431 May restructure? mpv.conf#L207-219 mpv.conf#L60-63
+20260505105727 Okay, how can I set a parameter for Shift+o so that I can override this shortcut?
 
 
 

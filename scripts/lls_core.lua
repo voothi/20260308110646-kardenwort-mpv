@@ -472,7 +472,8 @@ Options = {
     -- [v1.58.51] Behavioral Parameters
     nav_cooldown = 0.5,           -- Settle period after manual seek (sec)
     nav_tolerance = 0.05,         -- Overlap priority threshold (sec)
-    autopause_overshoot = 0.1      -- Permitted overshoot past boundary (sec)
+    autopause_overshoot = 0.1,     -- Permitted overshoot past boundary (sec)
+    key_cycle_immersion_mode = "O Щ" -- Hotkey to cycle Phrase/Movie modes
 }
 options.read_options(Options, "lls")
 
@@ -6088,8 +6089,10 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
 
     -- [v1.58.51] Immersion Mode Toggle
-    mp.add_forced_key_binding("O", "lls-cycle-immersion", cmd_cycle_immersion_mode)
-    mp.add_forced_key_binding("Щ", "lls-cycle-immersion-ru", cmd_cycle_immersion_mode)
+    -- [v1.58.51] Parameterized Immersion Toggle
+    for _, k in ipairs(split(Options.key_cycle_immersion_mode, " ")) do
+        mp.add_forced_key_binding(k, "lls-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
+    end
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
