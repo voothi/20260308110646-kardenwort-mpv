@@ -485,7 +485,9 @@ Options = {
     seek_bg_opacity = "60",
     seek_border_size = 1.5,
     seek_shadow_offset = 1.0,
-    seek_show_accumulator = true
+    seek_show_accumulator = true,
+    seek_osd_template = "%p%v",
+    seek_osd_template_acc = "%P%V"
 }
 options.read_options(Options, "lls")
 
@@ -6033,21 +6035,26 @@ local function cmd_seek_time(dir)
     mp.commandv("seek", delta, "relative+exact")
     
     -- Display logic: 
-    -- If accumulator is ON, show only the cumulative total (YouTube style).
-    -- Otherwise show the instant delta.
-    local msg = ""
-    if Options.seek_show_accumulator then
-        local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
-        local acc_val = math.abs(FSM.SEEK_ACCUMULATOR)
-        if acc_val < 0.001 then acc_val = 0; acc_prefix = "" end
-        local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
-        msg = acc_prefix .. acc_str
-    else
-        local prefix = (delta > 0) and "+" or "-"
-        local delta_val = math.abs(delta)
-        local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val)) or string.format("%.1f", delta_val)
-        msg = prefix .. delta_str
-    end
+    -- Use templates to format the OSD message.
+    -- %p = instant prefix, %v = instant value
+    -- %P = accumulator prefix, %V = accumulator value
+    local prefix = (delta > 0) and "+" or "-"
+    local delta_val = math.abs(delta)
+    local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val)) or string.format("%.1f", delta_val)
+    
+    local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
+    local acc_val = math.abs(FSM.SEEK_ACCUMULATOR)
+    if acc_val < 0.001 then acc_val = 0; acc_prefix = "" end
+    local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
+    
+    local template = (Options.seek_show_accumulator and FSM.SEEK_PRESS_COUNT >= 1) 
+        and Options.seek_osd_template_acc 
+        or Options.seek_osd_template
+    
+    -- On first press of an accumulator session, we might want to use the standard template
+    -- but the user specified +2 -> +4 logic, so we use acc_template if accumulator is enabled.
+    -- However, to allow "%p%v (%P%V)" style, we provide all variables to both.
+    local msg = template:gsub("%%p", prefix):gsub("%%v", delta_str):gsub("%%P", acc_prefix):gsub("%%V", acc_str)
     
     local alignment = (delta > 0) and 6 or 4
     show_seek_osd(msg, alignment)
