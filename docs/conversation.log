@@ -1505,6 +1505,7 @@
 20260505230435 I rolled it back, make it so that it doesn’t work in dw mode drum mode ON/OFF switch. You can enter the message as в `с` - `Managed by Drum Window`. And do the same with `к, е, К, Е` (EN/RU)
 20260505231157 It still works `r, t, R, T` (EN/RU)
 20260505231711 Let's remove the unnecessary noise in the form `Managed by Drum Window` and what else is there?
+20260505232102 Let's clean it some more Drum Window ON OFF, а также ... In general, check it out commit 6c84c8cbf52c326e88396ccd097a15924c2218f3
 
 
 

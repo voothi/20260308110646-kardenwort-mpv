@@ -905,17 +905,17 @@ local dw_ensure_visible -- forward declaration
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Copy Mode: No subtitles loaded")
+        show_osd("No subtitles loaded")
         return
     end
     if FSM.MEDIA_STATE == "SINGLE_SRT" then
-        show_osd("Copy Mode: Fixed to Primary (Single Track)")
+        show_osd("Fixed to Primary (Single Track)")
         return
     end
     FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
     
     local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
-    show_osd("Copy Subtitle Mode: " .. label)
+    show_osd(label)
 end
 
 function cmd_cycle_immersion_mode()
@@ -930,20 +930,20 @@ function cmd_cycle_immersion_mode()
             FSM.ACTIVE_IDX = get_center_index(subs, time_pos)
         end
     end
-    show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
+    show_osd(FSM.IMMERSION_MODE)
 end
 
 function cmd_toggle_copy_ctx()
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Context Copy: No subtitles loaded")
+        show_osd("No subtitles loaded")
         return
     end
     if not Tracks.pri.path and not Tracks.sec.path then
-        show_osd("Context Copy: Requires external subtitle files")
+        show_osd("Requires external subtitle files")
         return
     end
     FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
-    show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
+    show_osd(FSM.COPY_CONTEXT)
 end
 
 function get_copy_context_text(time_pos, line_idx)
@@ -3021,7 +3021,7 @@ local function update_media_state()
             end
             drum_osd.data = ""
             drum_osd:update()
-            show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
+            show_osd("AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
         end
     end
 end
@@ -4260,7 +4260,7 @@ end
 
 local function cmd_toggle_dw_tooltip_hover()
     FSM.DW_TOOLTIP_MODE = (FSM.DW_TOOLTIP_MODE == "CLICK") and "HOVER" or "CLICK"
-    show_osd("DW Translation: " .. FSM.DW_TOOLTIP_MODE)
+    show_osd(FSM.DW_TOOLTIP_MODE)
     if FSM.DW_TOOLTIP_MODE == "CLICK" then
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_LINE = -1
@@ -4542,7 +4542,7 @@ local function dw_anki_export_selection()
             local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos, advanced_index)
             -- Use the multi-index generated above
             save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
-            show_osd("Anki Highlight Saved: " .. term)
+            show_osd("Saved: " .. term)
 
             -- In-memory update was already performed by save_anki_tsv_row.
             -- Removing redundant full-file reload to prevent UI stuttering.
@@ -4558,7 +4558,7 @@ local function dw_anki_export_selection()
     end)
     
     if not ok then
-        show_osd("Anki Export Error: " .. tostring(err), 5)
+        show_osd("Error: " .. tostring(err), 5)
     end
 end
 
@@ -4724,7 +4724,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     local advanced_index = table.concat(indices, ",")
     
     save_anki_tsv_row(term, extract_anki_context(context_line, term, Options.anki_context_max_words, pivot_pos, advanced_index), subs[p1_l].start_time + 0.001, advanced_index)
-    show_osd("Anki Paired Saved: " .. term)
+    show_osd("Saved: " .. term)
 
     
     -- Clear set
@@ -5368,15 +5368,15 @@ local function cmd_toggle_autopause()
         FSM.SCHEDULED_REPLAY_START = nil
         FSM.SCHEDULED_REPLAY_END = nil
     end
-    show_osd("Autopause: " .. FSM.AUTOPAUSE)
+    show_osd(FSM.AUTOPAUSE)
 end
 
 local function cmd_toggle_karaoke()
     FSM.KARAOKE = (FSM.KARAOKE == "WORD") and "PHRASE" or "WORD"
     if FSM.KARAOKE == "WORD" then
-        show_osd("Pause Mode: EVERY WORD", Options.osd_duration + 0.5)
+        show_osd("EVERY WORD", Options.osd_duration + 0.5)
     else
-        show_osd("Pause Mode: END OF PHRASE")
+        show_osd("END OF PHRASE")
     end
 end
 
@@ -5411,15 +5411,15 @@ local function cmd_toggle_drum()
         return
     end
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Drum Mode: No subtitles loaded")
+        show_osd("No subtitles loaded")
         return
     end
     if FSM.MEDIA_STATE:match("ASS") then
-        show_osd("Drum Mode: NOT SUPPORTED (ASS Track)", Options.osd_duration + 1.0)
+        show_osd("NOT SUPPORTED (ASS Track)", Options.osd_duration + 1.0)
         return
     end
     if not Tracks.pri.path then
-        show_osd("Drum Mode: Requires external subtitle files (.srt)")
+        show_osd("Requires external subtitle files (.srt)")
         return
     end
 
@@ -5911,7 +5911,7 @@ local function cmd_replay_sub()
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-        show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
+        show_osd(Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
         FSM.LOOP_MODE = "OFF"
@@ -5924,7 +5924,7 @@ local function cmd_replay_sub()
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-        show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
+        show_osd(Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
 end
 
@@ -5950,7 +5950,7 @@ local function cmd_dw_seek_selected()
                 FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
             end
             
-            show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
+            show_osd(FSM.DW_CURSOR_LINE)
         end
     end
 end
@@ -7065,11 +7065,11 @@ end
 function cmd_toggle_search()
     if not FSM.SEARCH_MODE then
         if FSM.MEDIA_STATE == "NO_SUBS" then
-            show_osd("Search: No subtitles loaded")
+            show_osd("No subtitles loaded")
             return
         end
         if not Tracks.pri.path and not Tracks.sec.path then
-            show_osd("Search: Requires external subtitle files")
+            show_osd("Requires external subtitle files")
             return
         end
         manage_search_bindings(true)
@@ -7138,7 +7138,7 @@ function cmd_toggle_drum_window()
         if FSM.DRUM_WINDOW == "DOCKED" then
             local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
-            show_osd(string.format("ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
+            show_osd("ON")
         end
     else
 
@@ -7174,9 +7174,9 @@ function toggle_book_mode()
         if FSM.DRUM_WINDOW == "OFF" then
             cmd_toggle_drum_window()
         end
-        show_osd("Book Mode: ON")
+        show_osd("ON")
     else
-        show_osd("Book Mode: OFF")
+        show_osd("OFF")
     end
 end
 
@@ -7268,22 +7268,22 @@ end
 
 local function cmd_cycle_sec_pos()
     if Tracks.sec.id == 0 then
-        show_osd("Secondary Sub Pos: No secondary subtitle loaded")
+        show_osd("No secondary subtitle loaded")
         return
     end
     if Tracks.sec.is_ass then
-        show_osd("Secondary Sub Pos: Not available (ASS controls positioning)")
+        show_osd("Not available (ASS controls positioning)")
         return
     end
     if FSM.DRUM == "ON" then
         FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
-        show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
+        show_osd((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM")
     else
         local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
         local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", n)
-        show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
+        show_osd((n < 50) and "TOP" or "BOTTOM")
     end
 end
 
@@ -7384,7 +7384,7 @@ local function cmd_toggle_osc()
     if FSM.OSC_VIS == 1 then lbl, cmd = "ALWAYS", "always"
     elseif FSM.OSC_VIS == 2 then lbl, cmd = "NEVER", "never" end
     mp.commandv("script-message", "osc-visibility", cmd, "no-osd")
-    show_osd("OSC Visibility: " .. lbl)
+    show_osd(lbl)
 end
 
 -- =========================================================================
@@ -7412,7 +7412,7 @@ local function cmd_copy_sub(mode)
                 wcount = wcount + 1
             end
             local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
-            show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
+            show_osd(FSM.COPY_MODE .. ": " .. osd_t)
             FSM.LAST_OSD_TIME = now
         end
     else
