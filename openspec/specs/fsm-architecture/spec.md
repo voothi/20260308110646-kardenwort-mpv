@@ -98,6 +98,11 @@ The system SHALL ensure that transitions between Immersion Modes (`MOVIE`, `PHRA
 - **THEN** the system SHALL calculate the current `active_idx` and store it in `FSM.ACTIVE_IDX` immediately.
 - **AND** the subsequent tick loop SHALL NOT trigger a "Jerk Back" seek if the playback position is at a subtitle boundary.
 
+### Requirement: Deterministic Startup State
+The system SHALL initialize the `IMMERSION_MODE` state at boot based on the user-defined `immersion_mode_default` parameter to ensure a consistent startup experience.
+- **Boot Sequence**: The FSM SHALL evaluate the configuration after `read_options` but before the first media-ready event.
+- **Fallback**: If the configuration is missing or invalid, the system SHALL default to `PHRASE` mode.
+
 ### Requirement: Deterministic Focus Sentinel
 The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding.
 
