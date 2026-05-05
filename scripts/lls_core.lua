@@ -512,6 +512,7 @@ local FSM = {
     MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
     SEEK_ACCUMULATOR = 0,
     SEEK_LAST_TIME = 0,
+    SEEK_PRESS_COUNT = 0,
 
     -- Transients
     last_paused_sub_end = nil,
@@ -5989,8 +5990,10 @@ local function cmd_seek_time(dir)
     -- Accumulator logic: check if OSD window is still active
     if now < FSM.SEEK_LAST_TIME + Options.seek_osd_duration then
         FSM.SEEK_ACCUMULATOR = FSM.SEEK_ACCUMULATOR + delta
+        FSM.SEEK_PRESS_COUNT = FSM.SEEK_PRESS_COUNT + 1
     else
         FSM.SEEK_ACCUMULATOR = delta
+        FSM.SEEK_PRESS_COUNT = 1
     end
     FSM.SEEK_LAST_TIME = now
     
@@ -6004,7 +6007,7 @@ local function cmd_seek_time(dir)
     local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
     
     local msg = prefix .. tostring(math.abs(delta))
-    if Options.seek_show_accumulator then
+    if Options.seek_show_accumulator and FSM.SEEK_PRESS_COUNT >= 2 then
         msg = msg .. " (" .. acc_prefix .. tostring(math.abs(FSM.SEEK_ACCUMULATOR)) .. ")"
     end
     

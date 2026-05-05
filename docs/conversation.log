@@ -1484,6 +1484,7 @@
 20260505163437 It is necessary that these messages appear on the left or right in the middle of the screen, depending on - or +, it is necessary that the font and other things can be set separately as for other modes. It needs to be the same now.
 20260505164450 Kryakozyabra.
 20260505165045 Okay, let's now make an option that will show the value of the accumulator count of rewind seconds from a given moment in parentheses (the number of presses is added up. Think about the calculation formula when the track is on and I press the first time and then the second not immediately, but while seek_osd_duration hangs. Also, in addition to the value of displaying this OSD message, it should last this time. This is necessary so that I can visually understand from the presence of this window that the part that I rewinded is still ongoing.
+20260505165922 Show in brackets only if pressed 2 or more times.
 
 
 

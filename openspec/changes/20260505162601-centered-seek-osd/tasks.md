@@ -6,11 +6,11 @@
 
 ## 2. State Tracking Implementation
 
-- [x] 2.1 Initialize `FSM.SEEK_ACCUMULATOR = 0` and `FSM.SEEK_LAST_TIME = 0` in `lls_core.lua`
-- [x] 2.2 Implement accumulator logic in `cmd_seek_time`:
-    - Check if current seek is within `seek_osd_duration` of `SEEK_LAST_TIME`.
-    - Update `SEEK_ACCUMULATOR` accordingly.
-    - Reset `SEEK_ACCUMULATOR` if window expired.
+- [x] 2.1 Initialize `FSM.SEEK_ACCUMULATOR = 0`, `FSM.SEEK_LAST_TIME = 0`, and `FSM.SEEK_PRESS_COUNT = 0` in `lls_core.lua`
+- [x] 2.2 Implement accumulator and press count logic in `cmd_seek_time`:
+    - Increment `SEEK_PRESS_COUNT` if within window.
+    - Reset to 1 if window expired.
+- [x] 2.3 Only show the bracketed accumulator if `SEEK_PRESS_COUNT >= 2`.
 
 ## 3. OSD Refinement (Accumulator)
 
