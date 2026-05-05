@@ -1,3 +1,18 @@
+# Release Notes - v1.58.52 (Supported Track Filtering)
+
+**Date**: 2026-05-05
+**Version**: v1.58.52
+**Implementation ZIDs**: 20260505113419
+
+## Highlights
+
+### 🚄 **Intelligent Secondary Track Filtering**
+- **Surgical Cycle Filter**: Refined the `Shift+c` (cycle secondary subtitles) logic to automatically skip internal/unsupported tracks.
+- **External Priority**: The cycle now only includes external subtitle files (`.srt`, `.ass`) that the Kardenwort logic can fully process (Autopause, Drum Mode, Multi-line context).
+- **Embedded Track Guard**: Prevents visual noise from embedded media tracks (e.g., built-in German/English tracks in MKVs) that do not support advanced script features.
+
+---
+
 # Release Notes - v1.58.49 (Drum Mode Cursor Fix & Window Persistence)
 
 **Date**: 2026-05-04

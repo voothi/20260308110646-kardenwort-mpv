@@ -1452,5 +1452,20 @@
 20260505111320 I have completed the final verification and audit of the Immersion Engine. Compared to the 71bfa6a baseline, the current implementation is significantly more stable, predictable, and feature-complete. - Okay.
 20260505111339 Does the current script search for directory a in the directory of the video being played? I don't need it. C:\Users\voothi\Desktop\20260504191156 C:\Users\voothi\Desktop\20260504191156\a a - this is archive
 20260505112106 The script does not search for or use the a directory. It is completely safe to keep your archive folder a as it is; the immersion suite will ignore it and focus only on files in the primary video directory. If you have any other questions or need further clarification, feel free to ask! - Okay.
+20260505112139 I noticed that at some point now, if a subtitle has built-in subtitles, it seems that this is added to the Shift+c switch, I see the message Secondary Subtitles: DEU in addition to the already familiar OFF/RU. But these subtitles do not appear. They don't seem to be supported by our program. Then why is this?
+20260505113409 Would you like me to implement this filter so that Shift+c only toggles between tracks that our program fully supports? - Yes.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -1,6 +1,6 @@
 -- =========================================================================
 -- KARDENWORT Language Acquisition Suite (LAS) Core
--- Version: v1.58.50
+-- Version: v1.58.52
 -- Purpose: Language Acquisition through Subtitle-Driven Immersion
 -- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
 -- =========================================================================
@@ -7193,38 +7193,53 @@ local function cmd_cycle_sec_sid()
     if FSM.DRUM == "ON" then FSM.native_sec_sub_vis = true
     else mp.set_property_bool("secondary-sub-visibility", true) end
 
-    mp.command("no-osd cycle secondary-sid")
-    local ssid = mp.get_property_number("secondary-sid", 0)
-    if ssid == 0 then
-        -- Before just saying "OFF", check if there's actually anything to cycle to
-        local tracks = mp.get_property_native("track-list") or {}
-        local sub_count = 0
-        local is_ass = false
-        for _, t in ipairs(tracks) do
-            if t.type == "sub" then
-                sub_count = sub_count + 1
-                if t.codec == "ass" or t.codec == "ssa" or (t["external-filename"] and (t["external-filename"]:lower():match("%.ass$") or t["external-filename"]:lower():match("%.ssa$"))) then
-                    is_ass = true
-                end
-            end
+    local tracks = mp.get_property_native("track-list") or {}
+    local current_sid = mp.get_property_number("secondary-sid", 0)
+    
+    -- [v1.58.52] Filter for supported tracks (External files only).
+    -- Internal tracks are skipped because the script cannot parse their content for 
+    -- advanced features like Autopause, Drum Mode, or clipping.
+    local supported = {0} -- Always include OFF (0)
+    for _, t in ipairs(tracks) do
+        if t.type == "sub" and t.external then
+            table.insert(supported, t.id)
         end
-
-        if sub_count <= 1 then
-            if is_ass then
-                show_osd("Secondary Subtitles: Managed internally by ASS styling")
-            else
-                show_osd("Secondary Subtitles: Only 1 track available")
-            end
-        else
-            show_osd("Secondary Subtitles: OFF")
-        end
+    end
+    
+    if #supported <= 1 then
+        show_osd("Secondary Subtitles: No external tracks available")
+        if current_sid ~= 0 then mp.set_property("secondary-sid", 0) end
         return
     end
 
+    -- Find next sid in the supported list
+    local next_sid = 0
+    local found = false
+    for i, sid in ipairs(supported) do
+        if sid == current_sid then
+            next_sid = supported[i % #supported + 1]
+            found = true
+            break
+        end
+    end
+    
+    -- If current sid was not in supported (e.g. it was an internal track), jump to first external track
+    if not found then
+        next_sid = supported[2]
+    end
+
+    mp.set_property("secondary-sid", next_sid)
+    
+    if next_sid == 0 then
+        show_osd("Secondary Subtitles: OFF")
+        return
+    end
+
+    -- Update OSD with label
     mp.add_timeout(0.05, function()
-        local tracks = mp.get_property_native("track-list") or {}
-        for _, t in ipairs(tracks) do
-            if t.type == "sub" and t.id == ssid then
+        local updated_tracks = mp.get_property_native("track-list") or {}
+        for _, t in ipairs(updated_tracks) do
+            if t.type == "sub" and t.id == next_sid then
                 local label = "ON"
                 if t.lang then label = t.lang:upper()
                 elseif t.title then label = t.title
