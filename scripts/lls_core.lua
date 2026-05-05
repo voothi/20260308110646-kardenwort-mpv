@@ -7195,12 +7195,16 @@ local function cmd_cycle_sec_sid()
 
     local tracks = mp.get_property_native("track-list") or {}
     local current_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
+    local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
     
     local supported = {0}
     for _, t in ipairs(tracks) do
         if t.type == "sub" and t.external then
             local tid = tonumber(t.id)
-            if tid then table.insert(supported, tid) end
+            -- Skip the track that is already selected as primary to avoid conflicts
+            if tid and tid ~= primary_sid then 
+                table.insert(supported, tid) 
+            end
         end
     end
     table.sort(supported)
