@@ -4,12 +4,14 @@
 The Kardenwort-mpv immersion suite currently uses a clamped navigation system for subtitles, where seeking previous at the first subtitle or next at the last subtitle does not wrap around. Additionally, a bug has been reported in "PHRASE" immersion mode where playing the first subtitle again (or seeking back to it) causes an unintended switch to the last subtitle.
 
 ## Objective
-Implement cyclic (wrap-around) navigation for the `a` and `d` keys and resolve the state-machine inconsistency that causes the first subtitle to jump to the end of the track.
+Implement cyclic (wrap-around) navigation for the `a` and `d` keys, resolve state-machine inconsistencies at track boundaries, and ensure robust synchronization when using the native `mpv` OSC timeline.
 
 ## What Changes
-- `cmd_dw_seek_delta` will be updated to support cyclic indexing.
-- The `master_tick` or `get_center_index` logic will be hardened to prevent "magnetic snapping" or incorrect index calculations at track boundaries.
-- Navigation feedback (OSD) will be updated to reflect cyclic transitions.
+- `cmd_dw_seek_delta` updated to use modulo-based cyclic indexing.
+- Implemented `math.max(0, s)` guards to prevent invalid seeking at the track start.
+- Hardened `master_tick` jump detection to trigger `MANUAL_NAV_COOLDOWN` for native OSC seeks.
+- Optimized "Jerk Back" logic to prevent unintended jumps during extreme wrap-around transitions.
+- Navigation feedback (OSD) updated to reflect cyclic transitions ("Wrapped to START/END").
 
 ## Capabilities
 

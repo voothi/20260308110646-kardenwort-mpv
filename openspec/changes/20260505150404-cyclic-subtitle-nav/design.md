@@ -16,20 +16,22 @@ The current navigation logic in `cmd_dw_seek_delta` uses `math.max(1, math.min(#
 
 ## Decisions
 
-### 1. Cyclic Indexing Logic
-Instead of `math.max/min`, we will use a modulo-like approach in `cmd_dw_seek_delta`:
+### 1. Modulo-Based Cyclic Indexing
+Instead of manual clamping or branching, we use a standard 1-based modulo wrap:
 ```lua
-local target_idx = base_idx + dir
-if target_idx < 1 then target_idx = #subs
-elseif target_idx > #subs then target_idx = 1 end
+local target_idx = ((base_idx + dir - 1) % #subs) + 1
 ```
-This ensures that `a` at sub 1 goes to sub `#subs`, and `d` at sub `#subs` goes to sub 1.
+This handles all edge cases (single sub tracks, large jumps) consistently.
 
-### 2. Boundary Hardening in master_tick
-I will audit the "Jerk Back" logic and `get_center_index` to ensure that transitions at the start of the file are stable. Specifically, I will ensure `FSM.ACTIVE_IDX` is properly initialized or synchronized when seeking to the start.
+### 2. Boundary and Seek Hardening
+- **Negative Seek Guard**: Added `math.max(0, s)` to ensure that audio padding at the very start of the file does not result in invalid negative seek timestamps.
+- **Absolute Start Guard**: Updated `get_center_index` to return index `1` if `time_pos <= 0` to stabilize the engine during loops or manual seeks to the beginning.
 
-### 3. OSD Feedback
-I'll ensure the OSD message indicates when a wrap-around has occurred (e.g., "Seeking to Last Subtitle" or "Seeking to First Subtitle").
+### 3. OSC and Manual Seek Synchronization
+Hardened the **Universal Manual Seek Detection** in `master_tick` to set `FSM.MANUAL_NAV_COOLDOWN` whenever a significant jump (>0.3s) is detected. This ensures that clicking the `mpv` OSC timeline or using native seek keys correctly suppresses the Phrases mode "Jerk Back" logic, allowing the state machine to settle at the new location.
+
+### 4. Jerk-Back Safety Jump Limit
+Restricted the Phrase Mode "Jerk Back" to only trigger if the jump is within 5 subtitles (`active_idx <= FSM.ACTIVE_IDX + 5`). This prevents glitchy jumps to the end of the track from triggering a lock-on, while still allowing natural sequential navigation to benefit from padded start alignment.
 
 ## Risks / Trade-offs
 - **Cyclic Confusion**: Users accustomed to clamping might be surprised, but this is the requested behavior.

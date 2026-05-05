@@ -17,3 +17,10 @@ The system SHALL NOT jump to the last subtitle automatically when replaying or s
 #### Scenario: Replaying first subtitle
 - **WHEN** the user replays the first subtitle
 - **THEN** the system SHALL remain focused on the first subtitle index and NOT jump to the end of the track
+
+### Requirement: OSC Synchronization
+The system SHALL synchronize the active subtitle index when the user seeks manually via the native `mpv` OSC timeline.
+
+#### Scenario: Seeking via OSC Timeline
+- **WHEN** the user clicks on the `mpv` OSC timeline to jump to a different part of the media
+- **THEN** the system SHALL detect the jump, update the `ACTIVE_IDX`, and suppress the "Jerk Back" logic for the duration of the navigation cooldown
