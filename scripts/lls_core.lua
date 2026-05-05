@@ -7539,7 +7539,7 @@ local function register_global_position_keys()
 
                 return fn(t)
             end
-            mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
+            mp.add_forced_key_binding(key, name .. "-" .. i, wrapped_fn)
             i = i + 1
         end
     end
