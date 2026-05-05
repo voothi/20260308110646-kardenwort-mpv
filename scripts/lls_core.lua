@@ -4870,7 +4870,8 @@ local function cmd_dw_double_click()
         FSM.IGNORE_NEXT_JUMP = true
         FSM.ACTIVE_IDX = -1
 
-        -- Set mouse lock to ignore the trailing "up" event of the double-click
+        local s, _ = get_effective_boundaries(sub, line_idx)
+        mp.commandv("seek", s, "absolute+exact")
         -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
         -- at the post-seek mouse position.
         FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
@@ -5154,6 +5155,17 @@ local function master_tick()
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
+            -- [v1.58.51] Phrases Mode "Jerk Back" Logic
+            -- If we naturally transition to a new index in Phrase Mode, and its padded start 
+            -- is behind the current playhead (overlap), rewind to ensure full audio context.
+            if FSM.IMMERSION_MODE == "PHRASE" and FSM.ACTIVE_IDX ~= -1 and active_idx == FSM.ACTIVE_IDX + 1 then
+                local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
+                if s_next and (time_pos - s_next) > 0.05 then
+                    mp.commandv("seek", s_next, "absolute+exact")
+                    FSM.IGNORE_NEXT_JUMP = true -- Prevent re-triggering logic in this tick
+                end
+            end
+
             FSM.ACTIVE_IDX = active_idx
             FSM.DW_ACTIVE_LINE = active_idx
             
@@ -5827,7 +5839,8 @@ local function cmd_dw_seek_selected()
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = -1
 
-            mp.commandv("seek", sub.start_time, "absolute+exact")
+            local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
+            mp.commandv("seek", s, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
@@ -5865,7 +5878,8 @@ local function cmd_dw_seek_delta(dir)
     FSM.DW_SEEK_TARGET = target_idx
     local sub = subs[target_idx]
     if sub and sub.start_time then
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local s, _ = get_effective_boundaries(sub, target_idx)
+        mp.commandv("seek", s, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         

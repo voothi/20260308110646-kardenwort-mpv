@@ -1433,6 +1433,7 @@
 20260505093719 Remove this functionality - Phase 2: Capturing Suite (Movie vs. Phrases Mode).
 20260505094110 Error
 20260505094627 Where is the Movie, Phrases (cards) rhyme that I asked for? I needed to implement it in phase one, I don't need to capture, mine subtitles, I need to view them according to this principle. In Movie mode the image should not jerk back, but in Phrases it can.
+20260505095037 I ask you to pay attention to the fact that in Phrases, if the padding of the next subtitle overlaps the previous one, then you need to rewind, yes, there will be a repeat of the part where they intersect, but this is the target behavior of this mode, when I work with the material as with anki cards, flipping through them one by one, listening to fragments separately, with edge capture, since subtitles are often offset and why the boundaries of such a map do not allow us to understand the entire listening segment, it is cut off by audio. This is very important to me. Pay attention. You are an expert on subtitles and a program developer in the approach to processing subtitles and exporting them to anki.
 
 
 
