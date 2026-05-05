@@ -1436,6 +1436,7 @@
 20260505095037 I ask you to pay attention to the fact that in Phrases, if the padding of the next subtitle overlaps the previous one, then you need to rewind, yes, there will be a repeat of the part where they intersect, but this is the target behavior of this mode, when I work with the material as with anki cards, flipping through them one by one, listening to fragments separately, with edge capture, since subtitles are often offset and why the boundaries of such a map do not allow us to understand the entire listening segment, it is cut off by audio. This is very important to me. Pay attention. You are an expert on subtitles and a program developer in the approach to processing subtitles and exporting them to anki.
 20260505095911 Okay, finally I got what I expected, now it really looks like phrase cards mode. Let's focus on the result, it's a small victory. However, we did not foresee that there is navigation a, d, double-click LMB, which can happen, and that the subtitles themselves should not twitch visually during such rewinding in our srt, dw, drum modes. In this case, in the photo we skipped over `Es sind pro Stunde um die 800 Sendungen,`
 20260505100657 It’s gotten worse, I can’t move a, d between subtitles, it gets stuck. Look at the state diagram of this process, FSM, solve the problem.
+20260505101100 It looks like the padding end has stopped working.
 
 
 

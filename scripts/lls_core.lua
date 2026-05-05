@@ -639,10 +639,10 @@ function get_center_index(subs, time_pos)
     
     if best == -1 then return 1 end
 
-    -- [v1.58.51] Overlap Priority: If we are in a gap where the previous sub's 
-    -- end overlaps with the next sub's padded start, the next sub MUST win 
-    -- to allow forward progress during navigation.
-    if best < #subs then
+    -- [v1.58.51] Overlap Priority: If we are in an intentional navigation state 
+    -- (Manual Seek or Jerk-Back), the next sub wins in an overlap to allow progress.
+    -- During normal playback, we stay on the current sub until it expires.
+    if (mp.get_time() < FSM.MANUAL_NAV_COOLDOWN or FSM.JUST_JERKED_TO ~= -1) and best < #subs then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(next_sub, best + 1)
         if time_pos >= s_next then
@@ -5028,7 +5028,9 @@ local function tick_autopause(time_pos)
     if not sub_end then return end
 
     -- Check if we've reached the end of the padded window
-    if (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
+    -- Use an inclusive check to ensure we don't skip the pause frame.
+    local diff = sub_end - time_pos
+    if diff > Options.pause_padding or diff < -0.1 then
         return
     end
 
