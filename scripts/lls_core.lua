@@ -4895,7 +4895,7 @@ local function tick_dw(time_pos, active_idx)
     dw_tooltip_mouse_update()
 end
 
-local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
+local function tick_drum(time_pos, active_idx, pri_use_osd, sec_use_osd)
     -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
     if FSM.DRUM_WINDOW ~= "OFF" then return end
     
@@ -4934,13 +4934,15 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
-        local idx = get_center_index(Tracks.pri.subs, time_pos)
+        local idx = active_idx
+        if idx == -1 then idx = get_center_index(Tracks.pri.subs, time_pos) end
         local pri_plain = is_drum and (not Options.drum_pri_highlighting) or (not Options.srt_pri_highlighting)
         ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
-        local idx = get_center_index(Tracks.sec.subs, time_pos)
+        local idx = active_idx
+        if idx == -1 then idx = get_center_index(Tracks.sec.subs, time_pos) end
         local sec_plain = is_drum and (not Options.drum_sec_highlighting) or (not Options.srt_sec_highlighting)
         ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain, false)
     end
@@ -4987,14 +4989,21 @@ local function tick_autopause(time_pos)
 
     if FSM.last_paused_sub_end == sub_end then return end
 
-    local raw_text_primary = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
-    local raw_text_secondary = mp.get_property("secondary-sub-text") or ""
+    -- [v1.58.52] Audio Padding Immunity: Use focus-based text detection.
+    -- mpv clears native properties at technical end_time, which breaks padded stops.
+    local sub_text = ""
+    if FSM.ACTIVE_IDX ~= -1 and subs[FSM.ACTIVE_IDX] then
+        sub_text = subs[FSM.ACTIVE_IDX].text or ""
+    else
+        sub_text = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
+    end
     
-    if raw_text_primary == "" and raw_text_secondary == "" then return end
+    local sec_text = mp.get_property("secondary-sub-text") or ""
+    if sub_text == "" and sec_text == "" then return end
 
     if FSM.KARAOKE == "PHRASE" then
-        local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true)
-        if not has_karaoke then has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true) end
+        local has_karaoke = string.find(sub_text, Options.karaoke_token, 1, true)
+        if not has_karaoke then has_karaoke = string.find(sec_text, Options.karaoke_token, 1, true) end
         if has_karaoke then return end
     end
 
@@ -5191,7 +5200,7 @@ local function master_tick()
         
         -- Only render one-line Drum/SRT OSD if Drum Window is not active
         if not dw_active and (pri_use_osd or sec_use_osd) then
-            tick_drum(time_pos, pri_use_osd, sec_use_osd)
+            tick_drum(time_pos, active_idx, pri_use_osd, sec_use_osd)
         else
             if drum_osd.data ~= "" then
                 drum_osd.data = ""
