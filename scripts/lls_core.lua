@@ -604,8 +604,17 @@ function show_osd(msg, dur)
 end
 
 function show_seek_osd(msg, alignment)
-    local ass = mp.get_property("osd-ass-cc/0") or ""
+    local ass = ""
     ass = ass .. string.format("{\\an%d}", alignment)
+    
+    -- Fixed positioning to ensure it stays in the middle of the screen
+    -- regardless of global OSD offsets.
+    if alignment == 4 then
+        ass = ass .. "{\\pos(40, 540)}"
+    elseif alignment == 6 then
+        ass = ass .. "{\\pos(1880, 540)}"
+    end
+    
     ass = ass .. string.format("{\\fn%s}", Options.seek_font_name)
     ass = ass .. string.format("{\\fs%d}", Options.seek_font_size)
     ass = ass .. string.format("{\\b%d}", Options.seek_font_bold and 1 or 0)
@@ -617,7 +626,14 @@ function show_seek_osd(msg, alignment)
     ass = ass .. string.format("{\\bord%g}", Options.seek_border_size)
     ass = ass .. string.format("{\\shad%g}", Options.seek_shadow_offset)
     
-    mp.osd_message(ass .. msg, Options.seek_osd_duration)
+    seek_osd.data = ass .. msg
+    seek_osd:update()
+    
+    if seek_timer then seek_timer:kill() end
+    seek_timer = mp.add_timeout(Options.seek_osd_duration, function()
+        seek_osd.data = ""
+        seek_osd:update()
+    end)
 end
 
 function has_cyrillic(str)
@@ -872,6 +888,12 @@ local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
 dw_tooltip_osd.res_x = 1920
 dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
+
+local seek_osd = mp.create_osd_overlay("ass-events")
+seek_osd.res_x = 1920
+seek_osd.res_y = 1080
+seek_osd.z = 40
+local seek_timer = nil
 
 local dw_ensure_visible -- forward declaration
 

@@ -1486,6 +1486,7 @@
 20260505165045 Okay, let's now make an option that will show the value of the accumulator count of rewind seconds from a given moment in parentheses (the number of presses is added up. Think about the calculation formula when the track is on and I press the first time and then the second not immediately, but while seek_osd_duration hangs. Also, in addition to the value of displaying this OSD message, it should last this time. This is necessary so that I can visually understand from the presence of this window that the part that I rewinded is still ongoing.
 20260505165922 Show in brackets only if pressed 2 or more times.
 20260505170156 Why (-0)
+20260505170537 Okay, why did I set the font to 34, but in fact I have huge numbers?
 
 
 
