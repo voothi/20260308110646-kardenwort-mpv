@@ -473,7 +473,8 @@ Options = {
     nav_cooldown = 0.5,           -- Settle period after manual seek (sec)
     nav_tolerance = 0.05,         -- Overlap priority threshold (sec)
     autopause_overshoot = 0.1,     -- Permitted overshoot past boundary (sec)
-    key_cycle_immersion_mode = "O Щ" -- Hotkey to cycle Phrase/Movie modes
+    key_cycle_immersion_mode = "O Щ", -- Hotkey to cycle Phrase/Movie modes
+    immersion_mode_default = "PHRASE" -- Default mode at startup ("PHRASE" or "MOVIE")
 }
 options.read_options(Options, "lls")
 
@@ -495,7 +496,7 @@ local FSM = {
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
     ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
-    IMMERSION_MODE = "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
+    IMMERSION_MODE = (Options.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
     JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
     MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
 

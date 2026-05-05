@@ -343,6 +343,8 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `lls-pause_padding` | `0.15` | Buffer delay (seconds) before pausing to ensure word completion. |
 | `lls-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
 | `lls-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
+| `lls-immersion_mode_default` | `PHRASE` | Default mode at startup (`PHRASE` or `MOVIE`). |
+| `lls-key_cycle_immersion_mode` | `O Щ` | Hotkey to cycle Phrase/Movie immersion modes. |
 
 #### **3. Drum Mode (Dynamic Multi-line Context)**
 | Parameter | Default | Description |
