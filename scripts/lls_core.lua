@@ -5400,7 +5400,7 @@ end
 
 local function cmd_toggle_anki_global()
     Options.anki_global_highlight = not Options.anki_global_highlight
-    show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
+    show_osd(Options.anki_global_highlight and "ON" or "OFF")
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
@@ -5408,7 +5408,6 @@ end
 
 local function cmd_toggle_drum()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
         return
     end
     if FSM.MEDIA_STATE == "NO_SUBS" then
@@ -5433,10 +5432,10 @@ local function cmd_toggle_drum()
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
         if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
 
-        show_osd(string.format("Drum Mode: ON [Double Gap: %s]", Options.drum_double_gap and "YES" or "NO"))
+        show_osd("ON")
     else
         FSM.DRUM = "OFF"
-        show_osd("Drum Mode: OFF")
+        show_osd("OFF")
     end
     update_interactive_bindings()
     flush_rendering_caches()
@@ -7249,7 +7248,6 @@ end
 
 local function cmd_toggle_sub_vis()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
         return
     end
     local nxt = not FSM.native_sub_vis
@@ -7264,7 +7262,7 @@ local function cmd_toggle_sub_vis()
         mp.set_property_bool("secondary-sub-visibility", false)
     end
     
-    show_osd("Subtitles: " .. (nxt and string.format("ON [Double Gap: %s]", Options.srt_double_gap and "YES" or "NO") or "OFF"))
+    show_osd(nxt and "ON" or "OFF")
     master_tick()
 end
 
@@ -7291,7 +7289,6 @@ end
 
 local function cmd_adjust_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" then
-        show_osd("Managed by Drum Window")
         return
     end
     local p = mp.get_property_number("sub-pos", 95)
@@ -7300,7 +7297,6 @@ end
 
 local function cmd_adjust_sec_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" then
-        show_osd("Managed by Drum Window")
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)

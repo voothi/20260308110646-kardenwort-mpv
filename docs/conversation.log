@@ -1504,6 +1504,7 @@
 20260505225848 x It didn't work.
 20260505230435 I rolled it back, make it so that it doesn’t work in dw mode drum mode ON/OFF switch. You can enter the message as в `с` - `Managed by Drum Window`. And do the same with `к, е, К, Е` (EN/RU)
 20260505231157 It still works `r, t, R, T` (EN/RU)
+20260505231711 Let's remove the unnecessary noise in the form `Managed by Drum Window` and what else is there?
 
 
 
