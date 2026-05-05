@@ -5844,10 +5844,12 @@ local function cmd_dw_seek_delta(dir)
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
-    local current_idx = get_center_index(subs, time_pos)
-    if current_idx == -1 then return end
+    local base_idx = FSM.ACTIVE_IDX
+    if base_idx == -1 then
+        base_idx = get_center_index(subs, time_pos)
+    end
+    if base_idx == -1 then return end
     
-    local base_idx = current_idx
     if FSM.DW_SEEKING_MANUALLY and FSM.DW_SEEK_TARGET ~= -1 then
         base_idx = FSM.DW_SEEK_TARGET
     end
