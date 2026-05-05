@@ -695,7 +695,6 @@ local FSM = {
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
     ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
-    CAPTURE_MODE = "PHRASE", -- PHRASE or MOVIE
 
     -- Transients
     last_paused_sub_end = nil,
@@ -799,61 +798,6 @@ dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
 
 local dw_ensure_visible -- forward declaration
-
--- =========================================================================
--- CAPTURING SUITE (Phase 2)
--- =========================================================================
-
-function cmd_cycle_capture_mode()
-    if FSM.CAPTURE_MODE == "PHRASE" then
-        FSM.CAPTURE_MODE = "MOVIE"
-    else
-        FSM.CAPTURE_MODE = "PHRASE"
-    end
-    show_osd("Capture Mode: " .. FSM.CAPTURE_MODE)
-end
-
-function cmd_capture_segment()
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then
-        show_osd("Capture: No subtitles loaded")
-        return
-    end
-
-    local idx = FSM.ACTIVE_IDX
-    if idx == -1 then
-        idx = get_center_index(subs, mp.get_property_number("time-pos", 0))
-    end
-
-    if idx == -1 then
-        show_osd("Capture: No active subtitle")
-        return
-    end
-
-    local pad_start = (Options.audio_padding_start or 0) / 1000
-    local pad_end = (Options.audio_padding_end or 0) / 1000
-    
-    local start_time = subs[idx].start_time - pad_start
-    local end_time = subs[idx].end_time + pad_end
-
-    if FSM.CAPTURE_MODE == "MOVIE" then
-        -- In Movie mode, the end is the start of the next subtitle
-        if idx < #subs then
-            end_time = subs[idx+1].start_time
-        end
-    end
-
-    local function format_time(t)
-        local h = math.floor(t / 3600)
-        local m = math.floor((t % 3600) / 60)
-        local s = t % 60
-        return string.format("%02d:%02d:%06.3f", h, m, s)
-    end
-
-    local msg_text = string.format("Captured [%s]: %s - %s", FSM.CAPTURE_MODE, format_time(start_time), format_time(end_time))
-    show_osd(msg_text, 2)
-    Diagnostic.info(msg_text)
-end
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
@@ -6054,12 +5998,6 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
     parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
-
-    -- [v1.58.51] Capturing Suite (Phase 2)
-    mp.add_forced_key_binding("o", "lls-capture", cmd_capture_segment)
-    mp.add_forced_key_binding("O", "lls-cycle-capture", cmd_cycle_capture_mode)
-    mp.add_forced_key_binding("щ", "lls-capture-ru", cmd_capture_segment)
-    mp.add_forced_key_binding("Щ", "lls-cycle-capture-ru", cmd_cycle_capture_mode)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
