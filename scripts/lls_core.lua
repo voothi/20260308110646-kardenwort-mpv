@@ -5400,6 +5400,7 @@ end
 
 local function cmd_toggle_anki_global()
     Options.anki_global_highlight = not Options.anki_global_highlight
+    show_osd(Options.anki_global_highlight and "ON" or "OFF")
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
