@@ -7191,14 +7191,12 @@ local function cmd_cycle_sec_sid()
     if FSM.DRUM == "ON" then FSM.native_sec_sub_vis = true
     else mp.set_property_bool("secondary-sub-visibility", true) end
 
-    -- Disable further auto-selection to prevent manual choices from being overwritten
     FSM.__auto_track_selected_sec = true
 
     local tracks = mp.get_property_native("track-list") or {}
-    local current_sid = tonumber(mp.get_property("secondary-sid") or 0)
+    local current_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
     
-    -- Filter for supported tracks (External files only)
-    local supported = {0} -- Always include OFF (0)
+    local supported = {0}
     for _, t in ipairs(tracks) do
         if t.type == "sub" and t.external then
             local tid = tonumber(t.id)
@@ -7207,13 +7205,6 @@ local function cmd_cycle_sec_sid()
     end
     table.sort(supported)
     
-    if #supported <= 1 then
-        show_osd("Secondary Subtitles: No external tracks available")
-        mp.set_property("secondary-sid", "no")
-        return
-    end
-
-    -- Find next sid in the supported list
     local next_sid = 0
     local found = false
     for i = 1, #supported do
@@ -7224,20 +7215,22 @@ local function cmd_cycle_sec_sid()
         end
     end
     
-    -- Fallback if current sid was internal or unknown (jump to first external track)
     if not found then
         next_sid = supported[2] or 0
     end
 
-    mp.set_property("secondary-sid", next_sid)
+    Diagnostic.info("Secondary Cycle: " .. current_sid .. " -> " .. next_sid)
+    if next_sid == 0 then
+        mp.set_property("secondary-sid", "no")
+    else
+        mp.set_property_number("secondary-sid", next_sid)
+    end
     
-    -- Immediate OSD Feedback
     local label = "OFF"
     if next_sid ~= 0 then
         for _, t in ipairs(tracks) do
             if tonumber(t.id) == next_sid then
                 label = t.lang and t.lang:upper() or t.title or "ON"
-                -- Clean up label if it's a long filename
                 if label:find("%.") then label = label:match("([^%.]+)%.") or label end
                 break
             end
