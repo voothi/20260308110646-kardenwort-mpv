@@ -1,6 +1,6 @@
 -- =========================================================================
 -- KARDENWORT Language Acquisition Suite (LAS) Core
--- Version: v1.58.52
+-- Version: v1.58.50
 -- Purpose: Language Acquisition through Subtitle-Driven Immersion
 -- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
 -- =========================================================================
@@ -2913,29 +2913,27 @@ local function update_media_state()
     end
     if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
 
-    -- Smart Auto-Selection: if primary track has no path (metadata only), switch to first external one
-    if Tracks.pri.id ~= 0 and not Tracks.pri.path and not FSM.__auto_track_selected then
-        for _, t in ipairs(track_list) do
-            if t.type == "sub" and t.external and t["external-filename"] then
-                Diagnostic.info("Auto-selecting Track " .. t.id .. " as primary.")
-                mp.set_property("sid", t.id)
-                FSM.__auto_track_selected = true
-                return -- Let the next tick process the new sid
-            end
-        end
-    end
-
-    -- Secondary Auto-Selection: if primary is secured but secondary is missing, try to find a second external track
-    if Tracks.pri.path and Tracks.sec.id == 0 and not FSM.__auto_track_selected_sec then
-        for _, t in ipairs(track_list) do
-            if t.type == "sub" and t.external and t["external-filename"] and t.id ~= Tracks.pri.id then
-                Diagnostic.info("Auto-selecting Track " .. t.id .. " as secondary.")
-                mp.set_property("secondary-sid", t.id)
-                FSM.__auto_track_selected_sec = true
-                return
-            end
-        end
-    end
+    -- [v1.58.52] DEPRECATED: Auto-selection logic moved to manual control to prevent loop spam.
+    -- if Tracks.pri.id ~= 0 and not Tracks.pri.path and not FSM.__auto_track_selected then
+    --     for _, t in ipairs(track_list) do
+    --         if t.type == "sub" and t.external and t["external-filename"] then
+    --             Diagnostic.info("Auto-selecting Track " .. t.id .. " as primary.")
+    --             mp.set_property("sid", t.id)
+    --             FSM.__auto_track_selected = true
+    --             return -- Let the next tick process the new sid
+    --         end
+    --     end
+    -- end
+    -- if Tracks.pri.path and Tracks.sec.id == 0 and not FSM.__auto_track_selected_sec then
+    --     for _, t in ipairs(track_list) do
+    --         if t.type == "sub" and t.external and t["external-filename"] and t.id ~= Tracks.pri.id then
+    --             Diagnostic.info("Auto-selecting Track " .. t.id .. " as secondary.")
+    --             mp.set_property("secondary-sid", t.id)
+    --             FSM.__auto_track_selected_sec = true
+    --             return
+    --         end
+    --     end
+    -- end
 
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -7194,11 +7192,9 @@ local function cmd_cycle_sec_sid()
     else mp.set_property_bool("secondary-sub-visibility", true) end
 
     local tracks = mp.get_property_native("track-list") or {}
-    local current_sid = mp.get_property_number("secondary-sid", 0)
+    local current_sid = mp.get_property_number("secondary-sid", 0) or 0
     
-    -- [v1.58.52] Filter for supported tracks (External files only).
-    -- Internal tracks are skipped because the script cannot parse their content for 
-    -- advanced features like Autopause, Drum Mode, or clipping.
+    -- Filter for supported tracks (External files only)
     local supported = {0} -- Always include OFF (0)
     for _, t in ipairs(tracks) do
         if t.type == "sub" and t.external then
@@ -7208,7 +7204,7 @@ local function cmd_cycle_sec_sid()
     
     if #supported <= 1 then
         show_osd("Secondary Subtitles: No external tracks available")
-        if current_sid ~= 0 then mp.set_property("secondary-sid", 0) end
+        if current_sid ~= 0 then mp.set_property_number("secondary-sid", 0) end
         return
     end
 
@@ -7223,36 +7219,24 @@ local function cmd_cycle_sec_sid()
         end
     end
     
-    -- If current sid was not in supported (e.g. it was an internal track), jump to first external track
+    -- Fallback if current sid was internal or unknown
     if not found then
-        next_sid = supported[2]
+        next_sid = supported[2] or 0
     end
 
-    mp.set_property("secondary-sid", next_sid)
+    mp.set_property_number("secondary-sid", next_sid)
     
-    if next_sid == 0 then
-        show_osd("Secondary Subtitles: OFF")
-        return
-    end
-
-    -- Update OSD with label
-    mp.add_timeout(0.05, function()
-        local updated_tracks = mp.get_property_native("track-list") or {}
-        for _, t in ipairs(updated_tracks) do
-            if t.type == "sub" and t.id == next_sid then
-                local label = "ON"
-                if t.lang then label = t.lang:upper()
-                elseif t.title then label = t.title
-                elseif t["external-filename"] then
-                    local fn = t["external-filename"]:match("([^/\\]+)$") or t["external-filename"]
-                    local ext = fn:match("%.([A-Za-z0-9_]+)%.srt$") or fn:match("%.([A-Za-z0-9_]+)%.ass$")
-                    label = ext and ext:upper() or string.sub(fn, 1, 30)
-                end
-                show_osd("Secondary Subtitles: " .. label)
+    -- Immediate OSD Feedback
+    local label = "OFF"
+    if next_sid ~= 0 then
+        for _, t in ipairs(tracks) do
+            if t.id == next_sid then
+                label = t.lang and t.lang:upper() or t.title or "ON"
                 break
             end
         end
-    end)
+    end
+    show_osd("Secondary Subtitles: " .. label)
 end
 
 local function cmd_toggle_osc()

@@ -1454,6 +1454,7 @@
 20260505112106 The script does not search for or use the a directory. It is completely safe to keep your archive folder a as it is; the immersion suite will ignore it and focus only on files in the primary video directory. If you have any other questions or need further clarification, feel free to ask! - Okay.
 20260505112139 I noticed that at some point now, if a subtitle has built-in subtitles, it seems that this is added to the Shift+c switch, I see the message Secondary Subtitles: DEU in addition to the already familiar OFF/RU. But these subtitles do not appear. They don't seem to be supported by our program. Then why is this?
 20260505113409 Would you like me to implement this filter so that Shift+c only toggles between tracks that our program fully supports? - Yes.
+20260505113651 I did not ask to create a release. Take it away. Shift+c stopped working.
 
 
 
