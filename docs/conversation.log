@@ -1501,6 +1501,7 @@
 20260505221149 # The state after adding a word, it is no longer marked in yellow, it has been added, the subtitles continue, but how does it change? ## Description After adding a word you need to reset the selection.
 20260505224350 # To figure out why there is a cyclic switching between the dw and drum modes by pressing Esc, it is necessary that this does not happen and these modes remain and the selections are removed.
 20260505225048 # Remove unnecessary EN/RU key combinations from Drum Mode, which may be meaningless in this mode or not work at all, these are r, T and the same with Shift.
+20260505225848 It didn't work.
 
 
 

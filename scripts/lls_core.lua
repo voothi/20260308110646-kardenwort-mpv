@@ -6113,6 +6113,15 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function() cmd_dw_word_move(1, false) end, "ПРАВЫЙ")},
         {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function() cmd_dw_line_move(-1, false) end, "ВВЕРХ")},
         {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function() cmd_dw_line_move(1, false) end, "ВНИЗ")},
+        -- Ignore native sub-pos keys in Drum Mode/Window to prevent misleading OSD messages
+        {key = "r", name = "dw-ignore-r", fn = function() end},
+        {key = "t", name = "dw-ignore-t", fn = function() end},
+        {key = "R", name = "dw-ignore-R", fn = function() end},
+        {key = "T", name = "dw-ignore-T", fn = function() end},
+        {key = "к", name = "dw-ignore-ru-r", fn = function() end},
+        {key = "е", name = "dw-ignore-ru-t", fn = function() end},
+        {key = "К", name = "dw-ignore-ru-R", fn = function() end},
+        {key = "Е", name = "dw-ignore-ru-T", fn = function() end},
     }
 
     for _, k in ipairs(kb_keys) do 
