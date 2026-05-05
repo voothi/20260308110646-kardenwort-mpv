@@ -745,6 +745,24 @@ function get_center_index(subs, time_pos)
     return best
 end
 
+
+local function dw_reset_selection()
+    FSM.DW_CTRL_PENDING_SET = {}
+    FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_CURSOR_WORD = -1
+    FSM.DW_CURSOR_X = nil
+    if FSM.DW_ACTIVE_LINE ~= -1 then
+        FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
+    end
+    if FSM.DRUM_WINDOW ~= "OFF" then 
+        if dw_osd then dw_osd:update() end
+    elseif FSM.DRUM == "ON" then 
+        if drum_osd then drum_osd:update() end 
+    end
+end
+
 function parse_time(time_str)
     local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
     if h and m and s and ms then
@@ -4587,19 +4605,7 @@ end
 -- Stage 2: Clear Yellow Range (if anchor exists and is different from cursor)
 -- Stage 3: Clear Yellow Pointer (hides the highlight) and syncs cursor to active line
 -- Stage 4: Close the Drum Window
-local function dw_reset_selection()
-    FSM.DW_CTRL_PENDING_SET = {}
-    FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
-    FSM.DW_ANCHOR_LINE = -1
-    FSM.DW_ANCHOR_WORD = -1
-    FSM.DW_CURSOR_WORD = -1
-    FSM.DW_CURSOR_X = nil
-    if FSM.DW_ACTIVE_LINE ~= -1 then
-        FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
-    end
-    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
-    elseif FSM.DRUM == "ON" then drum_osd:update() end
-end
+
 
 
 local function cmd_dw_esc()
