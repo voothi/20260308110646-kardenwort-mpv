@@ -600,7 +600,7 @@ function show_osd(msg, dur)
 end
 
 function show_seek_osd(msg, alignment)
-    local ass = ""
+    local ass = mp.get_property("osd-ass-cc/0") or ""
     ass = ass .. string.format("{\\an%d}", alignment)
     ass = ass .. string.format("{\\fn%s}", Options.seek_font_name)
     ass = ass .. string.format("{\\fs%d}", Options.seek_font_size)

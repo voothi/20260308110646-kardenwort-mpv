@@ -1482,6 +1482,7 @@
 20260505162337 # Check and make sure that a message is shown in the middle of the OSD screen after scrolling a track using the LEFT RIGHT arrow or Shift+a Shift+d, like `+2`, think about the message. 20260505161754 I need this to be a changeable parameter and run arbitrary, set by the user in mpv.conf, by default let it be 2 seconds. Have you already tried to implement something? ec1dd79c902383df2b34d9c0dbabbd690ff07d07 20260505155745
 20260505162958 opsx-apply 20260505162601-centered-seek-osd
 20260505163437 It is necessary that these messages appear on the left or right in the middle of the screen, depending on - or +, it is necessary that the font and other things can be set separately as for other modes. It needs to be the same now.
+20260505164450 Kryakozyabra.
 
 
 
