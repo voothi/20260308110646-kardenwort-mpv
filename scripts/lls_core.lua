@@ -6054,7 +6054,12 @@ local function cmd_seek_time(dir)
     -- On first press of an accumulator session, we might want to use the standard template
     -- but the user specified +2 -> +4 logic, so we use cumulative_format if accumulator is enabled.
     -- To allow "%p%v (%P%V)" style, we provide all variables to both.
-    local msg = template:gsub("%%p", prefix):gsub("%%v", delta_str):gsub("%%P", acc_prefix):gsub("%%V", acc_str)
+    local msg = template:gsub("%%([pvPV])", {
+        p = prefix,
+        v = delta_str,
+        P = acc_prefix,
+        V = acc_str
+    })
     
     local alignment = (delta > 0) and 6 or 4
     show_seek_osd(msg, alignment)
