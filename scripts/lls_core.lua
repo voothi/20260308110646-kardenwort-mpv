@@ -484,10 +484,9 @@ Options = {
     seek_bg_color = "000000",
     seek_bg_opacity = "60",
     seek_border_size = 1.5,
-    seek_shadow_offset = 1.0,
     seek_show_accumulator = true,
-    seek_osd_template = "%p%v",
-    seek_osd_template_acc = "%P%V"
+    seek_msg_format = "%p%v",
+    seek_msg_cumulative_format = "%P%V"
 }
 options.read_options(Options, "lls")
 
@@ -6048,12 +6047,12 @@ local function cmd_seek_time(dir)
     local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
     
     local template = (Options.seek_show_accumulator and FSM.SEEK_PRESS_COUNT >= 1) 
-        and Options.seek_osd_template_acc 
-        or Options.seek_osd_template
+        and Options.seek_msg_cumulative_format 
+        or Options.seek_msg_format
     
     -- On first press of an accumulator session, we might want to use the standard template
-    -- but the user specified +2 -> +4 logic, so we use acc_template if accumulator is enabled.
-    -- However, to allow "%p%v (%P%V)" style, we provide all variables to both.
+    -- but the user specified +2 -> +4 logic, so we use cumulative_format if accumulator is enabled.
+    -- To allow "%p%v (%P%V)" style, we provide all variables to both.
     local msg = template:gsub("%%p", prefix):gsub("%%v", delta_str):gsub("%%P", acc_prefix):gsub("%%V", acc_str)
     
     local alignment = (delta > 0) and 6 or 4
