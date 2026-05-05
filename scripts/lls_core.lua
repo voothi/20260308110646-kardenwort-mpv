@@ -5160,7 +5160,6 @@ local function master_tick()
                 end
             end
         end
-    end
 
     -- Manage native subtitle suppression
     -- We hide native subs if OSD rendering is active OR Drum Window is open.
