@@ -7249,7 +7249,7 @@ end
 
 local function cmd_toggle_sub_vis()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Subtitles: Managed by Drum Window")
+        show_osd("Managed by Drum Window")
         return
     end
     local nxt = not FSM.native_sub_vis
