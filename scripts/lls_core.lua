@@ -647,6 +647,9 @@ function get_center_index(subs, time_pos)
     end
     
     if best == -1 then return 1 end
+    
+    -- [v1.58.52] Absolute Start Guard: If we are at the very beginning, always return first sub
+    if time_pos <= 0 then return 1 end
 
     -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's 
     -- padded start has begun, the next sub wins immediately.
@@ -5175,7 +5178,7 @@ local function master_tick()
             -- [v1.58.51] Phrases Mode "Jerk Back" Logic
             -- Only trigger for NATURAL transitions. If we are in cooldown from a manual seek, skip.
             if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
-                if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX then
+                if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > Options.nav_tolerance then
                         mp.commandv("seek", s_next, "absolute+exact")
@@ -5844,6 +5847,7 @@ local function cmd_replay_sub()
         
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
+        FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
@@ -5856,6 +5860,7 @@ local function cmd_replay_sub()
         
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
+        FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
 end
@@ -5909,8 +5914,19 @@ local function cmd_dw_seek_delta(dir)
         base_idx = FSM.DW_SEEK_TARGET
     end
     
-    local target_idx = math.max(1, math.min(#subs, base_idx + dir))
+    
+    local target_idx = base_idx + dir
+    local wrapped_msg = nil
+    if target_idx < 1 then 
+        target_idx = #subs 
+        wrapped_msg = "Wrapped to END"
+    elseif target_idx > #subs then 
+        target_idx = 1 
+        wrapped_msg = "Wrapped to START"
+    end
+    
     FSM.DW_SEEK_TARGET = target_idx
+    if wrapped_msg then show_osd(wrapped_msg) end
     local sub = subs[target_idx]
     if sub and sub.start_time then
         local s, _ = get_effective_boundaries(sub, target_idx)
