@@ -603,6 +603,12 @@ function show_osd(msg, dur)
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
 end
 
+local seek_osd = mp.create_osd_overlay("ass-events")
+seek_osd.res_x = 1920
+seek_osd.res_y = 1080
+seek_osd.z = 40
+local seek_timer = nil
+
 function show_seek_osd(msg, alignment)
     local ass = ""
     ass = ass .. string.format("{\\an%d}", alignment)
@@ -888,12 +894,6 @@ local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
 dw_tooltip_osd.res_x = 1920
 dw_tooltip_osd.res_y = 1080
 dw_tooltip_osd.z = 25
-
-local seek_osd = mp.create_osd_overlay("ass-events")
-seek_osd.res_x = 1920
-seek_osd.res_y = 1080
-seek_osd.z = 40
-local seek_timer = nil
 
 local dw_ensure_visible -- forward declaration
 
