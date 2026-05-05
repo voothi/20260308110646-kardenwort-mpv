@@ -5432,8 +5432,10 @@ local function cmd_toggle_drum()
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
         if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
 
+        show_osd("ON")
     else
         FSM.DRUM = "OFF"
+        show_osd("OFF")
     end
     update_interactive_bindings()
     flush_rendering_caches()
@@ -7136,6 +7138,7 @@ function cmd_toggle_drum_window()
         if FSM.DRUM_WINDOW == "DOCKED" then
             local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
+            show_osd("ON")
         end
     else
 
@@ -7171,6 +7174,9 @@ function toggle_book_mode()
         if FSM.DRUM_WINDOW == "OFF" then
             cmd_toggle_drum_window()
         end
+        show_osd("ON")
+    else
+        show_osd("OFF")
     end
 end
 
@@ -7256,6 +7262,7 @@ local function cmd_toggle_sub_vis()
         mp.set_property_bool("secondary-sub-visibility", false)
     end
     
+    show_osd(nxt and "ON" or "OFF")
     master_tick()
 end
 
