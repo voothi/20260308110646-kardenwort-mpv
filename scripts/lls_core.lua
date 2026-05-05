@@ -199,6 +199,8 @@ Options = {
     pause_padding = 0.15,
     karaoke_token = "{\\c}",
     space_tap_delay = 0.2,
+    audio_padding_start = 0,    -- Pre-roll buffer in ms
+    audio_padding_end = 0,      -- Post-roll buffer in ms
 
     -- Drum Mode
     drum_font_size = 34,
@@ -484,6 +486,17 @@ function has_cyrillic(str)
     return str:match("[\208-\209][\128-\191]") ~= nil
 end
 
+-- =========================================================================
+-- [v1.58.51] AUDIO PADDING HELPERS
+-- =========================================================================
+
+local function get_effective_boundaries(sub)
+    if not sub then return nil, nil end
+    local pad_start = (Options.audio_padding_start or 0) / 1000
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+    return sub.start_time - pad_start, sub.end_time + pad_end
+end
+
 function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
     local low, high = 1, #subs
@@ -680,6 +693,8 @@ local FSM = {
     SCHEDULED_REPLAY_END = nil,
     REPLAY_REMAINING = 0,
     GHOST_HOLD_EXPIRY = nil,
+    ACTIVE_IDX = -1,           -- [v1.58.51] Current "Locked" subtitle focus for padding
+    ACTIVE_IDX_LOCKED = false, -- [v1.58.51] True if we are holding focus due to padding
     space_down_time = 0,
     space_up_time = 0,
     initial_pause_state = true,
@@ -4834,7 +4849,9 @@ local function cmd_dw_double_click()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
         end
 
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local s, e = get_effective_boundaries(sub)
+        local target = s or sub.start_time
+        mp.commandv("seek", target, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
@@ -4947,9 +4964,15 @@ local function tick_autopause(time_pos)
     local sub_end = nil
     local subs = Tracks.pri.subs
     if subs and #subs > 0 then
-        local idx = get_center_index(subs, time_pos)
-        if idx ~= -1 then
-            sub_end = subs[idx].end_time
+        -- [v1.58.51] Precise Autopause via Sticky Focus
+        local idx = FSM.ACTIVE_IDX
+        if idx ~= -1 and idx <= #subs then
+            local _, e = get_effective_boundaries(subs[idx])
+            sub_end = e
+        else
+            -- Fallback for edge cases
+            idx = get_center_index(subs, time_pos)
+            if idx ~= -1 then sub_end = subs[idx].end_time end
         end
     end
     
@@ -5065,6 +5088,7 @@ local function master_tick()
         if not FSM.IGNORE_NEXT_JUMP then
             -- Any manual navigation resets Autopause state so it fires again at the new location.
             FSM.last_paused_sub_end = nil
+            FSM.ACTIVE_IDX = -1
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
             if FSM.LOOP_MODE == "ON" then
@@ -5073,8 +5097,9 @@ local function master_tick()
                 if subs and #subs > 0 then
                     local idx = get_center_index(subs, time_pos)
                     if idx ~= -1 then
-                        FSM.LOOP_START = subs[idx].start_time
-                        FSM.LOOP_END = subs[idx].end_time
+                        local s, e = get_effective_boundaries(subs[idx])
+                        FSM.LOOP_START = s or subs[idx].start_time
+                        FSM.LOOP_END = e or subs[idx].end_time
                         FSM.LOOP_ARMED = true
                         show_osd("Loop: Line " .. idx)
                     end
@@ -5095,12 +5120,29 @@ local function master_tick()
         tick_loop(time_pos)
     end
 
-    -- Sync active line for Drum/DW logic
+    -- [v1.58.51] Sticky Focus Management
     local active_idx = -1
-    if #Tracks.pri.subs > 0 then
-        active_idx = get_center_index(Tracks.pri.subs, time_pos)
-        if active_idx ~= -1 then
-            FSM.DW_ACTIVE_LINE = active_idx
+    local subs = Tracks.pri.subs
+    if #subs > 0 then
+        -- 1. Check if existing focus is still valid (within its padded boundaries)
+        if FSM.ACTIVE_IDX ~= -1 and FSM.ACTIVE_IDX <= #subs then
+            local sub = subs[FSM.ACTIVE_IDX]
+            local s, e = get_effective_boundaries(sub)
+            if s and e and time_pos >= s and time_pos <= e then
+                active_idx = FSM.ACTIVE_IDX
+            end
+        end
+        
+        -- 2. If no valid sticky focus (or we moved past it), perform fresh lookup
+        if active_idx == -1 then
+            active_idx = get_center_index(subs, time_pos)
+        end
+        
+        FSM.ACTIVE_IDX = active_idx
+    end
+
+    if active_idx ~= -1 then
+        FSM.DW_ACTIVE_LINE = active_idx
             
             -- [v1.58.49] Universal Cursor Synchronization
             -- Ensures that the "copy focus" always tracks playback when in follow mode,
@@ -5768,7 +5810,9 @@ local function cmd_dw_seek_selected()
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
-            mp.commandv("seek", sub.start_time, "absolute+exact")
+            local s, e = get_effective_boundaries(sub)
+            local target = s or sub.start_time
+            mp.commandv("seek", target, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
@@ -5800,7 +5844,9 @@ local function cmd_dw_seek_delta(dir)
     FSM.DW_SEEK_TARGET = target_idx
     local sub = subs[target_idx]
     if sub and sub.start_time then
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        local s, e = get_effective_boundaries(sub)
+        local target = s or sub.start_time
+        mp.commandv("seek", target, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
@@ -6622,7 +6668,9 @@ local function manage_search_bindings(enable)
                 local sub = Tracks.pri.subs[selected_line]
                 
                 if sub.start_time then
-                    mp.commandv("seek", sub.start_time, "absolute+exact")
+                    local s, e = get_effective_boundaries(sub)
+                    local target = s or sub.start_time
+                    mp.commandv("seek", target, "absolute+exact")
                     FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                 end
                 
@@ -6756,7 +6804,9 @@ local function manage_search_bindings(enable)
                     local sub = Tracks.pri.subs[selected_line]
                     
                     if sub.start_time then
-                        mp.commandv("seek", sub.start_time, "absolute+exact")
+                        local s, e = get_effective_boundaries(sub)
+                        local target = s or sub.start_time
+                        mp.commandv("seek", target, "absolute+exact")
                         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                     end
                     
