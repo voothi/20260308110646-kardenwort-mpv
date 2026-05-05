@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Descriptive Minimalist Labeling
-All OSD feedback for system state changes MUST include a descriptive prefix identifying the setting being modified, followed by the new state value. Technical noise and technical status details are suppressed in favor of simple labels.
+All OSD feedback for system state changes MUST include a descriptive prefix identifying the setting being modified, followed by the new state value.
 
 #### Scenario: Toggling Drum Mode
 - **WHEN** the user toggles Drum Mode via the `c` key
@@ -13,3 +13,10 @@ Long descriptive labels MUST be shortened to maintain a clean UI without sacrifi
 #### Scenario: Cycling Secondary Subtitle Position
 - **WHEN** the user cycles secondary subtitle positions
 - **THEN** the OSD MUST use the prefix `Secondary Sub Pos:` instead of the full `Secondary Subtitle Position:`.
+
+### Requirement: Context-Aware Clipboard Feedback
+Clipboard confirmation messages MUST indicate the source of the extracted text when multiple contexts exist.
+
+#### Scenario: Copying from Drum Window
+- **WHEN** the user copies a word or range while the Drum Window is active
+- **THEN** the OSD MUST display `DW Copied [Track]: [Snippet]` to distinguish it from regular playback copying.
