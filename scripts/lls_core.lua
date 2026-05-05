@@ -484,7 +484,8 @@ Options = {
     seek_bg_color = "000000",
     seek_bg_opacity = "60",
     seek_border_size = 1.5,
-    seek_shadow_offset = 1.0
+    seek_shadow_offset = 1.0,
+    seek_show_accumulator = true
 }
 options.read_options(Options, "lls")
 
@@ -509,6 +510,8 @@ local FSM = {
     IMMERSION_MODE = (Options.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
     JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
     MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
+    SEEK_ACCUMULATOR = 0,
+    SEEK_LAST_TIME = 0,
 
     -- Transients
     last_paused_sub_end = nil,
@@ -5980,16 +5983,33 @@ local function cmd_dw_seek_delta(dir)
 end
 
 local function cmd_seek_time(dir)
+    local now = mp.get_time()
     local delta = dir * Options.seek_time_delta
+    
+    -- Accumulator logic: check if OSD window is still active
+    if now < FSM.SEEK_LAST_TIME + Options.seek_osd_duration then
+        FSM.SEEK_ACCUMULATOR = FSM.SEEK_ACCUMULATOR + delta
+    else
+        FSM.SEEK_ACCUMULATOR = delta
+    end
+    FSM.SEEK_LAST_TIME = now
     
     FSM.IGNORE_NEXT_JUMP = true
     FSM.JUST_JERKED_TO = -1
-    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
+    FSM.MANUAL_NAV_COOLDOWN = now + Options.nav_cooldown
     
     mp.commandv("seek", delta, "relative+exact")
-    local prefix = (delta > 0) and "+" or ""
+    
+    local prefix = (delta > 0) and "+" or "-"
+    local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
+    
+    local msg = prefix .. tostring(math.abs(delta))
+    if Options.seek_show_accumulator then
+        msg = msg .. " (" .. acc_prefix .. tostring(math.abs(FSM.SEEK_ACCUMULATOR)) .. ")"
+    end
+    
     local alignment = (delta > 0) and 6 or 4
-    show_seek_osd(prefix .. tostring(delta), alignment)
+    show_seek_osd(msg, alignment)
 end
 
 

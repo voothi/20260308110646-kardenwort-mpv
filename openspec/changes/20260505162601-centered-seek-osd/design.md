@@ -6,6 +6,7 @@ The current seeking system uses native mpv `seek` commands for time-based naviga
 
 **Goals:**
 - Provide large, directional OSD feedback (Left for backward, Right for forward) for time-based seeks.
+- Implement a cumulative accumulator that sums consecutive seeks within the OSD window.
 - Implement dedicated styling parameters for seek OSD in `mpv.conf` (matching other mode schemas).
 - Maintain layout symmetry across English and Russian keyboard configurations.
 
@@ -26,6 +27,10 @@ The current seeking system uses native mpv `seek` commands for time-based naviga
 - **Decision 3: Dedicated Style Schema for Seeks**
   - **Rationale**: Providing `seek_font_size`, `seek_color`, etc., ensures the seek OSD can be styled independently of general OSD or other mode-specific text (SRT/Drum), satisfying the requirement for granular control.
   - **Alternative**: Use general OSD styling. **Rejection**: Limits user customization.
+
+- **Decision 4: Time-Windowed Accumulator State**
+  - **Rationale**: Tracking the cumulative seek amount as long as the OSD is visible provides intuitive feedback on the total distance skipped. resetting the accumulator when the OSD expires ensures the state doesn't persist across unrelated navigation events.
+  - **Alternative**: Always show cumulative. **Rejection**: Confusing for long pauses between seeks.
 
 ## Risks / Trade-offs
 

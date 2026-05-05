@@ -9,7 +9,14 @@ The system SHALL display a large, centered OSD message indicating the seek direc
 
 #### Scenario: Backward seek visual feedback
 - **WHEN** the user executes `lls-seek_time_backward`
-- **THEN** a centered OSD message SHALL appear showing `-<delta>` (e.g., `-2`).
+- **THEN** a directional OSD message SHALL appear on the left showing `-<delta>`.
+
+### Requirement: Cumulative Seek Accumulator
+The system SHALL track and display the total seek amount in parentheses when multiple relative seeks occur within the `seek_osd_duration` window.
+
+#### Scenario: Cumulative seeking
+- **WHEN** the user presses `RIGHT` (+2) twice within the OSD window
+- **THEN** the second OSD message SHALL show `+2 (+4)`.
 
 ### Requirement: Configurable Seek Amount
 The system SHALL allow the user to define the relative seek amount in seconds via the `seek_time_delta` option.

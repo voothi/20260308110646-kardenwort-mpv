@@ -4,15 +4,16 @@ Users currently lack clear visual feedback for time-based seeking (LEFT/RIGHT, S
 
 ## What Changes
 
-- **New Options**: Introduce `seek_time_delta` (amount to seek), `seek_osd_duration`, and a full set of styling parameters (`seek_font_name`, `seek_font_size`, `seek_color`, etc.).
+- **New Options**: Introduce `seek_time_delta` (amount to seek), `seek_osd_duration`, a full set of styling parameters, and `seek_show_accumulator`.
+- **Cumulative Accumulator**: Track and display the total seek amount (e.g., `+2 (+4)`) when multiple seeks are performed within the OSD display window.
 - **Directional OSD**: Display messages on the left (`{\an4}`) for backward seeks and on the right (`{\an6}`) for forward seeks.
-- **Script-Driven Seeking**: Implement `lls-seek_time_forward` and `lls-seek_time_backward` in `lls_core.lua` to handle the seek operation, directional logic, and custom OSD styling.
+- **Script-Driven Seeking**: Implement `lls-seek_time_forward` and `lls-seek_time_backward` in `lls_core.lua` with state tracking for the accumulator.
 - **Key Binding Updates**: Remap `LEFT`, `RIGHT`, `Shift+A`, and `Shift+D` in `input.conf` to use the new script bindings.
 
 ## Capabilities
 
 ### New Capabilities
-- `directional-seek-feedback`: Implementation of high-visibility, directional OSD feedback (Left/Right) with dedicated styling parameters.
+- `directional-seek-feedback`: Implementation of high-visibility, directional OSD feedback (Left/Right) with dedicated styling parameters and a cumulative seek accumulator.
 
 ### Modified Capabilities
 - `layout-agnostic-seeking`: Expand requirement to include script-mediated time seeking with visual confirmation.

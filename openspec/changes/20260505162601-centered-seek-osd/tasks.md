@@ -1,21 +1,23 @@
 ## 1. Configuration Expansion
 
-- [x] 1.1 Expand `Options` in `lls_core.lua` with `seek_font_name`, `seek_font_size`, `seek_font_bold`, `seek_color`, `seek_bg_color`, `seek_bg_opacity`, `seek_border_size`, `seek_shadow_offset`
-- [x] 1.2 `seek_time_delta` and `seek_osd_duration` are already present
-- [x] 1.3 Add all new styling options to `mpv.conf` with `script-opts-append`
+- [x] 1.1 `seek_font_*` and `seek_color` options are already present
+- [x] 1.2 Add `seek_show_accumulator` (default `yes`) to `Options` in `lls_core.lua`
+- [x] 1.3 Add `seek_show_accumulator` to `mpv.conf`
 
-## 2. Directional OSD Implementation
+## 2. State Tracking Implementation
 
-- [x] 2.1 Update `show_osd_center` to `show_seek_osd(msg, alignment)` in `lls_core.lua`
-- [x] 2.2 Implement directional logic: `-` seeks use `{\an4}`, `+` seeks use `{\an6}`
-- [x] 2.3 Apply the new `Options.seek_*` styling parameters to the OSD message string
+- [x] 2.1 Initialize `FSM.SEEK_ACCUMULATOR = 0` and `FSM.SEEK_LAST_TIME = 0` in `lls_core.lua`
+- [x] 2.2 Implement accumulator logic in `cmd_seek_time`:
+    - Check if current seek is within `seek_osd_duration` of `SEEK_LAST_TIME`.
+    - Update `SEEK_ACCUMULATOR` accordingly.
+    - Reset `SEEK_ACCUMULATOR` if window expired.
 
-## 3. Script-Driven Seeking (Refinement)
+## 3. OSD Refinement (Accumulator)
 
-- [x] 3.1 `cmd_seek_time(delta)` and script bindings are already present
-- [x] 3.2 Update `cmd_seek_time` to call the new `show_seek_osd` with correct alignment
+- [x] 3.1 Update `show_seek_osd` or its caller to format the cumulative string: `+2 (+4)`
+- [x] 3.2 Ensure the OSD message duration is correctly handled to act as a "rewind ongoing" indicator.
 
-## 4. Layout Verification
+## 4. Verification
 
-- [x] 4.1 Key bindings in `input.conf` are already updated
-- [x] 4.2 Verify that Russian keys (`Ф`, `В`) correctly trigger the directional OSD
+- [x] 4.1 Test consecutive seeks within the duration and verify the accumulator increments.
+- [x] 4.2 Verify that the accumulator resets after the OSD disappears.
