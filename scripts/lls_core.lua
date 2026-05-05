@@ -7084,13 +7084,13 @@ function cmd_toggle_drum_window()
     local prev_drum_window = FSM.DRUM_WINDOW
     local ok, err = xpcall(function()
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Drum Window: No subtitles loaded")
+        show_osd("No subtitles loaded")
         return
     end
     -- Support both external (path-based) and internal (loaded into memory) tracks.
     -- If no subs are in memory and no path exists, we truly can't open.
     if not Tracks.pri.path and #Tracks.pri.subs == 0 then
-        show_osd("Drum Window: requires loaded subtitles")
+        show_osd("Requires loaded subtitles")
         return
     end
 
@@ -7138,7 +7138,7 @@ function cmd_toggle_drum_window()
         if FSM.DRUM_WINDOW == "DOCKED" then
             local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
-            show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
+            show_osd(string.format("ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
         end
     else
 
@@ -7332,7 +7332,7 @@ local function cmd_cycle_sec_sid()
     table.sort(supported)
 
     if #supported <= 1 then
-        local msg = "Secondary Subtitles: None available"
+        local msg = "None available"
         if internal_count > 0 then msg = msg .. " [" .. internal_count .. " built-in unsupported]" end
         show_osd(msg)
         mp.set_property("secondary-sid", "no")
@@ -7371,7 +7371,7 @@ local function cmd_cycle_sec_sid()
         end
     end
     
-    local final_msg = "Secondary Subtitles: " .. label
+    local final_msg = "" .. label
     if internal_count > 0 then
         final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
     end
