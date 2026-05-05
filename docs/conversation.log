@@ -1471,7 +1471,7 @@
 20260505133013 How do I set the default Immersion Mode at startup?
 20260505145046 How can I best reflect this in the specs, create a new propose or update the one that was archived openspec\changes\archive\20260505121439-immersion-suite-hardening? I will need to eventually update or add this change to the general specs.230
 20260505145727 ZID Traceability: 20260505145230 Status: Delta Proposed, Synchronized, and Archived. - Okay.
-
+20260505150016 # In Immersion Mode PHRASE, when the first subtitle is played again, it switches to the last subtitle.
 
 
 
