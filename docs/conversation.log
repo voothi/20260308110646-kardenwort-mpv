@@ -1448,6 +1448,7 @@
 20260505105431 May restructure? mpv.conf#L207-219 mpv.conf#L60-63
 20260505105727 Okay, how can I set a parameter for Shift+o so that I can override this shortcut?
 20260505110144 Doesn't switch by key_cycle_immersion_mode, stopped working.
+20260505111032 Now everything should work smoothly in all modes, compare with 71bfa6a4342a884fd2d949f5bb8ae0da132c1728
 
 
 
