@@ -1426,6 +1426,7 @@
 20260505021903 I have successfully intervened...
 20260505023014 No OSD windows.
 20260505023424 There is no error, but logic did not solve the problem.
+20260505024319 It seems that the tail became ok after that, but the next subtitle does not move, it looks like audio_padding_start back. Start from the same point that the previous one finished, but where is this gap?
 
 
 

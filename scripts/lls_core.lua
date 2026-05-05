@@ -4851,6 +4851,8 @@ local function cmd_dw_double_click()
 
         local s, e = get_effective_boundaries(sub)
         local target = s or sub.start_time
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.ACTIVE_IDX = line_idx
         mp.commandv("seek", target, "absolute+exact")
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
@@ -5820,6 +5822,8 @@ local function cmd_dw_seek_selected()
         if sub and sub.start_time then
             local s, e = get_effective_boundaries(sub)
             local target = s or sub.start_time
+            FSM.IGNORE_NEXT_JUMP = true
+            FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
             mp.commandv("seek", target, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -5854,6 +5858,8 @@ local function cmd_dw_seek_delta(dir)
     if sub and sub.start_time then
         local s, e = get_effective_boundaries(sub)
         local target = s or sub.start_time
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.ACTIVE_IDX = target_idx
         mp.commandv("seek", target, "absolute+exact")
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -6678,6 +6684,8 @@ local function manage_search_bindings(enable)
                 if sub.start_time then
                     local s, e = get_effective_boundaries(sub)
                     local target = s or sub.start_time
+                    FSM.IGNORE_NEXT_JUMP = true
+                    FSM.ACTIVE_IDX = selected_line
                     mp.commandv("seek", target, "absolute+exact")
                     FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                 end
@@ -6814,6 +6822,8 @@ local function manage_search_bindings(enable)
                     if sub.start_time then
                         local s, e = get_effective_boundaries(sub)
                         local target = s or sub.start_time
+                        FSM.IGNORE_NEXT_JUMP = true
+                        FSM.ACTIVE_IDX = selected_line
                         mp.commandv("seek", target, "absolute+exact")
                         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
                     end
