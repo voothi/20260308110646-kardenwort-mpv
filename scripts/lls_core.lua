@@ -860,6 +860,12 @@ function cmd_cycle_immersion_mode()
         FSM.IMMERSION_MODE = "MOVIE"
     else
         FSM.IMMERSION_MODE = "PHRASE"
+        -- Synchronize ACTIVE_IDX to prevent phantom "Jerk Back" on mode switch
+        local subs = Tracks.pri.subs
+        if subs and #subs > 0 then
+            local time_pos = mp.get_property_number("time-pos") or 0
+            FSM.ACTIVE_IDX = get_center_index(subs, time_pos)
+        end
     end
     show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
 end
@@ -4133,7 +4139,7 @@ end
 
 
 local function dw_mouse_auto_scroll()
-    if not FSM.DW_MOUSE_DRAGGING then return end
+    if not FSM.DW_MOUSE_DRAGGING or FSM.DRUM_WINDOW == "OFF" then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
