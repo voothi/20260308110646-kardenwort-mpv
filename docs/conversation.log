@@ -1492,5 +1492,6 @@
 20260505172041 Let's change the logic, for the battery turned on OSD messages will show its value +4, that is, this transformation is +2 (+4) -> +4, think about edge cases, you can just leave the increment value. This is done on YouTube in their player now.
 20260505173015 Place the template settings for this message in the mpv.conf variable
 20260505174007 This naming is not clear, or write a better comment and or change the naming @code_block 
+20260505174231 Error
 
 

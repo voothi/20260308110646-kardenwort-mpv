@@ -484,6 +484,7 @@ Options = {
     seek_bg_color = "000000",
     seek_bg_opacity = "60",
     seek_border_size = 1.5,
+    seek_shadow_offset = 1.0,
     seek_show_accumulator = true,
     seek_msg_format = "%p%v",
     seek_msg_cumulative_format = "%P%V"
