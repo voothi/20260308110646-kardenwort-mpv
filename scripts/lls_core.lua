@@ -175,8 +175,7 @@ local function validate_config()
         "dw_key_jump_select_down", "dw_key_select_left", "dw_key_select_right",
         "dw_key_select_up", "dw_key_select_down", "dw_key_open_record",
         "dw_key_cycle_copy_mode", "dw_key_toggle_copy_context", "dw_key_tooltip_pin",
-        "dw_key_tooltip_hover", "dw_key_tooltip_toggle", "key_sub_pos_up", "key_sub_pos_down",
-        "key_sec_sub_pos_up", "key_sec_sub_pos_down"
+        "dw_key_tooltip_hover", "dw_key_tooltip_toggle"
     }
     
     for _, opt in ipairs(key_opts) do check_keys(Options[opt], "lls-" .. opt) end
@@ -426,11 +425,6 @@ Options = {
     search_key_delete_word = "Ctrl+w",
     search_key_click = "MBTN_LEFT",
     dw_key_open_record = "o",
-    key_sub_pos_up = "r",
-    key_sub_pos_down = "t",
-    key_sec_sub_pos_up = "R",
-    key_sec_sub_pos_down = "T",
-
     anki_context_max_words = 40,
     anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
     anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: 0075D1 | RGB: #D17500)
@@ -7286,16 +7280,6 @@ local function cmd_cycle_sec_pos()
     end
 end
 
-local function cmd_adjust_sub_pos(delta)
-    local p = mp.get_property_number("sub-pos", 95)
-    mp.set_property_number("sub-pos", math.max(0, math.min(150, p + delta)))
-end
-
-local function cmd_adjust_sec_sub_pos(delta)
-    local p = mp.get_property_number("secondary-sub-pos", 10)
-    mp.set_property_number("secondary-sub-pos", math.max(0, math.min(150, p + delta)))
-end
-
 local function cmd_cycle_sec_sid()
     if FSM.DRUM == "ON" then FSM.native_sec_sub_vis = true
     else mp.set_property_bool("secondary-sub-visibility", true) end
@@ -7517,27 +7501,6 @@ mp.add_key_binding(nil, "lls-seek_time_forward", function() cmd_seek_time(1) end
 mp.add_key_binding(nil, "lls-seek_time_backward", function() cmd_seek_time(-1) end)
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
-
-local function register_global_position_keys()
-    local function bind(opt, name, fn)
-        if not opt or opt == "" then return end
-        local i = 1
-        local expanded_keys = expand_ru_keys(opt, name)
-        for _, key in ipairs(expanded_keys) do
-            local wrapped_fn = function(t)
-
-                return fn(t)
-            end
-            mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
-            i = i + 1
-        end
-    end
-    bind(Options.key_sub_pos_up, "lls-sub-pos-up", function() cmd_adjust_sub_pos(-1) end)
-    bind(Options.key_sub_pos_down, "lls-sub-pos-down", function() cmd_adjust_sub_pos(1) end)
-    bind(Options.key_sec_sub_pos_up, "lls-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end)
-    bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
-end
-register_global_position_keys()
 
 local function register_global_playback_keys()
     local function bind(opt, name, fn)
