@@ -1455,6 +1455,7 @@
 20260505112139 I noticed that at some point now, if a subtitle has built-in subtitles, it seems that this is added to the Shift+c switch, I see the message Secondary Subtitles: DEU in addition to the already familiar OFF/RU. But these subtitles do not appear. They don't seem to be supported by our program. Then why is this?
 20260505113409 Would you like me to implement this filter so that Shift+c only toggles between tracks that our program fully supports? - Yes.
 20260505113651 I did not ask to create a release. Take it away. Shift+c stopped working.
+20260505114230 I used to use this to turn second subtitles on and off, now it doesn't work as it should, I only have Second Subtitles: DE and it doesn't cycle like it used to RU/OFF.
 
 
 
