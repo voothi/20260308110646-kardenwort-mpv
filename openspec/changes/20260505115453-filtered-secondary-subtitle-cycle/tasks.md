@@ -8,6 +8,6 @@
 
 ## 2. Validation
 
-- [ ] 2.1 Verify that built-in tracks no longer appear in the `Shift+c` rotation.
-- [ ] 2.2 Verify that the primary track is correctly skipped during the secondary cycle.
-- [ ] 2.3 Verify that the OSD suffix accurately reflects the number of hidden internal tracks.
+- [x] 2.1 Verify that built-in tracks no longer appear in the `Shift+c` rotation.
+- [x] 2.2 Verify that the primary track is correctly skipped during the secondary cycle.
+- [x] 2.3 Verify that the OSD suffix accurately reflects the number of hidden internal tracks.
