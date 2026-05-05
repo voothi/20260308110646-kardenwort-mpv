@@ -649,7 +649,7 @@ function get_center_index(subs, time_pos)
     if best < #subs then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(next_sub, best + 1)
-        if time_pos >= s_next then
+        if time_pos >= s_next - 0.05 then
             return best + 1
         end
     end
@@ -4892,7 +4892,9 @@ local function cmd_dw_double_click()
     if sub and sub.start_time then
         -- [v1.58.51] Intentional Focus Handover
         FSM.IGNORE_NEXT_JUMP = true
-        FSM.ACTIVE_IDX = -1
+        FSM.ACTIVE_IDX = line_idx
+        FSM.JUST_JERKED_TO = -1
+        FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5
 
         local s, _ = get_effective_boundaries(sub, line_idx)
         mp.commandv("seek", s, "absolute+exact")
@@ -5878,7 +5880,7 @@ local function cmd_dw_seek_selected()
         if sub and sub.start_time then
             -- [v1.58.51] Intentional Focus Handover
             FSM.IGNORE_NEXT_JUMP = true
-            FSM.ACTIVE_IDX = -1
+            FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
             FSM.JUST_JERKED_TO = -1
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5
 
@@ -5908,7 +5910,6 @@ local function cmd_dw_seek_delta(dir)
     -- When manually seeking, we MUST ignore the padding boundaries of the current index
     -- to prevent "Magnetic Snapping" back to the previous line.
     FSM.IGNORE_NEXT_JUMP = true
-    FSM.ACTIVE_IDX = -1 
     FSM.JUST_JERKED_TO = -1
     FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5 -- 500ms cooldown for smart logic
     
@@ -5926,6 +5927,7 @@ local function cmd_dw_seek_delta(dir)
     if sub and sub.start_time then
         local s, _ = get_effective_boundaries(sub, target_idx)
         mp.commandv("seek", s, "absolute+exact")
+        FSM.ACTIVE_IDX = target_idx
         FSM.last_paused_sub_end = nil
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"

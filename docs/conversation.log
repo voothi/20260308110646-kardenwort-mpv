@@ -1441,6 +1441,7 @@
 20260505101930 When rewinding one by one subtitle, it plays and does not stop in Autopause ON, Immersion Mode both. It was ok in 71bfa6a4342a884fd2d949f5bb8ae0da132c1728
 20260505102530 Okay, check that everything is in order, that there are no errors or unnecessary things, that we have taken into account edge cases according to the FSM state and transition diagram, that there is no regression, all requirements are met. Compared to 71bfa6a4342a884fd2d949f5bb8ae0da132c1728, current version a4218c4ade9ada2a2ab0b56a25782fb830cf9206.
 20260505103233 You have implemented all the changes, I only see                         Diagnostic.debug("Jerk Back triggered to " .. active_idx)? Then, again there is a stuck subtitle.
+20260505103700 Scrolling by d on this subtitle gets stuck and jerks, does not go further, I can only click with the mouse through the subtitle and continue.
 
 
 
