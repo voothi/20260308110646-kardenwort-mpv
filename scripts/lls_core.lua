@@ -6088,11 +6088,6 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
 
-    -- [v1.58.51] Immersion Mode Toggle
-    -- [v1.58.51] Parameterized Immersion Toggle
-    for _, k in ipairs(split(Options.key_cycle_immersion_mode, " ")) do
-        mp.add_forced_key_binding(k, "lls-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
-    end
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
@@ -7450,3 +7445,9 @@ local function recover_native_osd_style()
     end
 end
 recover_native_osd_style()
+
+-- [v1.58.51] Global Immersion Mode Toggle (Shift+o / O Щ)
+-- Parameterized to allow user overrides via mpv.conf
+for k in string.gmatch(Options.key_cycle_immersion_mode, "%S+") do
+    mp.add_forced_key_binding(k, "lls-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
+end
