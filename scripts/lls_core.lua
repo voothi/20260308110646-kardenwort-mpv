@@ -5190,7 +5190,6 @@ local function master_tick()
                         mp.commandv("seek", s_next, "absolute+exact")
                         FSM.IGNORE_NEXT_JUMP = true 
                         FSM.JUST_JERKED_TO = active_idx
-                        Diagnostic.debug("Jerk Back triggered to " .. active_idx)
                     end
                 end
             end
