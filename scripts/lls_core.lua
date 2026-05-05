@@ -6004,11 +6004,23 @@ local function cmd_seek_time(dir)
     mp.commandv("seek", delta, "relative+exact")
     
     local prefix = (delta > 0) and "+" or "-"
-    local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
+    local acc_prefix = ""
+    if FSM.SEEK_ACCUMULATOR > 0.001 then
+        acc_prefix = "+"
+    elseif FSM.SEEK_ACCUMULATOR < -0.001 then
+        acc_prefix = "-"
+    end
     
-    local msg = prefix .. tostring(math.abs(delta))
+    local delta_val = math.abs(delta)
+    local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val)) or string.format("%.1f", delta_val)
+    
+    local acc_val = math.abs(FSM.SEEK_ACCUMULATOR)
+    if acc_val < 0.001 then acc_val = 0 end
+    local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
+    
+    local msg = prefix .. delta_str
     if Options.seek_show_accumulator and FSM.SEEK_PRESS_COUNT >= 2 then
-        msg = msg .. " (" .. acc_prefix .. tostring(math.abs(FSM.SEEK_ACCUMULATOR)) .. ")"
+        msg = msg .. " (" .. acc_prefix .. acc_str .. ")"
     end
     
     local alignment = (delta > 0) and 6 or 4
