@@ -492,6 +492,7 @@ local FSM = {
     ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
     IMMERSION_MODE = "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
     JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
+    MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
 
     -- Transients
     last_paused_sub_end = nil,
@@ -637,6 +638,17 @@ function get_center_index(subs, time_pos)
     end
     
     if best == -1 then return 1 end
+
+    -- [v1.58.51] Overlap Priority: If we are in a gap where the previous sub's 
+    -- end overlaps with the next sub's padded start, the next sub MUST win 
+    -- to allow forward progress during navigation.
+    if best < #subs then
+        local next_sub = subs[best + 1]
+        local s_next, _ = get_effective_boundaries(next_sub, best + 1)
+        if time_pos >= s_next then
+            return best + 1
+        end
+    end
     
     if time_pos <= subs[best].end_time then
         return best
@@ -5164,15 +5176,16 @@ local function master_tick()
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
             -- [v1.58.51] Phrases Mode "Jerk Back" Logic
-            -- If we naturally transition to a new index in Phrase Mode, and its padded start 
-            -- is behind the current playhead (overlap), rewind to ensure full audio context.
-            if FSM.IMMERSION_MODE == "PHRASE" and FSM.ACTIVE_IDX ~= -1 and active_idx == FSM.ACTIVE_IDX + 1 then
-                local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
-                if s_next and (time_pos - s_next) > 0.05 then
-                    mp.commandv("seek", s_next, "absolute+exact")
-                    FSM.IGNORE_NEXT_JUMP = true 
-                    FSM.JUST_JERKED_TO = active_idx
-                    Diagnostic.debug("Jerk Back triggered to " .. active_idx)
+            -- Only trigger for NATURAL transitions. If we are in cooldown from a manual seek, skip.
+            if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
+                if FSM.ACTIVE_IDX ~= -1 and active_idx == FSM.ACTIVE_IDX + 1 then
+                    local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
+                    if s_next and (time_pos - s_next) > 0.05 then
+                        mp.commandv("seek", s_next, "absolute+exact")
+                        FSM.IGNORE_NEXT_JUMP = true 
+                        FSM.JUST_JERKED_TO = active_idx
+                        Diagnostic.debug("Jerk Back triggered to " .. active_idx)
+                    end
                 end
             end
 
@@ -5861,6 +5874,7 @@ local function cmd_dw_seek_selected()
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = -1
             FSM.JUST_JERKED_TO = -1
+            FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5
 
             local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
@@ -5889,6 +5903,7 @@ local function cmd_dw_seek_delta(dir)
     FSM.IGNORE_NEXT_JUMP = true
     FSM.ACTIVE_IDX = -1 
     FSM.JUST_JERKED_TO = -1
+    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + 0.5 -- 500ms cooldown for smart logic
     
     local current_idx = get_center_index(subs, time_pos)
     if current_idx == -1 then return end
