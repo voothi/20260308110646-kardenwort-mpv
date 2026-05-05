@@ -490,6 +490,7 @@ local FSM = {
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
     ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
+    IMMERSION_MODE = "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
 
     -- Transients
     last_paused_sub_end = nil,
@@ -585,11 +586,21 @@ function has_cyrillic(str)
     return str:match("[\208-\209][\128-\191]") ~= nil
 end
 
-local function get_effective_boundaries(sub)
+local function get_effective_boundaries(sub, idx)
     if not sub then return nil, nil end
+    local subs = Tracks.pri.subs
     local pad_start = (Options.audio_padding_start or 0) / 1000
     local pad_end = (Options.audio_padding_end or 0) / 1000
-    return sub.start_time - pad_start, sub.end_time + pad_end
+    
+    local start = sub.start_time - pad_start
+    local stop = sub.end_time + pad_end
+    
+    -- [v1.58.51] Movie Mode: Extend the end boundary to the start of the next subtitle
+    if FSM.IMMERSION_MODE == "MOVIE" and idx and subs and idx < #subs then
+        stop = subs[idx + 1].start_time
+    end
+    
+    return start, stop
 end
 
 function get_center_index(subs, time_pos)
@@ -599,7 +610,7 @@ function get_center_index(subs, time_pos)
     -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
     local active_idx = FSM.ACTIVE_IDX
     if active_idx and active_idx ~= -1 and subs[active_idx] then
-        local s, e = get_effective_boundaries(subs[active_idx])
+        local s, e = get_effective_boundaries(subs[active_idx], active_idx)
         if time_pos >= s and time_pos <= e then
             return active_idx
         end
@@ -813,6 +824,15 @@ function cmd_cycle_copy_mode()
     
     local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
     show_osd("Copy Subtitle Mode: " .. label)
+end
+
+function cmd_cycle_immersion_mode()
+    if FSM.IMMERSION_MODE == "PHRASE" then
+        FSM.IMMERSION_MODE = "MOVIE"
+    else
+        FSM.IMMERSION_MODE = "PHRASE"
+    end
+    show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
 end
 
 function cmd_toggle_copy_ctx()
@@ -4983,7 +5003,7 @@ local function tick_autopause(time_pos)
 
     if active_idx == -1 then return end
     
-    local _, sub_end = get_effective_boundaries(subs[active_idx])
+    local _, sub_end = get_effective_boundaries(subs[active_idx], active_idx)
     if not sub_end then return end
 
     -- Check if we've reached the end of the padded window
@@ -5999,6 +6019,10 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
     parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
+
+    -- [v1.58.51] Immersion Mode Toggle
+    mp.add_forced_key_binding("O", "lls-cycle-immersion", cmd_cycle_immersion_mode)
+    mp.add_forced_key_binding("Щ", "lls-cycle-immersion-ru", cmd_cycle_immersion_mode)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
