@@ -4546,13 +4546,7 @@ local function dw_anki_export_selection()
 
             -- In-memory update was already performed by save_anki_tsv_row.
             -- Removing redundant full-file reload to prevent UI stuttering.
-            FSM.DW_ANCHOR_LINE = -1
-            FSM.DW_ANCHOR_WORD = -1
-            FSM.DW_CURSOR_WORD = -1
-            FSM.DW_CURSOR_X = nil
-            
-            drum_osd:update()
-            if dw_osd then dw_osd:update() end
+            dw_reset_selection()
             if dw_tooltip_osd then dw_tooltip_osd:update() end
         end
     end)
@@ -4729,14 +4723,7 @@ local function ctrl_commit_set(line_idx, word_idx)
     show_osd("Anki Paired Saved: " .. term)
 
     
-    -- Clear set
-    FSM.DW_CTRL_PENDING_SET = {}
-    
-    -- Clear selection pointer to immediately show the new highlight color
-    FSM.DW_ANCHOR_LINE = -1
-    FSM.DW_ANCHOR_WORD = -1
-    FSM.DW_CURSOR_WORD = -1
-    FSM.DW_CURSOR_X = nil
+    dw_reset_selection()
     
     dw_osd:update()
 end
