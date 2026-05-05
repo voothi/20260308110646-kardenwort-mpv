@@ -1498,4 +1498,14 @@
 20260505201138 specs
 20260505201341 opsx-archive 20260505162601-centered-seek-osd
 20260505204828 Sync now
+20260505221149 x # The state after adding a word, it is no longer marked in yellow, it has been added, the subtitles continue, but how does it change? ## Description After adding a word you need to reset the selection.
+20260505224350 x # To figure out why there is a cyclic switching between the dw and drum modes by pressing Esc, it is necessary that this does not happen and these modes remain and the selections are removed.
+20260505225048 x # Remove unnecessary EN/RU key combinations from Drum Mode, which may be meaningless in this mode or not work at all, these are r, T and the same with Shift.
+20260505225848 x It didn't work.
+20260505230435 I rolled it back, make it so that it doesn’t work in dw mode drum mode ON/OFF switch. You can enter the message as в `с` - `Managed by Drum Window`. And do the same with `к, е, К, Е` (EN/RU)
+
+
+
+
+
 

@@ -5407,6 +5407,10 @@ local function cmd_toggle_anki_global()
 end
 
 local function cmd_toggle_drum()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Mode: No subtitles loaded")
         return
@@ -7286,11 +7290,19 @@ local function cmd_cycle_sec_pos()
 end
 
 local function cmd_adjust_sub_pos(delta)
+    if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     local p = mp.get_property_number("sub-pos", 95)
     mp.set_property_number("sub-pos", math.max(0, math.min(150, p + delta)))
 end
 
 local function cmd_adjust_sec_sub_pos(delta)
+    if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     local p = mp.get_property_number("secondary-sub-pos", 10)
     mp.set_property_number("secondary-sub-pos", math.max(0, math.min(150, p + delta)))
 end
