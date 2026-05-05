@@ -6013,8 +6013,11 @@ local function cmd_seek_time(dir)
     local now = mp.get_time()
     local delta = dir * Options.seek_time_delta
     
-    -- Accumulator logic: check if OSD window is still active
-    if now < FSM.SEEK_LAST_TIME + Options.seek_osd_duration then
+    -- YouTube-style Accumulator logic:
+    -- Accumulate ONLY if within the time window AND the direction matches.
+    -- Otherwise, start a new session.
+    local same_dir = (dir > 0 and FSM.SEEK_ACCUMULATOR > 0) or (dir < 0 and FSM.SEEK_ACCUMULATOR < 0)
+    if now < FSM.SEEK_LAST_TIME + Options.seek_osd_duration and same_dir then
         FSM.SEEK_ACCUMULATOR = FSM.SEEK_ACCUMULATOR + delta
         FSM.SEEK_PRESS_COUNT = FSM.SEEK_PRESS_COUNT + 1
     else
@@ -6029,24 +6032,21 @@ local function cmd_seek_time(dir)
     
     mp.commandv("seek", delta, "relative+exact")
     
-    local prefix = (delta > 0) and "+" or "-"
-    local acc_prefix = ""
-    if FSM.SEEK_ACCUMULATOR > 0.001 then
-        acc_prefix = "+"
-    elseif FSM.SEEK_ACCUMULATOR < -0.001 then
-        acc_prefix = "-"
-    end
-    
-    local delta_val = math.abs(delta)
-    local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val)) or string.format("%.1f", delta_val)
-    
-    local acc_val = math.abs(FSM.SEEK_ACCUMULATOR)
-    if acc_val < 0.001 then acc_val = 0 end
-    local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
-    
-    local msg = prefix .. delta_str
-    if Options.seek_show_accumulator and FSM.SEEK_PRESS_COUNT >= 2 then
-        msg = msg .. " (" .. acc_prefix .. acc_str .. ")"
+    -- Display logic: 
+    -- If accumulator is ON, show only the cumulative total (YouTube style).
+    -- Otherwise show the instant delta.
+    local msg = ""
+    if Options.seek_show_accumulator then
+        local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
+        local acc_val = math.abs(FSM.SEEK_ACCUMULATOR)
+        if acc_val < 0.001 then acc_val = 0; acc_prefix = "" end
+        local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
+        msg = acc_prefix .. acc_str
+    else
+        local prefix = (delta > 0) and "+" or "-"
+        local delta_val = math.abs(delta)
+        local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val)) or string.format("%.1f", delta_val)
+        msg = prefix .. delta_str
     end
     
     local alignment = (delta > 0) and 6 or 4
