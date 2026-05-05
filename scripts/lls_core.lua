@@ -7157,6 +7157,7 @@ function cmd_toggle_drum_window()
 
         -- Restore subtitle visibility
         FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
+        show_osd("OFF")
     end
     end, debug.traceback)
     if not ok then
