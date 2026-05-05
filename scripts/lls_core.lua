@@ -5142,6 +5142,7 @@ local function master_tick()
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
+            FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
             if FSM.LOOP_MODE == "ON" then
                 -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
                 local subs = Tracks.pri.subs

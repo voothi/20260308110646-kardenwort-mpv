@@ -1475,6 +1475,7 @@
 20260505151007 opsx-apply 20260505150404-cyclic-subtitle-nav
 20260505152417 This does not work in drum mode, it does not work when going back from last to first by pressing d.
 20260505153542 Yes, I see the Wrapped to START message.
+20260505154046 Okay, it seems to work, let's now check that this will work well with OSC visability: (TAB) when I see and click on the bottom LMB on the roller rewind scale. That it is synchronized between modes.
 
 
 
