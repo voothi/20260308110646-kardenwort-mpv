@@ -150,7 +150,7 @@ local function expand_ru_keys(key_string, opt_name)
     
     if opt_name and Options.log_level == "debug" then
         local list = table.concat(results, ", ")
-        Diagnostic.debug(string.format("Expanded %s: %s -> [%s]", opt_name, key_string, list))
+
     end
     
     return results
@@ -187,7 +187,7 @@ local function validate_config()
         summary = summary .. "Please correct these in your mpv.conf to avoid unexpected behavior."
         Diagnostic.warn(summary, "startup-health-check")
     else
-        Diagnostic.debug("Configuration health check passed.", "startup-health-check")
+
     end
 end
 
@@ -642,10 +642,11 @@ function get_center_index(subs, time_pos)
     
     if best == -1 then return 1 end
 
-    -- [v1.58.51] Overlap Priority: If we are in an intentional navigation state 
-    -- (Manual Seek or Jerk-Back), the next sub wins in an overlap to allow progress.
-    -- During normal playback, we stay on the current sub until it expires.
-    if (mp.get_time() < FSM.MANUAL_NAV_COOLDOWN or FSM.JUST_JERKED_TO ~= -1) and best < #subs then
+    -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's 
+    -- padded start has begun, the next sub wins immediately.
+    -- The Sticky Sentinel check above ensures we don't switch until the 
+    -- previous sub's padded end is finished.
+    if best < #subs then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(next_sub, best + 1)
         if time_pos >= s_next then
@@ -2341,14 +2342,14 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             end
         end
         
-        Diagnostic.debug(string.format("Truncation Trace: Words: %d | Limit: %d | s_rel: %d | e_rel: %d", #words, limit, s_rel, e_rel))
+
     else
-        Diagnostic.debug(string.format("Truncation Trace: Words: %d | Limit: %d | no anchor", #words, limit))
+
     end
     if first_idx then
         Diagnostic.trace(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
     else
-        Diagnostic.debug("  - FAILED to detect span, falling back to full sentence")
+
         return sentence
     end
     
@@ -2691,7 +2692,7 @@ local function load_anki_tsv(force, quiet)
     local dedupe_key = "tsv-load-" .. tostring(FSM.ANKI_DB_MTIME) .. "-" .. tostring(FSM.ANKI_DB_SIZE)
     
     if quiet then
-        Diagnostic.debug(msg_text, dedupe_key)
+
     else
         Diagnostic.info(msg_text, dedupe_key)
     end
@@ -5057,7 +5058,7 @@ local function tick_autopause(time_pos)
 
     mp.set_property_bool("pause", true)
     FSM.last_paused_sub_end = sub_end
-    Diagnostic.debug("Hardened Autopause triggered for Line " .. active_idx)
+
 end
 
 local function tick_loop(time_pos)
@@ -5137,7 +5138,7 @@ local function master_tick()
     if FSM.SPACEBAR == "HOLDING" and FSM.GHOST_HOLD_EXPIRY and mp.get_time() > FSM.GHOST_HOLD_EXPIRY then
         FSM.SPACEBAR = "IDLE"
         FSM.GHOST_HOLD_EXPIRY = nil
-        Diagnostic.debug("GHOST_HOLD expired, resetting to IDLE")
+
     end
 
     -- [v1.58.48] Universal Manual Seek Detection
@@ -5184,7 +5185,7 @@ local function master_tick()
             -- [v1.58.51] Phrases Mode "Jerk Back" Logic
             -- Only trigger for NATURAL transitions. If we are in cooldown from a manual seek, skip.
             if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
-                if FSM.ACTIVE_IDX ~= -1 and active_idx == FSM.ACTIVE_IDX + 1 then
+                if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > 0.05 then
                         mp.commandv("seek", s_next, "absolute+exact")
@@ -5635,7 +5636,7 @@ local function cmd_dw_line_move(dir, shift)
     -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
     if FSM.DW_CURSOR_LINE == -1 then
         FSM.DW_CURSOR_LINE = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
-        Diagnostic.debug("NAV-RECOVERY: Snapped to line " .. FSM.DW_CURSOR_LINE)
+
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
@@ -6090,7 +6091,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
                     if t and t.event == "down" then
-                        Diagnostic.debug(string.format("DW TRIGGER: key='%s' binding='%s'", t.key or "unknown", k.name))
+
                     end
                     return k.fn(t)
                 end
@@ -6965,7 +6966,7 @@ function cmd_toggle_search()
 end
 
 function cmd_toggle_drum_window()
-    Diagnostic.debug("TOGGLE CALLED: FSM.DRUM_WINDOW=" .. tostring(FSM.DRUM_WINDOW))
+
     -- Snapshot FSM state before any mutation so we can roll back on error
     local prev_drum_window = FSM.DRUM_WINDOW
     local ok, err = xpcall(function()
@@ -6982,7 +6983,7 @@ function cmd_toggle_drum_window()
 
 
     if FSM.DRUM_WINDOW == "OFF" then
-        Diagnostic.debug("OPENING DRUM WINDOW...")
+
         -- Update state immediately for responsiveness
         FSM.DRUM_WINDOW = "DOCKED"
         manage_ui_border_override(true)
@@ -7027,7 +7028,7 @@ function cmd_toggle_drum_window()
             show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
         end
     else
-        Diagnostic.debug("CLOSING DRUM WINDOW...")
+
         -- Update state immediately
         FSM.DRUM_WINDOW = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
@@ -7357,7 +7358,7 @@ local function register_global_copy_keys()
         local expanded_keys = expand_ru_keys(opt, name)
         for _, key in ipairs(expanded_keys) do
             local wrapped_fn = function(t)
-                Diagnostic.debug(string.format("GLOBAL TRIGGER: key='%s' binding='%s'", (t and t.key) or "unknown", name .. "-" .. i))
+
                 return fn(t)
             end
             mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
@@ -7386,7 +7387,7 @@ local function register_global_position_keys()
         local expanded_keys = expand_ru_keys(opt, name)
         for _, key in ipairs(expanded_keys) do
             local wrapped_fn = function(t)
-                Diagnostic.debug(string.format("GLOBAL POS TRIGGER: key='%s' binding='%s'", (t and t.key) or "unknown", name .. "-" .. i))
+
                 return fn(t)
             end
             mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
