@@ -7413,7 +7413,8 @@ local function cmd_copy_sub(mode)
                 wcount = wcount + 1
             end
             local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
-            show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
+            local prefix = (FSM.DRUM_WINDOW ~= "OFF") and "DW Copied " or "Copied "
+            show_osd(prefix .. FSM.COPY_MODE .. ": " .. osd_t)
             FSM.LAST_OSD_TIME = now
         end
     else
