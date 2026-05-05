@@ -604,8 +604,8 @@ function show_osd(msg, dur)
 end
 
 local seek_osd = mp.create_osd_overlay("ass-events")
-seek_osd.res_x = 1920
-seek_osd.res_y = 1080
+seek_osd.res_y = Options.font_base_height
+seek_osd.res_x = math.floor(seek_osd.res_y * 16 / 9)
 seek_osd.z = 40
 local seek_timer = nil
 
@@ -613,12 +613,16 @@ function show_seek_osd(msg, alignment)
     local ass = ""
     ass = ass .. string.format("{\\an%d}", alignment)
     
-    -- Fixed positioning to ensure it stays in the middle of the screen
-    -- regardless of global OSD offsets.
+    -- Derived positioning based on global resolution settings.
+    local ry = Options.font_base_height
+    local rx = math.floor(ry * 16 / 9)
+    local cy = ry / 2
+    local cx_padding = 40
+    
     if alignment == 4 then
-        ass = ass .. "{\\pos(40, 540)}"
+        ass = ass .. string.format("{\\pos(%d, %d)}", cx_padding, cy)
     elseif alignment == 6 then
-        ass = ass .. "{\\pos(1880, 540)}"
+        ass = ass .. string.format("{\\pos(%d, %d)}", rx - cx_padding, cy)
     end
     
     ass = ass .. string.format("{\\fn%s}", Options.seek_font_name)
@@ -876,23 +880,23 @@ end
 
 -- UI State pointers for Drum Mode OSD
 local drum_osd = mp.create_osd_overlay("ass-events")
-drum_osd.res_x = 1920
-drum_osd.res_y = 1080
+drum_osd.res_y = Options.font_base_height
+drum_osd.res_x = math.floor(drum_osd.res_y * 16 / 9)
 drum_osd.z = 10
 
 local dw_osd = mp.create_osd_overlay("ass-events")
-dw_osd.res_x = 1920
-dw_osd.res_y = 1080
+dw_osd.res_y = Options.font_base_height
+dw_osd.res_x = math.floor(dw_osd.res_y * 16 / 9)
 dw_osd.z = 20
 
 local search_osd = mp.create_osd_overlay("ass-events")
-search_osd.res_x = 1920
-search_osd.res_y = 1080
+search_osd.res_y = Options.font_base_height
+search_osd.res_x = math.floor(search_osd.res_y * 16 / 9)
 search_osd.z = 30
 
 local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
-dw_tooltip_osd.res_x = 1920
-dw_tooltip_osd.res_y = 1080
+dw_tooltip_osd.res_y = Options.font_base_height
+dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
 
 local dw_ensure_visible -- forward declaration

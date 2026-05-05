@@ -21,3 +21,7 @@
 
 - [x] 4.1 Test consecutive seeks within the duration and verify the accumulator increments.
 - [x] 4.2 Verify that the accumulator resets after the OSD disappears.
+
+## 5. Architectural Alignment
+
+- [x] 5.1 Unify OSD resolutions using `Options.font_base_height` across all overlays (Seek, Drum, search, Tooltip) to avoid hardcoding 1920x1080.

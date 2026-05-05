@@ -1488,6 +1488,6 @@
 20260505170156 Why (-0)
 20260505170537 Okay, why did I set the font to 34, but in fact I have huge numbers?
 20260505171027 Error, you twisted something.
-
+20260505171401 I don’t understand why we need to hardcode this when we have already introduced it globally, check? lls_core.lua#L606-610
 
 
