@@ -259,6 +259,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `h` | `р` | Toggle **Global Highlighting** (Anki Matches) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+c` | `Ctrl+с` | **Copy Subtitle** (Extract clean text to clipboard) |
+| `H` | `Р` | **Cycle Immersion Mode** (Phrase ↔ Movie) |
  
 ### Visual Keyboard Layout (English)
 
@@ -289,12 +290,12 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 |     |   Volume  |     |     | RESET Spd |
 +-----------------------------------------------------------+
 |  Y  |  U  |  I  |  O  |  P  |  [  |  ]  |    \    |
-|     |     |     | Open|     | Spd | Spd |         |
-|     |     |     | Rec |     | Down| Up  |         |
+|     |     |     |     |     | Spd | Spd |         |
+|     |     |     |     |     | Down| Up  |         |
 +-----------------------------------------------------------+
 |  H  |  J  |  K  |  L  |  ;  |  '  |    ENTER    |
 | Tgl |     |     |     |     |     |     Seek    |
-| High|     |     |     |     |     |    (Drum)   |
+| High/Immr |     |     |     |     |    (Drum)   |
 +-----------------------------------------------------------+
 |  N  |  M  |  ,  |  .  |  /  |      SHIFT      |
 |     | Mute| Frm | Frm |     |      Select     |
