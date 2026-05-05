@@ -1437,6 +1437,7 @@
 20260505095911 Okay, finally I got what I expected, now it really looks like phrase cards mode. Let's focus on the result, it's a small victory. However, we did not foresee that there is navigation a, d, double-click LMB, which can happen, and that the subtitles themselves should not twitch visually during such rewinding in our srt, dw, drum modes. In this case, in the photo we skipped over `Es sind pro Stunde um die 800 Sendungen,`
 20260505100657 It’s gotten worse, I can’t move a, d between subtitles, it gets stuck. Look at the state diagram of this process, FSM, solve the problem.
 20260505101100 It looks like the padding end has stopped working.
+20260505101459 In Movie mode, padding should also work, but not overlap as it was before 20260505094627.
 
 
 

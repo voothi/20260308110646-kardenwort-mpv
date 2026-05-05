@@ -597,9 +597,12 @@ local function get_effective_boundaries(sub, idx)
     local start = sub.start_time - pad_start
     local stop = sub.end_time + pad_end
     
-    -- [v1.58.51] Movie Mode: Extend the end boundary to the start of the next subtitle
+    -- [v1.58.51] Movie Mode: Seamless handover at the next subtitle's padded start.
+    -- This prevents overlapping audio loops while still ensuring the pre-roll is heard.
     if FSM.IMMERSION_MODE == "MOVIE" and idx and subs and idx < #subs then
-        stop = subs[idx + 1].start_time
+        stop = subs[idx + 1].start_time - pad_start
+        -- Guard against stop being before start (extreme overlaps)
+        if stop < start then stop = sub.end_time end
     end
     
     return start, stop
