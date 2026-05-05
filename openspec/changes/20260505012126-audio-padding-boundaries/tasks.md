@@ -17,6 +17,7 @@
 - [x] 3.1 Modify `tick_autopause` in `scripts/lls_core.lua` to calculate an `effective_sub_end` by adding `audio_padding_end` to the base `sub_end`.
 - [x] 3.2 Update the pause condition in `tick_autopause` to use `effective_sub_end` while preserving the existing `pause_padding` logic.
 - [x] 3.3 Hardened `tick_autopause` to use a "latest started" lookup instead of "closest center", preventing index jumping during the padding window.
+- [x] 3.4 Implemented "Multi-Candidate Watcher" in `tick_autopause` to handle overlapping padding windows when subtitles are close together.
 
 ## 4. Verification & Testing
 

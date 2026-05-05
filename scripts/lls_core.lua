@@ -4956,24 +4956,45 @@ local function tick_autopause(time_pos)
     -- Prefer our parsed subtitles table for exact timing. Native 'sub-end' can be 
     -- flaky or laggy during rapid seeking.
     local subs = Tracks.pri.subs
-    local sub_end = nil
-    if subs and #subs > 0 then
-        local idx = get_center_index(subs, time_pos)
-        if idx ~= -1 then
-            sub_end = subs[idx].end_time
+    if not subs or #subs == 0 then return end
+
+    -- [v1.58.50] Multi-Candidate Watcher
+    -- We check both the latest started sub and the previous one.
+    -- This ensures that if Sub B starts before Sub A's padding ends, we still catch Sub A's stop.
+    local pad_start = (Options.audio_padding_start or 0) / 1000
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+    
+    -- Find latest started index (technical start)
+    local low, high = 1, #subs
+    local idx = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            idx = mid
+            low = mid + 1
+        else
+            high = mid - 1
         end
     end
-    
-    if not sub_end then
-        sub_end = mp.get_property_number("sub-end")
+
+    if idx == -1 then return end
+
+    local candidates = { subs[idx] }
+    if idx > 1 then table.insert(candidates, subs[idx-1]) end
+
+    local trigger_sub_end = nil
+    for _, sub in ipairs(candidates) do
+        local effective_sub_end = sub.end_time + pad_end
+        if (effective_sub_end - time_pos) < Options.pause_padding and (effective_sub_end - time_pos) > 0 then
+            if FSM.last_paused_sub_end ~= sub.end_time then
+                trigger_sub_end = sub.end_time
+                break
+            end
+        end
     end
 
-    if sub_end == nil then return end
-
-    local effective_sub_end = sub_end + (Options.audio_padding_end / 1000)
-    if (effective_sub_end - time_pos) >= Options.pause_padding or (effective_sub_end - time_pos) <= 0 then
-        return
-    end
+    if not trigger_sub_end then return end
+    local sub_end = trigger_sub_end
 
     if FSM.last_paused_sub_end == sub_end then return end
 
