@@ -491,6 +491,7 @@ local FSM = {
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
     ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
     IMMERSION_MODE = "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
+    JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
 
     -- Transients
     last_paused_sub_end = nil,
@@ -609,6 +610,13 @@ function get_center_index(subs, time_pos)
     -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
     -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
     local active_idx = FSM.ACTIVE_IDX
+
+    -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
+    -- don't let the sticky logic pull us back to the previous one during the overlap.
+    if FSM.IMMERSION_MODE == "PHRASE" and FSM.JUST_JERKED_TO ~= -1 then
+        active_idx = FSM.JUST_JERKED_TO
+    end
+
     if active_idx and active_idx ~= -1 and subs[active_idx] then
         local s, e = get_effective_boundaries(subs[active_idx], active_idx)
         if time_pos >= s and time_pos <= e then
@@ -5162,7 +5170,21 @@ local function master_tick()
                 local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
                 if s_next and (time_pos - s_next) > 0.05 then
                     mp.commandv("seek", s_next, "absolute+exact")
-                    FSM.IGNORE_NEXT_JUMP = true -- Prevent re-triggering logic in this tick
+                    FSM.IGNORE_NEXT_JUMP = true 
+                    FSM.JUST_JERKED_TO = active_idx
+                    Diagnostic.debug("Jerk Back triggered to " .. active_idx)
+                end
+            end
+
+            -- Clear jerk flag once we've moved past the previous sub's technical end
+            if FSM.JUST_JERKED_TO ~= -1 and FSM.JUST_JERKED_TO == active_idx then
+                local prev_idx = active_idx - 1
+                if prev_idx >= 1 and Tracks.pri.subs[prev_idx] then
+                    if time_pos > Tracks.pri.subs[prev_idx].end_time then
+                        FSM.JUST_JERKED_TO = -1
+                    end
+                else
+                    FSM.JUST_JERKED_TO = -1
                 end
             end
 
@@ -5838,6 +5860,7 @@ local function cmd_dw_seek_selected()
             -- [v1.58.51] Intentional Focus Handover
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = -1
+            FSM.JUST_JERKED_TO = -1
 
             local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
@@ -5865,6 +5888,7 @@ local function cmd_dw_seek_delta(dir)
     -- to prevent "Magnetic Snapping" back to the previous line.
     FSM.IGNORE_NEXT_JUMP = true
     FSM.ACTIVE_IDX = -1 
+    FSM.JUST_JERKED_TO = -1
     
     local current_idx = get_center_index(subs, time_pos)
     if current_idx == -1 then return end
