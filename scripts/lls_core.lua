@@ -474,7 +474,9 @@ Options = {
     nav_tolerance = 0.05,         -- Overlap priority threshold (sec)
     autopause_overshoot = 0.1,     -- Permitted overshoot past boundary (sec)
     key_cycle_immersion_mode = "O Щ", -- Hotkey to cycle Phrase/Movie modes
-    immersion_mode_default = "PHRASE" -- Default mode at startup ("PHRASE" or "MOVIE")
+    immersion_mode_default = "PHRASE", -- Default mode at startup ("PHRASE" or "MOVIE")
+    seek_time_delta = 2,           -- Amount to seek in seconds for relative time navigation
+    seek_osd_duration = 2.0        -- Duration of the centered seek OSD message (sec)
 }
 options.read_options(Options, "lls")
 
@@ -587,6 +589,11 @@ local Tracks = {
 function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
+end
+
+function show_osd_center(msg, dur)
+    local style = mp.get_property("osd-ass-cc/0") or ""
+    mp.osd_message(style .. "{\\an5}{\\fs60}" .. msg, dur or Options.seek_osd_duration)
 end
 
 function has_cyrillic(str)
@@ -5952,6 +5959,18 @@ local function cmd_dw_seek_delta(dir)
     end
 end
 
+local function cmd_seek_time(dir)
+    local delta = dir * Options.seek_time_delta
+    
+    FSM.IGNORE_NEXT_JUMP = true
+    FSM.JUST_JERKED_TO = -1
+    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
+    
+    mp.commandv("seek", delta, "relative+exact")
+    local prefix = (delta > 0) and "+" or ""
+    show_osd_center(prefix .. tostring(delta))
+end
+
 
 local function cmd_seek_with_repeat(dir, table)
     if not table or not table.event then 
@@ -7403,6 +7422,9 @@ mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
 mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
+
+mp.add_key_binding(nil, "lls-seek_time_forward", function() cmd_seek_time(1) end)
+mp.add_key_binding(nil, "lls-seek_time_backward", function() cmd_seek_time(-1) end)
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 
