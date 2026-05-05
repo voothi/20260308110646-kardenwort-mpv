@@ -466,7 +466,9 @@ Options = {
     sentence_word_threshold = 3,
     replay_ms = 2000,              -- Fixed window for adaptive replay (ms)
     replay_count = 2,              -- Number of iterations for the replay command
-    replay_autostop = true         -- Whether to pause after iterations (Autopause ON only)
+    replay_autostop = true,        -- Whether to pause after iterations (Autopause ON only)
+    audio_padding_start = 200,    -- Pre-roll buffer in ms
+    audio_padding_end = 200       -- Post-roll buffer in ms
 }
 options.read_options(Options, "lls")
 
@@ -484,8 +486,26 @@ function has_cyrillic(str)
     return str:match("[\208-\209][\128-\191]") ~= nil
 end
 
+local function get_effective_boundaries(sub)
+    if not sub then return nil, nil end
+    local pad_start = (Options.audio_padding_start or 0) / 1000
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+    return sub.start_time - pad_start, sub.end_time + pad_end
+end
+
 function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
+    
+    -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
+    -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
+    local active_idx = FSM.ACTIVE_IDX
+    if active_idx and active_idx ~= -1 and subs[active_idx] then
+        local s, e = get_effective_boundaries(subs[active_idx])
+        if time_pos >= s and time_pos <= e then
+            return active_idx
+        end
+    end
+
     local low, high = 1, #subs
     local best = -1
     while low <= high do
@@ -504,8 +524,15 @@ function get_center_index(subs, time_pos)
         return best
     end
     
+    -- If we are in a gap, check the next subtitle's padded start
     if best < #subs then
         local next_sub = subs[best + 1]
+        local s_next, _ = get_effective_boundaries(next_sub)
+        if time_pos >= s_next then
+            return best + 1
+        end
+
+        -- Proximity fallback
         if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
             return best
         else
@@ -667,6 +694,8 @@ local FSM = {
     COPY_CONTEXT = "OFF",
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
+    ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
+    CAPTURE_MODE = "PHRASE", -- PHRASE or MOVIE
 
     -- Transients
     last_paused_sub_end = nil,
@@ -772,8 +801,59 @@ dw_tooltip_osd.z = 25
 local dw_ensure_visible -- forward declaration
 
 -- =========================================================================
--- COPY CONTEXT LOGIC (Moved up for visibility)
+-- CAPTURING SUITE (Phase 2)
 -- =========================================================================
+
+function cmd_cycle_capture_mode()
+    if FSM.CAPTURE_MODE == "PHRASE" then
+        FSM.CAPTURE_MODE = "MOVIE"
+    else
+        FSM.CAPTURE_MODE = "PHRASE"
+    end
+    show_osd("Capture Mode: " .. FSM.CAPTURE_MODE)
+end
+
+function cmd_capture_segment()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then
+        show_osd("Capture: No subtitles loaded")
+        return
+    end
+
+    local idx = FSM.ACTIVE_IDX
+    if idx == -1 then
+        idx = get_center_index(subs, mp.get_property_number("time-pos", 0))
+    end
+
+    if idx == -1 then
+        show_osd("Capture: No active subtitle")
+        return
+    end
+
+    local pad_start = (Options.audio_padding_start or 0) / 1000
+    local pad_end = (Options.audio_padding_end or 0) / 1000
+    
+    local start_time = subs[idx].start_time - pad_start
+    local end_time = subs[idx].end_time + pad_end
+
+    if FSM.CAPTURE_MODE == "MOVIE" then
+        -- In Movie mode, the end is the start of the next subtitle
+        if idx < #subs then
+            end_time = subs[idx+1].start_time
+        end
+    end
+
+    local function format_time(t)
+        local h = math.floor(t / 3600)
+        local m = math.floor((t % 3600) / 60)
+        local s = t % 60
+        return string.format("%02d:%02d:%06.3f", h, m, s)
+    end
+
+    local msg_text = string.format("Captured [%s]: %s - %s", FSM.CAPTURE_MODE, format_time(start_time), format_time(end_time))
+    show_osd(msg_text, 2)
+    Diagnostic.info(msg_text)
+end
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
@@ -4821,6 +4901,10 @@ local function cmd_dw_double_click()
 
     local sub = subs[line_idx]
     if sub and sub.start_time then
+        -- [v1.58.51] Intentional Focus Handover
+        FSM.IGNORE_NEXT_JUMP = true
+        FSM.ACTIVE_IDX = -1
+
         -- Set mouse lock to ignore the trailing "up" event of the double-click
         -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
         -- at the post-seek mouse position.
@@ -4941,34 +5025,38 @@ local function tick_autopause(time_pos)
     if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
-    -- [v1.58.48] Precise Manual Autopause
-    -- Prefer our parsed subtitles table for exact timing. Native 'sub-end' can be 
-    -- flaky or laggy during rapid seeking.
-    local sub_end = nil
     local subs = Tracks.pri.subs
-    if subs and #subs > 0 then
-        local idx = get_center_index(subs, time_pos)
-        if idx ~= -1 then
-            sub_end = subs[idx].end_time
-        end
-    end
-    
-    -- Fallback to native property if logic memory is empty
-    if not sub_end then
-        sub_end = mp.get_property_number("sub-end")
+    if not subs or #subs == 0 then return end
+
+    -- [v1.58.51] Hardened Autopause via Sticky Focus
+    -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
+    local active_idx = FSM.ACTIVE_IDX
+    if active_idx == -1 or not subs[active_idx] then
+        -- Fallback if sentinel is lost
+        active_idx = get_center_index(subs, time_pos)
     end
 
-    if sub_end == nil or (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
+    if active_idx == -1 then return end
+    
+    local _, sub_end = get_effective_boundaries(subs[active_idx])
+    if not sub_end then return end
+
+    -- Check if we've reached the end of the padded window
+    if (sub_end - time_pos) >= Options.pause_padding or (sub_end - time_pos) <= 0 then
         return
     end
 
+    -- Prevent re-triggering for the same subtitle segment
     if FSM.last_paused_sub_end == sub_end then return end
 
-    local raw_text_primary = mp.get_property("sub-text/ass") or mp.get_property("sub-text-ass") or ""
-    local raw_text_secondary = mp.get_property("secondary-sub-text") or ""
+    -- Ensure we are actually on a subtitle (using internal state rather than transient mpv visibility)
+    -- This fixes the "Stops stopping" bug when text clears before the audio tail finishes.
+    local raw_text_primary = subs[active_idx].text or ""
+    local raw_text_secondary = (Tracks.sec.subs[active_idx] and Tracks.sec.subs[active_idx].text) or ""
     
     if raw_text_primary == "" and raw_text_secondary == "" then return end
 
+    -- Karaoke Mode: Don't pause if we are in the middle of a phrase with highlights
     if FSM.KARAOKE == "PHRASE" then
         local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true)
         if not has_karaoke then has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true) end
@@ -4977,6 +5065,7 @@ local function tick_autopause(time_pos)
 
     mp.set_property_bool("pause", true)
     FSM.last_paused_sub_end = sub_end
+    Diagnostic.debug("Hardened Autopause triggered for Line " .. active_idx)
 end
 
 local function tick_loop(time_pos)
@@ -5100,6 +5189,7 @@ local function master_tick()
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
+            FSM.ACTIVE_IDX = active_idx
             FSM.DW_ACTIVE_LINE = active_idx
             
             -- [v1.58.49] Universal Cursor Synchronization
@@ -5768,6 +5858,10 @@ local function cmd_dw_seek_selected()
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
+            -- [v1.58.51] Intentional Focus Handover
+            FSM.IGNORE_NEXT_JUMP = true
+            FSM.ACTIVE_IDX = -1
+
             mp.commandv("seek", sub.start_time, "absolute+exact")
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -5787,6 +5881,12 @@ local function cmd_dw_seek_delta(dir)
     
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
+    
+    -- [v1.58.51] Intentional Focus Handover
+    -- When manually seeking, we MUST ignore the padding boundaries of the current index
+    -- to prevent "Magnetic Snapping" back to the previous line.
+    FSM.IGNORE_NEXT_JUMP = true
+    FSM.ACTIVE_IDX = -1 
     
     local current_idx = get_center_index(subs, time_pos)
     if current_idx == -1 then return end
@@ -5954,6 +6054,12 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
     parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
+
+    -- [v1.58.51] Capturing Suite (Phase 2)
+    mp.add_forced_key_binding("o", "lls-capture", cmd_capture_segment)
+    mp.add_forced_key_binding("O", "lls-cycle-capture", cmd_cycle_capture_mode)
+    mp.add_forced_key_binding("щ", "lls-capture-ru", cmd_capture_segment)
+    mp.add_forced_key_binding("Щ", "lls-cycle-capture-ru", cmd_cycle_capture_mode)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
