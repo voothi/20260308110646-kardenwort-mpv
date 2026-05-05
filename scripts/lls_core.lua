@@ -7377,7 +7377,7 @@ local function cmd_cycle_sec_sid()
         end
     end
     
-    local final_msg = "Secondary Subtitles: " .. label
+    local final_msg = "Secondary Sub: " .. label
     if internal_count > 0 then
         final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
     end

@@ -1511,8 +1511,8 @@
 20260505235206 x What kind of DW Copied?
 20260506000231 Pull the changes from this anchor 20260505224350  into the current code branch looking for this commit 7f8c6c4f9a01041f2ef6610e2369643797d8d02d
 20260506000713 In total, you, as a spec architect, must collect data on the current code, on changes, and reflect them in opsx-propose here are the anchors 20260505221149 20260505224350 20260505230435
-
-
-
+20260506001802 /opsx-explore You are like a diligent, promising, pedantic, reasonable, independent, adequate, experienced expert in lua, codebase and specifications, configuration guru and diff-guru for this project, with surgical precision check the current version 81d8d4ba1e31e50cc414e0f449086a58bd58cc70 20260506001349 for regression compared to v1.58.49, and for compliance, impeccable adherence to the current general openspec\specs specifications, it is necessary to synchronize.
+20260506003153 create-release-2 v1.58.50 openspec\changes\archive\20260505115453-filtered-secondary-subtitle-cycle openspec\changes\archive\20260505121439-immersion-suite-hardening openspec\changes\archive\20260505143734-fix-subtitle-interactivity-regressions openspec\changes\archive\20260505145046-configurable-immersion-mode-startup openspec\changes\archive\20260505150404-cyclic-subtitle-nav openspec\changes\archive\20260505162601-centered-seek-osd openspec\changes\archive\20260506000713-immersion-hardening-osd-refinement
+20260506003604 You added a shortcuts for immersion_mode?
 
 

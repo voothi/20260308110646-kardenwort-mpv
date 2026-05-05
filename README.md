@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.58.49-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.49) 
+[![Version](https://img.shields.io/badge/version-v1.58.50-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.58.50) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -110,6 +110,7 @@ This suite solves problems that standard video players and generic scripts ignor
 41. **Prioritized Selection in Context Copy**: Manual selections (word/range) now take absolute priority over "Context Copy" mode, allowing for precise term extraction even when multi-line harvesting is active.
 42. **Ghost Hit-Zone Elimination**: Explicit lifecycle management for tooltip hit-zones prevents interaction bleed-through and ensures the Drum Window remains fully interactive after tooltip dismissal.
 43. **Adaptive Subtitle Replay & Looping**: A dual-mode replay engine (triggered via `s` / `ы`) that adapts to the active workflow. Implements **Sticky Hold** FSM logic to defeat hardware ghosting and supports **Spacebar Overrides** for seamless loop breaking.
+44. **YouTube-Style Seek Feedback**: Implemented a progressive directional OSD that tracks cumulative seek distance (+2, +4, +6) with professional spatially-aware positioning (Left/Right) and customizable message templates.
 
 [Return to Top](#table-of-contents)
 
@@ -228,7 +229,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | Key (EN) | Key (RU) | Action |
 |---|---|---|
 | `RIGHT` / `LEFT` | `RIGHT` / `LEFT` | Exact **2-second** seek forward / backward |
-| `a` / `d` | `ф` / `в` | **Seek** to previous / next subtitle line |
+| `a` / `d` | `ф` / `в` | **Seek** to prev/next subtitle (with cyclic wrap-around) |
 | `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** |
 | `1` / `2` | `1` / `2` | Decrease / Increase **Contrast** |
 | `~` / `ё` | `~` / `ё` | **Quit** |

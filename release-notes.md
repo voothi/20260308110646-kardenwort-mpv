@@ -1,3 +1,36 @@
+# Release Notes - v1.58.50 (YouTube-Style Seek & Immersion Hardening)
+
+**Date**: 2026-05-06
+**Version**: v1.58.50
+**Implementation ZIDs**: 20260506001349, 20260506000713, 20260505162601, 20260505150404, 20260505145046, 20260505143734, 20260505121439, 20260505115453
+
+## Highlights
+
+### ⏩ **YouTube-Style Cumulative Seek OSD**
+- **Dynamic Accumulator**: Implemented a progressive seek OSD that mirrors modern streaming platforms. Rapid seeking now displays a cumulative total (`+2`, `+4`, `+6`) instead of redundant individual messages.
+- **Directional Feedback**: OSD messages are now alignment-aware, appearing on the right (forward) or left (backward) of the screen to provide intuitive spatial orientation.
+- **Configurable Templates**: Fully parameterized OSD messages via `seek_msg_format` and `seek_msg_cumulative_format`, allowing users to customize prefixes and value representations.
+
+### 🛡️ **Immersion Engine Hardening & OSD Refinement**
+- **Surgical Input Silencing**: Hardened the immersion state machine to block redundant positioning keys (`r`, `t`, `R`, `T`) when the Drum Window or Drum Mode is active, preventing accidental layout shifts during study.
+- **Descriptive Minimalism**: Refactored all system status messages to include descriptive prefixes (e.g., `Drum Mode: ON`, `Autopause: OFF`) while stripping technical noise.
+- **Staged Reset (Esc)**: Refined the `Esc` key logic into a non-destructive 3-stage reset (Pink Set → Yellow Range → Yellow Pointer) that preserves the Drum Window state, preventing cyclic mode toggling.
+- **UI Shortening**: Long OSD prefixes (e.g., `Secondary Subtitles:`) have been shortened (e.g., `Secondary Sub:`) to reduce visual clutter.
+
+### 🔄 **Cyclic Subtitle Navigation**
+- **Wrap-Around Seeking**: Manual navigation via `a` and `d` now supports wrap-around between the first and last subtitle tracks.
+- **Visual Confirmation**: Added clear OSD feedback when wrapping occurs (`Wrapped to START` / `Wrapped to END`).
+- **Boundary Hardening**: Implemented robust guards to prevent state-machine inconsistencies at track edges and during native OSC timeline seeks.
+
+### 🛠️ **Functional Improvements & Fixes**
+- **Filtered Secondary Cycling**: Refined `Shift+c` logic to only cycle through external subtitle tracks, explicitly excluding the primary subtitle stream to prevent state conflicts.
+- **Configurable Startup**: Introduced `immersion_mode_default` (`PHRASE` vs `MOVIE`) to allow users to specify their preferred starting state in `mpv.conf`.
+- **Interactivity Guard**: Disabled mouse-based auto-scroll in non-Drum Mode to prevent unintended selection expansion on standard OSD subtitles.
+- **SRT Parser Hardening**: Implemented robust whitespace normalization to handle malformed SRT files with padded block separators.
+- **State Synchronization**: Hardened immersion mode transitions to prevent "Jerk Back" seeking during phantom boundary detection.
+
+---
+
 # Release Notes - v1.58.49 (Drum Mode Cursor Fix & Window Persistence)
 
 **Date**: 2026-05-04
