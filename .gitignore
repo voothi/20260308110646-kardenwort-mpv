@@ -63,3 +63,5 @@ temp_old_utf8.lua
 temp_old.lua
 scratch/
 resume_session.state
+.claude/settings.local.json
+.claude/settings.local.json
