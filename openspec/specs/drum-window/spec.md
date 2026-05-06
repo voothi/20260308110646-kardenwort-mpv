@@ -178,12 +178,12 @@ The system MUST automatically perform a full selection reset (equivalent to Stag
 - **WHEN** the user saves a pink paired set via the `f` key
 - **THEN** the entire paired set AND the active yellow selection MUST be cleared.
 
-### Requirement: Immersion Input Blocking
-Subtitle positioning controls MUST be intercepted and suppressed when the Drum Window or Drum Mode is active to prevent accidental visual disruption.
+### Requirement: Drum Window Input Blocking
+Subtitle positioning controls MUST be intercepted and suppressed when the Drum Window is active to prevent accidental visual disruption of the high-precision interface.
 
-#### Scenario: Pressing 'r' during Drum Mode
-- **WHEN** Drum Mode is ON
-- **THEN** the 'r' key MUST be blocked and provide no OSD feedback.
+#### Scenario: Pressing 'r' while Drum Window is open
+- **WHEN** the Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
+- **THEN** the 'r' key MUST be blocked and display a "Drum Window: Active (Position Locked)" message.
 
 ### Requirement: Cross-Mode Cursor Synchronization
 The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mode C) and Drum Window (Mode W).

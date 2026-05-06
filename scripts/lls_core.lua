@@ -7314,8 +7314,8 @@ local function cmd_cycle_sec_pos()
 end
 
 local function cmd_adjust_sub_pos(delta)
-    if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" then
-        show_osd("Managed by Drum Window")
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Drum Window: Active (Position Locked)")
         return
     end
     local p = mp.get_property_number("sub-pos", 95)
@@ -7323,8 +7323,8 @@ local function cmd_adjust_sub_pos(delta)
 end
 
 local function cmd_adjust_sec_sub_pos(delta)
-    if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" then
-        show_osd("Managed by Drum Window")
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Drum Window: Active (Position Locked)")
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)
