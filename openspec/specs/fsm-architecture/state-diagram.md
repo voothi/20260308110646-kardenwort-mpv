@@ -532,8 +532,8 @@ graph TD
     Strip --> Inject
     
     Inject --> Mutex{Priority Resolution}
-    Mutex -- "Rule 1: LLS > Native" --> FinalTags[Force {\1c...} Color Override]
-    Mutex -- "Rule 2: Reset Safety" --> HardReset[Inject {\r} after Highlight]
+    Mutex -- "Rule 1: LLS > Native" --> FinalTags["Force {\1c...} Color Override"]
+    Mutex -- "Rule 2: Reset Safety" --> HardReset["Inject {\r} after Highlight"]
     
     FinalTags --> Render[OSD Overlay]
     HardReset --> Render
