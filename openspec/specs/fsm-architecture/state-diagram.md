@@ -517,6 +517,28 @@ graph TD
     Prop --> Final
 ```
 
+## 23. ASS Rendering & Style Mutex
+Codifies the priority resolution when engine OSD overlays intersect with native video subtitle styles.
+
+```mermaid
+graph TD
+    Input[Raw Subtitle Text] --> Tokenizer{Tokenizer Mode?}
+    
+    Tokenizer -- "SINGLE_SRT" --> Plain[Plain Text Stream]
+    Tokenizer -- "SINGLE_ASS" --> Atomize[Atomic Tag Separation]
+    
+    Plain --> Inject[LLS Highlight Injection]
+    Atomize --> Strip[Metadata/Positioning Stripping]
+    Strip --> Inject
+    
+    Inject --> Mutex{Priority Resolution}
+    Mutex -- "Rule 1: LLS > Native" --> FinalTags[Force {\1c...} Color Override]
+    Mutex -- "Rule 2: Reset Safety" --> HardReset[Inject {\r} after Highlight]
+    
+    FinalTags --> Render[OSD Overlay]
+    HardReset --> Render
+```
+
 ---
 **Verification Schema:**
 1. `FSM.DRUM_WINDOW == 'DOCKED'` MUST suppress `native-sub-visibility`.
@@ -534,3 +556,5 @@ graph TD
 13. `cycle-secondary-pos` MUST clamp to `sec_pos_bottom` to avoid primary sub overlap.
 14. `dw_get_str_width` MUST strip ASS tags `{\...}` before calculating pixel offset to prevent coordinate drift.
 15. Tooltip `final_y` MUST be clamped within a 20px screen margin to prevent OSD cropping.
+16. **Atomic Priority**: Every surgical highlight injection MUST be followed by a restoration tag (either previous style or `{\r}`) to prevent color bleed.
+17. **Positioning Neutrality**: In `DOCKED` mode, all `\pos` and `\an` tags MUST be stripped from the visual stream to ensure deterministic list alignment.
