@@ -561,6 +561,7 @@ local FSM = {
     SEARCH_SEL_IDX = 1,
     SEARCH_CURSOR = 0,
     SEARCH_ANCHOR = -1,
+    SEARCH_CHAR_BINDINGS = {},
 
     -- Transient UI State
     saved_osd_border_style = nil,
@@ -3047,18 +3048,28 @@ local function update_media_state()
     end
     update_interactive_bindings()
 
-    -- If Drum Mode is ON, but MEDIA_STATE includes an ASS track, we MUST disable Drum Mode to prevent bugs
-    if FSM.DRUM == "ON" then
-        if FSM.MEDIA_STATE:match("ASS") then
-            FSM.DRUM = "OFF"
-            if FSM.DRUM_WINDOW == "OFF" then
-                mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
-                mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
-                mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
-            end
-            drum_osd.data = ""
-            drum_osd:update()
-            show_osd("Drum Mode: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
+    -- ASS gatekeeping: disable custom OSD modes in the same transition cycle.
+    if FSM.MEDIA_STATE:match("ASS") then
+        local had_drum = (FSM.DRUM == "ON")
+        local had_dw = (FSM.DRUM_WINDOW ~= "OFF")
+        FSM.DRUM = "OFF"
+        FSM.DRUM_WINDOW = "OFF"
+
+        -- Restore native subtitle presentation from FSM desired state.
+        mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
+        mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
+        mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
+
+        drum_osd.data = ""
+        drum_osd:update()
+        dw_osd.data = ""
+        dw_osd:update()
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
+        update_interactive_bindings()
+
+        if had_drum or had_dw then
+            show_osd("Custom OSD: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
         end
     end
 end
@@ -4624,13 +4635,11 @@ local function get_dw_selection_bounds()
     end
 end
 
--- Context-Aware Escape: Sequential 4-stage cancel then close window
+-- Context-Aware Escape: Deterministic staged selection peel-back.
 -- Stage 1: Clear Pink Set (ctrl pending set)
 -- Stage 2: Clear Yellow Range (if anchor exists and is different from cursor)
 -- Stage 3: Clear Yellow Pointer (hides the highlight) and syncs cursor to active line
--- Stage 4: Close the Drum Window
-
-
+-- No implicit window close occurs in cmd_dw_esc itself.
 
 local function cmd_dw_esc()
     -- Stage 1: Clear Pink Set (Purple highlights)
@@ -6761,6 +6770,25 @@ local function manage_ui_border_override(enable)
     -- Kept to avoid breaking existing bindings/calls.
 end
 
+local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
+local SEARCH_GERMAN_CHARS = { "ä", "ö", "ü", "ß", "Ä", "Ö", "Ü", "ẞ" }
+
+local function utf8_iter_chars(str)
+    return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
+end
+
+local function search_binding_name_for_char(ch)
+    return "search-char-" .. ((ch == " ") and "SPACE" or ch)
+end
+
+local function verify_search_german_whitelist()
+    for _, ch in ipairs(SEARCH_GERMAN_CHARS) do
+        if not SEARCH_INPUT_CHARS:find(ch, 1, true) then
+            Diagnostic.error("Search char whitelist missing required German key: " .. ch)
+        end
+    end
+end
+
 local function manage_search_bindings(enable)
     local function bind(key_string, name, fn, settings)
         if not key_string then return end
@@ -6781,6 +6809,7 @@ local function manage_search_bindings(enable)
     end
 
     if enable then
+        verify_search_german_whitelist()
         FSM.SEARCH_MODE = true
         FSM.SEARCH_QUERY = ""
         FSM.SEARCH_RESULTS = {}
@@ -6800,16 +6829,13 @@ local function manage_search_bindings(enable)
             manage_dw_bindings(false)
         end
         
-        local chars = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
-        local function utf8_iter(str)
-            return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
-        end
-        
-        for ch in utf8_iter(chars) do
-            local key_name = ch
-            if ch == " " then key_name = "SPACE" end
+        FSM.SEARCH_CHAR_BINDINGS = {}
+        for ch in utf8_iter_chars(SEARCH_INPUT_CHARS) do
+            local key_name = (ch == " ") and "SPACE" or ch
+            local binding_name = search_binding_name_for_char(ch)
+            FSM.SEARCH_CHAR_BINDINGS[binding_name] = true
             
-            mp.add_forced_key_binding(key_name, "search-char-" .. key_name, function()
+            mp.add_forced_key_binding(key_name, binding_name, function()
                 local q_table = utf8_to_table(FSM.SEARCH_QUERY)
                 
                 -- Handle selection delete
@@ -6830,6 +6856,12 @@ local function manage_search_bindings(enable)
                 update_search_results()
                 render_search()
             end, "repeatable")
+        end
+        for _, ch in ipairs(SEARCH_GERMAN_CHARS) do
+            local binding_name = search_binding_name_for_char(ch)
+            if not FSM.SEARCH_CHAR_BINDINGS[binding_name] then
+                Diagnostic.error("Search binding registry missing German key binding: " .. ch)
+            end
         end
         
         -- Special Keys
@@ -7077,16 +7109,16 @@ local function manage_search_bindings(enable)
     else
         FSM.SEARCH_MODE = false
         manage_ui_border_override(false)
-        
-        local chars = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ "
-        local function utf8_iter(str)
-            return string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*")
+
+        -- Remove exactly the same search char bindings that were registered.
+        for name, _ in pairs(FSM.SEARCH_CHAR_BINDINGS or {}) do
+            mp.remove_key_binding(name)
         end
-        for ch in utf8_iter(chars) do
-            local key_name = ch
-            if ch == " " then key_name = "SPACE" end
-            mp.remove_key_binding("search-char-" .. key_name)
+        -- Defensive sweep: if runtime state was reset, still remove by canonical character list.
+        for ch in utf8_iter_chars(SEARCH_INPUT_CHARS) do
+            mp.remove_key_binding(search_binding_name_for_char(ch))
         end
+        FSM.SEARCH_CHAR_BINDINGS = {}
         
         unbind(Options.search_key_bs, "bs")
         unbind(Options.search_key_del, "del")
