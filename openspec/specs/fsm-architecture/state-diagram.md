@@ -451,7 +451,7 @@ Controls the visual location of translation tracks.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> TOP : Default (sec-pos: 10)
+    [*] --> TOP : Default (sec-pos 10)
     
     TOP --> BOTTOM : cycle-secondary-pos (Shift+X)
     BOTTOM --> TOP : cycle-secondary-pos (Shift+X)
