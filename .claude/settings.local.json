@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr /I \"phrase audio anki record card\")",
+      "Bash(git log *)",
+      "PowerShell(git log --all --oneline --grep=\"phrase|jerk|sticky|autopause|immersion\" -iE)",
+      "PowerShell(git log --all --oneline --grep=\"phrase\" -i)",
+      "PowerShell(git log --all --oneline --grep=\"jerk\" -i)",
+      "PowerShell(git log --all --oneline --grep=\"autopause\" -i)"
+    ]
+  }
+}

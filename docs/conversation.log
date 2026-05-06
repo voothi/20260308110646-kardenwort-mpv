@@ -1581,7 +1581,7 @@
 20260506202949 Openspec Archive Change --sync openspec\changes\20260506195038-drum-mode-tooltip-key-parity
 20260506203418 Let's look at the situation, why in the Autopause ON, PHRASE mode, I am now experiencing a jump through `Bedeutet in einer Gegend wie hier`, that is, it is played, but visually in the window (dw) it is skipped and the subtitle following it is immediately highlighted in white, the line `dass man eigentlich gar keine Wahl hat manchmal.` Is this due to poor quality subtitles or is there a flaw in our logic?
 20260506214011 The problem is not resolved. In general, check the logic, it looks like we overcomplicated something and did it wrong. > Prevent jerk-back from firing immediately after autopause unpause - I don’t really understand why you tried to break what was intended, you didn’t do better. Read the descriptions in the specifications. I don't mind the twitching, it's a minor problem. This PHRASE mode works like Anki cards and here it is more important to me that all the subtitle text is included in the recording. Read my requests, you can emphasize there all the pain and the essence of what I want.
-
+20260506220111 Look again, I turn on Opus, you should analyze my pain, look at the pictures, analyze.
 
 
 

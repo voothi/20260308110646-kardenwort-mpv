@@ -697,6 +697,18 @@ function get_center_index(subs, time_pos)
         end
     end
 
+    -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
+    -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
+    -- transition to `i+1` - never skip intermediate subs even when large
+    -- audio_padding values cause multiple subs' padded zones to overlap time_pos.
+    if active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
+        local next_idx = active_idx + 1
+        local s_next, e_next = get_effective_boundaries(subs[next_idx], next_idx)
+        if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
+            return next_idx
+        end
+    end
+
     local low, high = 1, #subs
     local best = -1
     while low <= high do
@@ -5342,11 +5354,7 @@ local function master_tick()
                 if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > Options.nav_tolerance then
-                        -- [v1.58.53] Don't seek into the previous sub's audio territory.
-                        -- When subs are close together, s_next may fall before cur_sub.end_time.
-                        local cur_sub = Tracks.pri.subs[FSM.ACTIVE_IDX]
-                        local seek_target = (cur_sub and cur_sub.end_time > s_next) and cur_sub.end_time or s_next
-                        mp.commandv("seek", seek_target, "absolute+exact")
+                        mp.commandv("seek", s_next, "absolute+exact")
                         FSM.IGNORE_NEXT_JUMP = true
                         FSM.JUST_JERKED_TO = active_idx
                     end
