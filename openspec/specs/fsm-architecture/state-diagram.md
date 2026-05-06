@@ -539,6 +539,24 @@ graph TD
     HardReset --> Render
 ```
 
+## 24. Sub-Index Selection Logic (Center Index)
+Specifies the priority of subtitle indexing in overlapping Phrases mode.
+
+```mermaid
+graph TD
+    Input[Current time_pos] --> Overlap{Overlap Check?}
+    
+    Overlap -- "time >= next.s_next" --> Next[Return best + 1]
+    Overlap -- "no overlap" --> Sticky{Sticky Sentinel?}
+    
+    Sticky -- "within active.padded" --> Active[Return active_idx]
+    Sticky -- "outside padded" --> Nominal[Return best]
+    
+    Next --> Result[FSM.ACTIVE_IDX Updated]
+    Active --> Result
+    Nominal --> Result
+```
+
 ---
 **Verification Schema:**
 1. `FSM.DRUM_WINDOW == 'DOCKED'` MUST suppress `native-sub-visibility`.
@@ -549,7 +567,7 @@ graph TD
 6. `cmd_dw_scroll` MUST set `FSM.DW_FOLLOW_PLAYER = false`.
 7. `load_anki_tsv` MUST use `pcall` and fingerprinting to avoid redundant parsing or crashes.
 8. `Middle-Click` (Export) MUST trigger `dw_reset_selection()` upon successful record commitment.
-9. `Sticky Column` anchor MUST reset if `FSM.DW_CURSOR_LINE` is manually changed via mouse.
+9. `Sticky Column` anchor (`FSM.DW_CURSOR_X`) MUST be invalidated or updated if `FSM.DW_CURSOR_LINE` is changed via mouse OR if horizontal `DW_CURSOR_WORD` moves occur.
 10. `is_word_char` MUST NOT return true for brackets `[]` or slashes `/`.
 11. Mouse events MUST return early if `mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL`.
 12. `get_sub_tokens` MUST assign fractional indices to non-word characters to ensure Word-Integer alignment.
@@ -563,3 +581,5 @@ graph TD
 20. **Search Hijack**: `FSM.SEARCH_MODE` MUST disable playback-altering hotkeys (Space, Enter, s, x) to prevent seek-leakage during query entry.
 21. **Aesthetic Sync**: Highlight border/shadow alpha (`3a/4a`) MUST match `bg_alpha` to ensure uniform background transparency across the HUD.
 22. **Cyclic Navigation**: `cmd_dw_seek_delta` MUST implement modulo-based wrap-around at the start and end of the subtitle track list.
+23. **Search Exit Interactivity**: Closing Search mode MUST restore full keyboard navigation for active UI components via `update_interactive_bindings()`.
+24. **Early Handover**: In Phrases mode, `get_center_index` MUST prioritize next subtitle's padded start over current subtitle's padded end to allow Jerk-Back logic to fire correctly.
