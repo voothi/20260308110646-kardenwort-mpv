@@ -1552,6 +1552,7 @@
 20260506135305 You, like a good clear performer, accurately collect data on the results of the work of large models and compile opsx-propose based on the results of our work to fix the specifications. 20260506131142 20260506131630 20260506132204 20260506132933
 20260506135833 Parse error on line 21:
 20260506140250 opsx-apply openspec\changes\20260506135440-fsm-architecture-specification-hardening
+20260506140957 Check the file openspec\specs\fsm-architecture\state-diagram.md, something with the encoding or content.
 
 
 
