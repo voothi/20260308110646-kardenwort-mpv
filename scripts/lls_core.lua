@@ -547,7 +547,8 @@ local FSM = {
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
-    DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection {{line, word}, ...}
+    DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection map {line -> {word -> {line, word}}}
+    DW_CTRL_PENDING_LIST = {}, -- Sorted list of members for sequential export
     DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
 
     -- Performance Caches
@@ -746,8 +747,26 @@ function get_center_index(subs, time_pos)
 end
 
 
+local function sync_ctrl_pending_list()
+    local members = {}
+    for _, line_tbl in pairs(FSM.DW_CTRL_PENDING_SET) do
+        for _, m in pairs(line_tbl) do
+            table.insert(members, m)
+        end
+    end
+    if #members > 0 then
+        table.sort(members, function(a, b)
+            if a.line ~= b.line then return a.line < b.line end
+            return a.word < b.word
+        end)
+    end
+    FSM.DW_CTRL_PENDING_LIST = members
+end
+
+
 local function dw_reset_selection()
     FSM.DW_CTRL_PENDING_SET = {}
+    FSM.DW_CTRL_PENDING_LIST = {}
     FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
@@ -4612,6 +4631,7 @@ local function cmd_dw_esc()
     -- Stage 1: Clear Pink Set (Purple highlights)
     if next(FSM.DW_CTRL_PENDING_SET) then
         FSM.DW_CTRL_PENDING_SET = {}
+        FSM.DW_CTRL_PENDING_LIST = {}
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
         elseif FSM.DRUM == "ON" then drum_osd:update() end
@@ -4653,6 +4673,7 @@ local function ctrl_toggle_word(line_idx, word_idx)
     else
         line_set[word_idx] = {line = line_idx, word = word_idx}
     end
+    sync_ctrl_pending_list()
     if FSM.DRUM_WINDOW ~= "OFF" then 
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         dw_osd:update() 
@@ -4668,20 +4689,9 @@ local function ctrl_commit_set(line_idx, word_idx)
         return
     end
     
-    -- Extract all members into a list and sort by document order
-    local members = {}
-    for _, line_tbl in pairs(FSM.DW_CTRL_PENDING_SET) do
-        for _, m in pairs(line_tbl) do
-            table.insert(members, m)
-        end
-    end
-    
+    -- Use pre-sorted list from FSM
+    local members = FSM.DW_CTRL_PENDING_LIST
     if #members == 0 then return end
-    
-    table.sort(members, function(a, b)
-        if a.line ~= b.line then return a.line < b.line end
-        return a.word < b.word
-    end)
 
     
     -- Requirement: Unified Paired Export
@@ -7200,21 +7210,8 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     -- [v1.58.51] Explicit priority allows user to regulate behavior via Esc stages.
     
     -- Stage 1: Pink Set (Multi-word Selection via Ctrl+Click)
-    if next(FSM.DW_CTRL_PENDING_SET) then
-        local members = {}
-        local line_indices = {}
-        for l_idx in pairs(FSM.DW_CTRL_PENDING_SET) do table.insert(line_indices, l_idx) end
-        table.sort(line_indices)
-        for _, l_idx in ipairs(line_indices) do
-            local word_indices = {}
-            for w_idx in pairs(FSM.DW_CTRL_PENDING_SET[l_idx]) do table.insert(word_indices, w_idx) end
-            table.sort(word_indices)
-            for _, w_idx in ipairs(word_indices) do
-                table.insert(members, FSM.DW_CTRL_PENDING_SET[l_idx][w_idx])
-            end
-        end
-        
-        return prepare_export_text({ type = "SET", members = members }, { 
+    if #FSM.DW_CTRL_PENDING_LIST > 0 then
+        return prepare_export_text({ type = "SET", members = FSM.DW_CTRL_PENDING_LIST }, { 
             copy_mode = FSM.COPY_MODE, 
             filter_russian = Options.copy_filter_russian 
         }), false

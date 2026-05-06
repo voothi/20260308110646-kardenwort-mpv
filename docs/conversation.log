@@ -1517,4 +1517,9 @@
 20260506004806 Check if we have implemented 20260505221149 x # The state after adding a word, it is no longer marked in yellow, it has been added, the subtitles continue, but how does it change? ## Description After adding a word you need to reset the selection.
 20260506005315 Update specs
 20260506090607 # In the Context Copy ON mode, it is necessary that if there is an active selection or just a yellow cursor, this selection is copied, and not the subtitle text with context, and if there is no selection, then all this text is copied. ## Description Such a priority so that I can regulate this Esc.
+20260506095324 Is this code too complicated? The cyclic complexity is high, can it be done on FSM? lls_core.lua#L7202-7221
+
+
+
+
 
