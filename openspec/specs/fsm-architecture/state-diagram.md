@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506112010**
+**ZID: 20260506112259**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -446,6 +446,57 @@ stateDiagram-v2
     end note
 ```
 
+## 19. Secondary Subtitle Positioning FSM
+Controls the visual location of translation tracks.
+
+```mermaid
+stateDiagram-v2
+    [*] --> TOP : Default (sec-pos: 10)
+    
+    TOP --> BOTTOM : cycle-secondary-pos (Shift+X)
+    BOTTOM --> TOP : cycle-secondary-pos (Shift+X)
+    
+    note right of BOTTOM
+        Aligns to sec_pos_bottom (90).
+        Preserves 5% "Safety Gap" 
+        from primary sub (95).
+    end note
+```
+
+## 20. OSD Visibility Cycle
+Controls global overlay visibility state.
+
+```mermaid
+stateDiagram-v2
+    [*] --> AUTO : Default
+    
+    AUTO --> NEVER : TAB
+    NEVER --> ALWAYS : TAB
+    ALWAYS --> AUTO : TAB
+    
+    note right of NEVER
+        FSM.OSC_VIS = 2
+        "Clean Focus" mode.
+    end note
+```
+
+## 21. Karaoke vs Phrase Granularity
+Controls autopause firing logic.
+
+```mermaid
+stateDiagram-v2
+    [*] --> PHRASE_MODE : Default
+    
+    PHRASE_MODE --> WORD_MODE : Shift+F
+    WORD_MODE --> PHRASE_MODE : Shift+F
+    
+    note right of WORD_MODE
+        FSM.KARAOKE = 'WORD'
+        Autopause fires after every 
+        highlighted token.
+    end note
+```
+
 ---
 **Verification Schema:**
 1. `FSM.DRUM_WINDOW == 'DOCKED'` MUST suppress `native-sub-visibility`.
@@ -460,3 +511,4 @@ stateDiagram-v2
 10. `is_word_char` MUST NOT return true for brackets `[]` or slashes `/`.
 11. Mouse events MUST return early if `mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL`.
 12. `get_sub_tokens` MUST assign fractional indices to non-word characters to ensure Word-Integer alignment.
+13. `cycle-secondary-pos` MUST clamp to `sec_pos_bottom` to avoid primary sub overlap.
