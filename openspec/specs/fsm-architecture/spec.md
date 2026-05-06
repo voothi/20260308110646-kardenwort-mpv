@@ -46,7 +46,7 @@ The system SHALL evaluate the current tracks loaded into `FSM.MEDIA_STATE` and a
 - **THEN** it SHALL force `FSM.DRUM = "OFF"` and `FSM.DRUM_WINDOW = "OFF"`, restoring native parameters, because ASS styling structures conflict heavily with internal OSD plain-text override parsers.
 
 ### Requirement: Autopause Coordination (AUTOPAUSE / SPACEBAR)
-The system SHALL manage subtitle-boundary pausing autonomously based on FSM state flags without overlapping with user manual playback triggers.
+The system SHALL manage subtitle-boundary pausing autonomously based on FSM state flags. To ensure the audible tail is fully preserved, the autopause trigger MUST evaluate the end-of-subtitle threshold against the index resolved by the Deterministic Focus Sentinel.
 
 #### Scenario: Autopause halts playback at subtitle boundaries
 - **WHEN** `FSM.AUTOPAUSE == "ON"` and playback crosses the threshold of `FSM.last_paused_sub_end` 
@@ -104,7 +104,10 @@ The system SHALL initialize the `IMMERSION_MODE` state at boot based on the user
 - **Fallback**: If the configuration is missing or invalid, the system SHALL default to `PHRASE` mode.
 
 ### Requirement: Deterministic Focus Sentinel
-The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding.
+The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding. To protect Jerk-Back logic in Phrase Mode and prevent audio clipping, the index resolution function (`get_center_index`) MUST follow a strict evaluation hierarchy:
+1. **Sentinel (Early Return)**: If the playhead is within the `[Start-Pad, End+Pad]` window of the current `FSM.ACTIVE_IDX`, return the current index immediately.
+2. **Standard Resolution**: Perform a binary search for the first subtitle starting at or before `time_pos`.
+3. **Overlap Priority**: If a subsequent subtitle's padded start has begun, handover control only if the Sentinel has no claim.
 
 #### Scenario: Subtitle Tail Protection
 - **WHEN** playback continues past the technical duration of a subtitle
