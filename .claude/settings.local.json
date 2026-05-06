@@ -6,7 +6,9 @@
       "PowerShell(git log --all --oneline --grep=\"phrase|jerk|sticky|autopause|immersion\" -iE)",
       "PowerShell(git log --all --oneline --grep=\"phrase\" -i)",
       "PowerShell(git log --all --oneline --grep=\"jerk\" -i)",
-      "PowerShell(git log --all --oneline --grep=\"autopause\" -i)"
+      "PowerShell(git log --all --oneline --grep=\"autopause\" -i)",
+      "Bash(openspec new *)",
+      "Bash(npx openspec *)"
     ]
   }
 }
