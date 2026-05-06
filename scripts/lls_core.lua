@@ -694,16 +694,23 @@ function get_center_index(subs, time_pos)
     -- [v1.58.52] Absolute Start Guard: If we are at the very beginning, always return first sub
     if time_pos <= 0 then return 1 end
 
-    -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's 
-    -- padded start has begun, the next sub wins immediately.
-    -- We prioritize this handover OVER the sticky sentinel below to ensure
-    -- that Jerk-Back logic in master_tick can fire at the correct moment.
+    -- [v1.58.54] Conditional Early Handover:
+    -- For "Card" mode (Autopause ON), we must finish the current sub's audio tail 
+    -- and pause before handing over to the next.
+    -- For "Seamless" mode (Autopause OFF or Space-Held), we handover early 
+    -- to avoid double-hearing the overlap audio.
+    local early_handover_ready = false
     if best < #subs then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(next_sub, best + 1)
         if time_pos >= s_next - Options.nav_tolerance then
-            return best + 1
+            early_handover_ready = true
         end
+    end
+
+    local prefer_early = (FSM.AUTOPAUSE == "OFF") or (FSM.SPACEBAR == "HOLDING")
+    if early_handover_ready and prefer_early then
+        return best + 1
     end
 
     -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
