@@ -5088,46 +5088,52 @@ local function tick_autopause(time_pos)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
-    -- [v1.58.51] Hardened Autopause via Sticky Focus
-    -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
+    local function try_pause(idx)
+        if idx < 1 or idx > #subs then return false end
+        local sub = subs[idx]
+        local _, sub_end = get_effective_boundaries(sub, idx)
+        if not sub_end then return false end
+
+        local diff = sub_end - time_pos
+        -- Check if we are within the pause window
+        if diff > Options.pause_padding or diff < -Options.autopause_overshoot then
+            return false
+        end
+
+        -- Prevent re-triggering for the same segment
+        if FSM.last_paused_sub_end == sub_end then return false end
+
+        -- Ensure subtitle has text
+        local raw_text_primary = sub.text or ""
+        local raw_text_secondary = (Tracks.sec.subs[idx] and Tracks.sec.subs[idx].text) or ""
+        if raw_text_primary == "" and raw_text_secondary == "" then return false end
+
+        -- Karaoke check
+        if FSM.KARAOKE == "PHRASE" then
+            local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true) or
+                                (raw_text_secondary ~= "" and string.find(raw_text_secondary, Options.karaoke_token, 1, true))
+            if has_karaoke then return false end
+        end
+
+        mp.set_property_bool("pause", true)
+        FSM.last_paused_sub_end = sub_end
+        return true
+    end
+
     local active_idx = FSM.ACTIVE_IDX
     if active_idx == -1 or not subs[active_idx] then
-        -- Fallback if sentinel is lost
         active_idx = get_center_index(subs, time_pos)
     end
 
     if active_idx == -1 then return end
-    
-    local _, sub_end = get_effective_boundaries(subs[active_idx], active_idx)
-    if not sub_end then return end
 
-    -- Check if we've reached the end of the padded window
-    -- Use an inclusive check to ensure we don't skip the pause frame.
-    local diff = sub_end - time_pos
-    if diff > Options.pause_padding or diff < -Options.autopause_overshoot then
-        return
+    -- [v1.58.53] Double-Index Awareness:
+    -- Due to "Early Handover" (detecting next sub's padding early for Jerk-Back),
+    -- ACTIVE_IDX might have already switched to the next sub before the current 
+    -- one finished its audio tail. We check both to catch the pause frame.
+    if not try_pause(active_idx) then
+        try_pause(active_idx - 1)
     end
-
-    -- Prevent re-triggering for the same subtitle segment
-    if FSM.last_paused_sub_end == sub_end then return end
-
-    -- Ensure we are actually on a subtitle (using internal state rather than transient mpv visibility)
-    -- This fixes the "Stops stopping" bug when text clears before the audio tail finishes.
-    local raw_text_primary = subs[active_idx].text or ""
-    local raw_text_secondary = (Tracks.sec.subs[active_idx] and Tracks.sec.subs[active_idx].text) or ""
-    
-    if raw_text_primary == "" and raw_text_secondary == "" then return end
-
-    -- Karaoke Mode: Don't pause if we are in the middle of a phrase with highlights
-    if FSM.KARAOKE == "PHRASE" then
-        local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true)
-        if not has_karaoke then has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true) end
-        if has_karaoke then return end
-    end
-
-    mp.set_property_bool("pause", true)
-    FSM.last_paused_sub_end = sub_end
-
 end
 
 local function tick_loop(time_pos)
