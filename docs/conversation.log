@@ -1527,6 +1527,7 @@
 20260506104917 Lexical error on line 16. 
 20260506105210 What other aspects can you cover with a state diagram? Copying, GD copying, scrolling and working with text. The operation of the tooltip window, how it appears, how it moves, how it works in HOVER, CLICK mode. How the yellow cursor works, on which side and where it appears after Esc.
 20260506105931 Parse error on line 12
+20260506110709 Look what else can help you find README.md for fixing? Maybe complex logic for each shortcuts. Where is the text highlighting, transitions between words. Basically, the logic of text editing. Look also in release-notes.md and in my requests that I write in docs\conversation.log
 
 
 

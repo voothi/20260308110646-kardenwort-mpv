@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506110248**
+**ZID: 20260506110931**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -216,7 +216,77 @@ stateDiagram-v2
     end note
 ```
 
-## 8. Anki Sync & Fingerprinting
+## 8. Adaptive Subtitle Replay & Looping
+Manages persistent loops and one-shot replays with ghosting protection.
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    
+    IDLE --> ARMED : Key 's' pressed
+    ARMED --> SEEK_BACK : Subtitle Boundary Reached
+    
+    state SEEK_BACK {
+        [*] --> JUMP
+        JUMP --> LOOPING : Autopause == OFF
+        JUMP --> IDLE : Autopause == ON (One-shot)
+    }
+    
+    state LOOPING {
+        [*] --> REPLAYING
+        REPLAYING --> REPLAYING : Boundary reached (Repeat)
+        REPLAYING --> BREAK_OUT : Spacebar HELD at boundary
+        BREAK_OUT --> IDLE
+    }
+    
+    note right of ARMED
+        "Sticky Hold" FSM recovers
+        Space-hold signal if dropped
+        during replay trigger.
+    end note
+```
+
+## 9. Search HUD & Hit-Zone Lifecycle
+Manages the global search overlay with dynamic wrapping and hit-testing.
+
+```mermaid
+stateDiagram-v2
+    [*] --> HIDDEN
+    
+    HIDDEN --> ACTIVE : Ctrl+F
+    ACTIVE --> TYPING : Query input
+    TYPING --> RECALCULATING : Query changed
+    
+    state RECALCULATING {
+        [*] --> WRAP_TEXT
+        WRAP_TEXT --> MAP_HIT_ZONES : Results rendered
+        MAP_HIT_ZONES --> RESULTS_READY
+    }
+    
+    RESULTS_READY --> SEEKING : Click Result / Enter
+    SEEKING --> HIDDEN : Jump to timestamp
+```
+
+## 10. Sticky Column Navigation (VSCode Style)
+Maintains horizontal alignment during vertical navigation.
+
+```mermaid
+stateDiagram-v2
+    [*] --> NO_ANCHOR
+    
+    NO_ANCHOR --> ANCHORED : Arrow UP/DOWN (First move)
+    
+    state ANCHORED {
+        [*] --> SNAP_TO_X
+        SNAP_TO_X --> SNAP_TO_X : Arrow UP/DOWN (Preserve X)
+        SNAP_TO_X --> UPDATE_X : Arrow LEFT/RIGHT (New anchor)
+        UPDATE_X --> SNAP_TO_X
+    }
+    
+    ANCHORED --> NO_ANCHOR : Mouse Click / ESC / Track Change
+```
+
+## 11. Anki Sync & Fingerprinting
 Ensures in-memory highlights stay synced with the physical database.
 
 ```mermaid
@@ -236,7 +306,7 @@ stateDiagram-v2
     }
 ```
 
-## 9. Highlight Nesting Resolution
+## 12. Highlight Nesting Resolution
 Priority logic for rendering overlapping saved terms.
 
 ```mermaid
@@ -266,7 +336,7 @@ stateDiagram-v2
     end note
 ```
 
-## 10. Media State Matrix (Codec/Track Detection)
+## 13. Media State Matrix (Codec/Track Detection)
 Determines capability availability based on loaded media.
 
 | MEDIA_STATE | Capability: Autopause | Capability: Drum/DW | Capability: Search |
@@ -286,3 +356,5 @@ Determines capability availability based on loaded media.
 5. `cmd_dw_esc` MUST clear selection tiers in order: Pink -> Range -> Pointer.
 6. `cmd_dw_scroll` MUST set `FSM.DW_FOLLOW_PLAYER = false`.
 7. `load_anki_tsv` MUST use `pcall` and fingerprinting to avoid redundant parsing or crashes.
+8. `Middle-Click` (Export) MUST trigger `dw_reset_selection()` upon successful record commitment.
+9. `Sticky Column` anchor MUST reset if `FSM.DW_CURSOR_LINE` is manually changed via mouse.
