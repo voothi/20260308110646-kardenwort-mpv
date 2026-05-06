@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506112259**
+**ZID: 20260506112448**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -28,7 +28,7 @@ stateDiagram-v2
         SEARCH_MODE --> DRUM_WINDOW : ESC / Enter
         
         NATIVE_SRT --> SEARCH_MODE : Ctrl+F
-        DRUM_MODE --> SEARCH_MODE : Ctrl+F
+        DR_MODE --> SEARCH_MODE : Ctrl+F
     }
     
     note right of NATIVE_SRT
@@ -497,6 +497,26 @@ stateDiagram-v2
     end note
 ```
 
+## 22. Coordinate Mapping & Calibration Invariants
+Specifies the mathematical relationship between pixels and logical tokens.
+
+```mermaid
+graph TD
+    Mouse[Mouse/Interaction Pos] --> HitZone{Hit-Zone Map?}
+    HitZone -- "DW: an5" --> CenterMap[Center-Offset Calculation]
+    HitZone -- "TT: an6" --> RightMap[Right-Offset Calculation]
+    
+    CenterMap --> WordID[L_IDX Resolution]
+    RightMap --> WordID
+    
+    WordID --> Heuristic{Heuristic Type?}
+    Heuristic -- "Consolas/Mono" --> Mono[Monospace: 0.5 * fs * len]
+    Heuristic -- "Prop/Other" --> Prop[Proportional: Weighted Character Sum]
+    
+    Mono --> Final[Pixel-to-Character Precision]
+    Prop --> Final
+```
+
 ---
 **Verification Schema:**
 1. `FSM.DRUM_WINDOW == 'DOCKED'` MUST suppress `native-sub-visibility`.
@@ -512,3 +532,5 @@ stateDiagram-v2
 11. Mouse events MUST return early if `mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL`.
 12. `get_sub_tokens` MUST assign fractional indices to non-word characters to ensure Word-Integer alignment.
 13. `cycle-secondary-pos` MUST clamp to `sec_pos_bottom` to avoid primary sub overlap.
+14. `dw_get_str_width` MUST strip ASS tags `{\...}` before calculating pixel offset to prevent coordinate drift.
+15. Tooltip `final_y` MUST be clamped within a 20px screen margin to prevent OSD cropping.
