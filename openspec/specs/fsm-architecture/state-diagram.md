@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506110931**
+**ZID: 20260506111340**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -336,7 +336,81 @@ stateDiagram-v2
     end note
 ```
 
-## 13. Media State Matrix (Codec/Track Detection)
+## 13. Native Visibility Suppression Hierarchy
+Controls how custom overlays "fight" native mpv subtitles in `master_tick`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> EVALUATE_VISIBILITY
+    
+    EVALUATE_VISIBILITY --> FORCE_HIDE : FSM.DRUM_WINDOW ~= 'OFF'
+    EVALUATE_VISIBILITY --> FORCE_HIDE : FSM.DRUM == 'ON'
+    
+    EVALUATE_VISIBILITY --> RESTORE_NATIVE : All custom modes == OFF
+    
+    RESTORE_NATIVE --> SHOW : FSM.native_sub_vis == true
+    RESTORE_NATIVE --> HIDE : FSM.native_sub_vis == false
+    
+    note right of FORCE_HIDE
+        Continuous suppression loop 
+        prevents track changes from 
+        leaking native subs.
+    end note
+```
+
+## 14. Interaction Shielding (Jitter Protection)
+Defeats hardware-level ghost clicks and jitter.
+
+```mermaid
+stateDiagram-v2
+    [*] --> UNLOCKED
+    
+    UNLOCKED --> LOCKED : Keyboard Command Triggered
+    LOCKED --> UNLOCKED : mp.get_time() > FSM.DW_MOUSE_LOCK_UNTIL
+    
+    state LOCKED {
+        [*] --> SUPPRESS_MOUSE
+        SUPPRESS_MOUSE --> SUPPRESS_MOUSE : Drop all clicks
+    }
+    
+    note right of LOCKED
+        Cooldown: 150ms
+        Protects focus from jumping
+        on remote control use.
+    end note
+```
+
+## 15. Surgical Tokenization & Navigation
+Defines the character-level precision of the navigation engine.
+
+| TOKEN_TYPE | is_word_char | Navigation Stop | Interaction |
+| :--- | :--- | :--- | :--- |
+| **Alphanumeric** | `%w` + `'` | Yes | Highlighting |
+| **Logistical** | `[` `]` `-` `/` | Yes | Word Boundary |
+| **Punctuation** | `,` `.` `!` `?` | Yes | Surgical (No color) |
+| **Whitespace** | `%s` | No | Skip |
+
+## 16. Bidirectional Pointer Sync (DW <-> Tooltip)
+Synchronization logic for cursor and lock state.
+
+```mermaid
+stateDiagram-v2
+    [*] --> SYNC_IDLE
+    
+    SYNC_IDLE --> DW_DRIVEN : Mouse Hover in DW
+    DW_DRIVEN --> SYNC_IDLE : Cursor moved
+    
+    SYNC_IDLE --> TT_DRIVEN : Interaction in Tooltip
+    TT_DRIVEN --> SYNC_IDLE : Tooltip dismissed
+    
+    note right of SYNC_IDLE
+        FSM.DW_CURSOR_LINE 
+        == 
+        FSM.DW_TOOLTIP_LOCKED_LINE
+    end note
+```
+
+## 17. Media State Matrix (Codec/Track Detection)
 Determines capability availability based on loaded media.
 
 | MEDIA_STATE | Capability: Autopause | Capability: Drum/DW | Capability: Search |
@@ -358,3 +432,5 @@ Determines capability availability based on loaded media.
 7. `load_anki_tsv` MUST use `pcall` and fingerprinting to avoid redundant parsing or crashes.
 8. `Middle-Click` (Export) MUST trigger `dw_reset_selection()` upon successful record commitment.
 9. `Sticky Column` anchor MUST reset if `FSM.DW_CURSOR_LINE` is manually changed via mouse.
+10. `is_word_char` MUST NOT return true for brackets `[]` or slashes `/`.
+11. Mouse events MUST return early if `mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL`.
