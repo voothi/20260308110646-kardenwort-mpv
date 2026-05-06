@@ -1532,6 +1532,7 @@
 20260506111620 Go through all the functions in the code and see what else you can pull out. The main function that generates the map.
 20260506112202 Look at input.conf, mpv.conf, maybe we can reveal something else based on this information.
 20260506112405 What is related to calibration and complex rendering logic?
+20260506112557 Work and adjust transparency, font stroke, Premium, with which there were problems?
 
 
 

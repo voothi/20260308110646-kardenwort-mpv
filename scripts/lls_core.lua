@@ -3191,16 +3191,18 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     if (h_color == base_color) then return word end
 
     -- Standardized highlight tags to prevent blooming/thickness regressions (Task 1.1)
-    -- We explicitly inject border/shadow colors and opaque alphas for the highlight itself,
-    -- but we MUST restore the global bg_alpha to prevent "Opacity has stopped working" regressions.
+    -- We now synchronize the highlight's alpha with the passed bg_alpha to ensure visual uniformity,
+    -- but we inject a slight border-weight boost (\bord) to maintain "Premium" sharpness against bright colors.
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H00&\\4a&H00&}", c_tag, h_color, bg_color, bg_color)
-    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha)
+    local h_bord = Options.dw_border_size + 0.7
+    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, h_bord)
+    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, Options.dw_border_size)
 
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
-        return string.format("%s%s%s%s%s", b_on, h_tags, word, r_tags, b_off)
+        -- Enforce "Premium" regular weight for manual selections
+        return string.format("{\\b0}%s%s%s{\\b%s}", h_tags, word, r_tags, bold_state or "0")
     else
         -- Surgical highlighting for automated database matches (Surgical Punctuation)
         local pre = word:match("^[%p%s]*")
