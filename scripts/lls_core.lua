@@ -5342,8 +5342,12 @@ local function master_tick()
                 if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > Options.nav_tolerance then
-                        mp.commandv("seek", s_next, "absolute+exact")
-                        FSM.IGNORE_NEXT_JUMP = true 
+                        -- [v1.58.53] Don't seek into the previous sub's audio territory.
+                        -- When subs are close together, s_next may fall before cur_sub.end_time.
+                        local cur_sub = Tracks.pri.subs[FSM.ACTIVE_IDX]
+                        local seek_target = (cur_sub and cur_sub.end_time > s_next) and cur_sub.end_time or s_next
+                        mp.commandv("seek", seek_target, "absolute+exact")
+                        FSM.IGNORE_NEXT_JUMP = true
                         FSM.JUST_JERKED_TO = active_idx
                     end
                 end
@@ -5488,16 +5492,7 @@ local function cmd_smart_space(table)
             FSM.SPACEBAR = "HOLDING"
             FSM.space_down_time = mp.get_time()
             FSM.initial_pause_state = mp.get_property_bool("pause", true)
-            if FSM.initial_pause_state then
-                mp.set_property_bool("pause", false)
-                -- [v1.58.53] Prevent jerk-back from firing immediately after autopause unpause.
-                -- In PHRASE mode, the next sub's padded start often overlaps the current sub's
-                -- audio content. Without cooldown, the jerk-back seeks backward into already-heard
-                -- audio while showing the next sub as active.
-                if FSM.IMMERSION_MODE == "PHRASE" and FSM.AUTOPAUSE == "ON" then
-                    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-                end
-            end
+            if FSM.initial_pause_state then mp.set_property_bool("pause", false) end
         end
     elseif table.event == "up" then
         FSM.SPACEBAR = "IDLE"
