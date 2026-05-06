@@ -2591,8 +2591,60 @@ local function flush_rendering_caches()
         DW_TOOLTIP_DRAW_CACHE.target_idx = -1
         DW_TOOLTIP_DRAW_CACHE.osd_y = -1
         DW_TOOLTIP_DRAW_CACHE.version = -1
+        DW_TOOLTIP_DRAW_CACHE.cl = -1
+        DW_TOOLTIP_DRAW_CACHE.cw = -1
+        DW_TOOLTIP_DRAW_CACHE.av = -1
+        DW_TOOLTIP_DRAW_CACHE.result = ""
+        DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
     end
     dw_tooltip_osd.data = ""
+end
+
+local function invalidate_dw_tooltip_cache()
+    if not DW_TOOLTIP_DRAW_CACHE then return end
+    DW_TOOLTIP_DRAW_CACHE.target_idx = -1
+    DW_TOOLTIP_DRAW_CACHE.osd_y = -1
+    DW_TOOLTIP_DRAW_CACHE.version = -1
+    DW_TOOLTIP_DRAW_CACHE.cl = -1
+    DW_TOOLTIP_DRAW_CACHE.cw = -1
+    DW_TOOLTIP_DRAW_CACHE.av = -1
+    DW_TOOLTIP_DRAW_CACHE.result = ""
+    DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
+end
+
+local function clear_tooltip_overlay(reason)
+    if reason then
+        Diagnostic.debug("TOOLTIP CLEAR: " .. reason)
+    end
+    FSM.DW_TOOLTIP_LINE = -1
+    FSM.DW_TOOLTIP_HIT_ZONES = nil
+    FSM.DW_TOOLTIP_LOCKED_LINE = -1
+    invalidate_dw_tooltip_cache()
+    if dw_tooltip_osd and dw_tooltip_osd.data ~= "" then
+        dw_tooltip_osd.data = ""
+        dw_tooltip_osd:update()
+    end
+end
+
+local function is_drum_tooltip_mode_eligible()
+    return FSM.DRUM == "ON"
+        and FSM.DRUM_WINDOW == "OFF"
+        and FSM.native_sub_vis
+        and not FSM.MEDIA_STATE:match("ASS")
+        and Options.osd_interactivity
+end
+
+local function get_tooltip_line_y(line_idx, fallback_y)
+    if not line_idx or line_idx == -1 then return nil end
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
+    end
+    for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
+        if zone.sub_idx == line_idx and zone.is_pri then
+            return zone.y_top
+        end
+    end
+    return fallback_y
 end
 
 
@@ -3054,6 +3106,7 @@ local function update_media_state()
         local had_dw = (FSM.DRUM_WINDOW ~= "OFF")
         FSM.DRUM = "OFF"
         FSM.DRUM_WINDOW = "OFF"
+        FSM.DW_TOOLTIP_FORCE = false
 
         -- Restore native subtitle presentation from FSM desired state.
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
@@ -3064,8 +3117,7 @@ local function update_media_state()
         drum_osd:update()
         dw_osd.data = ""
         dw_osd:update()
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
+        clear_tooltip_overlay("ass-gatekeeping")
         update_interactive_bindings()
 
         if had_drum or had_dw then
@@ -4130,7 +4182,13 @@ local function dw_hit_test(osd_x, osd_y)
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
-    if not FSM.DW_TOOLTIP_HIT_ZONES or not Options.dw_sec_interactivity or FSM.DW_TOOLTIP_LINE == -1 then return nil, nil end
+    local tooltip_active = (FSM.DW_TOOLTIP_LINE ~= -1)
+    local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
+    local drum_mode = is_drum_tooltip_mode_eligible()
+    if not tooltip_active or not FSM.DW_TOOLTIP_HIT_ZONES then return nil, nil end
+    if not dw_mode and not drum_mode then return nil, nil end
+    if dw_mode and not Options.dw_sec_interactivity then return nil, nil end
+    if not dw_mode and not Options.drum_sec_interactivity then return nil, nil end
     
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
@@ -4284,7 +4342,9 @@ local function dw_mouse_auto_scroll()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
-    if FSM.DRUM_WINDOW == "OFF" then return end
+    local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
+    local drum_mode = is_drum_tooltip_mode_eligible()
+    if not dw_mode and not drum_mode then return end
     
     if tbl.event == "down" then
         FSM.DW_TOOLTIP_FORCE = false
@@ -4293,15 +4353,21 @@ local function cmd_dw_tooltip_pin(tbl)
         if not subs or #subs == 0 then return end
         
         local osd_x, osd_y = dw_get_mouse_osd()
-        local line_idx, _ = dw_hit_test(osd_x, osd_y)
+        local line_idx, _
+        if dw_mode then
+            line_idx, _ = dw_hit_test(osd_x, osd_y)
+        else
+            line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+        end
         
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
-            local y = FSM.DW_LINE_Y_MAP[line_idx] or osd_y
+            local y = get_tooltip_line_y(line_idx, osd_y)
             local ass = draw_dw_tooltip(subs, line_idx, y)
             dw_tooltip_osd.data = ass
             dw_tooltip_osd:update()
+            Diagnostic.debug("TOOLTIP ROUTE: PIN->" .. (dw_mode and "DW" or "DRUM") .. " line=" .. tostring(line_idx))
         end
     elseif tbl.event == "up" then
         FSM.DW_TOOLTIP_HOLDING = false
@@ -4313,22 +4379,20 @@ local function cmd_toggle_dw_tooltip_hover()
     show_osd("DW Translation: " .. FSM.DW_TOOLTIP_MODE)
     if FSM.DW_TOOLTIP_MODE == "CLICK" then
         FSM.DW_TOOLTIP_FORCE = false
-        FSM.DW_TOOLTIP_LINE = -1
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
+        clear_tooltip_overlay("hover-mode-click")
     end
 end
 
 local function cmd_dw_tooltip_toggle()
-    if FSM.DRUM_WINDOW == "OFF" then return end
+    local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
+    local drum_mode = is_drum_tooltip_mode_eligible()
+    if not dw_mode and not drum_mode then return end
     
     -- If already forced ON, always toggle OFF regardless of current target match
     if FSM.DW_TOOLTIP_FORCE then
-        Diagnostic.info("TOOLTIP TOGGLE: OFF")
+        Diagnostic.info("TOOLTIP TOGGLE: OFF (" .. (dw_mode and "DW" or "DRUM") .. ")")
         FSM.DW_TOOLTIP_FORCE = false
-        FSM.DW_TOOLTIP_LINE = -1
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
+        clear_tooltip_overlay("toggle-off")
         return
     end
 
@@ -4348,13 +4412,11 @@ local function cmd_dw_tooltip_toggle()
     end
     
     if line_idx ~= -1 then
-        Diagnostic.info("TOOLTIP TOGGLE: ON")
+        Diagnostic.info("TOOLTIP TOGGLE: ON (" .. (dw_mode and "DW" or "DRUM") .. ")")
         FSM.DW_TOOLTIP_FORCE = true
         FSM.DW_TOOLTIP_LINE = line_idx
-        -- Use mapped Y if available, otherwise find it or fallback to a reasonable offset
-        local y = FSM.DW_LINE_Y_MAP[line_idx]
+        local y = get_tooltip_line_y(line_idx, nil)
         if not y then
-            -- Force a redraw or use a midpoint if we're desperate
             y = 540 -- center of 1080p OSD
         end
         dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
@@ -4363,7 +4425,13 @@ local function cmd_dw_tooltip_toggle()
 end
 
 local function dw_tooltip_mouse_update()
-    if FSM.DRUM_WINDOW == "OFF" and not Options.osd_interactivity then return end
+    local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
+    local drum_mode = is_drum_tooltip_mode_eligible()
+    if not dw_mode and not drum_mode then
+        clear_tooltip_overlay("mode-ineligible")
+        FSM.DW_TOOLTIP_FORCE = false
+        return
+    end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -4382,16 +4450,12 @@ local function dw_tooltip_mouse_update()
         
         if target_l ~= -1 then
             FSM.DW_TOOLTIP_LINE = target_l
-            local y = FSM.DW_LINE_Y_MAP[target_l]
+            local y = get_tooltip_line_y(target_l, nil)
             if y then
                 dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, y)
                 dw_tooltip_osd:update()
             else
-            if dw_tooltip_osd.data ~= "" then
-                dw_tooltip_osd.data = ""
-                dw_tooltip_osd:update()
-                FSM.DW_TOOLTIP_HIT_ZONES = nil
-            end
+                clear_tooltip_overlay("forced-target-missing")
             end
         end
         return
@@ -4400,10 +4464,7 @@ local function dw_tooltip_mouse_update()
     -- Selection-Aware Suppression: Hide tooltip during dragging or if currently locked to this line
     if FSM.DW_MOUSE_DRAGGING or (line_idx and line_idx == FSM.DW_TOOLTIP_LOCKED_LINE) then
         if FSM.DW_TOOLTIP_LINE ~= -1 then
-            FSM.DW_TOOLTIP_LINE = -1
-            dw_tooltip_osd.data = ""
-            dw_tooltip_osd:update()
-            FSM.DW_TOOLTIP_HIT_ZONES = nil
+            clear_tooltip_overlay("drag-or-locked")
         end
         return
     end
@@ -4426,15 +4487,7 @@ local function dw_tooltip_mouse_update()
     if (FSM.DW_TOOLTIP_MODE == "HOVER" and not in_selection) or FSM.DW_TOOLTIP_HOLDING then
         local target_l = line_idx
         if target_l and target_l ~= -1 then
-            local target_y = FSM.DW_LINE_Y_MAP[target_l]
-            if not target_y and FSM.DRUM_WINDOW == "OFF" then
-                for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
-                    if zone.sub_idx == target_l then
-                        target_y = zone.y_top
-                        break
-                    end
-                end
-            end
+            local target_y = get_tooltip_line_y(target_l, nil)
             if target_y then
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 FSM.DW_TOOLTIP_LINE = target_l
@@ -4443,28 +4496,20 @@ local function dw_tooltip_mouse_update()
             else
                 -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
                 if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
-                    FSM.DW_TOOLTIP_LINE = -1
-                    dw_tooltip_osd.data = ""
-                    dw_tooltip_osd:update()
-                    FSM.DW_TOOLTIP_HIT_ZONES = nil
+                    clear_tooltip_overlay("target-y-missing")
                 end
             end
         elseif not FSM.DW_TOOLTIP_HOLDING then
             -- Sticky Hover: Only dismiss on gaps if we are NOT holding RMB
             if FSM.DW_TOOLTIP_LINE ~= -1 then
-                FSM.DW_TOOLTIP_LINE = -1
-                dw_tooltip_osd.data = ""
-                dw_tooltip_osd:update()
-                FSM.DW_TOOLTIP_HIT_ZONES = nil
+                clear_tooltip_overlay("hover-gap")
             end
         end
     else
         -- CLICK mode or Selection Protected: check if we left the pinned line focus
         if FSM.DW_TOOLTIP_LINE ~= -1 then
             if line_idx ~= FSM.DW_TOOLTIP_LINE then
-                FSM.DW_TOOLTIP_LINE = -1
-                dw_tooltip_osd.data = ""
-                dw_tooltip_osd:update()
+                clear_tooltip_overlay("click-focus-left")
             end
         end
     end
@@ -5469,6 +5514,7 @@ local function cmd_toggle_drum()
 
     if FSM.DRUM == "OFF" then
         FSM.DRUM = "ON"
+        clear_tooltip_overlay("drum-on-transition")
         -- We no longer update FSM.native_sub_vis here because it's managed by cmd_toggle_sub_vis
         -- and would be overwritten by our own suppression logic.
         
@@ -5479,6 +5525,8 @@ local function cmd_toggle_drum()
         show_osd(string.format("Drum Mode: ON [Double Gap: %s]", Options.drum_double_gap and "YES" or "NO"))
     else
         FSM.DRUM = "OFF"
+        FSM.DW_TOOLTIP_FORCE = false
+        clear_tooltip_overlay("drum-off-transition")
         show_osd("Drum Mode: OFF")
     end
     update_interactive_bindings()
@@ -6300,9 +6348,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         end
         -- Flush tooltip if interaction was lost
         if not enable_kb then
-            FSM.DW_TOOLTIP_LINE = -1
-            dw_tooltip_osd.data = ""
-            dw_tooltip_osd:update()
+            clear_tooltip_overlay("bindings-disabled")
         end
     else
         if FSM.DW_NATIVE_WINDOW_DRAGGING == nil then
@@ -7183,6 +7229,7 @@ function cmd_toggle_drum_window()
 
         -- Update state immediately for responsiveness
         FSM.DRUM_WINDOW = "DOCKED"
+        clear_tooltip_overlay("drum-window-open-transition")
         manage_ui_border_override(true)
 
         -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
@@ -7229,8 +7276,7 @@ function cmd_toggle_drum_window()
         -- Update state immediately
         FSM.DRUM_WINDOW = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
+        clear_tooltip_overlay("drum-window-close-transition")
         manage_ui_border_override(false)
 
         if not FSM.SEARCH_MODE then
