@@ -4597,6 +4597,7 @@ end
 local function ctrl_discard_set()
     -- Reset both the persistent pending set (Pink) and any active selection range anchors (Gold)
     FSM.DW_CTRL_PENDING_SET = {}
+    FSM.DW_CTRL_PENDING_LIST = {}
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
     if FSM.DRUM_WINDOW ~= "OFF" then 
@@ -4656,7 +4657,7 @@ local function cmd_dw_esc()
 end
 
 
-local function ctrl_toggle_word(line_idx, word_idx)
+local function ctrl_toggle_word(line_idx, word_idx, no_sync)
     if line_idx < 1 or word_idx < 0 then return end
     
     if not FSM.DW_CTRL_PENDING_SET[line_idx] then
@@ -4673,10 +4674,12 @@ local function ctrl_toggle_word(line_idx, word_idx)
     else
         line_set[word_idx] = {line = line_idx, word = word_idx}
     end
-    sync_ctrl_pending_list()
-    if FSM.DRUM_WINDOW ~= "OFF" then 
-        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
-        dw_osd:update() 
+    if not no_sync then
+        sync_ctrl_pending_list()
+        if FSM.DRUM_WINDOW ~= "OFF" then 
+            FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+            dw_osd:update() 
+        end
     end
 end
 
@@ -4900,13 +4903,18 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
                         if logical_cmp(t.logical_idx, s_w) then in_range = true end
                         if in_range then
                             if not t.text:match("^%s*$") then
-                                ctrl_toggle_word(i, t.logical_idx)
+                                ctrl_toggle_word(i, t.logical_idx, true)
                             end
                         end
                         if logical_cmp(t.logical_idx, e_w) then in_range = false break end
                     end
                 end
             end
+        end
+        sync_ctrl_pending_list()
+        if FSM.DRUM_WINDOW ~= "OFF" then 
+            FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+            dw_osd:update() 
         end
         -- Clear yellow selection after it "turns pink"
         FSM.DW_ANCHOR_LINE = -1
