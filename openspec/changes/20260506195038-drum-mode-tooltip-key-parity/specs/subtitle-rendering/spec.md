@@ -15,3 +15,9 @@ Drum Mode tooltip rendering SHALL obey effective subtitle visibility and media c
 - **WHEN** effective subtitle visibility is disabled by global toggle state
 - **THEN** Drum tooltip overlay SHALL not render
 - **AND** any existing tooltip overlay buffer SHALL be cleared.
+
+#### Scenario: Secondary subtitle toggle does not suppress tooltip anchor 20260506200831
+- **WHEN** the user toggles secondary subtitles via `Shift+C` so the secondary subtitle track becomes hidden or `OFF`
+- **AND** Drum Mode primary subtitle tooltip rendering is otherwise eligible
+- **THEN** the tooltip overlay SHALL remain available for primary subtitle interactions
+- **AND** tooltip content resolution SHALL NOT depend on current secondary subtitle visibility state.
