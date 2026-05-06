@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506105812**
+**ZID: 20260506110248**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -199,6 +199,12 @@ stateDiagram-v2
     FOLLOW_PLAYER --> MANUAL_SCROLL : Mouse Wheel / Ctrl+Up/Down
     MANUAL_SCROLL --> FOLLOW_PLAYER : Click Active Line / Double Click
     
+    state FOLLOW_PLAYER {
+        [*] --> CENTERED
+        CENTERED --> PAGED_JUMP : BookMode == ON & Margin Reached
+        PAGED_JUMP --> CENTERED : View center = active_idx
+    }
+    
     note right of FOLLOW_PLAYER
         FSM.DW_VIEW_CENTER 
         tracks FSM.ACTIVE_IDX
@@ -210,7 +216,57 @@ stateDiagram-v2
     end note
 ```
 
-## 8. Media State Matrix (Codec/Track Detection)
+## 8. Anki Sync & Fingerprinting
+Ensures in-memory highlights stay synced with the physical database.
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    
+    IDLE --> CHECKING : Periodic Timer (5s)
+    
+    state CHECKING {
+        [*] --> GET_FINGERPRINT
+        GET_FINGERPRINT --> LOAD_FILE : MTime or Size changed
+        GET_FINGERPRINT --> IDLE : Identical
+        LOAD_FILE --> PARSE_TSV : Success
+        LOAD_FILE --> IDLE : Error (pcall catch)
+        PARSE_TSV --> REFRESH_OSD : Update highlights
+        REFRESH_OSD --> IDLE
+    }
+```
+
+## 9. Highlight Nesting Resolution
+Priority logic for rendering overlapping saved terms.
+
+```mermaid
+stateDiagram-v2
+    [*] --> EVALUATE_WORD
+    
+    EVALUATE_WORD --> CONTIGUOUS : Exact match found
+    EVALUATE_WORD --> SPLIT : Non-contiguous elements found
+    
+    CONTIGUOUS --> MIXED : Overlaps with Split
+    SPLIT --> MIXED : Overlaps with Contiguous
+    
+    state MIXED {
+        [*] --> APPLY_MIX_COLOR
+    }
+    
+    state CONTIGUOUS {
+        [*] --> APPLY_ORANGE_COLOR
+    }
+    
+    state SPLIT {
+        [*] --> APPLY_PURPLE_COLOR
+    }
+    
+    note right of MIXED
+        Priority: Mixed > Contiguous > Split
+    end note
+```
+
+## 10. Media State Matrix (Codec/Track Detection)
 Determines capability availability based on loaded media.
 
 | MEDIA_STATE | Capability: Autopause | Capability: Drum/DW | Capability: Search |
@@ -229,3 +285,4 @@ Determines capability availability based on loaded media.
 4. `FSM.SEARCH_MODE == true` MUST hijack all character input keys.
 5. `cmd_dw_esc` MUST clear selection tiers in order: Pink -> Range -> Pointer.
 6. `cmd_dw_scroll` MUST set `FSM.DW_FOLLOW_PLAYER = false`.
+7. `load_anki_tsv` MUST use `pcall` and fingerprinting to avoid redundant parsing or crashes.
