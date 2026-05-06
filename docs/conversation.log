@@ -1592,8 +1592,8 @@
 20260506232851 /opsx:archive  20260506232017-restore-seek-repeat --sync
 20260506234449 Why is there a small section of the recording at the end of the subtitle recording that is not played to the end? Is it possible to make sure that the subtitle is played exactly along its boundaries in the srt file, according to its timing in any case? Specifically, when Autopause mode is ON, MOVIE?
 20260507000808 Okay, now, like a meticulous specification architect, draft the documents like a German bureaucrat with many years of experience /opsx:propose
-
-
+20260507001423 /opsx:apply  openspec\changes\20260507001035-fix-movie-autopause-srt-boundary
+20260507001757 /opsx:archive --sync 20260507001035-fix-movie-autopause-srt-boundary
 
 
 
