@@ -1554,6 +1554,7 @@
 20260506140250 opsx-apply openspec\changes\20260506135440-fsm-architecture-specification-hardening
 20260506140957 Check the file openspec\specs\fsm-architecture\state-diagram.md, something with the encoding or content.
 20260506141215 Is this relevant, if so, then do it opsx-apply openspec\changes\20260506103358-unify-drum-mode-wheel-scroll
+20260506142408 Review this solution as a large model, find flaws, check the specs, edit the plan, documents to be executed, complete the work, the lower subtitles should work as in dw mode, when scrolling, the upper subtitles should also scroll accordingly. The lighting and highlighting must be synchronized. 20260506103358-unify-drum-mode-wheel-scroll
 
 
 

@@ -14,3 +14,11 @@
 - [x] 3.1 Verify that `cmd_dw_seek_delta` (used by `a`/`d` keys) correctly resets `FSM.DW_FOLLOW_PLAYER` to `true`.
 - [x] 3.2 Ensure double-click seeking in Drum Mode also resets the scroll state.
 - [x] 3.3 Conduct regression testing to ensure standard Drum Window (Mode W) scrolling remains unaffected.
+
+## 4. Post-Review Bug Fixes (20260506142655)
+
+- [x] 4.1 **Cache field name mismatch**: `DRUM_DRAW_CACHE.center_idx` was written but `view_center`/`active_idx` were read on cache hit — fixed to store both fields.
+- [x] 4.2 **Active highlight on wrong line**: `format_sub_wrapped` compared `m.sub_idx == center_idx` (undefined local) instead of `active_idx` — fixed active/separator logic.
+- [x] 4.3 **Secondary track ignores scroll**: Secondary track `view_center` was always `active_idx` even during manual scroll — fixed to apply the same relative offset as primary.
+- [x] 4.4 **`DW_VIEW_CENTER` bootstrap**: First wheel scroll when `DW_VIEW_CENTER == -1` would produce index `0` (clamped to 1 but at wrong position) — fixed to anchor to current playhead before applying delta.
+- [x] 4.5 **Dangerous re-entrant passthrough removed**: `mp.commandv("keypress", ...)` inside a forced key binding causes an infinite loop — replaced with a clean no-op (event is silently consumed outside subtitle zones).

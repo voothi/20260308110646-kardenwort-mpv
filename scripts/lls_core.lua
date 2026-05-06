@@ -3514,11 +3514,11 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
     local vsp_tag = vsp ~= 0 and string.format("{\\vsp%g}", vsp) or ""
     
     for i, m in ipairs(sub_metas) do
-        local line_text = format_sub_wrapped(m, m.sub_idx == center_idx, subs[m.sub_idx].start_time)
+        local line_text = format_sub_wrapped(m, m.sub_idx == active_idx, subs[m.sub_idx].start_time)
         if i == 1 then
             all_text = line_text
         else
-            local prev_is_active = (sub_metas[i-1].sub_idx == center_idx)
+            local prev_is_active = (sub_metas[i-1].sub_idx == active_idx)
             local line_fs = font_size * (prev_is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
             local vsp_extra = d_gap and (line_fs * Options[prefix .. "_block_gap_mul"] / 2) or 0
             local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp + vsp_extra + adj, d_gap and "\\N\\N" or "\\N", vsp)
@@ -3542,7 +3542,8 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
 
     -- Update result cache before returning
     DRUM_DRAW_CACHE.subs_ptr        = subs
-    DRUM_DRAW_CACHE.center_idx      = center_idx
+    DRUM_DRAW_CACHE.view_center     = view_center
+    DRUM_DRAW_CACHE.active_idx      = active_idx
     DRUM_DRAW_CACHE.is_drum         = (FSM.DRUM == "ON")
     DRUM_DRAW_CACHE.highlight_count = #FSM.ANKI_HIGHLIGHTS
     DRUM_DRAW_CACHE.layout_version  = FSM.LAYOUT_VERSION
@@ -5072,12 +5073,18 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
         local active_idx = get_center_index(Tracks.sec.subs, time_pos)
-        -- Secondary follows primary's viewport if primary is active, otherwise follows its own active
-        local view_center = active_idx
-        if pri_use_osd and not FSM.DW_FOLLOW_PLAYER then
-            -- This is a bit complex since track indices might not match. 
-            -- For now, let secondary just follow its own active or the primary's relative scroll if we wanted to be fancy.
-            -- Simple approach: follow player unless we specifically want secondary to scroll too.
+        -- [v1.58.52] Secondary track mirrors primary's scroll offset.
+        -- When the user scrolls, we compute the delta from primary's active index
+        -- and apply the same relative offset to the secondary's active index.
+        local view_center
+        if FSM.DW_FOLLOW_PLAYER then
+            view_center = active_idx
+        else
+            -- Translate the primary scroll offset to secondary index space.
+            -- Primary scroll offset = DW_VIEW_CENTER - pri_active_idx
+            local pri_active_idx = get_center_index(Tracks.pri.subs, time_pos)
+            local offset = FSM.DW_VIEW_CENTER - pri_active_idx
+            view_center = math.max(1, math.min(#Tracks.sec.subs, active_idx + offset))
         end
         
         local sec_plain = is_drum and (not Options.drum_sec_highlighting) or (not Options.srt_sec_highlighting)
@@ -5476,29 +5483,30 @@ end
 
 
 local function cmd_dw_scroll(dir)
-    FSM.DW_FOLLOW_PLAYER = false
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+    -- [v1.58.52] Bootstrap: If the viewport hasn't been explicitly set yet,
+    -- anchor it to the current active index before applying the scroll delta.
+    if FSM.DW_VIEW_CENTER == -1 then
+        local time_pos = mp.get_property_number("time-pos") or 0
+        FSM.DW_VIEW_CENTER = get_center_index(subs, time_pos)
+        if FSM.DW_VIEW_CENTER == -1 then FSM.DW_VIEW_CENTER = 1 end
+    end
+    FSM.DW_FOLLOW_PLAYER = false
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
     dw_sync_cursor_to_mouse()
 end
 
-local WHEEL_PASSTHROUGH = false
 local function cmd_dw_wheel_scroll(dir)
-    if WHEEL_PASSTHROUGH then return end
-    
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
     
-    -- In Drum Window (DOCKED), we ALWAYS scroll.
-    -- In Drum Mode (OSD), we ONLY scroll if hovering over a line.
+    -- In Drum Window (DOCKED), we ALWAYS scroll (matches DW Mode W behavior).
+    -- In Drum Mode (OSD), we ONLY scroll if hovering over a subtitle line.
+    -- When not hovering, the forced binding has consumed the event; this is
+    -- acceptable since the wheel is only active while osd_interactivity is ON.
     if line_idx or FSM.DRUM_WINDOW ~= "OFF" then
         cmd_dw_scroll(dir)
-    else
-        local key = (dir < 0) and "WHEEL_UP" or "WHEEL_DOWN"
-        WHEEL_PASSTHROUGH = true
-        mp.commandv("keypress", key)
-        WHEEL_PASSTHROUGH = false
     end
 end
 
