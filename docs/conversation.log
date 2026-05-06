@@ -1590,6 +1590,7 @@
 20260506232017 Okay, create a document to formalize the changes and create the specification /opsx:propose , you are in the role of the specification architect.
 20260506232432 Remove from git cache .claude\settings.local.json
 20260506232851 /opsx:archive  20260506232017-restore-seek-repeat --sync
+20260506234449 Why is there a small section of the recording at the end of the subtitle recording that is not played to the end? Is it possible to make sure that the subtitle is played exactly along its boundaries in the srt file, according to its timing in any case? Specifically, when Autopause mode is ON, MOVIE?
 
 
 

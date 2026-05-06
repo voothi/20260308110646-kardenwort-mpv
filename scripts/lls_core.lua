@@ -670,8 +670,8 @@ local function get_effective_boundaries(sub, idx)
     -- This prevents overlapping audio loops while still ensuring the pre-roll is heard.
     if FSM.IMMERSION_MODE == "MOVIE" and idx and subs and idx < #subs then
         stop = subs[idx + 1].start_time - pad_start
-        -- Guard against stop being before start (extreme overlaps)
-        if stop < start then stop = sub.end_time end
+        -- Guard: never pause before SRT end_time (short gaps shrink the handover boundary)
+        if stop < sub.end_time then stop = sub.end_time end
     end
     
     return start, stop
