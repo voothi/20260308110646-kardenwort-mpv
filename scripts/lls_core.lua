@@ -5488,7 +5488,16 @@ local function cmd_smart_space(table)
             FSM.SPACEBAR = "HOLDING"
             FSM.space_down_time = mp.get_time()
             FSM.initial_pause_state = mp.get_property_bool("pause", true)
-            if FSM.initial_pause_state then mp.set_property_bool("pause", false) end
+            if FSM.initial_pause_state then
+                mp.set_property_bool("pause", false)
+                -- [v1.58.53] Prevent jerk-back from firing immediately after autopause unpause.
+                -- In PHRASE mode, the next sub's padded start often overlaps the current sub's
+                -- audio content. Without cooldown, the jerk-back seeks backward into already-heard
+                -- audio while showing the next sub as active.
+                if FSM.IMMERSION_MODE == "PHRASE" and FSM.AUTOPAUSE == "ON" then
+                    FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
+                end
+            end
         end
     elseif table.event == "up" then
         FSM.SPACEBAR = "IDLE"

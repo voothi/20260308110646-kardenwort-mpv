@@ -1579,7 +1579,7 @@
 20260506200831 Okay, just make sure that when hiding the second subtitles using Shift+c (Secondary Sub:...) the tooltip is not hidden, it should not depend on this.
 20260506201900 Okay, add this case to the documentation, feature specification openspec\changes\20260506195038-drum-mode-tooltip-key-parity, here is the anchor 20260506200831
 20260506202949 Openspec Archive Change --sync openspec\changes\20260506195038-drum-mode-tooltip-key-parity
-
+20260506203418 Let's look at the situation, why in the Autopause ON, PHRASE mode, I am now experiencing a jump through `Bedeutet in einer Gegend wie hier`, that is, it is played, but visually in the window (dw) it is skipped and the subtitle following it is immediately highlighted in white, the line `dass man eigentlich gar keine Wahl hat manchmal.` Is this due to poor quality subtitles or is there a flaw in our logic?
 
 
 
