@@ -3366,12 +3366,13 @@ DRUM_DRAW_CACHE = {
     hit_zones = nil -- Cached geometry
 }
 
-local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain, is_pri)
-    if center_idx == -1 then return "" end
+local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain, is_pri)
+    if view_center == -1 then return "" end
 
     -- Result cache: skip rebuild if nothing has changed since last call.
     if DRUM_DRAW_CACHE.subs_ptr == subs and
-       DRUM_DRAW_CACHE.center_idx      == center_idx and
+       DRUM_DRAW_CACHE.view_center     == view_center and
+       DRUM_DRAW_CACHE.active_idx      == active_idx and
        DRUM_DRAW_CACHE.is_drum         == (FSM.DRUM == "ON") and
        DRUM_DRAW_CACHE.highlight_count == #FSM.ANKI_HIGHLIGHTS and
        DRUM_DRAW_CACHE.layout_version   == FSM.LAYOUT_VERSION and
@@ -3391,8 +3392,8 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local is_drum = (FSM.DRUM == "ON")
     local context_lines = is_drum and Options.drum_context_lines or 0
     local half = context_lines
-    local start_idx = math.max(1, center_idx - half)
-    local end_idx = math.min(#subs, center_idx + half)
+    local start_idx = math.max(1, view_center - half)
+    local end_idx = math.min(#subs, view_center + half)
     
     -- Re-adjust to maintain window size if possible
     if end_idx - start_idx < 2 * half then
@@ -3419,7 +3420,7 @@ local function draw_drum(subs, center_idx, y_pos_percent, time_pos, font_size, h
     local total_h = 0
     
     for i = start_idx, end_idx do
-        local is_active = (i == center_idx)
+        local is_active = (i == active_idx)
         local size = font_size * (is_active and Options.drum_active_size_mul or Options.drum_context_size_mul)
         local m = calculate_osd_line_meta(subs[i].text, i, size, font_name, lh_mul, vsp)
         
@@ -5061,15 +5062,26 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
-        local idx = get_center_index(Tracks.pri.subs, time_pos)
+        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        local view_center = FSM.DW_FOLLOW_PLAYER and active_idx or FSM.DW_VIEW_CENTER
+        if view_center == -1 then view_center = active_idx end
+        
         local pri_plain = is_drum and (not Options.drum_pri_highlighting) or (not Options.srt_pri_highlighting)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
+        ass_text = ass_text .. draw_drum(Tracks.pri.subs, view_center, active_idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
-        local idx = get_center_index(Tracks.sec.subs, time_pos)
+        local active_idx = get_center_index(Tracks.sec.subs, time_pos)
+        -- Secondary follows primary's viewport if primary is active, otherwise follows its own active
+        local view_center = active_idx
+        if pri_use_osd and not FSM.DW_FOLLOW_PLAYER then
+            -- This is a bit complex since track indices might not match. 
+            -- For now, let secondary just follow its own active or the primary's relative scroll if we wanted to be fancy.
+            -- Simple approach: follow player unless we specifically want secondary to scroll too.
+        end
+        
         local sec_plain = is_drum and (not Options.drum_sec_highlighting) or (not Options.srt_sec_highlighting)
-        ass_text = ass_text .. draw_drum(Tracks.sec.subs, idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain, false)
+        ass_text = ass_text .. draw_drum(Tracks.sec.subs, view_center, active_idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain, false)
     end
     
     drum_osd.data = ass_text
@@ -5469,6 +5481,25 @@ local function cmd_dw_scroll(dir)
     if not subs or #subs == 0 then return end
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
     dw_sync_cursor_to_mouse()
+end
+
+local WHEEL_PASSTHROUGH = false
+local function cmd_dw_wheel_scroll(dir)
+    if WHEEL_PASSTHROUGH then return end
+    
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+    
+    -- In Drum Window (DOCKED), we ALWAYS scroll.
+    -- In Drum Mode (OSD), we ONLY scroll if hovering over a line.
+    if line_idx or FSM.DRUM_WINDOW ~= "OFF" then
+        cmd_dw_scroll(dir)
+    else
+        local key = (dir < 0) and "WHEEL_UP" or "WHEEL_DOWN"
+        WHEEL_PASSTHROUGH = true
+        mp.commandv("keypress", key)
+        WHEEL_PASSTHROUGH = false
+    end
 end
 
 
@@ -6130,8 +6161,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
         {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
         {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
-        {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_scroll(-1) end},
-        {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_scroll(1) end},
+        {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_wheel_scroll(-1) end},
+        {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_wheel_scroll(1) end},
         {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
         end, Options.dw_key_pair_mod), complex = true},
