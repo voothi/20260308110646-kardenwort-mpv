@@ -1585,7 +1585,7 @@
 20260506223121 Okay, it looks like we have solved the problem, at least this case, now write documentation for this case to reflect in the specifications, in the FSM diagram, to concrete this solution /opsx:propose. I remind you what the conversation anchors were 20260506203418 20260506214011 20260506220111
 20260506224100 /opsx:apply 20260506223500-natural-progression-sub-skip/
 20260506224245 /opsx:archive --sync 20260506223500-natural-progression-sub-skip
-
+20260506224701 Okay, check again openspec\specs\fsm-architecture
 
 
 

@@ -123,8 +123,9 @@ The system SHALL initialize the `IMMERSION_MODE` state at boot based on the user
 ### Requirement: Deterministic Focus Sentinel
 The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding. To protect Jerk-Back logic in Phrase Mode and prevent audio clipping, the index resolution function (`get_center_index`) MUST follow a strict evaluation hierarchy:
 1. **Sentinel (Early Return)**: If the playhead is within the `[Start-Pad, End+Pad]` window of the current `FSM.ACTIVE_IDX`, return the current index immediately.
-2. **Standard Resolution**: Perform a binary search for the first subtitle starting at or before `time_pos`.
-3. **Overlap Priority**: If a subsequent subtitle's padded start has begun, handover control only if the Sentinel has no claim.
+2. **Natural Progression**: If `FSM.ACTIVE_IDX` is set and the consecutive next sub (`ACTIVE_IDX+1`) has a padded zone that contains `time_pos`, return `ACTIVE_IDX+1` immediately. This enforces one-step transition (`i → i+1`) and prevents intermediate subs from being skipped when large `audio_padding_start` values cause multiple subs' padded zones to overlap simultaneously.
+3. **Standard Resolution**: Perform a binary search for the first subtitle starting at or before `time_pos`.
+4. **Overlap Priority**: If a subsequent subtitle's padded start has begun, handover control only if the Sentinel has no claim. (Cold-entry only — Natural Progression supersedes this during sequential playback.)
 
 #### Scenario: Subtitle Tail Protection
 - **WHEN** playback continues past the technical duration of a subtitle

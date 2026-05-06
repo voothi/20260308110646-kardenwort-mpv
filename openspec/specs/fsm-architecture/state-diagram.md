@@ -570,7 +570,10 @@ graph TD
     Start[master_tick / get_center_index] --> Sentinel{In Active Sub Padding?}
     
     Sentinel -- Yes --> Active[Return FSM.ACTIVE_IDX]
-    Sentinel -- No --> BinarySearch[Perform Binary Search]
+    Sentinel -- No --> NatProg{ACTIVE_IDX set AND\nsub[i+1] padded zone\ncontains time_pos?}
+
+    NatProg -- Yes --> NextConsec[Return ACTIVE_IDX + 1\nNatural Progression]
+    NatProg -- No --> BinarySearch[Perform Binary Search]
     
     BinarySearch --> Found[Index 'best' resolved]
     
@@ -592,4 +595,6 @@ graph TD
     %% Note for Sentinel logic
     Sentinel --- NoteSentinel[Crucial for Autopause: Ensures we stay on sub until audible tail finishes]
     style NoteSentinel fill:#f9f,stroke:#333,stroke-dasharray: 5 5
+    style NextConsec fill:#ccf,stroke:#339
+    style NatProg fill:#eef,stroke:#669
 ```
