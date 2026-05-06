@@ -1538,6 +1538,14 @@
 20260506113637 Is it necessary to add tags to state diagrams of how styles work? Difficulties in ASS subtitle mode.
 20260506113844 Have you updated the file itself? openspec\specs\fsm-architecture\state-diagram.md
 20260506114003 What else can be added to **Verification Schema:**? state-diagram.md#L543
+20260506114154 x opsx-explore Look at openspec\specs\fsm-architecture\state-diagram.md and check that, firstly, it corresponds to the current code, is relevant, and secondly, think about what collisions and logical errors you see from the overall picture.
+20260506115705 x opsx-propose
+20260506120936 x opsx-apply 20260506115716-fsm-consistency-hardening
+20260506121234 x Parse error on line 11:
+20260506121607 x Autopause stopped working.
+20260506122331 x Autopause ON PHRASE no longer works as expected. We prioritized the end over the beginning, apparently fearing twitching. But now the padding at the beginning does not work, it should work for me, since I use this mode as cards and I need to be guaranteed to hear the entire subtitle, even if it repeats the end of the previous one. What can you change in the production and in the code to fix this? Did it work correctly before the code changes, in the commit 7ea031aadebc3dcfa8e1bf9ad482254341d19b86?
+20260506122921 x Broken.
+
 
 
 
