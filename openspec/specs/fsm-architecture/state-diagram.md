@@ -558,3 +558,8 @@ graph TD
 15. Tooltip `final_y` MUST be clamped within a 20px screen margin to prevent OSD cropping.
 16. **Atomic Priority**: Every surgical highlight injection MUST be followed by a restoration tag (either previous style or `{\r}`) to prevent color bleed.
 17. **Positioning Neutrality**: In `DOCKED` mode, all `\pos` and `\an` tags MUST be stripped from the visual stream to ensure deterministic list alignment.
+18. **Selection Priority**: Manual selections (Pink/Yellow) MUST take absolute priority over "Context Copy" logic during clipboard operations.
+19. **Interaction Shield**: All mouse click handlers MUST return early if `mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL` (Interaction Shield).
+20. **Search Hijack**: `FSM.SEARCH_MODE` MUST disable playback-altering hotkeys (Space, Enter, s, x) to prevent seek-leakage during query entry.
+21. **Aesthetic Sync**: Highlight border/shadow alpha (`3a/4a`) MUST match `bg_alpha` to ensure uniform background transparency across the HUD.
+22. **Cyclic Navigation**: `cmd_dw_seek_delta` MUST implement modulo-based wrap-around at the start and end of the subtitle track list.
