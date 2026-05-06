@@ -1529,6 +1529,7 @@
 20260506105931 Parse error on line 12
 20260506110709 Look what else can help you find README.md for fixing? Maybe complex logic for each shortcuts. Where is the text highlighting, transitions between words. Basically, the logic of text editing. Look also in release-notes.md and in my requests that I write in docs\conversation.log
 20260506111200 See what else you can pull out from the openspec\changes\archive archive, what is current you can take and what can give you a hint to take into account?
+20260506111620 Go through all the functions in the code and see what else you can pull out. The main function that generates the map.
 
 
 

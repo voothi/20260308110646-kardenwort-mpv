@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506111340**
+**ZID: 20260506112010**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -380,46 +380,71 @@ stateDiagram-v2
     end note
 ```
 
-## 15. Surgical Tokenization & Navigation
-Defines the character-level precision of the navigation engine.
+## 15. Token Logical Indexing Model
+Specifies how tokens are addressed for range selection and export.
 
-| TOKEN_TYPE | is_word_char | Navigation Stop | Interaction |
+| TOKEN_TYPE | Logical Index (L_IDX) | Navigation Stop | Rationale |
 | :--- | :--- | :--- | :--- |
-| **Alphanumeric** | `%w` + `'` | Yes | Highlighting |
-| **Logistical** | `[` `]` `-` `/` | Yes | Word Boundary |
-| **Punctuation** | `,` `.` `!` `?` | Yes | Surgical (No color) |
-| **Whitespace** | `%s` | No | Skip |
+| **Word** | Integer (1, 2, 3...) | Yes | Primary vocab hub |
+| **Symbol/Tag** | Fractional (1.1, 1.2...) | Yes | Surgical precision |
+| **Line Break** | Fractional (1.9, 2.9...) | No | Layout marker |
+| **Whitespace** | Fractional (0.5, 1.5...) | No | Ignored by arrows |
 
-## 16. Bidirectional Pointer Sync (DW <-> Tooltip)
-Synchronization logic for cursor and lock state.
+## 16. Rendering Color Priority Hierarchy
+Determines visual color when multiple states overlap on a single token.
+
+| PRIORITY | LAYER | COLOR_KEY | SOURCE |
+| :--- | :--- | :--- | :--- |
+| **1 (Highest)** | Persistent Set | Pink | `FSM.DW_CTRL_PENDING_SET` |
+| **2** | Manual Focus | Gold | `FSM.DW_CURSOR_LINE/WORD` |
+| **3** | Database (Mixed) | Brick | Contiguous + Split overlap |
+| **4** | Database (Contig) | Orange | Anki Contiguous Match |
+| **5** | Database (Split) | Purple | Anki Non-Contiguous Match |
+| **6 (Lowest)** | Default | White/Gray | `FSM.ACTIVE_IDX` context |
+
+## 17. Export Joiner Logic (Smart Splicing)
+Controls how selections are reconstructed into text for Anki/Clipboard.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> SYNC_IDLE
+    [*] --> PREPARE_TOKENS
     
-    SYNC_IDLE --> DW_DRIVEN : Mouse Hover in DW
-    DW_DRIVEN --> SYNC_IDLE : Cursor moved
+    state "Smart Joiner" as SMART_JOINER
+    state "Elliptical Joiner" as ELLIPSIS
     
-    SYNC_IDLE --> TT_DRIVEN : Interaction in Tooltip
-    TT_DRIVEN --> SYNC_IDLE : Tooltip dismissed
+    PREPARE_TOKENS --> SMART_JOINER : Contiguous Range
+    PREPARE_TOKENS --> ELLIPSIS : Non-Contiguous Set
     
-    note right of SYNC_IDLE
-        FSM.DW_CURSOR_LINE 
-        == 
-        FSM.DW_TOOLTIP_LOCKED_LINE
+    SMART_JOINER --> VERBATIM_EXPORT : compose_term_smart()
+    ELLIPSIS --> JOINED_EXPORT : Inject ' ... ' between gaps
+    
+    note right of SMART_JOINER
+        Respects punctuation rules 
+        (no space before '.', etc.)
     end note
 ```
 
-## 17. Media State Matrix (Codec/Track Detection)
-Determines capability availability based on loaded media.
+## 18. Surgical vs Full Highlighting
+Visual behavior based on selection type.
 
-| MEDIA_STATE | Capability: Autopause | Capability: Drum/DW | Capability: Search |
-| :--- | :--- | :--- | :--- |
-| `NO_SUBS` | Disabled | Blocked | Blocked |
-| `SINGLE_SRT` | Full | Full | Full |
-| `SINGLE_ASS` | Full | Blocked (Native Only) | Full (External Only) |
-| `DUAL_SRT` | Synced | Dual-Track View | Combined |
-| `DUAL_ASS` | Synced | Blocked (Native Only) | Combined |
+```mermaid
+stateDiagram-v2
+    [*] --> ANALYZE_TYPE
+    
+    ANALYZE_TYPE --> FULL_HIGHLIGHT : Manual Focus (Gold/Pink)
+    ANALYZE_TYPE --> FULL_HIGHLIGHT : Phrase Match (Multi-word)
+    ANALYZE_TYPE --> SURGICAL : Single Word Match
+    
+    state SURGICAL {
+        [*] --> COLOR_ALPHANUM_ONLY
+    }
+    
+    note right of SURGICAL
+        Preserves punctuation color 
+        (White/Gray) to improve 
+        reading flow.
+    end note
+```
 
 ---
 **Verification Schema:**
@@ -434,3 +459,4 @@ Determines capability availability based on loaded media.
 9. `Sticky Column` anchor MUST reset if `FSM.DW_CURSOR_LINE` is manually changed via mouse.
 10. `is_word_char` MUST NOT return true for brackets `[]` or slashes `/`.
 11. Mouse events MUST return early if `mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL`.
+12. `get_sub_tokens` MUST assign fractional indices to non-word characters to ensure Word-Integer alignment.
