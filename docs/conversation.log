@@ -1564,6 +1564,7 @@
 20260506183654 Claude
 20260506183927 Openspec Explore As a software architect, you should thoroughly check the relevance of the openspec\specs specifications, their compliance with the current code, and identify problems. In particular, I'm interested in fidelity to openspec\specs\fsm-architecture, see if there is any regression compared to v1.58.50. You may also find some edge cases and shortcomings in the current implementation as a result of reading the fsm-architecture specifications.
 20260506190022 Openspec Propose Write a document to correct the deficiencies.
+20260506191421 When selecting text, the frame now widens by several millimeters, apparently due to the bolder color or outline of the font. How can this be solved?
 
 
 

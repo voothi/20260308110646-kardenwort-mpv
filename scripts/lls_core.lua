@@ -3201,13 +3201,11 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     
     if (h_color == base_color) then return word end
 
-    -- Standardized highlight tags to prevent blooming/thickness regressions (Task 1.1)
-    -- We now synchronize the highlight's alpha with the passed bg_alpha to ensure visual uniformity,
-    -- but we inject a slight border-weight boost (\bord) to maintain "Premium" sharpness against bright colors.
+    -- Keep highlight geometry identical to baseline text geometry to avoid
+    -- frame expansion when selection colors are active.
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
-    local h_bord = Options.dw_border_size + 0.7
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, h_bord)
+    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, Options.dw_border_size)
     local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, Options.dw_border_size)
 
     if is_phrase or is_manual then
