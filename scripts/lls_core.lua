@@ -7689,8 +7689,8 @@ mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
 mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
 mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 
-mp.add_key_binding(nil, "lls-seek_time_forward", function() cmd_seek_time(1) end)
-mp.add_key_binding(nil, "lls-seek_time_backward", function() cmd_seek_time(-1) end)
+mp.add_key_binding(nil, "lls-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
+mp.add_key_binding(nil, "lls-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 

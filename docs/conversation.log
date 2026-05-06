@@ -1586,6 +1586,7 @@
 20260506224100 /opsx:apply 20260506223500-natural-progression-sub-skip/
 20260506224245 /opsx:archive --sync 20260506223500-natural-progression-sub-skip
 20260506224701 Okay, check again openspec\specs\fsm-architecture
+20260506225046 Previously, scrolling worked for me using Shift+a, Shift+d while holding, now it only works once. This might have broken with the recent revision +2 -2 openspec\changes\archive\20260505162601-centered-seek-osd
 
 
 
