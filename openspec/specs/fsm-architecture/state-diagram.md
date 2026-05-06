@@ -1,5 +1,5 @@
 # FSM State Architecture Specification
-**ZID: 20260506104409**
+**ZID: 20260506105812**
 
 This document specifies the Finite State Machine (FSM) architecture for the Kardenwort immersion engine. It serves as the "Source of Truth" for the AI agent to verify codebase consistency and behavior.
 
@@ -94,14 +94,14 @@ stateDiagram-v2
     end note
 ```
 
-## 4. Selection & Interactivity FSM (The "Color Tiers")
-Specifies the priority of selection types for copy operations.
+## 4. Selection & Esc Stages (The "Color Tiers")
+Specifies the priority of selection types and how `Esc` peels back layers.
 
 ```mermaid
 stateDiagram-v2
     [*] --> NO_SELECTION
     
-    state "Yellow Pointer (Hover/Cursor)" as POINTER
+    state "Yellow Pointer (Single Word)" as POINTER
     state "Yellow Range (Shift+Drag)" as RANGE
     state "Pink Set (Ctrl+Click)" as PINK_SET
     
@@ -110,17 +110,107 @@ stateDiagram-v2
     
     ANY_SELECTION --> PINK_SET : Ctrl + Click
     
-    PINK_SET --> NO_SELECTION : ESC (Clear Set)
-    RANGE --> POINTER : ESC (Clear Range)
-    POINTER --> NO_SELECTION : ESC (Clear Pointer)
+    PINK_SET --> RANGE : ESC Stage 1 (Clear Set)
+    RANGE --> POINTER : ESC Stage 2 (Clear Anchor)
+    POINTER --> NO_SELECTION : ESC Stage 3 (Full Reset)
     
     note right of PINK_SET
         Highest Export Priority.
         Non-contiguous members.
     end note
+
+    note left of POINTER
+        Persistent focus sentinel.
+        Stays at cursor line/word
+        after Range is cleared.
+    end note
 ```
 
-## 5. Media State Matrix (Codec/Track Detection)
+## 5. Tooltip Lifecycle (Translation Overlay)
+Controls visibility and positioning of the translation tooltip.
+
+```mermaid
+stateDiagram-v2
+    [*] --> MODE_OFF
+    
+    state "Off" as MODE_OFF
+    state "Hover Mode" as MODE_HOVER
+    state "Click Mode (Locked)" as MODE_CLICK
+    state "Forced (Manual)" as MODE_FORCE
+    
+    MODE_OFF --> MODE_HOVER : Opt.dw_key_tooltip_hover
+    MODE_HOVER --> MODE_OFF : Opt.dw_key_tooltip_hover
+    
+    MODE_OFF --> MODE_CLICK : LMB Click on word
+    MODE_CLICK --> MODE_OFF : Click outside / Esc
+    
+    ANY_MODE --> MODE_FORCE : E (Toggle)
+    MODE_FORCE --> MODE_OFF : E (Toggle) / Esc
+    
+    state MODE_FORCE {
+        [*] --> TARGET_ACTIVE : Playback
+        TARGET_ACTIVE --> TARGET_CURSOR : Paused (Interaction)
+        TARGET_CURSOR --> TARGET_ACTIVE : Playback Resumed
+    }
+    
+    note right of MODE_FORCE
+        Targeting derived from 
+        FSM.DW_TOOLTIP_TARGET_MODE
+    end note
+```
+
+## 6. Copy & Clipboard Priority
+Defines the "Source of Truth" for the `cmd_copy_sub` command.
+
+```mermaid
+graph TD
+    Start[Copy Command Triggered] --> Pink{Pink Set Exists?}
+    Pink -- Yes --> ExportPink[Prepare SET Export]
+    Pink -- No --> Range{Yellow Range Exists?}
+    Range -- Yes --> ExportRange[Prepare RANGE Export]
+    Range -- No --> Pointer{Yellow Pointer Exists?}
+    Pointer -- Yes --> ExportPointer[Prepare POINT Export]
+    Pointer -- No --> Context{Context Copy ON?}
+    Context -- Yes --> ExportContext[Extract Subtitle + Context]
+    Context -- No --> Fallback[Export Active Subtitle Only]
+    
+    ExportPink --> SetClip[Set Clipboard]
+    ExportRange --> SetClip
+    ExportPointer --> SetClip
+    ExportContext --> SetClip
+    Fallback --> SetClip
+    
+    SetClip --> GDT{GoldenDict Triggered?}
+    GDT -- "mode: side" --> SideGD[Trigger Side Popup]
+    GDT -- "mode: main" --> MainGD[Trigger Main Window]
+    GDT -- "mode: none" --> Finish[Clipboard Updated Only]
+```
+
+## 7. Viewport & Scroll Logic
+Controls how the text window follows playback or manual interaction.
+
+```mermaid
+stateDiagram-v2
+    [*] --> FOLLOW_PLAYER : Boot
+    
+    state "Follow Mode" as FOLLOW_PLAYER
+    state "Manual Scroll" as MANUAL_SCROLL
+    
+    FOLLOW_PLAYER --> MANUAL_SCROLL : Mouse Wheel / Ctrl+Up/Down
+    MANUAL_SCROLL --> FOLLOW_PLAYER : Click Active Line / Double Click
+    
+    note right of FOLLOW_PLAYER
+        FSM.DW_VIEW_CENTER 
+        tracks FSM.ACTIVE_IDX
+    end note
+    
+    note left of MANUAL_SCROLL
+        FSM.DW_FOLLOW_PLAYER = false
+        View stays where scrolled.
+    end note
+```
+
+## 8. Media State Matrix (Codec/Track Detection)
 Determines capability availability based on loaded media.
 
 | MEDIA_STATE | Capability: Autopause | Capability: Drum/DW | Capability: Search |
@@ -137,3 +227,5 @@ Determines capability availability based on loaded media.
 2. `FSM.IMMERSION_MODE == 'PHRASE'` MUST trigger `mp.commandv("seek", s_next, "absolute+exact")` when `time-pos` crosses into padded overlap.
 3. `FSM.SPACEBAR == 'HOLDING'` MUST bypass `tick_autopause`.
 4. `FSM.SEARCH_MODE == true` MUST hijack all character input keys.
+5. `cmd_dw_esc` MUST clear selection tiers in order: Pink -> Range -> Pointer.
+6. `cmd_dw_scroll` MUST set `FSM.DW_FOLLOW_PLAYER = false`.

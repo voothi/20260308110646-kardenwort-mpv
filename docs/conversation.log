@@ -1523,10 +1523,10 @@
 20260506102323 I need to return the ability to control the position of subtitles in drum mode ON, now I get Managed by instead...
 20260506103038 # Is it correct that now in Drum Mode ON I can enable the DW Translation: HOVER option and it starts working in the lower window (main subtitles, first)?
 20260506103358 # Make scrolling with mouse wheel in Drum Mode similar to how it works now, if you hold mouse pointer over timeline and spin mouse wheel, subtitles scroll in Drum Mode. ## Description Only it works the other way around, not right now in this mode, not as we are used to when scrolling pages - now scrolling up scrolls the text below, it should be when scrolling down, the listing scrolls down to the next subtitle, one at a time. That is exactly how a, d works. Come to think of it, after all, then we would have the wheel perform different functions in drum, dw mode. In the end I'm inclined to do the same as in dw, to be unified, so that the wheel scrolls all the same text just, but not control navigation subtitles, leave it for a, d, double-click LMB. This will allow you to mark subtitles you've watched without having to knock down the current listening position, we get a separation between working with the track and working with the text.
-
-
-
-
+20260506103938 opsx-explore # Create a general (and or modular) FSM state diagram and check. Make it for the specification so that the AI ​​agent can compare to this schema. Make it a mermaid, I guess.
+20260506104917 Lexical error on line 16. 
+20260506105210 What other aspects can you cover with a state diagram? Copying, GD copying, scrolling and working with text. The operation of the tooltip window, how it appears, how it moves, how it works in HOVER, CLICK mode. How the yellow cursor works, on which side and where it appears after Esc.
+20260506105931 Parse error on line 12
 
 
 
