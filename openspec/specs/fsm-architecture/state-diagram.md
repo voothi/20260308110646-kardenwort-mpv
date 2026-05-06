@@ -23,13 +23,11 @@ stateDiagram-v2
     
     DRUM_WINDOW --> NATIVE_SRT : Toggle DW OFF
     
-    state RENDERING_ACTIVE {
-        DRUM_WINDOW --> SEARCH_MODE : Ctrl+F
-        SEARCH_MODE --> DRUM_WINDOW : ESC / Enter
-        
-        NATIVE_SRT --> SEARCH_MODE : Ctrl+F
-        DR_MODE --> SEARCH_MODE : Ctrl+F
-    }
+    DRUM_WINDOW --> SEARCH_MODE : Ctrl+F
+    SEARCH_MODE --> DRUM_WINDOW : ESC / Enter
+    
+    NATIVE_SRT --> SEARCH_MODE : Ctrl+F
+    DRUM_MODE --> SEARCH_MODE : Ctrl+F
     
     note right of NATIVE_SRT
         Hides native if custom 

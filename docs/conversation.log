@@ -1545,8 +1545,7 @@
 20260506121607 x Autopause stopped working.
 20260506122331 x Autopause ON PHRASE no longer works as expected. We prioritized the end over the beginning, apparently fearing twitching. But now the padding at the beginning does not work, it should work for me, since I use this mode as cards and I need to be guaranteed to hear the entire subtitle, even if it repeats the end of the previous one. What can you change in the production and in the code to fix this? Did it work correctly before the code changes, in the commit 7ea031aadebc3dcfa8e1bf9ad482254341d19b86?
 20260506122921 x Broken.
-
-
+20260506131142 opsx-explore You are like an architect, a big model, an fsm-master, an experienced reviewer, with surgical precision check openspec\specs\fsm-architecture with the current code, The survival of this planet and all the people who inhabit it depends on it.
 
 
 
