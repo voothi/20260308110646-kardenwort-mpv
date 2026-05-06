@@ -7196,7 +7196,31 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     end
     if cl == -1 then return nil, false end
 
-    -- 1. Selection Priority (Pointer/Range)
+    -- 1. Selection Priority (Pink Set > Yellow Range > Yellow Pointer)
+    -- [v1.58.51] Explicit priority allows user to regulate behavior via Esc stages.
+    
+    -- Stage 1: Pink Set (Multi-word Selection via Ctrl+Click)
+    if next(FSM.DW_CTRL_PENDING_SET) then
+        local members = {}
+        local line_indices = {}
+        for l_idx in pairs(FSM.DW_CTRL_PENDING_SET) do table.insert(line_indices, l_idx) end
+        table.sort(line_indices)
+        for _, l_idx in ipairs(line_indices) do
+            local word_indices = {}
+            for w_idx in pairs(FSM.DW_CTRL_PENDING_SET[l_idx]) do table.insert(word_indices, w_idx) end
+            table.sort(word_indices)
+            for _, w_idx in ipairs(word_indices) do
+                table.insert(members, FSM.DW_CTRL_PENDING_SET[l_idx][w_idx])
+            end
+        end
+        
+        return prepare_export_text({ type = "SET", members = members }, { 
+            copy_mode = FSM.COPY_MODE, 
+            filter_russian = Options.copy_filter_russian 
+        }), false
+    end
+
+    -- Stage 2 & 3: Yellow Selection (Range or Point)
     local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
     if p1_l or cw ~= -1 then
         local params = p1_l and { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }

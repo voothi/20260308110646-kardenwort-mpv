@@ -22,7 +22,16 @@ The system SHALL continue searching the subtitle array until the specified numbe
 - **THEN** the system SHALL continue its search beyond adjacent entries if those entries are merged or filtered.
 
 ### Requirement: Selection Priority in Context Copy
-The system SHALL prioritize manual selections (word pointer or range selection) over context-aware text harvesting when `COPY_CONTEXT` is enabled.
+The system SHALL prioritize manual selections over context-aware text harvesting when `COPY_CONTEXT` is enabled, following a strict multi-tier hierarchy:
+1. **Pink Set** (Multi-word non-contiguous selection)
+2. **Yellow Range** (Contiguous word range selection)
+3. **Yellow Pointer** (Single word pointer selection)
+
+#### Scenario: Copying with Pink Set and context ON
+- **WHEN** the user has selected multiple non-contiguous words (Pink highlights) in the Drum Window.
+- **AND** `COPY_CONTEXT` is "ON".
+- **AND** the user triggers the copy command.
+- **THEN** only the words in the Pink Set SHALL be copied to the clipboard.
 
 #### Scenario: Copying with active pointer and context ON
 - **WHEN** the user has a "yellow cursor" (word pointer) on a specific word in the Drum Window.
@@ -37,10 +46,10 @@ The system SHALL prioritize manual selections (word pointer or range selection) 
 - **THEN** only the selected range SHALL be copied to the clipboard.
 
 #### Scenario: Regulating Context Copy via Esc
-- **WHEN** the user has a selection and `COPY_CONTEXT` is "ON".
-- **AND** the user presses `Esc` to clear the selection.
-- **AND** the user triggers the copy command.
-- **THEN** the system SHALL harvest and copy the surrounding dialogue context.
+- **WHEN** the user has multiple levels of selection (e.g., Pink Set and Yellow Pointer) and `COPY_CONTEXT` is "ON".
+- **AND** the user presses `Esc` sequentially to clear selection stages.
+- **AND** the user triggers the copy command at any stage.
+- **THEN** the system SHALL copy the highest remaining selection tier, or fall back to harvesting the surrounding dialogue context if no selection remains.
 
 ### Requirement: Formatting Preservation (Copy As Is)
 The system SHALL preserve all textual formatting markers, including brackets and internal punctuation, during all copy operations to satisfy "Copy as is" requirements.

@@ -118,7 +118,7 @@
 - **OSD Stabilization**: Added a configurable `copy_osd_cooldown` to suppress redundant notification flashes during rapid clipboard operations.
 
 ### 🎯 **Precision Selection & Hit-Zone Hardening**
-- **Prioritized Selection in Context Copy**: Manual selections (word/range) now take absolute priority over "Context Copy" mode. Users can now copy specific terms even when multi-line context harvesting is active.
+- **Prioritized Selection in Context Copy**: Manual selections (Pink Set, Yellow Range, or Yellow Pointer) now take absolute priority over "Context Copy" mode. This allows for precise term extraction even when multi-line context harvesting is active, regulated via `Esc` stages.
 - **Regulated Context Copy via Esc**: Refined the `Esc` key logic to clear manual selections first, allowing for a seamless transition between precise term copying and contextual harvesting.
 - **Ghost Hit-Zone Elimination**: Fixed "Interaction Leakage" by explicitly clearing tooltip hit-zones upon dismissal. This prevents "dead zones" in the Drum Window where inactive tooltips would intercept mouse clicks.
 - **Hit-Test Guarding**: Added secondary validation to the tooltip hit-test engine, ensuring interaction is only possible when a tooltip is logically active.
