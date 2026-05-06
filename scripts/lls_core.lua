@@ -677,6 +677,23 @@ end
 function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
     
+    -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
+    -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
+    local active_idx = FSM.ACTIVE_IDX
+
+    -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
+    -- don't let the sticky logic pull us back to the previous one during the overlap.
+    if FSM.IMMERSION_MODE == "PHRASE" and FSM.JUST_JERKED_TO ~= -1 then
+        active_idx = FSM.JUST_JERKED_TO
+    end
+
+    if active_idx and active_idx ~= -1 and subs[active_idx] then
+        local s, e = get_effective_boundaries(subs[active_idx], active_idx)
+        if time_pos >= s and time_pos <= e then
+            return active_idx
+        end
+    end
+
     local low, high = 1, #subs
     local best = -1
     while low <= high do
@@ -696,30 +713,13 @@ function get_center_index(subs, time_pos)
 
     -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's 
     -- padded start has begun, the next sub wins immediately.
-    -- We prioritize this handover OVER the sticky sentinel below to ensure
-    -- that Jerk-Back logic in master_tick can fire at the correct moment.
+    -- The Sticky Sentinel check above ensures we don't switch until the 
+    -- previous sub's padded end is finished.
     if best < #subs then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(next_sub, best + 1)
         if time_pos >= s_next - Options.nav_tolerance then
             return best + 1
-        end
-    end
-
-    -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
-    -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
-    local active_idx = FSM.ACTIVE_IDX
-
-    -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
-    -- don't let the sticky logic pull us back to the previous one during the overlap.
-    if FSM.IMMERSION_MODE == "PHRASE" and FSM.JUST_JERKED_TO ~= -1 then
-        active_idx = FSM.JUST_JERKED_TO
-    end
-
-    if active_idx and active_idx ~= -1 and subs[active_idx] then
-        local s, e = get_effective_boundaries(subs[active_idx], active_idx)
-        if time_pos >= s and time_pos <= e then
-            return active_idx
         end
     end
     
@@ -4792,6 +4792,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_ANCHOR_WORD = word_idx
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_CURSOR_X = nil
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     elseif is_shift then
                         if FSM.DW_ANCHOR_LINE == -1 then
@@ -4800,6 +4801,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         end
                         FSM.DW_CURSOR_LINE = line_idx
                         FSM.DW_CURSOR_WORD = word_idx
+                        FSM.DW_CURSOR_X = nil
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     end
                     
@@ -7072,9 +7074,7 @@ local function manage_search_bindings(enable)
         
         render_search()
         
-        if FSM.DRUM_WINDOW == "DOCKED" then
-            manage_dw_bindings(true)
-        end
+        update_interactive_bindings()
     end
 end
 
