@@ -8,7 +8,16 @@
       "PowerShell(git log --all --oneline --grep=\"jerk\" -i)",
       "PowerShell(git log --all --oneline --grep=\"autopause\" -i)",
       "Bash(openspec new *)",
-      "Bash(npx openspec *)"
+      "Bash(npx openspec *)",
+      "Bash(python U:\\\\voothi\\\\20241116203211-zid\\\\zid.py --no-clipboard)",
+      "Bash(python \"U:\\\\voothi\\\\20241116203211-zid\\\\zid.py\" --no-clipboard)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\specs\\\\immersion-engine\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"Directory created\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\specs\\\\immersion-engine\")",
+      "Bash(Test-Path \"u:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\specs\\\\immersion-engine\\\\spec.md\")",
+      "PowerShell(Move-Item \"u:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\changes\\\\20260506223500-natural-progression-sub-skip\" \"u:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\changes\\\\archive\\\\20260506223500-natural-progression-sub-skip\" -Force)",
+      "PowerShell(if \\($?\\) { \"Moved successfully\" } else { \"Move failed\" })"
     ]
   }
 }
