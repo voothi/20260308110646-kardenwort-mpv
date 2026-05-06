@@ -39,11 +39,12 @@ The system SHALL respect the `FSM.DRUM` OFF state while still passing styling ru
 - **THEN** the system SHALL hide native subtitles and execute `draw_drum()` with 0 context lines, serving as a styled pass-through instead of raw mpv OS-level rendering.
 
 ### Requirement: Global Media Context Gatekeeping (MEDIA_STATE)
-The system SHALL evaluate the current tracks loaded into `FSM.MEDIA_STATE` and adjust dependent capabilities accordingly to prevent renderer crashes. 
+The system SHALL evaluate the current tracks loaded into `FSM.MEDIA_STATE` and adjust dependent capabilities accordingly to prevent renderer crashes and overlay conflicts.
 
 #### Scenario: User loads an ASS tracking format
-- **WHEN** `boot_subs()` evaluates tracks and finds an ASS codec (`FSM.MEDIA_STATE` includes `ASS`)
-- **THEN** it SHALL force `FSM.DRUM = "OFF"` and `FSM.DRUM_WINDOW = "OFF"`, restoring native parameters, because ASS styling structures conflict heavily with internal OSD plain-text override parsers.
+- **WHEN** track evaluation resolves an ASS-incompatible media context (`FSM.MEDIA_STATE` includes `ASS`)
+- **THEN** the system SHALL force `FSM.DRUM = "OFF"` and `FSM.DRUM_WINDOW = "OFF"` in the same transition cycle
+- **AND** it SHALL restore native subtitle visibility and position properties from FSM-owned desired state variables.
 
 ### Requirement: Autopause Coordination (AUTOPAUSE / SPACEBAR)
 The system SHALL manage subtitle-boundary pausing autonomously based on FSM state flags. To ensure the audible tail is fully preserved, the autopause trigger MUST evaluate the end-of-subtitle threshold against the index resolved by the Deterministic Focus Sentinel.
@@ -64,15 +65,26 @@ The system SHALL explicitly track modal interfaces that hijack default keyboard 
 
 #### Scenario: Search Mode Hijack
 - **WHEN** `FSM.SEARCH_MODE == true`
-- **THEN** it SHALL instantiate a dedicated input grabber, routing all character keystrokes away from native bindings into the Search Query buffer (`FSM.SEARCH_QUERY`).
-- **AND** the system SHALL render the `search_osd` overlay according to the visualization rules defined in the `search-system` spec.
+- **THEN** it SHALL instantiate a dedicated input grabber, routing all configured search-character bindings away from native bindings into the Search Query buffer (`FSM.SEARCH_QUERY`)
+- **AND** it SHALL render the `search_osd` overlay according to the visualization rules defined in the `search-system` spec
+- **AND** playback-altering hotkeys SHALL remain suppressed while the modal grabber is active, except explicit search actions bound to modal navigation/commit.
+
+#### Scenario: Search Enter commits selected result
+- **WHEN** `FSM.SEARCH_MODE == true` and the user presses the configured Enter key
+- **THEN** the system SHALL execute search-result commit behavior (seek to selected result and close or exit search mode)
+- **AND** it SHALL NOT invoke native non-search Enter behavior during that modal action.
 
 ### Requirement: European Character Search Support
-The Search Mode input grabber SHALL support the entry of German umlauts and the eszett character, along with their uppercase variants, by including them in the forced key binding whitelist.
+The Search Mode input grabber SHALL support the entry of German umlauts and the eszett character, along with their uppercase variants, by including them in the forced key binding whitelist and by removing those same bindings when search mode exits.
 
 #### Scenario: User types German characters in search field
-- **WHEN** FSM.SEARCH_MODE is true and the user presses 'ä', 'ö', 'ü', 'ß', 'Ä', 'Ö', 'Ü', or 'ẞ'
-- **THEN** THE OSD SHALL capture these characters, append them to FSM.SEARCH_QUERY, and update the search results dynamically.
+- **WHEN** `FSM.SEARCH_MODE` is true and the user presses `ä`, `ö`, `ü`, `ß`, `Ä`, `Ö`, `Ü`, or `ẞ`
+- **THEN** the OSD SHALL capture these characters, append them to `FSM.SEARCH_QUERY`, and update the search results dynamically.
+
+#### Scenario: Search mode exits cleanly
+- **WHEN** `FSM.SEARCH_MODE` transitions from true to false
+- **THEN** every forced binding created for search character input, including the German whitelist characters, SHALL be removed in the same lifecycle path
+- **AND** no search-character forced binding SHALL remain active after modal exit.
 
 ### Requirement: State-Driven Mode Management
 The system SHALL determine its active operating mode (MEDIA_STATE) by dynamically parsing the current `track-list` of the media player.
@@ -103,6 +115,11 @@ The system SHALL initialize the `IMMERSION_MODE` state at boot based on the user
 - **Boot Sequence**: The FSM SHALL evaluate the configuration after `read_options` but before the first media-ready event.
 - **Fallback**: If the configuration is missing or invalid, the system SHALL default to `PHRASE` mode.
 
+#### Scenario: Startup mode initialization from configuration
+- **WHEN** the script initializes and evaluates `immersion_mode_default`
+- **THEN** it SHALL set `FSM.IMMERSION_MODE` to the configured valid value (`PHRASE` or `MOVIE`)
+- **AND** it SHALL fall back to `PHRASE` when the value is missing or invalid.
+
 ### Requirement: Deterministic Focus Sentinel
 The system SHALL use a persistent sentinel (`FSM.ACTIVE_IDX`) to maintain focus on the current subtitle fragment, preventing "Magnetic Snapping" caused by temporal padding. To protect Jerk-Back logic in Phrase Mode and prevent audio clipping, the index resolution function (`get_center_index`) MUST follow a strict evaluation hierarchy:
 1. **Sentinel (Early Return)**: If the playhead is within the `[Start-Pad, End+Pad]` window of the current `FSM.ACTIVE_IDX`, return the current index immediately.
@@ -127,4 +144,32 @@ The system SHALL externalize all state transition thresholds to allow for hardwa
 #### Scenario: Overlap Precision
 - **WHEN** calculating transition points
 - **THEN** a tolerance defined by `Options.nav_tolerance` (Default: 0.05s) SHALL be applied to handle floating-point rounding errors.
+
+### Requirement: Esc Stage Contract Consistency
+The system SHALL keep a deterministic staged-Esc contract for Drum Window selection state and ensure documentation and runtime behavior remain aligned.
+
+#### Scenario: Esc peel-back order remains deterministic
+- **WHEN** the user triggers `cmd_dw_esc` with active selection state
+- **THEN** stage resolution SHALL peel back in order: Pink Set -> Yellow Range -> Yellow Pointer
+- **AND** each stage SHALL be independently idempotent so repeated Esc presses do not reintroduce cleared state.
+
+#### Scenario: No implicit window close in selection-stage Esc path
+- **WHEN** no staged selection state remains
+- **THEN** `cmd_dw_esc` SHALL not implicitly mutate unrelated window lifecycle state in the same command path unless explicitly specified by a separate requirement.
+
+### Requirement: DOCKED Positioning Neutrality by Layout Ownership
+In `DOCKED` mode, deterministic visual alignment SHALL be achieved by the dedicated DW layout/render pipeline owning final positioning decisions.
+
+#### Scenario: DOCKED rendering uses deterministic layout ownership
+- **WHEN** `FSM.DRUM_WINDOW == "DOCKED"`
+- **THEN** the visual stream SHALL be rendered through the DW layout pipeline with deterministic anchors and wrapping rules
+- **AND** positioning neutrality MAY be satisfied either by stripping conflicting positioning tags or by rendering paths that do not depend on source `\pos` / `\an` tags.
+
+### Requirement: Secondary Position Bounds via Configuration
+Secondary subtitle positioning transitions SHALL respect configured FSM bounds rather than hardcoded constants.
+
+#### Scenario: Cycling secondary subtitle position
+- **WHEN** `cycle-secondary-pos` is triggered
+- **THEN** the system SHALL toggle `secondary-sub-pos` between `Options.sec_pos_top` and `Options.sec_pos_bottom`
+- **AND** overlap avoidance SHALL be achieved by validated configuration defaults (for example `sec_pos_bottom = 90` relative to primary `95`), not by implicit runtime clamping.
 

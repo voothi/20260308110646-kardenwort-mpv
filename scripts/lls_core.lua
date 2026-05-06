@@ -5508,11 +5508,10 @@ local function cmd_dw_wheel_scroll(dir)
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
     
-    -- In Drum Window (DOCKED), we ALWAYS scroll (matches DW Mode W behavior).
-    -- In Drum Mode (OSD), we ONLY scroll if hovering over a subtitle line.
-    -- When not hovering, the forced binding has consumed the event; this is
-    -- acceptable since the wheel is only active while osd_interactivity is ON.
-    if line_idx or FSM.DRUM_WINDOW ~= "OFF" then
+    -- In Drum Window (DOCKED), ALWAYS scroll.
+    -- In Drum Mode (OSD), also ALWAYS scroll to match DW field behavior
+    -- (not only when hovering exact subtitle hit-zones).
+    if FSM.DRUM_WINDOW ~= "OFF" or FSM.DRUM == "ON" or line_idx then
         cmd_dw_scroll(dir)
     end
 end

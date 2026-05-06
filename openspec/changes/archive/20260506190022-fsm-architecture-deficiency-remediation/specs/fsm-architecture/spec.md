@@ -34,13 +34,15 @@ The Search Mode input grabber SHALL support the entry of German umlauts and the 
 - **THEN** every forced binding created for search character input, including the German whitelist characters, SHALL be removed in the same lifecycle path
 - **AND** no search-character forced binding SHALL remain active after modal exit.
 
-### Requirement: Secondary Position Bounds via Configuration
-Secondary subtitle positioning transitions SHALL respect configured FSM bounds rather than hardcoded constants.
+### Requirement: Deterministic Startup State
+The system SHALL initialize the `IMMERSION_MODE` state at boot based on the user-defined `immersion_mode_default` parameter to ensure a consistent startup experience.
+- **Boot Sequence**: The FSM SHALL evaluate the configuration after `read_options` but before the first media-ready event.
+- **Fallback**: If the configuration is missing or invalid, the system SHALL default to `PHRASE` mode.
 
-#### Scenario: Cycling secondary subtitle position
-- **WHEN** `cycle-secondary-pos` is triggered
-- **THEN** the system SHALL toggle `secondary-sub-pos` between `Options.sec_pos_top` and `Options.sec_pos_bottom`
-- **AND** overlap avoidance SHALL be achieved by validated configuration defaults (for example `sec_pos_bottom = 90` relative to primary `95`), not by implicit runtime clamping.
+#### Scenario: Startup mode initialization from configuration
+- **WHEN** the script initializes and evaluates `immersion_mode_default`
+- **THEN** it SHALL set `FSM.IMMERSION_MODE` to the configured valid value (`PHRASE` or `MOVIE`)
+- **AND** it SHALL fall back to `PHRASE` when the value is missing or invalid.
 
 ## ADDED Requirements
 
@@ -63,3 +65,11 @@ In `DOCKED` mode, deterministic visual alignment SHALL be achieved by the dedica
 - **WHEN** `FSM.DRUM_WINDOW == "DOCKED"`
 - **THEN** the visual stream SHALL be rendered through the DW layout pipeline with deterministic anchors and wrapping rules
 - **AND** positioning neutrality MAY be satisfied either by stripping conflicting positioning tags or by rendering paths that do not depend on source `\pos` / `\an` tags.
+
+### Requirement: Secondary Position Bounds via Configuration
+Secondary subtitle positioning transitions SHALL respect configured FSM bounds rather than hardcoded constants.
+
+#### Scenario: Cycling secondary subtitle position
+- **WHEN** `cycle-secondary-pos` is triggered
+- **THEN** the system SHALL toggle `secondary-sub-pos` between `Options.sec_pos_top` and `Options.sec_pos_bottom`
+- **AND** overlap avoidance SHALL be achieved by validated configuration defaults (for example `sec_pos_bottom = 90` relative to primary `95`), not by implicit runtime clamping.

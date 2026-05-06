@@ -1569,13 +1569,9 @@
 20260506192213 Regression verdict vs v1.58.50 I do not see a new hard regression in core FSM invariants you asked about (sentinel indexing, autopause/spacebar guard, interaction shield, cyclic navigation, Esc tier order, search German character capture). The previously found gaps from the anchor review are now addressed in code.
 20260506192243 If you want, I can now produce a strict requirement-by-requirement PASS/PARTIAL/FAIL matrix for all 22 verification points in state-diagram.md. - Accept.
 20260506192519 If you want, I can turn this into an OpenSpec delta patch (only for points 4/13/17/20) so the spec and implementation become formally consistent. - Accept.
-
-
-
-
-
-
-
+20260506192758 Okay, what can you say about the compliance of the code and the rest of all general specifications in openspec\specs? 20260506192858 I also need Openspec Archive Change openspec\changes\20260506190022-fsm-architecture-deficiency-remediation
+20260506193806 High-level compliance view (independent from the just-completed FSM change): FSM area: now substantially aligned after our remediation; remaining differences are mostly interpretation-level (search hijack semantics wording, config-bound secondary positioning wording, DOCKED neutrality wording), which we already captured in delta spec updates. All other openspec/specs/* globally: I can’t honestly claim full compliance without a full-capability audit pass (there are many specs, and two active in-progress changes still open). Confidence statement: current code appears partially compliant overall, with high confidence in the FSM subset and unknown/uneven compliance in non-FSM capabilities until we run a systematic matrix per capability.
+20260506193907 Scrolling in drum mode works within the text, and not the field as in dw.
 
 
 
