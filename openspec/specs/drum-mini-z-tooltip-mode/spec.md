@@ -1,5 +1,8 @@
-## ADDED Requirements
+# drum-mini-z-tooltip-mode Specification
 
+## Purpose
+TBD - created by archiving change 20260506195038-drum-mode-tooltip-key-parity. Update Purpose after archive.
+## Requirements
 ### Requirement: Drum Mini z Tooltip Activation
 The system SHALL provide tooltip interaction on the primary subtitle surface while Drum Mode is active, enabling a compact mini z-reel workflow without opening Drum Window.
 
@@ -14,3 +17,4 @@ The Drum mini z tooltip workflow SHALL NOT require or modify Book Mode behavior.
 #### Scenario: Book Mode remains unchanged
 - **WHEN** Book Mode is enabled in Drum Window workflows
 - **THEN** Drum mini z tooltip requirements SHALL not alter Book Mode key routing, selection semantics, or copy behavior.
+

@@ -1,5 +1,6 @@
-## ADDED Requirements
-
+## Purpose
+Define deterministic subtitle rendering behavior across SRT, Drum, and Drum Window tooltip paths, including visibility control, wrapping, hit-testing, and pointer/highlight continuity.
+## Requirements
 ### Requirement: Unified Mode Styling (SRT & Drum)
 The system SHALL provide explicit, synchronized configuration parameters for font selection and weight across standard SRT and Drum (c) rendering modes.
 
@@ -27,6 +28,11 @@ The system SHALL ensure that subtitle centering logic (e.g., `get_center_index`)
 - **Deduplication**: There SHALL be only a single, globally-accessible implementation of the centering logic to prevent shadowing or redundant linear evaluations.
 - **Impact**: This ensures stable CPU usage and low latency even on extremely large subtitle tracks (>5000 lines).
 
+#### Scenario: Large track centering remains performant
+- **WHEN** subtitle centering is evaluated on a large track
+- **THEN** the system SHALL resolve the active/center index using the shared logarithmic-time implementation
+- **AND** it SHALL avoid redundant linear scans in parallel code paths.
+
 ### Requirement: Precision-Aware Active Highlighting
 The system SHALL ensure that the "active" subtitle (highlighted in white) remains consistently highlighted even during precise navigation or seek operations where the player position might land slightly outside the nominal `[start_time, end_time]` range (e.g., in the temporal gap between two subtitles).
 - **Nearest-Neighbor Grounding**: If the current player timestamp falls into a gap between two subtitles, the centering logic MUST identify and return the index of the subtitle whose temporal boundary (start or end) is nearest to the player position.
@@ -47,7 +53,6 @@ The system SHALL maintain the visibility and logical anchoring of the word point
 - **WHEN** the Drum Window (Mode W) is OFF and Drum Mode (Mode C) is OFF (Regular SRT mode).
 - **IF** `FSM.DW_CURSOR_WORD` is not -1.
 - **THEN** the active primary subtitle SHALL render with a yellow highlight on the specified word.
-
 
 ### Requirement: Sliding-Window Boundary Filling
 The system SHALL maintain a full range of visible context subtitles even when the active subtitle is near the start or end of the track, provided sufficient subtitles exist in the track.
@@ -96,7 +101,6 @@ The system SHALL prioritize the presentation of persistent multi-word selections
 - **WHEN** the user hovers the mouse over one of these words or includes it in a standard selection range (LMB drag)
 - **THEN** THE OSD SHALL continue to display the word using `dw_ctrl_select_color` instead of overriding it with `dw_highlight_color` (vibrant yellow).
 
-
 ### Requirement: Smart Punctuation Rendering
 The Drum Mode display SHALL correctly render punctuation when `dw_original_spacing` is disabled.
 
@@ -104,7 +108,6 @@ The Drum Mode display SHALL correctly render punctuation when `dw_original_spaci
 - **WHEN** `dw_original_spacing` is OFF
 - **THEN** the `draw_drum` logic SHALL use the central `compose_term_smart` service to reconstruct the visible subtitle lines.
 - **AND** it SHALL correctly join punctuation tokens to their preceding word tokens according to the UPSR rules.
-
 
 ### Requirement: Character-Based Word Boundaries
 All word-width calculations for hit-testing and selection highlights SHALL use character-aware iteration.
@@ -167,3 +170,31 @@ The gap inserted between two adjacent rendered subtitles in the OSD block SHALL 
 
 ### Requirement: Forced Line Breaks
 The rendering engine SHALL respect explicit newline characters (`\n`) in the source subtitle file as forced line breaks, regardless of current line width.
+
+#### Scenario: Explicit newline is preserved
+- **WHEN** a subtitle line contains an explicit `\n` in source text
+- **THEN** the renderer SHALL preserve that explicit break as a forced visual line boundary
+- **AND** it SHALL not collapse that break due to width heuristics.
+
+### Requirement: Drum Primary Tooltip Rendering
+Subtitle rendering SHALL support tooltip extraction from Drum Mode primary subtitle hit-zones on the bottom subtitle stream.
+
+#### Scenario: Tooltip extraction from primary hit-zone
+- **WHEN** a Drum tooltip action targets a word in the active primary subtitle line
+- **THEN** the renderer SHALL map the pointer to the corresponding token
+- **AND** it SHALL render tooltip text derived from that token via the tooltip overlay.
+
+### Requirement: Visibility-Safe Tooltip Rendering
+Drum Mode tooltip rendering SHALL obey effective subtitle visibility and media compatibility guards.
+
+#### Scenario: Global subtitles disabled
+- **WHEN** effective subtitle visibility is disabled by global toggle state
+- **THEN** Drum tooltip overlay SHALL not render
+- **AND** any existing tooltip overlay buffer SHALL be cleared.
+
+#### Scenario: Secondary subtitle toggle does not suppress tooltip anchor 20260506200831
+- **WHEN** the user toggles secondary subtitles via `Shift+C` so the secondary subtitle track becomes hidden or `OFF`
+- **AND** Drum Mode primary subtitle tooltip rendering is otherwise eligible
+- **THEN** the tooltip overlay SHALL remain available for primary subtitle interactions
+- **AND** tooltip content resolution SHALL NOT depend on current secondary subtitle visibility state.
+
