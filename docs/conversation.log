@@ -1519,7 +1519,7 @@
 20260506090607 # In the Context Copy ON mode, it is necessary that if there is an active selection or just a yellow cursor, this selection is copied, and not the subtitle text with context, and if there is no selection, then all this text is copied. ## Description Such a priority so that I can regulate this Esc.
 20260506095324 Is this code too complicated? The cyclic complexity is high, can it be done on FSM? lls_core.lua#L7202-7221
 20260506100953 Check again that the refactoring was performed correctly, that it works in drum, dw, srt, tooltip modes.
-
+20260506101829 opsx-archive --sync 20260506090626-prioritize-selection-context-copy, opsx-archive --sync 20260506095404-simplify-selection-logic if everything is ready for this.
 
 
 

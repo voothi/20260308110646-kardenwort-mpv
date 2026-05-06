@@ -10,12 +10,17 @@ The FSM will now explicitly track the sorted state of the Pink Set.
 ```mermaid
 graph TD
     A[Input: Toggle Word] --> B[Update FSM.DW_CTRL_PENDING_SET Map]
-    B --> C[Call sync_ctrl_pending_list]
-    C --> D[Iterate Map]
-    D --> E[Collect into List]
-    E --> F[Sort List by Document Order]
-    F --> G[Update FSM.DW_CTRL_PENDING_LIST]
+    B --> C{no_sync flag?}
+    C -- No --> D[Call sync_ctrl_pending_list]
+    D --> E[Iterate Map]
+    E --> F[Collect into List]
+    F --> G[Sort List by Document Order]
+    G --> H[Update FSM.DW_CTRL_PENDING_LIST]
+    C -- Yes --> I[Skip Sync]
 ```
+
+### Batch Optimization
+For operations that modify many words at once (e.g., `cmd_dw_toggle_pink`), `ctrl_toggle_word` is called with a `no_sync` flag to prevent redundant sorting and OSD updates. A single synchronization is performed after the batch is complete.
 
 ### Simplified Copy Priority
 ```lua
