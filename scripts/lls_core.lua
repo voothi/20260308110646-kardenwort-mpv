@@ -577,6 +577,8 @@ local FSM = {
     DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
+    DW_TOOLTIP_SEC_SUBS = {},   -- Cached secondary subtitles for tooltip fallback when secondary track is hidden
+    DW_TOOLTIP_SEC_PATH = nil,  -- Source path for DW_TOOLTIP_SEC_SUBS
     DW_SEEKING_MANUALLY = false,
     DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
@@ -3070,7 +3072,13 @@ local function update_media_state()
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         FSM.DW_LAYOUT_CACHE = nil
     end
-    if Tracks.sec.path ~= old_sec_path then Tracks.sec.subs = {} end
+    if Tracks.sec.path ~= old_sec_path then
+        if old_sec_path and Tracks.sec.subs and #Tracks.sec.subs > 0 then
+            FSM.DW_TOOLTIP_SEC_SUBS = Tracks.sec.subs
+            FSM.DW_TOOLTIP_SEC_PATH = old_sec_path
+        end
+        Tracks.sec.subs = {}
+    end
 
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -3078,6 +3086,10 @@ local function update_media_state()
     end
     if Tracks.sec.path and #Tracks.sec.subs == 0 then
         Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
+        if Tracks.sec.subs and #Tracks.sec.subs > 0 then
+            FSM.DW_TOOLTIP_SEC_SUBS = Tracks.sec.subs
+            FSM.DW_TOOLTIP_SEC_PATH = Tracks.sec.path
+        end
     end
 
     flush_rendering_caches()
@@ -3882,7 +3894,8 @@ local function draw_dw(subs, view_center, active_idx)
 end
 
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
-    if target_line_idx == -1 or not Tracks.sec.subs or #Tracks.sec.subs == 0 then return "" end
+    local tooltip_sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
+    if target_line_idx == -1 or not tooltip_sec_subs or #tooltip_sec_subs == 0 then return "" end
     
     -- Cache check (Task 1.3)
     if DW_TOOLTIP_DRAW_CACHE.target_idx == target_line_idx and 
@@ -3905,11 +3918,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
-    local center_idx = get_center_index(Tracks.sec.subs, midpoint)
+    local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end
     
     local start_idx = math.max(1, center_idx - Options.tooltip_context_lines)
-    local end_idx = math.min(#Tracks.sec.subs, center_idx + Options.tooltip_context_lines)
+    local end_idx = math.min(#tooltip_sec_subs, center_idx + Options.tooltip_context_lines)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local fs = Options.tooltip_font_size
@@ -3922,7 +3935,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local subtitle_metas = {} -- Storage for hit-zone calculation
     
     for i = start_idx, end_idx do
-        local sub = Tracks.sec.subs[i]
+        local sub = tooltip_sec_subs[i]
         local tokens = get_sub_tokens(sub, true) -- Task 2.1
         
         -- Task 2.2 / 2.4: Wrap tokens
@@ -3941,7 +3954,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         
         -- Inject highlights (respecting secondary track toggle)
         local force_plain = not Options.dw_sec_highlighting
-        local token_meta = populate_token_meta(Tracks.sec.subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
+        local token_meta = populate_token_meta(tooltip_sec_subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
         
         local sub_visual_lines = {}
         local visual_lines_meta = {}
