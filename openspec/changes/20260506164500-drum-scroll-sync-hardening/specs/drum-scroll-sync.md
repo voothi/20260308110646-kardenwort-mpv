@@ -3,6 +3,12 @@
 ### Requirement: Dual-Lane Drum Scroll Synchronization
 When manual drum scrolling is active, lower and upper subtitle lanes SHALL move in synchronized viewport context.
 
+#### Scenario: Primary-only scroll behavior
+- **GIVEN** only primary subtitles are active
+- **WHEN** the user scrolls in drum mode
+- **THEN** the viewport SHALL scroll relative to the active primary index
+- **AND** manual scroll state SHALL remain stable until explicit follow-player reset.
+
 #### Scenario: Dual-track synchronized scroll
 - **GIVEN** primary and secondary subtitle tracks are both active
 - **AND** manual viewport mode is active (`DW_FOLLOW_PLAYER == false`)
@@ -41,3 +47,15 @@ Manual drum scrolling SHALL NOT change autopause transition semantics.
 - **WHEN** the user performs only manual viewport scrolling (no seek, no play/pause toggle)
 - **THEN** autopause transition state SHALL remain unchanged except for normal time-driven progression
 - **AND** no synthetic seek or boundary transition SHALL be introduced by scroll handling.
+
+### Requirement: Regression Baseline Against 4c634ed
+The change SHALL be validated against baseline commit `4c634ed422844c475293dac07bad7d149e9f9df8` to prevent drum-scroll and FSM regressions.
+
+#### Scenario: Regression checklist execution
+- **WHEN** validating this change
+- **THEN** the following checklist SHALL be executed and recorded:
+- `tick_drum` still separates `view_center` and `active_idx` semantics.
+- Wheel routing behavior outside hit zones matches the documented policy.
+- Dual-track manual scrolling keeps equivalent logical offset between lanes.
+- Primary-only and secondary-only fallback scenarios both work as specified.
+- Scroll-only interactions do not alter autopause transitions in `MOVIE` or `PHRASE`.
