@@ -5,8 +5,8 @@ from tests.ipc.mpv_session import MpvSession
 @pytest.fixture
 def mpv():
     session = MpvSession(
-        video='tests/fixtures/20260502165659-test-fixture.mp4',
-        subtitle='tests/fixtures/20260502165659-test-fixture.en.srt',
+        video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
+        subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
     )
     session.start()
     yield session
@@ -21,9 +21,9 @@ def mpv_dual():
     an overlap zone that previously caused the secondary track to desync by one index.
     """
     session = MpvSession(
-        video='tests/fixtures/20260502165659-test-fixture.mp4',
-        subtitle='tests/fixtures/20260507161504-sync-test.en.srt',
-        secondary_subtitle='tests/fixtures/20260507161504-sync-test.ru.srt',
+        video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
+        subtitle='tests/fixtures/20260507161504-sync-test/20260507161504-sync-test.en.srt',
+        secondary_subtitle='tests/fixtures/20260507161504-sync-test/20260507161504-sync-test.ru.srt',
         extra_args=['--pause'],
     )
     session.start()
@@ -45,9 +45,9 @@ def mpv_fragment1():
       5: 15.716 → 20.049
     """
     session = MpvSession(
-        video='tests/fixtures/20260507164826-fragment1.mp4',
-        subtitle='tests/fixtures/20260507164826-fragment1.de.srt',
-        secondary_subtitle='tests/fixtures/20260507164826-fragment1.ru.srt',
+        video='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.mp4',
+        subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.de.srt',
+        secondary_subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.ru.srt',
         extra_args=['--pause'],
     )
     session.start()
@@ -70,9 +70,9 @@ def mpv_fragment2():
       6: 14.421 → 18.620
     """
     session = MpvSession(
-        video='tests/fixtures/20260507164826-fragment2.mp4',
-        subtitle='tests/fixtures/20260507164826-fragment2.de.srt',
-        secondary_subtitle='tests/fixtures/20260507164826-fragment2.ru.srt',
+        video='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.mp4',
+        subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.de.srt',
+        secondary_subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.ru.srt',
         extra_args=['--pause'],
     )
     session.start()
