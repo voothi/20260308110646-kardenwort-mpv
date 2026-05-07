@@ -88,6 +88,13 @@ The visual highlighting system SHALL support non-contiguous subset matching for 
 - **AND** intermediate generic words (e.g. "die") occur multiple times within the same context
 - **THEN** the system SHALL calculate the shortest sequential span of the term's elements matching their original order, restricting the highlight strictly to those valid subsets and preventing false coloration on earlier or unrelated instances of those words (e.g. "die Geräte").
 
+#### Scenario: Phrase highlighting is order-invariant across the candidate set
+- **WHEN** a word position is matched by both a multi-word phrase record AND one or more single-word records in the TSV candidate set
+- **THEN** the `has_phrase` flag for that word MUST be `true`
+- **AND** the word MUST receive full-word (Phrase Continuity Mode) backlight styling
+- **REGARDLESS** of the order in which those records appear in the TSV file
+- **NOTE** `has_phrase` is a monotone accumulator: once any matched term is multi-word, the flag stays true for the entire candidate evaluation pass.
+
 #### Scenario: Split phrase synchronization across wide clusters
 - **WHEN** a split multi-word term bridges an extremely long span of dialogue over many subtitle events (e.g. "Beruf ... da")
 - **THEN** the system SHALL securely scan a configurable window of surrounding subtitle chunks (default `+/- 35 lines`) to capture scattered components.
