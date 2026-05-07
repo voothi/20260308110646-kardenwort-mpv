@@ -12,7 +12,8 @@
       "Bash(powershell -command \"Select-String -Path 'scripts\\\\lls_core.lua' -Pattern 'cmd_dw_seek_delta' | Select-Object -First 10\")",
       "Bash(powershell -command \"Select-String -Path 'scripts\\\\lls_core.lua' -Pattern 'update_interactive_bindings' | Select-Object LineNumber, Line\")",
       "Bash(powershell -command \"Select-String -Path 'scripts\\\\lls_core.lua' -Pattern 'osd_interactivity' | Select-Object LineNumber, Line | Select-Object -First 5\")",
-      "Bash(Select-Object -First 10)"
+      "Bash(Select-Object -First 10)",
+      "Bash(Get-ChildItem \"u:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\node_modules\\\\.bin\" -Filter \"openspec*\")"
     ]
   }
 }
