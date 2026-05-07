@@ -1,23 +1,24 @@
-129
-00:07:07,930 --> 00:07:09,062
+1
+00:00:00,661 --> 00:00:01,793
 Man hat Bewegung.
 
-130
-00:07:09,430 --> 00:07:13,297
+2
+00:00:02,161 --> 00:00:06,028
 So spaßt ja auch das Geld und die Zeit fürs Fitnessstudio.
 
-131
-00:07:13,389 --> 00:07:16,140
+3
+00:00:06,120 --> 00:00:08,871
 Es sind pro Stunde um die 800 Sendungen,
 
-132
-00:07:16,180 --> 00:07:18,505
+4
+00:00:08,911 --> 00:00:11,236
 800 bis 1.000, die wir auflegen.
 
-133
-00:07:19,670 --> 00:07:21,650
+5
+00:00:12,401 --> 00:00:14,381
 Ein Paket wiegt durchschnittlich fünf Kilo.
 
-134
-00:07:21,690 --> 00:07:25,889
+6
+00:00:14,421 --> 00:00:18,620
 Wir bewegen uns schon im Bereich von Tonnen.
+

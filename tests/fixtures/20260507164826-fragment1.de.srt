@@ -1,19 +1,20 @@
-101
-00:05:46,639 --> 00:05:47,639
+1
+00:00:04,295 --> 00:00:05,295
 Nee.
 
-102
-00:05:48,899 --> 00:05:53,432
+2
+00:00:06,555 --> 00:00:11,088
 Manchmal hat man das Gefühl, die haben es extra auf einen abgesehen.
 
-103
-00:05:53,519 --> 00:05:55,066
+3
+00:00:11,175 --> 00:00:12,722
 Bedeutet in einer Gegend wie hier,
 
-104
-00:05:55,106 --> 00:05:57,461
+4
+00:00:12,762 --> 00:00:15,117
 dass man eigentlich gar keine Wahl hat manchmal.
 
-105
-00:05:58,060 --> 00:06:02,393
+5
+00:00:15,716 --> 00:00:20,049
 Sonst komm ich am Ende des Tages mit allen Paketen wieder zurück.
+

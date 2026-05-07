@@ -1638,6 +1638,5 @@
 20260507172419 The issue is that dw-seek-next-1 binding doesn't move time-pos in the paused --vo=null --ao=null environment. Let me look at what cmd_dw_seek_delta actually does to understand why — and whether there's a way to test the sentinel sync directly.
 20260507174459 You've hit your limit
 20260507195342 All 11 tests pass. Here's the summary of the current unstaged changes: scripts/lls_core.lua — 4 additions: cmd_dw_double_click(): mirrors ACTIVE_IDX assignment to SEC_ACTIVE_IDX cmd_dw_seek_selected(): same for Enter/click-seek in DW cmd_dw_seek_delta(): same for d/a navigation — the main Bug 2 fix cmd_seek_with_repeat(): new "press" event branch — this was the root cause of the failing test; script-binding sends "press" for complex bindings, which the "down"/"up" handler silently ignored, so cmd_dw_seek_delta never ran tests/acceptance/test_subtitle_sync.py — header rewritten to document both failure modes + new test_navigation_seek_syncs_both_sentinels test added The previous commits (76c81f9, 546fa21) already contain: FSM.SEC_ACTIVE_IDX sentinel initialization, get_center_index() secondary extension, master_tick() maintenance, LlsProbe._snapshot() field, _probe_seq counter, fixtures, conftest, mpv_session.py dual-subtitle support.
-
-
+20260507210458 Updated the files, added videos, cuts, with subtitles, use this in tests. We will build our future tests on these instances. 
 
