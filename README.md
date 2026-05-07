@@ -55,7 +55,7 @@ The Kardenwort MPV suite provides two primary interfaces for language acquisitio
 | ![Drum Mode 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dm.png) | ![Drum Window 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dw.png) |
 | *High-speed playback with synchronized historical and future subtitle context.* | *Stationary "Book Mode" for precise word selection, dictionary lookups, and mining.* |
 | ![Drum Mode 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dm.png) | ![Drum Window 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.png) |
-| *Optimized for "Shadowing" and "Listening" intensive immersion phases.* | *Surgical highlighting (Amber/Pink) synchronized with your Anki/TSV database.* |
+| *Optimized for "Shadowing" and "Listening" intensive immersion phases.* | *Surgical highlighting (Gold/Pink) synchronized with your Anki/TSV database.* |
 
 [Return to Top](#table-of-contents)
 
@@ -93,7 +93,7 @@ This suite solves problems that standard video players and generic scripts ignor
 7.  <span id="positional-flexibility">**Positional Flexibility**</span>: Fine-grained vertical adjustment for both primary and secondary tracks. Manually resolve overlaps and tune your visual field without touching a configuration file.
 8.  **Universal Fuzzy Search**: Instantly look up vocabulary and phrases across the entire subtitle file with an independent, non-intrusive overlay. Supports clipboard pasting and direct mouse selection.
 9.  **Hardware-Accelerated Mouse Selection**: Click-and-drag text selection inside the Drum Window tracks your cursor at 60fps using native `mouse_move` hardware events.
-10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Amber/Purple/Mixed) across the entire session. Implements **Multi-Pivot Grounding** (`Line:Word:TermPos`) to mathematically eliminate highlight bleed.
+10. **Intelligent Anki Integration**: Save vocabulary with a single click. High-recall matching ensures your saved words stay highlighted (Gold/Purple/Mixed) across the entire session. Implements **Multi-Pivot Grounding** (`Line:Word:TermPos`) to mathematically eliminate highlight bleed.
 11. **Contextual Tooltips**: Peek at translations instantly via keyboard (`e`) or Right-Click (`RMB`) in the reading window. Supports **full bidirectional synchronization** of Yellow/Pink highlights.
 12. **Scanner-Based Precision**: A robust state-machine parser handles complex German boundaries and protects "Original Form" subtitle spacing.
 13. **Smart Stacking Engine**: Unified layout coordination for dual-track subtitles that restores manual positioning control while preventing visual overlap by default.
@@ -254,7 +254,7 @@ komm ... zurück	komm ... zurück	Sonst komm ich am Ende des Tages mit allen Pak
 man	man	dass man eigentlich gar keine Wahl hat manchmal.	https://www.youtube.com/watch?v=m6j8cGiBEZQ
 ```
 
-These records are automatically parsed to generate the colored highlights (Amber/Purple/Mixed) seen in the [Visual Showcase](#visual-showcase).
+These records are automatically parsed to generate the colored highlights (Gold/Purple/Mixed) seen in the [Visual Showcase](#visual-showcase).
 
 [Return to Top](#table-of-contents)
 
