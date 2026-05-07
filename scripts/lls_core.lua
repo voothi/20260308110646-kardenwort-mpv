@@ -7787,7 +7787,8 @@ function LlsProbe._snapshot()
         autopause          = FSM.AUTOPAUSE,
         drum_mode          = FSM.DRUM,
         drum_window        = FSM.DRUM_WINDOW,
-        active_sub_index   = FSM.ACTIVE_IDX,
+        active_sub_index     = FSM.ACTIVE_IDX,
+        sec_active_sub_index = FSM.SEC_ACTIVE_IDX,
         playback_state     = FSM.MEDIA_STATE,
         dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
@@ -7798,8 +7799,12 @@ function LlsProbe._snapshot()
     }
 end
 
+local _probe_seq = 0
 mp.register_script_message("lls-state-query", function()
-    mp.set_property("user-data/lls/state", utils.format_json(LlsProbe._snapshot()))
+    _probe_seq = _probe_seq + 1
+    local snap = LlsProbe._snapshot()
+    snap._seq = _probe_seq
+    mp.set_property("user-data/lls/state", utils.format_json(snap))
 end)
 
 mp.register_script_message("lls-render-query", function(overlay_name)

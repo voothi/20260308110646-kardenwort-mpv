@@ -4,12 +4,15 @@ import uuid
 
 
 class MpvSession:
-    def __init__(self, video, subtitle=None, ipc_path=None):
-        self.video    = video
-        self.subtitle = subtitle
-        self.ipc_path = ipc_path or (default_ipc_path() + '-' + uuid.uuid4().hex[:8])
-        self.ipc      = MpvIpc(self.ipc_path)
-        self._proc    = None
+    def __init__(self, video, subtitle=None, secondary_subtitle=None,
+                 extra_args=None, ipc_path=None):
+        self.video               = video
+        self.subtitle            = subtitle
+        self.secondary_subtitle  = secondary_subtitle
+        self.extra_args          = extra_args or []
+        self.ipc_path            = ipc_path or (default_ipc_path() + '-' + uuid.uuid4().hex[:8])
+        self.ipc                 = MpvIpc(self.ipc_path)
+        self._proc               = None
 
     def start(self):
         cmd = [
@@ -20,6 +23,11 @@ class MpvSession:
         ]
         if self.subtitle:
             cmd.append(f'--sub-file={os.path.abspath(self.subtitle)}')
+        if self.secondary_subtitle:
+            cmd.append(f'--sub-file={os.path.abspath(self.secondary_subtitle)}')
+            cmd.append('--sid=1')
+            cmd.append('--secondary-sid=2')
+        cmd.extend(self.extra_args)
 
         log_path = os.path.join(os.getcwd(), 'tests', 'mpv_last_run.log')
         with open(log_path, 'w') as f:
