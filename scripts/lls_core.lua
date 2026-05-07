@@ -5046,6 +5046,7 @@ local function cmd_dw_double_click()
         -- [v1.58.51] Intentional Focus Handover
         FSM.IGNORE_NEXT_JUMP = true
         FSM.ACTIVE_IDX = line_idx
+        if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(line_idx, #Tracks.sec.subs) end
         FSM.JUST_JERKED_TO = -1
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
@@ -6088,6 +6089,7 @@ local function cmd_dw_seek_selected()
             -- [v1.58.51] Intentional Focus Handover
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
+            if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(FSM.DW_CURSOR_LINE, #Tracks.sec.subs) end
             FSM.JUST_JERKED_TO = -1
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
@@ -6144,6 +6146,7 @@ local function cmd_dw_seek_delta(dir)
         local s, _ = get_effective_boundaries(sub, target_idx)
         mp.commandv("seek", math.max(0, s), "absolute+exact")
         FSM.ACTIVE_IDX = target_idx
+        if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(target_idx, #Tracks.sec.subs) end
         FSM.last_paused_sub_end = nil
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -6222,11 +6225,14 @@ local function cmd_seek_with_repeat(dir, table)
         return 
     end
 
-    if table.event == "down" then
+    if table.event == "press" then
+        -- Synthetic event from script-binding or input.conf trigger (no down/up pair).
+        cmd_dw_seek_delta(dir)
+    elseif table.event == "down" then
         -- Initial press
         FSM.DW_SEEKING_MANUALLY = true
         cmd_dw_seek_delta(dir)
-        
+
         -- Setup repeat timer
         if FSM.SEEK_REPEAT_TIMER then FSM.SEEK_REPEAT_TIMER:kill() end
         FSM.SEEK_REPEAT_TIMER = mp.add_timeout(Options.seek_hold_delay, function()
