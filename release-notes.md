@@ -1,3 +1,16 @@
+# Release Notes - v1.60.2 (Deterministic Phrase Highlighting)
+
+**Date**: 2026-05-07
+**Version**: v1.60.2
+**Implementation ZIDs**: 20260507231329
+
+## Highlights
+
+### 📋 **Anki Highlighting & Phrase Detection**
+- **Order-Independent Phrase Detection**: Fixed a critical logic error in the `has_phrase` flag derivation. Highlighting now correctly identifies multi-word phrase matches regardless of their position in the TSV database. Previously, single-word matches could "overwrite" the phrase state if they appeared later in the record set, causing inconsistent surgical backlighting.
+
+---
+
 # Release Notes - v1.60.0 (FSM Stabilization & Spec-Driven Testing)
 
 **Date**: 2026-05-07

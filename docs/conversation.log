@@ -1652,6 +1652,7 @@
 20260507230013 Root cause: has_phrase was being unconditionally overwritten on every matched term, so the last record processed in the candidate loop determined whether the backlight used full vs. surgical highlighting — making it TSV-order dependent. Fix: has_phrase = has_phrase or (#term_clean > 1) — now it's a monotone flag: once any multi-word term matches, has_phrase stays true regardless of what single-word terms match afterward.
 20260507230409 Okay, now as the chief spec architect, make /opsx:propose, do /opsx:apply, do /opsx:archive --sync to commit the specs.
 20260507231042 Archived to: openspec/changes/archive/20260507230551-fix-has-phrase-order-dependency/
+20260507231228 create-release-2 v1.60.2 openspec/changes/archive/20260507230551-fix-has-phrase-order-dependency Initiating Release Preparation I'm focusing on crafting a release (v1.60.2) informed by the archived OpenSpec change, specifically openspec/changes/archive/20260507230551-fix-has-phrase-order-dependency. Currently, I'm working to initiate this process using the /create-release-2 endpoint. I'm exploring the implications of the identified fix for the overall release scope.
 
 
 
