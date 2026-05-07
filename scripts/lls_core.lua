@@ -7796,6 +7796,9 @@ function LlsProbe._snapshot()
         copy_mode          = FSM.COPY_MODE,
         loop_mode          = FSM.LOOP_MODE,
         book_mode          = FSM.BOOK_MODE,
+        native_sub_vis     = FSM.native_sub_vis,
+        native_sec_sub_vis = FSM.native_sec_sub_vis,
+        native_sec_sub_pos = FSM.native_sec_sub_pos,
     }
 end
 
@@ -7817,4 +7820,43 @@ mp.register_script_message("lls-render-query", function(overlay_name)
     }
     local osd = map[overlay_name]
     mp.set_property("user-data/lls/render", (osd and osd.data) or "")
+end)
+
+-- Test Instrumentation
+mp.register_script_message("lls-immersion-mode-set", function(mode)
+    if mode == "MOVIE" or mode == "PHRASE" then
+        FSM.IMMERSION_MODE = mode
+        master_tick()
+    end
+end)
+
+mp.register_script_message("lls-autopause-set", function(state)
+    if state == "ON" or state == "OFF" then
+        FSM.AUTOPAUSE = state
+    end
+end)
+
+mp.register_script_message("lls-adjust-sec-sub-pos", function(val)
+    cmd_adjust_sec_sub_pos(tonumber(val))
+end)
+
+mp.register_script_message("lls-native-sec-sub-pos-set", function(val)
+    local n = tonumber(val)
+    if n then
+        FSM.native_sec_sub_pos = n
+        mp.set_property_number("secondary-sub-pos", n)
+    end
+end)
+
+mp.register_script_message("lls-toggle-sub-vis", function()
+    cmd_toggle_sub_vis()
+end)
+
+mp.register_script_message("lls-drum-window-toggle", function()
+    cmd_toggle_drum_window()
+end)
+
+mp.register_script_message("lls-test-bind-seek", function()
+    mp.add_forced_key_binding("KP0", "lls-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
+    mp.add_forced_key_binding("KP1", "lls-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
 end)
