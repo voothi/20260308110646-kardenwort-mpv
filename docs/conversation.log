@@ -1648,9 +1648,8 @@
 20260507221917 /opsx:apply  openspec\changes\20260507163304-acceptance-tests-for-archived-changes
 20260507222219 /opsx:archive 20260507163304-acceptance-tests-for-archived-changes
 20260507222324 Sync
-
-
-
+20260507225320 # Bug with backlighting, why does the backlight change depending on the order of records in the TSV file? ## Description - tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.tsv
+20260507230013 Root cause: has_phrase was being unconditionally overwritten on every matched term, so the last record processed in the candidate loop determined whether the backlight used full vs. surgical highlighting — making it TSV-order dependent. Fix: has_phrase = has_phrase or (#term_clean > 1) — now it's a monotone flag: once any multi-word term matches, has_phrase stays true regardless of what single-word terms match afterward.
 
 
 

@@ -2293,7 +2293,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     end
                 end
                 matched_terms[term_key] = true
-                has_phrase = (#term_clean > 1)
+                has_phrase = has_phrase or (#term_clean > 1)
                 table.insert(matching_source_terms, {text = data.term, is_split = term_is_split})
             end
         end
