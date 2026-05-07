@@ -9,6 +9,7 @@ local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
+local U = require("lls_utils")
 
 -- Fallback for older mpv versions missing utils.read_file
 local function safe_read_file(path)
@@ -80,13 +81,7 @@ Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, ke
 local script_dir = mp.get_script_directory and mp.get_script_directory()
 Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "lls_core"))
 
-local function is_valid_mpv_key(k_str)
-    if not k_str or k_str == "" then return false end
-    local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
-    local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
-    if count > 1 and base:match("[%z\128-\255]") then return false end
-    return true
-end
+local is_valid_mpv_key = U.is_valid_mpv_key
 
 -- [v1.58.40] Automatic Russian Layout Expansion
 local EN_RU_MAP = {
@@ -1291,34 +1286,13 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     return escape_tsv(source)
 end
 
-local function calculate_ass_alpha(val)
-    if type(val) == "string" and #val == 2 and val:match("%x%x") then
-        return val:upper()
-    end
-    local num = tonumber(val)
-    if not num then return "00" end
-    -- If value is 0-1 (decimal opacity), convert to transparency percentage
-    if num >= 0 and num <= 1 then
-        num = (1.0 - num) * 100
-    end
-    -- Clamp to 0-100
-    num = math.max(0, math.min(100, num))
-    -- Convert 0-100 transparency to 00-FF hex
-    local hex = string.format("%02X", math.floor((num / 100) * 255 + 0.5))
-    return hex
-end
+local calculate_ass_alpha = U.calculate_ass_alpha
 
 
 
 
 
-local function utf8_to_table(str)
-    local t = {}
-    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
-        table.insert(t, ch)
-    end
-    return t
-end
+local utf8_to_table = U.utf8_to_table
 
 -- Module-scope Cyrillic case-mapping tables (created once at load time).
 -- Hoisted from utf8_to_lower() to eliminate per-call allocation overhead.
@@ -7761,3 +7735,41 @@ recover_native_osd_style()
 for k in string.gmatch(Options.key_cycle_immersion_mode, "%S+") do
     mp.add_forced_key_binding(k, "lls-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
 end
+
+-- =========================================================================
+-- STATE PROBE (test instrumentation)
+-- Dormant in production. Activated by IPC `script-message-to lls_core ...`.
+-- =========================================================================
+local LlsProbe = {}
+
+function LlsProbe._snapshot()
+    return {
+        autopause          = FSM.AUTOPAUSE,
+        drum_mode          = FSM.DRUM,
+        drum_window        = FSM.DRUM_WINDOW,
+        active_sub_index   = FSM.ACTIVE_IDX,
+        playback_state     = FSM.MEDIA_STATE,
+        dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
+        dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
+        immersion_mode     = FSM.IMMERSION_MODE,
+        copy_mode          = FSM.COPY_MODE,
+        loop_mode          = FSM.LOOP_MODE,
+        book_mode          = FSM.BOOK_MODE,
+    }
+end
+
+mp.register_script_message("lls-state-query", function()
+    mp.set_property("user-data/lls/state", utils.format_json(LlsProbe._snapshot()))
+end)
+
+mp.register_script_message("lls-render-query", function(overlay_name)
+    local map = {
+        drum    = drum_osd,
+        dw      = dw_osd,
+        tooltip = dw_tooltip_osd,
+        search  = search_osd,
+        seek    = seek_osd,
+    }
+    local osd = map[overlay_name]
+    mp.set_property("user-data/lls/render", (osd and osd.data) or "")
+end)

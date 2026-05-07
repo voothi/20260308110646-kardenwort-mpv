@@ -3,7 +3,8 @@
     "allow": [
       "PowerShell(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\scripts\" -Force | Format-Table Name, FullName, @{Name=\"Size\";Expression={$_.Length}} -AutoSize)",
       "PowerShell(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\" -Recurse -Directory | Where-Object { $_.Name -eq 'specs' } | Select-Object FullName)",
-      "PowerShell(\\(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\specs\" -Recurse -Filter \"spec.md\" | Measure-Object\\).Count)"
+      "PowerShell(\\(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\specs\" -Recurse -Filter \"spec.md\" | Measure-Object\\).Count)",
+      "PowerShell($lines = \\(Get-Content \"u:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\scripts\\\\lls_core.lua\"\\).Count; Write-Output \"Total lines: $lines\")"
     ]
   }
 }

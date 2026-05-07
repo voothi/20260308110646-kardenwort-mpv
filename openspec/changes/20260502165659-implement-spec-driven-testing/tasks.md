@@ -8,8 +8,8 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 1.1 Create directory layout
 
-- [ ] **What**: Create the directory tree.
-- [ ] **How**:
+- [x] **What**: Create the directory tree.
+- [x] **How**:
   ```
   tests/
     README.md
@@ -33,20 +33,20 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       README.md
       test_minimal.srt
   ```
-- [ ] **Done when**: Tree exists. Empty placeholder files are fine.
+- [x] **Done when**: Tree exists. Empty placeholder files are fine.
 
 ### 1.2 Vendor luaunit
 
-- [ ] **What**: Drop `luaunit.lua` (single file, MIT) into `tests/lua/`.
-- [ ] **Why**: Avoids LuaRocks. Single dependency you can read in 10 minutes.
-- [ ] **How**: Download `luaunit.lua` from `https://github.com/bluebird75/luaunit` (latest release). Commit verbatim. Add a `LICENSE-luaunit` file with the upstream license.
-- [ ] **Done when**: `lua tests/lua/luaunit.lua` exits 0 (it should — the file is loadable on its own).
+- [x] **What**: Drop `luaunit.lua` (single file, MIT) into `tests/lua/`.
+- [x] **Why**: Avoids LuaRocks. Single dependency you can read in 10 minutes.
+- [x] **How**: Download `luaunit.lua` from `https://github.com/bluebird75/luaunit` (latest release). Commit verbatim. Add a `LICENSE-luaunit` file with the upstream license.
+- [x] **Done when**: `lua tests/lua/luaunit.lua` exits 0 (it should — the file is loadable on its own).
 
 ### 1.3 Add test runners
 
-- [ ] **What**: `tests/run_unit.lua` discovers and runs all `tests/unit/test_*.lua`. `tests/run_unit.py` is a thin Python wrapper that finds `lua` (or LuaJIT) and invokes the Lua runner. `tests/requirements.txt` holds the single `pytest` dependency.
-- [ ] **Why**: One command per tier. Python wrapper avoids platform-specific shell scripts.
-- [ ] **How** — `tests/run_unit.lua`:
+- [x] **What**: `tests/run_unit.lua` discovers and runs all `tests/unit/test_*.lua`. `tests/run_unit.py` is a thin Python wrapper that finds `lua` (or LuaJIT) and invokes the Lua runner. `tests/requirements.txt` holds the single `pytest` dependency.
+- [x] **Why**: One command per tier. Python wrapper avoids platform-specific shell scripts.
+- [x] **How** — `tests/run_unit.lua`:
   ```lua
   package.path = package.path .. ";tests/lua/?.lua;tests/unit/?.lua;scripts/?.lua"
   local lu = require("luaunit")
@@ -56,7 +56,7 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
   end
   os.exit(lu.LuaUnit.run())
   ```
-- [ ] **How** — `tests/run_unit.py`:
+- [x] **How** — `tests/run_unit.py`:
   ```python
   #!/usr/bin/env python3
   import subprocess, sys, os, shutil
@@ -72,11 +72,11 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       sys.exit('ERROR: no Lua interpreter found. Set LUA=/path/to/lua or install lua.')
   sys.exit(subprocess.run([lua, 'tests/run_unit.lua']).returncode)
   ```
-- [ ] **How** — `tests/requirements.txt`:
+- [x] **How** — `tests/requirements.txt`:
   ```
   pytest
   ```
-- [ ] **Done when**: `python tests/run_unit.py` prints `Ran 0 tests in 0.000 seconds, OK`.
+- [x] **Done when**: `python tests/run_unit.py` prints `Ran 0 tests in 0.000 seconds, OK`.
 
 ---
 
@@ -84,17 +84,17 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 2.1 Create `scripts/lls_utils.lua`
 
-- [ ] **What**: New module exporting exactly three functions:
+- [x] **What**: New module exporting exactly three functions:
   - `M.calculate_ass_alpha(val)` — moved from `lls_core.lua:1294`.
   - `M.utf8_to_table(str)` — moved from `lls_core.lua:1315`.
   - `M.is_valid_mpv_key(k_str)` — moved from `lls_core.lua:83`.
-- [ ] **Why**: Test surface for the unit tier. These three are truly pure (no `Options`, no `mp`, no `FSM`).
-- [ ] **How**: Each function returns the same outputs for the same inputs as before. The module ends with `return M`.
-- [ ] **Done when**: `lua -e "print(require('scripts.lls_utils').calculate_ass_alpha(0.5))"` prints `80`.
+- [x] **Why**: Test surface for the unit tier. These three are truly pure (no `Options`, no `mp`, no `FSM`).
+- [x] **How**: Each function returns the same outputs for the same inputs as before. The module ends with `return M`.
+- [x] **Done when**: `lua -e "print(require('scripts.lls_utils').calculate_ass_alpha(0.5))"` prints `80`.
 
 ### 2.2 Update `lls_core.lua` to consume the module
 
-- [ ] **What**: At the top of `lls_core.lua` add:
+- [x] **What**: At the top of `lls_core.lua` add:
   ```lua
   local U = require("lls_utils")
   ```
@@ -104,13 +104,13 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
   local utf8_to_table = U.utf8_to_table
   local is_valid_mpv_key = U.is_valid_mpv_key
   ```
-- [ ] **Why**: Keep the file's call sites unchanged — only the definition moves. Lower regression risk than rewriting every call.
-- [ ] **Done when**: mpv loads `lls_core.lua` cleanly with a real subtitle file, drum mode toggles, and the seek OSD shows correct alpha values. Manual smoke test, ~2 minutes.
+- [x] **Why**: Keep the file's call sites unchanged — only the definition moves. Lower regression risk than rewriting every call.
+- [x] **Done when**: mpv loads `lls_core.lua` cleanly with a real subtitle file, drum mode toggles, and the seek OSD shows correct alpha values. Manual smoke test, ~2 minutes.
 
 ### 2.3 Write `tests/unit/test_ass_alpha.lua`
 
-- [ ] **What**: Boundary-value tests for `calculate_ass_alpha`.
-- [ ] **How**:
+- [x] **What**: Boundary-value tests for `calculate_ass_alpha`.
+- [x] **How**:
   ```lua
   local lu = require("luaunit")
   local U  = require("lls_utils")
@@ -136,13 +136,13 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       lu.assertEquals(U.calculate_ass_alpha(nil), "00")
   end
   ```
-- [ ] **Done when**: `python tests/run_unit.py` reports 6 passed.
+- [x] **Done when**: `python tests/run_unit.py` reports 6 passed.
 
 ### 2.4 Write `tests/unit/test_utf8.lua`
 
-- [ ] **What**: Tests for `utf8_to_table` covering ASCII, Cyrillic, German diacritics, and CJK.
-- [ ] **How**: `lu.assertEquals(#U.utf8_to_table("привет"), 6)` and similar.
-- [ ] **Done when**: All cases pass; one deliberate-fail run (e.g., `assertEquals(#..., 99)`) confirms the runner reports failure with a diff.
+- [x] **What**: Tests for `utf8_to_table` covering ASCII, Cyrillic, German diacritics, and CJK.
+- [x] **How**: `lu.assertEquals(#U.utf8_to_table("привет"), 6)` and similar.
+- [x] **Done when**: All cases pass; one deliberate-fail run (e.g., `assertEquals(#..., 99)`) confirms the runner reports failure with a diff.
 
 ---
 
@@ -150,7 +150,7 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 3.1 Append the probe block to `lls_core.lua`
 
-- [ ] **What**: Add a clearly-delimited block at the end of `lls_core.lua`:
+- [x] **What**: Add a clearly-delimited block at the end of `lls_core.lua`:
   ```lua
   -- =========================================================================
   -- STATE PROBE (test instrumentation)
@@ -190,14 +190,14 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       mp.set_property("user-data/lls/render", (osd and osd.data) or "")
   end)
   ```
-- [ ] **Why**: Two-handler API, no flag, zero cost when nobody queries it. Semantic snapshot insulates tests from future FSM renames.
-- [ ] **Watch out**: `drum_osd`, `dw_osd`, etc. are file-scoped locals at lines 612, 937, 942. The probe block must be **after** their declarations. Easiest: append at the very end of the file, after the last `mp.add_periodic_timer` registration.
-- [ ] **Done when**: `lls_core.lua` still loads cleanly under mpv with the same manual smoke test as 2.2.
+- [x] **Why**: Two-handler API, no flag, zero cost when nobody queries it. Semantic snapshot insulates tests from future FSM renames.
+- [x] **Watch out**: `drum_osd`, `dw_osd`, etc. are file-scoped locals at lines 612, 937, 942. The probe block must be **after** their declarations. Easiest: append at the very end of the file, after the last `mp.add_periodic_timer` registration.
+- [x] **Done when**: `lls_core.lua` still loads cleanly under mpv with the same manual smoke test as 2.2.
 
 ### 3.2 Manual probe verification
 
-- [ ] **What**: Without writing any test code yet, confirm the probe round-trips. Use a small inline Python script to avoid building the full IPC module first.
-- [ ] **How**: Run in two separate terminals. In terminal A:
+- [x] **What**: Without writing any test code yet, confirm the probe round-trips. Use a small inline Python script to avoid building the full IPC module first.
+- [x] **How**: Run in two separate terminals. In terminal A:
   ```
   # Windows
   mpv --no-config --vo=null --no-terminal --idle=once
@@ -230,7 +230,7 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
   time.sleep(0.3)
   print(recv().decode())
   ```
-- [ ] **Done when**: The output contains a JSON line for `request_id: 2` whose `data` field is the semantic snapshot with all expected fields.
+- [x] **Done when**: The output contains a JSON line for `request_id: 2` whose `data` field is the semantic snapshot with all expected fields.
 
 ---
 
@@ -238,9 +238,9 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 4.1 `tests/ipc/mpv_ipc.py` — connection & send
 
-- [ ] **What**: Cross-platform IPC client using only Python stdlib. Exports `MpvIpc`.
-- [ ] **Why**: Encapsulates the platform-specific transport and request/response correlation. Acceptance tests never import `os`, `socket`, or platform detection — they just call `ipc.command(...)`.
-- [ ] **How**: The key design points:
+- [x] **What**: Cross-platform IPC client using only Python stdlib. Exports `MpvIpc`.
+- [x] **Why**: Encapsulates the platform-specific transport and request/response correlation. Acceptance tests never import `os`, `socket`, or platform detection — they just call `ipc.command(...)`.
+- [x] **How**: The key design points:
   - `_open_transport()` selects the connection method by `os.name`:
     - Windows: `open(path, 'r+b', buffering=0)` — Python's `io.FileIO` calls `CreateFile()` for Win32 named pipes. No `win32file` needed.
     - Linux/macOS: `socket.socket(socket.AF_UNIX)` + `s.makefile('rwb', buffering=0)`.
@@ -351,7 +351,7 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
               except OSError:
                   pass
   ```
-- [ ] **Done when**:
+- [x] **Done when**:
   ```python
   from tests.ipc.mpv_ipc import MpvIpc
   ipc = MpvIpc(); ipc.connect()
@@ -361,9 +361,9 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 4.2 Probe helpers in `mpv_ipc.py`
 
-- [ ] **What**: `query_lls_state(ipc)` and `query_lls_render(ipc, overlay_name)` module-level helpers.
-- [ ] **Why**: The two-step send-then-observe-property pattern is always the same; helpers prevent copy-paste in every test.
-- [ ] **How**:
+- [x] **What**: `query_lls_state(ipc)` and `query_lls_render(ipc, overlay_name)` module-level helpers.
+- [x] **Why**: The two-step send-then-observe-property pattern is always the same; helpers prevent copy-paste in every test.
+- [x] **How**:
   ```python
   import json
 
@@ -380,12 +380,12 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       ipc.wait_property_change('user-data/lls/render', timeout)
       return ipc.get_property('user-data/lls/render') or ''
   ```
-- [ ] **Done when**: `query_lls_state(ipc)['drum_mode']` returns `'OFF'` on a clean boot.
+- [x] **Done when**: `query_lls_state(ipc)['drum_mode']` returns `'OFF'` on a clean boot.
 
 ### 4.3 `tests/ipc/mpv_session.py` — lifecycle helper
 
-- [ ] **What**: `MpvSession` class that boots a headless mpv and exposes a connected `MpvIpc`. Used as a pytest fixture in `conftest.py`.
-- [ ] **How**:
+- [x] **What**: `MpvSession` class that boots a headless mpv and exposes a connected `MpvIpc`. Used as a pytest fixture in `conftest.py`.
+- [x] **How**:
   ```python
   # tests/ipc/mpv_session.py
   import os, subprocess, sys
@@ -430,7 +430,7 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       yield session
       session.stop()
   ```
-- [ ] **Done when**: A minimal test that just calls `mpv.ipc.get_property('mpv-version')` passes via `python -m pytest tests/acceptance/`.
+- [x] **Done when**: A minimal test that just calls `mpv.ipc.get_property('mpv-version')` passes via `python -m pytest tests/acceptance/`.
 
 ---
 
@@ -438,8 +438,8 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 5.1 `tests/fixtures/test_minimal.srt`
 
-- [ ] **What**: Three SRT entries with documented timestamps and word counts.
-- [ ] **How**:
+- [x] **What**: Three SRT entries with documented timestamps and word counts.
+- [x] **How**:
   ```
   1
   00:00:01,000 --> 00:00:03,000
@@ -453,13 +453,13 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
   00:00:07,000 --> 00:00:09,000
   Final entry
   ```
-- [ ] **Done when**: mpv loads it without errors and lls_core enters `SINGLE_SRT` playback state (verifiable via the probe).
+- [x] **Done when**: mpv loads it without errors and lls_core enters `SINGLE_SRT` playback state (verifiable via the probe).
 
 ### 5.2 `tests/fixtures/README.md`
 
-- [ ] **What**: Document each fixture's contract: timestamps, total entries, word counts per entry, which acceptance tests depend on it.
-- [ ] **Why**: Without this, a future developer changing a fixture will silently break tests.
-- [ ] **Done when**: Each `.srt` has a corresponding section listing every test that reads it.
+- [x] **What**: Document each fixture's contract: timestamps, total entries, word counts per entry, which acceptance tests depend on it.
+- [x] **Why**: Without this, a future developer changing a fixture will silently break tests.
+- [x] **Done when**: Each `.srt` has a corresponding section listing every test that reads it.
 
 ---
 
@@ -469,8 +469,8 @@ Each file is a standard pytest module. Shared fixtures live in `conftest.py`. Ea
 
 ### 6.1 `tests/acceptance/test_state_probe.py`
 
-- [ ] **What**: Boots mpv with `test_minimal.srt`, queries the probe, asserts default state values.
-- [ ] **How**:
+- [x] **What**: Boots mpv with `test_minimal.srt`, queries the probe, asserts default state values.
+- [x] **How**:
   ```python
   # Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md
   # Scenario: Querying playback state
@@ -484,13 +484,13 @@ Each file is a standard pytest module. Shared fixtures live in `conftest.py`. Ea
       assert state['drum_window'] == 'OFF'
       assert state['dw_selection_count'] == 0
   ```
-- [ ] **Done when**: `python -m pytest tests/acceptance/test_state_probe.py -v` passes.
+- [x] **Done when**: `python -m pytest tests/acceptance/test_state_probe.py -v` passes.
 
 ### 6.2 `tests/acceptance/test_drum_mode.py`
 
-- [ ] **What**: Sends `script-binding lls_core/toggle-drum-mode` via IPC, then queries the probe.
-- [ ] **Note**: Use `script-binding`, not raw key codes — the binding name is the public contract; the physical key is the implementation detail.
-- [ ] **How**:
+- [x] **What**: Sends `script-binding lls_core/toggle-drum-mode` via IPC, then queries the probe.
+- [x] **Note**: Use `script-binding`, not raw key codes — the binding name is the public contract; the physical key is the implementation detail.
+- [x] **How**:
   ```python
   # Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md
   # Scenario: Simulating a keypress
@@ -503,12 +503,12 @@ Each file is a standard pytest module. Shared fixtures live in `conftest.py`. Ea
       state = query_lls_state(mpv.ipc)
       assert state['drum_mode'] == 'ON'
   ```
-- [ ] **Done when**: Test passes and fails predictably when the assertion is reversed.
+- [x] **Done when**: Test passes and fails predictably when the assertion is reversed.
 
 ### 6.3 `tests/acceptance/test_render.py`
 
-- [ ] **What**: With drum mode active, queries `lls-render-query dw`, asserts the returned ASS string contains an expected color tag.
-- [ ] **How**:
+- [x] **What**: With drum mode active, queries `lls-render-query dw`, asserts the returned ASS string contains an expected color tag.
+- [x] **How**:
   ```python
   # Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md
   # Scenario: Verifying highlight color
@@ -522,7 +522,7 @@ Each file is a standard pytest module. Shared fixtures live in `conftest.py`. Ea
       assert re.search(r'\\1c&H[0-9A-Fa-f]{6}&', render), \
           f'No \\1c color tag found in drum OSD. Got: {render[:200]}'
   ```
-- [ ] **Done when**: Test passes against a real subtitle file; a deliberate fixture break (removing the subtitle so OSD is empty) fails with the descriptive message.
+- [x] **Done when**: Test passes against a real subtitle file; a deliberate fixture break (removing the subtitle so OSD is empty) fails with the descriptive message.
 
 ---
 
@@ -530,19 +530,19 @@ Each file is a standard pytest module. Shared fixtures live in `conftest.py`. Ea
 
 ### 7.1 Negative-test the unit tier
 
-- [ ] **What**: Edit `lls_utils.lua` to break `calculate_ass_alpha` (e.g., off-by-one). Run `python tests/run_unit.py`, confirm it reports the failure with a useful diff. Revert.
+- [x] **What**: Edit `lls_utils.lua` to break `calculate_ass_alpha` (e.g., off-by-one). Run `python tests/run_unit.py`, confirm it reports the failure with a useful diff. Revert.
 
 ### 7.2 Negative-test the acceptance tier
 
-- [ ] **What**: Temporarily change one snapshot field in the probe (e.g., `autopause = "WRONG"`). Run `python -m pytest tests/acceptance/test_state_probe.py`, confirm assertion failure. Revert.
+- [x] **What**: Temporarily change one snapshot field in the probe (e.g., `autopause = "WRONG"`). Run `python -m pytest tests/acceptance/test_state_probe.py`, confirm assertion failure. Revert.
 
 ### 7.3 Write `tests/README.md`
 
-- [ ] **What**: Two sections — "Run unit tests" and "Run acceptance tests" — each with the exact cross-platform command. Note the headless mpv flags, the IPC path difference per platform, and the single-instance limitation.
+- [x] **What**: Two sections — "Run unit tests" and "Run acceptance tests" — each with the exact cross-platform command. Note the headless mpv flags, the IPC path difference per platform, and the single-instance limitation.
 
 ### 7.4 Final smoke test
 
-- [ ] **What**: Fresh checkout (or `git stash` your work), run both tiers from scratch, confirm green.
+- [x] **What**: Fresh checkout (or `git stash` your work), run both tiers from scratch, confirm green.
 
 ---
 
