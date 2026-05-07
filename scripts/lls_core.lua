@@ -7447,6 +7447,7 @@ local function cmd_cycle_sec_pos()
         local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
         local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", n)
+        FSM.native_sec_sub_pos = n
         show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
     end
 end

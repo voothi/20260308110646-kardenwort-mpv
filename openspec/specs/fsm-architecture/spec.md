@@ -178,7 +178,7 @@ In `DOCKED` mode, deterministic visual alignment SHALL be achieved by the dedica
 - **AND** positioning neutrality MAY be satisfied either by stripping conflicting positioning tags or by rendering paths that do not depend on source `\pos` / `\an` tags.
 
 ### Requirement: Secondary Position Bounds via Configuration
-Secondary subtitle positioning transitions SHALL respect configured FSM bounds rather than hardcoded constants. `FSM.native_sec_sub_pos` SHALL be kept synchronized with the actual mpv `secondary-sub-pos` property at all times, including after delta-based position adjustments, so that direction-aware toggle operations always operate from correct state.
+Secondary subtitle positioning transitions SHALL respect configured FSM bounds rather than hardcoded constants. `FSM.native_sec_sub_pos` SHALL be kept synchronized with the actual mpv `secondary-sub-pos` property at all times, including after delta-based position adjustments and after toggle operations, so that direction-aware toggle operations always operate from correct state.
 
 #### Scenario: Cycling secondary subtitle position
 - **WHEN** `cycle-secondary-pos` is triggered
@@ -189,6 +189,11 @@ Secondary subtitle positioning transitions SHALL respect configured FSM bounds r
 - **WHEN** `cmd_adjust_sec_sub_pos` is called with a delta value
 - **THEN** the system SHALL compute the new position, apply it to the mpv property, and write the same value back to `FSM.native_sec_sub_pos`
 - **AND** a subsequent call to `cmd_cycle_sec_pos` SHALL use the synchronized `FSM.native_sec_sub_pos` to determine correct toggle direction.
+
+#### Scenario: Toggle cycle syncs FSM state in all branches
+- **WHEN** `cmd_cycle_sec_pos` is triggered regardless of `FSM.DRUM` state
+- **THEN** the system SHALL write the computed new position to both the mpv `secondary-sub-pos` property and `FSM.native_sec_sub_pos`
+- **AND** a subsequent call to `cmd_cycle_sec_pos` in Drum Mode SHALL read the synchronized `FSM.native_sec_sub_pos` and toggle in the correct direction.
 
 ### Requirement: Drum Tooltip Overlay Ownership Gate
 The FSM SHALL permit tooltip overlay rendering in Drum Mode only when Drum Mode owns the primary OSD surface and Drum Window is inactive.
