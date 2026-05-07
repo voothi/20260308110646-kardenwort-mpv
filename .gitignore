@@ -65,3 +65,4 @@ scratch/
 resume_session.state
 # .claude/settings.local.json
 # .claude/settings.json
+tests/fixtures/test_minimal.tsv

@@ -1615,9 +1615,8 @@
 20260507123056 You've hit your limit · resets 1:20pm (Europe/Berlin)
 20260507134403 Check the latest changes to make sure nothing is broken, is there any regression compared to 4dd2b8ffabee1e5419d9f6447cbe6f64c0a49600
 20260507134935 Conclusion: no regressions. The LLS interface behavior is identical to 4dd2b8f. The only net change to the runtime-loaded script is the dormant probe block at the end.
-
-
-
+20260507135507 What's next?
+20260507140700 Fixed a Bug in the Test Suite: I discovered a failure in tests/unit/test_utf8.lua. The test for German diacritics (größe) was incorrectly expecting 6 characters instead of 5, causing a failure. I've corrected this expectation. Unit Tests Status: PASSED. All 12 unit tests (covering ASS alpha calculation, UTF-8 parsing, and key validation) are now green.
 
 
 

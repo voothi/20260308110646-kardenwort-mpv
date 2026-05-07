@@ -10,7 +10,7 @@ function TestUtf8:testCyrillic()
     lu.assertEquals(#U.utf8_to_table("привет"), 6)
 end
 function TestUtf8:testGermanDiacritics()
-    lu.assertEquals(#U.utf8_to_table("größe"), 6)
+    lu.assertEquals(#U.utf8_to_table("größe"), 5)
 end
 function TestUtf8:testCJK()
     lu.assertEquals(#U.utf8_to_table("日本語"), 3)
