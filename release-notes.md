@@ -1,3 +1,33 @@
+# Release Notes - v1.60.0 (FSM Stabilization & Spec-Driven Testing)
+
+**Date**: 2026-05-07
+**Version**: v1.60.0
+**Implementation ZIDs**: 20260506090626, 20260506095404, 20260506103358, 20260506135440, 20260506164500, 20260506190022, 20260506195038, 20260506223500, 20260506232017, 20260507001035, 20260507090243, 20260507102212, 20260507163304
+
+## Highlights
+
+### 🛡️ **FSM Architecture & Specification Hardening**
+- **Architecture Validation**: Conducted a surgical audit of the entire `lls_core.lua` FSM logic, fixing regressions and discrepancies between the specifications (`fsm-architecture`) and the actual code.
+- **Selection Priority Simplification**: Refactored the context copy logic into the FSM state machine. Active manual selections (Pink Set, Yellow Range, Yellow Pointer) now reliably override Context Copy mode, providing deterministic extraction regulated via the `Esc` key.
+- **Spec-Gap Remediation**: Resolved "sticky" interaction edge-cases relating to search hijacking, configuration-bound secondary positioning, and DOCKED neutrality.
+
+### 🥁 **Drum Mode Unification & Interaction**
+- **Unified Wheel Scrolling**: Synchronized Mouse Wheel scrolling in Drum Mode to match Drum Window (DW) mode. The wheel now scrolls the text content naturally without advancing the playback position, creating a clean separation between track control and text navigation.
+- **Dual-Track Scroll Sync**: When scrolling the main (bottom) subtitle track in Drum Mode, the upper (secondary) subtitles now scroll in perfect synchronization, including accurate hit-zone lighting and highlighting.
+- **Tooltip Key Parity**: Brought DW translation tooltip functionality (`e` / `RMB`) directly into Drum Mode for the primary subtitle window, providing feature parity across both immersion interfaces.
+
+### ⏯️ **Playback Automation & Boundary Precision**
+- **Natural Progression Padding**: Corrected a visual skipping issue in Autopause `PHRASE` mode. Overlapping padding ranges at the start and end of subtitles are now correctly prioritized so that audio recording captures the entire phrase organically without premature visual jumping.
+- **MOVIE Mode Boundary Fix**: Hardened Autopause `MOVIE` mode to guarantee that subtitles are played exactly along their strict `.srt` boundaries, preventing truncated audio captures at the tail end of lines.
+- **Seek-Repeat Restoration**: Restored smooth, continuous navigation when holding `Shift+a` or `Shift+d`.
+
+### 🧪 **Acceptance Testing & Test Infrastructure**
+- **Spec-Driven Automated Testing**: Built a robust, cross-platform acceptance testing infrastructure utilizing headless `mpv` execution via IPC (`mpv_session.py`, `mpv_ipc.py`).
+- **Concurrent Deadlock Fixes**: Re-engineered Windows IPC with `ctypes` (`_WinPipe`) using overlapped I/O to eliminate CRT file-locking deadlocks during asynchronous reads and writes.
+- **Dual-Subtitle Desync Fix**: Discovered and fixed a 1-index desynchronization bug between primary and secondary tracks caused by overlapping padding windows. Introduced `FSM.SEC_ACTIVE_IDX` as a secondary tracking sentinel to ensure both tracks align flawlessly during continuous playback and seeks.
+
+---
+
 # Release Notes - v1.58.50 (YouTube-Style Seek & Immersion Hardening)
 
 **Date**: 2026-05-06
