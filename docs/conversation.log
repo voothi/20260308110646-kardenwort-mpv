@@ -1631,9 +1631,7 @@
 20260507155929 Okay, don't you need to create tests for this case?
 20260507161504 Do you want to rename these files with ZID as is our custom? tests\fixtures\sync-test.en.srt tests\fixtures\sync-test.ru.srt
 20260507161955 Done. Fixtures renamed to 20260507161504-sync-test.{en,ru}.srt and all 4 tests pass. Summary Implemented a fix for secondary subtitle desynchronization in the MPV player that occurs during playback with overlapping audio-padding windows. The secondary track would advance one index ahead of the primary during specific conditions. Root cause: The Sticky Sentinel (FSM.ACTIVE_IDX) that prevents subtitle snapping during padding gaps existed only for the primary track. When audio_padding_end + audio_padding_start > inter-subtitle gap, the padded windows overlap, causing the secondary track's binary search to fire its Overlap Priority check before the primary's sentinel expires, creating a 1-index desync. Changes: lls_core.lua — Added FSM.SEC_ACTIVE_IDX sentinel for secondary track, updated in master_tick (mirrors ACTIVE_IDX logic); exposed it in state probe; added probe sequence counter for test stability get_center_index — Extended sentinel check to use FSM.SEC_ACTIVE_IDX for secondary subtitles Master tick — Maintain FSM.SEC_ACTIVE_IDX after primary sentinel update Mode toggle — Sync both sentinels on PHRASE mode switch Test coverage: Created acceptance test with fixtures engineered to trigger the overlap condition (200ms gap + 200ms default padding). Test verifies both tracks stay synchronized in the overlap zone.
-
-
-
+20260507162635 opsx-explore 20260507162512 Create tests for openspec\changes\archive\20260506223500-natural-progression-sub-skip openspec\changes\archive\20260506232017-restore-seek-repeat op enspec\changes\archive\20260507001035-fix-movie-autopause-srt-boundary openspec\changes\archive\20260507090243-fsm-spec-gap-remediation
 
 
 
