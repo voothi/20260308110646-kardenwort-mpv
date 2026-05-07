@@ -22,6 +22,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 ## Table of Contents
 
+- [Visual Showcase](#visual-showcase)
 - [Project Goals](#project-goals)
 - [Distinctive Advantages](#distinctive-advantages)
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
@@ -35,12 +36,28 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling)
+- [Example Data Structures](#example-data-structures)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
   - [Visual Keyboard Layout (English)](#visual-keyboard-layout-english)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
+- [Testing](#testing)
 - [Installation](#installation)
 - [Development Analytics](#development-analytics)
 - [License](#license)
+---
+
+## Visual Showcase
+
+The Kardenwort MPV suite provides two primary interfaces for language acquisition: **Drum Mode** for immersive playback and **Static Reading Mode** for in-depth analysis and mining.
+
+| Drum Mode (Dynamic Flow) | Static Reading Mode (Drum Window) |
+| :--- | :--- |
+| ![Drum Mode 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dm.png) | ![Drum Window 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dw.png) |
+| *High-speed playback with synchronized historical and future subtitle context.* | *Stationary "Book Mode" for precise word selection, dictionary lookups, and mining.* |
+| ![Drum Mode 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dm.png) | ![Drum Window 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.png) |
+| *Optimized for "Shadowing" and "Listening" intensive immersion phases.* | *Surgical highlighting (Amber/Pink) synchronized with your Anki/TSV database.* |
+
+[Return to Top](#table-of-contents)
 
 ---
 
@@ -218,7 +235,26 @@ A custom key handler that distinguishes between quick taps and long holds.
 Ensures that your immersion material remains perfectly readable regardless of window size, while protecting complex layouts.
 *   **For `.srt` Files**: Dynamically adjusts subtitle scaling so text doesn't become tiny on large monitors or giant in small windows. Includes a **Softer Scaling** formula to prevent aggressive wrapping.
 *   **For `.ass` Files**: Intelligently detects the Advanced SubStation format and bypasses scaling, allowing the file's internal positioning mathematics to render flawlessly.
-*   **Configurable**: Enable/Disable or tune the "scaling strength" directly in `mpv.conf`.
+[Return to Top](#table-of-contents)
+
+## Example Data Structures
+
+The suite relies on a Tab-Separated Values (TSV) format for Anki synchronization and vocabulary tracking. This allows for zero-latency mining and persistent highlights across sessions.
+
+### TSV Record Format (Anki Mining)
+
+Example records from the `tests/fixtures` directory:
+
+```tsv
+#deck column:85
+Quotation	WordSource	SentenceSource	SourceURL	...
+des Tages	des Tages	Sonst komm ich am Ende des Tages mit allen Paketen wieder zurück.	https://www.youtube.com/watch?v=m6j8cGiBEZQ
+Paketen	Paketen	Sonst komm ich am Ende des Tages mit allen Paketen wieder zurück.	https://www.youtube.com/watch?v=m6j8cGiBEZQ
+komm ... zurück	komm ... zurück	Sonst komm ich am Ende des Tages mit allen Paketen wieder zurück.	https://www.youtube.com/watch?v=m6j8cGiBEZQ
+man	man	dass man eigentlich gar keine Wahl hat manchmal.	https://www.youtube.com/watch?v=m6j8cGiBEZQ
+```
+
+These records are automatically parsed to generate the colored highlights (Amber/Purple/Mixed) seen in the [Visual Showcase](#visual-showcase).
 
 [Return to Top](#table-of-contents)
 
@@ -526,6 +562,28 @@ To achieve the "Premium Dark" aesthetic seen in project demonstrations, ensure t
 The configuration supports a **Mode-based architecture**. You can define and switch between different font size calibrations (e.g., MODE 1 for size 30, MODE 2 for size 34) directly in `mpv.conf` to ensure hit-testing remains pixel-perfect regardless of your chosen font scale.
 
 (Refer to the heavily commented `mpv.conf` file in the repository for a complete list of all 150+ adjustable parameters and functional templates.)
+
+[Return to Top](#table-of-contents)
+
+## Testing
+
+The project maintains high architectural integrity through a two-tier test suite: Lua unit tests for logic verification and Python acceptance tests for headless mpv interaction.
+
+### Unit Tests (Lua)
+Requires a Lua interpreter (`lua`, `luajit`) on your `PATH`.
+```powershell
+python tests/run_unit.py
+```
+
+### Acceptance Tests (Python + mpv)
+Requires `mpv` on `PATH` and the `pytest` framework.
+```powershell
+# Install dependencies
+pip install -r tests/requirements.txt
+
+# Run all acceptance tests
+python -m pytest tests/acceptance/ -v
+```
 
 [Return to Top](#table-of-contents)
 
