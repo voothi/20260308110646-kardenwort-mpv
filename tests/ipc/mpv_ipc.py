@@ -1,5 +1,110 @@
 import json, os, socket, threading, time, tempfile
 
+# On Windows, synchronous named pipe handles do NOT support concurrent ReadFile
+# + WriteFile from different threads on the same handle. Fix: open with
+# FILE_FLAG_OVERLAPPED so reads and writes are independent async operations.
+if os.name == 'nt':
+    import ctypes
+    import ctypes.wintypes as _wt
+
+    _k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+    _k32.CreateFileW.restype      = ctypes.c_void_p
+    _k32.CreateEventW.restype     = ctypes.c_void_p
+    _k32.CloseHandle.argtypes     = [ctypes.c_void_p]
+    _k32.CloseHandle.restype      = _wt.BOOL
+    _k32.CancelIoEx.argtypes      = [ctypes.c_void_p, ctypes.c_void_p]
+    _k32.CancelIoEx.restype       = _wt.BOOL
+    _k32.ReadFile.argtypes        = [ctypes.c_void_p, ctypes.c_char_p, _wt.DWORD,
+                                     ctypes.POINTER(_wt.DWORD), ctypes.c_void_p]
+    _k32.ReadFile.restype         = _wt.BOOL
+    _k32.WriteFile.argtypes       = [ctypes.c_void_p, ctypes.c_char_p, _wt.DWORD,
+                                     ctypes.POINTER(_wt.DWORD), ctypes.c_void_p]
+    _k32.WriteFile.restype        = _wt.BOOL
+    _k32.GetOverlappedResult.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                          ctypes.POINTER(_wt.DWORD), _wt.BOOL]
+    _k32.GetOverlappedResult.restype  = _wt.BOOL
+    _k32.WaitForSingleObject.argtypes = [ctypes.c_void_p, _wt.DWORD]
+    _k32.WaitForSingleObject.restype  = _wt.DWORD
+
+    _GENERIC_READ        = 0x80000000
+    _GENERIC_WRITE       = 0x40000000
+    _OPEN_EXISTING       = 3
+    _FILE_FLAG_OVERLAPPED = 0x40000000
+    _ERROR_IO_PENDING    = 997
+    _INFINITE            = 0xFFFFFFFF
+
+    class _OVERLAPPED(ctypes.Structure):
+        _fields_ = [
+            ('Internal',     ctypes.c_size_t),   # ULONG_PTR
+            ('InternalHigh', ctypes.c_size_t),   # ULONG_PTR
+            ('Offset',       _wt.DWORD),
+            ('OffsetHigh',   _wt.DWORD),
+            ('hEvent',       ctypes.c_void_p),
+        ]
+
+    class _WinPipe:
+        def __init__(self, path):
+            h = _k32.CreateFileW(path,
+                                 _GENERIC_READ | _GENERIC_WRITE,
+                                 0, None, _OPEN_EXISTING,
+                                 _FILE_FLAG_OVERLAPPED, None)
+            if h is None or h == ctypes.c_void_p(-1).value:
+                raise OSError(ctypes.get_last_error())
+            self._h = h
+            ev = _k32.CreateEventW(None, True, False, None)
+            if ev is None:
+                _k32.CloseHandle(h)
+                raise OSError(ctypes.get_last_error())
+            self._read_ev = ev
+
+        def read(self, size):
+            h = self._h
+            if not h:
+                raise OSError('pipe closed')
+            buf = ctypes.create_string_buffer(size)
+            ov  = _OVERLAPPED()
+            ov.hEvent = self._read_ev
+            n = _wt.DWORD(0)
+            ok = _k32.ReadFile(h, buf, size, ctypes.byref(n), ctypes.byref(ov))
+            if not ok:
+                err = ctypes.get_last_error()
+                if err != _ERROR_IO_PENDING:
+                    raise OSError(err)
+                _k32.WaitForSingleObject(self._read_ev, _INFINITE)
+                ok = _k32.GetOverlappedResult(h, ctypes.byref(ov),
+                                              ctypes.byref(n), 0)
+                if not ok:
+                    raise OSError(ctypes.get_last_error())
+            return buf.raw[:n.value]
+
+        def write(self, data):
+            h = self._h
+            if not h:
+                raise OSError('pipe closed')
+            if isinstance(data, (memoryview, bytearray)):
+                data = bytes(data)
+            ov = _OVERLAPPED()
+            n  = _wt.DWORD(0)
+            ok = _k32.WriteFile(h, data, len(data), ctypes.byref(n),
+                                ctypes.byref(ov))
+            if not ok:
+                err = ctypes.get_last_error()
+                if err != _ERROR_IO_PENDING:
+                    raise OSError(err)
+                _k32.GetOverlappedResult(h, ctypes.byref(ov), ctypes.byref(n), 1)
+
+        def close(self):
+            h  = self._h
+            ev = self._read_ev
+            self._h        = None
+            self._read_ev  = None
+            if h:
+                _k32.CancelIoEx(h, None)
+                _k32.CloseHandle(h)
+            if ev:
+                _k32.CloseHandle(ev)
+
 
 def default_ipc_path():
     if os.name == 'nt':
@@ -10,10 +115,10 @@ def default_ipc_path():
 class MpvIpc:
     def __init__(self, path=None):
         self._path = path or default_ipc_path()
-        self._rid = 0
+        self._rid  = 0
         self._lock = threading.Lock()
-        self._pending = {}       # request_id -> (Event, [result])
-        self._prop_events = {}   # property name -> Event
+        self._pending    = {}   # request_id -> (Event, [result])
+        self._prop_events = {}  # property name -> Event
         self._conn = None
 
     def connect(self, timeout=15.0):
@@ -30,7 +135,7 @@ class MpvIpc:
 
     def _open_transport(self):
         if os.name == 'nt':
-            return open(self._path, 'r+b', buffering=0)
+            return _WinPipe(self._path)
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(self._path)
         return s.makefile('rwb', buffering=0)
@@ -70,7 +175,8 @@ class MpvIpc:
             rid = self._rid
             ev, holder = threading.Event(), []
             self._pending[rid] = (ev, holder)
-        self._conn.write(json.dumps({'command': cmd, 'request_id': rid}).encode() + b'\n')
+        self._conn.write(
+            json.dumps({'command': cmd, 'request_id': rid}).encode() + b'\n')
         if not ev.wait(timeout):
             raise TimeoutError(f'mpv timeout on {cmd}')
         with self._lock:
