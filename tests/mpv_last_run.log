@@ -1,0 +1,4 @@
+Running command: mpv --no-config --vo=null --idle --input-ipc-server=\\.\pipe\mpv-lls-test-84d5a83f --script=scripts/lls_core.lua
+
+[lls_core] [LLS] SCRIPT INITIALIZING: lls_core
+[lls_core] [LLS] SCRIPT LOADED SUCCESSFULLY

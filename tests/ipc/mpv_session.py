@@ -1,4 +1,4 @@
-import os, subprocess
+import os, subprocess, time
 from tests.ipc.mpv_ipc import MpvIpc, default_ipc_path
 
 
@@ -10,14 +10,29 @@ class MpvSession:
         self._proc = None
 
     def start(self):
+        import uuid
+        self.ipc_path = f"{self.ipc_path}-{uuid.uuid4().hex[:8]}"
+        self.ipc._path = self.ipc_path # Update the IPC client's path too
+        
         cmd = [
-            'mpv', '--no-config', '--vo=null', '--no-terminal', '--idle=once',
+            'mpv', '--no-config', '--vo=null', '--idle',
             f'--input-ipc-server={self.ipc_path}',
             '--script=scripts/lls_core.lua',
-            self.fixture,
         ]
-        self._proc = subprocess.Popen(cmd)
-        self.ipc.connect(timeout=5.0)
+        # Log mpv output to help debug IPC connection issues
+        log_path = os.path.join(os.getcwd(), 'tests', 'mpv_last_run.log')
+        with open(log_path, 'w') as f:
+            f.write(f"Running command: {' '.join(cmd)}\n\n")
+        
+        self._proc = subprocess.Popen(
+            cmd,
+            stdout=open(log_path, 'a'),
+            stderr=subprocess.STDOUT
+        )
+        self.ipc.connect(timeout=15.0)
+        self.ipc.command(['loadfile', self.fixture])
+        # Wait a moment for the file to load
+        time.sleep(0.5)
 
     def stop(self):
         try:

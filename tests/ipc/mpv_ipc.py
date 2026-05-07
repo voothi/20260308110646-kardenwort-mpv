@@ -16,7 +16,7 @@ class MpvIpc:
         self._prop_events = {}   # property name -> Event
         self._conn = None
 
-    def connect(self, timeout=5.0):
+    def connect(self, timeout=15.0):
         deadline = time.time() + timeout
         while True:
             try:

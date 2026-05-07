@@ -1617,6 +1617,7 @@
 20260507134935 Conclusion: no regressions. The LLS interface behavior is identical to 4dd2b8f. The only net change to the runtime-loaded script is the dormant probe block at the end.
 20260507135507 What's next?
 20260507140700 Fixed a Bug in the Test Suite: I discovered a failure in tests/unit/test_utf8.lua. The test for German diacritics (größe) was incorrectly expecting 6 characters instead of 5, causing a failure. I've corrected this expectation. Unit Tests Status: PASSED. All 12 unit tests (covering ASS alpha calculation, UTF-8 parsing, and key validation) are now green.
+20260507140721 I added mpv to environment variables, set pip install -r tests/requirements.txt.
 
 
 
