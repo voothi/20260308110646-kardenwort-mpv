@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Create `tests/acceptance/test_archived_changes.py`
 - [ ] 1.2 Import necessary fixtures (`mpv`, `mpv_dual`) and utilities (`query_lls_state`)
-- [ ] 1.3 Verify existing fixtures can be used for the new test cases
+- [ ] 1.3 Verify existing fixtures and new fragment fixtures (`20260507164826-fragment1/2`) can be used for the new test cases
 
 ## 2. Implement Acceptance Tests
 
