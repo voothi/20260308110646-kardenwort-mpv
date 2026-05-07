@@ -4,28 +4,20 @@ import json
 from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
 from tests.ipc.mpv_session import MpvSession
 
-@pytest.fixture
-def mpv_fragment1():
-    """Dual-subtitle session using fragment 1 fixtures (00:05:46)."""
-    session = MpvSession(
-        video='tests/fixtures/20260502165659-test-fixture.mp4',
-        subtitle='tests/fixtures/20260507164826-fragment1.de.srt',
-        secondary_subtitle='tests/fixtures/20260507164826-fragment1.ru.srt',
-        extra_args=['--pause'],
-    )
-    session.start()
-    yield session
-    session.stop()
-
 def test_fixtures_load_correctly(mpv_fragment1):
+    """Smoke test: real 25fps fragment1 loads with DE+RU subs, sentinel primes correctly."""
     ipc = mpv_fragment1.ipc
-    # Seek to start of fragment 1
-    ipc.command(['seek', 346.639, 'absolute+exact']) # 00:05:46.639
-    time.sleep(0.5)
-    
+    # Sub 1 spans 4.295–5.295s; seek to the middle.
+    ipc.command(['seek', 4.5, 'absolute+exact'])
+    time.sleep(0.3)
+
     state = query_lls_state(ipc)
-    # The first sub index should be 1-based relative to the array length, not the SRT number.
-    assert state['active_sub_index'] == 1, f"Expected index 1, got {state['active_sub_index']}"
+    assert state['active_sub_index'] == 1, (
+        f"fragment1 sub 1 (4.295–5.295s): expected index 1, got {state['active_sub_index']}"
+    )
+    assert state['sec_active_sub_index'] == 1, (
+        f"secondary sentinel desynced: {state['sec_active_sub_index']}"
+    )
 
 def test_natural_progression_skip(mpv_dual):
     """Verify that playhead advances to next sub in overlap zone via Natural Progression logic."""

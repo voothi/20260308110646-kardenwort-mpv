@@ -1638,5 +1638,13 @@
 20260507172419 The issue is that dw-seek-next-1 binding doesn't move time-pos in the paused --vo=null --ao=null environment. Let me look at what cmd_dw_seek_delta actually does to understand why — and whether there's a way to test the sentinel sync directly.
 20260507174459 You've hit your limit
 20260507195342 All 11 tests pass. Here's the summary of the current unstaged changes: scripts/lls_core.lua — 4 additions: cmd_dw_double_click(): mirrors ACTIVE_IDX assignment to SEC_ACTIVE_IDX cmd_dw_seek_selected(): same for Enter/click-seek in DW cmd_dw_seek_delta(): same for d/a navigation — the main Bug 2 fix cmd_seek_with_repeat(): new "press" event branch — this was the root cause of the failing test; script-binding sends "press" for complex bindings, which the "down"/"up" handler silently ignored, so cmd_dw_seek_delta never ran tests/acceptance/test_subtitle_sync.py — header rewritten to document both failure modes + new test_navigation_seek_syncs_both_sentinels test added The previous commits (76c81f9, 546fa21) already contain: FSM.SEC_ACTIVE_IDX sentinel initialization, get_center_index() secondary extension, master_tick() maintenance, LlsProbe._snapshot() field, _probe_seq counter, fixtures, conftest, mpv_session.py dual-subtitle support.
-20260507210458 Updated the files, added videos, cuts, with subtitles, use this in tests. We will build our future tests on these instances. 
+20260507210458 Updated the files, added videos, cuts, with subtitles, use this in tests. We will build our future tests on these instances. tests\fixtures\20260507164826-fragment1.de.srt tests\fixtures\20260507164826-fragment1.mp4 tests\fixtures\20260507164826-fragment1.ru.srt tests\fixtures\20260507164826-fragment1.tsv tests\fixtures\20260507164826-fragment2.de.srt tests\fixtures\20260507164826-fragment2.mp4 tests\fixtures\20260507164826-fragment2.ru.srt tests\fixtures\20260507164826-fragment2.tsv
+20260507212139 11/11. Here's what was done: tests/acceptance/conftest.py — added mpv_fragment1 and mpv_fragment2 fixtures, both using the real 25fps videos with DE primary + RU secondary, paused. Sub timeline data (timestamps, gap sizes, overlap zones) is documented in each fixture's docstring for quick reference when writing future tests. tests/acceptance/test_archived_changes.py — removed the stale local mpv_fragment1 fixture (it pointed to the wrong video), and rewired test_fixtures_load_correctly to use a meaningful seek (4.5s into fragment1, inside sub 1) with a real assertion on both sentinels. Fragment 1 and 2 are now available as named fixtures. The tight 40ms gaps (sub 3→4 in both fragments) will be useful for overlap-zone tests when you want to exercise the fix against real content.
+
+
+
+
+
+
+
 
