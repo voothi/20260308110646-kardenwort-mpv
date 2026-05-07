@@ -1,61 +1,113 @@
 ## Context
 
-The Kardenwort-mpv project is a complex Lua-based mpv configuration with many interactive layers (Drum, SRT, Tooltips, Search HUD). Currently, manual regression testing is the only way to verify changes, which is inefficient and unreliable. We have formal specifications in `spec.md` files but no automated way to enforce them.
+Kardenwort-mpv ships as `scripts/lls_core.lua` (7,189 lines) plus `scripts/resume_last_file.lua`. The core script contains a 40-variable FSM, four OSD overlays, hit-test logic for mouse/keyboard, and a 50 ms tick loop. There are 165 spec files in `openspec/specs/` documenting behaviors, but no tests exist.
 
-`lls_core.lua` is a 7,189-line monolith with 40+ FSM state variables, four OSD overlays, 15+ drawing functions, hit-test logic, and a 20 Hz tick loop. Tests that require booting a full mpv instance are inherently slow, flaky, and hard to debug. A tiered approach is required.
+This document is written for a mid-level Lua/PowerShell developer implementing the test stack. **Read the "Critical mpv quirks" section before writing any IPC code** — it covers two non-obvious behaviors that will waste days if you don't know them up front.
 
 ---
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Implement a **three-tier test stack** (unit → script-level → acceptance).
-- Achieve coverage of pure Lua logic without booting mpv.
-- Enable runtime state introspection for acceptance-level tests.
-- Keep production code (`lls_core.lua`) free of test-only conditional paths.
+- A two-tier test stack: pure-Lua **unit** tests (no mpv) and full-stack **acceptance** tests (real mpv + IPC).
+- Zero new test-time cost in production code paths. The probe is dormant until queried.
+- Deterministic, reproducible runs on Windows with no LuaRocks dependency.
 
 **Non-Goals:**
-- Building a full CI/CD pipeline (local execution only).
-- Pixel-perfect visual regression.
-- Auto-parsing spec.md files into executable test steps (see Decision 4 below).
+- CI/CD integration (deferred).
+- Pixel-based rendering verification (we inspect ASS strings instead).
+- Auto-parsing `spec.md` files into executable tests — see Decision 4.
+
+---
+
+## Critical mpv quirks (read this first)
+
+### Quirk 1: `script-message` over IPC is fire-and-forget
+
+When you send the IPC command:
+```json
+{ "command": ["script-message-to", "lls_core", "lls-state-query"], "request_id": 7 }
+```
+mpv replies with **only** the dispatch acknowledgement:
+```json
+{ "request_id": 7, "error": "success" }
+```
+The Lua callback's return value **never** comes back over the pipe. There is no built-in request/response for script messages.
+
+**The pattern we use** is a side channel via mpv's `user-data/*` property namespace (mpv reserves this for arbitrary script-defined data):
+
+1. PowerShell sends `script-message-to lls_core lls-state-query`.
+2. The Lua handler computes the snapshot and calls `mp.set_property("user-data/lls/state", json_string)`.
+3. PowerShell reads the result via `get_property user-data/lls/state`.
+
+To eliminate the polling race, the driver can subscribe with `observe_property user-data/lls/state` before sending the request and wait for the change event.
+
+### Quirk 2: `--input-ipc-server` alone does not make mpv headless
+
+A bare `mpv --input-ipc-server=\\.\pipe\mpv-test test.srt` still opens a video window. For unattended test runs the full incantation is:
+```
+mpv --no-config --vo=null --no-terminal --idle=once
+    --input-ipc-server=\\.\pipe\mpv-test
+    --script=scripts\lls_core.lua
+    tests\fixtures\test_minimal.srt
+```
+- `--no-config` ensures user `mpv.conf` does not bleed into the test environment.
+- `--vo=null` runs without a video output (OSD `.data` strings are still constructed by Lua, which is what we test).
+- `--no-terminal` prevents the console from grabbing stdin.
+- `--idle=once` keeps mpv alive until a file is loaded, then quits when playback ends. For tests that need an indefinite session, use `--idle=yes` and quit explicitly via IPC.
+
+### Quirk 3: Tick-loop timing affects state queries
+
+`master_tick` runs every 50 ms (line 5471). State changes triggered by an IPC keypress are processed on the **next** tick, not synchronously. Always insert at least one tick of slack between sending input and querying state — the simplest pattern is to wait on a property change rather than poll.
 
 ---
 
 ## Decisions
 
-### Decision 1: Three Testing Tiers, Not One
+### Decision 1: Two tiers — unit and acceptance — not three
 
-The original proposal jumps immediately to the hardest, most brittle layer — full-stack acceptance tests over IPC. This inverts the testing pyramid. A 7,189-line Lua script has a substantial testable surface at the unit level that requires no mpv at all.
+Earlier drafts proposed a "Tier 2 companion script" running inside mpv. With the user-data side channel from Quirk 1, that middle tier collapses into the acceptance tier (which already runs Lua inside mpv). Two tiers is enough:
 
-**Tier 1 — Lua unit tests (busted, no mpv)**
-Pure functions in `lls_core.lua` — `calculate_ass_alpha` (line 1294), `format_highlighted_word` (line 3270), `utf8_to_table` (line 1315), `dw_build_layout` (line 3656), all hit-test functions, ASS tag formatting — are fully testable with a mocked `mp` table. These are the most stable, fastest-to-run, and highest-ROI tests.
+| Tier | Runs in | Targets | Speed |
+|------|---------|---------|-------|
+| Unit | stand-alone Lua, no mpv | pure functions in `lls_utils.lua` | ~10 ms / file |
+| Acceptance | full mpv + PowerShell IPC | end-to-end behaviors against real fixtures | ~2-5 s / test |
 
-Tool: [busted](https://lunarmodules.github.io/busted/) — the Lua BDD test framework. Installed via LuaRocks or as a standalone Windows binary. Runs as `busted tests/unit/`.
+Most coverage comes from Tier 1. Tier 2 is reserved for behaviors that genuinely need mpv (subtitle loading, tick loop, key bindings, OSD rendering).
 
-**Tier 2 — Companion Lua test script (lls_test.lua, runs inside mpv)**
-A separate `scripts/lls_test.lua` that loads alongside `lls_core.lua` in a dedicated mpv test instance. Uses `mp.get_property_native()` and `mp.register_script_message()` to read state after controlled inputs, then writes a structured result to a log file. **lls_core.lua is not modified at all.** The companion script exits mpv when done via `mp.commandv("quit", "0")`.
+### Decision 2: Vendor luaunit, do not depend on busted/LuaRocks
 
-**Tier 3 — IPC acceptance tests (narrow scope, PowerShell driver)**
-Reserved for a small set (5–10) of scenarios that genuinely require the full stack: verifying autopause triggers at subtitle boundaries, verifying modal key binding changes. No more than this.
+LuaRocks setup on Windows is fragile. **luaunit** is a single ~4 KB Lua file, MIT-licensed, no dependencies. Drop it into `tests/lua/luaunit.lua` and require it from test files. Run with `lua tests/run_unit.lua`.
 
----
+If `lua.exe` is not available, the LuaJIT bundled inside the mpv installation can run unit tests too — invoke it with `mpv --script=tests/lua/runner.lua --idle=once` (the script calls `mp.commandv("quit", 0)` after running tests). Document both paths in `tests/README.md`.
 
-### Decision 2: Companion Script Isolates Test Code from Production
+### Decision 3: Minimal extraction — only what we want to test
 
-The original proposal pollutes `lls_core.lua` with `mp.register_script_message("test-probe", ...)` and `test-click` message handlers. This is wrong — it permanently adds test-only branches to production code and makes the monolith larger.
+Earlier drafts said "extract pure functions." That is open-ended and risky. Be specific: in this change we extract exactly three functions to `scripts/lls_utils.lua`:
 
-**Correct approach**: `scripts/lls_test.lua` is the test adapter. It reads shared state that is already accessible through mpv's property system (`mp.get_property_native()` on any shared `local` that mpv exposes, plus `mp.get_script_name()` cross-script messaging). For state that is not naturally exposed, the companion script uses `mp.add_timeout(0.1, ...)` to observe post-tick state.
+- `calculate_ass_alpha` (line 1294) — pure math.
+- `utf8_to_table` (line 1315) — pure string parsing.
+- `is_valid_mpv_key` (line 83) — pure regex.
 
-If specific deep state needs to be readable, the minimal addition to `lls_core.lua` is a **single** `mp.register_script_message("lls-state-query", ...)` handler that returns a **semantic** JSON snapshot — not a dump of raw internals.
+These three have **no** dependency on `Options`, `FSM`, or `mp`. They can be `require`d from a unit test with no mocking. Other candidates (`format_highlighted_word`, `dw_build_layout`) read `Options` and need a stub — defer them to a future change.
 
----
+### Decision 4: Do NOT auto-parse spec.md into tests
 
-### Decision 3: Semantic State, Not Raw Internal Dumps
+The 165 spec files contain English prose under "Scenario:" headings, not machine-parseable step definitions. Any parser will silently decouple from spec edits. Tests are written by hand; each test file cites its spec scenario in a comment header:
+```lua
+-- Spec: openspec/specs/shared-rendering-utils/spec.md
+-- Scenario: Verifying highlight color
+```
 
-The original design exposes `FSM.MEDIA_STATE`, raw OSD overlay strings, and `Tracks` internals. This tests the *implementation*, not the *behavior*. When a variable is renamed or the FSM restructured, every test breaks with no useful failure message.
+### Decision 5: Probe lives in `lls_core.lua`, dormant by default
 
-**Semantic API contract** (what the `lls-state-query` handler returns):
+The probe is a ~30-line block appended at the end of `lls_core.lua`. It registers two script-message handlers. They allocate nothing and run no code unless queried. **No feature flag** — flags add complexity for no benefit since the probe costs nothing when idle.
 
+The block sits in its own clearly-labelled region (`-- ===== STATE PROBE (test instrumentation) =====`) so future readers understand its purpose at a glance.
+
+### Decision 6: Probe exposes semantic state, not raw FSM
+
+The state snapshot is a curated, stable JSON shape. When `FSM` internals are renamed, the snapshot field stays the same — its computation changes. Example:
 ```json
 {
   "autopause": "ON",
@@ -63,53 +115,61 @@ The original design exposes `FSM.MEDIA_STATE`, raw OSD overlay strings, and `Tra
   "drum_window": "DOCKED",
   "active_sub_index": 3,
   "playback_state": "SINGLE_ASS",
-  "dw_cursor": {"line": 2, "word": 1},
-  "dw_selection_count": 0
+  "dw_cursor": { "line": 2, "word": 1 },
+  "dw_selection_count": 0,
+  "immersion_mode": "MOVIE",
+  "copy_mode": "A",
+  "loop_mode": "OFF",
+  "book_mode": false
 }
 ```
+For ASS rendering verification, a separate `lls-render-query` message returns the raw `.data` field of a named overlay (`drum`, `dw`, `tooltip`, `search`, `seek`). Tests parse the ASS string for tag presence (`\1c&H00CCFF&`) — they do not compute pixels.
 
-ASS string content for rendering verification is exposed via a separate `lls-render-query` message that returns the current `.data` field of the named overlay — but framed as structured word-style data, not a raw ASS blob.
+### Decision 7: Test files live in `tests/`, never in `scripts/`
+
+mpv auto-loads everything in `scripts/`. Anything we put there runs during normal playback. Test-only Lua lives in `tests/lua/` and is injected via `--script=tests/lua/...` only when running tests.
+
+### Decision 8: PowerShell driver, not Python
+
+The repo already uses PowerShell for Windows-specific concerns (clipboard, GoldenDict integration). PowerShell has native named-pipe support via `System.IO.Pipes.NamedPipeClientStream` — no external dependencies. Python with `win32file` is not faster to write or more reliable; it just adds an extra runtime to install.
+
+### Decision 9: Naming — do not collide with existing modules
+
+The original draft put state methods on `Diagnostic`. That table is the **logging** subsystem (line 44). Collision is confusing. Probe internals live in a new local table `LlsProbe` defined inside the probe block.
 
 ---
 
-### Decision 4: Do NOT Auto-Parse spec.md into Tests
+## Architecture overview
 
-The original proposal (Tasks 4.1–4.3) describes parsing `spec.md` Gherkin scenarios and auto-mapping them to Python functions. This is a significant mistake for three reasons:
-
-1. **The 165 spec.md files are documentation, not executable definitions.** The scenarios contain English prose, not machine-parseable step definitions with stable identifiers.
-2. **Any parser will lag behind spec edits.** Every time a scenario is reworded, the parser breaks or silently decouples from the test.
-3. **The mapping layer adds indirection without value.** A hand-written test that says `-- Scenario: Verifying highlight color (shared-rendering-utils/spec.md)` is clearer, more maintainable, and requires zero parsing infrastructure.
-
-**Approach**: Tests are written by hand, one test file per spec capability. A comment in the test file cites the spec path and scenario. The spec is the design document; the test file is the code artifact.
-
----
-
-### Decision 5: PowerShell for IPC Driver, Not Python + win32file
-
-The existing codebase already uses PowerShell for Windows-specific operations (clipboard, GoldenDict integration). Adding Python + `win32file` introduces an external dependency that may not be present and adds maintenance overhead.
-
-PowerShell has native named pipe support via `System.IO.Pipes.NamedPipeClientStream`:
-
-```powershell
-$pipe = [System.IO.Pipes.NamedPipeClientStream]::new(".", "mpv-test", [System.IO.Pipes.PipeDirection]::InOut)
-$pipe.Connect(5000)
 ```
+Test driver (PowerShell)
+    │
+    │  named pipe: \\.\pipe\mpv-test
+    │  JSON-lines IPC
+    ▼
+mpv process (--vo=null --no-terminal)
+    │
+    └── scripts/lls_core.lua  ← probe block at end
+            │
+            │  script-message: lls-state-query / lls-render-query
+            ▼
+        LlsProbe._snapshot()  →  mp.set_property("user-data/lls/state", json)
+                                                                        │
+                                                                        ▼
+                                            PowerShell reads via get_property
 
-For the IPC driver, a PowerShell module (`tests/ipc/MpvIpc.psm1`) is sufficient. If the test suite grows to need pytest-style parametrization or reporting, Python is an acceptable escalation path — but only after the PowerShell layer proves inadequate.
-
----
-
-### Decision 6: Fix the `Diagnostic` Naming Collision
-
-The original proposal adds `Diagnostic.get_state()` to `lls_core.lua`. `Diagnostic` is already the logging system (line 44) — a production module with `ERROR/WARN/INFO/DEBUG/TRACE` levels. Extending it with state-query methods conflates two completely different concerns.
-
-The state-query handler should live in a separate `LLSStateProbe` table, or simply be a standalone function `lls_state_snapshot()`.
+Tier 1 (no mpv at all):
+    lua tests/run_unit.lua
+        ↓ require
+    tests/lua/luaunit.lua + scripts/lls_utils.lua
+```
 
 ---
 
 ## Risks / Trade-offs
 
-- **busted on Windows**: Installing busted requires LuaRocks or a pre-built binary. One-time setup cost, but then zero-friction for unit tests.
-- **Companion script timing**: `lls_test.lua` must account for the tick loop's 50ms cadence — state queries immediately after a key press may read pre-tick state. Use `mp.add_timeout(0.1, ...)` as a buffer.
-- **lls_core.lua locals**: Several functions are `local` in the file scope. For unit tests, the test files will need to either require a refactored module or test via the public-ish interface. The minimal refactoring required: extract the pure utility functions (ASS formatters, layout calculators) into a `scripts/lls_utils.lua` module that both `lls_core.lua` and the unit tests can require.
-- **Test fixtures**: Acceptance tests presuppose a known media file with known subtitle content. A small set of `.srt` fixtures checked into `tests/fixtures/` is required. Without fixtures, tests are not reproducible.
+- **Polling vs observe_property**: A naive driver polls `user-data/lls/state` after sending a query and risks reading the stale value. Use `observe_property` and wait on the change event. The IPC module helper hides this from individual tests.
+- **Fixture brittleness**: Acceptance tests assume specific subtitle timestamps. Document the fixture contract in `tests/fixtures/README.md` so a developer changing a fixture knows which tests they break.
+- **mpv lifecycle leaks**: If a test crashes mid-run, the mpv process must still be killed. The PowerShell helper uses `try/finally` with `Stop-Process` on the spawned PID.
+- **Pipe collisions**: Hard-coding `\\.\pipe\mpv-test` means two parallel runs collide. For now we accept this (single-developer project). If parallelism becomes desirable, parameterize the pipe name with a GUID.
+- **Future of `lls_core.lua` locals**: Most useful logic is in `local function` bindings — unreachable by `require`. Each future test that needs a new pure function will require an extraction step. That is fine: it forces explicit decisions about what is testable.

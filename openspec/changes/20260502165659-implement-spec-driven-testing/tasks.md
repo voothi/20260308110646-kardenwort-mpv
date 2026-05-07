@@ -1,68 +1,335 @@
-## 1. Extract Pure Utilities into a Testable Module
+# Implementation Tasks
 
-- [ ] 1.1 Create `scripts/lls_utils.lua` and move pure functions into it: `calculate_ass_alpha`, `utf8_to_table`, `format_highlighted_word`, and the Cyrillic case-mapping helpers.
-- [ ] 1.2 In `lls_core.lua`, replace the inlined definitions with `local U = require("lls_utils")` and update all call sites.
-- [ ] 1.3 Verify the script loads and all existing functionality works after the extraction.
-
-> **Why**: These functions have no `mp` dependency. Moving them enables unit testing without booting mpv. This is the enabling step for the entire test effort.
+Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-bottom — phases depend on the previous one. Total budget: ~5 working days.
 
 ---
 
-## 2. Lua Unit Test Suite (busted, no mpv)
+## Phase 1 — Test infrastructure foundation (~0.5 day)
 
-- [ ] 2.1 Install busted (LuaRocks `busted` or pre-built Windows binary) and confirm `busted --version` runs.
-- [ ] 2.2 Create `tests/unit/test_ass_formatting.lua` — tests for `calculate_ass_alpha` (boundary values: `0`, `1`, `0.5`, `"FF"`, invalid input) and `format_highlighted_word` (phrase mode, surgical mode, color equality short-circuit).
-- [ ] 2.3 Create `tests/unit/test_utf8.lua` — tests for `utf8_to_table` with ASCII, multi-byte CJK, Cyrillic, and empty string inputs.
-- [ ] 2.4 Create `tests/unit/test_layout.lua` — extract `dw_build_layout` into `lls_utils.lua` and test it against mock subtitle data (known line counts, cursor positions).
-- [ ] 2.5 Create `tests/unit/test_hit_zones.lua` — test `dw_hit_test`, `drum_osd_hit_test` logic given fabricated hit-zone tables (no OSD required).
-- [ ] 2.6 Add `tests/run_unit.ps1` — a PowerShell wrapper that invokes `busted tests/unit/` and prints pass/fail summary.
+### 1.1 Create directory layout
+
+- [ ] **What**: Create the directory tree.
+- [ ] **How**:
+  ```
+  tests/
+    README.md
+    run_unit.ps1
+    run_unit.lua
+    lua/
+      luaunit.lua            ← vendored
+    unit/
+      test_ass_alpha.lua
+      test_utf8.lua
+    ipc/
+      MpvIpc.psm1
+      Start-MpvTest.ps1
+    acceptance/
+      test_state_probe.ps1
+      test_drum_mode.ps1
+      test_render.ps1
+    fixtures/
+      README.md
+      test_minimal.srt
+  ```
+- [ ] **Done when**: Tree exists. Empty placeholder files are fine.
+
+### 1.2 Vendor luaunit
+
+- [ ] **What**: Drop `luaunit.lua` (single file, MIT) into `tests/lua/`.
+- [ ] **Why**: Avoids LuaRocks. Single dependency you can read in 10 minutes.
+- [ ] **How**: Download `luaunit.lua` from `https://github.com/bluebird75/luaunit` (latest release). Commit verbatim. Add a `LICENSE-luaunit` file with the upstream license.
+- [ ] **Done when**: `lua tests/lua/luaunit.lua` exits 0 (it should — the file is loadable on its own).
+
+### 1.3 Add test runners
+
+- [ ] **What**: `tests/run_unit.lua` discovers and runs all `tests/unit/test_*.lua`. `tests/run_unit.ps1` is a thin wrapper that invokes `lua` (or LuaJIT) on the runner.
+- [ ] **Why**: One command per tier. CI-friendly later.
+- [ ] **How** — `tests/run_unit.lua`:
+  ```lua
+  package.path = package.path .. ";tests/lua/?.lua;tests/unit/?.lua;scripts/?.lua"
+  local lu = require("luaunit")
+  -- discover and require every test_*.lua
+  local lfs_ok, lfs = pcall(require, "lfs")
+  -- if no lfs, fall back to a hard-coded list (acceptable for ~10 files)
+  for _, name in ipairs({ "test_ass_alpha", "test_utf8" }) do
+      require(name)
+  end
+  os.exit(lu.LuaUnit.run())
+  ```
+- [ ] **Done when**: `pwsh tests/run_unit.ps1` prints `Ran 0 tests in 0.000 seconds, OK`.
 
 ---
 
-## 3. State Probe in lls_core.lua (Minimal, Semantic)
+## Phase 2 — Pure-function extraction & first unit tests (~1 day)
 
-- [ ] 3.1 Add a single `mp.register_script_message("lls-state-query", ...)` handler to `lls_core.lua` that returns a **semantic** JSON snapshot: autopause mode, drum/dw mode, active sub index, cursor position, selection count. **Do not dump raw FSM fields.**
-- [ ] 3.2 Add a second `mp.register_script_message("lls-render-query", ...)` handler that returns the current `.data` string of a named overlay (`"drum"`, `"dw"`, `"tooltip"`, `"search"`).
-- [ ] 3.3 Confirm both handlers are guarded by a feature flag (`Options.enable_test_probe = false` by default) so they are a no-op in normal use.
+### 2.1 Create `scripts/lls_utils.lua`
 
-> **Note**: Do not extend the existing `Diagnostic` table — it is the logging system (line 44). These handlers should be standalone functions or live in a new `LLSProbe` table.
+- [ ] **What**: New module exporting exactly three functions:
+  - `M.calculate_ass_alpha(val)` — moved from `lls_core.lua:1294`.
+  - `M.utf8_to_table(str)` — moved from `lls_core.lua:1315`.
+  - `M.is_valid_mpv_key(k_str)` — moved from `lls_core.lua:83`.
+- [ ] **Why**: Test surface for the unit tier. These three are truly pure (no `Options`, no `mp`, no `FSM`).
+- [ ] **How**: Each function returns the same outputs for the same inputs as before. The module ends with `return M`.
+- [ ] **Done when**: `lua -e "print(require('scripts.lls_utils').calculate_ass_alpha(0.5))"` prints `80`.
+
+### 2.2 Update `lls_core.lua` to consume the module
+
+- [ ] **What**: At the top of `lls_core.lua` add:
+  ```lua
+  local U = require("lls_utils")
+  ```
+  Replace each in-file definition of the three extracted functions with a local alias:
+  ```lua
+  local calculate_ass_alpha = U.calculate_ass_alpha
+  local utf8_to_table = U.utf8_to_table
+  local is_valid_mpv_key = U.is_valid_mpv_key
+  ```
+- [ ] **Why**: Keep the file's call sites unchanged — only the definition moves. Lower regression risk than rewriting every call.
+- [ ] **Done when**: mpv loads `lls_core.lua` cleanly with a real subtitle file, drum mode toggles, and the seek OSD shows correct alpha values. Manual smoke test, ~2 minutes.
+
+### 2.3 Write `tests/unit/test_ass_alpha.lua`
+
+- [ ] **What**: Boundary-value tests for `calculate_ass_alpha`.
+- [ ] **How**:
+  ```lua
+  local lu = require("luaunit")
+  local U  = require("lls_utils")
+
+  TestAssAlpha = {}
+
+  function TestAssAlpha:testFullyOpaque()
+      lu.assertEquals(U.calculate_ass_alpha(1), "00")
+  end
+  function TestAssAlpha:testFullyTransparent()
+      lu.assertEquals(U.calculate_ass_alpha(0), "FF")
+  end
+  function TestAssAlpha:testHalfOpacity()
+      lu.assertEquals(U.calculate_ass_alpha(0.5), "80")
+  end
+  function TestAssAlpha:testHexPassthrough()
+      lu.assertEquals(U.calculate_ass_alpha("aa"), "AA")
+  end
+  function TestAssAlpha:testInvalidInputDefaults()
+      lu.assertEquals(U.calculate_ass_alpha("garbage"), "00")
+  end
+  function TestAssAlpha:testNilInputDefaults()
+      lu.assertEquals(U.calculate_ass_alpha(nil), "00")
+  end
+  ```
+- [ ] **Done when**: `pwsh tests/run_unit.ps1` reports 6 passed.
+
+### 2.4 Write `tests/unit/test_utf8.lua`
+
+- [ ] **What**: Tests for `utf8_to_table` covering ASCII, Cyrillic, German diacritics, and CJK.
+- [ ] **How**: `lu.assertEquals(#U.utf8_to_table("привет"), 6)` and similar.
+- [ ] **Done when**: All cases pass; one deliberate-fail run (e.g., `assertEquals(#..., 99)`) confirms the runner reports failure with a diff.
 
 ---
 
-## 4. IPC Driver (PowerShell)
+## Phase 3 — In-script probe (~0.5 day)
 
-- [ ] 4.1 Create `tests/ipc/MpvIpc.psm1` — a PowerShell module wrapping `System.IO.Pipes.NamedPipeClientStream` with functions: `Connect-MpvIpc`, `Send-MpvCommand`, `Get-MpvProperty`, `Disconnect-MpvIpc`.
-- [ ] 4.2 Implement request/response correlation using `request_id` — mpv's IPC stream interleaves event notifications with responses, so naive line-by-line reading will misparse. Use a receive loop that matches `request_id` fields.
-- [ ] 4.3 Implement `Invoke-LlsStateQuery` — sends `script-message-to lls_core lls-state-query` and returns the parsed JSON response.
-- [ ] 4.4 Implement `Invoke-LlsRenderQuery` — sends `lls-render-query` and returns the overlay `.data` string.
-- [ ] 4.5 Create `tests/ipc/Invoke-MpvTest.ps1` — boots mpv with `--input-ipc-server=\\.\pipe\mpv-test --script=scripts\lls_core.lua --script-opts=lls_core-enable_test_probe=yes` against a fixture file, waits for IPC to become available, runs a test block, and quits mpv cleanly.
+### 3.1 Append the probe block to `lls_core.lua`
+
+- [ ] **What**: Add a clearly-delimited block at the end of `lls_core.lua`:
+  ```lua
+  -- =========================================================================
+  -- STATE PROBE (test instrumentation)
+  -- Dormant in production. Activated by IPC `script-message-to lls_core ...`.
+  -- =========================================================================
+  local LlsProbe = {}
+
+  function LlsProbe._snapshot()
+      return {
+          autopause          = FSM.AUTOPAUSE,
+          drum_mode          = FSM.DRUM,
+          drum_window        = FSM.DRUM_WINDOW,
+          active_sub_index   = FSM.ACTIVE_IDX,
+          playback_state     = FSM.MEDIA_STATE,
+          dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
+          dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
+          immersion_mode     = FSM.IMMERSION_MODE,
+          copy_mode          = FSM.COPY_MODE,
+          loop_mode          = FSM.LOOP_MODE,
+          book_mode          = FSM.BOOK_MODE,
+      }
+  end
+
+  mp.register_script_message("lls-state-query", function()
+      mp.set_property("user-data/lls/state", utils.format_json(LlsProbe._snapshot()))
+  end)
+
+  mp.register_script_message("lls-render-query", function(overlay_name)
+      local map = {
+          drum    = drum_osd,
+          dw      = dw_osd,
+          tooltip = dw_tooltip_osd,
+          search  = search_osd,
+          seek    = seek_osd,
+      }
+      local osd = map[overlay_name]
+      mp.set_property("user-data/lls/render", (osd and osd.data) or "")
+  end)
+  ```
+- [ ] **Why**: Two-handler API, no flag, zero cost when nobody queries it. Semantic snapshot insulates tests from future FSM renames.
+- [ ] **Watch out**: `drum_osd`, `dw_osd`, etc. are file-scoped locals at lines 612, 937, 942. The probe block must be **after** their declarations. Easiest: append at the very end of the file, after the last `mp.add_periodic_timer` registration.
+- [ ] **Done when**: `lls_core.lua` still loads cleanly under mpv with the same manual smoke test as 2.2.
+
+### 3.2 Manual probe verification
+
+- [ ] **What**: Without writing any test code yet, confirm the probe round-trips.
+- [ ] **How** (run in two PowerShell windows):
+  ```powershell
+  # Window A — start mpv with IPC and a fixture
+  mpv --no-config --vo=null --no-terminal --idle=once `
+      --input-ipc-server=\\.\pipe\mpv-test `
+      --script=scripts\lls_core.lua `
+      tests\fixtures\test_minimal.srt
+
+  # Window B — query the probe
+  $pipe = [System.IO.Pipes.NamedPipeClientStream]::new(".", "mpv-test", "InOut")
+  $pipe.Connect(5000)
+  $w = [System.IO.StreamWriter]::new($pipe); $w.AutoFlush = $true
+  $r = [System.IO.StreamReader]::new($pipe)
+  $w.WriteLine('{"command":["script-message-to","lls_core","lls-state-query"],"request_id":1}')
+  Start-Sleep -Milliseconds 200
+  $w.WriteLine('{"command":["get_property","user-data/lls/state"],"request_id":2}')
+  while (-not $r.EndOfStream) { $r.ReadLine() }
+  ```
+- [ ] **Done when**: One of the JSON lines printed is the snapshot returned for `request_id: 2`, with all the semantic fields populated.
 
 ---
 
-## 5. Test Fixtures
+## Phase 4 — PowerShell IPC driver (~1 day)
 
-- [ ] 5.1 Create `tests/fixtures/` directory.
-- [ ] 5.2 Add `tests/fixtures/test_dual.srt` (primary) and `tests/fixtures/test_dual_sec.srt` (secondary) — minimal subtitle files with known content (3–5 entries, known timestamps) sufficient for autopause, drum mode, and word-navigation tests.
-- [ ] 5.3 Add `tests/fixtures/test_render.ass` — an ASS file with known styled dialogue lines for rendering verification.
-- [ ] 5.4 Document the fixture contract in `tests/README.md`: what each fixture file contains and which test scenarios depend on it.
+### 4.1 `tests/ipc/MpvIpc.psm1` — connection & send
+
+- [ ] **What**: PowerShell module exporting `Connect-MpvIpc`, `Send-MpvCommand`, `Disconnect-MpvIpc`.
+- [ ] **Why**: Encapsulates the pipe lifecycle and request/response correlation. Test files should not deal with `StreamReader`.
+- [ ] **How**:
+  - Connection state held in a hashtable returned to the caller.
+  - Each `Send-MpvCommand` increments a `request_id` counter, writes the JSON line, then reads lines until one matches that `request_id`. Any line whose top-level key is `event` is handled separately (events are emitted asynchronously and interleave with responses).
+  - Time out after 5 seconds with a `throw`.
+- [ ] **Done when**: From PowerShell:
+  ```powershell
+  Import-Module ./tests/ipc/MpvIpc.psm1
+  $s = Connect-MpvIpc -PipeName "mpv-test"
+  $r = Send-MpvCommand -Session $s -Command @("get_property","mpv-version")
+  $r.data  # → "0.39.0" or similar
+  Disconnect-MpvIpc -Session $s
+  ```
+
+### 4.2 Probe helpers
+
+- [ ] **What**: `Invoke-LlsStateQuery` and `Invoke-LlsRenderQuery -Overlay <name>`.
+- [ ] **Why**: Hides the two-step send-then-read pattern.
+- [ ] **How**:
+  1. Call `observe_property 1 user-data/lls/state` (subscribes to changes).
+  2. Send `script-message-to lls_core lls-state-query`.
+  3. Wait up to 1 s for a `property-change` event for `user-data/lls/state`.
+  4. Call `unobserve_property 1`.
+  5. Parse the `data` field from the event with `ConvertFrom-Json`. Return as a PSCustomObject.
+- [ ] **Done when**: `Invoke-LlsStateQuery -Session $s` returns an object whose `.autopause` matches the script's default.
+
+### 4.3 `tests/ipc/Start-MpvTest.ps1`
+
+- [ ] **What**: Boots a headless mpv against a given fixture and connects.
+- [ ] **How**:
+  ```powershell
+  param(
+      [string]$Fixture = "tests/fixtures/test_minimal.srt",
+      [string]$PipeName = "mpv-test"
+  )
+  $proc = Start-Process mpv `
+      -ArgumentList @(
+          "--no-config", "--vo=null", "--no-terminal", "--idle=once",
+          "--input-ipc-server=\\.\pipe\$PipeName",
+          "--script=scripts\lls_core.lua",
+          $Fixture
+      ) -PassThru -NoNewWindow
+  # poll for pipe availability up to 5 s
+  $session = Connect-MpvIpc -PipeName $PipeName
+  return @{ Session = $session; Process = $proc }
+  ```
+  Pair with `Stop-MpvTest` that runs `Send-MpvCommand quit` then `Stop-Process` on the PID as a fallback.
+- [ ] **Done when**: `Start-MpvTest.ps1` returns a session object; `Stop-MpvTest` exits cleanly.
 
 ---
 
-## 6. Acceptance Test Suite (Narrow Scope)
+## Phase 5 — Fixtures (~0.5 day)
 
-Write tests by hand — one `.ps1` file per capability, citing the relevant `spec.md` path and scenario in a comment. No auto-parsing of spec files.
+### 5.1 `tests/fixtures/test_minimal.srt`
 
-- [ ] 6.1 `tests/acceptance/test_state_probe.ps1` — verifies `lls-state-query` returns expected default state on clean load.
-- [ ] 6.2 `tests/acceptance/test_drum_mode.ps1` — sends `toggle-drum-mode` keypress via IPC, queries state, asserts `"drum_mode": "ON"`.
-- [ ] 6.3 `tests/acceptance/test_rendering.ps1` — loads `test_render.ass`, queries `lls-render-query dw`, verifies the overlay `.data` string contains expected ASS color tags for a known word index.
-- [ ] 6.4 `tests/acceptance/test_autopause.ps1` — loads `test_dual.srt`, enables autopause via IPC, seeks to known subtitle boundary, asserts mpv is paused.
-- [ ] 6.5 `tests/acceptance/test_hit_zones.ps1` — confirms `DRUM_HIT_ZONES` is populated after drum mode is active (via `lls-state-query`).
+- [ ] **What**: Three SRT entries with documented timestamps and word counts.
+- [ ] **How**:
+  ```
+  1
+  00:00:01,000 --> 00:00:03,000
+  Hello world
+
+  2
+  00:00:04,000 --> 00:00:06,000
+  This is a test
+
+  3
+  00:00:07,000 --> 00:00:09,000
+  Final entry
+  ```
+- [ ] **Done when**: mpv loads it without errors and lls_core enters `SINGLE_SRT` playback state (verifiable via the probe).
+
+### 5.2 `tests/fixtures/README.md`
+
+- [ ] **What**: Document each fixture's contract: timestamps, total entries, word counts per entry, which acceptance tests depend on it.
+- [ ] **Why**: Without this, a future developer changing a fixture will silently break tests.
+- [ ] **Done when**: Each `.srt` has a corresponding section listing every test that reads it.
 
 ---
 
-## 7. Pilot Verification
+## Phase 6 — Pilot acceptance tests (~1 day)
 
-- [ ] 7.1 Run `tests/run_unit.ps1` — all unit tests pass.
-- [ ] 7.2 Run `Invoke-MpvTest.ps1` against `test_rendering.ps1` — confirm ASS tag for a hex conversion regression is caught by the test before the fix and passes after.
-- [ ] 7.3 Manually break `calculate_ass_alpha` (off-by-one in the hex conversion) and confirm the unit test in 2.2 fails with a descriptive message.
-- [ ] 7.4 Document run instructions in `tests/README.md`.
+Each `.ps1` follows the same pattern: `Start-MpvTest`, run assertions, `Stop-MpvTest` in a `finally`.
+
+### 6.1 `tests/acceptance/test_state_probe.ps1`
+
+- [ ] **What**: Boots mpv with `test_minimal.srt`, queries the probe, asserts default state values.
+- [ ] **Spec ref**: `# Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md` — Scenario "Querying playback state".
+- [ ] **Done when**: `playback_state -eq "SINGLE_SRT"`, `drum_mode -eq "OFF"`, etc.
+
+### 6.2 `tests/acceptance/test_drum_mode.ps1`
+
+- [ ] **What**: Sends `script-binding lls_core/toggle-drum-mode` via IPC, then queries the probe.
+- [ ] **Note**: Use `script-binding`, not raw key codes — the binding is the public contract; the keypress is the implementation.
+- [ ] **Done when**: `drum_mode -eq "ON"` after the binding fires.
+
+### 6.3 `tests/acceptance/test_render.ps1`
+
+- [ ] **What**: With drum mode active, queries `lls-render-query dw`, asserts the returned ASS string contains the expected color tag for highlighted words.
+- [ ] **Done when**: `$render -match '\\1c&H[0-9A-Fa-f]{6}&'` succeeds.
+
+---
+
+## Phase 7 — Verification & docs (~0.5 day)
+
+### 7.1 Negative-test the unit tier
+
+- [ ] **What**: Edit `lls_utils.lua` to break `calculate_ass_alpha` (e.g., off-by-one). Run `run_unit.ps1`, confirm it reports the failure with a useful diff. Revert.
+
+### 7.2 Negative-test the acceptance tier
+
+- [ ] **What**: Temporarily change one snapshot field in the probe (e.g., `autopause = "WRONG"`). Run `test_state_probe.ps1`, confirm assertion failure. Revert.
+
+### 7.3 Write `tests/README.md`
+
+- [ ] **What**: Two sections — "Run unit tests" and "Run acceptance tests" — each with the exact PowerShell command. Note the headless mpv flags. Note the pipe-name single-instance limitation.
+
+### 7.4 Final smoke test
+
+- [ ] **What**: Fresh checkout (or `git stash` your work), run both tiers from scratch, confirm green.
+
+---
+
+## Out of scope for this change (track in follow-ups)
+
+- Extracting `format_highlighted_word`, `dw_build_layout`, hit-test functions to `lls_utils.lua` (they read `Options`/`FSM` — needs stub plumbing).
+- Parametrizing pipe names for parallel runs.
+- CI integration.
+- Rendering tests beyond ASS-tag presence (e.g., layout metric assertions).
