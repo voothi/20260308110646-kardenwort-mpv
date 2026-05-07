@@ -14,6 +14,6 @@
 
 ## 3. Verification and Cleanup
 
-- [ ] 3.1 Run `pytest tests/acceptance/test_archived_changes.py` and ensure all pass.
-- [ ] 3.2 Run the full acceptance test suite to ensure no regressions.
-- [ ] 3.3 Verify test results against the [Testing Plan](file:///C:/Users/voothi/.gemini/antigravity/brain/15f926b2-809b-4a05-a2d1-9eca40134b53/testing_plan_archived_changes.md).
+- [x] 3.1 Run `pytest tests/acceptance/test_archived_changes.py` and ensure all pass.
+- [x] 3.2 Run the full acceptance test suite to ensure no regressions.
+- [x] 3.3 Verify test results against the [Testing Plan](file:///C:/Users/voothi/.gemini/antigravity/brain/15f926b2-809b-4a05-a2d1-9eca40134b53/testing_plan_archived_changes.md).
