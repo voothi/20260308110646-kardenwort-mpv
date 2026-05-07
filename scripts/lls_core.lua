@@ -682,7 +682,8 @@ function get_center_index(subs, time_pos)
     
     -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
     -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
-    local active_idx = FSM.ACTIVE_IDX
+    -- Sentinel is primary-track only: secondary calls receive active_idx=-1 and fall through to binary search.
+    local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX or -1
 
     -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
     -- don't let the sticky logic pull us back to the previous one during the overlap.
@@ -7413,10 +7414,6 @@ end
 
 
 local function cmd_toggle_sub_vis()
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
-        return
-    end
     local nxt = not FSM.native_sub_vis
     FSM.native_sub_vis = nxt
     FSM.native_sec_sub_vis = nxt
@@ -7469,7 +7466,9 @@ local function cmd_adjust_sec_sub_pos(delta)
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)
-    mp.set_property_number("secondary-sub-pos", math.max(0, math.min(150, p + delta)))
+    local new_pos = math.max(0, math.min(150, p + delta))
+    mp.set_property_number("secondary-sub-pos", new_pos)
+    FSM.native_sec_sub_pos = new_pos
 end
 
 local function cmd_cycle_sec_sid()
