@@ -1621,9 +1621,8 @@
 20260507142316 Remove tests\mpv_last_run.log from git cache.
 20260507142709 Let's continue with the test project openspec\changes\20260502165659-implement-spec-driven-testing, I worked with another, small model, check that everything is done well, try to run it.
 20260507150712 Both tiers green. Here's a summary of what was found and fixed: Root causes (3 bugs introduced by the previous model): Windows IPC deadlock — mpv_ipc.py used open(pipe, 'r+b', buffering=0) (CRT file I/O) for concurrent reads (_read_loop thread) and writes (main thread) on the same handle. The Windows CRT's _read() holds a per-fd lock (_lock_fhandle) while blocking in ReadFile, causing _write() to deadlock permanently. Fix: replaced with ctypes-based _WinPipe that calls ReadFile/WriteFile directly via Win32 API using FILE_FLAG_OVERLAPPED, which supports true concurrent I/O. Pure-SRT as main media — mpv_session.py started mpv with --idle and then loaded the SRT via IPC loadfile. mpv would exit with "No video or audio streams selected" (an SRT has no A/V streams). Fix: added tests/fixtures/test_video.mp4 (a 2×2 black 12-second video generated via FFmpeg) and updated the session to pass it as the main file with --sub-file for the SRT. MEDIA_STATE = NO_SUBS — even if mpv had stayed alive, loading the SRT as the main file meant lls_core never detected an external subtitle track, so SINGLE_SRT state was never set and drum mode was blocked. The video+--sub-file approach fixes this too.
-
-
-
+20260507150823 Doesn’t it make sense to rename these files tests\fixtures\test_minimal.srt tests\fixtures\test_minimal.tsv tests\fixtures\test_video.mp4 tests\fixtures\test_video.tsv, because it’s customary for me"C:\Users\voothi\Desktop\20260504193411\20260504193411-paketzustellerin-in-der-vorweihnachtszeit.de.srt" "C:\Users\voothi\Desktop\20260504193411\20260504193411-paketzustellerin-in-der-vorweihnachtszeit.mp4" "C:\Users\voothi\Desktop\20260504193411\20260504193411-paketzustellerin-in-der-vorweihnachtszeit.ru.srt" "C:\Users\voothi\Desktop\20260504193411\20260504193411-paketzustellerin-in-der-vorweihnachtszeit.tsv"
+20260507151040 Accept.
 
 
 

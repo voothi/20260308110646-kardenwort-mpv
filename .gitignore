@@ -65,5 +65,5 @@ scratch/
 resume_session.state
 # .claude/settings.local.json
 # .claude/settings.json
-tests/fixtures/test_minimal.tsv
+tests/fixtures/20260502165659-test-fixture.tsv
 tests/mpv_last_run.log
