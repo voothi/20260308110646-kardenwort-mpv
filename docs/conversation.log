@@ -1613,8 +1613,8 @@
 20260507121759 I don’t see a single element, it feels like the script is simply not loading. I click on c, but the panel does not appear.
 20260507122303 We can’t solve the problem, you’re the boss here, a big model, try to help us. The problem is the same.
 20260507123056 You've hit your limit · resets 1:20pm (Europe/Berlin)
-
-
+20260507134403 Check the latest changes to make sure nothing is broken, is there any regression compared to 4dd2b8ffabee1e5419d9f6447cbe6f64c0a49600
+20260507134935 Conclusion: no regressions. The LLS interface behavior is identical to 4dd2b8f. The only net change to the runtime-loaded script is the dormant probe block at the end.
 
 
 
