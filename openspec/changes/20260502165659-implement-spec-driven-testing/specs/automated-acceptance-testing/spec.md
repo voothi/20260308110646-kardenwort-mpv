@@ -16,20 +16,20 @@ The system SHALL expose a set of pure utility functions in a stand-alone Lua mod
 ---
 
 ### Requirement: Headless mpv Test Lifecycle
-The system SHALL provide a PowerShell helper that boots mpv in a headless configuration suitable for unattended runs.
+The system SHALL provide a cross-platform Python helper (`MpvSession`) that boots mpv in a headless configuration suitable for unattended runs on Windows, Linux, and macOS.
 
 #### Scenario: Booting a headless test instance
-- **WHEN** the test harness invokes `Start-MpvTest` with a fixture path
-- **THEN** mpv SHALL launch with no video window, no terminal interaction, no user-config bleed-through, and an IPC server on a known named pipe.
+- **WHEN** the test harness instantiates `MpvSession` with a fixture path and calls `start()`
+- **THEN** mpv SHALL launch with no video window, no terminal interaction, no user-config bleed-through, and an IPC server on a platform-appropriate path (Win32 named pipe on Windows, Unix socket on Linux/macOS).
 
 #### Scenario: Tearing down after a crash
 - **WHEN** an acceptance test throws before reaching its cleanup step
-- **THEN** the harness SHALL still terminate the spawned mpv process so the next test can re-bind the pipe.
+- **THEN** the pytest fixture teardown SHALL still terminate the spawned mpv process so the next test can re-bind the IPC path.
 
 ---
 
 ### Requirement: IPC Command/Response Correlation
-The system SHALL provide a PowerShell IPC client that correlates JSON-IPC responses to outgoing requests using `request_id`.
+The system SHALL provide a cross-platform Python IPC client that correlates JSON-IPC responses to outgoing requests using `request_id`.
 
 #### Scenario: Matching response to request under event interleaving
 - **WHEN** the IPC stream emits property-change events between a request being sent and its response arriving

@@ -13,20 +13,22 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
   ```
   tests/
     README.md
-    run_unit.ps1
-    run_unit.lua
+    run_unit.py              ← cross-platform Lua runner (Python wrapper)
+    run_unit.lua             ← discovers and runs tests/unit/test_*.lua
+    requirements.txt         ← pytest only
     lua/
       luaunit.lua            ← vendored
     unit/
       test_ass_alpha.lua
       test_utf8.lua
     ipc/
-      MpvIpc.psm1
-      Start-MpvTest.ps1
+      mpv_ipc.py             ← cross-platform IPC client (stdlib only)
+      mpv_session.py         ← mpv lifecycle helper (pytest fixture)
     acceptance/
-      test_state_probe.ps1
-      test_drum_mode.ps1
-      test_render.ps1
+      conftest.py            ← shared pytest fixtures (mpv session)
+      test_state_probe.py
+      test_drum_mode.py
+      test_render.py
     fixtures/
       README.md
       test_minimal.srt
@@ -42,21 +44,39 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 1.3 Add test runners
 
-- [ ] **What**: `tests/run_unit.lua` discovers and runs all `tests/unit/test_*.lua`. `tests/run_unit.ps1` is a thin wrapper that invokes `lua` (or LuaJIT) on the runner.
-- [ ] **Why**: One command per tier. CI-friendly later.
+- [ ] **What**: `tests/run_unit.lua` discovers and runs all `tests/unit/test_*.lua`. `tests/run_unit.py` is a thin Python wrapper that finds `lua` (or LuaJIT) and invokes the Lua runner. `tests/requirements.txt` holds the single `pytest` dependency.
+- [ ] **Why**: One command per tier. Python wrapper avoids platform-specific shell scripts.
 - [ ] **How** — `tests/run_unit.lua`:
   ```lua
   package.path = package.path .. ";tests/lua/?.lua;tests/unit/?.lua;scripts/?.lua"
   local lu = require("luaunit")
-  -- discover and require every test_*.lua
-  local lfs_ok, lfs = pcall(require, "lfs")
-  -- if no lfs, fall back to a hard-coded list (acceptable for ~10 files)
+  -- hard-coded list is fine for ~10 files; expand as the suite grows
   for _, name in ipairs({ "test_ass_alpha", "test_utf8" }) do
       require(name)
   end
   os.exit(lu.LuaUnit.run())
   ```
-- [ ] **Done when**: `pwsh tests/run_unit.ps1` prints `Ran 0 tests in 0.000 seconds, OK`.
+- [ ] **How** — `tests/run_unit.py`:
+  ```python
+  #!/usr/bin/env python3
+  import subprocess, sys, os, shutil
+
+  def find_lua():
+      for name in ('lua', 'lua5.4', 'lua5.3', 'luajit'):
+          if shutil.which(name):
+              return name
+      return None
+
+  lua = os.environ.get('LUA') or find_lua()
+  if not lua:
+      sys.exit('ERROR: no Lua interpreter found. Set LUA=/path/to/lua or install lua.')
+  sys.exit(subprocess.run([lua, 'tests/run_unit.lua']).returncode)
+  ```
+- [ ] **How** — `tests/requirements.txt`:
+  ```
+  pytest
+  ```
+- [ ] **Done when**: `python tests/run_unit.py` prints `Ran 0 tests in 0.000 seconds, OK`.
 
 ---
 
@@ -116,7 +136,7 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
       lu.assertEquals(U.calculate_ass_alpha(nil), "00")
   end
   ```
-- [ ] **Done when**: `pwsh tests/run_unit.ps1` reports 6 passed.
+- [ ] **Done when**: `python tests/run_unit.py` reports 6 passed.
 
 ### 2.4 Write `tests/unit/test_utf8.lua`
 
@@ -176,82 +196,241 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ### 3.2 Manual probe verification
 
-- [ ] **What**: Without writing any test code yet, confirm the probe round-trips.
-- [ ] **How** (run in two PowerShell windows):
-  ```powershell
-  # Window A — start mpv with IPC and a fixture
-  mpv --no-config --vo=null --no-terminal --idle=once `
-      --input-ipc-server=\\.\pipe\mpv-test `
-      --script=scripts\lls_core.lua `
+- [ ] **What**: Without writing any test code yet, confirm the probe round-trips. Use a small inline Python script to avoid building the full IPC module first.
+- [ ] **How**: Run in two separate terminals. In terminal A:
+  ```
+  # Windows
+  mpv --no-config --vo=null --no-terminal --idle=once
+      --input-ipc-server=\\.\pipe\mpv-lls-test
+      --script=scripts\lls_core.lua
       tests\fixtures\test_minimal.srt
 
-  # Window B — query the probe
-  $pipe = [System.IO.Pipes.NamedPipeClientStream]::new(".", "mpv-test", "InOut")
-  $pipe.Connect(5000)
-  $w = [System.IO.StreamWriter]::new($pipe); $w.AutoFlush = $true
-  $r = [System.IO.StreamReader]::new($pipe)
-  $w.WriteLine('{"command":["script-message-to","lls_core","lls-state-query"],"request_id":1}')
-  Start-Sleep -Milliseconds 200
-  $w.WriteLine('{"command":["get_property","user-data/lls/state"],"request_id":2}')
-  while (-not $r.EndOfStream) { $r.ReadLine() }
+  # Linux / macOS
+  mpv --no-config --vo=null --no-terminal --idle=once
+      --input-ipc-server=/tmp/mpv-lls-test.sock
+      --script=scripts/lls_core.lua
+      tests/fixtures/test_minimal.srt
   ```
-- [ ] **Done when**: One of the JSON lines printed is the snapshot returned for `request_id: 2`, with all the semantic fields populated.
+  In terminal B (platform-adaptive Python, no third-party packages):
+  ```python
+  import json, os, socket, time
+
+  if os.name == 'nt':
+      conn = open(r'\\.\pipe\mpv-lls-test', 'r+b', buffering=0)
+      send = lambda d: conn.write(d)
+      recv = lambda: conn.read(4096)
+  else:
+      s = socket.socket(socket.AF_UNIX); s.connect('/tmp/mpv-lls-test.sock')
+      send = lambda d: s.sendall(d)
+      recv = lambda: s.recv(4096)
+
+  send(b'{"command":["script-message-to","lls_core","lls-state-query"],"request_id":1}\n')
+  time.sleep(0.3)
+  send(b'{"command":["get_property","user-data/lls/state"],"request_id":2}\n')
+  time.sleep(0.3)
+  print(recv().decode())
+  ```
+- [ ] **Done when**: The output contains a JSON line for `request_id: 2` whose `data` field is the semantic snapshot with all expected fields.
 
 ---
 
-## Phase 4 — PowerShell IPC driver (~1 day)
+## Phase 4 — Python IPC driver (~1 day)
 
-### 4.1 `tests/ipc/MpvIpc.psm1` — connection & send
+### 4.1 `tests/ipc/mpv_ipc.py` — connection & send
 
-- [ ] **What**: PowerShell module exporting `Connect-MpvIpc`, `Send-MpvCommand`, `Disconnect-MpvIpc`.
-- [ ] **Why**: Encapsulates the pipe lifecycle and request/response correlation. Test files should not deal with `StreamReader`.
-- [ ] **How**:
-  - Connection state held in a hashtable returned to the caller.
-  - Each `Send-MpvCommand` increments a `request_id` counter, writes the JSON line, then reads lines until one matches that `request_id`. Any line whose top-level key is `event` is handled separately (events are emitted asynchronously and interleave with responses).
-  - Time out after 5 seconds with a `throw`.
-- [ ] **Done when**: From PowerShell:
-  ```powershell
-  Import-Module ./tests/ipc/MpvIpc.psm1
-  $s = Connect-MpvIpc -PipeName "mpv-test"
-  $r = Send-MpvCommand -Session $s -Command @("get_property","mpv-version")
-  $r.data  # → "0.39.0" or similar
-  Disconnect-MpvIpc -Session $s
+- [ ] **What**: Cross-platform IPC client using only Python stdlib. Exports `MpvIpc`.
+- [ ] **Why**: Encapsulates the platform-specific transport and request/response correlation. Acceptance tests never import `os`, `socket`, or platform detection — they just call `ipc.command(...)`.
+- [ ] **How**: The key design points:
+  - `_open_transport()` selects the connection method by `os.name`:
+    - Windows: `open(path, 'r+b', buffering=0)` — Python's `io.FileIO` calls `CreateFile()` for Win32 named pipes. No `win32file` needed.
+    - Linux/macOS: `socket.socket(socket.AF_UNIX)` + `s.makefile('rwb', buffering=0)`.
+  - A background `threading.Thread` reads lines and dispatches: responses (have `request_id`) are matched to a `threading.Event` stored in a `_pending` dict; events (have `event`) go to an event queue.
+  - `command(cmd, timeout=5.0)` increments a `_rid` counter, writes JSON, waits on the event, returns the response dict.
+  - `get_property(name)` is a one-liner on top of `command`.
+  - `observe_property(obs_id, name)` + `wait_property_change(name, timeout)` for the probe query pattern.
+
+  Skeleton:
+  ```python
+  # tests/ipc/mpv_ipc.py
+  import json, os, socket, threading, time, tempfile
+
+  def default_ipc_path():
+      if os.name == 'nt':
+          return r'\\.\pipe\mpv-lls-test'
+      return os.path.join(tempfile.gettempdir(), 'mpv-lls-test.sock')
+
+  class MpvIpc:
+      def __init__(self, path=None):
+          self._path = path or default_ipc_path()
+          self._rid = 0
+          self._lock = threading.Lock()
+          self._pending = {}   # request_id -> (Event, [result])
+          self._prop_events = {}  # property name -> Event
+          self._conn = None
+
+      def connect(self, timeout=5.0):
+          deadline = time.time() + timeout
+          while True:
+              try:
+                  self._conn = self._open_transport()
+                  break
+              except OSError:
+                  if time.time() > deadline:
+                      raise TimeoutError(f'mpv IPC not ready: {self._path}')
+                  time.sleep(0.1)
+          threading.Thread(target=self._read_loop, daemon=True).start()
+
+      def _open_transport(self):
+          if os.name == 'nt':
+              return open(self._path, 'r+b', buffering=0)
+          s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          s.connect(self._path)
+          return s.makefile('rwb', buffering=0)
+
+      def _read_loop(self):
+          buf = b''
+          while True:
+              try:
+                  chunk = self._conn.read(4096)
+                  if not chunk:
+                      break
+                  buf += chunk
+                  while b'\n' in buf:
+                      line, buf = buf.split(b'\n', 1)
+                      msg = json.loads(line)
+                      self._dispatch(msg)
+              except (OSError, json.JSONDecodeError):
+                  break
+
+      def _dispatch(self, msg):
+          if 'request_id' in msg:
+              with self._lock:
+                  ev, holder = self._pending.get(msg['request_id'], (None, None))
+              if ev:
+                  holder.append(msg)
+                  ev.set()
+          elif msg.get('event') == 'property-change':
+              name = msg.get('name', '')
+              ev = self._prop_events.get(name)
+              if ev:
+                  ev.set()
+
+      def command(self, cmd, timeout=5.0):
+          with self._lock:
+              self._rid += 1
+              rid = self._rid
+              ev, holder = threading.Event(), []
+              self._pending[rid] = (ev, holder)
+          self._conn.write(json.dumps({'command': cmd, 'request_id': rid}).encode() + b'\n')
+          if not ev.wait(timeout):
+              raise TimeoutError(f'mpv timeout on {cmd}')
+          with self._lock:
+              del self._pending[rid]
+          return holder[0]
+
+      def get_property(self, name, timeout=5.0):
+          r = self.command(['get_property', name], timeout)
+          if r.get('error') != 'success':
+              raise RuntimeError(f'get_property({name}): {r}')
+          return r['data']
+
+      def observe_property(self, obs_id, name):
+          self.command(['observe_property', obs_id, name])
+          self._prop_events[name] = threading.Event()
+
+      def wait_property_change(self, name, timeout=2.0):
+          ev = self._prop_events.get(name)
+          if not ev or not ev.wait(timeout):
+              raise TimeoutError(f'property-change timeout: {name}')
+          ev.clear()
+
+      def close(self):
+          if self._conn:
+              try:
+                  self._conn.close()
+              except OSError:
+                  pass
+  ```
+- [ ] **Done when**:
+  ```python
+  from tests.ipc.mpv_ipc import MpvIpc
+  ipc = MpvIpc(); ipc.connect()
+  print(ipc.get_property('mpv-version'))  # → "mpv 0.39.0" or similar
+  ipc.close()
   ```
 
-### 4.2 Probe helpers
+### 4.2 Probe helpers in `mpv_ipc.py`
 
-- [ ] **What**: `Invoke-LlsStateQuery` and `Invoke-LlsRenderQuery -Overlay <name>`.
-- [ ] **Why**: Hides the two-step send-then-read pattern.
+- [ ] **What**: `query_lls_state(ipc)` and `query_lls_render(ipc, overlay_name)` module-level helpers.
+- [ ] **Why**: The two-step send-then-observe-property pattern is always the same; helpers prevent copy-paste in every test.
 - [ ] **How**:
-  1. Call `observe_property 1 user-data/lls/state` (subscribes to changes).
-  2. Send `script-message-to lls_core lls-state-query`.
-  3. Wait up to 1 s for a `property-change` event for `user-data/lls/state`.
-  4. Call `unobserve_property 1`.
-  5. Parse the `data` field from the event with `ConvertFrom-Json`. Return as a PSCustomObject.
-- [ ] **Done when**: `Invoke-LlsStateQuery -Session $s` returns an object whose `.autopause` matches the script's default.
+  ```python
+  import json
 
-### 4.3 `tests/ipc/Start-MpvTest.ps1`
+  def query_lls_state(ipc, timeout=2.0):
+      ipc.observe_property(99, 'user-data/lls/state')
+      ipc.command(['script-message-to', 'lls_core', 'lls-state-query'])
+      ipc.wait_property_change('user-data/lls/state', timeout)
+      raw = ipc.get_property('user-data/lls/state')
+      return json.loads(raw) if raw else {}
 
-- [ ] **What**: Boots a headless mpv against a given fixture and connects.
-- [ ] **How**:
-  ```powershell
-  param(
-      [string]$Fixture = "tests/fixtures/test_minimal.srt",
-      [string]$PipeName = "mpv-test"
-  )
-  $proc = Start-Process mpv `
-      -ArgumentList @(
-          "--no-config", "--vo=null", "--no-terminal", "--idle=once",
-          "--input-ipc-server=\\.\pipe\$PipeName",
-          "--script=scripts\lls_core.lua",
-          $Fixture
-      ) -PassThru -NoNewWindow
-  # poll for pipe availability up to 5 s
-  $session = Connect-MpvIpc -PipeName $PipeName
-  return @{ Session = $session; Process = $proc }
+  def query_lls_render(ipc, overlay_name, timeout=2.0):
+      ipc.observe_property(98, 'user-data/lls/render')
+      ipc.command(['script-message-to', 'lls_core', 'lls-render-query', overlay_name])
+      ipc.wait_property_change('user-data/lls/render', timeout)
+      return ipc.get_property('user-data/lls/render') or ''
   ```
-  Pair with `Stop-MpvTest` that runs `Send-MpvCommand quit` then `Stop-Process` on the PID as a fallback.
-- [ ] **Done when**: `Start-MpvTest.ps1` returns a session object; `Stop-MpvTest` exits cleanly.
+- [ ] **Done when**: `query_lls_state(ipc)['drum_mode']` returns `'OFF'` on a clean boot.
+
+### 4.3 `tests/ipc/mpv_session.py` — lifecycle helper
+
+- [ ] **What**: `MpvSession` class that boots a headless mpv and exposes a connected `MpvIpc`. Used as a pytest fixture in `conftest.py`.
+- [ ] **How**:
+  ```python
+  # tests/ipc/mpv_session.py
+  import os, subprocess, sys
+  from tests.ipc.mpv_ipc import MpvIpc, default_ipc_path
+
+  class MpvSession:
+      def __init__(self, fixture, ipc_path=None):
+          self.ipc_path = ipc_path or default_ipc_path()
+          self.fixture = fixture
+          self.ipc = MpvIpc(self.ipc_path)
+          self._proc = None
+
+      def start(self):
+          cmd = [
+              'mpv', '--no-config', '--vo=null', '--no-terminal', '--idle=once',
+              f'--input-ipc-server={self.ipc_path}',
+              '--script=scripts/lls_core.lua',
+              self.fixture,
+          ]
+          self._proc = subprocess.Popen(cmd)
+          self.ipc.connect(timeout=5.0)
+
+      def stop(self):
+          try:
+              self.ipc.command(['quit'], timeout=2.0)
+          except Exception:
+              pass
+          if self._proc and self._proc.poll() is None:
+              self._proc.terminate()
+              self._proc.wait(timeout=5)
+          self.ipc.close()
+  ```
+  In `tests/acceptance/conftest.py`:
+  ```python
+  import pytest
+  from tests.ipc.mpv_session import MpvSession
+
+  @pytest.fixture
+  def mpv():
+      session = MpvSession(fixture='tests/fixtures/test_minimal.srt')
+      session.start()
+      yield session
+      session.stop()
+  ```
+- [ ] **Done when**: A minimal test that just calls `mpv.ipc.get_property('mpv-version')` passes via `python -m pytest tests/acceptance/`.
 
 ---
 
@@ -286,24 +465,64 @@ Each task lists **What**, **Why**, **How**, and **Done when**. Work top-to-botto
 
 ## Phase 6 — Pilot acceptance tests (~1 day)
 
-Each `.ps1` follows the same pattern: `Start-MpvTest`, run assertions, `Stop-MpvTest` in a `finally`.
+Each file is a standard pytest module. Shared fixtures live in `conftest.py`. Each file begins with a comment citing its spec.
 
-### 6.1 `tests/acceptance/test_state_probe.ps1`
+### 6.1 `tests/acceptance/test_state_probe.py`
 
 - [ ] **What**: Boots mpv with `test_minimal.srt`, queries the probe, asserts default state values.
-- [ ] **Spec ref**: `# Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md` — Scenario "Querying playback state".
-- [ ] **Done when**: `playback_state -eq "SINGLE_SRT"`, `drum_mode -eq "OFF"`, etc.
+- [ ] **How**:
+  ```python
+  # Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md
+  # Scenario: Querying playback state
+  import json
+  from tests.ipc.mpv_ipc import query_lls_state
 
-### 6.2 `tests/acceptance/test_drum_mode.ps1`
+  def test_default_state(mpv):
+      state = query_lls_state(mpv.ipc)
+      assert state['playback_state'] in ('SINGLE_SRT', 'NO_SUBS')
+      assert state['drum_mode'] == 'OFF'
+      assert state['drum_window'] == 'OFF'
+      assert state['dw_selection_count'] == 0
+  ```
+- [ ] **Done when**: `python -m pytest tests/acceptance/test_state_probe.py -v` passes.
+
+### 6.2 `tests/acceptance/test_drum_mode.py`
 
 - [ ] **What**: Sends `script-binding lls_core/toggle-drum-mode` via IPC, then queries the probe.
-- [ ] **Note**: Use `script-binding`, not raw key codes — the binding is the public contract; the keypress is the implementation.
-- [ ] **Done when**: `drum_mode -eq "ON"` after the binding fires.
+- [ ] **Note**: Use `script-binding`, not raw key codes — the binding name is the public contract; the physical key is the implementation detail.
+- [ ] **How**:
+  ```python
+  # Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md
+  # Scenario: Simulating a keypress
+  import time
+  from tests.ipc.mpv_ipc import query_lls_state
 
-### 6.3 `tests/acceptance/test_render.ps1`
+  def test_toggle_drum_mode(mpv):
+      mpv.ipc.command(['script-binding', 'lls_core/toggle-drum-mode'])
+      time.sleep(0.1)  # one tick (~50 ms) for state to propagate
+      state = query_lls_state(mpv.ipc)
+      assert state['drum_mode'] == 'ON'
+  ```
+- [ ] **Done when**: Test passes and fails predictably when the assertion is reversed.
 
-- [ ] **What**: With drum mode active, queries `lls-render-query dw`, asserts the returned ASS string contains the expected color tag for highlighted words.
-- [ ] **Done when**: `$render -match '\\1c&H[0-9A-Fa-f]{6}&'` succeeds.
+### 6.3 `tests/acceptance/test_render.py`
+
+- [ ] **What**: With drum mode active, queries `lls-render-query dw`, asserts the returned ASS string contains an expected color tag.
+- [ ] **How**:
+  ```python
+  # Spec: openspec/changes/.../specs/automated-acceptance-testing/spec.md
+  # Scenario: Verifying highlight color
+  import re, time
+  from tests.ipc.mpv_ipc import query_lls_render
+
+  def test_drum_osd_contains_color_tags(mpv):
+      mpv.ipc.command(['script-binding', 'lls_core/toggle-drum-mode'])
+      time.sleep(0.1)
+      render = query_lls_render(mpv.ipc, 'drum')
+      assert re.search(r'\\1c&H[0-9A-Fa-f]{6}&', render), \
+          f'No \\1c color tag found in drum OSD. Got: {render[:200]}'
+  ```
+- [ ] **Done when**: Test passes against a real subtitle file; a deliberate fixture break (removing the subtitle so OSD is empty) fails with the descriptive message.
 
 ---
 
@@ -311,15 +530,15 @@ Each `.ps1` follows the same pattern: `Start-MpvTest`, run assertions, `Stop-Mpv
 
 ### 7.1 Negative-test the unit tier
 
-- [ ] **What**: Edit `lls_utils.lua` to break `calculate_ass_alpha` (e.g., off-by-one). Run `run_unit.ps1`, confirm it reports the failure with a useful diff. Revert.
+- [ ] **What**: Edit `lls_utils.lua` to break `calculate_ass_alpha` (e.g., off-by-one). Run `python tests/run_unit.py`, confirm it reports the failure with a useful diff. Revert.
 
 ### 7.2 Negative-test the acceptance tier
 
-- [ ] **What**: Temporarily change one snapshot field in the probe (e.g., `autopause = "WRONG"`). Run `test_state_probe.ps1`, confirm assertion failure. Revert.
+- [ ] **What**: Temporarily change one snapshot field in the probe (e.g., `autopause = "WRONG"`). Run `python -m pytest tests/acceptance/test_state_probe.py`, confirm assertion failure. Revert.
 
 ### 7.3 Write `tests/README.md`
 
-- [ ] **What**: Two sections — "Run unit tests" and "Run acceptance tests" — each with the exact PowerShell command. Note the headless mpv flags. Note the pipe-name single-instance limitation.
+- [ ] **What**: Two sections — "Run unit tests" and "Run acceptance tests" — each with the exact cross-platform command. Note the headless mpv flags, the IPC path difference per platform, and the single-instance limitation.
 
 ### 7.4 Final smoke test
 

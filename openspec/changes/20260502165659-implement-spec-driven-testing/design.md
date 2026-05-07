@@ -2,7 +2,7 @@
 
 Kardenwort-mpv ships as `scripts/lls_core.lua` (7,189 lines) plus `scripts/resume_last_file.lua`. The core script contains a 40-variable FSM, four OSD overlays, hit-test logic for mouse/keyboard, and a 50 ms tick loop. There are 165 spec files in `openspec/specs/` documenting behaviors, but no tests exist.
 
-This document is written for a mid-level Lua/PowerShell developer implementing the test stack. **Read the "Critical mpv quirks" section before writing any IPC code** — it covers two non-obvious behaviors that will waste days if you don't know them up front.
+This document is written for a mid-level Lua/Python developer implementing the test stack. **Read the "Critical mpv quirks" section before writing any IPC code** — it covers three non-obvious behaviors that will waste days if you don't know them up front.
 
 ---
 
@@ -11,7 +11,7 @@ This document is written for a mid-level Lua/PowerShell developer implementing t
 **Goals:**
 - A two-tier test stack: pure-Lua **unit** tests (no mpv) and full-stack **acceptance** tests (real mpv + IPC).
 - Zero new test-time cost in production code paths. The probe is dormant until queried.
-- Deterministic, reproducible runs on Windows with no LuaRocks dependency.
+- Deterministic, reproducible runs on Windows, Linux, and macOS with no LuaRocks dependency and no third-party Python packages.
 
 **Non-Goals:**
 - CI/CD integration (deferred).
@@ -36,20 +36,27 @@ The Lua callback's return value **never** comes back over the pipe. There is no 
 
 **The pattern we use** is a side channel via mpv's `user-data/*` property namespace (mpv reserves this for arbitrary script-defined data):
 
-1. PowerShell sends `script-message-to lls_core lls-state-query`.
+1. The test driver sends `script-message-to lls_core lls-state-query`.
 2. The Lua handler computes the snapshot and calls `mp.set_property("user-data/lls/state", json_string)`.
-3. PowerShell reads the result via `get_property user-data/lls/state`.
+3. The driver reads the result via `get_property user-data/lls/state`.
 
-To eliminate the polling race, the driver can subscribe with `observe_property user-data/lls/state` before sending the request and wait for the change event.
+To eliminate the polling race, the driver subscribes with `observe_property 1 user-data/lls/state` before sending the request and waits for the `property-change` event.
 
-### Quirk 2: `--input-ipc-server` alone does not make mpv headless
+### Quirk 2: `--input-ipc-server` alone does not make mpv headless, and the IPC path format differs by platform
 
-A bare `mpv --input-ipc-server=\\.\pipe\mpv-test test.srt` still opens a video window. For unattended test runs the full incantation is:
+A bare `mpv --input-ipc-server=<path> test.srt` still opens a video window. The IPC path format also differs:
+
+| Platform | IPC server value | Transport |
+|---|---|---|
+| Windows | `\\.\pipe\mpv-lls-test` | Win32 named pipe |
+| Linux / macOS | `/tmp/mpv-lls-test.sock` | Unix domain socket |
+
+For unattended test runs the full headless invocation (platform-specific path shown as `$IPC_PATH`):
 ```
 mpv --no-config --vo=null --no-terminal --idle=once
-    --input-ipc-server=\\.\pipe\mpv-test
-    --script=scripts\lls_core.lua
-    tests\fixtures\test_minimal.srt
+    --input-ipc-server=$IPC_PATH
+    --script=scripts/lls_core.lua
+    tests/fixtures/test_minimal.srt
 ```
 - `--no-config` ensures user `mpv.conf` does not bleed into the test environment.
 - `--vo=null` runs without a video output (OSD `.data` strings are still constructed by Lua, which is what we test).
@@ -71,7 +78,7 @@ Earlier drafts proposed a "Tier 2 companion script" running inside mpv. With the
 | Tier | Runs in | Targets | Speed |
 |------|---------|---------|-------|
 | Unit | stand-alone Lua, no mpv | pure functions in `lls_utils.lua` | ~10 ms / file |
-| Acceptance | full mpv + PowerShell IPC | end-to-end behaviors against real fixtures | ~2-5 s / test |
+| Acceptance | full mpv + Python IPC | end-to-end behaviors against real fixtures | ~2-5 s / test |
 
 Most coverage comes from Tier 1. Tier 2 is reserved for behaviors that genuinely need mpv (subtitle loading, tick loop, key bindings, OSD rendering).
 
@@ -79,7 +86,7 @@ Most coverage comes from Tier 1. Tier 2 is reserved for behaviors that genuinely
 
 LuaRocks setup on Windows is fragile. **luaunit** is a single ~4 KB Lua file, MIT-licensed, no dependencies. Drop it into `tests/lua/luaunit.lua` and require it from test files. Run with `lua tests/run_unit.lua`.
 
-If `lua.exe` is not available, the LuaJIT bundled inside the mpv installation can run unit tests too — invoke it with `mpv --script=tests/lua/runner.lua --idle=once` (the script calls `mp.commandv("quit", 0)` after running tests). Document both paths in `tests/README.md`.
+If `lua` is not in `PATH`, set the `LUA` environment variable to point to the interpreter. The LuaJIT bundled inside the mpv installation also works: invoke it with `mpv --script=tests/lua/runner.lua --idle=once` (the script calls `mp.commandv("quit", 0)` after running tests). Document both paths in `tests/README.md`.
 
 ### Decision 3: Minimal extraction — only what we want to test
 
@@ -129,9 +136,32 @@ For ASS rendering verification, a separate `lls-render-query` message returns th
 
 mpv auto-loads everything in `scripts/`. Anything we put there runs during normal playback. Test-only Lua lives in `tests/lua/` and is injected via `--script=tests/lua/...` only when running tests.
 
-### Decision 8: PowerShell driver, not Python
+### Decision 8: Python driver with stdlib-only transport — no PowerShell, no win32file
 
-The repo already uses PowerShell for Windows-specific concerns (clipboard, GoldenDict integration). PowerShell has native named-pipe support via `System.IO.Pipes.NamedPipeClientStream` — no external dependencies. Python with `win32file` is not faster to write or more reliable; it just adds an extra runtime to install.
+mpv's IPC transport differs by platform: Win32 named pipe on Windows, Unix domain socket on Linux/macOS. Python handles both with zero third-party packages:
+
+```python
+import os, socket, tempfile
+
+def _ipc_path():
+    if os.name == 'nt':
+        return r'\\.\pipe\mpv-lls-test'
+    return os.path.join(tempfile.gettempdir(), 'mpv-lls-test.sock')
+
+def _open_transport(path):
+    if os.name == 'nt':
+        # Python's io.FileIO calls CreateFile() on Windows.
+        # Named pipes are just file paths — open() works without win32file.
+        return open(path, 'r+b', buffering=0)
+    else:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(path)
+        return s.makefile('rwb', buffering=0)
+```
+
+The entire JSON-lines protocol (request_id correlation, observe_property, event loop) is then identical on both platforms. `tests/ipc/mpv_ipc.py` encapsulates this; acceptance tests never import `os` or touch the transport directly.
+
+PowerShell is kept for the existing production uses (clipboard, GoldenDict) but is not a test dependency. The acceptance tests are `pytest` files (`test_*.py`), runnable with `python -m pytest tests/acceptance/`.
 
 ### Decision 9: Naming — do not collide with existing modules
 
@@ -142,10 +172,11 @@ The original draft put state methods on `Diagnostic`. That table is the **loggin
 ## Architecture overview
 
 ```
-Test driver (PowerShell)
+Test driver (Python / pytest)
     │
-    │  named pipe: \\.\pipe\mpv-test
-    │  JSON-lines IPC
+    │  Win32 named pipe  (Windows: \\.\pipe\mpv-lls-test)
+    │  Unix domain socket (Linux/macOS: /tmp/mpv-lls-test.sock)
+    │  JSON-lines IPC — identical protocol either way
     ▼
 mpv process (--vo=null --no-terminal)
     │
@@ -156,12 +187,12 @@ mpv process (--vo=null --no-terminal)
         LlsProbe._snapshot()  →  mp.set_property("user-data/lls/state", json)
                                                                         │
                                                                         ▼
-                                            PowerShell reads via get_property
+                                         Python reads via get_property command
 
 Tier 1 (no mpv at all):
-    lua tests/run_unit.lua
-        ↓ require
-    tests/lua/luaunit.lua + scripts/lls_utils.lua
+    python tests/run_unit.py  →  lua tests/run_unit.lua
+                                     ↓ require
+                             tests/lua/luaunit.lua + scripts/lls_utils.lua
 ```
 
 ---
@@ -170,6 +201,6 @@ Tier 1 (no mpv at all):
 
 - **Polling vs observe_property**: A naive driver polls `user-data/lls/state` after sending a query and risks reading the stale value. Use `observe_property` and wait on the change event. The IPC module helper hides this from individual tests.
 - **Fixture brittleness**: Acceptance tests assume specific subtitle timestamps. Document the fixture contract in `tests/fixtures/README.md` so a developer changing a fixture knows which tests they break.
-- **mpv lifecycle leaks**: If a test crashes mid-run, the mpv process must still be killed. The PowerShell helper uses `try/finally` with `Stop-Process` on the spawned PID.
-- **Pipe collisions**: Hard-coding `\\.\pipe\mpv-test` means two parallel runs collide. For now we accept this (single-developer project). If parallelism becomes desirable, parameterize the pipe name with a GUID.
+- **mpv lifecycle leaks**: If a test crashes mid-run, the mpv process must still be killed. The `MpvSession` class wraps `subprocess.Popen` and uses a pytest fixture with `yield` so teardown always runs, even on failure. Worst-case fallback: `proc.terminate()` followed by `proc.wait()`.
+- **IPC path collisions**: The default `mpv-lls-test` path means two parallel test runs collide. For now we accept this (single-developer project). If parallelism becomes desirable, `MpvSession` can accept a unique suffix (e.g., `pytest-xdist` worker id) to differentiate paths.
 - **Future of `lls_core.lua` locals**: Most useful logic is in `local function` bindings — unreachable by `require`. Each future test that needs a new pure function will require an extraction step. That is fine: it forces explicit decisions about what is testable.
