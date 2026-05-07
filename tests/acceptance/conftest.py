@@ -22,8 +22,8 @@ def mpv_dual():
     """
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture.mp4',
-        subtitle='tests/fixtures/sync-test.en.srt',
-        secondary_subtitle='tests/fixtures/sync-test.ru.srt',
+        subtitle='tests/fixtures/20260507161504-sync-test.en.srt',
+        secondary_subtitle='tests/fixtures/20260507161504-sync-test.ru.srt',
         extra_args=['--pause'],
     )
     session.start()
