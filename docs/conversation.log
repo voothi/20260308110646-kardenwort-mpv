@@ -1643,7 +1643,7 @@
 20260507212542 Look, I put it in folders, change the paths where necessary. tests\fixtures\20260502165659-test-fixture tests\fixtures\20260507161504-sync-test tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit
 20260507212957 All 11 tests pass. Here's the summary of changes: Fixture reorganization: tests/fixtures/20260502165659-test-fixture/ — 1fps synthetic video + EN subs (used by mpv, mpv_dual) tests/fixtures/20260507161504-sync-test/ — sync test SRTs (DE/RU, used by mpv_dual with synthetic video) tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/ — real 25fps content, fragment1 + fragment2 (DE/RU pairs) Updated fixtures in conftest.py: All paths changed from flat fixtures/*.mp4 to folder-scoped fixtures/ZID-name/ZID-name.mp4 Added mpv_fragment1 and mpv_fragment2 (25fps real content with tight overlap zones documented) Fixed test_archived_changes.py: Removed stale local mpv_fragment1 fixture (was using wrong video) test_fixtures_load_correctly now uses real seek (4.5s into fragment1, inside sub 1) All 11 tests green. Fragment fixtures are ready for future tests on real content with tight gaps.
 20260507215950 Added words to TSV files for example, discovered a problem with the backlight.
-
+20260507213131 I also added the link tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\Paketzustellerin in der Vorweihnachtszeit - YouTube.url. I also added screenshots of selections for both fragments in dm - Drum Mode, dw - Drum Window.
 
 
 
