@@ -509,6 +509,7 @@ local FSM = {
     BOOK_MODE = Options.book_mode or false,
     OSC_VIS = 0, -- 0=auto, 1=always, 2=never
     ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
+    SEC_ACTIVE_IDX = -1, -- Secondary-track Sticky Sentinel (mirrors ACTIVE_IDX logic for translation track)
     IMMERSION_MODE = (Options.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
     JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
     MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
@@ -682,8 +683,10 @@ function get_center_index(subs, time_pos)
     
     -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
     -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
-    -- Sentinel is primary-track only: secondary calls receive active_idx=-1 and fall through to binary search.
-    local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX or -1
+    -- [20260507154518] Extended to secondary track via FSM.SEC_ACTIVE_IDX to prevent desync when
+    -- padded windows overlap (audio_padding_end + audio_padding_start > inter-subtitle gap).
+    local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX or
+                       (subs == Tracks.sec.subs and FSM.SEC_ACTIVE_IDX or -1)
 
     -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
     -- don't let the sticky logic pull us back to the previous one during the overlap.
@@ -977,10 +980,13 @@ function cmd_cycle_immersion_mode()
     else
         FSM.IMMERSION_MODE = "PHRASE"
         -- Synchronize ACTIVE_IDX to prevent phantom "Jerk Back" on mode switch
+        local time_pos = mp.get_property_number("time-pos") or 0
         local subs = Tracks.pri.subs
         if subs and #subs > 0 then
-            local time_pos = mp.get_property_number("time-pos") or 0
             FSM.ACTIVE_IDX = get_center_index(subs, time_pos)
+        end
+        if Tracks.sec.subs and #Tracks.sec.subs > 0 then
+            FSM.SEC_ACTIVE_IDX = get_center_index(Tracks.sec.subs, time_pos)
         end
     end
     show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
@@ -5392,6 +5398,14 @@ local function master_tick()
                     end
                 end
             end
+        end
+    end
+
+    -- [20260507154518] Maintain secondary Sticky Sentinel (mirrors primary ACTIVE_IDX pattern).
+    if #Tracks.sec.subs > 0 then
+        local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
+        if sec_idx ~= -1 then
+            FSM.SEC_ACTIVE_IDX = sec_idx
         end
     end
 

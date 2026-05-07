@@ -1626,6 +1626,17 @@
 20260507151928 Should this solution also work on Linux/MacOS?
 20260507152045 Yes, with one important caveat to understand. Let me walk through each layer: mpv_ipc.py — yes, explicitly designed for it. The os.name == 'nt' guard routes Windows through the new _WinPipe ctypes path and leaves Unix going through the original socket.AF_UNIX + makefile('rwb', buffering=0) path. The deadlock we fixed is Windows-only — the CRT per-fd lock (_lock_fhandle) doesn't exist on Unix. Unix sockets support full-duplex concurrent reads/writes natively at the syscall level, and SocketIO (unbuffered RawIOBase) adds no Python-level lock on top. mpv_session.py / conftest.py — yes. os.path.abspath(), forward-slash paths, and mpv's --sub-file= flag all work identically on Linux/macOS. The IPC socket path auto-selects: \\.\pipe\... on Windows, /tmp/mpv-lls-test-.sock on Unix. Unit tests (run_unit.py, run_unit.lua) — yes. shutil.which('lua') finds the system Lua on any platform. The video fixture — binary file, platform-neutral. The only thing that won't work out of the box on Linux/macOS is the --ao=null flag if mpv is built without a null audio output (rare, but possible). A safe fallback is --ao=null which most mpv builds support. That's already what we use. So: no code changes needed for Linux/macOS. The platform-specific branching is already in place.
 20260507152632 If we can say from this that the testing infrastructure has been built and the openspec\changes\20260502165659-implement-spec-driven-testing project is completely completed, do /opsx:archive --sync
+20260507153455 Why is there a desynchronization of subtitles in srt, drum between the lower, main and upper ones, with translation? See photos, as well as fragments of subtitle files below. This happens during playback (Drum Mode ON/OFF, Autopause ON/OFF, PHRASE/MOVIE). When rewinding a, d, or double-clicking LMB  or Enter, it works fine.
+20260507155702 All three changes are in place and correct. Here's the summary: Root Cause The Sticky Sentinel (FSM.ACTIVE_IDX) that holds the active subtitle during the padding window existed only for the primary track. During continuous playback, whenever audio_padding_end + audio_padding_start exceeds the gap between two subtitles (e.g. sub 18 "Ja." → sub 19 with a ~0.9s gap and reasonable padding settings), the padded windows overlap: Primary: Sentinel holds sub 18 until its padded end expires Secondary: No sentinel → binary search Overlap Priority fires as soon as sub 19's padded start is reached → advances to sub 19 one tick earlier This is why rewind (a/d/click) fixes it: after a seek both tracks recalculate from the same exact timestamp and agree.
+
+
+
+
+
+
+
+
+
 
 
 
