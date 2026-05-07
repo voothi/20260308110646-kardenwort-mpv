@@ -9,7 +9,8 @@ local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
-local U = require("lls_utils")
+local _lls_dir = (mp.get_script_directory and mp.get_script_directory()) or ""
+local U = dofile(_lls_dir .. "/lls_utils.lua")
 
 -- Fallback for older mpv versions missing utils.read_file
 local function safe_read_file(path)

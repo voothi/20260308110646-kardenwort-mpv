@@ -1609,7 +1609,8 @@
 20260507111955 You, as the chief main architect of this project with many years of experience programming in Lua under mpv, critically review the document compiled by a junior colleague openspec\changes\20260502165659-implement-spec-driven-testing, add, change, suggest a different approach to achieving the goal, if it is better. I need to implement tests into a project. Break it down for your middle colleague so he can understand.
 20260507113931 See if it can be made platform-independent, replacing Windows-specific tools.
 20260507114849 /opsx:apply 20260502165659-implement-spec-driven-testing
-
+20260507120647 The utility interface does not open when starting the video, there are no errors in the console.
+20260507121759 I don’t see a single element, it feels like the script is simply not loading. I click on c, but the panel does not appear.
 
 
 
