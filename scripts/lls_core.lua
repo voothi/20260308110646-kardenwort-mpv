@@ -9,8 +9,6 @@ local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
-local _lls_dir = (mp.get_script_directory and mp.get_script_directory()) or ""
-local U = dofile(_lls_dir .. "/lls_utils.lua")
 
 -- Fallback for older mpv versions missing utils.read_file
 local function safe_read_file(path)
@@ -82,7 +80,13 @@ Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, ke
 local script_dir = mp.get_script_directory and mp.get_script_directory()
 Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "lls_core"))
 
-local is_valid_mpv_key = U.is_valid_mpv_key
+local function is_valid_mpv_key(k_str)
+    if not k_str or k_str == "" then return false end
+    local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
+    local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
+    if count > 1 and base:match("[%z\128-\255]") then return false end
+    return true
+end
 
 -- [v1.58.40] Automatic Russian Layout Expansion
 local EN_RU_MAP = {
@@ -1287,13 +1291,34 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     return escape_tsv(source)
 end
 
-local calculate_ass_alpha = U.calculate_ass_alpha
+local function calculate_ass_alpha(val)
+    if type(val) == "string" and #val == 2 and val:match("%x%x") then
+        return val:upper()
+    end
+    local num = tonumber(val)
+    if not num then return "00" end
+    -- If value is 0-1 (decimal opacity), convert to transparency percentage
+    if num >= 0 and num <= 1 then
+        num = (1.0 - num) * 100
+    end
+    -- Clamp to 0-100
+    num = math.max(0, math.min(100, num))
+    -- Convert 0-100 transparency to 00-FF hex
+    local hex = string.format("%02X", math.floor((num / 100) * 255 + 0.5))
+    return hex
+end
 
 
 
 
 
-local utf8_to_table = U.utf8_to_table
+local function utf8_to_table(str)
+    local t = {}
+    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(t, ch)
+    end
+    return t
+end
 
 -- Module-scope Cyrillic case-mapping tables (created once at load time).
 -- Hoisted from utf8_to_lower() to eliminate per-call allocation overhead.
