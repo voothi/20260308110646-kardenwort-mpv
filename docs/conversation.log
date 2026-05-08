@@ -1661,6 +1661,7 @@
 20260508104809 I also added tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.dw.gd-main.png tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.dw.gd-popup.png tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.dw.search.png
 20260508105044 You need to write somewhere that integration `Seamless synchronization with external dictionaries for deep word analysis.` 20260507164826-fragment2.dw.gd-main.png carried out through https://github.com/voothi/20240411110510-autohotkey#gd-mainahk
 20260508120514 Add a placeholder for Shift+g, Shift+p so that the default key (ignore) does not work, look at what keys can still intersect and ignore them in the config too. mpv.conf input.conf
+20260508120944 i ignore ш ignore do to show info.
 
 
 
