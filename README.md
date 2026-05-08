@@ -34,6 +34,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Regular Mode (Minimalist View)](#regular-mode)
   - [Static Reading Mode (Drum Window)](#static-reading-mode)
   - [Anki Highlighting & Export](#anki-mining)
+  - [Dictionary Integration (GoldenDict)](#dictionary-integration-goldendict)
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling)
@@ -68,6 +69,15 @@ The Kardenwort MPV suite provides three primary interfaces for language acquisit
 | :--- | :--- |
 | ![Regular Mode Bottom](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.bottom.png) | ![Regular Mode Top](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.top.png) |
 | *Standard one-line immersion with Premium Dark background box for maximum legibility.* | *Secondary track positioned at the top to resolve visual overlaps during DualSub playback.* |
+
+### 🔍 Search & Dictionary Integration
+
+| Universal Subtitle Search | GoldenDict Integration |
+| :--- | :--- |
+| ![Search HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.search.png) | ![GoldenDict Main](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-main.png) |
+| *High-performance navigation overlay (Ctrl+F) with dynamic multi-line wrapping.* | *Seamless synchronization with external dictionaries for deep word analysis.* |
+| | ![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png) |
+| | *Zero-latency "Popup" mode for rapid translation peeks without leaving the player.* |
 
 [Return to Top](#table-of-contents)
 
@@ -156,6 +166,9 @@ Instead of relying on mpv's native dual-subtitle loading (which often strips for
 ## Intelligent Scripts
 
 ### <span id="universal-subtitle-search"></span>Universal Subtitle Search
+
+![Search HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.search.png)
+
 A high-performance navigation overlay that decouples content lookup from playback.
 - **Dynamic Multi-Line Wrapping**: Both search queries and results now flow naturally across multiple visual lines, with the interface dynamically adjusting its height and dropdown position.
 - **Synchronized Hit-Testing**: Introduced pixel-perfect mouse interaction for wrapped results using `FSM.SEARCH_HIT_ZONES`. Click targets now track the visual OSD position of the text.
@@ -236,6 +249,19 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 - **Instant Record Access**: Press **`b`** within the Drum Window to instantly open your active TSV database in your default editor.
 - **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
 - **Zero-Latency Mining**: In-memory row injection provides instantaneous feedback when saving words, bypassing the performance penalty of full TSV re-parsing.
+
+### Dictionary Integration (GoldenDict)
+
+| GoldenDict Main Window | Popup Mode |
+| :--- | :--- |
+| ![GoldenDict Main](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-main.png) | ![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png) |
+
+Seamlessly bridge the gap between media and reference materials.
+- **Bi-Directional Triggers**: Automatically send selected terms to GoldenDict for comprehensive lookup.
+- **Multi-Method Bridge**: High-performance Win32 bridge eliminates latency between clicking a word and seeing its definition.
+- **Customizable Hotkeys**: Map your preferred lookup triggers (Main vs Popup) directly in `mpv.conf`.
+
+[Return to Top](#table-of-contents)
 
 ### <span id="intelligent-range-selection"></span>Intelligent Range Selection & Copy
 A sophisticated extraction tool that supports substring and multi-line range selection.
