@@ -1710,8 +1710,7 @@
 20260509001933 Just `f, а` proposal.md#L3
 20260509002245 I asked you to create tests.
 20260509003416 opsx-archive --sync openspec\changes\20260509001712-fix-drum-mode-paired-selection
-
-
+20260509003502 Archive Complete Change: 20260509001712-fix-drum-mode-paired-selection Schema: spec-driven Archived to: openspec/changes/archive/20260509001712-fix-drum-mode-paired-selection/ Specs: ✓ Synced to main specs All artifacts complete. All tasks complete. 📝 Sync Summary The following requirement has been updated in the project's main specifications: Ctrl-Multiselect: Updated Selection Range Feedback to mandate immediate pink highlights across all rendering modes (Drum Window, Drum Mode, and SRT mode), including a new scenario for immediate OSD redraw. I have also verified the fix with the newly created acceptance test test_reg_20260509_drum_pink.py, which is now part of the regression suite.
 
 
 
