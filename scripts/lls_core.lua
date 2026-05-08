@@ -7891,3 +7891,12 @@ mp.register_script_message("lls-test-set-cursor", function(line_str, word_str)
         FSM.DW_CURSOR_X = nil
     end
 end)
+
+mp.register_script_message("lls-test-seek-delta", function(dir_str)
+    local dir = tonumber(dir_str)
+    if dir then cmd_dw_seek_delta(dir) end
+end)
+
+mp.register_script_message("lls-test-cycle-sec-sid", function()
+    cmd_cycle_sec_sid()
+end)

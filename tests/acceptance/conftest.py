@@ -56,6 +56,22 @@ def mpv_fragment1():
 
 
 @pytest.fixture
+def mpv_movie_startup():
+    """Single-subtitle session with MOVIE as the startup immersion mode.
+
+    Used to verify lls-immersion_mode_default=MOVIE option wiring.
+    """
+    session = MpvSession(
+        video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
+        subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
+        extra_args=['--pause', '--script-opts=lls-immersion_mode_default=MOVIE'],
+    )
+    session.start()
+    yield session
+    session.stop()
+
+
+@pytest.fixture
 def mpv_ass():
     """Single ASS subtitle session. Triggers ASS gatekeeping (drum mode forced OFF).
 
