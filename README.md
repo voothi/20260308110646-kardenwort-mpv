@@ -93,6 +93,25 @@ The suite is optimized for high-density information streams, supporting advanced
 | ![High Density DM](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dm.png) | ![High Density Tooltip](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dw.tooltip.png) |
 | *Handles massive subtitle blocks with ease, maintaining high contrast and readability.* | *The origin of "Book Mode"—smoothly navigating through dense, text-heavy chapters.* |
 
+### 🗃️ Anki Mining & Workflow
+
+From media selection to flashcard creation, the suite provides a seamless TSV-based pipeline for permanent vocabulary retention.
+
+| TSV Database (VSCode) | Anki Import Synchronization |
+| :--- | :--- |
+| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
+| *Directly manage your "Gold" highlights in a clean, portable TSV format.* | *One-click synchronization with Anki, preserving all coordinate-based highlight metadata.* |
+
+| Flashcard Preview (Front) | Flashcard Preview (Back) |
+| :--- | :--- |
+| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
+| *High-recall card front focusing on the target term in its original phrasal context.* | *Comprehensive card back with translations, audio-visual references, and source metadata.* |
+
+| Target Focus Interface | Context Focus Interface |
+| :--- | :--- |
+| ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.2.png) |
+| *Optimized layout for target-language immersion (I-F-1).* | *Context-rich layout for deep grammatical analysis (I-F-2).* |
+
 [Return to Top](#table-of-contents)
 
 ---
@@ -274,6 +293,16 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 - **Instant Record Access**: Press **`b`** within the Drum Window to instantly open your active TSV database in your default editor.
 - **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
 - **Zero-Latency Mining**: In-memory row injection provides instantaneous feedback when saving words, bypassing the performance penalty of full TSV re-parsing.
+
+| TSV Database (VSCode) | Anki Import Synchronization |
+| :--- | :--- |
+| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
+
+| Flashcard Preview (Front) | Flashcard Preview (Back) |
+| :--- | :--- |
+| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
+
+[Return to Top](#table-of-contents)
 
 ### Dictionary Integration (GoldenDict)
 
