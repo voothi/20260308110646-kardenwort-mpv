@@ -4742,11 +4742,6 @@ local function cmd_dw_esc()
         dw_reset_selection()
         return
     end
-
-    -- [20260501160807] Stage 4: Exit Drum Window
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        cmd_toggle_drum_window()
-    end
 end
 
 

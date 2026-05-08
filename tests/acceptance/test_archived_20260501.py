@@ -41,8 +41,8 @@ def wait_for_state(ipc, key, value, timeout=2.0):
 class TestDrumWindowRegressions:
     """Tests for Drum Window logic, navigation, and state synchronization."""
 
-    def test_dw_esc_sequential_clearing(self, mpv):
-        """Esc must clear Pink -> Yellow Range -> Yellow Pointer -> Exit (20260501160807)."""
+    def test_dw_esc_staged_reset_preserves_window(self, mpv):
+        """Esc must clear Pink -> Yellow Range -> Yellow Pointer but stay open (Correct Behavior)."""
         ipc = mpv.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
         
@@ -75,11 +75,11 @@ class TestDrumWindowRegressions:
         assert state['dw_cursor']['word'] == -1
         assert state['drum_window'] != 'OFF'
         
-        # Press ESC 3: Exit Drum Window
+        # Press ESC 3: Should stay open (Correct Behavior as per 20260508191144)
         ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc'])
         time.sleep(0.2)
         state = query_lls_state(ipc)
-        assert state['drum_window'] == 'OFF'
+        assert state['drum_window'] != 'OFF'
 
     def test_dw_pointer_sync_preservation(self, mpv):
         """DW_CURSOR_WORD must be preserved when opening Drum Window (20260501163905)."""
