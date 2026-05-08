@@ -102,15 +102,15 @@ From media selection to flashcard creation, the suite provides a seamless TSV-ba
 | ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
 | *TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.* | *Native Anki Import window (Ctrl+Shift+I) for synchronizing media coordinates with your collection.* |
 
-| Vocabulary Card Preview | Phrase Card Preview |
-| :--- | :--- |
-| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
-| *The resulting vocabulary card in Anki Browser preview mode.* | *A phrase-based card focusing on the complete sentence context.* |
-
 | Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
 | :--- | :--- |
 | ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.2.png) |
 | *[Intellifiller AI](https://github.com/voothi/20251206123938-intellifiller-ai-addon-for-anki) automatically populating fields from mined data.* | *Intellifiller filling advanced fields for deep grammatical analysis.* |
+
+| Vocabulary Card Preview | Phrase Card Preview |
+| :--- | :--- |
+| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
+| *The resulting vocabulary card using the [Kardenwort Anki Templates](https://github.com/voothi/20241106211123-kardenwort-anki-templates).* | *A phrase-based card focusing on the complete sentence context.* |
 
 [Return to Top](#table-of-contents)
 
@@ -298,13 +298,14 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 | :--- | :--- |
 | ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
 
-| Vocabulary Card Preview | Phrase Card Preview |
-| :--- | :--- |
-| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
-
 | Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
 | :--- | :--- |
 | ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.2.png) |
+
+| Vocabulary Card Preview | Phrase Card Preview |
+| :--- | :--- |
+| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
+| *Final output using [Kardenwort Anki Templates](https://github.com/voothi/20241106211123-kardenwort-anki-templates).* | *Phrase card preview.* |
 
 [Return to Top](#table-of-contents)
 
