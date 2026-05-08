@@ -97,10 +97,10 @@ The suite is optimized for high-density information streams, supporting advanced
 
 From media selection to flashcard creation, the suite provides a seamless TSV-based pipeline for permanent vocabulary retention.
 
-| TSV Database (VSCode) |
-| :--- |
-| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) |
-| *TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.* |
+| TSV Database (VSCode) | Anki Import Synchronization |
+| :--- | :--- |
+| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
+| *TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.* | *Native Anki Import window (Ctrl+Shift+I) for synchronizing media coordinates with your collection.* |
 
 | Vocabulary Card Preview | Phrase Card Preview |
 | :--- | :--- |
@@ -109,7 +109,7 @@ From media selection to flashcard creation, the suite provides a seamless TSV-ba
 
 | Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
 | :--- | :--- |
-| ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.2.png) |
+| ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.2.png) |
 | *[Intellifiller AI](https://github.com/voothi/20251206123938-intellifiller-ai-addon-for-anki) automatically populating fields from mined data.* | *Intellifiller filling advanced fields for deep grammatical analysis.* |
 
 [Return to Top](#table-of-contents)
@@ -294,9 +294,9 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 - **Dynamic Source Discovery**: Automatically scans for `.url`, `.txt`, or `.md` files in the media folder to extract `SourceURL` metadata for Anki exports.
 - **Zero-Latency Mining**: In-memory row injection provides instantaneous feedback when saving words, bypassing the performance penalty of full TSV re-parsing.
 
-| TSV Database (VSCode) |
-| :--- |
-| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) |
+| TSV Database (VSCode) | Anki Import Synchronization |
+| :--- | :--- |
+| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
 
 | Vocabulary Card Preview | Phrase Card Preview |
 | :--- | :--- |
@@ -304,7 +304,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 
 | Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
 | :--- | :--- |
-| ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.2.png) |
+| ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.2.png) |
 
 [Return to Top](#table-of-contents)
 
