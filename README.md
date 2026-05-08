@@ -75,7 +75,7 @@ The Kardenwort MPV suite provides three primary interfaces for language acquisit
 | Universal Subtitle Search | GoldenDict Integration |
 | :--- | :--- |
 | ![Search HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.search.png) | ![GoldenDict Main](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-main.png) |
-| *High-performance navigation overlay (Ctrl+F) with dynamic multi-line wrapping.* | *Seamless synchronization with external dictionaries for deep word analysis.* |
+| *High-performance navigation overlay (Ctrl+F) with dynamic multi-line wrapping.* | *Seamless synchronization with external dictionaries for deep word analysis via [gd-main.ahk](https://github.com/voothi/20240411110510-autohotkey#gd-mainahk).* |
 | | ![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png) |
 | | *Zero-latency "Popup" mode for rapid translation peeks without leaving the player.* |
 
@@ -258,7 +258,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 
 Seamlessly bridge the gap between media and reference materials.
 - **Bi-Directional Triggers**: Automatically send selected terms to GoldenDict for comprehensive lookup.
-- **Multi-Method Bridge**: High-performance Win32 bridge eliminates latency between clicking a word and seeing its definition.
+- **Multi-Method Bridge**: Powered by the high-performance [gd-main.ahk](https://github.com/voothi/20240411110510-autohotkey#gd-mainahk) Win32 bridge, eliminating latency between clicking a word and seeing its definition.
 - **Customizable Hotkeys**: Map your preferred lookup triggers (Main vs Popup) directly in `mpv.conf`.
 
 [Return to Top](#table-of-contents)
