@@ -1673,10 +1673,9 @@
 20260508163448 Add links to TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.https://github.com/janisdd/vscode-edit-csv https://github.com/mechatroner/vscode_rainbow_csv https://code.visualstudio.com/
 20260508163835 Look at this and fix it High-recall matching ensures your saved words stay highlighted (Gold/Purple/Mixed) across the e
 20260508163949 Maybe orange?
-
-
-
-
+20260508164819 Write tests openspec\changes\archive\20260507230551-fix-has-phrase-order-dependency.
+20260508171925 Can rename test_20260507230551_has_phrase_order?
+20260508173555 Create tests openspec\changes\archive\20260506090626-prioritize-selection-context-copy openspec\changes\archive\20260506095404-simplify-selection-logic openspec\changes\archive\20260506103358-unify-drum-mode-wheel-scroll openspec\changes\archive\20260506135440-fsm-architecture-specification-hardening openspec\changes\archive\20260506164500-drum-scroll-sync-hardening openspec\changes\archive\20260506190022-fsm-architecture-deficiency-remediation openspec\changes\archive\20260506195038-drum-mode-tooltip-key-parity
 
 
 

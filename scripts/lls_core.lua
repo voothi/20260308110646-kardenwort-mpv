@@ -7798,6 +7798,8 @@ function LlsProbe._snapshot()
         playback_state     = FSM.MEDIA_STATE,
         dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
+        dw_view_center     = FSM.DW_VIEW_CENTER,
+        dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
         immersion_mode     = FSM.IMMERSION_MODE,
         copy_mode          = FSM.COPY_MODE,
         loop_mode          = FSM.LOOP_MODE,
@@ -7865,4 +7867,27 @@ end)
 mp.register_script_message("lls-test-bind-seek", function()
     mp.add_forced_key_binding("KP0", "lls-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
     mp.add_forced_key_binding("KP1", "lls-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
+end)
+
+mp.register_script_message("lls-test-ctrl-toggle-word", function(line_str, word_str)
+    local line, word = tonumber(line_str), tonumber(word_str)
+    if line and word then ctrl_toggle_word(line, word, false) end
+end)
+
+mp.register_script_message("lls-test-dw-esc", function()
+    cmd_dw_esc()
+end)
+
+mp.register_script_message("lls-test-dw-scroll", function(dir_str)
+    local dir = tonumber(dir_str)
+    if dir then cmd_dw_scroll(dir) end
+end)
+
+mp.register_script_message("lls-test-set-cursor", function(line_str, word_str)
+    local line, word = tonumber(line_str), tonumber(word_str)
+    if line and word then
+        FSM.DW_CURSOR_LINE = line
+        FSM.DW_CURSOR_WORD = word
+        FSM.DW_CURSOR_X = nil
+    end
 end)

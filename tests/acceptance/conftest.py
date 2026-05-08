@@ -56,6 +56,25 @@ def mpv_fragment1():
 
 
 @pytest.fixture
+def mpv_ass():
+    """Single ASS subtitle session. Triggers ASS gatekeeping (drum mode forced OFF).
+
+    Sub timeline:
+      1: 1.000 → 3.000  "Hello world"
+      2: 4.000 → 6.000  "This is a test"
+      3: 7.000 → 9.000  "Final entry"
+    """
+    session = MpvSession(
+        video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
+        subtitle='tests/fixtures/20260508173706-test-ass/test.ass',
+        extra_args=['--pause'],
+    )
+    session.start()
+    yield session
+    session.stop()
+
+
+@pytest.fixture
 def mpv_fragment2():
     """Real 25fps video fragment, DE primary + RU secondary, paused.
 
