@@ -1709,6 +1709,26 @@
 20260509001751 # In Drum Mode, paired selection using the Ctrl+f key or Ctrl+LMB does not work the same as in the Drum Window mode, namely, it is not marked pink after pressing. ## Description Check this in all modes, in srt mode too. Create tests before implementation and opsx-propose. [[20260509001013-в-режиме-drum-mode|В режиме Drum Mode парное выделение с помощью клавиши Ctrl+f или по Ctrl+LMB работает не так как в режиме Drum Window, а именно, не отмечается розовым после нажатия.]]
 20260509001933 Just `f, а` proposal.md#L3
 20260509002245 I asked you to create tests.
+20260509003416 opsx-archive --sync openspec\changes\20260509001712-fix-drum-mode-paired-selection
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

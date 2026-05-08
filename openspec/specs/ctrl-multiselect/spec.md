@@ -4,13 +4,17 @@
 Enable the user to create non-contiguous mining records by pairing multiple subtitle segments or words into a single Anki export. Supports minimalist remote controllers (e.g., 8BitDo Zero 2) by decoupling selection persistence from physical modifier-key states.
 ## Requirements
 ### Requirement: Selection Range Feedback
-The system SHALL provide immediate visual feedback during "Cool Path" (Pink) selections.
+The system SHALL provide immediate visual feedback during "Cool Path" (Pink) selections across all rendering modes (Drum Window, Drum Mode/Windowless, and SRT mode).
 - **Color**: **Neon Pink (#FF88FF)**.
 - **State**: Persistent until explicitly additive commit (MMB/Add) or explicit discard (ESC).
 
 #### Scenario: Pink selection visibility
 - **WHEN** the user selects a word in paired mode
 - **THEN** it SHALL be colored Neon Pink (#FF88FF).
+
+#### Scenario: Immediate Feedback in Drum Mode
+- **WHEN** the user toggles a word into the paired selection set while in Drum Mode or SRT mode
+- **THEN** the OSD MUST redraw immediately to reflect the Pink highlight.
 
 ### Requirement: Modifier-Decoupled Persistence
 Selected items in the `ctrl_pending_set` SHALL NOT be cleared when the `Ctrl` or `Shift` modifier key is released.
