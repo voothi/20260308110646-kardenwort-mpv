@@ -129,7 +129,7 @@ def mpv_merge_test():
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260508192831-merge-test/20260508192831-merge-test.en.srt',
-        extra_args=['--pause'],
+        extra_args=['--pause', '--config-dir=.'],
     )
     session.start()
     yield session

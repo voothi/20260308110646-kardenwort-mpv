@@ -207,14 +207,31 @@ class MpvIpc:
                 pass
 
 
-def query_lls_state(ipc, timeout=2.0):
-    ipc.observe_property(99, 'user-data/lls/state')
+def query_lls_state(ipc, timeout=5.0):
+    # Observe property if not already observed
+    if 'user-data/lls/state' not in ipc._prop_events:
+        ipc.observe_property(99, 'user-data/lls/state')
+        # Wait a bit for the initial value event to pass
+        time.sleep(0.1)
+    
+    # Clear the event before sending the query
+    ipc._prop_events['user-data/lls/state'].clear()
+    
     ipc.command(['script-message-to', 'lls_core', 'lls-state-query'])
-    ipc.wait_property_change('user-data/lls/state', timeout)
-    raw = ipc.get_property('user-data/lls/state')
-    if raw and '|' in raw:
-        raw = raw.split('|', 1)[1]
-    return json.loads(raw) if raw else {}
+    
+    # Wait for the change
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            ipc.wait_property_change('user-data/lls/state', timeout=1.0)
+            raw = ipc.get_property('user-data/lls/state')
+            if raw and '|' in raw:
+                raw = raw.split('|', 1)[1]
+            if raw and raw != "{}":
+                return json.loads(raw)
+        except TimeoutError:
+            continue
+    return {}
 
 
 def query_lls_render(ipc, overlay_name, timeout=2.0):
