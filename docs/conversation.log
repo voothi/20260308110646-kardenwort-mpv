@@ -1671,6 +1671,8 @@
 20260508162955 Need to move Intellifiller AI Integration (F1)	Intellifiller AI Integration (F2) before Vocabulary Card Preview
 20260508163208 Need to add a link to https://github.com/voothi/20241106211123-kardenwort-anki-templates
 20260508163448 Add links to TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.https://github.com/janisdd/vscode-edit-csv https://github.com/mechatroner/vscode_rainbow_csv https://code.visualstudio.com/
+20260508163835 Look at this and fix it High-recall matching ensures your saved words stay highlighted (Gold/Purple/Mixed) across the e
+20260508163949 Maybe orange?
 
 
 
