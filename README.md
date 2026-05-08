@@ -59,6 +59,8 @@ The Kardenwort MPV suite provides three primary interfaces for language acquisit
 | *High-speed playback with synchronized historical and future subtitle context.* | *Stationary "Book Mode" for precise word selection, dictionary lookups, and mining.* |
 | ![Drum Mode 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dm.png) | ![Drum Window 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.png) |
 | *Optimized for "Shadowing" and "Listening" intensive immersion phases.* | *Surgical highlighting (Gold/Pink) synchronized with your Anki/TSV database.* |
+| | ![Context Tooltips](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.tooltip.png) |
+| | *Contextual Translation Tooltips (Gold/Pink) for instant vocabulary verification.* |
 
 ### 📺 Regular Mode (Minimalist View)
 

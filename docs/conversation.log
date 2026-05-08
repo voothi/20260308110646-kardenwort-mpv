@@ -1657,6 +1657,7 @@
 20260507233412 Check and clarify the latest changes. Gold. Comments on pictures.
 20260508100547 What is the difference between srt mode, drum or srt mode is already outdated? On the screenshots that I added, the one-line subtitles (Drum Mode OFF) refer to which settings, dm or srt? tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.srt.bottom.png tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.srt.top.png
 20260508100748 The SRT Mode (Regular Mode) is absolutely not outdated; it is a first-class feature of the Kardenwort suite designed for users who prefer a minimalist immersion experience without the visual "clutter" of multiple context lines. 2. Identifying Your Screenshots The screenshots you mentioned (...fragment2.srt.bottom.png and...fragment2.srt.top.png) refer to the SRT Mode (Regular Mode) settings: Mode: These are "Regular Mode" (Drum Mode OFF). Settings: They demonstrate the lls-srt_... configuration block in your mpv.conf. Alignment: The.bottom.png shows the subtitle at the default position (sub-pos=95), while.top.png shows the "top" orientation (secondary-sub-pos=10) often used for translation tracks.
+20260508103106 I also added tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.dw.tooltip.png
 
 
 
