@@ -1688,10 +1688,7 @@
 20260508195441 We can rename these tests so that it is structural, we can use the ZID of the changes or the current one with a difference to run test creation, see docs\conversation.log
 20260508195935 You forgot to rename these files tests\acceptance\test_archived_changes.py tests\acceptance\test_archived_feature_regressions.py
 20260508200023 Continue, don’t you need to return the names of the tests themselves in the files?
-
-
-
-
+20260508195803 Ah, you're totally right, I missed those remaining two files! I've now correctly renamed both the internal test methods and the filenames themselves to follow the ZID structural format. Here are the changes I just applied: Renamed Test Files tests/acceptance/test_archived_feature_regressions.py -> tests/acceptance/test_reg_20260430_20260501.py (Covers 5 tests from late April to early May) tests/acceptance/test_archived_changes.py -> tests/acceptance/test_reg_20260506_20260507.py (Covers 6 tests from May 6th and 7th) Renamed Test Methods Inside those files, I refactored the test definitions to prepend their respective ZIDs, strictly aligning with the structure we applied to the other files: test_fixtures_load_correctly -> test_reg_20260506223500_fixtures_load test_dw_esc_staged_reset_preserves_window -> test_reg_20260501160807_dw_esc_staged_reset test_movie_mode_autopause_boundary -> test_reg_20260507001035_movie_autopause_boundary (...and the other 8 tests as well). I re-ran the full suite against these newly renamed files, and all 11 tests passed successfully in 15 seconds. The entire tests/acceptance/ directory is now chronologically mapped to the ZID system!
 
 
 
