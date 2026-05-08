@@ -31,6 +31,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Adaptive Subtitle Replay & Looping](#adaptive-subtitle-replay--looping)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
   - [Drum Mode (Dynamic Multi-line Flow)](#drum-mode)
+  - [Regular Mode (Minimalist View)](#regular-mode)
   - [Static Reading Mode (Drum Window)](#static-reading-mode)
   - [Anki Highlighting & Export](#anki-mining)
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
@@ -48,7 +49,9 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 ## Visual Showcase
 
-The Kardenwort MPV suite provides two primary interfaces for language acquisition: **Drum Mode** for immersive playback and **Static Reading Mode** for in-depth analysis and mining.
+The Kardenwort MPV suite provides three primary interfaces for language acquisition: **Drum Mode** for immersive playback, **Regular Mode (SRT)** for minimalist viewing, and **Static Reading Mode** for in-depth analysis and mining.
+
+### 🥁 Advanced Layouts
 
 | Drum Mode (Dynamic Flow) | Static Reading Mode (Drum Window) |
 | :--- | :--- |
@@ -56,6 +59,13 @@ The Kardenwort MPV suite provides two primary interfaces for language acquisitio
 | *High-speed playback with synchronized historical and future subtitle context.* | *Stationary "Book Mode" for precise word selection, dictionary lookups, and mining.* |
 | ![Drum Mode 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dm.png) | ![Drum Window 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.png) |
 | *Optimized for "Shadowing" and "Listening" intensive immersion phases.* | *Surgical highlighting (Gold/Pink) synchronized with your Anki/TSV database.* |
+
+### 📺 Regular Mode (Minimalist View)
+
+| Bottom Alignment (Target) | Top Alignment (Translation) |
+| :--- | :--- |
+| ![Regular Mode Bottom](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.bottom.png) | ![Regular Mode Top](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.top.png) |
+| *Standard one-line immersion with Premium Dark background box for maximum legibility.* | *Secondary track positioned at the top to resolve visual overlaps during DualSub playback.* |
 
 [Return to Top](#table-of-contents)
 
@@ -184,6 +194,13 @@ The primary immersion mode designed for rapid reading and phrasal awareness duri
 - **Minimalist Aesthetic**: Forces an ultra-clean `outline-and-shadow` style to ensure maximum readability against any video background, decoupling it from regular subtitle styles.
 - **Dual-Track Synergy**: Seamlessly renders both primary and secondary tracks in a unified stack, providing instant translation context without visual clutter.
 - **Toggle**: `x` (English) or `ч` (Russian).
+
+### <span id="regular-mode"></span>Regular Mode (Minimalist View)
+The standard subtitle viewing experience, enhanced with the Kardenwort suite's professional aesthetics and word-level interactivity.
+- **Premium Background Box**: Implements a semi-transparent dark box (`LLS-SRT_BG_OPACITY`) to ensure perfect legibility against any video background.
+- **Word-Level Interactivity**: Even in regular mode, you can use the mouse to select words for dictionary lookups (`e`) or Anki mining (`MMB`).
+- **Dual-Track Alignment**: Automatically handles secondary track positioning (Top/Bottom) to prevent visual overlap during dual-subtitle immersion.
+- **Default State**: Active when Drum Mode and Drum Window are toggled `OFF`.
 
 ### <span id="static-reading-mode"></span>Static Reading Mode (Drum Window)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
