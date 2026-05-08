@@ -7797,6 +7797,8 @@ function LlsProbe._snapshot()
         sec_active_sub_index = FSM.SEC_ACTIVE_IDX,
         playback_state     = FSM.MEDIA_STATE,
         dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
+        dw_active_line     = FSM.DW_ACTIVE_LINE,
+        dw_anchor          = { line = FSM.DW_ANCHOR_LINE, word = FSM.DW_ANCHOR_WORD },
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
         dw_view_center     = FSM.DW_VIEW_CENTER,
         dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
@@ -7908,4 +7910,22 @@ end)
 
 mp.register_script_message("lls-test-cycle-sec-sid", function()
     cmd_cycle_sec_sid()
+end)
+
+mp.register_script_message("lls-sub-visibility-set", function(state)
+    local val = (state == "ON")
+    FSM.native_sub_vis = val
+    FSM.native_sec_sub_vis = val
+    master_tick()
+end)
+
+mp.register_script_message("lls-drum-mode-set", function(state)
+    if state == "ON" or state == "OFF" then
+        FSM.DRUM = state
+        master_tick()
+    end
+end)
+
+mp.register_script_message("lls-test-dw-word-move", function(dir, shift)
+    cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true")
 end)
