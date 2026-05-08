@@ -7902,6 +7902,11 @@ mp.register_script_message("lls-test-dw-esc", function()
     cmd_dw_esc()
 end)
 
+mp.register_script_message("lls-test-dw-line-move", function(dir_str, shift)
+    local dir = tonumber(dir_str)
+    if dir then cmd_dw_line_move(dir, shift == "yes" or shift == "true") end
+end)
+
 mp.register_script_message("lls-test-dw-scroll", function(dir_str)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_scroll(dir) end
