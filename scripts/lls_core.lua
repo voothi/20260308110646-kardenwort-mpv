@@ -7823,6 +7823,8 @@ function LlsProbe._snapshot()
         native_sec_sub_vis = FSM.native_sec_sub_vis,
         native_sec_sub_pos = FSM.native_sec_sub_pos,
         replay_remaining   = FSM.REPLAY_REMAINING or 0,
+        search_query       = FSM.SEARCH_QUERY,
+        dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
     }
 end
 
@@ -7976,4 +7978,16 @@ end)
 
 mp.register_script_message("lls-test-dw-copy", function()
     cmd_dw_copy()
+end)
+
+mp.register_script_message("lls-test-search-input", function(char)
+    if FSM.SEARCH_MODE then
+        -- This is a simplification of the actual char handler
+        local q_table = utf8_to_table(FSM.SEARCH_QUERY)
+        table.insert(q_table, FSM.SEARCH_CURSOR + 1, char)
+        FSM.SEARCH_QUERY = table.concat(q_table)
+        FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + 1
+        -- trigger update
+        render_search()
+    end
 end)
