@@ -48,7 +48,12 @@ The system SHALL ensure that routine lifecycle events that do not require user i
 ### Requirement: Layout-Agnostic Diagnostic Access
 The system SHALL ensure that diagnostic tools remain accessible regardless of the user's keyboard layout.
 
-#### Scenario: Opening the console with Cyrillic layout
-- **WHEN** the user is in a Cyrillic layout and presses the `ё` key
 - **THEN** the system SHALL trigger the `console/enable` command, mirroring the behavior of the English backtick (`) key.
+
+### Requirement: System - SRT Hardening, Logging, and Session Resume
+Core system utilities must be robust and efficient as per archives 20260505004553, 20260502082941, and 20260502005934.
+
+#### Scenario: Smart Logging
+- **WHEN** the system is running normally.
+- **THEN** it should suppress redundant "spam" messages while maintaining diagnostic capability.
 

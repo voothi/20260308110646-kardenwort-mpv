@@ -171,7 +171,12 @@ The system SHALL support independent selection and multi-word highlight colors f
 ### Requirement: Independent Highlight Weight Calibration
 The system SHALL support independent font-weight (bold/regular) toggles for highlights in all modes, ensuring manual selections can be set to "Premium" regular weight while database matches remain bold.
 
-#### Scenario: Manual Selection Weight
-- **WHEN** `tooltip_highlight_bold` is set to `no`
 - **THEN** manual selections in the tooltip SHALL be rendered with regular weight (`\b0`).
 - **AND** database matches (Priority 3) SHALL still respect `anki_highlight_bold`.
+
+### Requirement: UI - Tooltip Hit-Zones and Highlight Aesthetics
+Tooltips and highlights must be visually accurate and interactive as per archives 20260503190627 and 20260502135022.
+
+#### Scenario: Tooltip Hit-Zone Accuracy
+- **WHEN** the mouse hovers over a word in the Drum Window.
+- **THEN** the hit-zone must accurately trigger the tooltip without "ghost" interference from adjacent elements.

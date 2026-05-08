@@ -35,7 +35,16 @@ The hotkey expansion engine MUST register only the uppercase Cyrillic variant fo
 ### Requirement: Granular Diagnostic Tracing
 The key registration system MUST provide diagnostic logging that identifies both the physical key pressed and the logical binding triggered when `log_level` is set to `debug`.
 
-#### Scenario: Pressing 'у' in RU Layout
-- **WHEN** the physical `E` key is pressed in Russian layout (sending `у`)
 - **THEN** the diagnostic log MUST record: `DW TRIGGER: key='у' binding='dw-tooltip-toggle-1'`
+
+### Requirement: Input - Layout-Agnostic Hotkeys and False Positive Prevention
+Hotkeys must work across different keyboard layouts and avoid false positive triggers as per archives 20260503212729 and 20260503203618.
+
+#### Scenario: Layout-Agnostic Binding
+- **WHEN** pressing a mapped key (e.g., `ё` for Russian layout mapped to `` ` ``).
+- **THEN** the corresponding command must be executed correctly.
+
+#### Scenario: False Positive Prevention
+- **WHEN** a key is pressed that is a subset or partial match of a complex binding.
+- **THEN** it should not trigger the complex binding unintentionally.
 

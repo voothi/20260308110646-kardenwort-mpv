@@ -22,6 +22,9 @@ The system SHALL verify that the last played media path is recorded during the a
 ### Requirement: Auto-resume on empty startup
 The system SHALL automatically load the last recorded media path if MPV is launched without explicit file arguments and the internal playlist is empty.
 
-#### Scenario: Launching MPV without arguments
 - **WHEN** MPV starts and no media path is provided via the command line or file associations
 - **THEN** the system retrieves the path from the session state file and initiates a `loadfile` command
+
+#### Scenario: Session Resume
+- **WHEN** mpv is started with the `resume-last-file` script.
+- **THEN** it should automatically load the last played file and seek to the last position.
