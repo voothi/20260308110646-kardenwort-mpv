@@ -1668,6 +1668,9 @@
 20260508152017 I have integrated the comprehensive Anki Mining & Workflow showcase into the README.md, demonstrating the full pipeline from "Gold" highlights to flashcard generation. This update provides a complete visual guide for users looking to transition from passive immersion to active vocabulary acquisition using the Kardenwort-mpv suite. 20260507164826-fragment2.tsv.1.vscode.png TSV file opened in a text editor VSCode (Rainbow CSV, Edit CSV) 20260507164826-fragment2.tsv.2.anki.import.png import window Anki (Ctrl+Shift+i) 20260507164826-fragment2.tsv.3.anki.b.w.if.2.png Anki Browser Intellifiller plugin (https://github.com/voothi/20251206123938-intellifiller-ai-addon-for-anki) filled in the fields 20260507164826-fragment2.tsv.4.anki.b.w.if.1.png Intellifiller fills in the fields 20260507164826-fragment2.tsv.5.anki.b.w.preview.png the resulting cards, preview mode in the browser, vocabulary card 20260507164826-fragment2.tsv.6.anki.b.s.preview.png phrase card (phrase)
 20260508161348 Delele from git cache tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.tsv.2.anki.import.png
 20260508162233 I renamed 20260507164826-fragment2.tsv.3.anki.b.w.if.1.png 20260507164826-fragment2.tsv.4.anki.b.w.if.2.png
+20260508162955 Need to move Intellifiller AI Integration (F1)	Intellifiller AI Integration (F2) before Vocabulary Card Preview
+20260508163208 Need to add a link to https://github.com/voothi/20241106211123-kardenwort-anki-templates
+20260508163448 Add links to TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.https://github.com/janisdd/vscode-edit-csv https://github.com/mechatroner/vscode_rainbow_csv https://code.visualstudio.com/
 
 
 

@@ -100,7 +100,7 @@ From media selection to flashcard creation, the suite provides a seamless TSV-ba
 | TSV Database (VSCode) | Anki Import Synchronization |
 | :--- | :--- |
 | ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
-| *TSV file opened in VSCode with Rainbow CSV and Edit CSV extensions for high-density editing.* | *Native Anki Import window (Ctrl+Shift+I) for synchronizing media coordinates with your collection.* |
+| *TSV file opened in [VSCode](https://code.visualstudio.com/) with [Rainbow CSV](https://github.com/mechatroner/vscode_rainbow_csv) and [Edit CSV](https://github.com/janisdd/vscode-edit-csv) extensions for high-density editing.* | *Native Anki Import window (Ctrl+Shift+I) for synchronizing media coordinates with your collection.* |
 
 | Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
 | :--- | :--- |
@@ -297,6 +297,7 @@ A specialized subsystem that bridges the gap between immersion and flashcard cre
 | TSV Database (VSCode) | Anki Import Synchronization |
 | :--- | :--- |
 | ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
+| *Managed via [VSCode](https://code.visualstudio.com/) + [Rainbow CSV](https://github.com/mechatroner/vscode_rainbow_csv).* | *Standard Anki workflow.* |
 
 | Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
 | :--- | :--- |
