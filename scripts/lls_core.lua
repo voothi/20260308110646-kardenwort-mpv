@@ -6620,7 +6620,7 @@ local function update_search_results()
     end)
     
     for _, item in ipairs(scored_results) do
-        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, hl = item.hl})
+        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text})
     end
 end
 
@@ -7800,7 +7800,23 @@ end
 local LlsProbe = {}
 
 function LlsProbe._snapshot()
+    local tracks_summary = {
+        pri = { 
+            id = Tracks.pri.id, 
+            is_ass = Tracks.pri.is_ass, 
+            path = Tracks.pri.path,
+            count = #(Tracks.pri.subs or {})
+        },
+        sec = { 
+            id = Tracks.sec.id, 
+            is_ass = Tracks.sec.is_ass, 
+            path = Tracks.sec.path,
+            count = #(Tracks.sec.subs or {})
+        }
+    }
+    
     return {
+        options            = Options,
         autopause          = FSM.AUTOPAUSE,
         drum_mode          = FSM.DRUM,
         drum_window        = FSM.DRUM_WINDOW,
@@ -7824,7 +7840,10 @@ function LlsProbe._snapshot()
         native_sec_sub_pos = FSM.native_sec_sub_pos,
         replay_remaining   = FSM.REPLAY_REMAINING or 0,
         search_query       = FSM.SEARCH_QUERY,
+        search_results     = FSM.SEARCH_RESULTS,
         dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
+        tracks             = tracks_summary,
+        fsm_state          = FSM.MEDIA_STATE -- Alias for easier access in some tests
     }
 end
 
@@ -7988,6 +8007,7 @@ mp.register_script_message("lls-test-search-input", function(char)
         FSM.SEARCH_QUERY = table.concat(q_table)
         FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + 1
         -- trigger update
+        update_search_results()
         render_search()
     end
 end)
