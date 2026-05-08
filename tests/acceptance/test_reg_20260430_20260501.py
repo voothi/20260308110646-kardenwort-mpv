@@ -41,7 +41,7 @@ def wait_for_state(ipc, key, value, timeout=2.0):
 class TestDrumWindowRegressions:
     """Tests for Drum Window logic, navigation, and state synchronization."""
 
-    def test_dw_esc_staged_reset_preserves_window(self, mpv):
+    def test_reg_20260501160807_dw_esc_staged_reset(self, mpv):
         """Esc must clear Pink -> Yellow Range -> Yellow Pointer but stay open (Correct Behavior)."""
         ipc = mpv.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
@@ -81,7 +81,7 @@ class TestDrumWindowRegressions:
         state = query_lls_state(ipc)
         assert state['drum_window'] != 'OFF'
 
-    def test_dw_pointer_sync_preservation(self, mpv):
+    def test_reg_20260501163905_dw_pointer_sync(self, mpv):
         """DW_CURSOR_WORD must be preserved when opening Drum Window (20260501163905)."""
         ipc = mpv.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
@@ -111,7 +111,7 @@ class TestDrumWindowRegressions:
 class TestImmersionRegressions:
     """Tests for immersion engine behavior and spec compliance."""
 
-    def test_natural_progression_one_step(self, mpv_dual):
+    def test_reg_20260501005019_natural_progression(self, mpv_dual):
         """Focus must transition to next sub if playhead is in its padded zone (20260501005019)."""
         ipc = mpv_dual.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
@@ -131,7 +131,7 @@ class TestImmersionRegressions:
 class TestExportFidelity:
     """Tests for export logic and selection mapping."""
 
-    def test_precision_tokenization(self, mpv):
+    def test_reg_20260430183833_precision_tokenization(self, mpv):
         """Verify that words can be selected individually via test commands (20260430183833)."""
         ipc = mpv.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
@@ -146,7 +146,7 @@ class TestExportFidelity:
 class TestSearchHudRegressions:
     """Tests for Search HUD interaction and sync."""
 
-    def test_search_hud_activation(self, mpv):
+    def test_reg_20260501234125_search_hud_activation(self, mpv):
         """Verify Search HUD can be toggled and captures state (20260501234125)."""
         ipc = mpv.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])

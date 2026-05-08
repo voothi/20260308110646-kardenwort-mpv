@@ -4,7 +4,7 @@ import json
 from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
 from tests.ipc.mpv_session import MpvSession
 
-def test_fixtures_load_correctly(mpv_fragment1):
+def test_reg_20260506223500_fixtures_load(mpv_fragment1):
     """Smoke test: real 25fps fragment1 loads with DE+RU subs, sentinel primes correctly."""
     ipc = mpv_fragment1.ipc
     # Sub 1 spans 4.295–5.295s; seek to the middle.
@@ -19,7 +19,7 @@ def test_fixtures_load_correctly(mpv_fragment1):
         f"secondary sentinel desynced: {state['sec_active_sub_index']}"
     )
 
-def test_natural_progression_skip(mpv_dual):
+def test_reg_20260506223500_natural_progression_skip(mpv_dual):
     """Verify that playhead advances to next sub in overlap zone via Natural Progression logic."""
     ipc = mpv_dual.ipc
     
@@ -43,7 +43,7 @@ def test_natural_progression_skip(mpv_dual):
         f"got {state['active_sub_index']}"
     )
 
-def test_seek_bindings_repeatable(mpv):
+def test_reg_20260506232017_seek_bindings(mpv):
     """Verify that seek bindings are registered. (Repeatability cannot be verified via IPC)."""
     ipc = mpv.ipc
     
@@ -64,7 +64,7 @@ def test_seek_bindings_repeatable(mpv):
     # Note: mpv does not expose 'repeatable' flag via IPC property 'input-bindings'.
     # Existence of the forced binding confirms registration.
 
-def test_movie_mode_autopause_boundary(mpv_dual):
+def test_reg_20260507001035_movie_autopause_boundary(mpv_dual):
     """Verify that MOVIE mode does not pause before SRT end_time in small gaps."""
     ipc = mpv_dual.ipc
     
@@ -98,7 +98,7 @@ def test_movie_mode_autopause_boundary(mpv_dual):
     assert time_pos >= 1.8, f"Paused too early at {time_pos}, expected >= 1.85 (approx)"
     # A more precise check would be comparing with PHRASE mode where it should pause later (~2.2s).
 
-def test_fsm_gap_visibility(mpv):
+def test_reg_20260507090243_fsm_gap_visibility(mpv):
     """Verify that cmd_toggle_sub_vis works while Drum Window is open."""
     ipc = mpv.ipc
     
@@ -116,7 +116,7 @@ def test_fsm_gap_visibility(mpv):
     assert new_state['native_sub_vis'] != initial_vis, "Visibility did not toggle while DW open"
     assert new_state['drum_window'] != 'OFF', "Drum Window closed unexpectedly"
 
-def test_fsm_gap_sec_pos_sync(mpv_dual):
+def test_reg_20260507102212_fsm_gap_sec_pos_sync(mpv_dual):
     """Verify that secondary sub position adjustments sync to FSM state."""
     ipc = mpv_dual.ipc
     
