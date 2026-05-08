@@ -4769,8 +4769,8 @@ local function ctrl_toggle_word(line_idx, word_idx, no_sync)
     end
     if not no_sync then
         sync_ctrl_pending_list()
+        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         if FSM.DRUM_WINDOW ~= "OFF" then 
-            FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
             dw_osd:update() 
         end
     end
@@ -5009,8 +5009,8 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
             end
         end
         sync_ctrl_pending_list()
+        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         if FSM.DRUM_WINDOW ~= "OFF" then 
-            FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
             dw_osd:update() 
         end
         -- Clear yellow selection after it "turns pink"
@@ -5428,7 +5428,7 @@ local function master_tick()
     -- 3. [20260501163905] Force OSD if a highlight (Yellow Pointer or Pink Set) exists on the active line.
     -- 4. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
     local has_ptr = (FSM.DW_CURSOR_WORD ~= -1 and active_idx == FSM.DW_CURSOR_LINE)
-    local has_pink = (FSM.DW_CTRL_PENDING_SET[active_idx] ~= nil)
+    local has_pink = (next(FSM.DW_CTRL_PENDING_SET) ~= nil)
     local pri_use_osd = FSM.native_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.pri.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
     local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
 
