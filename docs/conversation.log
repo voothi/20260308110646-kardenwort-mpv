@@ -1663,7 +1663,7 @@
 20260508120514 Add a placeholder for Shift+g, Shift+p so that the default key (ignore) does not work, look at what keys can still intersect and ignore them in the config too. mpv.conf input.conf
 20260508120944 i ignore ш ignore do to show info.
 20260508143347 I added the files to tests\fixtures\20260304233334-you-dont-need-saas. 
-
+20260508143347 I added the files to tests\fixtures\20260304233334-you-dont-need-saas. This is a sample video tests\fixtures\20260304233334-you-dont-need-saas\You Don't Need SaaS. The $0.10 System That Replaced My AI Workflow (45 Min No-Code Build) - YouTube.url tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.mp4, on which I initially developed the application, checked ASS subtitles tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.2.1.ass, karaoke in w mode - word tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.2.2.karaoke.w.ass tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.2.2.karaoke.w.ass.png, сh - character by character tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.2.3.karaoke.ch.ass tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.2.3.karaoke.ch.ass.png, long, large subtitles, a lot of text tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.1.dm.png t ests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.1.dw.tooltip.png tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.1.en.srt tests\fixtures\20260304233334-you-dont-need-saas\20260304233334-chapter2.1.ru.srt, DW mode, scrolling and navigation, Book Mode came from here.
 
 
 

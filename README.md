@@ -79,6 +79,20 @@ The Kardenwort MPV suite provides three primary interfaces for language acquisit
 | | ![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png) |
 | | *Zero-latency "Popup" mode for rapid translation peeks without leaving the player.* |
 
+### 🎤 Karaoke & High-Density Immersion
+
+The suite is optimized for high-density information streams, supporting advanced `.ass` karaoke formatting and long, multi-line paragraph subtitles.
+
+| Word-by-Word Karaoke | Character-by-Character Karaoke |
+| :--- | :--- |
+| ![Karaoke Word](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.2.karaoke.w.ass.png) | ![Karaoke Char](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.3.karaoke.ch.ass.png) |
+| *Synchronized word-level highlights for precise timing and "Shadowing" practice.* | *Ultra-precise character-level timing for complex phonetic or musical immersion.* |
+
+| High-Density Paragraphs | Advanced Viewport Navigation |
+| :--- | :--- |
+| ![High Density DM](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dm.png) | ![High Density Tooltip](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dw.tooltip.png) |
+| *Handles massive subtitle blocks with ease, maintaining high contrast and readability.* | *The origin of "Book Mode"—smoothly navigating through dense, text-heavy chapters.* |
+
 [Return to Top](#table-of-contents)
 
 ---
@@ -202,6 +216,11 @@ Advanced pause logic designed specifically for immersion students using `.ass` k
 - **Dual-Track Aware**: Intelligently tracks timings in both primary and secondary tracks to ensure you never miss a phrase.
 - **Toggle**: `S` (English) or `Ы` (Russian).
 
+| Word-by-Word Karaoke | Character-by-Character Karaoke |
+| :--- | :--- |
+| ![Karaoke Word](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.2.karaoke.w.ass.png) | ![Karaoke Char](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.3.karaoke.ch.ass.png) |
+| *Synchronized word-level highlights for precise timing.* | *Ultra-precise character-level timing for complex immersion.* |
+
 ### <span id="drum-mode"></span>Drum Mode (Dynamic Multi-line Flow)
 The primary immersion mode designed for rapid reading and phrasal awareness during playback.
 - **Continuous Context**: Synchronizes multiple historical and future subtitle lines into a single cohesive OSD block.
@@ -209,6 +228,9 @@ The primary immersion mode designed for rapid reading and phrasal awareness duri
 - **Minimalist Aesthetic**: Forces an ultra-clean `outline-and-shadow` style to ensure maximum readability against any video background, decoupling it from regular subtitle styles.
 - **Dual-Track Synergy**: Seamlessly renders both primary and secondary tracks in a unified stack, providing instant translation context without visual clutter.
 - **Toggle**: `x` (English) or `ч` (Russian).
+
+![High Density DM](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dm.png)
+*High-density paragraph rendering in Drum Mode, maintaining legibility across massive subtitle blocks.*
 
 ### <span id="regular-mode"></span>Regular Mode (Minimalist View)
 The standard subtitle viewing experience, enhanced with the Kardenwort suite's professional aesthetics and word-level interactivity.
@@ -232,6 +254,9 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Sticky Column Navigation**: Vertical movement (Arrows Up/Down) now preserves the horizontal OSD position, mimicking the VSCode carriage transition for more predictable keyboard navigation.
 - **Performance Layout Cache**: A structure-aware caching engine that eliminates redundant OSD calculations during mouse movement, ensuring a smooth 60fps interaction experience.
 - **Toggle**: `z` (English) or `я` (Russian).
+
+![High Density Tooltip](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dw.tooltip.png)
+*Deep-immersion navigation in "Book Mode"—handling dense, paragraph-heavy subtitle tracks with surgical precision.*
 
 ### <span id="anki-mining"></span>Anki Highlighting & Export
 A specialized subsystem that bridges the gap between immersion and flashcard creation.
