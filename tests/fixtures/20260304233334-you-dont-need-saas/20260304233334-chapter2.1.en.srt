@@ -1,0 +1,160 @@
+﻿1
+00:00:02,472 --> 00:00:16,282
+The best prompt in the world cannot compensate for an AI that does not know what you've been working on, what you've already tried, what your constraints are, who the key people in your life are, or what you decided last Tuesday.
+
+2
+00:00:16,332 --> 00:00:19,502
+And by the way, that is also the constraint working with agents.
+
+3
+00:00:19,722 --> 00:00:20,942
+They need that context too.
+
+4
+00:00:21,212 --> 00:00:25,422
+And right now, that's exactly what most of us are struggling with when it comes to AI.
+
+5
+00:00:26,172 --> 00:00:30,262
+Every single time we open a new chat, we often start from zero.
+
+6
+00:00:30,572 --> 00:00:38,762
+Every single time we switch from Clawed to ChatGPT to Cursor, we tend to lose things, which is why we gravitate toward one of those systems more than another.
+
+7
+00:00:39,192 --> 00:00:44,702
+Think about how much of your prompting is asking AI to catch up on what you know already.
+
+8
+00:00:44,752 --> 00:00:50,822
+The background here is, you're burning up your best thinking on context transfer instead of real work.
+
+9
+00:00:50,972 --> 00:00:56,902
+A Harvard Business Review study found that digital workers toggle between applications nearly 1,200 times a day.
+
+10
+00:00:57,032 --> 00:00:58,722
+I get tired saying that sentence.
+
+11
+00:00:59,472 --> 00:01:03,702
+Every switch seems really small, but collectively, this is devastating our attention.
+
+12
+00:01:03,972 --> 00:01:10,742
+I have watched this context switching issue play out over and over and over again in my own life, in the lives of others.
+
+13
+00:01:10,792 --> 00:01:25,442
+And what I keep coming back to is the insight that our desire to specify to be clear with AI is only getting higher and it's demanding more of our memory systems and our memory systems and memory structures are not keeping up.
+
+14
+00:01:26,132 --> 00:01:32,282
+Memory architecture determines agent capabilities much more than model selection does.
+
+15
+00:01:32,332 --> 00:01:33,382
+That's widely misunderstood.
+
+16
+00:01:34,092 --> 00:01:44,442
+And when you construct memory incorrectly, you're stuck re-explaining yourself forever, or you're stuck in a world where you know how to access memory and the agent does.
+
+17
+00:01:44,592 --> 00:01:57,182
+I believe we can make a stable memory system that is reasonably future-proofed, that enables us to plug in new tools via MCP server very efficiently so we don't have to keep updating our system.
+
+18
+00:01:57,232 --> 00:02:04,422
+And yes, I want to acknowledge something, Claude has memory now, ChatGPT has memory now, Grok has memory now, Google has memory now.
+
+19
+00:02:04,592 --> 00:02:09,902
+These features are getting better all the time, but think about what they give you and what they don't.
+
+20
+00:02:11,252 --> 00:02:13,502
+Claude's memory doesn't know what you told ChatGPT.
+
+21
+00:02:13,882 --> 00:02:15,862
+ChatGPT's memory doesn't follow you into cursor.
+
+22
+00:02:16,092 --> 00:02:18,482
+Your phone app doesn't share context with your coding agent.
+
+23
+00:02:18,752 --> 00:02:24,782
+Every platform has built a walled garden of memory, and none of them talk to each other.
+
+24
+00:02:24,832 --> 00:02:33,362
+There's a whole new category of products emerging in early 2026, specifically because platforms refuse to solve this.
+
+25
+00:02:34,232 --> 00:02:41,042
+Products like MemZero, MemSync, OneContext, the problem is real enough to spawn an entire VC-backed industry.
+
+26
+00:02:41,272 --> 00:02:54,222
+So what you've really got is multiple AI tools getting upgraded all the time, adding AI tools all the time to experiment with them, and you have a thin, siloed layer of context that only works inside each of those individual tools.
+
+27
+00:02:54,272 --> 00:02:55,062
+You know what?
+
+28
+00:02:55,162 --> 00:02:57,062
+That's not really memory.
+
+29
+00:02:57,252 --> 00:03:02,462
+That is five separate piles of sticky notes on five separate desks.
+
+30
+00:03:02,632 --> 00:03:05,062
+And now let's add autonomous agents into the picture.
+
+31
+00:03:05,412 --> 00:03:25,842
+The agent category has absolutely detonated in the last few weeks, but the use cases that are shining, like the guy who got thousands of dollars off a car purchase, they're shining because the agent has the ability to securely and safely access relevant memories, relevant context from the user.
+
+32
+00:03:26,112 --> 00:03:36,002
+Whereas agents that just guess context or have to fill in the dots because you aren't able to provide them secure access to all of your systems, they're not going to be nearly as useful for you.
+
+33
+00:03:36,052 --> 00:03:47,602
+And whether we're talking about agents or we're talking about tools, the part that should bother you even more is that these systems that corporations are designing are all designed to create lock-in.
+
+34
+00:03:48,152 --> 00:03:51,622
+Memory is supposed to be a lock-in on ChatGPT.
+
+35
+00:03:51,992 --> 00:03:53,222
+Ditto on other systems.
+
+36
+00:03:53,272 --> 00:03:56,762
+So you've spent a long time building up history with a tool.
+
+37
+00:03:56,952 --> 00:04:06,502
+And now if you want to try the latest other model, let's say you're on ChatGPT and you want to try Gemini or you want to try Claude or you want to try another model, you lose all of that context.
+
+38
+00:04:06,552 --> 00:04:10,682
+Not because the new model is worse, but because your context is trapped in the old one.
+
+39
+00:04:10,832 --> 00:04:17,002
+And oh, by the way, all of that memory in those individual tools, that is not agent-readable.
+
+40
+00:04:17,152 --> 00:04:34,622
+And so as we get to a world where autonomous agents are becoming more and more and more a thing, the big corporations are betting that if they can trap you with memory, you will only use their agents and they will get to keep you and your attention and your dollars forever.
+

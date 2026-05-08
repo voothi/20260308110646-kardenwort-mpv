@@ -1,0 +1,98 @@
+﻿[Script Info]
+; This is an Advanced Sub Station Alpha v4+ script.
+Title: 
+ScriptType: v4.00+
+PlayDepth: 0
+ScaledBorderAndShadow: Yes
+PlayResX: 256
+PlayResY: 144
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Segoe UI,5,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,4,1,1,2,10,10,10,1
+Style: 1,Segoe UI,5,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,4,1,1,8,10,10,10,1
+Style: 2,Segoe UI,5,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,4,1,1,5,10,10,10,1
+Style: 3,Segoe UI,5,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,4,1,1,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:02.47,0:00:16.28,3,,0,0,0,,The best prompt in the world cannot compensate for an AI that does not know what you've been working on, what you've already tried, what your constraints are, who the key people in your life are, or what you decided last Tuesday.
+Dialogue: 0,0:00:16.33,0:00:19.50,3,,0,0,0,,And by the way, that is also the constraint working with agents.
+Dialogue: 0,0:00:19.72,0:00:20.94,3,,0,0,0,,They need that context too.
+Dialogue: 0,0:00:21.21,0:00:25.42,3,,0,0,0,,And right now, that's exactly what most of us are struggling with when it comes to AI.
+Dialogue: 0,0:00:26.17,0:00:30.26,3,,0,0,0,,Every single time we open a new chat, we often start from zero.
+Dialogue: 0,0:00:30.57,0:00:38.76,3,,0,0,0,,Every single time we switch from Clawed to ChatGPT to Cursor, we tend to lose things, which is why we gravitate toward one of those systems more than another.
+Dialogue: 0,0:00:39.19,0:00:44.70,3,,0,0,0,,Think about how much of your prompting is asking AI to catch up on what you know already.
+Dialogue: 0,0:00:44.75,0:00:50.82,3,,0,0,0,,The background here is, you're burning up your best thinking on context transfer instead of real work.
+Dialogue: 0,0:00:50.97,0:00:56.90,3,,0,0,0,,A Harvard Business Review study found that digital workers toggle between applications nearly 1,200 times a day.
+Dialogue: 0,0:00:57.03,0:00:58.72,3,,0,0,0,,I get tired saying that sentence.
+Dialogue: 0,0:00:59.47,0:01:03.70,3,,0,0,0,,Every switch seems really small, but collectively, this is devastating our attention.
+Dialogue: 0,0:01:03.97,0:01:10.74,3,,0,0,0,,I have watched this context switching issue play out over and over and over again in my own life, in the lives of others.
+Dialogue: 0,0:01:10.79,0:01:25.44,3,,0,0,0,,And what I keep coming back to is the insight that our desire to specify to be clear with AI is only getting higher and it's demanding more of our memory systems and our memory systems and memory structures are not keeping up.
+Dialogue: 0,0:01:26.13,0:01:32.28,3,,0,0,0,,Memory architecture determines agent capabilities much more than model selection does.
+Dialogue: 0,0:01:32.33,0:01:33.38,3,,0,0,0,,That's widely misunderstood.
+Dialogue: 0,0:01:34.09,0:01:44.44,3,,0,0,0,,And when you construct memory incorrectly, you're stuck re-explaining yourself forever, or you're stuck in a world where you know how to access memory and the agent does.
+Dialogue: 0,0:01:44.59,0:01:57.18,3,,0,0,0,,I believe we can make a stable memory system that is reasonably future-proofed, that enables us to plug in new tools via MCP server very efficiently so we don't have to keep updating our system.
+Dialogue: 0,0:01:57.23,0:02:04.42,3,,0,0,0,,And yes, I want to acknowledge something, Claude has memory now, ChatGPT has memory now, Grok has memory now, Google has memory now.
+Dialogue: 0,0:02:04.59,0:02:09.90,3,,0,0,0,,These features are getting better all the time, but think about what they give you and what they don't.
+Dialogue: 0,0:02:11.25,0:02:13.50,3,,0,0,0,,Claude's memory doesn't know what you told ChatGPT.
+Dialogue: 0,0:02:13.88,0:02:15.86,3,,0,0,0,,ChatGPT's memory doesn't follow you into cursor.
+Dialogue: 0,0:02:16.09,0:02:18.48,3,,0,0,0,,Your phone app doesn't share context with your coding agent.
+Dialogue: 0,0:02:18.75,0:02:24.78,3,,0,0,0,,Every platform has built a walled garden of memory, and none of them talk to each other.
+Dialogue: 0,0:02:24.83,0:02:33.36,3,,0,0,0,,There's a whole new category of products emerging in early 2026, specifically because platforms refuse to solve this.
+Dialogue: 0,0:02:34.23,0:02:41.04,3,,0,0,0,,Products like MemZero, MemSync, OneContext, the problem is real enough to spawn an entire VC-backed industry.
+Dialogue: 0,0:02:41.27,0:02:54.22,3,,0,0,0,,So what you've really got is multiple AI tools getting upgraded all the time, adding AI tools all the time to experiment with them, and you have a thin, siloed layer of context that only works inside each of those individual tools.
+Dialogue: 0,0:02:54.27,0:02:55.06,3,,0,0,0,,You know what?
+Dialogue: 0,0:02:55.16,0:02:57.06,3,,0,0,0,,That's not really memory.
+Dialogue: 0,0:02:57.25,0:03:02.46,3,,0,0,0,,That is five separate piles of sticky notes on five separate desks.
+Dialogue: 0,0:03:02.63,0:03:05.06,3,,0,0,0,,And now let's add autonomous agents into the picture.
+Dialogue: 0,0:03:05.41,0:03:25.84,3,,0,0,0,,The agent category has absolutely detonated in the last few weeks, but the use cases that are shining, like the guy who got thousands of dollars off a car purchase, they're shining because the agent has the ability to securely and safely access relevant memories, relevant context from the user.
+Dialogue: 0,0:03:26.11,0:03:36.00,3,,0,0,0,,Whereas agents that just guess context or have to fill in the dots because you aren't able to provide them secure access to all of your systems, they're not going to be nearly as useful for you.
+Dialogue: 0,0:03:36.05,0:03:47.60,3,,0,0,0,,And whether we're talking about agents or we're talking about tools, the part that should bother you even more is that these systems that corporations are designing are all designed to create lock-in.
+Dialogue: 0,0:03:48.15,0:03:51.62,3,,0,0,0,,Memory is supposed to be a lock-in on ChatGPT.
+Dialogue: 0,0:03:51.99,0:03:53.22,3,,0,0,0,,Ditto on other systems.
+Dialogue: 0,0:03:53.27,0:03:56.76,3,,0,0,0,,So you've spent a long time building up history with a tool.
+Dialogue: 0,0:03:56.95,0:04:06.50,3,,0,0,0,,And now if you want to try the latest other model, let's say you're on ChatGPT and you want to try Gemini or you want to try Claude or you want to try another model, you lose all of that context.
+Dialogue: 0,0:04:06.55,0:04:10.68,3,,0,0,0,,Not because the new model is worse, but because your context is trapped in the old one.
+Dialogue: 0,0:04:10.83,0:04:17.00,3,,0,0,0,,And oh, by the way, all of that memory in those individual tools, that is not agent-readable.
+Dialogue: 0,0:04:17.15,0:04:34.62,3,,0,0,0,,And so as we get to a world where autonomous agents are becoming more and more and more a thing, the big corporations are betting that if they can trap you with memory, you will only use their agents and they will get to keep you and your attention and your dollars forever.
+Dialogue: 0,0:00:02.47,0:00:16.28,1,,0,0,0,,Самая лучшая подсказка в мире не может компенсировать ИИ, который не знает, над чем вы работали, что вы уже пробовали, каковы ваши ограничения, кто ключевые люди в вашей жизни или что вы решили в прошлый вторник.
+Dialogue: 0,0:00:16.33,0:00:19.50,1,,0,0,0,,И, кстати, это тоже ограничение при работе с агентами.
+Dialogue: 0,0:00:19.72,0:00:20.94,1,,0,0,0,,Им тоже нужен этот контекст.
+Dialogue: 0,0:00:21.21,0:00:25.42,1,,0,0,0,,И прямо сейчас это именно то, с чем сталкивается большинство из нас, когда дело касается ИИ.
+Dialogue: 0,0:00:26.17,0:00:30.26,1,,0,0,0,,Каждый раз, когда мы открываем новый чат, мы часто начинаем с нуля.
+Dialogue: 0,0:00:30.57,0:00:38.76,1,,0,0,0,,Каждый раз, когда мы переключаемся с Clawed на ChatGPT и Cursor, мы склонны что-то терять, поэтому мы больше тяготеем к одной из этих систем, чем к другой.
+Dialogue: 0,0:00:39.19,0:00:44.70,1,,0,0,0,,Подумайте о том, какая часть ваших подсказок заключается в том, чтобы просить ИИ наверстать упущенное в том, что вы уже знаете.
+Dialogue: 0,0:00:44.75,0:00:50.82,1,,0,0,0,,Дело в том, что вы тратите все свои силы на передачу контекста вместо реальной работы.
+Dialogue: 0,0:00:50.97,0:00:56.90,1,,0,0,0,,Исследование Harvard Business Review показало, что цифровые работники переключаются между приложениями почти 1200 раз в день.
+Dialogue: 0,0:00:57.03,0:00:58.72,1,,0,0,0,,Я устаю произносить эту фразу.
+Dialogue: 0,0:00:59.47,0:01:03.70,1,,0,0,0,,Каждый переключатель кажется незначительным, но в совокупности это отвлекает наше внимание.
+Dialogue: 0,0:01:03.97,0:01:10.74,1,,0,0,0,,Я наблюдал, как проблема переключения контекста проявляется снова и снова в моей жизни и в жизни других.
+Dialogue: 0,0:01:10.79,0:01:25.44,1,,0,0,0,,И к чему я постоянно возвращаюсь, так это к пониманию того, что наше желание четко определиться с ИИ только усиливается и требует все больше от наших систем памяти, а наши системы памяти и структуры памяти не успевают за ними.
+Dialogue: 0,0:01:26.13,0:01:32.28,1,,0,0,0,,Архитектура памяти определяет возможности агента гораздо больше, чем выбор модели.
+Dialogue: 0,0:01:32.33,0:01:33.38,1,,0,0,0,,Это широко понимается неправильно.
+Dialogue: 0,0:01:34.09,0:01:44.44,1,,0,0,0,,А когда вы строите память неправильно, вы застреваете в своих объяснениях навсегда или застреваете в мире, где вы знаете, как получить доступ к памяти, а агент знает.
+Dialogue: 0,0:01:44.59,0:01:57.18,1,,0,0,0,,Я считаю, что мы можем создать стабильную систему памяти, достаточно перспективную и позволяющую нам очень эффективно подключать новые инструменты через сервер MCP, так что нам не придется постоянно обновлять нашу систему.
+Dialogue: 0,0:01:57.23,0:02:04.42,1,,0,0,0,,И да, я хочу кое-что признать: у Клода теперь есть память, у ChatGPT теперь есть память, у Грока теперь есть память, у Google теперь есть память.
+Dialogue: 0,0:02:04.59,0:02:09.90,1,,0,0,0,,Эти функции постоянно совершенствуются, но подумайте о том, что они вам дают, а что нет.
+Dialogue: 0,0:02:11.25,0:02:13.50,1,,0,0,0,,Память Клода не знает, что вы сказали ChatGPT.
+Dialogue: 0,0:02:13.88,0:02:15.86,1,,0,0,0,,Память ChatGPT не следует за вами за курсором.
+Dialogue: 0,0:02:16.09,0:02:18.48,1,,0,0,0,,Ваше телефонное приложение не использует общий контекст с вашим агентом кодирования.
+Dialogue: 0,0:02:18.75,0:02:24.78,1,,0,0,0,,Каждая платформа создала огороженный сад памяти, и ни одна из них не разговаривает друг с другом.
+Dialogue: 0,0:02:24.83,0:02:33.36,1,,0,0,0,,В начале 2026 года появится совершенно новая категория продуктов, особенно потому, что платформы отказываются решать эту проблему.
+Dialogue: 0,0:02:34.23,0:02:41.04,1,,0,0,0,,Такие продукты, как MemZero, MemSync, OneContext, — проблема достаточно реальна, чтобы породить целую индустрию, поддерживаемую венчурным капиталом.
+Dialogue: 0,0:02:41.27,0:02:54.22,1,,0,0,0,,Итак, что на самом деле у вас есть, так это постоянное обновление множества инструментов ИИ, постоянное добавление инструментов ИИ для экспериментов с ними, и у вас есть тонкий, разрозненный слой контекста, который работает только внутри каждого из этих отдельных инструментов.
+Dialogue: 0,0:02:54.27,0:02:55.06,1,,0,0,0,,Знаешь что?
+Dialogue: 0,0:02:55.16,0:02:57.06,1,,0,0,0,,Это не совсем память.
+Dialogue: 0,0:02:57.25,0:03:02.46,1,,0,0,0,,Это пять отдельных стопок стикеров на пяти отдельных столах.
+Dialogue: 0,0:03:02.63,0:03:05.06,1,,0,0,0,,А теперь давайте добавим в эту картину автономных агентов.
+Dialogue: 0,0:03:05.41,0:03:25.84,1,,0,0,0,,Категория агентов буквально взорвалась за последние несколько недель, но блестящие варианты использования, например, парень, который получил тысячи долларов от покупки автомобиля, блестят, потому что у агента есть возможность надежно и безопасно получить доступ к соответствующим воспоминаниям, соответствующему контексту пользователя.
+Dialogue: 0,0:03:26.11,0:03:36.00,1,,0,0,0,,В то время как агенты, которые просто угадывают контекст или должны заполнять точки, потому что вы не можете предоставить им безопасный доступ ко всем вашим системам, они не будут для вас такими же полезными.
+Dialogue: 0,0:03:36.05,0:03:47.60,1,,0,0,0,,И говорим ли мы об агентах или инструментах, вас должно беспокоить еще больше то, что все эти системы, которые разрабатывают корпорации, предназначены для создания блокировки.
+Dialogue: 0,0:03:48.15,0:03:51.62,1,,0,0,0,,Предполагается, что память является блокировкой ChatGPT.
+Dialogue: 0,0:03:51.99,0:03:53.22,1,,0,0,0,,То же самое и в других системах.
+Dialogue: 0,0:03:53.27,0:03:56.76,1,,0,0,0,,Итак, вы потратили много времени на создание истории с помощью инструмента.
+Dialogue: 0,0:03:56.95,0:04:06.50,1,,0,0,0,,И теперь, если вы хотите попробовать другую последнюю модель, скажем, вы используете ChatGPT и хотите попробовать Gemini, или вы хотите попробовать Claude, или вы хотите попробовать другую модель, вы теряете весь этот контекст.
+Dialogue: 0,0:04:06.55,0:04:10.68,1,,0,0,0,,Не потому, что новая модель хуже, а потому, что ваш контекст застрял в старой.
+Dialogue: 0,0:04:10.83,0:04:17.00,1,,0,0,0,,И, кстати, вся эта память в этих отдельных инструментах не читается агентом.
+Dialogue: 0,0:04:17.15,0:04:34.62,1,,0,0,0,,И поэтому, когда мы приближаемся к миру, где автономные агенты становятся все более и более актуальными, крупные корпорации делают ставку на то, что, если они смогут поймать вас в ловушку памяти, вы будете использовать только их агентов, а они смогут навсегда удержать вас, ваше внимание и ваши деньги.
