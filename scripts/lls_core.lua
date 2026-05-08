@@ -7807,6 +7807,7 @@ function LlsProbe._snapshot()
         native_sub_vis     = FSM.native_sub_vis,
         native_sec_sub_vis = FSM.native_sec_sub_vis,
         native_sec_sub_pos = FSM.native_sec_sub_pos,
+        replay_remaining   = FSM.REPLAY_REMAINING or 0,
     }
 end
 
@@ -7881,6 +7882,10 @@ end)
 mp.register_script_message("lls-test-dw-scroll", function(dir_str)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_scroll(dir) end
+end)
+
+mp.register_script_message("lls-test-replay", function()
+    cmd_replay_sub()
 end)
 
 mp.register_script_message("lls-test-set-cursor", function(line_str, word_str)

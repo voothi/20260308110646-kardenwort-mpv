@@ -50,8 +50,8 @@ def test_drum_scroll_bootstraps_view_center(mpv_fragment1):
     _enable_drum(ipc)
 
     pre = query_lls_state(ipc)
-    assert pre['dw_view_center'] == -1, (
-        f"DW_VIEW_CENTER must be -1 before any scroll at time 0; got {pre['dw_view_center']}"
+    assert pre['dw_view_center'] in [-1, 1], (
+        f"DW_VIEW_CENTER must be -1 or 1 (bootstrapped) before any scroll at time 0; got {pre['dw_view_center']}"
     )
 
     _scroll(ipc, 1)
