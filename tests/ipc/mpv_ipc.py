@@ -212,6 +212,8 @@ def query_lls_state(ipc, timeout=2.0):
     ipc.command(['script-message-to', 'lls_core', 'lls-state-query'])
     ipc.wait_property_change('user-data/lls/state', timeout)
     raw = ipc.get_property('user-data/lls/state')
+    if raw and '|' in raw:
+        raw = raw.split('|', 1)[1]
     return json.loads(raw) if raw else {}
 
 
@@ -219,4 +221,7 @@ def query_lls_render(ipc, overlay_name, timeout=2.0):
     ipc.observe_property(98, 'user-data/lls/render')
     ipc.command(['script-message-to', 'lls_core', 'lls-render-query', overlay_name])
     ipc.wait_property_change('user-data/lls/render', timeout)
-    return ipc.get_property('user-data/lls/render') or ''
+    raw = ipc.get_property('user-data/lls/render') or ''
+    if '|' in raw:
+        return raw.split('|', 1)[1]
+    return raw

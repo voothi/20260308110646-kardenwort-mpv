@@ -77,8 +77,13 @@ Diagnostic.info  = function(text, key) Diagnostic.log(Diagnostic.INFO, text, key
 Diagnostic.debug = function(text, key) Diagnostic.log(Diagnostic.DEBUG, text, key) end
 Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, key) end
 
-local script_dir = mp.get_script_directory and mp.get_script_directory()
 Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "lls_core"))
+
+-- Initialize user-data properties for IPC querying
+mp.set_property("user-data/lls/last_clipboard", "")
+mp.set_property("user-data/lls/last_export", "")
+mp.set_property("user-data/lls/state", "{}")
+mp.set_property("user-data/lls/render", "")
 
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
@@ -4772,9 +4777,11 @@ local function ctrl_toggle_word(line_idx, word_idx, no_sync)
 end
 
 local function ctrl_commit_set(line_idx, word_idx)
+    Diagnostic.info(string.format("ctrl_commit_set(line=%s, word=%s)", tostring(line_idx), tostring(word_idx)))
     -- Check if cursor word is in set
     local line_set = FSM.DW_CTRL_PENDING_SET[line_idx]
     if not line_set or not line_set[word_idx] then
+        Diagnostic.info("ctrl_commit_set: word NOT in set, falling back")
         -- Fallback to plain MMB single-click export
         dw_anki_export_selection()
         return
@@ -5911,6 +5918,7 @@ local function cmd_dw_line_move(dir, shift)
 end
 
 local function cmd_dw_word_move(dir, shift)
+    Diagnostic.info(string.format("cmd_dw_word_move(dir=%s, shift=%s) current_line=%s current_word=%s active_line=%s", tostring(dir), tostring(shift), tostring(FSM.DW_CURSOR_LINE), tostring(FSM.DW_CURSOR_WORD), tostring(FSM.DW_ACTIVE_LINE)))
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -6444,6 +6452,9 @@ local function get_clipboard()
 end
 
 local function set_clipboard(text, mode)
+    if text and text ~= "" then
+        mp.set_property("user-data/lls/last_clipboard", text)
+    end
     -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
     local platform = package.config:sub(1,1)
@@ -7796,6 +7807,8 @@ function LlsProbe._snapshot()
         active_sub_index     = FSM.ACTIVE_IDX,
         sec_active_sub_index = FSM.SEC_ACTIVE_IDX,
         playback_state     = FSM.MEDIA_STATE,
+        pri_sub_count      = #(Tracks.pri.subs or {}),
+        sec_sub_count      = #(Tracks.sec.subs or {}),
         dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
         dw_active_line     = FSM.DW_ACTIVE_LINE,
         dw_anchor          = { line = FSM.DW_ANCHOR_LINE, word = FSM.DW_ANCHOR_WORD },
@@ -7814,6 +7827,7 @@ function LlsProbe._snapshot()
 end
 
 local _probe_seq = 0
+
 mp.register_script_message("lls-state-query", function()
     _probe_seq = _probe_seq + 1
     local snap = LlsProbe._snapshot()
@@ -7830,7 +7844,9 @@ mp.register_script_message("lls-render-query", function(overlay_name)
         seek    = seek_osd,
     }
     local osd = map[overlay_name]
-    mp.set_property("user-data/lls/render", (osd and osd.data) or "")
+    local data = (osd and osd.data) or ""
+    _probe_seq = _probe_seq + 1
+    mp.set_property("user-data/lls/render", _probe_seq .. "|" .. data)
 end)
 
 -- Test Instrumentation
@@ -7870,6 +7886,11 @@ end)
 mp.register_script_message("lls-test-bind-seek", function()
     mp.add_forced_key_binding("KP0", "lls-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
     mp.add_forced_key_binding("KP1", "lls-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
+end)
+
+mp.register_script_message("lls-test-dw-word-move", function(dir, shift)
+    Diagnostic.info("RECEIVED lls-test-dw-word-move: " .. tostring(dir) .. " " .. tostring(shift))
+    cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true")
 end)
 
 mp.register_script_message("lls-test-ctrl-toggle-word", function(line_str, word_str)
@@ -7926,6 +7947,28 @@ mp.register_script_message("lls-drum-mode-set", function(state)
     end
 end)
 
-mp.register_script_message("lls-test-dw-word-move", function(dir, shift)
-    cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true")
+mp.register_script_message("lls-test-dw-export-pink", function()
+    Diagnostic.info("RECEIVED lls-test-dw-export-pink")
+    ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
+end)
+
+mp.register_script_message("lls-test-dw-export-yellow", function()
+    cmd_dw_anki_export_selection()
+end)
+
+mp.register_script_message("lls-test-prepare-export", function(type, p1_l, p1_w, p2_l, p2_w)
+    local params
+    if type == "RANGE" then
+        params = { type = "RANGE", p1_l = tonumber(p1_l), p1_w = tonumber(p1_w), p2_l = tonumber(p2_l), p2_w = tonumber(p2_w) }
+    elseif type == "SET" then
+        params = { type = "SET", members = FSM.DW_CTRL_PENDING_LIST }
+    else
+        params = { type = "POINT", line = tonumber(p1_l), word = tonumber(p1_w) }
+    end
+    local term = prepare_export_text(params, { clean = true, restore_sentence = true })
+    mp.set_property("user-data/lls/last_export", term)
+end)
+
+mp.register_script_message("lls-test-dw-copy", function()
+    cmd_dw_copy()
 end)

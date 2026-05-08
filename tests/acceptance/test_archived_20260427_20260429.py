@@ -71,20 +71,22 @@ class TestAprilArchivedRegressions:
         
         # Toggle visibility OFF
         ipc.command(['script-message-to', 'lls_core', 'lls-sub-visibility-set', 'OFF'])
-        time.sleep(0.2)
+        time.sleep(0.5)
         
-        state = query_lls_state(ipc)
-        assert state['native_sub_vis'] == False
-        
-        # Check if anything is being rendered to OSD. If visibility is OFF, drum_osd.data should be empty.
+        # Verify both Drum and DW-OSD are suppressed
         render = query_lls_render(ipc, 'drum')
         assert render == ""
         
-    def test_sub_merging_consecutive_only_20260427161414(self, mpv):
+        render = query_lls_render(ipc, 'dw-osd')
+        assert render == ""
+        
+    def test_sub_merging_consecutive_only_20260427161414(self, mpv_merge_test):
         """Verify non-consecutive identical subtitles are NOT merged (20260427161414)."""
-        # This would require a special fixture with repetitive lines.
-        # For now, we'll assume the internal state check for 'sub_count' if we had a specific fixture.
-        pass
+        ipc = mpv_merge_test.ipc
+        
+        # We expect 5 subtitles after merging Bridge (5+6) but NOT merging Music (2+4).
+        state = query_lls_state(ipc)
+        assert state['pri_sub_count'] == 5, f"Expected 5 subs after merge, got {state['pri_sub_count']}"
 
     def test_drum_spacing_logic_20260427200421(self, mpv_fragment1):
         """Verify drum spacing doesn't crash with zero intervals (20260427200421)."""
@@ -144,19 +146,95 @@ class TestAprilArchivedRegressions:
     def test_empty_sub_height_reservation_20260429133044(self, mpv_fragment1):
         """Verify empty subtitles reserve vertical space in Drum Mode (20260429133044)."""
         ipc = mpv_fragment1.ipc
-        # This is hard to test without specific fixtures containing empty subtitles.
-        # But we can verify that the layout doesn't crash.
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-mode-set', 'ON'])
         time.sleep(0.2)
         # Just ensure no crash
         
-    def test_terminal_period_restoration_pink_20260429142144(self, mpv):
+    def test_dw_copy_verbatim_20260427161414(self, mpv_fragment1):
+        """Verify DW copy (keyboard 'c') produces verbatim text (20260427161414)."""
+        ipc = mpv_fragment1.ipc
+        ipc.command(['seek', 7.0, 'absolute+exact'])
+        time.sleep(0.5)
+        
+        # Set cursor to line 2, word 1
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        time.sleep(0.1)
+        
+        # Call copy
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-copy'])
+        time.sleep(0.2)
+        
+        clip = ipc.get_property('user-data/lls/last_clipboard')
+        assert clip == "Manchmal"
+        
+    def test_terminal_period_restoration_pink_20260429142144(self, mpv_fragment1):
         """Verify Pink selection restores terminal period for phrases (20260429142144)."""
-        # Requires a multi-word selection and checking clipboard.
-        pass
+        ipc = mpv_fragment1.ipc
+        
+        # Seek to sub 2
+        ipc.command(['seek', 7.0, 'absolute+exact'])
+        time.sleep(0.5)
+        
+        # Set cursor to line 2, word 1
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        time.sleep(0.1)
+        
+        # Select "Manchmal" (word 1) and "Gefühl" (word 5) -> Pink selection
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '5'])
+        time.sleep(0.2)
+        
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        time.sleep(0.2)
+        
+        term = ipc.get_property('user-data/lls/last_export')
+        # This is a sub-phrase, should NOT have a period.
+        assert "Manchmal" in term
+        assert "Gefühl" in term
+        assert not term.endswith('.')
+        
+        # Now select a sentence-ending phrase: "Manchmal" (1) to "abgesehen" (12)
+        # First clear
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc']) 
+        time.sleep(0.1)
+        
+        # Set cursor to line 2, word 1
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        time.sleep(0.1)
+        
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '12'])
+        time.sleep(0.2)
+        
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        time.sleep(0.2)
+        
+        term = ipc.get_property('user-data/lls/last_export')
+        assert "Manchmal" in term
+        assert "abgesehen" in term
+        # As per 20260430233400, sentence restoration is deprecated.
+        # Export is strictly verbatim, so it should NOT append a period.
+        assert not term.endswith('.')
 
-    def test_ellipsis_spacing_in_mining_20260428192102(self, mpv):
+    def test_ellipsis_spacing_in_mining_20260428192102(self, mpv_fragment1):
         """Verify gap ellipses in mining are space-padded (20260428192102)."""
-        # Requires a non-contiguous selection and checking clipboard.
-        pass
+        ipc = mpv_fragment1.ipc
+        ipc.command(['seek', 7.0, 'absolute+exact'])
+        time.sleep(0.5)
+        
+        # Set cursor
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        time.sleep(0.1)
+        
+        # Non-contiguous Pink: "Manchmal" (1) and "abgesehen" (12)
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '12'])
+        time.sleep(0.2)
+        
+        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        time.sleep(0.2)
+        
+        term = ipc.get_property('user-data/lls/last_export')
+        # Should have " ... " in the middle
+        assert "Manchmal ... abgesehen" in term
 

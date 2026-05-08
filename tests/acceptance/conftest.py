@@ -113,3 +113,24 @@ def mpv_fragment2():
     session.start()
     yield session
     session.stop()
+@pytest.fixture
+def mpv_merge_test():
+    """Fixture to verify subtitle merging logic (200ms guard).
+    
+    Sub timeline:
+      1: Hello (0-1s)
+      2: Music (1.1-2s)
+      3: World (2.1-3s)
+      4: Music (3.1-4s) -> Should NOT merge with 2
+      5: Bridge (4.1-5s)
+      6: Bridge (5.05-6s) -> SHOULD merge with 5
+    Expected count: 5 subs.
+    """
+    session = MpvSession(
+        video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
+        subtitle='tests/fixtures/20260508192831-merge-test/20260508192831-merge-test.en.srt',
+        extra_args=['--pause'],
+    )
+    session.start()
+    yield session
+    session.stop()
