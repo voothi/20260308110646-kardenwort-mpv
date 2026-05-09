@@ -5204,12 +5204,9 @@ local function tick_autopause(time_pos)
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
 
     -- [v1.58.54] Skip autopause while transiting through the rewind zone after Shift+A/D.
-    -- TIMESEEK_INHIBIT_UNTIL holds the pre-seek time position; autopause is suppressed
-    -- until playback naturally returns past that point, then the inhibit self-clears.
-    if FSM.TIMESEEK_INHIBIT_UNTIL then
-        if time_pos < FSM.TIMESEEK_INHIBIT_UNTIL then return end
-        FSM.TIMESEEK_INHIBIT_UNTIL = nil
-    end
+    -- Uses <= so the exact boundary tick is still suppressed; the inhibit is cleared
+    -- only after jerk-back has also been evaluated (see end of main tick function).
+    if FSM.TIMESEEK_INHIBIT_UNTIL and time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL then return end
     
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
@@ -5392,6 +5389,12 @@ local function master_tick()
                         FSM.JUST_JERKED_TO = active_idx
                     end
                 end
+            end
+
+            -- [v1.58.54] Clear rewind-transit inhibit AFTER jerk-back has been evaluated,
+            -- using strict > so both autopause and jerk-back are suppressed on the boundary tick.
+            if FSM.TIMESEEK_INHIBIT_UNTIL and time_pos > FSM.TIMESEEK_INHIBIT_UNTIL then
+                FSM.TIMESEEK_INHIBIT_UNTIL = nil
             end
 
             -- Clear jerk flag once we've moved past the previous sub's technical end
