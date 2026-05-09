@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509081224
+Test Creation ZID: 20260509082137
+Feature: Lua Options Fallback Defaults
 Acceptance tests for OpenSpec compliance batch (2026-05-09).
 
 Validated Specs:

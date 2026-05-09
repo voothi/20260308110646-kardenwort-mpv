@@ -1,3 +1,9 @@
+"""
+Feature ZID: 20260509085205
+Test Creation ZID: 20260509085637
+Feature: Default State
+"""
+
 # Spec: openspec/changes/20260502165659-implement-spec-driven-testing/specs/automated-acceptance-testing/spec.md
 # Scenario: Querying playback state
 import json

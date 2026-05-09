@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509083559
+Test Creation ZID: 20260509083915
+Feature: Smart Joiner Service Spacing
 Acceptance tests for OpenSpec compliance batch (2026-05-09).
 ZID: 20260509083559
 

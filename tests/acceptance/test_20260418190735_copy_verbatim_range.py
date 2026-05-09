@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260418190735
+Test Creation ZID: 20260508215910
+Feature: Copy Verbatim Range
 Acceptance tests for archived changes from April 18 to April 20, 2026.
 
 These tests retroactively validate logic that was stabilized or fixed during

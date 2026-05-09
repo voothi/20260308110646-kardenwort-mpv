@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085438
+Test Creation ZID: 20260508231416
+Feature: Atomic Punctuation Tokens
 Acceptance tests for Core Engine and OSD regressions (2026-05-08 batch).
 Spec: openspec\\specs\\architectural-remediation
 Spec: openspec\\specs\\archived-features-verification

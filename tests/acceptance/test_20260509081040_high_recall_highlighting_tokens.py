@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509081040
+Test Creation ZID: 20260509081154
+Feature: High Recall Highlighting Tokens
 Acceptance tests for OpenSpec compliance batch (2026-05-09).
 
 Validated Specs:

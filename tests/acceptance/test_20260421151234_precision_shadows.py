@@ -1,3 +1,9 @@
+"""
+Feature ZID: 20260421151234
+Test Creation ZID: 20260508214606
+Feature: Precision Shadows
+"""
+
 import time
 import pytest
 from tests.ipc.mpv_ipc import query_lls_state, query_lls_render

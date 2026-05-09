@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509080221
+Test Creation ZID: 20260509080420
+Feature: Drum Window Indexing Simple
 Acceptance tests for historical OpenSpec changes (retroactive batch 2026-05-09 v2).
 
 Validated Specs:

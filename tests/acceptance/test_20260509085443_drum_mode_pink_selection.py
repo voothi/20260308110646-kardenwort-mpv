@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085443
+Test Creation ZID: 20260509003208
+Feature: Drum Mode Pink Selection
 Acceptance test for Drum Mode paired selection visual feedback.
 """
 

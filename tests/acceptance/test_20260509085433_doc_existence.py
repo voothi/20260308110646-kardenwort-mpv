@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085433
+Test Creation ZID: 20260508231416
+Feature: Doc Existence
 Acceptance tests for Config and Documentation regressions (2026-05-08 batch).
 Spec: openspec\\specs\\agent-capabilities-documentation
 Spec: openspec\\specs\\config-documentation

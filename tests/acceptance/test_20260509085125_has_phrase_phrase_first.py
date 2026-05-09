@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085125
+Test Creation ZID: 20260509085637
+Feature: Has Phrase Phrase First
 Regression tests for the has_phrase order-dependency bug (ZID 20260507230551).
 
 Bug: `has_phrase` in `calculate_highlight_stack` was unconditionally overwritten per

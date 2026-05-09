@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260501160807
+Test Creation ZID: 20260508200327
+Feature: Dw Esc Staged Reset
 Acceptance tests for archived changes from 2026-04-30 and 2026-05-01.
 
 Covers archives:

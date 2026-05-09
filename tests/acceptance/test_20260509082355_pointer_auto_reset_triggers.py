@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509082355
+Test Creation ZID: 20260509083509
+Feature: Pointer Auto Reset Triggers
 Acceptance tests for OpenSpec compliance batch (2026-05-09).
 ZID: 20260509082355
 

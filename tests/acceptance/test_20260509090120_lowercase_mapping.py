@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509090120
+Test Creation ZID: 20260509091431
+Feature: Lowercase Mapping
 Acceptance tests for Russian Keyboard Layout Expansion (20260509090120).
 Requirement: expand_ru_keys mapping logic.
 """

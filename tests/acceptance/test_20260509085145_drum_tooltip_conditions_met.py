@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085145
+Test Creation ZID: 20260509085637
+Feature: Drum Tooltip Conditions Met
 Tests for Drum Mode tooltip key parity with Drum Window.
 
 Covers:

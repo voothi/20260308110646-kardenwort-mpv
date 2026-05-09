@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260504174809
+Test Creation ZID: 20260508200327
+Feature: Adaptive Replay
 Regression tests for 18 archived changes.
 
 Covers archives:

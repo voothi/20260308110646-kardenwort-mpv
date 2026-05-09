@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260413133147
+Test Creation ZID: 20260508221338
+Feature: Book Mode Activation
 Acceptance tests for archived changes from April 12 to April 17, 2026.
 
 These tests retroactively validate logic that was stabilized or fixed during

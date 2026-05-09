@@ -1,3 +1,9 @@
+"""
+Feature ZID: 20260509085210
+Test Creation ZID: 20260509085637
+Feature: Dual Tracks Stay In
+"""
+
 # Scenario: Primary and secondary subtitle tracks stay in sync across two failure modes:
 #
 # 1. PLAYBACK DESYNC (padded overlap zone)

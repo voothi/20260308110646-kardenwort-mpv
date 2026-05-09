@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085428
+Test Creation ZID: 20260508231416
+Feature: Adaptive Context Truncation
 Acceptance tests for Anki-related archived changes (2026-05-08 batch).
 Spec: openspec\\specs\\adaptive-context-truncation
 Spec: openspec\\specs\\anki-export-mapping

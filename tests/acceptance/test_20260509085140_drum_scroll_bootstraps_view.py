@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085140
+Test Creation ZID: 20260509085637
+Feature: Drum Scroll Bootstraps View
 Tests for drum mode wheel scroll and dual-track scroll synchronization.
 
 Covers:

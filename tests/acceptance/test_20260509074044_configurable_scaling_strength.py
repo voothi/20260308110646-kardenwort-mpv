@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509074044
+Test Creation ZID: 20260509074351
+Feature: Configurable Scaling Strength
 Acceptance tests for historical OpenSpec changes (retroactive batch 2026-05-09).
 
 Validated Specs:

@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085200
+Test Creation ZID: 20260509085637
+Feature: Ctrl Toggle Word Increments
 Tests for selection priority hierarchy and DW_CTRL_PENDING_LIST consistency.
 
 Covers:

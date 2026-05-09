@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260509085130
+Test Creation ZID: 20260509085637
+Feature: Ass Media State Is
 Tests for ASS gatekeeping and FSM architecture hardening.
 
 Covers:

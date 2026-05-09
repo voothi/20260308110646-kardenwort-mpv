@@ -1,4 +1,7 @@
 """
+Feature ZID: 20260427003254
+Test Creation ZID: 20260508200327
+Feature: Copy Sub Fallback
 Regression tests for archived changes from April 2026 (20260427 - 20260429).
 """
 
