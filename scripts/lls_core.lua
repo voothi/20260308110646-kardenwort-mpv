@@ -3123,6 +3123,24 @@ local function update_media_state()
         end
     end
 
+    -- Tooltip cache is empty and secondary track is disabled: pre-load the first eligible external
+    -- subtitle as tooltip source so Drum Mode tooltip works without enabling secondary subs first.
+    if Tracks.sec.id == 0 and #FSM.DW_TOOLTIP_SEC_SUBS == 0 then
+        for _, t in ipairs(track_list) do
+            if t.type == "sub" and t.external and t["external-filename"] and t.id ~= Tracks.pri.id then
+                local cpath = t["external-filename"]
+                local cis_ass = cpath:lower():match("%.ass$") or cpath:lower():match("%.ssa$") or
+                                (t.codec == "ass" or t.codec == "ssa")
+                local loaded = load_sub(cpath, cis_ass)
+                if loaded and #loaded > 0 then
+                    FSM.DW_TOOLTIP_SEC_SUBS = loaded
+                    FSM.DW_TOOLTIP_SEC_PATH = cpath
+                end
+                break
+            end
+        end
+    end
+
     flush_rendering_caches()
 
     -- Determine State

@@ -1762,12 +1762,7 @@
 20260509164844 37/37. Both overlap zones in fragment2 are verified across all 4 padding combinations. The key position calculations: Sub 3/4: start=13.5 → after 3×(−2s) = 7.5s. Falls below sub 4's minimum eff_start (7.911 with 1000ms) so binary search resolves to sub 3 for every padding combo. inhibit_until=13.5 covers max(sub3_eff_end)=9.871. Sub 5/6: start=18.4 → after 3×(−2s) = 12.4s. Falls below sub 6's minimum eff_start (13.421 with 1000ms) while landing within sub 5's range. inhibit_until=18.4 covers max(sub5_eff_end)=15.381.
 20260509165255 Update openspec\changes\20260509152445-fix-autopause-phrase-movie-rewind f558db1c4f0a64bccc7507b5670ef95848aef714..e34ce894d9708cc558e6aa9329fd052c874589bc
 20260509165622 opsx-archive --sync 20260509152445-fix-autopause-phrase-movie-rewind
-
-
-
-
-
-
+20260509165936 # When I restart the program in mode with only the main subtitles before closing, after the start, after switching to Drum Mode ON, I cannot use the tooltip until I turn on the second subtitles. ## Description After their subsequent disabling, the e hint continues to work until the next restart. [[20260509004002-при-перезапуске-программы-в|При перезапуске программы в режиме с одними основными субтитрами до закрытия, после старта я после перехода в режим Drum Mode ON не могу воспользоваться подсказкой tooltip, пока не включу вторые субтитры.]]
 
 
 
