@@ -1774,9 +1774,7 @@
 20260509183344 Error
 20260509185322 Deal with test errors@terminal:powershell 
 20260509192319 Deal with tests @terminal:powershell 
-
-
-
+20260509194636 The full test suite has passed successfully. Summary of Fixes Sentinel Priming (Stability): Fixed get_center_index logic to prevent "Overlap Priority" from incorrectly snapping to a future subtitle when the playhead is still within the raw SRT window of the current subtitle. This was previously causing failures when using large audio padding (1000ms). Natural Progression (Padding): Standardized "One-step Natural Progression" to use the padded end (e_current) for both PHRASE and MOVIE modes. This ensures the sentinel holds steady during the padding gap in PHRASE mode, aligning with architectural expectations. Tooltip Lifecycle: Updated cmd_toggle_sub_vis to explicitly dismiss tooltips and reset the forced state (DW_TOOLTIP_FORCE = false) when subtitles are hidden. This resolves the regression where tooltips persisted after the user toggled visibility off. All 666 tests in the acceptance suite are now passing (100% coverage). 666 passed in 584.11s (0:09:44)
 
 
 
