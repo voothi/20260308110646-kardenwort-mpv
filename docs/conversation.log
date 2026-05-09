@@ -1721,10 +1721,10 @@
 20260509084131 Check that all tests are created and that they are created correctly openspec\changes\archive openspec\specs tests\acceptance tests\fixtures
 20260509085125 You don’t want to rename the files of these tests with a ZID or a timestamp, so that the files in the directory are historical, so that the changes that we are testing are associated with the ZID (by date) tests\acceptance tests\acceptance\test_anki_highlight_has_phrase.py tests\acceptance\test_ass_gatekeeper.py tests\acceptance\test_drum_mode.py tests\acceptance\test_drum_scroll.py tests\acceptance\test_drum_tooltip_parity.py tests\acceptance\test_immersion_pipeline.py tests\acceptance\test_render.py tests\acceptance\test_selection_priority.py tests\acceptance\test_state_probe.py tests\acceptance\test_subtitle_sync.py tests\acceptance\conftest.py
 20260509085428 Look also at these files tests\acceptance\test_reg_20260508_anki.py tests\acceptance\test_reg_20260508_config.py tests\acceptance\test_reg_20260508_core.py tests\acceptance\test_reg_20260509_drum_pink.py
-
-
-
-
+20260509085724 Do you want to create any additional tests that do not yet cover the functionality of the utility?
+20260509090111 I'll wait for your confirmation to begin. - Accept
+20260509091222 You need to rename these files with ZID, you need to remember this for similar files for the future. tests\fixtures\20260508173706-test-ass\test.ass tests\fixtures\search_ranking.srt
+20260509091342 It must be through kebab. tests\fixtures\20260509090120-search_ranking.srt
 
 
 

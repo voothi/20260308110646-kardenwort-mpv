@@ -1826,13 +1826,19 @@ local function calculate_match_score(str, query)
         score = score + 400
     end
 
-    -- Aggregate all indices for highlighting
-    local all_indices = {}
+    -- Aggregate all indices for highlighting as a sorted array
+    local indices_map = {}
     for _, m in ipairs(matches) do
         for _, idx in ipairs(m.indices) do
-            all_indices[idx] = true
+            indices_map[idx] = true
         end
     end
+    
+    local all_indices = {}
+    for idx, _ in pairs(indices_map) do
+        table.insert(all_indices, idx)
+    end
+    table.sort(all_indices)
 
     return score, all_indices
 end
@@ -8121,19 +8127,7 @@ mp.register_script_message("lls-test-fuzzy-match", function(query, target)
     FSM.TEST_DATA.test_fuzzy_match_result = (q_idx > #q)
 end)
 
-mp.register_script_message("lls-test-fuzzy-span", function(query, target)
-    local q = query:lower():gsub("%s+", "")
-    local t = target:lower()
-    local s_idx, e_idx = nil, nil
-    local q_idx = 1
-    for i = 1, #t do
-        if t:sub(i, i) == q:sub(q_idx, q_idx) then
-            if not s_idx then s_idx = i end
-            e_idx = i
-            q_idx = q_idx + 1
-            if q_idx > #q then break end
-        end
-    end
-    FSM.TEST_DATA = FSM.TEST_DATA or {}
-    FSM.TEST_DATA.test_fuzzy_span = { s_idx, e_idx }
+mp.register_script_message("lls-test-expand-ru-keys", function(key_str)
+    local results = expand_ru_keys(key_str, "test-expand")
+    mp.set_property("user-data/lls/last_export", utils.format_json(results))
 end)

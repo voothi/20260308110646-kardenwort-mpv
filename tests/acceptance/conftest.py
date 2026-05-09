@@ -82,7 +82,7 @@ def mpv_ass():
     """
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
-        subtitle='tests/fixtures/20260508173706-test-ass/test.ass',
+        subtitle='tests/fixtures/20260508173706-test-ass/20260508173706-test.ass',
         extra_args=['--pause'],
     )
     session.start()
