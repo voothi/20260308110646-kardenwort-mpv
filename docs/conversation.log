@@ -1763,10 +1763,7 @@
 20260509165255 Update openspec\changes\20260509152445-fix-autopause-phrase-movie-rewind f558db1c4f0a64bccc7507b5670ef95848aef714..e34ce894d9708cc558e6aa9329fd052c874589bc
 20260509165622 opsx-archive --sync 20260509152445-fix-autopause-phrase-movie-rewind
 20260509165936 # When I restart the program in mode with only the main subtitles before closing, after the start, after switching to Drum Mode ON, I cannot use the tooltip until I turn on the second subtitles. ## Description After their subsequent disabling, the e hint continues to work until the next restart. [[20260509004002-при-перезапуске-программы-в|При перезапуске программы в режиме с одними основными субтитрами до закрытия, после старта я после перехода в режим Drum Mode ON не могу воспользоваться подсказкой tooltip, пока не включу вторые субтитры.]]
-
-
-
-
+20260509171121 The fix is in place. Here's a summary of what was happening and what changed: Root cause: FSM.DW_TOOLTIP_SEC_SUBS (the tooltip fallback cache) is only populated when a secondary subtitle track is actively selected (Tracks.sec.id ≠ 0). On restart with secondary subs disabled, neither the path-change block (line 3106–3110) nor the load block (3118–3123) runs, so the cache stays empty and the tooltip silently returns "". Fix (lls_core.lua:3118): After the existing load block, added a probe that runs when Tracks.sec.id == 0 and the tooltip cache is still empty. It scans the track list for the first external subtitle that isn't the primary track and loads it into FSM.DW_TOOLTIP_SEC_SUBS — exactly what happens when the user manually toggles secondary subs on and off during a session. This mirrors the post-toggle behavior that already works correctly, so the tooltip is available in Drum Mode from the moment the app starts, regardless of whether secondary subs are enabled.
 
 
 
