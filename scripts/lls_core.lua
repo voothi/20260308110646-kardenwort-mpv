@@ -4249,7 +4249,7 @@ end
 local function dw_tooltip_hit_test(osd_x, osd_y)
     local tooltip_active = (FSM.DW_TOOLTIP_LINE ~= -1)
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
-    local drum_mode = is_drum_tooltip_mode_eligible()
+    local drum_mode = is_osd_tooltip_mode_eligible()
     if not tooltip_active or not FSM.DW_TOOLTIP_HIT_ZONES then return nil, nil end
     if not dw_mode and not drum_mode then return nil, nil end
     if dw_mode and not Options.dw_sec_interactivity then return nil, nil end
