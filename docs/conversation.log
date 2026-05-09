@@ -1770,6 +1770,7 @@
 20260509180017 opsx-apply 20260509175704-fix-secondary-sub-flash
 20260509180927 # Make it so that in srt mode the tooltip also works as in Drum Mode ON. ## Description [[20260509004244-сделать-так-чтобы-в|Сделать так, чтобы в режиме srt tooltip тоже работал как и в Drum Mode ON.]]
 20260509182259 Create a test_20260509184027
+20260509183117 Check with this test we really check the problem by anchor 20260509171136 There is some...?
 
 
 
