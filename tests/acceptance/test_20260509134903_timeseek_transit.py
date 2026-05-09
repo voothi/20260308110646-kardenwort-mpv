@@ -580,3 +580,144 @@ class TestTimseekTransitLive:
             f"Autopause did not fire at MOVIE sub 4 eff_end ({movie_eff_end:.3f}s) — "
             f"last_paused_sub_end={lpe}"
         )
+
+
+# ---------------------------------------------------------------------------
+# 5. Live-playback tests — fragment2 (two independent tight overlap zones)
+# ---------------------------------------------------------------------------
+
+class TestTimseekTransitLiveFragment2:
+    """Rewind-transit live tests on fragment2, which has two separate 40ms gaps:
+
+    Sub 3/4 overlap zone (selected: subs 3-4, DE SRT lines 10-15):
+      sub 3: 6.120 – 8.871   sub 4: 8.911 – 11.236   gap = 0.040s
+      Overlap by padding:
+        1000ms/1000ms → 7.911 –  9.871  (1.96 s)
+        200ms / 200ms → 8.711 –  9.071  (0.36 s)
+
+    Sub 5/6 overlap zone:
+      sub 5: 12.401 – 14.381   sub 6: 14.421 – 18.620   gap = 0.040s
+      Overlap by padding:
+        1000ms/1000ms → 13.421 – 15.381  (1.96 s)
+        200ms / 200ms → 14.221 – 14.581  (0.36 s)
+
+    seek_time_delta=2s per press.
+
+    Sub 3/4 strategy: start=13.5, 3×(−2s) → 7.5  (sub 3 for all pad combos;
+      sub 4 eff_start min=7.911 > 7.5; inhibit_until=13.5 > max(sub3_eff_end)=9.871).
+
+    Sub 5/6 strategy: start=18.4, 3×(−2s) → 12.4  (sub 5 for all pad combos;
+      sub 6 eff_start min=13.421 > 12.4; inhibit_until=18.4 > max(sub5_eff_end)=15.381).
+    """
+
+    @pytest.mark.parametrize("pad_start,pad_end", [
+        (1000, 1000),
+        (200,  200),
+        (1000, 200),
+        (200,  1000),
+    ], ids=["1000s1000e", "200s200e", "1000s200e", "200s1000e"])
+    def test_sub3_4_no_stop_and_no_jerkback_during_transit(self, mpv_fragment2, pad_start, pad_end):
+        """Sub 3/4 tight-gap: forward playback after rewind must cross sub 3 eff_end
+        without autopause or jerk-back firing, for all padding combinations."""
+        ipc = mpv_fragment2.ipc
+        _set_padding(ipc, pad_start, pad_end)
+        _setup_phrase_autopause(ipc)
+
+        sub3_eff_end = 8.871 + pad_end / 1000.0
+
+        _seek(ipc, 13.5)
+        for _ in range(3):
+            _seek_time(ipc, -1)  # 13.5 → 7.5 (3×−2s); inhibit_until=13.5
+
+        state = _state(ipc)
+        assert state.get('rewind_transit_active') is True, (
+            "Precondition: inhibit must be active after 3 backward seeks"
+        )
+        assert state.get('active_sub_index') == 3, (
+            f"Precondition: ACTIVE_IDX must be 3 at pos≈7.5 "
+            f"(sub3 eff=[{6.120 - pad_start/1000:.3f}, {8.871 + pad_end/1000:.3f}], "
+            f"pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"Got: {state.get('active_sub_index')}"
+        )
+
+        time.sleep(0.6)
+
+        ipc.command(['set_property', 'pause', False])
+        paused_early = False
+        start = time.time()
+        while time.time() - start < 5.0:
+            if ipc.get_property('pause'):
+                paused_early = True
+                break
+            pos = ipc.get_property('time-pos')
+            if pos is not None and pos > sub3_eff_end + 0.3:
+                break
+            time.sleep(0.05)
+        ipc.command(['set_property', 'pause', True])
+
+        final_pos = ipc.get_property('time-pos')
+        assert not paused_early, (
+            f"Player paused before sub 3 eff_end ({sub3_eff_end:.3f}s) — "
+            f"autopause or jerk-back fired (pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"pos={final_pos:.3f}s"
+        )
+        assert final_pos is not None and final_pos > sub3_eff_end, (
+            f"Player did not reach sub 3 eff_end ({sub3_eff_end:.3f}s) within 5s — "
+            f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
+        )
+
+    @pytest.mark.parametrize("pad_start,pad_end", [
+        (1000, 1000),
+        (200,  200),
+        (1000, 200),
+        (200,  1000),
+    ], ids=["1000s1000e", "200s200e", "1000s200e", "200s1000e"])
+    def test_sub5_6_no_stop_and_no_jerkback_during_transit(self, mpv_fragment2, pad_start, pad_end):
+        """Sub 5/6 tight-gap: forward playback after rewind must cross sub 5 eff_end
+        without autopause or jerk-back firing, for all padding combinations."""
+        ipc = mpv_fragment2.ipc
+        _set_padding(ipc, pad_start, pad_end)
+        _setup_phrase_autopause(ipc)
+
+        sub5_eff_end = 14.381 + pad_end / 1000.0
+
+        _seek(ipc, 18.4)
+        for _ in range(3):
+            _seek_time(ipc, -1)  # 18.4 → 12.4 (3×−2s); inhibit_until=18.4
+
+        state = _state(ipc)
+        assert state.get('rewind_transit_active') is True, (
+            "Precondition: inhibit must be active after 3 backward seeks"
+        )
+        assert state.get('active_sub_index') == 5, (
+            f"Precondition: ACTIVE_IDX must be 5 at pos≈12.4 "
+            f"(sub5 eff=[{12.401 - pad_start/1000:.3f}, {14.381 + pad_end/1000:.3f}], "
+            f"pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"Got: {state.get('active_sub_index')}"
+        )
+
+        time.sleep(0.6)
+
+        ipc.command(['set_property', 'pause', False])
+        paused_early = False
+        start = time.time()
+        while time.time() - start < 5.0:
+            if ipc.get_property('pause'):
+                paused_early = True
+                break
+            pos = ipc.get_property('time-pos')
+            if pos is not None and pos > sub5_eff_end + 0.3:
+                break
+            time.sleep(0.05)
+        ipc.command(['set_property', 'pause', True])
+
+        final_pos = ipc.get_property('time-pos')
+        assert not paused_early, (
+            f"Player paused before sub 5 eff_end ({sub5_eff_end:.3f}s) — "
+            f"autopause or jerk-back fired (pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"pos={final_pos:.3f}s"
+        )
+        assert final_pos is not None and final_pos > sub5_eff_end, (
+            f"Player did not reach sub 5 eff_end ({sub5_eff_end:.3f}s) within 5s — "
+            f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
+        )
