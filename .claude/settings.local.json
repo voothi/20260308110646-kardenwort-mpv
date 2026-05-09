@@ -17,7 +17,9 @@
       "Bash(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\\\\openspec\\\\changes\\\\archive\" -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(Select-Object Name, Mode)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\" -Recurse -Filter \"*.lua\")",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

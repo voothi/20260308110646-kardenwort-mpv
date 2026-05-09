@@ -1,6 +1,6 @@
 -- =========================================================================
 -- KARDENWORT Language Acquisition Suite (LAS) Core
--- Version: v1.58.50
+-- Version: v1.58.54
 -- Purpose: Language Acquisition through Subtitle-Driven Immersion
 -- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
 -- =========================================================================
@@ -526,6 +526,7 @@ local FSM = {
     last_paused_sub_end = nil,
     last_time_pos = nil,
     IGNORE_NEXT_JUMP = false,
+    TIMESEEK_INHIBIT_UNTIL = nil, -- Suppress autopause during backward time-seek transit
     LOOP_MODE = "OFF",
     LOOP_ARMED = false,
     LOOP_START = nil,
@@ -5201,6 +5202,14 @@ local function tick_autopause(time_pos)
     if FSM.AUTOPAUSE ~= "ON" or FSM.SPACEBAR ~= "IDLE" then return end
     if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
+
+    -- [v1.58.54] Skip autopause while transiting through the rewind zone after Shift+A/D.
+    -- TIMESEEK_INHIBIT_UNTIL holds the pre-seek time position; autopause is suppressed
+    -- until playback naturally returns past that point, then the inhibit self-clears.
+    if FSM.TIMESEEK_INHIBIT_UNTIL then
+        if time_pos < FSM.TIMESEEK_INHIBIT_UNTIL then return end
+        FSM.TIMESEEK_INHIBIT_UNTIL = nil
+    end
     
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
@@ -6203,7 +6212,24 @@ local function cmd_seek_time(dir)
     FSM.IGNORE_NEXT_JUMP = true
     FSM.JUST_JERKED_TO = -1
     FSM.MANUAL_NAV_COOLDOWN = now + Options.nav_cooldown
-    
+
+    -- [v1.58.54] Time-based seek (Shift+A/D) overrides repeat/loop state.
+    -- The user is manually scrubbing the tape; active loops/replays should not survive the seek.
+    FSM.LOOP_MODE = "OFF"
+    FSM.REPLAY_REMAINING = 0
+    FSM.SCHEDULED_REPLAY_START = nil
+    FSM.SCHEDULED_REPLAY_END = nil
+    FSM.last_paused_sub_end = nil  -- Allow autopause to re-arm at the correct boundary after rewind.
+
+    -- [v1.58.54] Suppress autopause at subtitles encountered during backward rewind transit.
+    -- Autopause is inhibited until playback naturally returns past the pre-seek position.
+    local current_pos = mp.get_property_number("time-pos") or 0
+    if delta < 0 then
+        FSM.TIMESEEK_INHIBIT_UNTIL = math.max(FSM.TIMESEEK_INHIBIT_UNTIL or 0, current_pos)
+    else
+        FSM.TIMESEEK_INHIBIT_UNTIL = nil
+    end
+
     mp.commandv("seek", delta, "relative+exact")
     
     -- Display logic: 
