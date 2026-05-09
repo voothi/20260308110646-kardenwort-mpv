@@ -704,18 +704,20 @@ function get_center_index(subs, time_pos)
     -- transition to `i+1` - never skip intermediate subs even when large
     -- audio_padding values cause multiple subs' padded zones to overlap time_pos.
     -- [202605091854] Priority Fix: Check for forward progression BEFORE sticky focus
-    -- to ensure we don't get stuck in the overlap zone (e.g. 2.05s when sub1 ends 
+    -- to ensure we don't get stuck in the overlap zone (e.g. 2.05s when sub1 ends
     -- at 2.0 and sub2 starts at 2.2 with 200ms padding).
+    -- [20260509192327] Expiry Fix: Use padded end (e_current) in both PHRASE and MOVIE
+    -- modes. PHRASE mode previously used raw SRT end_time, which caused premature
+    -- transitions when padded windows overlapped (large padding). The sentinel should
+    -- hold until the full audio window of sub i expires, regardless of immersion mode.
     if active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
         local next_idx = active_idx + 1
         local s_next, e_next = get_effective_boundaries(subs, subs[next_idx], next_idx)
         if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
             local _, e_current = get_effective_boundaries(subs, subs[active_idx], active_idx)
-            local expiry = (FSM.IMMERSION_MODE == "PHRASE") and subs[active_idx].end_time or e_current
-            
-            -- [202605091854] Natural Progression: Transition if current sub's focus has expired
-            -- (Actual end in PHRASE mode, Seamless handover in MOVIE mode).
-            if time_pos >= expiry - Options.nav_tolerance then
+
+            -- Natural Progression: transition only after the current sub's padded window expires.
+            if time_pos >= e_current - Options.nav_tolerance then
                 return next_idx
             end
         end
@@ -745,11 +747,15 @@ function get_center_index(subs, time_pos)
     -- [v1.58.52] Absolute Start Guard: If we are at the very beginning, always return first sub
     if time_pos <= 0 then return 1 end
 
-    -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's 
+    -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's
     -- padded start has begun, the next sub wins immediately.
-    -- The Sticky Sentinel check above ensures we don't switch until the 
+    -- The Sticky Sentinel check above ensures we don't switch until the
     -- previous sub's padded end is finished.
-    if best < #subs then
+    -- [20260509192327] Guard: Only apply Overlap Priority when we are past the
+    -- current best sub's actual SRT end_time (i.e., in a true gap). When the
+    -- playhead is inside subs[best]'s raw SRT window, that sub has hard priority
+    -- and no padding-induced overlap from the next sub should override it.
+    if best < #subs and time_pos > subs[best].end_time then
         local next_sub = subs[best + 1]
         local s_next, _ = get_effective_boundaries(subs, next_sub, best + 1)
         if time_pos >= s_next - Options.nav_tolerance then
@@ -7524,6 +7530,12 @@ local function cmd_toggle_sub_vis()
     if not nxt then
         mp.set_property_bool("sub-visibility", false)
         mp.set_property_bool("secondary-sub-visibility", false)
+        -- [20260509192327] Dismiss tooltip immediately when subs are hidden.
+        -- is_osd_tooltip_mode_eligible() checks native_sub_vis, so the tooltip
+        -- is no longer eligible. Clear it defensively here rather than waiting
+        -- for the next dw_tooltip_mouse_update() tick to do it.
+        FSM.DW_TOOLTIP_FORCE = false
+        clear_tooltip_overlay("sub-vis-off")
     end
     
     show_osd("Subtitles: " .. (nxt and string.format("ON [Double Gap: %s]", Options.srt_double_gap and "YES" or "NO") or "OFF"))
