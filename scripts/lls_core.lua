@@ -7877,7 +7877,10 @@ function LlsProbe._snapshot()
         native_sub_vis     = FSM.native_sub_vis,
         native_sec_sub_vis = FSM.native_sec_sub_vis,
         native_sec_sub_pos = FSM.native_sec_sub_pos,
-        replay_remaining   = FSM.REPLAY_REMAINING or 0,
+        replay_remaining      = FSM.REPLAY_REMAINING or 0,
+        rewind_transit_active = FSM.TIMESEEK_INHIBIT_UNTIL ~= nil,
+        rewind_transit_until  = FSM.TIMESEEK_INHIBIT_UNTIL or 0,
+        last_paused_sub_end   = FSM.last_paused_sub_end,
         search_query       = FSM.SEARCH_QUERY,
         search_results     = FSM.SEARCH_RESULTS,
         dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
@@ -7981,6 +7984,11 @@ end)
 
 mp.register_script_message("lls-test-replay", function()
     cmd_replay_sub()
+end)
+
+mp.register_script_message("lls-test-seek-time", function(dir_str)
+    local dir = tonumber(dir_str)
+    if dir then cmd_seek_time(dir) end
 end)
 
 mp.register_script_message("lls-test-set-cursor", function(line_str, word_str)
