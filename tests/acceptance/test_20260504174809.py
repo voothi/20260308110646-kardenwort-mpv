@@ -44,7 +44,7 @@ def wait_for_state(ipc, key, value, timeout=2.0):
 class TestImmersionRegressions:
     """Adaptive replay, looping, and drum mode navigation (20260504*, 20260502*)."""
 
-    def test_reg_20260504174809_adaptive_replay(self, mpv_fragment1):
+    def test_20260504174809_adaptive_replay(self, mpv_fragment1):
         """Replay (s) in Autopause ON must set REPLAY_REMAINING and seek (20260504174809)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
@@ -67,7 +67,7 @@ class TestImmersionRegressions:
         time_pos = ipc.get_property('time-pos')
         assert time_pos < 4.5, f"Expected seek back to start, got {time_pos}"
 
-    def test_reg_20260504021904_subtitle_looping(self, mpv_fragment1):
+    def test_20260504021904_subtitle_looping(self, mpv_fragment1):
         """Replay (s) in Autopause OFF triggers looping (20260504021904)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'OFF'])
@@ -86,7 +86,7 @@ class TestImmersionRegressions:
         # Usually it sets REPLAY_REMAINING to a high value or toggles a loop flag.
         assert state['replay_remaining'] > 0
 
-    def test_reg_20260504033538_drum_mode_nav_sync(self, mpv_dual):
+    def test_20260504033538_drum_mode_nav_sync(self, mpv_dual):
         """Drum mode navigation must sync primary and secondary tracks (20260504033538)."""
         ipc = mpv_dual.ipc
         # Enable Drum Mode (C)
@@ -112,7 +112,7 @@ class TestImmersionRegressions:
 class TestInputClipboardRegressions:
     """Selection priority, layout-agnostic hotkeys, and clipboard reliability (20260503*, 20260502*)."""
 
-    def test_reg_20260502211505_selection_priority(self, mpv):
+    def test_20260502211505_selection_priority(self, mpv):
         """Ctrl+C must copy selection over context if selection exists (20260502211505)."""
         ipc = mpv.ipc
         # Enable Drum Window to set selection
@@ -133,7 +133,7 @@ class TestInputClipboardRegressions:
 
         # Verification of clipboard content would require more instrumentation.
 
-    def test_reg_20260503203618_layout_agnostic_hotkeys(self, mpv):
+    def test_20260503203618_layout_agnostic_hotkeys(self, mpv):
         """Russian layout hotkeys must trigger intended commands (20260503203618)."""
         # Verification: Bind 'ы' to a test message and trigger it.
         pass
@@ -145,7 +145,7 @@ class TestInputClipboardRegressions:
 class TestUiSystemRegressions:
     """Tooltip hit-zones, highlight aesthetics, and session resume (20260503*, 20260502*, 20260505*)."""
 
-    def test_reg_20260503190627_tooltip_hit_zones(self, mpv):
+    def test_20260503190627_tooltip_hit_zones(self, mpv):
         """Tooltip hit-zones must be accurate without ghost interference (20260503190627)."""
         ipc = mpv.ipc
         # Enable Drum Window
@@ -155,14 +155,14 @@ class TestUiSystemRegressions:
         # Simulation of mouse move would require more instrumentation.
         pass
 
-    def test_reg_20260502005934_session_resume(self, mpv):
+    def test_20260502005934_session_resume(self, mpv):
         """Resume last file session must restore position (20260502005934)."""
         # We verify that resume_session.state exists and is updated.
         import os
         state_file = 'resume_session.state'
         assert os.path.exists(state_file), "resume_session.state must exist"
 
-    def test_reg_20260502082941_logging_suppression(self, mpv):
+    def test_20260502082941_logging_suppression(self, mpv):
         """Logging must be suppressed for redundant events (20260502082941)."""
         # We check the log file for spammy messages.
         log_path = 'tests/mpv_last_run.log'
@@ -174,7 +174,7 @@ class TestUiSystemRegressions:
 class TestSystemHardeningRegressions:
     """SRT parser hardening and spec-driven infrastructure (20260505*, 20260502*)."""
 
-    def test_reg_20260505004553_srt_parser_hardening(self, mpv):
+    def test_20260505004553_srt_parser_hardening(self, mpv):
         """SRT parser must handle tricky boundaries without crashing (20260505004553)."""
         # This is partially covered by the fact that mpv started correctly with our fixtures.
         # We could add a specific fixture with malformed SRT if needed.

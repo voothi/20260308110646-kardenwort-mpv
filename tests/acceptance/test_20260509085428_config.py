@@ -15,13 +15,13 @@ from tests.ipc.mpv_ipc import query_lls_state
 class TestConfigRegressions:
     """Tests for configuration wiring and documentation existence."""
 
-    def test_reg_20260508_doc_existence(self):
+    def test_20260508_doc_existence(self):
         """Verify existence of key documentation files."""
         assert os.path.exists("AGENTS.md"), "AGENTS.md should exist in root"
         assert os.path.exists("README.md"), "README.md should exist in root"
         assert os.path.exists("release-notes.md"), "release-notes.md should exist in root"
 
-    def test_reg_20260421015600_centralized_config(self, mpv):
+    def test_20260421015600_centralized_config(self, mpv):
         """Verify that script-opts are correctly applied to the FSM state (20260421015600)."""
         ipc = mpv.ipc
         
@@ -34,7 +34,7 @@ class TestConfigRegressions:
         # Let's check 'autopause' which is derived from 'autopause_default'
         assert 'autopause' in state
         
-    def test_reg_20260427101010_configurable_abbrev_detection(self, mpv):
+    def test_20260427101010_configurable_abbrev_detection(self, mpv):
         """Verify that anki_abbrev_list can be configured via script-opts (20260427101010)."""
         # We'll boot a new mpv instance with a custom abbreviation to verify wiring.
         from tests.ipc.mpv_session import MpvSession
@@ -54,7 +54,7 @@ class TestConfigRegressions:
         finally:
             custom_session.stop()
 
-    def test_reg_20260508_styling_standardization(self, mpv):
+    def test_20260508_styling_standardization(self, mpv):
         """Verify that styling options use consistent hex format (20260508)."""
         ipc = mpv.ipc
         state = query_lls_state(ipc)

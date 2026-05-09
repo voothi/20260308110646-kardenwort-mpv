@@ -14,7 +14,7 @@ from tests.ipc.mpv_session import MpvSession
 class TestAprilEarlyRegressions:
     """Tests for archived changes in early-to-mid April 2026."""
 
-    def test_reg_20260413133147_book_mode_activation(self, mpv):
+    def test_20260413133147_book_mode_activation(self, mpv):
         """Verify Book Mode activation and OSD feedback (20260413133147)."""
         ipc = mpv.ipc
         
@@ -32,7 +32,7 @@ class TestAprilEarlyRegressions:
         state = query_lls_state(ipc)
         assert state['book_mode'] is False, "Book Mode should be False after second toggle"
 
-    def test_reg_20260417031800_german_search_support(self, mpv):
+    def test_20260417031800_german_search_support(self, mpv):
         """Verify German character support in Search HUD (20260417031800)."""
         ipc = mpv.ipc
         
@@ -48,7 +48,7 @@ class TestAprilEarlyRegressions:
         state = query_lls_state(ipc)
         assert state['search_query'] == "größe", f"Expected search query 'größe', got '{state.get('search_query')}'"
 
-    def test_reg_20260417112500_tsv_spacing_unify_joiners(self, mpv_fragment1):
+    def test_20260417112500_tsv_spacing_unify_joiners(self, mpv_fragment1):
         """Verify unified joiners and verbatim spacing in export (20260417112500)."""
         ipc = mpv_fragment1.ipc
         
@@ -75,7 +75,7 @@ class TestAprilEarlyRegressions:
         # Check for space preservation
         assert "Manchmal hat" in export, f"Export content mismatch: '{export}'"
 
-    def test_reg_20260413003600_sanitized_anki_export(self, mpv_fragment1):
+    def test_20260413003600_sanitized_anki_export(self, mpv_fragment1):
         """Verify that Anki export is sanitized (no ASS tags) (20260413003600)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -95,7 +95,7 @@ class TestAprilEarlyRegressions:
         export = ipc.get_property('user-data/lls/last_export')
         assert "{\\" not in export, f"Export should be sanitized of ASS tags, got '{export}'"
 
-    def test_reg_20260413101458_dw_dark_theme_persistence(self, mpv):
+    def test_20260413101458_dw_dark_theme_persistence(self, mpv):
         """Verify Drum Window dark theme option is registered (20260413101458)."""
         ipc = mpv.ipc
         
@@ -104,7 +104,7 @@ class TestAprilEarlyRegressions:
         time.sleep(0.3)
         assert state['drum_window'] in ['OFF', 'DOCKED'], "Drum Window should be in a valid state"
 
-    def test_reg_20260412105348_drum_window_tooltip_toggle(self, mpv):
+    def test_20260412105348_drum_window_tooltip_toggle(self, mpv):
         """Verify tooltip toggle in Drum Window (20260412105348)."""
         ipc = mpv.ipc
         
@@ -120,7 +120,7 @@ class TestAprilEarlyRegressions:
         # Should be either HOVER or CLICK
         assert state.get('dw_tooltip_mode') in ['HOVER', 'CLICK']
 
-    def test_reg_20260416213225_bracket_highlighting(self, mpv_fragment1):
+    def test_20260416213225_bracket_highlighting(self, mpv_fragment1):
         """Verify that brackets do not break word highlighting (20260416213225)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])

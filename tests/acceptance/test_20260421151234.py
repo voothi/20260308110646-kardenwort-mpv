@@ -2,7 +2,7 @@ import time
 import pytest
 from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
 
-def test_reg_20260421151234_precision_shadows(mpv):
+def test_20260421151234_precision_shadows(mpv):
     """Verify that Drum Window precision hardening logic is active."""
     ipc = mpv.ipc
     ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -10,7 +10,7 @@ def test_reg_20260421151234_precision_shadows(mpv):
     state = query_lls_state(ipc)
     assert state['drum_window'] != 'OFF'
 
-def test_reg_20260421220419_sticky_column(mpv_fragment1):
+def test_20260421220419_sticky_column(mpv_fragment1):
     """Verify sticky column persistence in Drum Window navigation."""
     ipc = mpv_fragment1.ipc
     ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -27,7 +27,7 @@ def test_reg_20260421220419_sticky_column(mpv_fragment1):
     state2 = query_lls_state(ipc)
     assert state2['dw_cursor']['word'] > 1
 
-def test_reg_20260425221654_esc_stages(mpv_fragment1):
+def test_20260425221654_esc_stages(mpv_fragment1):
     """Verify that ESC clears selection tiers in order: Range -> Pointer."""
     ipc = mpv_fragment1.ipc
     ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -49,7 +49,7 @@ def test_reg_20260425221654_esc_stages(mpv_fragment1):
     state = query_lls_state(ipc)
     assert state['dw_cursor']['word'] == -1
 
-def test_reg_20260426233000_unified_copy(mpv_fragment1):
+def test_20260426233000_unified_copy(mpv_fragment1):
     """Verify unified copy logic works even when native subs are suppressed."""
     ipc = mpv_fragment1.ipc
     ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-set', 'OFF'])
@@ -62,7 +62,7 @@ def test_reg_20260426233000_unified_copy(mpv_fragment1):
     state = query_lls_state(ipc)
     assert state['active_sub_index'] > 0
 
-def test_reg_20260425221654_sec_pos_sync(mpv_dual):
+def test_20260425221654_sec_pos_sync(mpv_dual):
     """Verify secondary subtitle position syncs to FSM."""
     ipc = mpv_dual.ipc
     ipc.command(['script-message-to', 'lls_core', 'lls-native-sec-sub-pos-set', '80'])
@@ -71,7 +71,7 @@ def test_reg_20260425221654_sec_pos_sync(mpv_dual):
     assert state['native_sec_sub_pos'] == 80
     assert ipc.get_property('secondary-sub-pos') == 80
 
-def test_reg_20260424202720_book_mode_copy(mpv_fragment1):
+def test_20260424202720_book_mode_copy(mpv_fragment1):
     """Verify copy behavior in Book Mode."""
     ipc = mpv_fragment1.ipc
     ipc.command(['script-message-to', 'lls_core', 'lls-test-set-follow-player', 'ON'])
@@ -87,7 +87,7 @@ def test_reg_20260424202720_book_mode_copy(mpv_fragment1):
     time.sleep(0.1)
     # Success if no error.
 
-def test_reg_20260425025011_independent_pointer(mpv_fragment1):
+def test_20260425025011_independent_pointer(mpv_fragment1):
     """Verify that pointer is independent of active line in Book Mode manual nav."""
     ipc = mpv_fragment1.ipc
     ipc.command(['seek', 7.0, 'absolute+exact']) # Sub 2

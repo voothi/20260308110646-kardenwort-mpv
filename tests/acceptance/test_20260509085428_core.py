@@ -21,7 +21,7 @@ from tests.ipc.mpv_session import MpvSession
 class TestCoreRegressions:
     """Tests for core engine logic, parsing, and OSD feedback."""
 
-    def test_reg_20260429101010_atomic_punctuation_tokens(self, mpv_fragment1):
+    def test_20260429101010_atomic_punctuation_tokens(self, mpv_fragment1):
         """Verify that brackets and hyphens are treated as atomic tokens (20260429101010)."""
         ipc = mpv_fragment1.ipc
         # Seek to sub 2 (has comma and brackets in some cases, but let's just check the logic)
@@ -37,7 +37,7 @@ class TestCoreRegressions:
         # We'll trust the implementation if the code contains the WORD_CHAR_MAP fix.
         pass
 
-    def test_reg_20260430000000_bom_aware_parsing(self):
+    def test_20260430000000_bom_aware_parsing(self):
         """Verify that UTF-8 BOM is stripped during subtitle parsing (20260430000000)."""
         # Use the BOM fixture created in the setup
         session = MpvSession(
@@ -55,7 +55,7 @@ class TestCoreRegressions:
         finally:
             session.stop()
 
-    def test_reg_20260501120000_centered_seek_feedback(self, mpv):
+    def test_20260501120000_centered_seek_feedback(self, mpv):
         """Verify that seeking triggers the centered OSD feedback (20260501120000)."""
         ipc = mpv.ipc
         
@@ -74,7 +74,7 @@ class TestCoreRegressions:
         # But let's assume it works or we'll add it if needed.
         pass
 
-    def test_reg_20260502090000_archived_features_verification(self, mpv_dual):
+    def test_20260502090000_archived_features_verification(self, mpv_dual):
         """Verify FSM state transitions and movie mode boundaries (20260502090000)."""
         ipc = mpv_dual.ipc
         
@@ -93,7 +93,7 @@ class TestCoreRegressions:
         # assert state['immersion_mode'] == "MOVIE"
         pass
 
-    def test_reg_20260503150000_book_mode_navigation(self, mpv):
+    def test_20260503150000_book_mode_navigation(self, mpv):
         """Verify navigation logic in Book Mode (20260503150000)."""
         ipc = mpv.ipc
         
@@ -106,7 +106,7 @@ class TestCoreRegressions:
         state = query_lls_state(ipc)
         assert state['book_mode'] is True
         
-    def test_reg_20260508_character_level_hit_highlighting(self, mpv_fragment1):
+    def test_20260508_character_level_hit_highlighting(self, mpv_fragment1):
         """Verify character-level hit zone accuracy (20260508)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -120,7 +120,7 @@ class TestCoreRegressions:
         state = query_lls_state(ipc)
         assert state['dw_cursor']['word'] == 1
         
-    def test_reg_20260508_clipboard_refactoring_audit(self, mpv_fragment1):
+    def test_20260508_clipboard_refactoring_audit(self, mpv_fragment1):
         """Verify clipboard copying from Drum Window (20260508)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -140,7 +140,7 @@ class TestCoreRegressions:
         clipboard = ipc.get_property('user-data/lls/last_clipboard')
         assert "Manchmal" in clipboard
 
-    def test_reg_20260504100000_clean_osd(self, mpv):
+    def test_20260504100000_clean_osd(self, mpv):
         """Verify that OSD is cleaned up properly (20260504100000)."""
         ipc = mpv.ipc
         # Open Drum Window then close it

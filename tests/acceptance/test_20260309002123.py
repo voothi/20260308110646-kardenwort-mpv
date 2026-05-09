@@ -21,7 +21,7 @@ def robust_query_state(ipc, retries=3):
 class TestMarchEarlyRegressions:
     """Tests for archived changes in early March 2026."""
 
-    def test_reg_20260309002123_v1_0_0_foundation(self, mpv):
+    def test_20260309002123_v1_0_0_foundation(self, mpv):
         """Verify foundational OSD duration (20260309002123)."""
         ipc = mpv.ipc
         state = robust_query_state(ipc)
@@ -32,7 +32,7 @@ class TestMarchEarlyRegressions:
         # v1.0.0 Decision: script-message handlers established
         assert 'playback_state' in state
 
-    def test_reg_20260310002147_v1_2_0_centralization(self, mpv):
+    def test_20260310002147_v1_2_0_centralization(self, mpv):
         """Verify centralization into lls_core and master tick presence (20260310002147)."""
         ipc = mpv.ipc
         state = robust_query_state(ipc)
@@ -43,7 +43,7 @@ class TestMarchEarlyRegressions:
         # v1.2.0 Decision: State machine consolidated
         assert state['playback_state'] != "NO_SUBS"
 
-    def test_reg_20260312192633_v1_25_0_fuzzy_search(self, mpv_fragment1):
+    def test_20260312192633_v1_25_0_fuzzy_search(self, mpv_fragment1):
         """Verify fuzzy search scoring logic handles multi-keyword queries (20260312192633)."""
         ipc = mpv_fragment1.ipc
         
@@ -69,7 +69,7 @@ class TestMarchEarlyRegressions:
             text = res['text'].lower()
             assert 'paket' in text or 'ende' in text
 
-    def test_reg_20260314000819_v1_26_8_validation_with_subs(self, mpv):
+    def test_20260314000819_v1_26_8_validation_with_subs(self, mpv):
         """Verify validation logic for external subtitle files (20260314000819)."""
         ipc = mpv.ipc
         time.sleep(2.0) # Ensure tracks are loaded and FSM settled
@@ -84,7 +84,7 @@ class TestMarchEarlyRegressions:
         state = robust_query_state(ipc)
         assert state['drum_window'] != 'OFF'
 
-    def test_reg_20260314000819_v1_26_8_ass_gatekeeping(self, mpv_ass):
+    def test_20260314000819_v1_26_8_ass_gatekeeping(self, mpv_ass):
         """Verify that ASS tracks disable Drum Mode to prevent rendering conflicts (20260314000819)."""
         ipc = mpv_ass.ipc
         time.sleep(1.5) # Ensure tracks are loaded

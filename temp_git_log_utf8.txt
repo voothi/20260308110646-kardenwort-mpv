@@ -1,0 +1,65 @@
+﻿20260509091431
+
+A	tests/acceptance/test_reg_20260509085806_anki_context.py
+A	tests/acceptance/test_reg_20260509090120_ru_keys.py
+A	tests/acceptance/test_reg_20260509090120_search_ranking.py
+A	tests/acceptance/test_reg_20260509090125_drum_hit_zones.py
+20260509085637
+
+A	tests/acceptance/test_reg_20260509085125_anki_highlight_has_phrase.py
+A	tests/acceptance/test_reg_20260509085125_ass_gatekeeper.py
+A	tests/acceptance/test_reg_20260509085125_drum_mode.py
+A	tests/acceptance/test_reg_20260509085125_drum_scroll.py
+A	tests/acceptance/test_reg_20260509085125_drum_tooltip_parity.py
+A	tests/acceptance/test_reg_20260509085125_immersion_pipeline.py
+A	tests/acceptance/test_reg_20260509085125_render.py
+A	tests/acceptance/test_reg_20260509085125_selection_priority.py
+A	tests/acceptance/test_reg_20260509085125_state_probe.py
+A	tests/acceptance/test_reg_20260509085125_subtitle_sync.py
+20260509083915
+
+A	tests/acceptance/test_reg_20260509083559.py
+20260509083509
+
+A	tests/acceptance/test_reg_20260509082355.py
+20260509082137
+
+A	tests/acceptance/test_reg_20260509081224.py
+20260509081154
+
+A	tests/acceptance/test_reg_20260509081040.py
+20260509080420
+
+A	tests/acceptance/test_reg_20260509080221.py
+20260509074351
+
+A	tests/acceptance/test_reg_20260509074044.py
+20260509003208
+
+A	tests/acceptance/test_reg_20260509_drum_pink.py
+20260508231416
+
+A	tests/acceptance/test_reg_20260508_anki.py
+A	tests/acceptance/test_reg_20260508_config.py
+A	tests/acceptance/test_reg_20260508_core.py
+20260508224630
+
+A	tests/acceptance/test_reg_20260309_20260314.py
+20260508222251
+
+A	tests/acceptance/test_reg_20260315_20260322.py
+20260508221338
+
+A	tests/acceptance/test_reg_20260412_20260417.py
+20260508215910
+
+A	tests/acceptance/test_reg_20260418_20260420.py
+20260508214606
+
+A	tests/acceptance/test_reg_20260421_20260426.py
+20260508200327
+
+A	tests/acceptance/test_reg_20260427_20260429.py
+A	tests/acceptance/test_reg_20260430_20260501.py
+A	tests/acceptance/test_reg_20260502_20260505.py
+A	tests/acceptance/test_reg_20260506_20260507.py

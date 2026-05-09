@@ -40,7 +40,7 @@ def robust_query_state(ipc, retries=5):
 
 class TestHistoricalRegressionsV2:
 
-    def test_reg_drum_window_indexing_simple(self, mpv):
+    def test_drum_window_indexing_simple(self, mpv):
         """Verify word indices in simple sentence (drum-window-indexing)."""
         ipc = mpv.ipc
         # We use a test message to get tokenization of a string
@@ -55,7 +55,7 @@ class TestHistoricalRegressionsV2:
         assert words[0]['logical_idx'] == 1
         assert words[5]['logical_idx'] == 6
 
-    def test_reg_drum_window_navigation_independent_cursor(self, mpv_dual):
+    def test_drum_window_navigation_independent_cursor(self, mpv_dual):
         """Verify independent cursor in Book Mode (drum-window-navigation)."""
         ipc = mpv_dual.ipc
         time.sleep(1.0)
@@ -77,7 +77,7 @@ class TestHistoricalRegressionsV2:
         assert state['active_sub_index'] == 2
         assert state['dw_cursor']['line'] == 1 # Yellow cursor stays at 1
 
-    def test_reg_drum_window_performance_cache_invalidation(self, mpv):
+    def test_drum_window_performance_cache_invalidation(self, mpv):
         """Verify cache version increments on font change (drum-window-performance)."""
         ipc = mpv.ipc
         state = robust_query_state(ipc)
@@ -90,7 +90,7 @@ class TestHistoricalRegressionsV2:
         state = robust_query_state(ipc)
         assert state.get('layout_version', 0) > initial_version
 
-    def test_reg_drum_window_reading_mode_manual_trigger(self, mpv):
+    def test_drum_window_reading_mode_manual_trigger(self, mpv):
         """Verify Manual Mode on arrow key press (drum-window-reading-mode)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -107,7 +107,7 @@ class TestHistoricalRegressionsV2:
         state = robust_query_state(ipc)
         assert state['dw_follow_player'] is False
 
-    def test_reg_drum_window_state_fix_tracking(self, mpv):
+    def test_drum_window_state_fix_tracking(self, mpv):
         """Verify DW_CURSOR_LINE updates on playback (drum-window-state-fix)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-test-set-follow-player', 'ON'])
@@ -121,7 +121,7 @@ class TestHistoricalRegressionsV2:
         assert state['dw_cursor']['line'] == state['active_sub_index']
         assert state['dw_cursor']['word'] == -1
 
-    def test_reg_drum_window_sticky_navigation(self, mpv):
+    def test_drum_window_sticky_navigation(self, mpv):
         """Verify sticky X-coordinate behavior (drum-window-sticky-navigation)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -140,7 +140,7 @@ class TestHistoricalRegressionsV2:
         state = robust_query_state(ipc)
         assert state['dw_sticky_x'] is not None
 
-    def test_reg_drum_window_tooltip_toggle(self, mpv):
+    def test_drum_window_tooltip_toggle(self, mpv):
         """Verify tooltip visibility toggle 'e' (drum-window-tooltip)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -156,7 +156,7 @@ class TestHistoricalRegressionsV2:
         state = robust_query_state(ipc)
         assert state.get('tooltip_forced') != initial_tooltip
 
-    def test_reg_dw_mouse_selection_engine_double_click(self, mpv):
+    def test_dw_mouse_selection_engine_double_click(self, mpv):
         """Verify double-click seeks and clears selection (dw-mouse-selection-engine)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -174,14 +174,14 @@ class TestHistoricalRegressionsV2:
         assert state['active_sub_index'] == 2
         assert state['dw_cursor']['word'] == -1
 
-    def test_reg_dw_visual_optimization_contrast(self, mpv):
+    def test_dw_visual_optimization_contrast(self, mpv):
         """Verify high-contrast white for active line (dw-visual-optimization)."""
         # This is primarily a visual requirement, but we check if the engine exposes active color
         state = robust_query_state(mpv.ipc)
         # Requirement says High-Contrast White (FFFFFF)
         assert 'FFFFFF' in state['options'].get('dw_active_color', 'FFFFFF')
 
-    def test_reg_dynamic_contrast_rendering_truncation(self, mpv):
+    def test_dynamic_contrast_rendering_truncation(self, mpv):
         """Verify truncation at 120 chars (dynamic-contrast-rendering)."""
         ipc = mpv.ipc
         long_str = "A" * 150
@@ -193,7 +193,7 @@ class TestHistoricalRegressionsV2:
         assert len(truncated) <= 123 # 120 + "..."
         assert truncated.endswith("...")
 
-    def test_reg_dynamic_osd_border_override(self, mpv):
+    def test_dynamic_osd_border_override(self, mpv):
         """Verify osd-border-style override (dynamic-osd-border-override)."""
         ipc = mpv.ipc
         # Open Search (activates custom UI)
@@ -208,7 +208,7 @@ class TestHistoricalRegressionsV2:
         ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
         time.sleep(0.5)
 
-    def test_reg_export_engine_hardening_brackets(self, mpv):
+    def test_export_engine_hardening_brackets(self, mpv):
         """Verify bracket-only selection is valid (export-engine-hardening)."""
         ipc = mpv.ipc
         # We test the validation function directly via message
@@ -218,7 +218,7 @@ class TestHistoricalRegressionsV2:
         test_data = state.get('test_data', {})
         assert test_data.get('test_term_valid') is True
 
-    def test_reg_extended_layout_robustness_ru(self, mpv):
+    def test_extended_layout_robustness_ru(self, mpv):
         """Verify Russian keyboard layout mappings (extended-layout-robustness)."""
         ipc = mpv.ipc
         # We simulate a key press of 'ь' (m)
@@ -226,23 +226,23 @@ class TestHistoricalRegressionsV2:
         # or if the script-message for it works.
         pass
 
-    def test_reg_externalized_ui_styling_options(self, mpv):
+    def test_externalized_ui_styling_options(self, mpv):
         """Verify search aesthetic options (externalized-ui-styling)."""
         state = robust_query_state(mpv.ipc)
         opts = state['options']
         assert 'search_hit_color' in opts
         assert 'search_sel_color' in opts
 
-    def test_reg_feature_path_validation_external_only(self, mpv):
+    def test_feature_path_validation_external_only(self, mpv):
         """Verify search requires external subs (feature-path-validation)."""
         # We'd need to boot mpv without external subs to test this properly.
         pass
 
-    def test_reg_folder_name_standardization(self):
+    def test_folder_name_standardization(self):
         """Verify .agent/ directory exists (folder-name-standardization)."""
         assert os.path.isdir(".agent")
 
-    def test_reg_fsm_architecture_s_toggle(self, mpv):
+    def test_fsm_architecture_s_toggle(self, mpv):
         """Verify 's' toggle updates FSM state even when DW is open (fsm-architecture)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -258,7 +258,7 @@ class TestHistoricalRegressionsV2:
         state = robust_query_state(ipc)
         assert state['native_sub_vis'] != initial_vis
 
-    def test_reg_fuzzy_search_optimization_match(self, mpv):
+    def test_fuzzy_search_optimization_match(self, mpv):
         """Verify partial query matching (fuzzy-search-optimization)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-test-fuzzy-match', 'hl wrd', 'hello world'])
@@ -267,7 +267,7 @@ class TestHistoricalRegressionsV2:
         test_data = state.get('test_data', {})
         assert test_data.get('test_fuzzy_match_result') is True
 
-    def test_reg_fuzzy_span_calculation(self, mpv):
+    def test_fuzzy_span_calculation(self, mpv):
         """Verify match span calculation (fuzzy-span-calculation)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-test-fuzzy-span', 'mne', 'manage'])
@@ -277,7 +277,7 @@ class TestHistoricalRegressionsV2:
         span = test_data.get('test_fuzzy_span', [])
         assert span == [1, 6]
 
-    def test_reg_global_navigation_bindings(self, mpv):
+    def test_global_navigation_bindings(self, mpv):
         """Verify lls-seek_next binding (global-navigation-bindings)."""
         ipc = mpv.ipc
         # Trigger binding via script-message or script-binding
@@ -286,7 +286,7 @@ class TestHistoricalRegressionsV2:
         state = robust_query_state(ipc)
         assert state['active_sub_index'] == 2
 
-    def test_reg_global_semantic_coloring_brackets(self, mpv):
+    def test_global_semantic_coloring_brackets(self, mpv):
         """Verify brackets remain white when adjacent word is highlighted (global-semantic-coloring)."""
         # This is a rendering logic check. 
         # We can verify that the tokenizer keeps brackets as separate tokens.

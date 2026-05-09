@@ -1725,13 +1725,9 @@
 20260509090111 I'll wait for your confirmation to begin. - Accept
 20260509091222 You need to rename these files with ZID, you need to remember this for similar files for the future. tests\fixtures\20260508173706-test-ass\test.ass tests\fixtures\search_ranking.srt
 20260509091342 It must be through kebab. tests\fixtures\20260509090120-search_ranking.srt
-
-
-
-
-
-
-
+20260509091532 Do you want to rename this to Test Creation ZID? Check out the story at conversion.log. Now these are the dates of proposes, and other files in this directory have the ZID of the test creation, which is inconsistent in names tests\acceptance\test_reg_20260309_20260314.py tests\acceptance\test_reg_20260315_20260322.py tests\acceptance\test_reg_20260412_20260417.py tests\acceptance\test_reg_20260418_20260420.py tests\acceptance\test_reg_20260421_20260426.py tests\acceptance\test_reg_20260427_20260429.py tests\acceptance\test_reg_20260430_20260501.py tests\acceptance\test_reg_20260502_20260505.py tests\acceptance\test_reg_20260506_20260507.py
+20260509092355 Take the dates from the name inside these files in the previous digital format, the name should only contain ZID, for uniqueness, you can make an increment of 5 seconds.
+20260509092253 I have successfully traced the Test Creation ZIDs from the commit history and conversation.log for each of the legacy test files. I've renamed all of them to match the required test_reg__.py format, standardizing them with the rest of the suite. Here is the mapping of the applied renames: test_reg_20260309_20260314.py ➔ test_reg_20260508224630_mar09_mar14.py test_reg_20260315_20260322.py ➔ test_reg_20260508222251_mar15_mar22.py test_reg_20260412_20260417.py ➔ test_reg_20260508221338_apr12_apr17.py test_reg_20260418_20260420.py ➔ test_reg_20260508215910_apr18_apr20.py test_reg_20260421_20260426.py ➔ test_reg_20260508214606_apr21_apr26.py test_reg_20260427_20260429.py ➔ test_reg_20260508200327_apr27_apr29.py test_reg_20260430_20260501.py ➔ test_reg_20260508200327_apr30_may01.py test_reg_20260502_20260505.py ➔ test_reg_20260508200327_may02_may05.py test_reg_20260506_20260507.py ➔ test_reg_20260508200327_may06_may07.py This ensures that the test directory maintains complete chronological consistency according to when the actual test file was generated, while preserving the date range feature identification. Let me know if there are any other specific files or fixtures you'd like to standardize before we move forward!
 
 
 

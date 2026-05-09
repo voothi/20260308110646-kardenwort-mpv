@@ -14,7 +14,7 @@ from tests.ipc.mpv_session import MpvSession
 class TestAprilMidRegressions:
     """Tests for archived changes in mid-April 2026."""
 
-    def test_reg_20260418190735_copy_verbatim_range(self, mpv_fragment1):
+    def test_20260418190735_copy_verbatim_range(self, mpv_fragment1):
         """Verify that copying a RANGE from Drum Window preserves punctuation (20260418190735)."""
         ipc = mpv_fragment1.ipc
         
@@ -42,7 +42,7 @@ class TestAprilMidRegressions:
         clip = ipc.get_property('user-data/lls/last_clipboard')
         assert "Manchmal hat man das Gefühl" in clip, f"Expected range in clipboard, got '{clip}'"
 
-    def test_reg_20260418195829_elliptical_export(self, mpv_fragment1):
+    def test_20260418195829_elliptical_export(self, mpv_fragment1):
         """Verify non-contiguous Pink selection uses ellipses in export (20260418195829)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -64,7 +64,7 @@ class TestAprilMidRegressions:
         term = ipc.get_property('user-data/lls/last_export')
         assert " ... " in term, f"Expected elliptical export for multi-line selection, got '{term}'"
 
-    def test_reg_20260418194004_highlight_priority(self, mpv_fragment1):
+    def test_20260418194004_highlight_priority(self, mpv_fragment1):
         """Verify Pink selection priority over cursor/pointer (20260418194004)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -82,7 +82,7 @@ class TestAprilMidRegressions:
         state = query_lls_state(ipc)
         assert state['dw_selection_count'] == 1
 
-    def test_reg_20260420003934_search_hud_toggle(self, mpv):
+    def test_20260420003934_search_hud_toggle(self, mpv):
         """Verify Search HUD can be toggled without crashing (20260420003934)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
@@ -92,7 +92,7 @@ class TestAprilMidRegressions:
         state = query_lls_state(ipc)
         assert state['drum_window'] == 'OFF'
 
-    def test_reg_20260419191638_mining_shortcuts(self, mpv):
+    def test_20260419191638_mining_shortcuts(self, mpv):
         """Verify that mining shortcuts are registered when DW is open (20260419191638)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
@@ -107,7 +107,7 @@ class TestAprilMidRegressions:
         
         assert found, "Mining shortcut 'dw-add' not found in active bindings"
 
-    def test_reg_20260420224919_keyboard_word_add(self, mpv_fragment1):
+    def test_20260420224919_keyboard_word_add(self, mpv_fragment1):
         """Verify adding a word via keyboard-simulated command in DW (20260420224919)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -128,7 +128,7 @@ class TestAprilMidRegressions:
         export = ipc.get_property('user-data/lls/last_export')
         assert "Manchmal" in export, f"Expected 'Manchmal' to be prepared, got '{export}'"
 
-    def test_reg_20260418213707_grounding_neighbor_check(self, mpv_fragment1):
+    def test_20260418213707_grounding_neighbor_check(self, mpv_fragment1):
         """Verify that grounding logic is active (20260418213707)."""
         ipc = mpv_fragment1.ipc
         # This is a placeholder as grounding is internal, but we check if it doesn't crash

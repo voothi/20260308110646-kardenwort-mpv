@@ -13,7 +13,7 @@ from tests.ipc.mpv_ipc import query_lls_state
 class TestMarchLateRegressions:
     """Tests for archived changes in late March 2026."""
 
-    def test_reg_20260315121210_agents_md_exists(self, mpv):
+    def test_20260315121210_agents_md_exists(self, mpv):
         """Verify that AGENTS.md exists and contains expected content (20260315121210)."""
         import os
         path = r"u:\voothi\20260308110646-kardenwort-mpv\AGENTS.md"
@@ -22,7 +22,7 @@ class TestMarchLateRegressions:
             content = f.read()
             assert "Agent Capabilities" in content
 
-    def test_reg_20260322174550_dw_pointer_behavior(self, mpv):
+    def test_20260322174550_dw_pointer_behavior(self, mpv):
         """Verify Drum Window pointer is inactive (-1) on open/scroll/seek (20260322174550)."""
         ipc = mpv.ipc
         
@@ -44,7 +44,7 @@ class TestMarchLateRegressions:
         state = query_lls_state(ipc)
         assert state['dw_cursor']['word'] == -1, "Pointer should be hidden (-1) after manual scroll"
 
-    def test_reg_20260322183001_hide_pointer_after_search_select(self, mpv):
+    def test_20260322183001_hide_pointer_after_search_select(self, mpv):
         """Verify pointer is hidden after selecting a search result (20260322183001)."""
         ipc = mpv.ipc
         
@@ -75,7 +75,7 @@ class TestMarchLateRegressions:
         state = query_lls_state(ipc)
         assert state['dw_cursor']['word'] == -1, "Pointer should be reset after navigation seek"
 
-    def test_reg_20260322184054_dw_navigation_seek(self, mpv):
+    def test_20260322184054_dw_navigation_seek(self, mpv):
         """Verify that seek delta logic works and resets pointer (20260322184054)."""
         ipc = mpv.ipc
         
@@ -95,7 +95,7 @@ class TestMarchLateRegressions:
         state = query_lls_state(ipc)
         assert state['dw_cursor']['word'] == -1, "Pointer should be reset after seek"
 
-    def test_reg_20260322192905_fix_navigation_windowless_mode(self, mpv):
+    def test_20260322192905_fix_navigation_windowless_mode(self, mpv):
         """Verify that custom seek logic is available even with DW closed (20260322192905)."""
         ipc = mpv.ipc
         

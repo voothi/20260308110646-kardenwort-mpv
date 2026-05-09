@@ -12,7 +12,7 @@ from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
 class TestAnkiRegressions:
     """Tests for Anki export and highlighting regressions."""
 
-    def test_reg_20260413213102_adaptive_context_truncation(self, mpv_fragment1):
+    def test_20260413213102_adaptive_context_truncation(self, mpv_fragment1):
         """Verify adaptive word-count truncation for long terms (20260413213102)."""
         ipc = mpv_fragment1.ipc
         
@@ -48,7 +48,7 @@ class TestAnkiRegressions:
         # In this fragment, sub 2 is ~13 words. 
         # Surrounded by sub 1 and sub 3, total context should be preserved.
         
-    def test_reg_20260501015631_anki_export_mapping(self, mpv_fragment1):
+    def test_20260501015631_anki_export_mapping(self, mpv_fragment1):
         """Verify dynamic field mapping based on term length (20260501015631)."""
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
@@ -85,7 +85,7 @@ class TestAnkiRegressions:
         # If WordSource2 is empty, it might be that script-opts/anki_mapping.ini is not loaded.
         # But we'll see from the debug output.
 
-    def test_reg_20260418211727_anki_highlighting_split_colors(self, mpv_fragment1):
+    def test_20260418211727_anki_highlighting_split_colors(self, mpv_fragment1):
         """Verify split-term highlighting colors (20260418211727)."""
         ipc = mpv_fragment1.ipc
         
