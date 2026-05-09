@@ -7849,6 +7849,8 @@ function LlsProbe._snapshot()
         layout_version     = FSM.LAYOUT_VERSION or 0,
         tooltip_forced     = FSM.DW_TOOLTIP_FORCED,
         dw_sticky_x        = FSM.DW_CURSOR_X,
+        anki_db_mtime      = FSM.ANKI_DB_MTIME or 0,
+        anki_db_size       = FSM.ANKI_DB_SIZE or 0,
         platform           = package.config:sub(1,1) == "\\" and "windows" or "unix"
     }
 end
