@@ -7561,8 +7561,15 @@ local function cmd_adjust_sec_sub_pos(delta)
 end
 
 local function cmd_cycle_sec_sid()
-    if FSM.DRUM == "ON" then FSM.native_sec_sub_vis = true
-    else mp.set_property_bool("secondary-sub-visibility", true) end
+    FSM.native_sec_sub_vis = true
+    -- [20260509180045] Synchronous Suppression: Prevent flash of native subs before next tick.
+    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local sec_use_osd = (FSM.DRUM == "ON") or (not Tracks.sec.is_ass and use_osd_for_srt)
+    if sec_use_osd then
+        mp.set_property_bool("secondary-sub-visibility", false)
+    else
+        mp.set_property_bool("secondary-sub-visibility", true)
+    end
 
     FSM.__auto_track_selected_sec = true
 
@@ -7633,6 +7640,7 @@ local function cmd_cycle_sec_sid()
         final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
     end
     show_osd(final_msg)
+    drum_osd:update()
 end
 
 local function cmd_toggle_osc()
@@ -7689,6 +7697,14 @@ end)
 mp.observe_property("secondary-sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
     if not ok then Diagnostic.error("sec-sid observer: " .. tostring(err)) end
+    
+    -- [20260509180045] Immediate Suppression (Window 2): Enforce visibility state after track-list update.
+    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and use_osd_for_srt))
+    if sec_use_osd then
+        mp.set_property_bool("secondary-sub-visibility", false)
+    end
+    drum_osd:update()
 end)
 mp.observe_property("track-list", "native", function()
     local ok, err = xpcall(update_media_state, debug.traceback)
