@@ -1769,6 +1769,7 @@
 20260509171136 There is some specificity in the single-line subtitles (srt) mode that when switching Secondary Sub: OFF/RU an undesirable effect appears when the OSD twitches and first a normal recording appears for the moment before it, and then the OSD is blocked. This occurs after starting in srt, drum mode. If you switch to dm and back and try again, it doesn’t blink anymore.
 20260509180017 opsx-apply 20260509175704-fix-secondary-sub-flash
 20260509180927 # Make it so that in srt mode the tooltip also works as in Drum Mode ON. ## Description [[20260509004244-сделать-так-чтобы-в|Сделать так, чтобы в режиме srt tooltip тоже работал как и в Drum Mode ON.]]
+20260509182259 Create a test_20260509184027
 
 
 

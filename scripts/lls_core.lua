@@ -7925,7 +7925,8 @@ function LlsProbe._snapshot()
         fsm_state          = FSM.MEDIA_STATE, -- Alias for easier access in some tests
         test_data          = FSM.TEST_DATA or {},
         layout_version     = FSM.LAYOUT_VERSION or 0,
-        tooltip_forced     = FSM.DW_TOOLTIP_FORCED,
+        tooltip_forced     = FSM.DW_TOOLTIP_FORCE,
+        tooltip_cache_size = #(FSM.DW_TOOLTIP_SEC_SUBS or {}),
         dw_sticky_x        = FSM.DW_CURSOR_X,
         anki_db_mtime      = FSM.ANKI_DB_MTIME or 0,
         anki_db_size       = FSM.ANKI_DB_SIZE or 0,
