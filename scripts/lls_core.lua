@@ -5379,8 +5379,11 @@ local function master_tick()
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
             -- [v1.58.51] Phrases Mode "Jerk Back" Logic
-            -- Only trigger for NATURAL transitions. If we are in cooldown from a manual seek, skip.
-            if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
+            -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
+            -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
+            -- is expected: no jerking, no overlap-driven snaps.
+            if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
+               and not FSM.TIMESEEK_INHIBIT_UNTIL then
                 if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > Options.nav_tolerance then
