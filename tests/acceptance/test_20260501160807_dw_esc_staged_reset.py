@@ -88,6 +88,7 @@ class TestDrumWindowRegressions:
         """DW_CURSOR_WORD must be preserved when opening Drum Window (20260501163905)."""
         ipc = mpv.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
+        ipc.command(['set', 'pause', 'yes'])
         
         # Seek to line 2 (starts at 4.0s in fixture)
         ipc.command(['seek', 4.5, 'absolute+exact'])

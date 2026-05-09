@@ -664,9 +664,8 @@ function has_cyrillic(str)
     return str:match("[\208-\209][\128-\191]") ~= nil
 end
 
-local function get_effective_boundaries(sub, idx)
+local function get_effective_boundaries(subs, sub, idx)
     if not sub then return nil, nil end
-    local subs = Tracks.pri.subs
     local pad_start = (Options.audio_padding_start or 0) / 1000
     local pad_end = (Options.audio_padding_end or 0) / 1000
     
@@ -700,22 +699,32 @@ function get_center_index(subs, time_pos)
         active_idx = FSM.JUST_JERKED_TO
     end
 
-    if active_idx and active_idx ~= -1 and subs[active_idx] then
-        local s, e = get_effective_boundaries(subs[active_idx], active_idx)
-        if time_pos >= s and time_pos <= e then
-            return active_idx
-        end
-    end
-
     -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
     -- transition to `i+1` - never skip intermediate subs even when large
     -- audio_padding values cause multiple subs' padded zones to overlap time_pos.
+    -- [202605091854] Priority Fix: Check for forward progression BEFORE sticky focus
+    -- to ensure we don't get stuck in the overlap zone (e.g. 2.05s when sub1 ends 
+    -- at 2.0 and sub2 starts at 2.2 with 200ms padding).
     if active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
         local next_idx = active_idx + 1
-        local s_next, e_next = get_effective_boundaries(subs[next_idx], next_idx)
+        local s_next, e_next = get_effective_boundaries(subs, subs[next_idx], next_idx)
         if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
-            return next_idx
+            local _, e_current = get_effective_boundaries(subs, subs[active_idx], active_idx)
+            local expiry = (FSM.IMMERSION_MODE == "PHRASE") and subs[active_idx].end_time or e_current
+            
+            -- [202605091854] Natural Progression: Transition if current sub's focus has expired
+            -- (Actual end in PHRASE mode, Seamless handover in MOVIE mode).
+            if time_pos >= expiry - Options.nav_tolerance then
+                return next_idx
+            end
+        end
+    end
+
+    if active_idx and active_idx ~= -1 and subs[active_idx] then
+        local s, e = get_effective_boundaries(subs, subs[active_idx], active_idx)
+        if time_pos >= s and time_pos <= e then
+            return active_idx
         end
     end
 
@@ -742,7 +751,7 @@ function get_center_index(subs, time_pos)
     -- previous sub's padded end is finished.
     if best < #subs then
         local next_sub = subs[best + 1]
-        local s_next, _ = get_effective_boundaries(next_sub, best + 1)
+        local s_next, _ = get_effective_boundaries(subs, next_sub, best + 1)
         if time_pos >= s_next - Options.nav_tolerance then
             return best + 1
         end
@@ -755,7 +764,7 @@ function get_center_index(subs, time_pos)
     -- If we are in a gap, check the next subtitle's padded start
     if best < #subs then
         local next_sub = subs[best + 1]
-        local s_next, _ = get_effective_boundaries(next_sub)
+        local s_next, _ = get_effective_boundaries(subs, next_sub)
         if time_pos >= s_next then
             return best + 1
         end
@@ -5085,7 +5094,7 @@ local function cmd_dw_double_click()
         FSM.JUST_JERKED_TO = -1
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
-        local s, _ = get_effective_boundaries(sub, line_idx)
+        local s, _ = get_effective_boundaries(subs, sub, line_idx)
         mp.commandv("seek", s, "absolute+exact")
         FSM.last_paused_sub_end = nil
         -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
@@ -5242,7 +5251,7 @@ local function tick_autopause(time_pos)
 
     if active_idx == -1 then return end
     
-    local _, sub_end = get_effective_boundaries(subs[active_idx], active_idx)
+    local _, sub_end = get_effective_boundaries(subs, subs[active_idx], active_idx)
     if not sub_end then return end
 
     -- Check if we've reached the end of the padded window
@@ -5403,7 +5412,7 @@ local function master_tick()
             if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
                and not FSM.TIMESEEK_INHIBIT_UNTIL then
                 if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
-                    local s_next, _ = get_effective_boundaries(Tracks.pri.subs[active_idx], active_idx)
+                    local s_next, _ = get_effective_boundaries(Tracks.pri.subs, Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > Options.nav_tolerance then
                         mp.commandv("seek", s_next, "absolute+exact")
                         FSM.IGNORE_NEXT_JUMP = true
@@ -6144,7 +6153,7 @@ local function cmd_dw_seek_selected()
             FSM.JUST_JERKED_TO = -1
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
-            local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
+            local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
             FSM.last_paused_sub_end = nil
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
@@ -6194,7 +6203,7 @@ local function cmd_dw_seek_delta(dir)
     if wrapped_msg then show_osd(wrapped_msg) end
     local sub = subs[target_idx]
     if sub and sub.start_time then
-        local s, _ = get_effective_boundaries(sub, target_idx)
+        local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, target_idx)
         mp.commandv("seek", math.max(0, s), "absolute+exact")
         FSM.ACTIVE_IDX = target_idx
         if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(target_idx, #Tracks.sec.subs) end
