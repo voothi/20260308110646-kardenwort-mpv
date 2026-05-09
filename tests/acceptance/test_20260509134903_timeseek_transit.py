@@ -18,12 +18,12 @@ Edge cases verified:
   - Sub 3/4 tight overlap (40 ms gap, 1000 ms padding) in fragment1 fixture.
   - Autopause fires correctly at the final subtitle boundary after the transit.
 
-Sub timeline fragment1 (DE, audio_padding = 1000 ms):
-  Sub 1: 4.295 – 5.295   eff: 3.295 – 6.295
-  Sub 2: 6.555 – 11.088  eff: 5.555 – 12.088
-  Sub 3: 11.175 – 12.722 eff: 10.175 – 13.722
-  Sub 4: 12.762 – 15.117 eff: 11.762 – 16.117
-  Sub 5: 15.716 – 20.049 eff: 14.716 – 21.049
+Sub timeline fragment1 (DE, audio_padding_start=200ms, audio_padding_end=200ms default):
+  Sub 1: 4.295 – 5.295   eff: 4.095 – 5.495
+  Sub 2: 6.555 – 11.088  eff: 6.355 – 11.288
+  Sub 3: 11.175 – 12.722 eff: 10.975 – 12.922
+  Sub 4: 12.762 – 15.117 eff: 12.562 – 15.317
+  Sub 5: 15.716 – 20.049 eff: 15.516 – 20.249
 
 Integration test strategy:
   The fixture starts paused, so `pause` state is unreliable as a test signal
@@ -79,7 +79,10 @@ def _seek_time(ipc, direction):
 
 def _func_body(src, name):
     """Return the body of the Lua function `name` up to the next top-level function."""
-    idx = src.find(f"local function {name}")
+    for prefix in (f"local function {name}", f"function LlsProbe.{name}", f"function {name}"):
+        idx = src.find(prefix)
+        if idx != -1:
+            break
     assert idx != -1, f"function {name} not found in lls_core.lua"
     end = src.find("\nlocal function ", idx + 1)
     return src[idx: end if end != -1 else idx + 4000]
@@ -360,28 +363,29 @@ class TestTimseekTransitIntegration:
         )
 
     def test_autopause_fires_at_final_boundary_after_transit(self, mpv_fragment1):
-        """After transit ends, direct seek to sub 4 eff end (16.117) must set last_paused_sub_end."""
+        """After transit ends, direct seek to sub 4 eff end (15.317) must set last_paused_sub_end."""
         ipc = mpv_fragment1.ipc
         _setup_phrase_autopause(ipc)
         _seek(ipc, 14.5)
         _seek_time(ipc, -1)
         _seek_time(ipc, -1)
 
-        # Advance past inhibit to clear it; ACTIVE_IDX transitions to sub 4
+        # Advance past inhibit to clear it; ACTIVE_IDX remains on sub 4
         _seek(ipc, 14.6)
         state_mid = _state(ipc)
         assert state_mid.get('rewind_transit_active') is False, (
             "Precondition: inhibit must be clear at 14.6"
         )
 
-        # Seek to sub 4's effective end — autopause must fire
-        _seek(ipc, 16.117)
+        # Seek to sub 4's effective end (15.117 + 200ms padding = 15.317) — autopause must fire.
+        # ACTIVE_IDX = 4 carries over from tick at 14.6 (sticky sentinel, sub 4 eff: 12.562-15.317).
+        _seek(ipc, 15.317)
 
         state = _state(ipc)
         lpe = state.get('last_paused_sub_end')
-        assert lpe is not None and abs(lpe - 16.117) < 0.05, (
-            f"Autopause did not fire at sub 4 eff end (16.117) — "
-            f"last_paused_sub_end={lpe} (expected ~16.117)"
+        assert lpe is not None and abs(lpe - 15.317) < 0.05, (
+            f"Autopause did not fire at sub 4 eff end (15.317) — "
+            f"last_paused_sub_end={lpe} (expected ~15.317)"
         )
 
     def test_movie_mode_transit_no_pause_at_sub3_boundary(self, mpv_fragment1):

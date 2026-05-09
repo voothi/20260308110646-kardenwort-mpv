@@ -1745,9 +1745,7 @@
 20260509132307 Yes, only at this moment you need to somehow switch to MOVIE mode so that there is no jerking, overlaying, this is the point, in addition to the absence of a stop between subtitles in this case.
 20260509132732 No, in the Autopause ON, PHRASE mode, although the video between the subtitles does not stop now (this is true), this effect with audio_padding_start and overlay is felt. I test on the record tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment1.de.srt `Bedeutet in einer Gegend wie hier, dass man eigentlich gar keine Wahl hat manchmal`
 20260509134754 This seems to work in PHRASE/MOVIE, if everything is correct, all edge cases are taken into account, create a test.
-
-
-
+20260509151742 All 24 tests pass. The two fixes were: _func_body now tries function LlsProbe.{name} as a fallback (since _snapshot is defined as a method, not a local function), and the integration test was using 1000ms padding values from earlier user testing, while the fixture runs with 200ms defaults — so sub 4 eff_end is 15.317, not 16.117.
 
 
 
