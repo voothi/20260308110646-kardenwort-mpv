@@ -7843,7 +7843,11 @@ function LlsProbe._snapshot()
         search_results     = FSM.SEARCH_RESULTS,
         dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
         tracks             = tracks_summary,
-        fsm_state          = FSM.MEDIA_STATE -- Alias for easier access in some tests
+        fsm_state          = FSM.MEDIA_STATE, -- Alias for easier access in some tests
+        test_data          = FSM.TEST_DATA or {},
+        layout_version     = FSM.LAYOUT_VERSION or 0,
+        tooltip_forced     = FSM.DW_TOOLTIP_FORCED,
+        dw_sticky_x        = FSM.DW_CURSOR_X
     }
 end
 
@@ -8010,4 +8014,105 @@ mp.register_script_message("lls-test-search-input", function(char)
         update_search_results()
         render_search()
     end
+end)
+
+mp.register_script_message("lls-test-get-tokens", function(text)
+    local tokens = build_word_list_internal(text, true)
+    local snap = {}
+    for i, t in ipairs(tokens) do
+        table.insert(snap, { text = t.text, logical_idx = t.logical_idx, is_word = t.is_word })
+    end
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_tokens = snap
+end)
+
+mp.register_script_message("lls-test-set-option", function(name, val)
+    if val == "yes" or val == "true" then val = true
+    elseif val == "no" or val == "false" then val = false
+    elseif tonumber(val) then val = tonumber(val) end
+    Options[name] = val
+    if name == "book_mode" then FSM.BOOK_MODE = val end
+    flush_rendering_caches()
+end)
+
+mp.register_script_message("lls-test-dw-key", function(key)
+    if key == "DOWN" then cmd_dw_line_move(1, false)
+    elseif key == "UP" then cmd_dw_line_move(-1, false)
+    elseif key == "LEFT" then cmd_dw_word_move(-1, false)
+    elseif key == "RIGHT" then cmd_dw_word_move(1, false)
+    elseif key == "e" then 
+        FSM.DW_TOOLTIP_FORCED = not FSM.DW_TOOLTIP_FORCED
+        if FSM.DW_TOOLTIP_FORCED then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end
+    end
+end)
+
+mp.register_script_message("lls-test-dw-double-click", function(line_str)
+    local ok, err = xpcall(function()
+        local line = tonumber(line_str)
+        if line and Tracks and Tracks.pri and Tracks.pri.subs then
+            local sub = Tracks.pri.subs[line]
+            if sub then
+                mp.set_property_number("time-pos", sub.start_time)
+                if FSM.BOOK_MODE then
+                    FSM.DW_FOLLOW_PLAYER = false
+                else
+                    FSM.DW_FOLLOW_PLAYER = true
+                    FSM.DW_CURSOR_LINE = line
+                    FSM.DW_CURSOR_WORD = -1
+                    FSM.DW_VIEW_CENTER = line
+                end
+                FSM.ACTIVE_IDX = line
+                master_tick()
+                flush_rendering_caches()
+            end
+        end
+    end, debug.traceback)
+    if not ok then Diagnostic.error("lls-test-dw-double-click error: " .. tostring(err)) end
+end)
+
+mp.register_script_message("lls-test-truncate", function(text)
+    local truncated = text
+    if #text > 120 then
+        truncated = text:sub(1, 120) .. "..."
+    end
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_truncated_str = truncated
+end)
+
+mp.register_script_message("lls-test-validate-term", function(term)
+    local clean = term:gsub("{.-}", ""):match("^%s*(.-)%s*$")
+    local valid = (clean and #clean > 0)
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_term_valid = valid
+end)
+
+mp.register_script_message("lls-test-fuzzy-match", function(query, target)
+    local q = query:lower():gsub("%s+", "")
+    local t = target:lower()
+    local q_idx = 1
+    for i = 1, #t do
+        if t:sub(i, i) == q:sub(q_idx, q_idx) then
+            q_idx = q_idx + 1
+            if q_idx > #q then break end
+        end
+    end
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_fuzzy_match_result = (q_idx > #q)
+end)
+
+mp.register_script_message("lls-test-fuzzy-span", function(query, target)
+    local q = query:lower():gsub("%s+", "")
+    local t = target:lower()
+    local s_idx, e_idx = nil, nil
+    local q_idx = 1
+    for i = 1, #t do
+        if t:sub(i, i) == q:sub(q_idx, q_idx) then
+            if not s_idx then s_idx = i end
+            e_idx = i
+            q_idx = q_idx + 1
+            if q_idx > #q then break end
+        end
+    end
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_fuzzy_span = { s_idx, e_idx }
 end)
