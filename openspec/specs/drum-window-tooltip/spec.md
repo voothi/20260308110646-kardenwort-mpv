@@ -14,11 +14,15 @@ The Tooltip system SHALL support the standard suite of visual parameters (font n
 - **THEN** the tooltip text SHALL render with the corresponding boldness state, synchronized with the user's preference for the active display mode.
 
 ### Requirement: Keyboard Tooltip Toggling
-The system SHALL provide configurable keyboard shortcuts (defined in `mpv.conf`) to toggle the visibility of the tooltip for the currently active subtitle. This functionality SHALL be restricted entirely to the Drum Window ('w') mode.
+The system SHALL provide configurable keyboard shortcuts (defined in `mpv.conf`) to toggle the visibility of the tooltip for the currently active subtitle. This functionality SHALL be available in Drum Window mode, Drum Mode, and SRT mode (when using custom OSD rendering).
 
-#### Scenario: Toggling the tooltip with 'e' key
-- **WHEN** the user presses the assigned toggle key (e.g., 'e' or 'у') while the Drum Window ('w') is active and the tooltip is hidden
-- **THEN** the tooltip for the active subtitle SHALL appear on the screen
+#### Scenario: Toggling the tooltip in SRT mode
+- **WHEN** the user presses the assigned toggle key (e.g., 'e' or 'у') while in SRT mode (Drum Mode OFF, Drum Window OFF)
+- **THEN** the translation tooltip for the active subtitle SHALL appear on the screen
+
+#### Scenario: Toggling the tooltip in Drum Mode
+- **WHEN** the user presses the assigned toggle key (e.g., 'e' or 'у') while Drum Mode is ON
+- **THEN** the translation tooltip for the active subtitle SHALL appear on the screen
 
 #### Scenario: Hiding a visible tooltip with 'e' key
 - **WHEN** the user presses the assigned toggle key while the Drum Window tooltip is currently visible (forced state)
@@ -180,3 +184,12 @@ Tooltips and highlights must be visually accurate and interactive as per archive
 #### Scenario: Tooltip Hit-Zone Accuracy
 - **WHEN** the mouse hovers over a word in the Drum Window.
 - **THEN** the hit-zone must accurately trigger the tooltip without "ghost" interference from adjacent elements.
+
+### Requirement: Tooltip Interaction Eligibility
+The tooltip system SHALL be eligible for activation whenever the primary subtitle is being rendered via the Kardenwort custom OSD (Drum Mode or SRT with custom styling), provided that `osd_interactivity` is enabled.
+
+#### Scenario: Eligibility in Styled SRT Mode
+- **GIVEN** `srt_font_size` is greater than 0
+- **AND** `osd_interactivity` is true
+- **WHEN** the user hovers over a subtitle line in SRT mode
+- **THEN** the tooltip SHALL be eligible for display.

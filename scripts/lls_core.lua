@@ -2659,8 +2659,11 @@ local function clear_tooltip_overlay(reason)
     end
 end
 
-local function is_drum_tooltip_mode_eligible()
-    return FSM.DRUM == "ON"
+local function is_osd_tooltip_mode_eligible()
+    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local srt_active = (FSM.DRUM == "OFF" and use_osd_for_srt)
+
+    return (FSM.DRUM == "ON" or srt_active)
         and FSM.DRUM_WINDOW == "OFF"
         and FSM.native_sub_vis
         and not FSM.MEDIA_STATE:match("ASS")
@@ -4405,7 +4408,7 @@ end
 
 local function cmd_dw_tooltip_pin(tbl)
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
-    local drum_mode = is_drum_tooltip_mode_eligible()
+    local drum_mode = is_osd_tooltip_mode_eligible()
     if not dw_mode and not drum_mode then return end
     
     if tbl.event == "down" then
@@ -4447,7 +4450,7 @@ end
 
 local function cmd_dw_tooltip_toggle()
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
-    local drum_mode = is_drum_tooltip_mode_eligible()
+    local drum_mode = is_osd_tooltip_mode_eligible()
     if not dw_mode and not drum_mode then return end
     
     -- If already forced ON, always toggle OFF regardless of current target match
@@ -4488,7 +4491,7 @@ end
 
 local function dw_tooltip_mouse_update()
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
-    local drum_mode = is_drum_tooltip_mode_eligible()
+    local drum_mode = is_osd_tooltip_mode_eligible()
     if not dw_mode and not drum_mode then
         clear_tooltip_overlay("mode-ineligible")
         FSM.DW_TOOLTIP_FORCE = false
@@ -8006,6 +8009,10 @@ mp.register_script_message("lls-test-dw-esc", function()
     cmd_dw_esc()
 end)
 
+mp.register_script_message("lls-test-dw-tooltip-toggle", function()
+    cmd_dw_tooltip_toggle()
+end)
+
 mp.register_script_message("lls-test-dw-line-move", function(dir_str, shift)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_line_move(dir, shift == "yes" or shift == "true") end
@@ -8129,8 +8136,8 @@ mp.register_script_message("lls-test-dw-key", function(key)
     elseif base == "LEFT" then cmd_dw_word_move(-1, shift, ctrl)
     elseif base == "RIGHT" then cmd_dw_word_move(1, shift, ctrl)
     elseif key == "e" then 
-        FSM.DW_TOOLTIP_FORCED = not FSM.DW_TOOLTIP_FORCED
-        if FSM.DW_TOOLTIP_FORCED then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end
+        FSM.DW_TOOLTIP_FORCE = not FSM.DW_TOOLTIP_FORCE
+        if FSM.DW_TOOLTIP_FORCE then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end
     elseif key == "r" then
         cmd_dw_pair_word()
     elseif key == "o" then
