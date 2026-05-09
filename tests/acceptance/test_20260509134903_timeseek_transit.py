@@ -88,6 +88,30 @@ def _func_body(src, name):
     return src[idx: end if end != -1 else idx + 4000]
 
 
+def _set_padding(ipc, pad_start_ms, pad_end_ms):
+    """Set audio_padding_start/end via IPC (options.read_options(Options,'lls') is wired)."""
+    ipc.command(['set_property', 'options/lls-audio_padding_start', str(pad_start_ms)])
+    ipc.command(['set_property', 'options/lls-audio_padding_end', str(pad_end_ms)])
+    time.sleep(0.12)
+
+
+def _sub3_eff_end(pad_end_ms):
+    """Sub 3 effective end = raw_end (12.722s) + pad_end."""
+    return 12.722 + pad_end_ms / 1000.0
+
+
+def _sub4_movie_eff_end(pad_start_ms):
+    """Sub 4 effective end in MOVIE mode.
+
+    Formula: next_sub.start_time − pad_start, but guarded by raw_end.
+    Guard fires when gap (0.599s) < pad_start: get_effective_boundaries ensures
+    eff_end >= sub.end_time so autopause never fires before the raw subtitle ends.
+    """
+    sub4_raw_end = 15.117
+    sub5_raw_start = 15.716
+    return max(sub5_raw_start - pad_start_ms / 1000.0, sub4_raw_end)
+
+
 # ---------------------------------------------------------------------------
 # 1. Static / structural tests (source-code inspection)
 # ---------------------------------------------------------------------------
@@ -428,4 +452,131 @@ class TestTimseekTransitIntegration:
         state = _state(ipc)
         assert state.get('rewind_transit_active') is False, (
             "Direct IPC seek set rewind_transit_active — only cmd_seek_time should do this"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 4. Live-playback tests — jerk-back and post-transit autopause
+# ---------------------------------------------------------------------------
+
+class TestTimseekTransitLive:
+    """Live-playback tests: player unpaused to verify jerk-back and autopause
+    suppression during natural forward transit after Shift+A/D rewind.
+
+    Sub 3/4 in fragment1 (raw):  gap = 0.040s
+      sub 3: 11.175 – 12.722   sub 4: 12.762 – 15.117   sub 5: 15.716 – 20.049
+
+    Overlap zone by padding (the region where jerk-back fires in wrong code):
+      1000ms/1000ms  →  11.762 – 13.722  (1.96 s)
+      200ms / 200ms  →  12.562 – 12.922  (0.36 s)
+      1000ms/ 200ms  →  11.762 – 12.922  (1.16 s)
+      200ms /1000ms  →  12.562 – 13.722  (1.16 s)
+
+    Jerk-back fires when PHRASE natural playback crosses sub 3 eff_end while
+    ACTIVE_IDX is still 3 — TIMESEEK_INHIBIT_UNTIL suppresses it.
+    Autopause fires at sub 3 eff_end during natural playback — also suppressed.
+    """
+
+    @pytest.mark.parametrize("pad_start,pad_end", [
+        (1000, 1000),
+        (200,  200),
+        (1000, 200),
+        (200,  1000),
+    ], ids=["1000s1000e", "200s200e", "1000s200e", "200s1000e"])
+    def test_no_stop_and_no_jerkback_during_transit(self, mpv_fragment1, pad_start, pad_end):
+        """Natural forward playback after backward rewind must cross sub 3 eff_end
+        without pausing (autopause suppressed) and without snapping back
+        (jerk-back suppressed), for all padding combinations.
+
+        Strategy:
+          1. Set padding, position at 17.2 (sub 5), rewind 3×(−2s) → 11.2.
+             seek_time_delta=2s, so each _seek_time(-1) moves −2s.
+             17.2 − 6 = 11.2, which is within sub 3's eff range for all
+             pad_start variants (min eff_start=10.975 with 200ms).
+             inhibit_until = 17.2 > max(sub3_eff_end)=13.722 for all pad_end.
+          2. Wait 0.6s for MANUAL_NAV_COOLDOWN to expire.
+          3. Unpause, poll for pause or crossing eff_end+0.3s.
+          4. Assert player is not paused and has passed sub3_eff_end.
+        """
+        ipc = mpv_fragment1.ipc
+        _set_padding(ipc, pad_start, pad_end)
+        _setup_phrase_autopause(ipc)
+
+        eff_end = _sub3_eff_end(pad_end)
+
+        _seek(ipc, 17.2)
+        for _ in range(3):
+            _seek_time(ipc, -1)
+
+        state = _state(ipc)
+        assert state.get('rewind_transit_active') is True, (
+            "Precondition: inhibit must be active after 3 backward seeks"
+        )
+        assert state.get('active_sub_index') == 3, (
+            f"Precondition: ACTIVE_IDX must be 3 at pos≈11.2 "
+            f"(sub3 eff=[{11.175 - pad_start/1000:.3f}, {12.722 + pad_end/1000:.3f}], "
+            f"pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"Got: {state.get('active_sub_index')}"
+        )
+
+        time.sleep(0.6)  # let MANUAL_NAV_COOLDOWN expire (set 0.5s ago by last cmd_seek_time)
+
+        ipc.command(['set_property', 'pause', False])
+        paused_early = False
+        start = time.time()
+        while time.time() - start < 5.0:
+            if ipc.get_property('pause'):
+                paused_early = True
+                break
+            pos = ipc.get_property('time-pos')
+            if pos is not None and pos > eff_end + 0.3:
+                break
+            time.sleep(0.05)
+        ipc.command(['set_property', 'pause', True])
+
+        final_pos = ipc.get_property('time-pos')
+        assert not paused_early, (
+            f"Player paused before passing sub 3 eff_end ({eff_end:.3f}s) — "
+            f"autopause or jerk-back fired during transit "
+            f"(pad_start={pad_start}ms, pad_end={pad_end}ms). pos={final_pos:.3f}s"
+        )
+        assert final_pos is not None and final_pos > eff_end, (
+            f"Player did not reach sub 3 eff_end ({eff_end:.3f}s) within 5s — "
+            f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
+        )
+
+    def test_movie_mode_autopause_fires_after_transit(self, mpv_fragment1):
+        """MOVIE mode: after transit clears, autopause must fire at sub 4's
+        MOVIE-mode eff_end (= sub5_raw_start − pad_start = 15.716 − 1.0 = 14.716s).
+
+        Unlike PHRASE mode (eff_end = raw_end + pad_end), MOVIE mode uses the
+        next sub's padded start as the handover boundary, preventing overlap looping.
+        """
+        ipc = mpv_fragment1.ipc
+        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
+        time.sleep(0.1)
+
+        # seek_time_delta=2s, guard: gap(0.599s) < pad_start(1.0s) → eff_end = raw_end = 15.117
+        movie_eff_end = _sub4_movie_eff_end(1000)  # 15.117s (guard: 14.716 < 15.117)
+
+        # Seek inside sub 4 MOVIE eff range (11.762–15.117), apply 1 backward seek,
+        # then clear inhibit by seeking past inhibit_until.
+        # _seek(13.1): diff(15.117−13.1)=2.017 > pause_padding(0.15) → no premature fire.
+        _seek(ipc, 13.0)
+        _seek_time(ipc, -1)   # → 11.0 (delta=2s), inhibit_until = 13.0
+        _seek(ipc, 13.1)      # 13.1 > 13.0 → inhibit clears; diff too large to fire autopause
+
+        state_mid = _state(ipc)
+        assert state_mid.get('rewind_transit_active') is False, (
+            "Precondition: inhibit must be clear after seeking to 13.1 (> inhibit_until 13.0)"
+        )
+
+        _seek(ipc, movie_eff_end)  # jump clears last_paused_sub_end; then autopause fires
+
+        state = _state(ipc)
+        lpe = state.get('last_paused_sub_end')
+        assert lpe is not None and abs(lpe - movie_eff_end) < 0.05, (
+            f"Autopause did not fire at MOVIE sub 4 eff_end ({movie_eff_end:.3f}s) — "
+            f"last_paused_sub_end={lpe}"
         )
