@@ -472,8 +472,8 @@ Options = {
     replay_ms = 2000,              -- Fixed window for adaptive replay (ms)
     replay_count = 2,              -- Number of iterations for the replay command
     replay_autostop = true,        -- Whether to pause after iterations (Autopause ON only)
-    audio_padding_start = 200,    -- Pre-roll buffer in ms
-    audio_padding_end = 200,      -- Post-roll buffer in ms
+    audio_padding_start = 1000,    -- Pre-roll buffer in ms
+    audio_padding_end = 1000,      -- Post-roll buffer in ms
     -- [v1.58.51] Behavioral Parameters
     nav_cooldown = 0.5,           -- Settle period after manual seek (sec)
     nav_tolerance = 0.05,         -- Overlap priority threshold (sec)

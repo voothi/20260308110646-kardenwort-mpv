@@ -18,12 +18,12 @@ Edge cases verified:
   - Sub 3/4 tight overlap (40 ms gap, 1000 ms padding) in fragment1 fixture.
   - Autopause fires correctly at the final subtitle boundary after the transit.
 
-Sub timeline fragment1 (DE, audio_padding_start=200ms, audio_padding_end=200ms default):
-  Sub 1: 4.295 – 5.295   eff: 4.095 – 5.495
-  Sub 2: 6.555 – 11.088  eff: 6.355 – 11.288
-  Sub 3: 11.175 – 12.722 eff: 10.975 – 12.922
-  Sub 4: 12.762 – 15.117 eff: 12.562 – 15.317
-  Sub 5: 15.716 – 20.049 eff: 15.516 – 20.249
+Sub timeline fragment1 (DE, audio_padding_start=1000ms, audio_padding_end=1000ms default):
+  Sub 1: 4.295 – 5.295   eff: 3.295 – 6.295
+  Sub 2: 6.555 – 11.088  eff: 5.555 – 12.088
+  Sub 3: 11.175 – 12.722 eff: 10.175 – 13.722
+  Sub 4: 12.762 – 15.117 eff: 11.762 – 16.117
+  Sub 5: 15.716 – 20.049 eff: 14.716 – 21.049
 
 Integration test strategy:
   The fixture starts paused, so `pause` state is unreliable as a test signal
@@ -377,15 +377,15 @@ class TestTimseekTransitIntegration:
             "Precondition: inhibit must be clear at 14.6"
         )
 
-        # Seek to sub 4's effective end (15.117 + 200ms padding = 15.317) — autopause must fire.
-        # ACTIVE_IDX = 4 carries over from tick at 14.6 (sticky sentinel, sub 4 eff: 12.562-15.317).
-        _seek(ipc, 15.317)
+        # Seek to sub 4's effective end (15.117 + 1000ms padding = 16.117) — autopause must fire.
+        # ACTIVE_IDX = 4 carries over from tick at 14.6 (sticky sentinel, sub 4 eff: 11.762-16.117).
+        _seek(ipc, 16.117)
 
         state = _state(ipc)
         lpe = state.get('last_paused_sub_end')
-        assert lpe is not None and abs(lpe - 15.317) < 0.05, (
-            f"Autopause did not fire at sub 4 eff end (15.317) — "
-            f"last_paused_sub_end={lpe} (expected ~15.317)"
+        assert lpe is not None and abs(lpe - 16.117) < 0.05, (
+            f"Autopause did not fire at sub 4 eff end (16.117) — "
+            f"last_paused_sub_end={lpe} (expected ~16.117)"
         )
 
     def test_movie_mode_transit_no_pause_at_sub3_boundary(self, mpv_fragment1):
