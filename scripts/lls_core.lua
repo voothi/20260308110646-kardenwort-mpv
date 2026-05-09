@@ -699,34 +699,43 @@ function get_center_index(subs, time_pos)
         active_idx = FSM.JUST_JERKED_TO
     end
 
+    -- [v1.58.54] During rewind transit (TIMESEEK_INHIBIT_UNTIL set), Sticky Sentinel
+    -- takes absolute priority to prevent premature ACTIVE_IDX transitions that would
+    -- cause jerk-back or autopause misfires after the transit zone ends.
+    -- During normal forward playback, Natural Progression fires first (below).
+    local inhibit_transit = (FSM.TIMESEEK_INHIBIT_UNTIL ~= nil) and (time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL)
+
+    if inhibit_transit then
+        if active_idx and active_idx ~= -1 and subs[active_idx] then
+            local s, e = get_effective_boundaries(subs, subs[active_idx], active_idx)
+            if time_pos >= s and time_pos <= e then
+                return active_idx
+            end
+        end
+    end
+
     -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
     -- transition to `i+1` - never skip intermediate subs even when large
     -- audio_padding values cause multiple subs' padded zones to overlap time_pos.
-    -- [202605091854] Priority Fix: Check for forward progression BEFORE sticky focus
-    -- to ensure we don't get stuck in the overlap zone (e.g. 2.05s when sub1 ends
-    -- at 2.0 and sub2 starts at 2.2 with 200ms padding).
-    -- [20260509192327] Expiry Fix: Use padded end (e_current) in both PHRASE and MOVIE
-    -- modes. PHRASE mode previously used raw SRT end_time, which caused premature
-    -- transitions when padded windows overlapped (large padding). The sentinel should
-    -- hold until the full audio window of sub i expires, regardless of immersion mode.
-    if active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
+    -- Skipped during rewind transit (handled above via Sticky Sentinel).
+    if not inhibit_transit and active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
         local next_idx = active_idx + 1
         local s_next, e_next = get_effective_boundaries(subs, subs[next_idx], next_idx)
         if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
             local _, e_current = get_effective_boundaries(subs, subs[active_idx], active_idx)
-
-            -- Natural Progression: transition only after the current sub's padded window expires.
             if time_pos >= e_current - Options.nav_tolerance then
                 return next_idx
             end
         end
     end
 
-    if active_idx and active_idx ~= -1 and subs[active_idx] then
-        local s, e = get_effective_boundaries(subs, subs[active_idx], active_idx)
-        if time_pos >= s and time_pos <= e then
-            return active_idx
+    if not inhibit_transit then
+        if active_idx and active_idx ~= -1 and subs[active_idx] then
+            local s, e = get_effective_boundaries(subs, subs[active_idx], active_idx)
+            if time_pos >= s and time_pos <= e then
+                return active_idx
+            end
         end
     end
 
