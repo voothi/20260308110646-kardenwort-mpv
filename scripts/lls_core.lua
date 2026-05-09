@@ -5378,7 +5378,10 @@ local function master_tick()
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
-            FSM.TIMESEEK_INHIBIT_UNTIL = nil
+            -- TIMESEEK_INHIBIT_UNTIL is NOT cleared here — it is cleared only by
+            -- the explicit inhibit gate (time_pos > TIMESEEK_INHIBIT_UNTIL) below.
+            -- Clearing it in generic jump detection would allow autopause to fire at
+            -- intermediate sub boundaries during rewind transit (ZID 20260509233440).
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
             if FSM.LOOP_MODE == "ON" then
                 -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
@@ -5469,7 +5472,10 @@ local function master_tick()
     end
 
     -- [20260507154518] Maintain secondary Sticky Sentinel (mirrors primary ACTIVE_IDX pattern).
-    if #Tracks.sec.subs > 0 then
+    -- [20260509233440] Gate with MANUAL_NAV_COOLDOWN so that cmd_dw_seek_delta's explicit
+    -- SEC_ACTIVE_IDX assignment is not immediately overwritten by the natural sentinel scan.
+    -- During the cooldown window, the secondary sentinel preserves the seek target.
+    if #Tracks.sec.subs > 0 and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
         local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
         if sec_idx ~= -1 then
             FSM.SEC_ACTIVE_IDX = sec_idx
