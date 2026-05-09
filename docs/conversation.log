@@ -1746,8 +1746,8 @@
 20260509132732 No, in the Autopause ON, PHRASE mode, although the video between the subtitles does not stop now (this is true), this effect with audio_padding_start and overlay is felt. I test on the record tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment1.de.srt `Bedeutet in einer Gegend wie hier, dass man eigentlich gar keine Wahl hat manchmal`
 20260509134754 This seems to work in PHRASE/MOVIE, if everything is correct, all edge cases are taken into account, create a test.
 20260509151742 All 24 tests pass. The two fixes were: _func_body now tries function LlsProbe.{name} as a fallback (since _snapshot is defined as a method, not a local function), and the integration test was using 1000ms padding values from earlier user testing, while the fixture runs with 200ms defaults — so sub 4 eff_end is 15.317, not 16.117.
-
-
+20260509151917 You, as a specification architect, document the revision /opsx:propose anchors 20260509130838 20260509132307 20260509132732 20260509134754 20260509151742 docs\conversation.log
+20260509152735 Look and note in the diff documents 25bc59ecd239c78ead0def6144687c6525ed3985..7d6b186c7460d60d72d2aa9e4b29ff9b64c967c0
 
 
 
