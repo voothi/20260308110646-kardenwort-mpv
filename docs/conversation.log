@@ -1711,9 +1711,8 @@
 20260509002245 I asked you to create tests.
 20260509003416 opsx-archive --sync openspec\changes\20260509001712-fix-drum-mode-paired-selection
 20260509003502 Archive Complete Change: 20260509001712-fix-drum-mode-paired-selection Schema: spec-driven Archived to: openspec/changes/archive/20260509001712-fix-drum-mode-paired-selection/ Specs: ✓ Synced to main specs All artifacts complete. All tasks complete. 📝 Sync Summary The following requirement has been updated in the project's main specifications: Ctrl-Multiselect: Updated Selection Range Feedback to mandate immediate pink highlights across all rendering modes (Drum Window, Drum Mode, and SRT mode), including a new scenario for immediate OSD redraw. I have also verified the fix with the newly created acceptance test test_reg_20260509_drum_pink.py, which is now part of the regression suite.
-
-
-
+20260509073052 Create tests for openspec\specs\configurable-scaling-strength openspec\specs\consumption-focused-documentation openspec\specs\context-copy openspec\specs\context-copy-fsm-repair openspec\specs\coordinated-input-system openspec\specs\core-scaling-integration openspec\specs\ctrl-multiselect openspec\specs\cyclic-navigation openspec\specs\cyrillic-case-normalization openspec\specs\deactivated-pointer-logic openspec\specs\descriptive-ui-feedback openspec\specs\dev-analytics-automation openspec\specs\display openspec\specs\drum-context openspec\specs\drum-draw-cache openspec\specs\drum-mini-z-tooltip-mode openspec\specs\drum-rendering-persistence openspec\specs\drum-scroll-sync openspec\specs\drum-sync-compatibility-guards openspec\specs\drum-window openspec\specs\drum-window-high-precision-rendering
+20260509074044 Rename with ZID tests\acceptance\test_reg_historical_batch_20260509.py
 
 
 
