@@ -6,8 +6,9 @@ In `Autopause ON, PHRASE/MOVIE` mode, subtitle navigation (via `Shift+a/d`) is c
 
 - **Fluid Navigation**: Modify navigation logic to suppress repeat/boundary stops and "recording end" triggers specifically during active rewind/forward jumps (`Shift+a/d`).
 - **Mode-Switching Guard**: Temporarily treat jumps as occurring in `MOVIE` mode internally to ensure the video continues playing smoothly through subtitle transitions without the "slug" or "padding" pause being enforced.
-- **Padding Alignment**: Update the regression test suite and fixtures to use the standard 200ms `audio_padding_start` value (aligning with `lls-audio_padding_start=200` defaults).
+- **Padding Standardization**: Update the regression test suite and production defaults to use a robust **1000ms** `audio_padding_start/end` value (aligning with `lls-audio_padding_start=1000` for deep-immersion testing).
 - **LlsProbe Fix**: Fix a bug in the test harness where `_func_body` failed to find `LlsProbe` methods defined as table members rather than local functions.
+- **Fragment2 Coverage**: Expanded the validation suite to include complex overlap scenarios in `fragment2` fixtures, covering all 4 padding combinations (200/200, 1000/1000, etc.).
 
 ## Capabilities
 
@@ -17,7 +18,7 @@ In `Autopause ON, PHRASE/MOVIE` mode, subtitle navigation (via `Shift+a/d`) is c
 ### Modified Capabilities
 - `karaoke-autopause`: Suppress boundary pauses during manual subtitle navigation (`Shift+a/d`).
 - `immersion-engine`: Ensure smooth state transitions between `PHRASE` and pseudo-`MOVIE` states during rapid jumps.
-- `automated-acceptance-testing`: Align test suite padding constants with production defaults and fix `LlsProbe` method resolution.
+- `automated-acceptance-testing`: Align test suite padding constants with 1000ms defaults, fix `LlsProbe` method resolution, and verify fragment2 overlap edge cases.
 
 ## Impact
 

@@ -9,8 +9,9 @@ However, if multiple subtitles have overlapping padded boundaries (due to high p
 **Goals:**
 - Implement "Fluid Navigation": Suppress all autopause triggers and boundary-enforced stops during manual subtitle jumps (`Shift+a/d`).
 - Mode-Switching during Jumps: Treat manual jumps as "Pseudo-MOVIE" transitions to ensure seamless audio handover.
-- Standardize Test Constants: Update the regression suite to use 200ms padding instead of the non-default 1000ms.
+- Standardize Test Constants: Update the regression suite and production defaults to 1000ms.
 - Fix LlsProbe resolution: Ensure the test harness can inspect Lua table methods.
+- Formula Correction: Account for the `get_effective_boundaries` guard where `stop = max(calculated_stop, sub.end_time)` prevents shrinking effective ranges below the subtitle duration.
 
 **Non-Goals:**
 - Changing the default `PHRASE` mode behavior during normal (non-navigational) playback.
@@ -24,9 +25,10 @@ However, if multiple subtitles have overlapping padded boundaries (due to high p
 2. **Autopause Suppression**: In `tick_autopause`, return immediately if `time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL`.
 3. **Jerk-Back Suppression**: Gate the Phrase overlap jerk-back logic in `master_tick` with `not FSM.TIMESEEK_INHIBIT_UNTIL`.
 4. **Sentinel Clearing**: Clear the inhibit in `master_tick` only when `time_pos > FSM.TIMESEEK_INHIBIT_UNTIL` (strict greater than).
-5. **IPC Instrumentation**: Register `lls-test-seek-time` script message and update `LlsProbe._snapshot` to expose the new sentinel fields.
+5. **IPC Instrumentation**: Register `lls-test-seek-time` script message and update `LlsProbe._snapshot` to expose the new sentinel fields. Note: `cmd_seek_time` uses a **2.0s** delta by default.
 6. **LlsProbe Fallback**: Modify `_func_body` in the IPC harness to check `LlsProbe[name]` if `_G[name]` fails.
-7. **Test Alignment**: Update `test_20260509134903_timeseek_transit.py` to reflect 200ms padding boundaries.
+7. **Test Alignment**: Update `test_20260509134903_timeseek_transit.py` to reflect 1000ms padding boundaries and verify against `fragment1` and `fragment2` fixtures.
+8. **Boundary Calculation**: In `MOVIE` mode, `eff_end` calculation must respect the gap guard: `eff_end = max(next_sub.start - padding, current_sub.end)`.
 
 ## Risks / Trade-offs
 

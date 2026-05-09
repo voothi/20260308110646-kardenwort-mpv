@@ -1760,9 +1760,7 @@
 20260509164040 29/29. The two root causes were: _sub4_movie_eff_end formula was wrong — get_effective_boundaries has a guard if stop < sub.end_time then stop = sub.end_time that fires when the gap between sub 4 and sub 5 (0.599s) is smaller than pad_start (1000ms). So MOVIE eff_end = max(15.716−1.0, 15.117) = 15.117, not 14.716. seek_time_delta = 2s, not 1s — so _seek_time(-1) moves −2s per call. Three calls from 14.5 landed at 8.5 (sub 2), not 11.5 (sub 3). Starting from 17.2 gives 17.2−6 = 11.2, which is in sub 3's eff range for all four padding combinations.
 20260509164131 You can check this on real fixtures tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.mp4 tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.ru.srt tests\fixtures\20260507200612-paketzustellerin-in-der-vorweihnachtszeit\20260507164826-fragment2.de.srt Here is this excerpt ``` 00:00:06,120 --> 00:00:08,871 Es sind pro Stunde um die 800 Sendungen, 4 00:00:08,911 --> 00:00:11,236 800 bis 1.000, die wir auflegen. 5 00:00:12,401 --> 00:00:14,381 Ein Paket wiegt durchschnittlich fünf Kilo. ```
 20260509164844 37/37. Both overlap zones in fragment2 are verified across all 4 padding combinations. The key position calculations: Sub 3/4: start=13.5 → after 3×(−2s) = 7.5s. Falls below sub 4's minimum eff_start (7.911 with 1000ms) so binary search resolves to sub 3 for every padding combo. inhibit_until=13.5 covers max(sub3_eff_end)=9.871. Sub 5/6: start=18.4 → after 3×(−2s) = 12.4s. Falls below sub 6's minimum eff_start (13.421 with 1000ms) while landing within sub 5's range. inhibit_until=18.4 covers max(sub5_eff_end)=15.381.
-
-
-
+20260509165255 Update openspec\changes\20260509152445-fix-autopause-phrase-movie-rewind f558db1c4f0a64bccc7507b5670ef95848aef714..e34ce894d9708cc558e6aa9329fd052c874589bc
 
 
 

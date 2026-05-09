@@ -11,9 +11,9 @@
 - [x] 2.1 **Method Resolution**: Update `_func_body` in the IPC harness to fallback to `LlsProbe.{name}`.
 - [x] 2.2 **Snapshot Update**: Expose `rewind_transit_active` and `rewind_transit_until` in `LlsProbe._snapshot`.
 - [x] 2.3 **Test Message**: Register `lls-test-seek-time` for test-driven seek triggering.
-- [x] 2.4 **Standardize Padding**: Update `test_20260509134903_timeseek_transit.py` with 200ms padding and updated boundary timestamps.
+- [x] 2.4 **Expanded Coverage**: Update `test_20260509134903_timeseek_transit.py` with 1000ms padding, 2.0s delta, and verify 37 integration cases across `fragment1` and `fragment2`.
 
 ## 3. Verification
 
-- [x] 3.1 **Regression Run**: Execute the full acceptance suite (`pytest tests/acceptance/`) and ensure all tests (including the updated transit test) pass.
-- [x] 3.2 **Manual Smoke Test**: Verify that `Shift+a/d` in `PHRASE` mode feels fluid and doesn't jerk at boundaries.
+- [x] 3.1 **Regression Run**: Execute the full acceptance suite (`pytest tests/acceptance/`) and ensure all 37 tests (including fragment2 overlap cases) pass.
+- [x] 3.2 **Manual Smoke Test**: Verify that `Shift+a/d` in `PHRASE` mode feels fluid and doesn't jerk at boundaries in controversial overlay areas.
