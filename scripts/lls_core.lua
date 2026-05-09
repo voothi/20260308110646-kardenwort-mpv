@@ -7847,7 +7847,8 @@ function LlsProbe._snapshot()
         test_data          = FSM.TEST_DATA or {},
         layout_version     = FSM.LAYOUT_VERSION or 0,
         tooltip_forced     = FSM.DW_TOOLTIP_FORCED,
-        dw_sticky_x        = FSM.DW_CURSOR_X
+        dw_sticky_x        = FSM.DW_CURSOR_X,
+        platform           = package.config:sub(1,1) == "\\" and "windows" or "unix"
     }
 end
 
@@ -8036,13 +8037,21 @@ mp.register_script_message("lls-test-set-option", function(name, val)
 end)
 
 mp.register_script_message("lls-test-dw-key", function(key)
-    if key == "DOWN" then cmd_dw_line_move(1, false)
-    elseif key == "UP" then cmd_dw_line_move(-1, false)
-    elseif key == "LEFT" then cmd_dw_word_move(-1, false)
-    elseif key == "RIGHT" then cmd_dw_word_move(1, false)
+    local shift = key:find("Shift%+") ~= nil
+    local ctrl = key:find("Ctrl%+") ~= nil
+    local base = key:gsub("Shift%+", ""):gsub("Ctrl%+", "")
+    
+    if base == "DOWN" then cmd_dw_line_move(1, shift)
+    elseif base == "UP" then cmd_dw_line_move(-1, shift)
+    elseif base == "LEFT" then cmd_dw_word_move(-1, shift, ctrl)
+    elseif base == "RIGHT" then cmd_dw_word_move(1, shift, ctrl)
     elseif key == "e" then 
         FSM.DW_TOOLTIP_FORCED = not FSM.DW_TOOLTIP_FORCED
         if FSM.DW_TOOLTIP_FORCED then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end
+    elseif key == "r" then
+        cmd_dw_pair_word()
+    elseif key == "o" then
+        cmd_dw_open_record()
     end
 end)
 
