@@ -1714,11 +1714,8 @@
 20260509073052 Create tests for openspec\specs\configurable-scaling-strength openspec\specs\consumption-focused-documentation openspec\specs\context-copy openspec\specs\context-copy-fsm-repair openspec\specs\coordinated-input-system openspec\specs\core-scaling-integration openspec\specs\ctrl-multiselect openspec\specs\cyclic-navigation openspec\specs\cyrillic-case-normalization openspec\specs\deactivated-pointer-logic openspec\specs\descriptive-ui-feedback openspec\specs\dev-analytics-automation openspec\specs\display openspec\specs\drum-context openspec\specs\drum-draw-cache openspec\specs\drum-mini-z-tooltip-mode openspec\specs\drum-rendering-persistence openspec\specs\drum-scroll-sync openspec\specs\drum-sync-compatibility-guards openspec\specs\drum-window openspec\specs\drum-window-high-precision-rendering
 20260509074044 Rename with ZID tests\acceptance\test_reg_historical_batch_20260509.py
 20260509074356 Create tests for docs\conversation.log openspec\specs\drum-window-indexing openspec\specs\drum-window-navigation openspec\specs\drum-window-performance openspec\specs\drum-window-reading-mode openspec\specs\drum-window-state-fix openspec\specs\drum-window-sticky-navigation openspec\specs\drum-window-tooltip openspec\specs\dw-mouse-selection-engine openspec\specs\dw-visual-optimization openspec\specs\dynamic-contrast-rendering openspec\specs\dynamic-osd-border-override openspec\specs\export-engine-hardening openspec\specs\extended-layout-robustness openspec\specs\externalized-ui-styling openspec\specs\feature-path-validation openspec\specs\folder-name-standardization openspec\specs\fsm-architecture openspec\specs\fuzzy-search-optimization openspec\specs\fuzzy-span-calculation openspec\specs\global-navigation-bindings openspec\specs\global-semantic-coloring
-
-
-
-
-
+20260509080533 Create tests for docs\conversation.log openspec\specs\high-recall-highlighting openspec\specs\highlight-time-index openspec\specs\hit-test-multipliers openspec\specs\hotkey-simplification openspec\specs\immersion-engine openspec\specs\independent-book-mode-pointer openspec\specs\independent-sub-positioning openspec\specs\input-config-migration openspec\specs\intelligent-track-diagnostics openspec\specs\inter-segment-highlighter openspec\specs\isotropic-coordinate-mapping openspec\specs\karaoke-autopause openspec\specs\keybinding-consolidation openspec\specs\keyboard-selection-granularity openspec\specs\language-acquisition-standardization openspec\specs\layout-agnostic-hotkeys openspec\specs\layout-agnostic-seeking openspec\specs\libass-rendering-alignment openspec\specs\lifecycle-reporting openspec\specs\live-positioning-sync openspec\specs\lls-mouse-input
+20260509081040 Rename with ZID tests\acceptance\test_reg_20260509_specs.py
 
 
 
