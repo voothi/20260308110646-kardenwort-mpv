@@ -5597,6 +5597,7 @@ local function cmd_dw_scroll(dir)
     end
     FSM.DW_FOLLOW_PLAYER = false
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+    FSM.DW_CURSOR_WORD = -1 -- [pointer-auto-reset-triggers]
     dw_sync_cursor_to_mouse()
 end
 
@@ -8093,6 +8094,15 @@ mp.register_script_message("lls-test-validate-term", function(term)
     local valid = (clean and #clean > 0)
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.test_term_valid = valid
+end)
+
+mp.register_script_message("lls-test-search-mode-set", function(state)
+    FSM.SEARCH_MODE = (state == "ON" or state == "true")
+    if FSM.SEARCH_MODE then
+        FSM.SEARCH_QUERY = ""
+        FSM.SEARCH_CURSOR = 0
+        render_search()
+    end
 end)
 
 mp.register_script_message("lls-test-fuzzy-match", function(query, target)
