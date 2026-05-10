@@ -1789,8 +1789,7 @@
 20260510162117 Complete the logic with the fact that if scrolling in one way or another occurs inside one subtitle, then we do not turn off autopause and playback with Autopause ON should in this case stop regularly at the end of these subtitles.
 20260510170701 It is necessary for the clicks to accumulate, otherwise now it seems to work only if you press once, then during the transition between subtitles it works smoothly and without stops.
 20260510171244 No, this doesn’t work, because the user may not immediately turn on playback after rewinding, but the timer has already passed, what should I do? Revert to the past decision and improve it? Go to version 20260509130520? I rolled away.
-
-
+20260510181657 The full acceptance test suite has been executed against the current codebase (latest commit 9461536d). Result: 621 passed, 0 failed (Duration: 8m 17s)
 
 
 
