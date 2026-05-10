@@ -5244,16 +5244,6 @@ local function tick_autopause(time_pos)
     if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
 
-    -- [v1.58.54] Skip autopause while transiting through the rewind zone after Shift+A/D.
-    -- Uses <= so the exact boundary tick is still suppressed; the inhibit is cleared
-    -- only after jerk-back has also been evaluated (see end of main tick function).
-    -- [20260510193230] Special case: within-subtitle rewind should still allow autopause at end.
-    local in_rewind_transit = FSM.TIMESEEK_INHIBIT_UNTIL and time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL
-    local within_subtitle_rewind = in_rewind_transit and FSM.REWIND_START_IDX and active_idx == FSM.REWIND_START_IDX
-    
-    -- Suppress autopause only during cross-subtitle rewind transit
-    if in_rewind_transit and not within_subtitle_rewind then return end
-    
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
@@ -5264,9 +5254,18 @@ local function tick_autopause(time_pos)
         -- Fallback if sentinel is lost
         active_idx = get_center_index(subs, time_pos)
     end
-
     if active_idx == -1 then return end
-    
+
+    -- [v1.58.54] Skip autopause while transiting through the rewind zone after Shift+A/D.
+    -- Uses <= so the exact boundary tick is still suppressed; the inhibit is cleared
+    -- only after jerk-back has also been evaluated (see end of main tick function).
+    -- [20260510193230] Special case: within-subtitle rewind should still allow autopause at end.
+    local in_rewind_transit = FSM.TIMESEEK_INHIBIT_UNTIL and time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL
+    local within_subtitle_rewind = in_rewind_transit and FSM.REWIND_START_IDX and active_idx == FSM.REWIND_START_IDX
+
+    -- Suppress autopause only during cross-subtitle rewind transit
+    if in_rewind_transit and not within_subtitle_rewind then return end
+
     local _, sub_end = get_effective_boundaries(subs, subs[active_idx], active_idx)
     if not sub_end then return end
 
@@ -6134,6 +6133,14 @@ local function cmd_replay_sub()
     -- As per user request: "get rid of the boundaries of subtitles altogether and leave only the range of the track"
     local replay_start = math.max(0, time_pos - Options.replay_ms/1000)
     local replay_end = time_pos
+    local subs = Tracks.pri.subs
+    local current_idx = -1
+    local replay_start_idx = -1
+    if subs and #subs > 0 then
+        current_idx = get_center_index(subs, time_pos)
+        replay_start_idx = get_center_index(subs, replay_start)
+    end
+    local is_cross_card_replay = (current_idx ~= -1 and replay_start_idx ~= -1 and current_idx ~= replay_start_idx)
 
     if FSM.AUTOPAUSE == "OFF" then
         -- Autopause OFF: "Flashback" Replay (Finite Segment)
@@ -6148,6 +6155,7 @@ local function cmd_replay_sub()
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
+        FSM.REWIND_START_IDX = nil
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
     else
@@ -6161,7 +6169,13 @@ local function cmd_replay_sub()
         
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
-        FSM.TIMESEEK_INHIBIT_UNTIL = nil
+        if is_cross_card_replay then
+            FSM.TIMESEEK_INHIBIT_UNTIL = time_pos
+            FSM.REWIND_START_IDX = current_idx
+        else
+            FSM.TIMESEEK_INHIBIT_UNTIL = nil
+            FSM.REWIND_START_IDX = nil
+        end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
@@ -6292,19 +6306,22 @@ local function cmd_seek_time(dir)
     -- Autopause is inhibited until playback naturally returns past the pre-seek position.
     -- [20260510193230] Track rewind start index to distinguish within-subtitle vs cross-subtitle rewind.
     local current_pos = mp.get_property_number("time-pos") or 0
-    local current_idx = get_center_index(Tracks.pri.subs, current_pos)
-    
-    -- Clear inhibit and rewind state on forward seek
-    if delta > 0 then
+    local target_pos = math.max(0, current_pos + delta)
+    local subs = Tracks.pri.subs
+    local current_idx = (subs and #subs > 0) and get_center_index(subs, current_pos) or -1
+    local target_idx = (subs and #subs > 0) and get_center_index(subs, target_pos) or -1
+    local is_cross_card_seek = (current_idx ~= -1 and target_idx ~= -1 and current_idx ~= target_idx)
+
+    -- Clear inhibit and rewind state on forward seeks and inside-card rewinds.
+    if delta > 0 or not is_cross_card_seek then
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
         FSM.REWIND_START_IDX = nil
     else
-        -- Backward seek: track rewind state
-        if not FSM.REWIND_START_IDX then
-            FSM.REWIND_START_IDX = current_idx
-            -- [20260510201933] Fix: Only set inhibit on FIRST backward seek to preserve original position
+        -- Backward cross-card seek: preserve first pre-seek position for deterministic transit clear.
+        if not FSM.TIMESEEK_INHIBIT_UNTIL then
             FSM.TIMESEEK_INHIBIT_UNTIL = current_pos
         end
+        FSM.REWIND_START_IDX = current_idx
     end
 
     mp.commandv("seek", delta, "relative+exact")
