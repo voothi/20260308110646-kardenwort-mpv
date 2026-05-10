@@ -1780,22 +1780,18 @@
 20260509231404 Here's the analysis and what was done: Root cause investigation: The TIMESEEK_INHIBIT_UNTIL rewind protection mechanism (from session 20260509130838) is fully intact in the code — the inhibit set in cmd_seek_time, the autopause suppression in tick_autopause, the jerk-back gate in master_tick, and the strict-> clear are all identical to the working commit 13386671. All 658 structural tests pass, including the 12 rewind-transit specific tests. However, I found a state hygiene issue: TIMESEEK_INHIBIT_UNTIL was never cleared by manual navigation functions (cmd_dw_seek_delta, cmd_dw_seek_selected, cmd_dw_double_click, cmd_replay_sub). If the user triggers any manual navigation after a rewind, the stale inhibit could interfere with normal subtitle tracking. The universal jump detection in master_tick also wasn't clearing it. Changes applied (5 locations): Added FSM.TIMESEEK_INHIBIT_UNTIL = nil to: cmd_dw_double_click — manual seek via double-click cmd_dw_seek_selected — manual seek to selected line cmd_dw_seek_delta — manual next/prev subtitle navigation cmd_replay_sub (both branches) — replay segment Universal jump detection in master_tick — any detected position jump > 0.3s that wasn't from cmd_seek_time If the rewind regression persists, the issue may be at the runtime level (mpv seek timing, tick rate) rather than in the Lua logic. I'd recommend testing with the live mpv integration tests (-k "Live") to confirm.
 20260509233440 There are problems with tests. See also activity history docs\conversation.log. You can trace history through ZID.
 20260510005940 666 passed in 587.40s (0:09:47) 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+20260510084327 x You as spec architect update openspec\changes\archive\20260509152445-fix-autopause-phrase-movie-rewind according to the changes of the time.
+20260510085426 x @terminal Look at the tests and correct them ============================= short test summary info ============================= FAILED tests/acceptance/test_20260501160807_dw_esc_staged_reset.py::TestImmersionRegressions::test_20260501005019_natural_progression - AssertionError: Expected transition to sub 2, got 1 FAILED tests/acceptance/test_20260506223500_fixtures_load.py::test_20260506223500_natural_progression_skip - AssertionError: Expected Natural Progression to advance to index 2 at 2.05s, got 1 FAILED tests/acceptance/test_20260509080221_drum_window_indexing_simple.py::TestHistoricalRegressionsV2::test_dw_mouse_selection_engine_double_click - assert 1 == 2 FAILED tests/acceptance/test_20260509085125_has_phrase_phrase_first.py::test_has_phrase_phrase_first_order - AssertionError: drum OSD returned empty render after seek FAILED tests/acceptance/test_20260509085150_cycle_never_lands_on.py::TestImmersionSuiteHardening::test_phrase_jerkback_advances_active_idx_in_overlap - AssertionError: Expected Jerk-Back to advance to sub 2 at 2.05s; got 1 ==================== 5 failed, 653 passed in 579.75s (0:09:39) ==================== PS U:\voothi\20260308110646-kardenwort-mpv>
+20260510094211 x OpenSpec: Add OpenCode, Continue
+20260510124758 x Look at the tests and correct them. Take into account the action log docs\conversation.log. And also look git log subject 20260509165810..20260510122050 с моими попытками. Attention, before analyzing the tests, I need to include the features, changes that were there during this time - 20260509152445, 20260509165936, 20260509180017,.... Look, make a plan /opsx:propose
+20260510150746 x /opsx-propose I rolled back from 20260510135620 to 20260509130520. Let's think about whether we can simplify the logic of repeating `s` and scrolling `Shift+a/d`, which we are developing with 20260509130520 in such a way that we simply at this moment, when we press such combinations, turn off autopause OFF at a certain point in time, for the time that we rewinded in one way or another.
+20260510160820 x Error
+20260510162117 x Complete the logic with the fact that if scrolling in one way or another occurs inside one subtitle, then we do not turn off autopause and playback with Autopause ON should in this case stop regularly at the end of these subtitles.
+20260510170701 x It is necessary for the clicks to accumulate, otherwise now it seems to work only if you press once, then during the transition between subtitles it works smoothly and without stops.
+20260510171244 x No, this doesn’t work, because the user may not immediately turn on playback after rewinding, but the timer has already passed, what should I do? Revert to the past decision and improve it? Go to version 20260509130520? I rolled away.
+20260510181657 x The full acceptance test suite has been executed against the current codebase (latest commit 9461536d). Result: 621 passed, 0 failed (Duration: 8m 17s)
+20260510183143 x You are an architect and a surgeon, I am now in position 20260510183341, I need to refine the minimally invasive current logic for rewinding Shift+a/d, repeat s so that if it scrolls within the current subtitle, playback with Autopause ON would stop at the end of it. Here we also need to decide what to do with the PHRASE mode, when we overlap and repeat the previous subtitle. I have made a lot of attempts to solve the issue, you can look in docs\conversation.log and git log.
+20260510191545 x This doesn't work as it should.
 
 
 
