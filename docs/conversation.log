@@ -1799,7 +1799,8 @@
 20260511002803 Openspec Apply Change 20260511001834-formalize-autopause-transit-contract
 20260511004304 Why are there so many processes?
 20260511004948 I deleted the processes and restarted the IDE, let's continue, what else needs to be done?
-
+20260511005918 Okay, this works as it should, now let's check the tests for it.
+20260511013900 It works, check that all the nuances and cases are described in the documentation, specifications, and covered by tests.
 
 
 

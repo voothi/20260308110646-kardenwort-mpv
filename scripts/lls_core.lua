@@ -528,6 +528,7 @@ local FSM = {
     IGNORE_NEXT_JUMP = false,
     TIMESEEK_INHIBIT_UNTIL = nil, -- Suppress autopause during backward time-seek transit
     REWIND_START_IDX = nil,      -- Starting subtitle index when rewind began (for within-subtitle detection)
+    REWIND_TRANSIT_CROSS_CARD = false, -- True only when backward time-seek crosses subtitle card boundary
     LOOP_MODE = "OFF",
     LOOP_ARMED = false,
     LOOP_START = nil,
@@ -676,7 +677,7 @@ local function get_effective_boundaries(subs, sub, idx)
     -- [v1.58.51] Movie Mode: Seamless handover at the next subtitle's padded start.
     -- This prevents overlapping audio loops while still ensuring the pre-roll is heard.
     -- [20260510193230] PHRASE Mode: Seamless handover during rewind transit to prevent overlay/jerking.
-    if FSM.IMMERSION_MODE == "MOVIE" or (FSM.IMMERSION_MODE == "PHRASE" and FSM.TIMESEEK_INHIBIT_UNTIL) then
+    if FSM.IMMERSION_MODE == "MOVIE" or (FSM.IMMERSION_MODE == "PHRASE" and FSM.TIMESEEK_INHIBIT_UNTIL and FSM.REWIND_TRANSIT_CROSS_CARD) then
         if idx and subs and idx < #subs then
             stop = subs[idx + 1].start_time - pad_start
             -- Guard: never pause before SRT end_time (short gaps shrink the handover boundary)
@@ -5264,7 +5265,7 @@ local function tick_autopause(time_pos)
     local within_subtitle_rewind = in_rewind_transit and FSM.REWIND_START_IDX and active_idx == FSM.REWIND_START_IDX
 
     -- Suppress autopause only during cross-subtitle rewind transit
-    if in_rewind_transit and not within_subtitle_rewind then return end
+    if in_rewind_transit and FSM.REWIND_TRANSIT_CROSS_CARD and not within_subtitle_rewind then return end
 
     local _, sub_end = get_effective_boundaries(subs, subs[active_idx], active_idx)
     if not sub_end then return end
@@ -5429,7 +5430,7 @@ local function master_tick()
             -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
             -- is expected: no jerking, no overlap-driven snaps.
             if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
-               and not FSM.TIMESEEK_INHIBIT_UNTIL then
+               and (not FSM.TIMESEEK_INHIBIT_UNTIL or not FSM.REWIND_TRANSIT_CROSS_CARD) then
                 if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
                     local s_next, _ = get_effective_boundaries(Tracks.pri.subs, Tracks.pri.subs[active_idx], active_idx)
                     if s_next and (time_pos - s_next) > Options.nav_tolerance then
@@ -5446,6 +5447,7 @@ local function master_tick()
             if FSM.TIMESEEK_INHIBIT_UNTIL and time_pos > FSM.TIMESEEK_INHIBIT_UNTIL then
                 FSM.TIMESEEK_INHIBIT_UNTIL = nil
                 FSM.REWIND_START_IDX = nil
+                FSM.REWIND_TRANSIT_CROSS_CARD = false
             end
 
             -- Clear jerk flag once we've moved past the previous sub's technical end
@@ -6156,6 +6158,7 @@ local function cmd_replay_sub()
         if is_paused then mp.set_property_bool("pause", false) end
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
         FSM.REWIND_START_IDX = nil
+        FSM.REWIND_TRANSIT_CROSS_CARD = false
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
     else
@@ -6172,9 +6175,11 @@ local function cmd_replay_sub()
         if is_cross_card_replay then
             FSM.TIMESEEK_INHIBIT_UNTIL = time_pos
             FSM.REWIND_START_IDX = current_idx
+            FSM.REWIND_TRANSIT_CROSS_CARD = true
         else
             FSM.TIMESEEK_INHIBIT_UNTIL = nil
             FSM.REWIND_START_IDX = nil
+            FSM.REWIND_TRANSIT_CROSS_CARD = false
         end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
@@ -6193,6 +6198,7 @@ local function cmd_dw_seek_selected()
             if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(FSM.DW_CURSOR_LINE, #Tracks.sec.subs) end
             FSM.JUST_JERKED_TO = -1
             FSM.TIMESEEK_INHIBIT_UNTIL = nil
+            FSM.REWIND_TRANSIT_CROSS_CARD = false
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
             local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, FSM.DW_CURSOR_LINE)
@@ -6223,6 +6229,7 @@ local function cmd_dw_seek_delta(dir)
     FSM.IGNORE_NEXT_JUMP = true
     FSM.JUST_JERKED_TO = -1
     FSM.TIMESEEK_INHIBIT_UNTIL = nil
+    FSM.REWIND_TRANSIT_CROSS_CARD = false
     FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown -- Settle period for smart logic
     
     local current_idx = get_center_index(subs, time_pos)
@@ -6312,16 +6319,17 @@ local function cmd_seek_time(dir)
     local target_idx = (subs and #subs > 0) and get_center_index(subs, target_pos) or -1
     local is_cross_card_seek = (current_idx ~= -1 and target_idx ~= -1 and current_idx ~= target_idx)
 
-    -- Clear inhibit and rewind state on forward seeks and inside-card rewinds.
-    if delta > 0 or not is_cross_card_seek then
+    -- Forward seek clears transit inhibit immediately.
+    if delta > 0 then
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
         FSM.REWIND_START_IDX = nil
+        FSM.REWIND_TRANSIT_CROSS_CARD = false
     else
-        -- Backward cross-card seek: preserve first pre-seek position for deterministic transit clear.
-        if not FSM.TIMESEEK_INHIBIT_UNTIL then
-            FSM.TIMESEEK_INHIBIT_UNTIL = current_pos
-        end
+        -- Backward seek always contributes to sentinel (legacy contract + tests).
+        -- Cross-card classification is tracked separately for suppression gating.
+        FSM.TIMESEEK_INHIBIT_UNTIL = math.max(FSM.TIMESEEK_INHIBIT_UNTIL or current_pos, current_pos)
         FSM.REWIND_START_IDX = current_idx
+        FSM.REWIND_TRANSIT_CROSS_CARD = is_cross_card_seek
     end
 
     mp.commandv("seek", delta, "relative+exact")
