@@ -29,7 +29,7 @@ class MpvSession:
             cmd.append('--secondary-sid=2')
         cmd.extend(self.extra_args)
 
-        log_path = os.path.join(os.getcwd(), 'tests', 'mpv_last_run.log')
+        log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'tests', 'mpv_last_run.log')
         with open(log_path, 'w') as f:
             f.write(f"Running command: {' '.join(cmd)}\n\n")
         self._proc = subprocess.Popen(
