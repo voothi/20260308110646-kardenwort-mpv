@@ -5227,19 +5227,35 @@ local function tick_autopause(time_pos)
 
     -- Prevent re-triggering for the same subtitle segment
     if FSM.last_paused_sub_end == sub_end then return end
-
+    
     -- Ensure we are actually on a subtitle (using internal state rather than transient mpv visibility)
     -- This fixes the "Stops stopping" bug when text clears before the audio tail finishes.
     local raw_text_primary = subs[active_idx].text or ""
     local raw_text_secondary = (Tracks.sec.subs[active_idx] and Tracks.sec.subs[active_idx].text) or ""
     
     if raw_text_primary == "" and raw_text_secondary == "" then return end
-
+    
     -- Karaoke Mode: Don't pause if we are in the middle of a phrase with highlights
     if FSM.KARAOKE == "PHRASE" then
         local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true)
         if not has_karaoke then has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true) end
         if has_karaoke then return end
+    end
+    
+    -- [20260510183341] PHRASE Mode: Don't pause if we're overlapping with previous subtitle
+    -- In PHRASE mode, when we've rewound enough to overlap with the previous subtitle,
+    -- we want playback to continue without stopping at the end of the current subtitle.
+    if FSM.IMMERSION_MODE == "PHRASE" and active_idx > 1 then
+        local prev_sub = subs[active_idx - 1]
+        if prev_sub and prev_sub.end_time then
+            -- Check if current playhead is within the overlap zone with previous subtitle
+            -- The overlap zone is when time_pos < prev_sub.end_time (with padding)
+            local _, prev_sub_end = get_effective_boundaries(prev_sub, active_idx - 1)
+            if prev_sub_end and time_pos < prev_sub_end then
+                -- We're overlapping with previous subtitle, don't pause
+                return
+            end
+        end
     end
 
     mp.set_property_bool("pause", true)
@@ -6083,7 +6099,17 @@ local function cmd_replay_sub()
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
         FSM.LOOP_MODE = "OFF"
         FSM.IGNORE_NEXT_JUMP = true
-        FSM.last_paused_sub_end = nil
+        
+        -- [20260510183341] Minimally invasive fix for repeat within current subtitle
+        -- Only clear last_paused_sub_end if replay window crosses subtitle boundaries.
+        -- This allows autopause to fire at the end of the current subtitle when repeating within it.
+        local subs = Tracks.pri.subs
+        local current_idx = get_center_index(subs, time_pos)
+        local replay_idx = get_center_index(subs, replay_start)
+        if current_idx ~= -1 and replay_idx ~= -1 and current_idx ~= replay_idx then
+            FSM.last_paused_sub_end = nil
+        end
+        
         FSM.REPLAY_REMAINING = Options.replay_count
         FSM.SCHEDULED_REPLAY_START = replay_start
         FSM.SCHEDULED_REPLAY_END = replay_end
@@ -6110,7 +6136,15 @@ local function cmd_dw_seek_selected()
 
             local s, _ = get_effective_boundaries(sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
-            FSM.last_paused_sub_end = nil
+            
+            -- [20260510183341] Minimally invasive fix for seeking within current subtitle
+            -- Only clear last_paused_sub_end when changing to a DIFFERENT subtitle.
+            local time_pos = mp.get_property_number("time-pos")
+            local current_idx = get_center_index(subs, time_pos)
+            if current_idx ~= -1 and current_idx ~= FSM.DW_CURSOR_LINE then
+                FSM.last_paused_sub_end = nil
+            end
+            
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
@@ -6162,7 +6196,14 @@ local function cmd_dw_seek_delta(dir)
         mp.commandv("seek", math.max(0, s), "absolute+exact")
         FSM.ACTIVE_IDX = target_idx
         if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(target_idx, #Tracks.sec.subs) end
-        FSM.last_paused_sub_end = nil
+        
+        -- [20260510183341] Minimally invasive fix for rewinding within current subtitle
+        -- Only clear last_paused_sub_end when changing to a DIFFERENT subtitle.
+        -- This allows autopause to fire at the end of the current subtitle when rewinding within it.
+        if target_idx ~= current_idx then
+            FSM.last_paused_sub_end = nil
+        end
+        
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
@@ -6203,6 +6244,19 @@ local function cmd_seek_time(dir)
     FSM.IGNORE_NEXT_JUMP = true
     FSM.JUST_JERKED_TO = -1
     FSM.MANUAL_NAV_COOLDOWN = now + Options.nav_cooldown
+    
+    -- [20260510183341] Minimally invasive fix for time-based seeking within current subtitle
+    -- Only clear last_paused_sub_end if seek crosses subtitle boundaries.
+    local subs = Tracks.pri.subs
+    if subs and #subs > 0 then
+        local time_pos = mp.get_property_number("time-pos")
+        local current_idx = get_center_index(subs, time_pos)
+        local new_time = time_pos + delta
+        local new_idx = get_center_index(subs, new_time)
+        if current_idx ~= -1 and new_idx ~= -1 and current_idx ~= new_idx then
+            FSM.last_paused_sub_end = nil
+        end
+    end
     
     mp.commandv("seek", delta, "relative+exact")
     
