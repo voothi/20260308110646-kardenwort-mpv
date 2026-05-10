@@ -1,13 +1,13 @@
 ## 1. Core Implementation
 
-- [ ] 1.1 Add `suppression_end_time` variable to `scripts/lls_core.lua` to track when autopause suppression should end
-- [ ] 1.2 Create helper function `set_suppression_timer(duration)` that sets `suppression_end_time = current_time + duration`
-- [ ] 1.3 Create helper function `is_suppression_active()` that returns `true` if `current_time < suppression_end_time`
-- [ ] 1.4 Modify `replay-subtitle` binding to calculate rewind duration and call `set_suppression_timer()`
-- [ ] 1.5 Modify `lls-seek_time_backward` binding to calculate rewind duration and call `set_suppression_timer()`
-- [ ] 1.6 Modify `lls-seek_time_forward` binding to calculate rewind duration and call `set_suppression_timer()`
-- [ ] 1.7 Add suppression check in autopause logic to skip pause if `is_suppression_active()` returns `true`
-- [ ] 1.8 Remove old complex state management code for rewind operations
+- [x] 1.1 Add `suppression_end_time` variable to `scripts/lls_core.lua` to track when autopause suppression should end
+- [x] 1.2 Create helper function `set_suppression_timer(duration)` that sets `suppression_end_time = current_time + duration`
+- [x] 1.3 Create helper function `is_suppression_active()` that returns `true` if `current_time < suppression_end_time`
+- [x] 1.4 Modify `replay-subtitle` binding to calculate rewind duration and call `set_suppression_timer()`
+- [x] 1.5 Modify `lls-seek_time_backward` binding to calculate rewind duration and call `set_suppression_timer()`
+- [x] 1.6 Modify `lls-seek_time_forward` binding to calculate rewind duration and call `set_suppression_timer()`
+- [x] 1.7 Add suppression check in autopause logic to skip pause if `is_suppression_active()` returns `true`
+- [x] 1.8 Remove old complex state management code for rewind operations (no old code found - simplification achieved via new timer approach)
 
 ## 2. Testing
 
@@ -22,5 +22,5 @@
 
 ## 3. Documentation
 
-- [ ] 3.1 Update any relevant documentation if needed (e.g., README.md, release notes)
-- [ ] 3.2 Verify all artifacts are complete and ready for archiving
+- [x] 3.1 Update any relevant documentation if needed (e.g., README.md, release notes) - No updates needed (internal simplification)
+- [x] 3.2 Verify all artifacts are complete and ready for archiving

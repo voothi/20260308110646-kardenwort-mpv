@@ -85,6 +85,27 @@ mp.set_property("user-data/lls/last_export", "")
 mp.set_property("user-data/lls/state", "{}")
 mp.set_property("user-data/lls/render", "")
 
+-- [ZID:20260510152524] Autopause Suppression Helper Functions
+-- These functions simplify autopause behavior during rewind operations
+local function set_suppression_timer(duration)
+    local current_time = mp.get_property_number("time-pos")
+    if current_time and duration and duration > 0 then
+        FSM.suppression_end_time = current_time + duration
+        Diagnostic.debug("Autopause suppression set for " .. duration .. " seconds")
+    end
+end
+
+local function is_suppression_active()
+    if not FSM.suppression_end_time then
+        return false
+    end
+    local current_time = mp.get_property_number("time-pos")
+    if not current_time then
+        return false
+    end
+    return current_time < FSM.suppression_end_time
+end
+
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
     local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
@@ -540,6 +561,7 @@ local FSM = {
     native_sub_vis = mp.get_property_bool("sub-visibility", true),
     native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true),
     native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
+    suppression_end_time = nil,  -- Timestamp when autopause suppression should end (for rewind operations)
 
     -- Drum Window State
     DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
@@ -5202,6 +5224,9 @@ local function tick_autopause(time_pos)
     if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
+    -- [ZID:20260510152524] Skip autopause if suppression is active (during rewind)
+    if is_suppression_active() then return end
+    
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
@@ -6093,6 +6118,10 @@ local function cmd_replay_sub()
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
+    
+    -- [ZID:20260510152524] Set autopause suppression for rewind duration
+    local rewind_duration = time_pos - replay_start
+    set_suppression_timer(rewind_duration)
 end
 
 local function cmd_dw_seek_selected()
@@ -6230,6 +6259,10 @@ local function cmd_seek_time(dir)
     
     local alignment = (delta > 0) and 6 or 4
     show_seek_osd(msg, alignment)
+    
+    -- [ZID:20260510152524] Set autopause suppression for seek duration
+    local seek_duration = math.abs(delta)
+    set_suppression_timer(seek_duration)
 end
 
 
