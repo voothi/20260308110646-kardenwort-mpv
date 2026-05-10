@@ -114,8 +114,14 @@ class TestDrumWindowRegressions:
 class TestImmersionRegressions:
     """Tests for immersion engine behavior and spec compliance."""
 
-    def test_20260501005019_natural_progression(self, mpv_dual):
-        """Focus must transition to next sub if playhead is in its padded zone (20260501005019)."""
+        def test_20260501005019_natural_progression(self, mpv_dual):
+        """Focus must transition to next sub if playhead is in its padded zone (20260501005019).
+        
+        With 1000ms padding:
+        - Sub 1: 1.000 → 2.000, padded: 0.000 → 3.000
+        - Sub 2: 2.200 → 3.500, padded: 1.200 → 4.500
+        - Seek to 3.1s to be past sub 1's padded end (3.0s) and within sub 2's padded start (1.2s)
+        """
         ipc = mpv_dual.ipc
         ipc.command(['set_property', 'script-opts', 'lls-log_level=debug'])
         
@@ -124,8 +130,8 @@ class TestImmersionRegressions:
         time.sleep(0.3)
         assert query_lls_state(ipc)['active_sub_index'] == 1
         
-        # Step 2: Seek to overlap zone (2.05s)
-        ipc.command(['seek', 2.05, 'absolute+exact'])
+        # Step 2: Seek to 3.1s (past sub 1's padded end of 3.0s)
+        ipc.command(['seek', 3.1, 'absolute+exact'])
         time.sleep(0.3)
         
         state = query_lls_state(ipc)

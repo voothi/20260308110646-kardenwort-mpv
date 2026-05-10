@@ -26,7 +26,13 @@ def test_20260506223500_fixtures_load(mpv_fragment1):
     )
 
 def test_20260506223500_natural_progression_skip(mpv_dual):
-    """Verify that playhead advances to next sub in overlap zone via Natural Progression logic."""
+    """Verify that playhead advances to next sub in overlap zone via Natural Progression logic.
+    
+    With 1000ms padding:
+    - Sub 1: 1.000 → 2.000, padded: 0.000 → 3.000
+    - Sub 2: 2.200 → 3.500, padded: 1.200 → 4.500
+    - Seek to 3.1s to be past sub 1's padded end (3.0s) and within sub 2's padded start (1.2s)
+    """
     ipc = mpv_dual.ipc
     
     # Step 1: Prime at sub 1
@@ -34,18 +40,18 @@ def test_20260506223500_natural_progression_skip(mpv_dual):
     time.sleep(0.15)
     assert query_lls_state(ipc)['active_sub_index'] == 1
     
-    # Step 2: Seek to exactly 2.0s (overlap zone)
+    # Step 2: Seek to 3.1s (past sub 1's padded end of 3.0s)
     # Fixture sync-test: sub 1 ends at 2.000, sub 2 starts at 2.200
-    # audio_padding_start = 0.200 -> sub 2 padded start = 2.000s
-    # audio_padding_end = 0.200 -> sub 1 padded end = 2.200s
-    # At 2.000s, sub 1 is still active (padded), but sub 2's padded start has also begun.
+    # audio_padding_start = 1.000 -> sub 2 padded start = 1.200s
+    # audio_padding_end = 1.000 -> sub 1 padded end = 3.000s
+    # At 3.1s, sub 1's padded zone has ended (3.0s), sub 2's padded zone is active (1.2-4.5s)
     # The fix ensures sub 2 is selected.
-    ipc.command(['seek', 2.05, 'absolute+exact'])
+    ipc.command(['seek', 3.1, 'absolute+exact'])
     time.sleep(0.15)
     
     state = query_lls_state(ipc)
     assert state['active_sub_index'] == 2, (
-        f"Expected Natural Progression to advance to index 2 at 2.05s, "
+        f"Expected Natural Progression to advance to index 2 at 3.1s, "
         f"got {state['active_sub_index']}"
     )
 
