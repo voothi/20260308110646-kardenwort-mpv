@@ -526,6 +526,7 @@ local FSM = {
     last_paused_sub_end = nil,
     last_time_pos = nil,
     IGNORE_NEXT_JUMP = false,
+    AUTOPAUSE_SUPPRESSED_UNTIL_RESUME = false,
     LOOP_MODE = "OFF",
     LOOP_ARMED = false,
     LOOP_START = nil,
@@ -5199,6 +5200,8 @@ end
 
 local function tick_autopause(time_pos)
     if FSM.AUTOPAUSE ~= "ON" or FSM.SPACEBAR ~= "IDLE" then return end
+    -- [v1.58.52] Autopause suppression check
+    if FSM.AUTOPAUSE_SUPPRESSED_UNTIL_RESUME then return end
     if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then return end
     
@@ -5529,13 +5532,21 @@ local function cmd_smart_space(table)
             FSM.SPACEBAR = "HOLDING"
             FSM.space_down_time = mp.get_time()
             FSM.initial_pause_state = mp.get_property_bool("pause", true)
-            if FSM.initial_pause_state then mp.set_property_bool("pause", false) end
+            if FSM.initial_pause_state then
+                mp.set_property_bool("pause", false)
+                -- [v1.58.52] Clear autopause suppression when user resumes playback
+                FSM.AUTOPAUSE_SUPPRESSED_UNTIL_RESUME = false
+            end
         end
     elseif table.event == "up" then
         FSM.SPACEBAR = "IDLE"
         FSM.space_up_time = mp.get_time()
         if (mp.get_time() - FSM.space_down_time) <= Options.space_tap_delay then
             mp.set_property_bool("pause", not FSM.initial_pause_state)
+            -- [v1.58.52] Clear autopause suppression when user resumes playback
+            if not FSM.initial_pause_state then
+                FSM.AUTOPAUSE_SUPPRESSED_UNTIL_RESUME = false
+            end
         end
     end
 end
@@ -6078,6 +6089,8 @@ local function cmd_replay_sub()
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
+        -- [v1.58.52] Clear autopause suppression when user replays
+        FSM.AUTOPAUSE_SUPPRESSED_UNTIL_RESUME = false
         show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
@@ -6091,6 +6104,8 @@ local function cmd_replay_sub()
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
+        -- [v1.58.52] Clear autopause suppression when user replays
+        FSM.AUTOPAUSE_SUPPRESSED_UNTIL_RESUME = false
         show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
 end
@@ -6203,6 +6218,25 @@ local function cmd_seek_time(dir)
     FSM.IGNORE_NEXT_JUMP = true
     FSM.JUST_JERKED_TO = -1
     FSM.MANUAL_NAV_COOLDOWN = now + Options.nav_cooldown
+    
+    -- [v1.58.52] Autopause Suppression for Rewind
+    -- Suppress autopause when rewinding (dir < 0) within the same subtitle
+    -- The suppression persists until user explicitly resumes playback
+    if dir < 0 and FSM.SEEK_PRESS_COUNT >= 1 then
+        local time_pos = mp.get_property_number("time-pos")
+        local subs = Tracks.pri.subs
+        if subs and #subs > 0 then
+            local current_idx = get_center_index(subs, time_pos)
+            if current_idx ~= -1 then
+                local sub = subs[current_idx]
+                local s, e = get_effective_boundaries(sub, current_idx)
+                -- Check if accumulated seek distance stays within the same subtitle
+                if s and e and (time_pos + FSM.SEEK_ACCUMULATOR) >= s then
+                    FSM.AUTOPAUSE_SUPPRESSED_UNTIL_RESUME = true
+                end
+            end
+        end
+    end
     
     mp.commandv("seek", delta, "relative+exact")
     
