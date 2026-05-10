@@ -5425,22 +5425,6 @@ local function master_tick()
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
-            -- [v1.58.51] Phrases Mode "Jerk Back" Logic
-            -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
-            -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
-            -- is expected: no jerking, no overlap-driven snaps.
-            if FSM.IMMERSION_MODE == "PHRASE" and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
-               and not FSM.TIMESEEK_INHIBIT_UNTIL then
-                if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
-                    local s_next, _ = get_effective_boundaries(Tracks.pri.subs, Tracks.pri.subs[active_idx], active_idx)
-                    if s_next and (time_pos - s_next) > Options.nav_tolerance then
-                        mp.commandv("seek", s_next, "absolute+exact")
-                        FSM.IGNORE_NEXT_JUMP = true
-                        FSM.JUST_JERKED_TO = active_idx
-                    end
-                end
-            end
-
             -- [v1.58.54] Clear rewind-transit inhibit AFTER jerk-back has been evaluated,
             -- using strict > so both autopause and jerk-back are suppressed on the boundary tick.
             -- [20260510193230] Also clear rewind start index when transit ends.
