@@ -85,27 +85,6 @@ mp.set_property("user-data/lls/last_export", "")
 mp.set_property("user-data/lls/state", "{}")
 mp.set_property("user-data/lls/render", "")
 
--- [ZID:20260510152524] Autopause Suppression Helper Functions
--- These functions simplify autopause behavior during rewind operations
-local function set_suppression_timer(duration)
-    local current_time = mp.get_property_number("time-pos")
-    if current_time and duration and duration > 0 then
-        FSM.suppression_end_time = current_time + duration
-        Diagnostic.debug("Autopause suppression set for " .. duration .. " seconds")
-    end
-end
-
-local function is_suppression_active()
-    if not FSM.suppression_end_time then
-        return false
-    end
-    local current_time = mp.get_property_number("time-pos")
-    if not current_time then
-        return false
-    end
-    return current_time < FSM.suppression_end_time
-end
-
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
     local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
@@ -622,6 +601,28 @@ local FSM = {
     ANKI_DB_MTIME = 0,
     ANKI_DB_SIZE = 0
 }
+
+-- [ZID:20260510152524] Autopause Suppression Helper Functions
+-- These functions simplify autopause behavior during rewind operations
+-- NOTE: Must be defined AFTER FSM table is initialized
+local function set_suppression_timer(duration)
+    local current_time = mp.get_property_number("time-pos")
+    if current_time and duration and duration > 0 then
+        FSM.suppression_end_time = current_time + duration
+        Diagnostic.debug("Autopause suppression set for " .. duration .. " seconds")
+    end
+end
+
+local function is_suppression_active()
+    if not FSM.suppression_end_time then
+        return false
+    end
+    local current_time = mp.get_property_number("time-pos")
+    if not current_time then
+        return false
+    end
+    return current_time < FSM.suppression_end_time
+end
 
 local Tracks = {
     pri = { id = 0, is_ass = false, path = nil, subs = {} },
