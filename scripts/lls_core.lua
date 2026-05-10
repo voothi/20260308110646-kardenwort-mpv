@@ -6302,10 +6302,9 @@ local function cmd_seek_time(dir)
         -- Backward seek: track rewind state
         if not FSM.REWIND_START_IDX then
             FSM.REWIND_START_IDX = current_idx
+            -- [20260510201933] Fix: Only set inhibit on FIRST backward seek to preserve original position
+            FSM.TIMESEEK_INHIBIT_UNTIL = current_pos
         end
-        
-        -- Set inhibit to current position
-        FSM.TIMESEEK_INHIBIT_UNTIL = math.max(FSM.TIMESEEK_INHIBIT_UNTIL or 0, current_pos)
     end
 
     mp.commandv("seek", delta, "relative+exact")
