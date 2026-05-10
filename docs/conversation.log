@@ -1781,8 +1781,8 @@
 20260509233440 x There are problems with tests. See also activity history docs\conversation.log. You can trace history through ZID.
 20260510005940 x 666 passed in 587.40s (0:09:47) 
 20260510084327 You as spec architect update openspec\changes\archive\20260509152445-fix-autopause-phrase-movie-rewind according to the changes of the time.
-
-
+20260510085426 @terminal Look at the tests and correct them ============================= short test summary info ============================= FAILED tests/acceptance/test_20260501160807_dw_esc_staged_reset.py::TestImmersionRegressions::test_20260501005019_natural_progression - AssertionError: Expected transition to sub 2, got 1 FAILED tests/acceptance/test_20260506223500_fixtures_load.py::test_20260506223500_natural_progression_skip - AssertionError: Expected Natural Progression to advance to index 2 at 2.05s, got 1 FAILED tests/acceptance/test_20260509080221_drum_window_indexing_simple.py::TestHistoricalRegressionsV2::test_dw_mouse_selection_engine_double_click - assert 1 == 2 FAILED tests/acceptance/test_20260509085125_has_phrase_phrase_first.py::test_has_phrase_phrase_first_order - AssertionError: drum OSD returned empty render after seek FAILED tests/acceptance/test_20260509085150_cycle_never_lands_on.py::TestImmersionSuiteHardening::test_phrase_jerkback_advances_active_idx_in_overlap - AssertionError: Expected Jerk-Back to advance to sub 2 at 2.05s; got 1 ==================== 5 failed, 653 passed in 579.75s (0:09:39) ==================== PS U:\voothi\20260308110646-kardenwort-mpv>
+20260510094211 OpenSpec: Add OpenCode, Continue
 
 
 

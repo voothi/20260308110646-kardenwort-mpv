@@ -703,9 +703,19 @@ function get_center_index(subs, time_pos)
     if active_idx and active_idx ~= -1 and subs[active_idx] then
         local s, e = get_effective_boundaries(subs[active_idx], active_idx)
         if time_pos >= s and time_pos <= e then
-            return active_idx
+            -- [20260510084327] Check if we've entered the next subtitle's padded zone during Natural Progression.
+            -- If so, advance to the next subtitle even though we're still in the current one's padded window.
+            if active_idx + 1 <= #subs and subs[active_idx + 1] then
+                local next_idx = active_idx + 1
+                local s_next, e_next = get_effective_boundaries(subs[next_idx], next_idx)
+                if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
+                    return next_idx
+                end
+            end
         end
     end
+ +++++++ REPLACE
+ +++++++ REPLACE
 
     -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
