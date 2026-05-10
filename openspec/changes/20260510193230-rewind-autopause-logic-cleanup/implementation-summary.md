@@ -3,6 +3,7 @@
 **ZID**: 20260510193230
 **Date**: 2026-05-10
 **Status**: Implementation Complete
+**Last Updated**: 20260510202910
 
 ## Changes Made
 
@@ -55,20 +56,20 @@ local accumulator_window = (dir < 0) and (Options.seek_osd_duration * 2) or Opti
 if now < FSM.SEEK_LAST_TIME + accumulator_window and same_dir then
 ```
 
-### 4. Track Rewind Start Index
+### 4. Track Rewind Start Index and Fix Inhibit Logic
 
-**File**: [`scripts/lls_core.lua`](scripts/lls_core.lua:6279-6295)
+**File**: [`scripts/lls_core.lua`](scripts/lls_core.lua:6291-6308)
 
-**Problem**: Need to distinguish between within-subtitle and cross-subtitle rewind
+**Problem**: Need to distinguish between within-subtitle and cross-subtitle rewind, and fix inhibit logic to only set on first backward seek
 
-**Solution**: Track which subtitle we started rewinding from
+**Solution**: Track which subtitle we started rewinding from and only set inhibit on first backward seek
 
 ```lua
 -- Added after line 6281:
 local current_pos = mp.get_property_number("time-pos") or 0
 local current_idx = get_center_index(Tracks.pri.subs, current_pos)
 
--- Modified inhibit logic (lines 6282-6295):
+-- Modified inhibit logic (lines 6297-6308):
 -- Clear inhibit and rewind state on forward seek
 if delta > 0 then
     FSM.TIMESEEK_INHIBIT_UNTIL = nil
@@ -77,12 +78,13 @@ else
     -- Backward seek: track rewind state
     if not FSM.REWIND_START_IDX then
         FSM.REWIND_START_IDX = current_idx
+        -- [20260510201933] Fix: Only set inhibit on FIRST backward seek to preserve original position
+        FSM.TIMESEEK_INHIBIT_UNTIL = current_pos
     end
-    
-    -- Set inhibit to current position
-    FSM.TIMESEEK_INHIBIT_UNTIL = math.max(FSM.TIMESEEK_INHIBIT_UNTIL or 0, current_pos)
 end
 ```
+
+**Critical Fix (20260510201933)**: The inhibit is now only set on the FIRST backward seek, not on every backward seek. This preserves the original position and prevents the inhibit from being pushed forward with each subsequent rewind.
 
 ### 5. Within-Subtitle Rewind Detection in Autopause
 
@@ -215,14 +217,40 @@ The test failures observed are due to IPC pipe issues in the test infrastructure
 
 1. [`scripts/lls_core.lua`](scripts/lls_core.lua)
    - Line 530: Added `REWIND_START_IDX` state variable
-   - Lines 6254-6265: Extended accumulator window for backward seeks
-   - Lines 6279-6295: Track rewind start index and modify inhibit logic
-   - Lines 5244-5250: Detect within-subtitle rewind in autopause
-   - Lines 5441-5446: Clear rewind start index when transit ends
+   - Lines 6268-6269: Extended accumulator window for backward seeks
+   - Lines 6291-6308: Track rewind start index and fix inhibit logic (only set on first backward seek)
+   - Lines 5250-5255: Detect within-subtitle rewind in autopause
+   - Lines 5447-5450: Clear rewind start index when transit ends
    - Lines 676-685: PHRASE mode seamless handover during rewind transit
 
 2. [`tests/ipc/mpv_session.py`](tests/ipc/mpv_session.py)
    - Line 32: Fixed log path calculation
+   - Lines 17-48: Added check for and kill running mpv instances on startup (20260510202910)
+
+## Critical Bug Fix (20260510201933)
+
+**Problem**: The original implementation used `math.max(FSM.TIMESEEK_INHIBIT_UNTIL or 0, current_pos)` on every backward seek, which caused the inhibit to be pushed forward with each subsequent rewind. This broke the core rewind/autopause functionality.
+
+**User Feedback**: "You broke the logic, now recording does not stop. No need to accumulate."
+
+**Root Cause**: The inhibit was being set to the current position on every backward seek, which meant:
+- First rewind: 10s → 5s, inhibit = 10 (correct)
+- Second rewind: 5s → 2s, inhibit = max(10, 5) = 10 (still correct)
+- But the logic was flawed because it kept updating the inhibit
+
+**Fix**: Only set `TIMESEEK_INHIBIT_UNTIL` on the FIRST backward seek, similar to how `REWIND_START_IDX` is only set once. This preserves the original rewind position and ensures the inhibit is never updated on subsequent rewinds.
+
+## Test Infrastructure Improvement (20260510202910)
+
+**Problem**: Test fixtures create named pipes that may conflict if mpv processes are not cleaned up properly, causing test failures.
+
+**Solution**: Added automatic detection and termination of running mpv instances before starting a new test session.
+
+**Implementation**:
+- Added `_check_and_kill_mpv_instances()` method to `MpvSession` class
+- Uses Windows `tasklist` and `taskkill` commands to find and terminate mpv processes
+- Called automatically at the start of each test session
+- Provides clear feedback about which processes are being terminated
 
 ## Next Steps
 
@@ -230,4 +258,4 @@ The test failures observed are due to IPC pipe issues in the test infrastructure
 2. Verify within-subtitle vs cross-subtitle rewind distinction
 3. Verify PHRASE mode seamless handover during rewind
 4. Verify accumulator behavior for backward seeks
-5. Run full test suite after IPC issues resolved
+5. Run full test suite to verify all fixes work correctly
