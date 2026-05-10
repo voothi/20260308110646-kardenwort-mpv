@@ -7998,6 +7998,7 @@ function LlsProbe._snapshot()
         replay_remaining      = FSM.REPLAY_REMAINING or 0,
         rewind_transit_active = FSM.TIMESEEK_INHIBIT_UNTIL ~= nil,
         rewind_transit_until  = FSM.TIMESEEK_INHIBIT_UNTIL or 0,
+        rewind_transit_cross_card = FSM.REWIND_TRANSIT_CROSS_CARD == true,
         last_paused_sub_end   = FSM.last_paused_sub_end,
         search_query       = FSM.SEARCH_QUERY,
         search_results     = FSM.SEARCH_RESULTS,

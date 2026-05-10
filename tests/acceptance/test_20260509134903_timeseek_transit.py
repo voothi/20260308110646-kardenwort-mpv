@@ -208,10 +208,31 @@ class TestTimseekTransitStructural:
         )
 
     def test_state_snapshot_exposes_rewind_transit(self):
-        """LlsProbe._snapshot must expose rewind_transit_active and rewind_transit_until."""
+        """LlsProbe._snapshot must expose rewind transit state fields."""
         src = _src()
         assert "rewind_transit_active" in src, "rewind_transit_active not in state snapshot"
         assert "rewind_transit_until" in src, "rewind_transit_until not in state snapshot"
+        assert "rewind_transit_cross_card" in src, "rewind_transit_cross_card not in state snapshot"
+
+    def test_cross_card_transit_flag_declared_in_fsm(self):
+        """FSM must declare REWIND_TRANSIT_CROSS_CARD for split gating semantics."""
+        assert "REWIND_TRANSIT_CROSS_CARD" in _src(), (
+            "REWIND_TRANSIT_CROSS_CARD not declared in FSM"
+        )
+
+    def test_tick_autopause_cross_card_gate_present(self):
+        """tick_autopause must gate suppression by REWIND_TRANSIT_CROSS_CARD."""
+        body = _func_body(_src(), "tick_autopause")
+        assert "FSM.REWIND_TRANSIT_CROSS_CARD" in body, (
+            "tick_autopause missing REWIND_TRANSIT_CROSS_CARD gate"
+        )
+
+    def test_get_effective_boundaries_cross_card_gate_present(self):
+        """get_effective_boundaries must apply PHRASE transit seam only for cross-card transit."""
+        body = _func_body(_src(), "get_effective_boundaries")
+        assert "FSM.REWIND_TRANSIT_CROSS_CARD" in body, (
+            "get_effective_boundaries missing REWIND_TRANSIT_CROSS_CARD gate"
+        )
 
     def test_state_snapshot_exposes_last_paused_sub_end(self):
         """LlsProbe._snapshot must expose last_paused_sub_end for integration testing."""
