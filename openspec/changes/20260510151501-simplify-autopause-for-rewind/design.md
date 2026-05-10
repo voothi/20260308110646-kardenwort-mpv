@@ -7,9 +7,10 @@ The project uses Lua scripts for mpv with a focus on language acquisition and du
 ## Goals / Non-Goals
 
 **Goals:**
-- Simplify autopause logic during rewind operations by using a time-based suppression approach
-- Temporarily disable autopause for the exact duration of the rewind when `s`, `Shift+a`, or `Shift+d` is pressed
-- Automatically restore autopause state after the rewound duration elapses
+- Simplify autopause logic during seek operations by using a time-based suppression approach
+- Temporarily disable autopause for the exact duration of the seek when `Shift+a` or `Shift+d` is pressed AND the seek crosses subtitle boundaries
+- Keep autopause working normally when `s` is pressed (replay stays within same subtitle)
+- Automatically restore autopause state after the seek duration elapses
 - Maintain existing autopause behavior for normal playback (pause at phrase/word boundaries)
 
 **Non-Goals:**
@@ -19,19 +20,21 @@ The project uses Lua scripts for mpv with a focus on language acquisition and du
 
 ## Decisions
 
-### Time-based suppression instead of state tracking
+### Time-based suppression only when crossing subtitle boundaries
 
-**Decision**: Use a simple timer-based approach where autopause is suppressed for `current_time - previous_time` seconds when a rewind occurs.
+**Decision**: Use a simple timer-based approach where autopause is suppressed for the seek duration ONLY when the seek crosses subtitle boundaries. If the seek stays within the same subtitle, autopause continues to work normally.
 
-**Rationale**: 
+**Rationale**:
 - Eliminates complex state machine logic
-- Directly maps to user intent: "I rewound X seconds, don't pause for X seconds"
+- Directly maps to user intent: "I crossed to a different subtitle, don't pause for the seek duration"
+- Preserves normal autopause behavior when navigating within a subtitle
 - Easier to understand and maintain
 - No edge cases from state transitions
 
 **Alternatives considered**:
 1. **State machine with pause count**: Track number of pauses skipped. Rejected because it requires maintaining counter state and handling edge cases.
-2. **Event-based suppression**: Suppress until next subtitle boundary. Rejected because it doesn't align with user's mental model of "rewound duration."
+2. **Event-based suppression**: Suppress until next subtitle boundary. Rejected because it doesn't align with user's mental model of "seek duration."
+3. **Suppress for all seeks**: Always suppress autopause on any seek. Rejected because it would prevent normal autopause behavior when navigating within a subtitle.
 
 ### Single suppression timer
 
@@ -71,9 +74,9 @@ The project uses Lua scripts for mpv with a focus on language acquisition and du
 ## Migration Plan
 
 1. Add `suppression_end_time` variable to track when autopause suppression should end
-2. Modify `replay-subtitle`, `lls-seek_time_backward`, and `lls-seek_time_backward` bindings to set suppression timer
+2. Modify `lls-seek_time_backward` and `lls-seek_time_forward` bindings to set suppression timer ONLY when seek crosses subtitle boundaries
 3. Add check in autopause logic to skip pause if `current_time < suppression_end_time`
-4. Test with various rewind scenarios
+4. Test with various seek scenarios (crossing boundaries vs. within same subtitle)
 5. Remove old complex state management code
 
 **Rollback strategy**: Git revert if issues arise. The change is localized to `lls_core.lua`.

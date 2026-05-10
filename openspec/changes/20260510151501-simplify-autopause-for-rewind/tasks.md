@@ -3,9 +3,9 @@
 - [x] 1.1 Add `suppression_end_time` variable to `scripts/lls_core.lua` to track when autopause suppression should end
 - [x] 1.2 Create helper function `set_suppression_timer(duration)` that sets `suppression_end_time = current_time + duration`
 - [x] 1.3 Create helper function `is_suppression_active()` that returns `true` if `current_time < suppression_end_time`
-- [x] 1.4 Modify `replay-subtitle` binding to calculate rewind duration and call `set_suppression_timer()`
-- [x] 1.5 Modify `lls-seek_time_backward` binding to calculate rewind duration and call `set_suppression_timer()`
-- [x] 1.6 Modify `lls-seek_time_forward` binding to calculate rewind duration and call `set_suppression_timer()`
+- [x] 1.4 Modify `replay-subtitle` binding - removed suppression (stays within same subtitle, autopause should work normally)
+- [x] 1.5 Modify `lls-seek_time_backward` binding to suppress autopause only when seek crosses subtitle boundaries
+- [x] 1.6 Modify `lls-seek_time_forward` binding to suppress autopause only when seek crosses subtitle boundaries
 - [x] 1.7 Add suppression check in autopause logic to skip pause if `is_suppression_active()` returns `true`
 - [x] 1.8 Remove old complex state management code for rewind operations (no old code found - simplification achieved via new timer approach)
 

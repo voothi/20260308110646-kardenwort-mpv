@@ -6120,9 +6120,8 @@ local function cmd_replay_sub()
         show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
     end
     
-    -- [ZID:20260510152524] Set autopause suppression for rewind duration
-    local rewind_duration = time_pos - replay_start
-    set_suppression_timer(rewind_duration)
+    -- [ZID:20260510162117] No autopause suppression for replay (stays within same subtitle)
+    -- Replay always rewinds within the same subtitle, so autopause should work normally
 end
 
 local function cmd_dw_seek_selected()
@@ -6261,9 +6260,19 @@ local function cmd_seek_time(dir)
     local alignment = (delta > 0) and 6 or 4
     show_seek_osd(msg, alignment)
     
-    -- [ZID:20260510152524] Set autopause suppression for seek duration
-    local seek_duration = math.abs(delta)
-    set_suppression_timer(seek_duration)
+    -- [ZID:20260510162117] Set autopause suppression only if seek crosses subtitle boundaries
+    local time_pos = mp.get_property_number("time-pos")
+    if time_pos and Tracks.pri.subs and #Tracks.pri.subs > 0 then
+        local current_idx = get_center_index(Tracks.pri.subs, time_pos)
+        local new_time = time_pos + delta
+        local new_idx = get_center_index(Tracks.pri.subs, new_time)
+        
+        -- Only suppress autopause if the seek crossed subtitle boundaries
+        if current_idx ~= -1 and new_idx ~= -1 and current_idx ~= new_idx then
+            local seek_duration = math.abs(delta)
+            set_suppression_timer(seek_duration)
+        end
+    end
 end
 
 
