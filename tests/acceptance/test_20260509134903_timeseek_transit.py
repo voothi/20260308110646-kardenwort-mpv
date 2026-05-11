@@ -237,7 +237,7 @@ class TestTimseekTransitStructural:
     def test_get_effective_boundaries_has_space_hold_phrase_movie_override(self):
         """Holding Space in Autopause ON + PHRASE must force MOVIE-like boundaries."""
         body = _func_body(_src(), "get_effective_boundaries")
-        assert "FSM.AUTOPAUSE == \"ON\"" in body and "FSM.SPACEBAR == \"HOLDING\"" in body, (
+        assert "FSM.AUTOPAUSE == \"ON\"" in body and "FSM.PHYSICAL_SPACE_HOLD" in body, (
             "Space-hold PHRASE override is missing in get_effective_boundaries"
         )
 

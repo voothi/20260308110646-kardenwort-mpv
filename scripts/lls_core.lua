@@ -537,6 +537,7 @@ local FSM = {
     SCHEDULED_REPLAY_END = nil,
     REPLAY_REMAINING = 0,
     GHOST_HOLD_EXPIRY = nil,
+    PHYSICAL_SPACE_HOLD = false,
     space_down_time = 0,
     space_up_time = 0,
     initial_pause_state = true,
@@ -679,7 +680,7 @@ local function get_effective_boundaries(subs, sub, idx)
     -- [20260510193230] PHRASE Mode: Seamless handover during rewind transit to prevent overlay/jerking.
     local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
         and FSM.IMMERSION_MODE == "PHRASE"
-        and FSM.SPACEBAR == "HOLDING"
+        and FSM.PHYSICAL_SPACE_HOLD
 
     if FSM.IMMERSION_MODE == "MOVIE"
        or phrase_space_movie_override
@@ -5382,6 +5383,7 @@ local function master_tick()
     if FSM.SPACEBAR == "HOLDING" and FSM.GHOST_HOLD_EXPIRY and mp.get_time() > FSM.GHOST_HOLD_EXPIRY then
         FSM.SPACEBAR = "IDLE"
         FSM.GHOST_HOLD_EXPIRY = nil
+        FSM.PHYSICAL_SPACE_HOLD = false
 
     end
 
@@ -5437,7 +5439,7 @@ local function master_tick()
             -- is expected: no jerking, no overlap-driven snaps.
             local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
                 and FSM.IMMERSION_MODE == "PHRASE"
-                and FSM.SPACEBAR == "HOLDING"
+                and FSM.PHYSICAL_SPACE_HOLD
 
             if FSM.IMMERSION_MODE == "PHRASE" and not phrase_space_movie_override and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
                and (not FSM.TIMESEEK_INHIBIT_UNTIL or not FSM.REWIND_TRANSIT_CROSS_CARD) then
@@ -5606,6 +5608,7 @@ end
 local function cmd_smart_space(table)
     if table.event == "down" then
         FSM.GHOST_HOLD_EXPIRY = nil -- User is physically holding, clear ghost timer
+        FSM.PHYSICAL_SPACE_HOLD = true
         if FSM.SPACEBAR == "IDLE" then
             FSM.SPACEBAR = "HOLDING"
             FSM.space_down_time = mp.get_time()
@@ -5614,6 +5617,7 @@ local function cmd_smart_space(table)
         end
     elseif table.event == "up" then
         FSM.SPACEBAR = "IDLE"
+        FSM.PHYSICAL_SPACE_HOLD = false
         FSM.space_up_time = mp.get_time()
         if (mp.get_time() - FSM.space_down_time) <= Options.space_tap_delay then
             mp.set_property_bool("pause", not FSM.initial_pause_state)
