@@ -1,69 +1,45 @@
+# =========================================================================
+# Kardenwort MPV - .gitignore
+# =========================================================================
+
+# --- System & IDE ---
 .history/
-options.txt
-mpv_temp.txt
-mpv_options.txt
-mpv_docs.txt
-mpv_options2.txt
-help.txt
-scripts/test_osd.lua
-mpv_log.txt
-scripts_autopause_old_utf8.lua
-scripts_autopause_old.lua
-20260304233334-you-dont-need-saas.ass
-temp-ass-check-utf8.txt
-temp-ass-check.txt
-temp-ass2.txt
-test_parse_ass.py
-test_parse_ass.lua
-parsed_subs.txt
-parsed_subs_utf8.txt
-copy_sub_v1.1.0.lua
-copy_sub_v1.1.0_utf8.lua
-v1_vs_fsm_analysis.txt
-python_out_utf8_2.txt
-python_out_utf8.txt
-python_out.txt
-test_filter.py
-__pycache__/test_parse_ass.cpython-39.pyc
-copy_sub_45e8ae.lua
-commit_diff.txt
-comp.txt
-test_six_seconds_out.txt
-test_six_seconds.py
-v1.1.0_copy_sub.lua
-git_history.txt
-python_idx_20_out.txt
-python_kar_end_2.txt
-python_kar_end.txt
-python_kar_out_2.txt
-python_kar_out.txt
-test_idx_20.py
+.claude/
+.cline/
+.roo/
+.opencode/
+*.code-workspace
+
+# --- Python & Build ---
 __pycache__/
-scripts/old_copy_sub.lua
-diff.txt
-diff2.txt
-log.txt
-scripts/diff_report_utf8.patch
-scripts/diff_report.patch
-scripts/input_diff.patch
-scripts/lls_core_good_utf8.lua
-scripts/lls_core_good.lua
-full_diff.txt
-full_patch.txt
-old.lua
-temp_commit.patch
-temp_old_core.lua
-revert_target.conf
-revert_temp.conf
-scratch_old.lua
-test.lua
-test2.lua
-20260308110646-kardenwort-mpv.code-workspace
-temp_old_utf8.lua
-temp_old.lua
-scratch/
-resume_session.state
-# .claude/settings.local.json
-# .claude/settings.json
-tests/fixtures/20260502165659-test-fixture.tsv
+*.pyc
+.pytest_cache/
 tests/mpv_last_run.log
+
+# --- Persistent State ---
+resume-session.state
+
+# --- Temporary & Development Artifacts ---
+scratch/
+*.txt
+*.patch
+*.log
+*.bak
+*.old
+*temp*
+test*.py
+test*.lua
+old.lua
+parsed_subs*
+
+# --- Specific Legacy Exclusions ---
+scripts/*_old*.lua
+scripts/test_osd.lua
+scripts/old_copy_sub.lua
+scripts/lls_core_good*.lua
+20260304233334-you-dont-need-saas.ass
+tests/fixtures/20260502165659-test-fixture.tsv
+
+# --- User Settings (Optional) ---
+# anki-mapping.ini is versioned, but users can untrack it if needed.
+# !anki-mapping.ini
