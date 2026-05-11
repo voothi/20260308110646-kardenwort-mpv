@@ -1,6 +1,6 @@
 ## 1. Configuration & Metadata
 
-- [x] 1.1 Create a lightweight `ini` parser utility in `lls_core.lua` to read configuration from `~~/script-opts/anki_mapping.ini`
+- [x] 1.1 Create a lightweight `ini` parser utility in `lls_core.lua` to read configuration from `~~/anki_mapping.ini`
 - [x] [turbo] 1.2 Parse the `[fields]` section strictly line-by-line into an ordered array (preserving blank lines as holes), and load the `[mapping]` and `[tts]` key-value pairs
 - [x] 1.3 Add a filename parsing utility to extract the `deck_name` (base + lang postfix) and `lang_code` from `Tracks.pri.path`
 - [x] 1.4 Expand metadata extraction to capture the secondary subtitle language code for destination flags

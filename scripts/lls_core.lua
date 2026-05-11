@@ -1110,7 +1110,7 @@ local ANKI_MAPPING_CACHE = nil
 local function load_anki_mapping_ini()
     if ANKI_MAPPING_CACHE then return ANKI_MAPPING_CACHE end
     
-    local path = mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
+    local path = mp.command_native({"expand-path", "~~/anki_mapping.ini"})
     local f = io.open(path, "r")
     local config = {
         fields = {},

@@ -112,8 +112,8 @@ class TestAnkiExportMapping:
     def test_anki_mapping_ini_exists(self):
         """anki_mapping.ini must exist in script-opts/ directory."""
         candidates = [
-            "script-opts/anki_mapping.ini",
-            "script-opts/lls_anki_mapping.ini",
+            "anki_mapping.ini",
+            "lls_anki_mapping.ini",
         ]
         found = any(os.path.exists(c) for c in candidates)
         assert found, (
@@ -123,8 +123,8 @@ class TestAnkiExportMapping:
     def test_anki_mapping_has_word_and_sentence_sections(self):
         """anki_mapping.ini must have [fields_mapping.word] and [fields_mapping.sentence]."""
         candidates = [
-            "script-opts/anki_mapping.ini",
-            "script-opts/lls_anki_mapping.ini",
+            "anki_mapping.ini",
+            "lls_anki_mapping.ini",
         ]
         path = next((c for c in candidates if os.path.exists(c)), None)
         if path is None:

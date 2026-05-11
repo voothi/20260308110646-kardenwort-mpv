@@ -21,4 +21,4 @@ The current export logic in `lls_core.lua` deviates from the "Verbatim" requirem
 ## Impact
 
 - `scripts/lls_core.lua`: Core refactor of `load_anki_mapping_ini`, `dw_anki_export_selection`, and `prepare_export_text`.
-- `script-opts/anki_mapping.ini`: Assignment order now determines TSV column sequence.
+- `anki_mapping.ini`: Assignment order now determines TSV column sequence.

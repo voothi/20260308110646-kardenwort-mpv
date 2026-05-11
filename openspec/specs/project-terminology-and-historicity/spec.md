@@ -21,7 +21,7 @@ The project environment uses a specific set of terms to describe its tooling and
 | **Change Archive** | Organization | The `openspec/changes/archive` directory containing historical completed tasks. |
 | **mpv.conf** | Configuration | The primary player and script configuration file. |
 | **input.conf** | Configuration | The centralized keybinding configuration file. |
-| **anki_mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`script-opts/anki_mapping.ini`). |
+| **anki_mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki_mapping.ini`). |
 | **Central Register** | Log | The `docs/conversation.log` file, acting as the master registry of all requests and interactions. |
 | **Legacy Release Store**| Organization | The `docs/rfcs` directory containing historical releases using the **SDD** methodology. |
 | **OpenSpec** | Methodology | The modern, agentic-centric specification framework for active development. |

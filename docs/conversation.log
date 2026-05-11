@@ -1857,6 +1857,7 @@
 20260511174819 Let's also hide it under X Pause Mode if it's not an ASS file that supports it.
 20260511175308 Is it true that the pytest.ini file is in the root of the project?
 20260511175333 Yes, that is correct. The pytest.ini file is located in the root of the project directory (u:\voothi\20260308110646-kardenwort-mpv\pytest.ini), alongside other project-level configuration files like input.conf, mpv.conf, and README.md.
+20260511175617 How difficult is it then to move the script-opts\anki_mapping.ini config to the root and update the mention of this everywhere in the current documentation and specifications, in tests, if necessary, so that all configs are at the same level and clearly visible.
 
 
 
