@@ -6,7 +6,7 @@
 The system SHALL organize logic into discrete modules within a `scripts/lib/` directory to improve maintainability.
 
 #### Scenario: Successful module load
-- **WHEN** `lls_core.lua` starts
+- **WHEN** `kardenwort/main.lua` starts
 - **THEN** it SHALL successfully load all library modules via `require` or equivalent mechanism.
 
 ### Requirement: Centralized Diagnostic Interface
@@ -14,7 +14,7 @@ All modules SHALL utilize a centralized diagnostic and logging interface to ensu
 
 #### Scenario: Unified logging
 - **WHEN** an error occurs in the `sub_parser` module
-- **THEN** it SHALL be logged through the `Diagnostic` module with the `[LLS]` prefix.
+- **THEN** it SHALL be logged through the `Diagnostic` module with the `[Kardenwort]` prefix.
 
 ### Requirement: Decoupled Rendering Pipeline
 The rendering logic SHALL be decoupled from state management, using a standardized utility module for OSD layout and ASS tag generation.
@@ -29,3 +29,4 @@ Feature-specific state (e.g., search query, drum window cursor) SHALL be isolate
 #### Scenario: Independent state updates
 - **WHEN** the search query is updated
 - **THEN** it SHALL NOT affect the state of the Drum Window cursor unless explicitly coordinated.
+

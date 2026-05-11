@@ -18,10 +18,10 @@ The system SHALL suppress duplicate log messages that occur within a single sess
 - **THEN** each unique invalid key SHOULD be logged as a warning exactly ONCE per session.
 
 ### Requirement: Configurable Verbosity
-The system SHALL allow the user to define the minimum log level displayed in the console via the `lls-log_level` script option.
+The system SHALL allow the user to define the minimum log level displayed in the console via the `kardenwort-log_level` script option.
 
 #### Scenario: Enabling verbose debugging
-- **WHEN** the user sets `lls-log_level=debug` in `mpv.conf`
+- **WHEN** the user sets `kardenwort-log_level=debug` in `mpv.conf`
 - **THEN** the system SHALL display all messages of level `Info` and above, plus `Debug` messages.
 
 ### Requirement: Startup Health Summary
@@ -56,4 +56,5 @@ Core system utilities must be robust and efficient as per archives 2026050500455
 #### Scenario: Smart Logging
 - **WHEN** the system is running normally.
 - **THEN** it should suppress redundant "spam" messages while maintaining diagnostic capability.
+
 

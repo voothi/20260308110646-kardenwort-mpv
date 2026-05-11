@@ -53,7 +53,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Aural Buffer** | Timing | The temporal padding (`pause_padding`) added before autopause to prevent syllable clipping. |
 | **Consolas Calibration** | Rendering | The font-specific multipliers (`char_width`, `line_height`) used for pixel-perfect hit-testing. |
 | **Viewport Margin** | UI | The number of context lines kept visible during vertical scrolling (`scrolloff`). |
-| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrolls. |
+| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrokardenwort. |
 | **Fuzzy Search** | Search | Logic allowing typos and non-contiguous character matching in the Search HUD. |
 | **Order-Independent Search**| Search | Keyword matching that ignores the sequence of words in the query. |
 | **Query Buffer** | Search | The active text input field in the Search HUD. |
@@ -73,7 +73,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 
 #### Scenario: Thesaurus consistency
 - **WHEN** generating OSD feedback or log messages
-- **THEN** the system SHALL use terms defined in the thesaurus (e.g., `[Kardenwort]` instead of `[LLS]`).
+- **THEN** the system SHALL use terms defined in the thesaurus (e.g., `[Kardenwort]` instead of `[Kardenwort]`).
 
 ### Requirement: Historical Entity Mapping
 The project SHALL maintain a flat "Correspondence Table" for all renamings to allow the AI to trace chains of identity (e.g., A → B → C).
@@ -83,13 +83,13 @@ The project SHALL maintain a flat "Correspondence Table" for all renamings to al
 | `mpv Language Learning Suite`| Project | `mpv Language Acquisition Suite`| 20260310145846 |
 | `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
-| `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
-| `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `autopause.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `copy_sub.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `fixed_font.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `lls_core.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
-| `lls_utils.lua` | Script | `scripts/kardenwort/utils.lua` | 20260511182348 |
+| `kardenwort-mpv.lua` | Script | `kardenwort/main.lua` | 20260414150031 |
+| `sub_context.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `autopause.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `copy_sub.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `fixed_font.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `kardenwort/main.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
+| `kardenwort_utils.lua` | Script | `scripts/kardenwort/utils.lua` | 20260511182348 |
 | `resume_last_file.lua`| Script | `scripts/kardenwort/resume.lua`| 20260511182348 |
 | `Normal Mode` | UI Mode | `SRT Mode` | Early Development |
 | `Reel Mode` | UI Mode | `Drum Mode` | 20260412105348 |
@@ -107,5 +107,6 @@ The project SHALL maintain a flat "Correspondence Table" for all renamings to al
 | `Auto-hover` | Tooltip | `Translation Tooltip`| 20260412105348 |
 
 #### Scenario: Legacy term lookup
-- **WHEN** an AI agent encounters the term `lls_core.lua`
+- **WHEN** an AI agent encounters the term `kardenwort/main.lua`
 - **THEN** it SHALL treat it as an alias for `scripts/kardenwort/main.lua` based on the mapping table.
+

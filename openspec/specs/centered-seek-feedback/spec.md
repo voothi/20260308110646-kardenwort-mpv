@@ -11,11 +11,11 @@ The system SHALL display a directional OSD message indicating the seek direction
 - **Forward**: Displayed on the middle-right (`{\an6}`).
 
 #### Scenario: Forward seek visual feedback
-- **WHEN** the user executes `lls-seek_time_forward`
+- **WHEN** the user executes `kardenwort-seek_time_forward`
 - **THEN** a directional OSD message SHALL appear on the right showing the seek amount.
 
 #### Scenario: Backward seek visual feedback
-- **WHEN** the user executes `lls-seek_time_backward`
+- **WHEN** the user executes `kardenwort-seek_time_backward`
 - **THEN** a directional OSD message SHALL appear on the left showing the seek amount.
 
 ### Requirement: YouTube-Style Cumulative Accumulator
@@ -37,3 +37,4 @@ The system SHALL provide independent styling parameters (font, size, color, opac
 - Verify that seeks show correctly positioned directional OSD.
 - Confirm that consecutive seeks accumulate correctly.
 - Verify that `mpv.conf` styling overrides are respected.
+

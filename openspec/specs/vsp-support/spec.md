@@ -16,7 +16,7 @@ The "Semi-Automatic" engine must account for VSP in all hit-testing calculations
 - `sub_gap` (Block separation) must include `+ Options.xx_vsp` if `double_gap` is enabled, as the blank line itself is affected by the VSP tag.
 
 ## Consistency
-All LLS modes (`srt`, `dw`, `drum`, `tooltip`) must expose a `vsp` configuration option to maintain architectural parity.
+All Kardenwort modes (`srt`, `dw`, `drum`, `tooltip`) must expose a `vsp` configuration option to maintain architectural parity.
 
 ## Visual Gap Simulation
 The `\vsp` tag must be used to adjust the spacing of the OSD `separator` in double-gap mode so that it matches the `block_gap_mul` setting.
@@ -25,3 +25,4 @@ The `\vsp` tag must be used to adjust the spacing of the OSD `separator` in doub
 - **WHEN** `block_gap_mul` is negative
 - **THEN** apply a negative `\vsp` (halved) to the `\N\N` separator to compress the visual gap.
 - **AND** ensure single `\N` separators (single gap) are not affected by `block_gap_mul`.
+

@@ -7,7 +7,7 @@ TBD - created by archiving change 20260310120822-release-v1-2-10. Update Purpose
 The system SHALL support the overriding of internal script parameters via the player's global `mpv.conf` file using the `mp.options` mechanism.
 
 #### Scenario: Overriding secondary position
-- **WHEN** the user adds `script-opts-append=lls_core-sec_pos_bottom=85` to `mpv.conf`
+- **WHEN** the user adds `script-opts-append=kardenwort_core-sec_pos_bottom=85` to `mpv.conf`
 - **THEN** the system SHALL use 85 as the bottom position for secondary subtitles.
 
 ### Requirement: Configuration Documentation

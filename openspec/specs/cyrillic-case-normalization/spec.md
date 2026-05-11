@@ -5,6 +5,6 @@ The system SHALL provide a specialized utility to normalize Cyrillic characters 
 - **WHEN** the user searches for "привет" (lowercase) and the subtitle contains "Привет" (capitalized)
 - **THEN** the system SHALL correctly identify this as a match by normalizing the subtitle text to lowercase during the comparison.
 
-#### Scenario: Repeated lowering calls
+#### Scenario: Repeated lowering cakardenwort
 - **WHEN** `utf8_to_lower()` is called multiple times during a single tick (e.g., inside `calculate_highlight_stack` for each token)
 - **THEN** each call SHALL reuse the pre-built module-scope character tables without creating temporary string arrays or calling `utf8_to_table()` on the mapping strings

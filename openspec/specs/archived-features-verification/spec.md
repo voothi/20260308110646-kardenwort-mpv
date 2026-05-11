@@ -8,11 +8,11 @@ The system SHALL transition from subtitle index `i` to `i+1` as soon as the play
 - **THEN** `FSM.ACTIVE_IDX` MUST be `i+1`
 
 ### Requirement: Seek Repeatability Verification
-The "lls-seek_time_forward" and "lls-seek_time_backward" keybindings MUST be configured as repeatable in the mpv input layer.
+The "kardenwort-seek_time_forward" and "kardenwort-seek_time_backward" keybindings MUST be configured as repeatable in the mpv input layer.
 
 #### Scenario: Verification of repeatable flag
 - **WHEN** inspecting mpv `input-bindings`
-- **THEN** the bindings for `lls-seek_time_forward` and `lls-seek_time_backward` SHALL have `repeatable: true`
+- **THEN** the bindings for `kardenwort-seek_time_forward` and `kardenwort-seek_time_backward` SHALL have `repeatable: true`
 
 ### Requirement: Movie Mode Boundary Verification
 In `MOVIE` mode, the autopause trigger MUST NOT fire before the subtitle's SRT `end_time`, ensuring the full subtitle duration is audible even if the next subtitle's padded start follows closely.
@@ -43,3 +43,4 @@ The FSM SHALL maintain correct state for subtitle visibility and secondary track
 #### Scenario: Secondary subtitle position synchronization
 - **WHEN** `cmd_adjust_sec_sub_pos` is called
 - **THEN** `FSM.native_sec_sub_pos` SHALL be synchronized with the new `secondary-sub-pos` value
+

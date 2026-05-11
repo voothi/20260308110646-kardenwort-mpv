@@ -1,4 +1,4 @@
-# lls-mouse-input Specification
+# kardenwort-mouse-input Specification
 
 ## Purpose
 Provide a robust, high-precision mouse interaction model for the Drum Window that accommodates hardware jitter (ghost clicks), minimalist input devices (remote controls), and variable viewport scrolling.
@@ -174,3 +174,4 @@ The hit-testing engine SHALL implement vertical proximity snapping for Drum Mode
 - **WHEN** in Drum Mode
 - **AND** the user clicks LMB in the gap between lines
 - **THEN** the system SHALL update the logical cursor to the nearest word vertically.
+

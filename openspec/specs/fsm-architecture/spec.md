@@ -40,7 +40,7 @@ The system SHALL ensure the "s" (global toggle) key updates the desired state un
 The system SHALL respect the `FSM.DRUM` OFF state while still passing styling rules from OpenSpec specs through to `drum_osd` when Regular SRT mode requires explicit UI adjustments.
 
 #### Scenario: User loads regular subtitles with OSD style rules
-- **WHEN** `FSM.native_sub_vis` is true but custom `lls-srt_font_name` is set
+- **WHEN** `FSM.native_sub_vis` is true but custom `kardenwort-srt_font_name` is set
 - **THEN** the system SHALL hide native subtitles and execute `draw_drum()` with 0 context lines, serving as a styled pass-through instead of raw mpv OS-level rendering.
 
 ### Requirement: Global Media Context Gatekeeping (MEDIA_STATE)
@@ -106,7 +106,7 @@ The system SHALL determine its active operating mode (MEDIA_STATE) by dynamicall
 - **THEN** the system SHALL enter the `DUAL_ASS` or `DUAL_SRT` (or mixed) state as appropriate.
 
 ### Requirement: Consolidated Logic Core
-The system SHALL centralize all core language learning features (Autopause, Context visualization, and Subtitle Copy) into a singular script architecture (`lls_core.lua`).
+The system SHALL centralize all core language learning features (Autopause, Context visualization, and Subtitle Copy) into a singular script architecture (`kardenwort/main.lua`).
 
 #### Scenario: Feature coordination
 - **WHEN** multiple features are enabled simultaneously
@@ -215,4 +215,5 @@ The FSM SHALL clear tooltip visual state and invalidate tooltip hit-zones on eve
 #### Scenario: Switching from Drum Mode to Drum Window
 - **WHEN** `FSM.DRUM_WINDOW` transitions from `"OFF"` to `"DOCKED"` while Drum tooltip state is active
 - **THEN** Drum tooltip overlay buffers and Drum tooltip hit-zones SHALL be cleared before DW tooltip ownership is applied.
+
 

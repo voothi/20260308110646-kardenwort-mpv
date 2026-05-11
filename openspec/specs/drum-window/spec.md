@@ -23,7 +23,7 @@ The Drum Window SHALL ensure that any active text selection, word-highlight, or 
 
 #### Scenario: Wheel Scroll Selection Stability
 - **WHEN** the user is actively dragging the mouse to select text (MBTN_LEFT down)
-- **AND** the user scrolls the mouse wheel (WHEEL_UP or WHEEL_DOWN)
+- **AND** the user scrokardenwort the mouse wheel (WHEEL_UP or WHEEL_DOWN)
 - **THEN** the system SHALL immediately update the selection range to include the word now under the mouse cursor at its new viewport position.
 - **AND** the selection SHALL NOT be cleared or disrupted by the scroll event.
 
@@ -59,7 +59,7 @@ The system SHALL wrap all `mp.observe_property` callbacks that invoke `update_me
 - **WHEN** `update_media_state` throws a Lua error while processing a track change
 - **AND** the error occurs inside an `mp.observe_property` callback
 - **THEN** the observer SHALL remain registered and continue firing on future property changes
-- **AND** the error SHALL be printed to the terminal as `[LLS ERROR] ...`
+- **AND** the error SHALL be printed to the terminal as `[Kardenwort ERROR] ...`
 
 ### Requirement: Drum Window Force Refresh on Open
 When transitioning from `OFF` to `DOCKED` state, the system SHALL call `load_anki_tsv(true)` before any state mutation, so that mid-session file deletions are reflected at the exact moment the user opens the window rather than waiting for the next periodic timer cycle.
@@ -247,3 +247,4 @@ The system MUST NOT crash when toggling modes or updating the OSD.
 #### Scenario: Closing DW Mode
 - **WHEN** The user toggles the DW Mode (Mode W) OFF
 - **THEN** The system SHALL display "Drum Window: OFF".
+

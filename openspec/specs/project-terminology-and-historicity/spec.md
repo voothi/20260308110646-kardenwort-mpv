@@ -70,7 +70,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Aural Buffer** | Timing | The temporal padding (`pause_padding`) added before autopause to prevent syllable clipping. |
 | **Consolas Calibration** | Rendering | The font-specific multipliers (`char_width`, `line_height`) used for pixel-perfect hit-testing. |
 | **Viewport Margin** | UI | The number of context lines kept visible during vertical scrolling (`scrolloff`). |
-| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrolls. |
+| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrokardenwort. |
 | **Fuzzy Search** | Search | Logic allowing typos and non-contiguous character matching in the Search HUD. |
 | **Order-Independent Search**| Search | Keyword matching that ignores the sequence of words in the query. |
 | **Query Buffer** | Search | The active text input field in the Search HUD. |
@@ -95,11 +95,11 @@ When processing user requests referencing legacy terms or analyzing ZIDs from pr
 | `mpv Language Learning Suite`| Project | `mpv Language Acquisition Suite`| 20260310145846 |
 | `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
-| `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
-| `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `autopause.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `copy_sub.lua` | Script | `lls_core.lua` | 20260408221530 |
-| `fixed_font.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `kardenwort-mpv.lua` | Script | `kardenwort/main.lua` | 20260414150031 |
+| `sub_context.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `autopause.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `copy_sub.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `fixed_font.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
 | `Normal Mode` | UI Mode | `SRT Mode` | Early Development |
 | `Reel Mode` | UI Mode | `Drum Mode` | 20260412105348 |
 | `Window Mode` | UI Mode | `Drum Window` | 20260414115025 |
@@ -122,3 +122,4 @@ To prevent rendering ambiguity between ASS (BGR) and Web (RGB) hex formats, all 
 
 ### Requirement: Linear Evolution Ledger
 The project SHALL maintain a flat "Correspondence Table" for all renamings to allow the AI to trace chains of identity (e.g., A → B → C).
+

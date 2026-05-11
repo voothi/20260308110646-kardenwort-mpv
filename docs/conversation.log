@@ -1875,7 +1875,7 @@
 20260511213007 Specification Drift While the software functions perfectly under the new name, the OpenSpec documentation is now technically "stale". If this is intended to be a permanent renaming, I recommend a global search-and-replace across the openspec/ directory to ensure the "Source of Truth" matches the implementation.
 20260511213123 Why did we change the main.lua file in the commit? 0bd2be3df83a4b910ca775285188760a84ed7561?
 20260511213442 Let's bring this back and change the specification and tests. if FSM.DRUM_WINDOW ~= "OFF" then show_osd("X") return end
-
+20260511214249 I need to complete **Architectural Specs** | ❌ **FAILED** > [!IMPORTANT] > **Specification Drift** > While the software functions perfectly under the new name, the **OpenSpec** documentation is now technically "stale". If this is intended to be a permanent renaming, I recommend a global search-and-replace across the `openspec/` directory to ensure the "Source of Truth" matches the implementation.
 
 
 

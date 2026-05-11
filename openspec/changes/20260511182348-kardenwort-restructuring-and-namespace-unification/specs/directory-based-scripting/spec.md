@@ -12,6 +12,6 @@ The system SHALL organize core script logic within a dedicated subdirectory insi
 The system SHALL place all auxiliary logic (utilities, secondary features) within the same namespace directory.
 
 #### Scenario: Requiring internal modules
-- **WHEN** `main.lua` calls `require 'utils'` or `require 'resume'`
+- **WHEN** `main.lua` cakardenwort `require 'utils'` or `require 'resume'`
 - **THEN** it SHALL load the corresponding files from `scripts/kardenwort/`
 - **AND** it SHALL NOT conflict with scripts of the same name in the root `scripts/` directory.

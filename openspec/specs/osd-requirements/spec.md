@@ -12,7 +12,7 @@ All OSD overlays (Drum Window, Drum Mode, Tooltip) must render text with identic
 Mouse interaction hit-zones must automatically synchronize with the visual layout defined by spacing parameters.
 
 ### Scenario: Adjusting Visual Spacing
-- **WHEN** the user sets `lls-dw_vsp` to a negative value or toggles `lls-dw_double_gap`
+- **WHEN** the user sets `kardenwort-dw_vsp` to a negative value or toggles `kardenwort-dw_double_gap`
 - **THEN** the clickable word zones must automatically shift their vertical positions to remain perfectly aligned with the new visual positions of the words.
 - **AND** no manual re-calibration of `line_height_mul` should be required for basic structural changes.
 
@@ -23,3 +23,4 @@ The tooltip active line must be perfectly centered on the target playback line's
 - **WHEN** a translation tooltip is triggered for a specific line
 - **AND** `tooltip_y_offset_lines` is set to `0`
 - **THEN** the vertical center of the tooltip's active line should align exactly with the vertical center of the target line in the primary window.
+

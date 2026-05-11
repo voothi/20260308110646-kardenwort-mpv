@@ -525,12 +525,12 @@ graph TD
     Tokenizer -- "SINGLE_SRT" --> Plain[Plain Text Stream]
     Tokenizer -- "SINGLE_ASS" --> Atomize[Atomic Tag Separation]
     
-    Plain --> Inject[LLS Highlight Injection]
+    Plain --> Inject[Kardenwort Highlight Injection]
     Atomize --> Strip[Metadata/Positioning Stripping]
     Strip --> Inject
     
     Inject --> Mutex{Priority Resolution}
-    Mutex -- "Rule 1: LLS > Native" --> FinalTags[Force {\1c...} Color Override]
+    Mutex -- "Rule 1: Kardenwort > Native" --> FinalTags[Force {\1c...} Color Override]
     Mutex -- "Rule 2: Reset Safety" --> HardReset[Inject {\r} after Highlight]
     
     FinalTags --> Render[OSD Overlay]
@@ -598,3 +598,4 @@ graph TD
     style NextConsec fill:#ccf,stroke:#339
     style NatProg fill:#eef,stroke:#669
 ```
+

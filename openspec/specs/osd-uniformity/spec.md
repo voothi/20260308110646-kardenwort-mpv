@@ -4,7 +4,7 @@
 All OSD overlays must exhibit identical visual properties (brightness, sharpness, and layering) to ensure a premium, unified user experience.
 
 ## Standardized Tags
-The following ASS tags are mandatory for all LLS renderers:
+The following ASS tags are mandatory for all Kardenwort renderers:
 
 | Tag | Purpose | Standard |
 |-----|---------|----------|
@@ -31,3 +31,4 @@ The active subtitle color SHALL be unified across all modes following the histor
 #### Scenario: Rendering Active Subtitles
 - **WHEN** a subtitle line becomes active for playback or navigation
 - **THEN** it SHALL be rendered in `White (BGR: FFFFFF | RGB: #FFFFFF)`
+

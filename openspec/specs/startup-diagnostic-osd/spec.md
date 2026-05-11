@@ -27,7 +27,7 @@ The system SHALL organize the subtitle file list such that the primary target la
 - **THEN** the OSD lists the English file first and the Russian file second
 
 ### Requirement: High-fidelity OSD rendering
-The system SHALL render the diagnostic message using a high-resolution OSD overlay (1920x1080) to ensure consistent font sizing and aesthetic parity with the core LLS UI.
+The system SHALL render the diagnostic message using a high-resolution OSD overlay (1920x1080) to ensure consistent font sizing and aesthetic parity with the core Kardenwort UI.
 
 #### Scenario: Visual consistency
 - **WHEN** the startup OSD is triggered
@@ -39,3 +39,4 @@ The system SHALL provide configuration options to adjust the OSD font name, font
 #### Scenario: User-defined aesthetics
 - **WHEN** the user modifies `osd_font_name` or `osd_font_size` in the script options
 - **THEN** the startup OSD message applies these parameters during its display window
+

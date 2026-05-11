@@ -32,7 +32,7 @@ The system SHALL support verification of visual elements via OSD overlay data in
 The system SHALL expose a set of pure utility functions in a stand-alone Lua module so they can be tested without booting mpv.
 
 #### Scenario: Running unit tests offline
-- **WHEN** a developer executes the unit-test runner against `scripts/lls_utils.lua`
+- **WHEN** a developer executes the unit-test runner against `scripts/kardenwort_utils.lua`
 - **THEN** the tests SHALL complete without instantiating mpv, without network access, and without LuaRocks-installed packages.
 
 #### Scenario: Catching a regression in alpha calculation
@@ -45,7 +45,7 @@ The system SHALL expose a set of pure utility functions in a stand-alone Lua mod
 The system SHALL provide a cross-platform Python helper (`MpvSession`) that boots mpv in a headless configuration suitable for unattended runs on Windows, Linux, and macOS.
 
 #### Scenario: Booting a headless test instance
-- **WHEN** the test harness instantiates `MpvSession` with a fixture path and calls `start()`
+- **WHEN** the test harness instantiates `MpvSession` with a fixture path and cakardenwort `start()`
 - **THEN** mpv SHALL launch with no video window, no terminal interaction, no user-config bleed-through, and an IPC server on a platform-appropriate path (Win32 named pipe on Windows, Unix socket on Linux/macOS).
 
 #### Scenario: Tearing down after a crash
@@ -68,10 +68,10 @@ The system SHALL provide a cross-platform Python IPC client that correlates JSON
 ---
 
 ### Requirement: State Probe Side Channel
-The script SHALL expose curated semantic state via the `user-data/lls/state` and `user-data/lls/render` properties, populated on demand by IPC `script-message` triggers.
+The script SHALL expose curated semantic state via the `user-data/Kardenwort/state` and `user-data/Kardenwort/render` properties, populated on demand by IPC `script-message` triggers.
 
 #### Scenario: Querying playback state
-- **WHEN** the test harness sends `script-message-to lls_core lls-state-query` and reads `user-data/lls/state`
+- **WHEN** the test harness sends `script-message-to kardenwort_core kardenwort-state-query` and reads `user-data/Kardenwort/state`
 - **THEN** the property SHALL contain a JSON object with stable, semantic field names (`autopause`, `drum_mode`, `playback_state`, etc.) and SHALL NOT expose raw FSM internal field names directly.
 
 #### Scenario: Probe is dormant in production
@@ -84,7 +84,7 @@ The script SHALL expose curated semantic state via the `user-data/lls/state` and
 The system SHALL support verification of visual elements by exposing the raw `.data` ASS string of named overlays for inspection.
 
 #### Scenario: Verifying highlight color
-- **WHEN** a word is highlighted and the test harness queries `lls-render-query dw`
+- **WHEN** a word is highlighted and the test harness queries `kardenwort-render-query dw`
 - **THEN** the returned ASS string SHALL contain the `\1c&Hxxxxxx&` tag matching the configured highlight color.
 
 #### Scenario: Querying an unknown overlay name
@@ -107,12 +107,14 @@ The automated test suite MUST use environment constants that align with producti
 
 #### Scenario: Audio Padding Alignment
 - **WHEN** Initializing a test fixture.
-- **THEN** The `audio_padding_start` and `audio_padding_end` values MUST default to **1000ms** (matching the stabilized `lls-audio_padding_start=1000` production standard).
+- **THEN** The `audio_padding_start` and `audio_padding_end` values MUST default to **1000ms** (matching the stabilized `kardenwort-audio_padding_start=1000` production standard).
 - **AND** Integration tests MUST verify correct behavior across complex subtitle overlaps in `fragment2` fixtures.
 
-### Requirement: Enhanced LlsProbe Method Resolution
-The IPC test harness MUST be able to resolve and execute functions defined as methods of the `LlsProbe` table in the Lua global scope.
+### Requirement: Enhanced KardenwortProbe Method Resolution
+The IPC test harness MUST be able to resolve and execute functions defined as methods of the `KardenwortProbe` table in the Lua global scope.
 
-#### Scenario: Querying LlsProbe:get_state()
-- **WHEN** the test harness calls a function named `get_state` via the probe.
-- **THEN** the harness MUST first look for `_G.get_state` and, if missing, fallback to `_G.LlsProbe.get_state`.
+#### Scenario: Querying KardenwortProbe:get_state()
+- **WHEN** the test harness cakardenwort a function named `get_state` via the probe.
+- **THEN** the harness MUST first look for `_G.get_state` and, if missing, fallback to `_G.KardenwortProbe.get_state`.
+
+

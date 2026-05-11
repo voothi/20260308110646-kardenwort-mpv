@@ -26,7 +26,7 @@ The system SHALL provide a unified auto-repeat mechanism for subtitle navigation
 The system SHALL expose controls for the repeat delay and repetition rate via script options.
 
 #### Scenario: User changes repeat speed
-- **WHEN** the user sets `lls-seek_hold_rate=20` in their `mpv.conf`
+- **WHEN** the user sets `kardenwort-seek_hold_rate=20` in their `mpv.conf`
 - **THEN** the system SHALL repeat the navigation at 20 times per second.
 
 ### Requirement: Mode Consistency
@@ -42,3 +42,4 @@ The system SHALL ensure that subtitle navigation keys (`a`, `d`, `ф`, `в`) are
 #### Scenario: Navigating immediately after file load
 - **WHEN** the user starts a video with external subtitles
 - **THEN** within 500ms of the first frame, pressing `d` SHALL immediately perform a subtitle seek, even if no special modes (Drum/Window) have been activated.
+
