@@ -466,7 +466,7 @@ class TestIndependentSubPositioning:
 class TestInputConfigMigration:
     """Tests for spec: input-config-migration"""
 
-    def test_a_key_bound_to_lls_seek_prev(self):
+    def test_a_key_bound_to_kardenwort_seek_prev(self):
         """'a' must be bound to kardenwort-seek_prev — custom seek over native sub-seek (input-config-migration)."""
         ic = _input_conf()
         found = any(
@@ -475,7 +475,7 @@ class TestInputConfigMigration:
         )
         assert found, "input-config-migration: 'a' not bound to kardenwort-seek_prev in input.conf"
 
-    def test_d_key_bound_to_lls_seek_next(self):
+    def test_d_key_bound_to_kardenwort_seek_next(self):
         """'d' must be bound to kardenwort-seek_next — custom seek over native sub-seek (input-config-migration)."""
         ic = _input_conf()
         found = any(
@@ -494,7 +494,7 @@ class TestInputConfigMigration:
                     f"input-config-migration: native sub-seek found on a/d: {stripped!r}"
                 )
 
-    def test_lls_seek_next_handler_exists_in_lua(self):
+    def test_kardenwort_seek_next_handler_exists_in_lua(self):
         """kardenwort-seek_next script message handler must be registered in kardenwort.lua (input-config-migration)."""
         src = _lua_source()
         assert "kardenwort-seek_next" in src, (
@@ -601,13 +601,13 @@ class TestKeybindingConsolidation:
         """Core commands must be bound via input.conf, not hardcoded in kardenwort.lua (keybinding-consolidation)."""
         ic = _input_conf()
         # Verify key bindings exist in input.conf
-        assert "script-binding toggle-drum-mode" in ic, (
+        assert "script-binding kardenwort/toggle-drum-mode" in ic, (
             "keybinding-consolidation: toggle-drum-mode not found in input.conf"
         )
-        assert "script-binding toggle-drum-window" in ic, (
+        assert "script-binding kardenwort/toggle-drum-window" in ic, (
             "keybinding-consolidation: toggle-drum-window not found in input.conf"
         )
-        assert "script-binding toggle-autopause" in ic, (
+        assert "script-binding kardenwort/toggle-autopause" in ic, (
             "keybinding-consolidation: toggle-autopause not found in input.conf"
         )
 

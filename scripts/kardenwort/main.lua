@@ -7669,10 +7669,6 @@ end
 
 
 local function cmd_toggle_sub_vis()
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
-        return
-    end
     local nxt = not FSM.native_sub_vis
     FSM.native_sub_vis = nxt
     FSM.native_sec_sub_vis = nxt
@@ -8234,6 +8230,8 @@ mp.register_script_message("kardenwort-test-seek-delta", function(dir_str)
     if dir then cmd_dw_seek_delta(dir) end
 end)
 
+mp.register_script_message("kardenwort-seek_next", function() cmd_seek_with_repeat(1, nil) end)
+mp.register_script_message("kardenwort-seek_prev", function() cmd_seek_with_repeat(-1, nil) end)
 mp.register_script_message("kardenwort-test-cycle-sec-sid", function()
     cmd_cycle_sec_sid()
 end)

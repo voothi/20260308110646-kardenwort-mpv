@@ -149,7 +149,7 @@ class TestArchitecturalRemediation:
         state_before = _robust_state(ipc)
         drum_before = state_before.get("drum_mode", False)
 
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.3)
 
         state_after = _robust_state(ipc)
@@ -160,7 +160,7 @@ class TestArchitecturalRemediation:
         )
 
         # Restore
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.2)
 
 
@@ -258,7 +258,7 @@ class TestCacheHardening:
         ipc = mpv.ipc
         state_before = _robust_state(ipc)
 
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.3)
 
         state_after = _robust_state(ipc)
@@ -266,7 +266,7 @@ class TestCacheHardening:
             "Drum mode did not toggle; cache flush likely caused a Lua error"
         )
         # Restore
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.2)
 
     def test_layout_version_is_integer(self):

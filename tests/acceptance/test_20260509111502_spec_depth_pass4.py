@@ -281,7 +281,7 @@ class TestTrackScrollingAccessibility:
             "track-scrolling-accessibility: seek_time_delta default is not 2 in Options table"
         )
 
-    def test_lls_seek_time_forward_registered(self):
+    def test_kardenwort_seek_time_forward_registered(self):
         """kardenwort-seek_time_forward must be registered via mp.add_key_binding (track-scrolling-accessibility)."""
         assert 'mp.add_key_binding(nil, "kardenwort-seek_time_forward"' in _src(), (
             "track-scrolling-accessibility: kardenwort-seek_time_forward not registered in kardenwort.lua"

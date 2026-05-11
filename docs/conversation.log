@@ -1870,7 +1870,7 @@
 20260511201759 Find and change the specs if necessary.
 20260511201944 What kind of terrible crutch are you putting up, remove it immediately and do it beautifully. scripts\resume_last_file.lua
 20260511202730 I don’t need this adapter, I rolled back these files, try again. No need to add new files.
-
+20260511203712 Delete git cache temp_git_log_utf8.txt temp_git_log.txt
 
 
 

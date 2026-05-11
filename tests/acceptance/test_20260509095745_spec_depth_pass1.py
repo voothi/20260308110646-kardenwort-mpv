@@ -113,7 +113,6 @@ class TestAnkiExportMapping:
         """anki_mapping.ini must exist in script-opts/ directory."""
         candidates = [
             "anki_mapping.ini",
-            "lls_anki_mapping.ini",
         ]
         found = any(os.path.exists(c) for c in candidates)
         assert found, (
@@ -124,7 +123,6 @@ class TestAnkiExportMapping:
         """anki_mapping.ini must have [fields_mapping.word] and [fields_mapping.sentence]."""
         candidates = [
             "anki_mapping.ini",
-            "lls_anki_mapping.ini",
         ]
         path = next((c for c in candidates if os.path.exists(c)), None)
         if path is None:
@@ -172,7 +170,7 @@ class TestAnkiHighlighting:
         indicating that the highlight stack renders phrase-level or word-level colors.
         """
         ipc = mpv.ipc
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.3)
         ipc.command(["seek", 1.5, "absolute+exact"])
         time.sleep(0.4)
@@ -184,7 +182,7 @@ class TestAnkiHighlighting:
             "Drum render has no ASS color tags; highlight stack may be broken"
         )
         # Restore
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.2)
 
 
@@ -538,7 +536,7 @@ class TestDrumWindowHighPrecisionRendering:
         color tags preceding them (word-only highlighting requirement).
         """
         ipc = mpv.ipc
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.3)
         ipc.command(["seek", 1.5, "absolute+exact"])
         time.sleep(0.4)
@@ -551,7 +549,7 @@ class TestDrumWindowHighPrecisionRendering:
             "Bracket '[' has an independent color tag; only word tokens should be colored"
         )
 
-        ipc.command(["script-binding", "toggle-drum-mode"])
+        ipc.command(["script-binding", "kardenwort/toggle-drum-mode"])
         time.sleep(0.2)
 
     def test_dw_active_color_option_is_white(self, mpv):
