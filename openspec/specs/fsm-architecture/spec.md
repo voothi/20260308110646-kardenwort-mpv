@@ -24,18 +24,17 @@ The system SHALL funnel all periodic updates through `master_tick()`. Only one p
 - **WHEN** `FSM.DRUM_WINDOW` is `DOCKED`
 - **THEN** `master_tick` SHALL bypass its continuous background visibility suppression loop completely, leaving `cmd_toggle_drum_window` directly in charge of its own visibility snap-shots.
 
-### Requirement: Global Subtitle Quick Toggle (cmd_toggle_sub_vis)
-The system SHALL ensure the "s" (global toggle) key updates the desired state uniformly, bypassing lower-level mode conflicts. `FSM.native_sub_vis` and `FSM.native_sec_sub_vis` MUST be toggled regardless of whether `FSM.DRUM_WINDOW` is active. When `FSM.DRUM_WINDOW` is active, the Drum Window OSD surface is independent of `FSM.native_sub_vis` and SHALL continue rendering; the toggle updates the FSM desired-state so that the correct visibility is applied when the Drum Window is later closed.
+##### Requirement: Global Subtitle Quick Toggle (cmd_toggle_sub_vis)
+The system SHALL ensure the "s" (global toggle) key updates the desired state uniformly during standard playback. However, to prevent unintended background state mutations while interacting with the Drum Window, the toggle SHALL be suppressed when `FSM.DRUM_WINDOW` is active.
 
 #### Scenario: User presses 's' to disable all subs
-- **WHEN** user triggers `cmd_toggle_sub_vis()` when `FSM.native_sub_vis = true`
+- **WHEN** user triggers `cmd_toggle_sub_vis()` when `FSM.native_sub_vis = true` and `FSM.DRUM_WINDOW == "OFF"`
 - **THEN** system SHALL set `FSM.native_sub_vis = false`, set native properties `sub-visibility` to false directly, and flush any `drum_osd` buffers.
 
 #### Scenario: User presses 's' while Drum Window is open
-- **WHEN** user triggers `cmd_toggle_sub_vis()` while `FSM.DRUM_WINDOW == "DOCKED"`
-- **THEN** system SHALL toggle `FSM.native_sub_vis` and `FSM.native_sec_sub_vis` as normal
-- **AND** the Drum Window OSD surface SHALL continue rendering without interruption
-- **AND** when the Drum Window is subsequently closed, the restored visibility SHALL reflect the toggled FSM desired-state.
+- **WHEN** user triggers `cmd_toggle_sub_vis()` while `FSM.DRUM_WINDOW ~= "OFF"`
+- **THEN** system SHALL suppress the toggle action
+- **AND** it SHALL provide visual feedback ("X") to the user.
 
 ### Requirement: OSD Styling Unification Bridge
 The system SHALL respect the `FSM.DRUM` OFF state while still passing styling rules from OpenSpec specs through to `drum_osd` when Regular SRT mode requires explicit UI adjustments.
