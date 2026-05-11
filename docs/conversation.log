@@ -1812,10 +1812,10 @@
 20260511102200 Why in dw mode, when you hit some places and hold down RMB, the tooltip window starts blinking? There is a place in the area of ​​one word (die) in the subtitles Fragment2 `Stunde um die 800 Sendungen`, where when you hover the mouse pointer with RMB held down and leave it in that position, the window flashes cyclically continuously until you move it to another place. Also, when you hold RMB and swipe vertically across the text, at this place or nearby, the same blinking occurs as the pointer passes it, which for the user causes discomfort and the feeling of the mechanism acting up. 20260511102200 Почему в режиме dw при попадании на какие-то места при удержании RMB окно подсказки tooltip начинаем моргать? Есть место в районе одного слова (die) в субтитрах Fragment2 `Stunde um die 800 Sendungen`, где при наведении указателя мыши с зажатой RMB и оставлении в таком положении, окно циклически мигает непрерывно пока не сместишь в другое место. Также при зажатии RMB и проведении по вертикали по тексту, на этом месте или рядом происходит тоже мигание на момент его прохождения указателем, что для пользоваля вызывает дискомфорт и ошущение барахления механизма.
 20260511105220 Look, this hasn't been resolved C:\Users\voothi\Videos\Recording 2026-05-11 105230.mp4
 20260511110449 Create a video description in the openspec\changes\20260511102747-tooltip-flicker-fix documentation that I provided to you
-
-
-
-
+20260511110851 Add a description of what you see in the context of the problem proposal.md#L11-13
+20260511111031 Add a frame-by-frame analysis, more detailed, formalize it and write it down in the documentation, in a file.
+20260511111128 Save this in openspec\changes\20260511102747-tooltip-flicker-fix
+20260511111556 Cross-reference proposal.md#L11 analysis.md#L1
 
 
 
