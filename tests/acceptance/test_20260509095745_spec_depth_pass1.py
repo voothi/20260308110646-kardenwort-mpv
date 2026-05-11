@@ -110,27 +110,33 @@ class TestAnkiExportMapping:
     """
 
     def test_anki_mapping_ini_exists(self):
-        """anki_mapping.ini must exist in script-opts/ directory."""
+        """anki-mapping.ini must exist in the root directory."""
         candidates = [
-            "anki_mapping.ini",
+            "anki-mapping.ini",
         ]
         found = any(os.path.exists(c) for c in candidates)
         assert found, (
-            f"anki_mapping.ini not found. Searched: {candidates}"
+            f"anki-mapping.ini not found. Searched: {candidates}"
         )
 
     def test_anki_mapping_has_word_and_sentence_sections(self):
-        """anki_mapping.ini must have [fields_mapping.word] and [fields_mapping.sentence]."""
-        candidates = [
-            "anki_mapping.ini",
+        """anki-mapping.ini must have [fields_mapping.word] and [fields_mapping.sentence]."""
+        paths = [
+            "anki-mapping.ini",
+            "tests/anki-mapping.ini",
+            "script-opts/anki-mapping.ini"
         ]
-        path = next((c for c in candidates if os.path.exists(c)), None)
-        if path is None:
-            pytest.skip("anki_mapping.ini not found")
-        content = open(path, encoding="utf-8").read()
-        assert "fields_mapping" in content.lower() or "word" in content.lower(), (
-            "anki_mapping.ini must contain field-mapping profile sections"
-        )
+        found = False
+        for p in paths:
+            if os.path.exists(p):
+                found = True
+                break
+        if not found:
+            pytest.skip("anki-mapping.ini not found")
+            
+        with open("anki-mapping.ini", "r") as f:
+            content = f.read()
+            assert "[fields_mapping.word]" in content, "anki-mapping.ini must contain field-mapping profile sections"
 
     def test_sentence_word_threshold_option_exists(self, mpv):
         """sentence_word_threshold option must be in Options (anki-export-mapping)."""

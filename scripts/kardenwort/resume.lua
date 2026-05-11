@@ -13,7 +13,7 @@ local opts = {
     -- Delay before checking if we should resume on startup (seconds)
     startup_delay = 0.1,
     -- File to store the last played path
-    state_file = "~~/resume_session.state",
+    state_file = "~~/resume-session.state",
     -- Message prefix for OSD
     msg_prefix = "",
     -- OSD font size (set to 0 to use system default)

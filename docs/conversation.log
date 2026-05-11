@@ -1878,6 +1878,7 @@
 20260511214249 I need to complete **Architectural Specs** | ❌ **FAILED** > [!IMPORTANT] > **Specification Drift** > While the software functions perfectly under the new name, the **OpenSpec** documentation is now technically "stale". If this is intended to be a permanent renaming, I recommend a global search-and-replace across the `openspec/` directory to ensure the "Source of Truth" matches the implementation.
 20260511215947 Check cakardenwort scrokardenwort skikardenwort
 20260511222605 You shouldn't have deleted it main.lua#L7671-7672 main.lua#L7694-7695 these were changes from the last work, before renaming, we need to return and complete the specifications and tests for this. openspec\specs\project-terminology-and-historicity\spec.md
+20260511224154 Look at the resulting project structure, at the names of the files - and the _ in the name, confusion, does everything meet best practices and standards. Look from the root of the project, check the README and add a diagram to it in the form of a structure tree as is usually done.
 
 
 

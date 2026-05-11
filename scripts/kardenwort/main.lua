@@ -1117,9 +1117,9 @@ local function load_anki_mapping_ini()
     if ANKI_MAPPING_CACHE then return ANKI_MAPPING_CACHE end
     
     local paths = {
-        utils.join_path(mp.get_script_directory(), "../../anki_mapping.ini"),
-        mp.command_native({"expand-path", "~~/anki_mapping.ini"}),
-        mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
+        utils.join_path(mp.get_script_directory(), "../../anki-mapping.ini"),
+        mp.command_native({"expand-path", "~~/anki-mapping.ini"}),
+        mp.command_native({"expand-path", "~~/script-opts/anki-mapping.ini"})
     }
     local f = nil
     for _, p in ipairs(paths) do

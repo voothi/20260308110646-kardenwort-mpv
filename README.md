@@ -26,13 +26,36 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 > 1.  **Namespace Shift**: The core script has moved from `lls_core.lua` to `scripts/kardenwort/`.
 > 2.  **Keybinding Migration**: All `script-binding` and `script-message` targets now use the `kardenwort/` prefix (e.g., `script-binding kardenwort/smart-space`).
 > 3.  **Config Prefix**: All `script-opts` parameters in `mpv.conf` now use the `kardenwort-` prefix (e.g., `kardenwort-autopause_default=yes`).
-> 4.  **Anki Mapping**: `anki_mapping.ini` has moved from `script-opts/` to the repository root for better visibility.
+> 4.  **Anki Mapping**: `anki-mapping.ini` has moved from `script-opts/` to the repository root for better visibility.
+
+## Repository Structure
+
+```text
+.
+├── .agent/                 # Agentic configurations and workflows
+├── docs/                   # Documentation and conversation logs
+├── openspec/               # OpenSpec architectural specifications
+│   ├── changes/            # Active feature implementations
+│   └── specs/              # System specifications and requirements
+├── scripts/
+│   └── kardenwort/         # Core Lua engine and modules
+│       ├── main.lua        # Master entry point and FSM controller
+│       ├── utils.lua       # Unified rendering and path utilities
+│       └── resume.lua      # Session persistence manager
+├── tests/                  # Pytest and LuaUnit verification suite
+├── anki-mapping.ini        # Anki field mapping configuration
+├── input.conf              # Keybindings and interaction mappings
+├── mpv.conf                # Global player and script configuration
+├── release-notes.md        # Historical evolution and feature ledger
+└── resume-session.state    # Persistent playback state registry
+```
 
 
 
 ## Table of Contents
 
 - [Visual Showcase](#visual-showcase)
+- [Repository Structure](#repository-structure)
 - [Project Goals](#project-goals)
 - [Distinctive Advantages](#distinctive-advantages)
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
@@ -646,7 +669,7 @@ These parameters allow remapping internal script actions in `mpv.conf`. Values c
 | `kardenwort-dw_key_toggle_copy_context`| `W Ц` |
 
 #### **Mapping Keywords**
-When configuring `anki_mapping.ini`, use these keywords to pull dynamic data:
+When configuring `anki-mapping.ini`, use these keywords to pull dynamic data:
 - `source_word`: The selected term or phrase.
 - `source_sentence`: The full sentence context captured around the selection.
 - `source_index`: The sequential index of the line in the subtitle file.

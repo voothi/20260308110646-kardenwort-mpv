@@ -21,11 +21,12 @@ The project environment uses a specific set of terms to describe its tooling and
 | **Change Archive** | Organization | The `openspec/changes/archive` directory containing historical completed tasks. |
 | **mpv.conf** | Configuration | The primary player and script configuration file. |
 | **input.conf** | Configuration | The centralized keybinding configuration file. |
-| **anki_mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki_mapping.ini`). |
+| **anki-mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki-mapping.ini`). |
 | **Central Register** | Log | The `docs/conversation.log` file, acting as the master registry of all requests and interactions. |
 | **Legacy Release Store**| Organization | The `docs/rfcs` directory containing historical releases using the **SDD** methodology. |
 | **OpenSpec** | Methodology | The modern, agentic-centric specification framework for active development. |
 | **SDD** | Methodology | **Software Design Document**: The legacy planning methodology (now archived). |
+| **resume-session.state**| State | The persistent playback state registry (`resume-session.state`). |
 
 ### Requirement: The ZID Traceability Model
 The project utilizes a timestamp-based anchoring system (**ZID**) to ensure absolute traceability:
