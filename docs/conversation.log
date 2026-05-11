@@ -1858,6 +1858,11 @@
 20260511175308 Is it true that the pytest.ini file is in the root of the project?
 20260511175333 Yes, that is correct. The pytest.ini file is located in the root of the project directory (u:\voothi\20260308110646-kardenwort-mpv\pytest.ini), alongside other project-level configuration files like input.conf, mpv.conf, and README.md.
 20260511175617 How difficult is it then to move the script-opts\anki_mapping.ini config to the root and update the mention of this everywhere in the current documentation and specifications, in tests, if necessary, so that all configs are at the same level and clearly visible.
+20260511118095 What if my repository itself is part of  C:\Users\voothi\AppData\Roaming\mpv? That is, U:\voothi\20260308110646-kardenwort-mpv will be mapped to C:\Users\voothi\AppData\Roaming\mpv\20260308110646-kardenwort-mpv, then what structure is suitable? Or is it better to leave /scripts/kardenwort-mpv/... for the build? After all, then the user can realize that he needs to add  kardenwort-mpv to his mpv in the scripts directory or create it in advance, this sets the structure. 20260511180950 What if my repository itself is part of  C:\Users\voothi\AppData\Roaming\mpv? That is, U:\voothi\20260308110646-kardenwort-mpv will be mapped to C:\Users\voothi\AppData\Roaming\mpv\20260308110646-kardenwort-mpv, then what structure is suitable? Или лучше для сборки оставить /scripts/kardenwort-mpv/...? Ведь тогда пользователь может сообразить, что нужно у него в mpv добаить  kardenwort-mpv в каталог scripts или содать его предварительно, это задает структуру.
+20260511181439 My repository will obviously not be in this folder, otherwise the launch will be duplicated, 2 copies will be launched simultaneously. kardenwort-mpv\        <-- YOUR REPOSITORY. He will ../
+20260511181806 │  └── kardenwort/        # <--- Isolated project namespace - shouldn't there be a name here kardenwort-mpv, kardenwort is a common name.
+20260511181936 Is it okay that we will have a repetition of the name kardenwort-mpv in the name of the repository and in the namespace?
+20260511182130 Yes, come on Option B, make a plan, don’t forget that you need to make these renamings in the specification specifically for renaming and terms.
 
 
 
