@@ -20,7 +20,7 @@
 ## Highlights
 
 ### 🛡️ **FSM Architecture & Specification Hardening**
-- **Architecture Validation**: Conducted a surgical audit of the entire `lls_core.lua` FSM logic, fixing regressions and discrepancies between the specifications (`fsm-architecture`) and the actual code.
+- **Architecture Validation**: Conducted a surgical audit of the entire `kardenwort/main.lua` FSM logic, fixing regressions and discrepancies between the specifications (`fsm-architecture`) and the actual code.
 - **Selection Priority Simplification**: Refactored the context copy logic into the FSM state machine. Active manual selections (Pink Set, Yellow Range, Yellow Pointer) now reliably override Context Copy mode, providing deterministic extraction regulated via the `Esc` key.
 - **Spec-Gap Remediation**: Resolved "sticky" interaction edge-cases relating to search hijacking, configuration-bound secondary positioning, and DOCKED neutrality.
 
@@ -251,7 +251,7 @@
 ## Highlights
 
 ### 🚄 **Architectural Hardening & Performance**
-- **Massive Pipeline Audit**: Conducted a comprehensive hardening of the `lls_core.lua` rendering engine. Introduced O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
+- **Massive Pipeline Audit**: Conducted a comprehensive hardening of the `kardenwort/main.lua` rendering engine. Introduced O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
 - **Cache Integrity Enforcement**: Hardened `flush_rendering_caches()` with mode-specific invalidation sentinels (Drum vs. Normal) and active `script-opts` observation. This eliminates stale UI output and OSD-drift regressions.
 - **Hot-Path Optimization**: Migrated core loops to `ipairs()`-based iteration and implemented token-level highlight memoization, significantly reducing CPU overhead during high-frequency subtitle updates.
 - **Spec-Synchronized Performance**: Formally archived and synchronized 29 performance-driven OpenSpec changes into the project's canonical specification set.
@@ -286,7 +286,7 @@
 
 ### 🔦 **Search UI & Aesthetic Refinement**
 - **Restored Selection Highlighting**: Corrected a visual regression in the Search HUD where active selections lost their colored highlighting. The interface now accurately renders the active result in bright white while preserving match-specific color indicators.
-- **Independent Search Scaling**: Introduced `lls-search_results_font_size` to allow independent scaling of the results dropdown (e.g., 80% of the main UI size), optimizing screen real estate for dense search results.
+- **Independent Search Scaling**: Introduced `kardenwort-search_results_font_size` to allow independent scaling of the results dropdown (e.g., 80% of the main UI size), optimizing screen real estate for dense search results.
 - **Aesthetic Synchronization**: Realigned search window positioning and background logic with the "Drum Mode" visual style, ensuring a cohesive look and feel across all custom UI overlays.
 
 ### 🎨 **Subtitle Rendering & Layout Hardening**
@@ -352,7 +352,7 @@
 - **Modifier Logic Refinement**: Restricted range selection to standard `Shift` and `Ctrl+Shift` arrow combinations, maintaining the `Ctrl` key's role for fast navigation without unintended highlighting.
 
 ### ⚙️ **Configurable Navigation Parameters**
-- **User-Defined Jumps**: Navigation jump distances are no longer hardcoded. Users can now customize the word/line jump amount via `lls-dw_jump_words` and `lls-dw_jump_lines` in `mpv.conf`.
+- **User-Defined Jumps**: Navigation jump distances are no longer hardcoded. Users can now customize the word/line jump amount via `kardenwort-dw_jump_words` and `kardenwort-dw_jump_lines` in `mpv.conf`.
 - **Documentation Sync**: Updated `input.conf` to reflect these configurable capabilities, providing clear guidance on the role of Ctrl and Shift modifiers in the Drum Window.
 
 ---
@@ -506,7 +506,7 @@
 
 ### ⚡ **Engine Hardening & Optimization**
 - **Recursive Grounded Maps**: Implemented recursive result caching and "lazy-parsing" for grounded coordinate maps to maintain 60fps UI performance during rapid scrolling and playback.
-- **Stability Pass**: Finalized synchronization between the core `lls_core.lua` engine and user-facing configuration, resolving minor desyncs in default fallback behaviors.
+- **Stability Pass**: Finalized synchronization between the core `kardenwort/main.lua` engine and user-facing configuration, resolving minor desyncs in default fallback behaviors.
 
 ---
 
@@ -874,7 +874,7 @@
 ## Highlights
 
 ### 🚄 **Universal Navigation Reliability**
-- **Seamless Logic**: Exported the reliable, table-based seeking engine as global script-bindings (`lls-seek_prev` and `lls-seek_next`).
+- **Seamless Logic**: Exported the reliable, table-based seeking engine as global script-bindings (`kardenwort-seek_prev` and `kardenwort-seek_next`).
 - **Global Smoothness**: Subtitle navigation (`a`/`d`) now behaves with identical high-precision reliability whether the Drum Window is open or closed. No more "double-tapping" after an autopause in any mode.
 
 ---
@@ -1021,9 +1021,9 @@
 ## Highlights
 
 ### 📏 **Smart Font Scaling Core integration**
-- **Native Logic**: Ported the experimental font scaling logic from `fixed_font.lua` directly into the core `lls_core.lua` engine for a more robust and unified architecture.
+- **Native Logic**: Ported the experimental font scaling logic from `fixed_font.lua` directly into the core `kardenwort/main.lua` engine for a more robust and unified architecture.
 - **Softer Scaling Formula**: Implemented a mathematically weighted "Softer Scaling" algorithm. This ensures subtitles remain legible on small windows without causing aggressive multi-line text wrapping that obscures the video.
-- **Centralized Config**: Added formal `script-opts` to `mpv.conf`. You can now enable/disable scaling and tune its "strength" (e.g., `lls-font_scale_strength=0.5`) directly from your main configuration file.
+- **Centralized Config**: Added formal `script-opts` to `mpv.conf`. You can now enable/disable scaling and tune its "strength" (e.g., `kardenwort-font_scale_strength=0.5`) directly from your main configuration file.
 - **Architectural Cleanup**: Deleted the standalone `scripts/fixed_font.lua` script, simplifying the installation and reducing file clutter.
 
 ### 🛡️ **Drum Mode Consistency Fix**
@@ -1125,7 +1125,7 @@
 - **Contextual Feedback**: The visual emergence of the window provides sufficient feedback, resulting in a more professional and cinematic feel during immersion.
 
 ### 🛠️ **Hoisted Core Utilities**
-- **Architectural Cleanup**: Hoisted all text-processing helpers (`has_cyrillic`, `is_word_char`, etc.) to the top of `lls_core.lua` for global reliability.
+- **Architectural Cleanup**: Hoisted all text-processing helpers (`has_cyrillic`, `is_word_char`, etc.) to the top of `kardenwort/main.lua` for global reliability.
 - **Nil-Safety Hardening**: Added defensive guards to all core string functions to prevent runtime crashes on malformed subtitle inputs.
 
 ---
@@ -1428,7 +1428,7 @@
 ## Highlights
 
 ### ⚙️ **Centralized Script Configuration**
-- **External Overrides**: Enabled `script-opts` support in `lls_core.lua`. You can now manage script-specific toggle positions directly from `mpv.conf` without touching Lua files.
+- **External Overrides**: Enabled `script-opts` support in `kardenwort/main.lua`. You can now manage script-specific toggle positions directly from `mpv.conf` without touching Lua files.
 - **Dynamic Config Authority**: The script now treats `mpv.conf` as the single source of truth for all operational parameters.
 
 ### 🛡️ **Positioning Safety Guards**
@@ -1490,7 +1490,7 @@
 ## Highlights
 
 ### 📋 **Single Source of Truth for Keybindings**
-- **Consolidated Authority**: Removed the last hardcoded key (`"c"` for Drum Mode) from `lls_core.lua`. All 11 script bindings now use `nil` defaults, making `input.conf` the exclusive keybinding authority.
+- **Consolidated Authority**: Removed the last hardcoded key (`"c"` for Drum Mode) from `kardenwort/main.lua`. All 11 script bindings now use `nil` defaults, making `input.conf` the exclusive keybinding authority.
 - **Zero Script Keys**: To change any hotkey, edit only `input.conf`. No script files need modification.
 
 ### 🧹 **Repository & Cache Cleanup**
@@ -1545,7 +1545,7 @@
 ## Highlights
 
 ### ⚙️ **Unified State Machine Architecture**
-- **Harmonized Operating Modes**: Replaced the ad-hoc, boolean-driven script collection (`autopause.lua`, `sub_context.lua`, `copy_sub.lua`) with a single, highly-performant Finite State Machine (`scripts/lls_core.lua`).
+- **Harmonized Operating Modes**: Replaced the ad-hoc, boolean-driven script collection (`autopause.lua`, `sub_context.lua`, `copy_sub.lua`) with a single, highly-performant Finite State Machine (`scripts/kardenwort/main.lua`).
 - **Context Awareness**: Features like Drum Mode and Context Copy are now natively aware of the exact loaded subtitle configuration (SRT vs ASS, Single vs Dual). This guarantees features activate only when mathematically supported.
 - **Optimized Performance**: Consolidated all internal script timers into a single master tick loop, completely removing race conditions and lowering overall CPU overhead.
 
@@ -1605,5 +1605,5 @@
 ## How to Update
 1.  Overwrite your `input.conf` with the latest version.
 2.  Delete obsolete standalone scripts (`autopause.lua`, `copy_sub.lua`, `sub_context.lua`) from your `scripts/` folder.
-3.  Place the new unified `lls_core.lua` inside your `scripts/` folder.
+3.  Place the new unified `kardenwort/main.lua` inside your `scripts/` folder.
 4.  Refresh your `mpv.conf` to include the standard subtitle position defaults (10/90).

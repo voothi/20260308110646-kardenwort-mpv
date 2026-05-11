@@ -246,7 +246,7 @@ class TestHistoricalRegressionsV2:
         assert os.path.isdir(".agent")
 
     def test_fsm_architecture_s_toggle(self, mpv):
-        """Verify 's' toggle updates FSM state even when DW is open (fsm-architecture)."""
+        """Verify 's' toggle is SUPPRESSED when DW is open (fsm-architecture)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
@@ -259,7 +259,7 @@ class TestHistoricalRegressionsV2:
         time.sleep(0.5)
         
         state = robust_query_state(ipc)
-        assert state['native_sub_vis'] != initial_vis
+        assert state['native_sub_vis'] == initial_vis, "Visibility toggle was NOT suppressed in DW mode"
 
     def test_fuzzy_search_optimization_match(self, mpv):
         """Verify partial query matching (fuzzy-search-optimization)."""

@@ -123,13 +123,13 @@ def test_20260507090243_fsm_gap_visibility_lockout(mpv):
     time.sleep(0.3)
     assert query_kardenwort_state(ipc)['drum_window'] != 'OFF'
     
-    # Step 3: Toggle should still work when DW is open
+    # Step 3: Toggle should be SUPPRESSED when DW is open (managed by DW)
     initial_vis = query_kardenwort_state(ipc)['native_sub_vis']
     ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
     time.sleep(0.15)
     
     new_state = query_kardenwort_state(ipc)
-    assert new_state['native_sub_vis'] != initial_vis, "Visibility did not toggle while DW open"
+    assert new_state['native_sub_vis'] == initial_vis, "Visibility toggle was NOT suppressed while DW open"
     assert new_state['drum_window'] != 'OFF', "Drum Window closed unexpectedly"
 
 def test_20260507102212_fsm_gap_sec_pos_sync(mpv_dual):

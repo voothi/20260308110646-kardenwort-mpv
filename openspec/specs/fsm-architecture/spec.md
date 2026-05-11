@@ -191,6 +191,11 @@ Secondary subtitle positioning transitions SHALL respect configured FSM bounds r
 - **THEN** the system SHALL toggle `secondary-sub-pos` between `Options.sec_pos_top` and `Options.sec_pos_bottom`
 - **AND** overlap avoidance SHALL be achieved by validated configuration defaults (for example `sec_pos_bottom = 90` relative to primary `95`), not by implicit runtime clamping.
 
+#### Scenario: User attempts to adjust positioning while Drum Window is open
+- **WHEN** user triggers `cmd_cycle_sec_pos()` or `cmd_adjust_sub_pos()` while `FSM.DRUM_WINDOW ~= "OFF"`
+- **THEN** system SHALL suppress the action
+- **AND** it SHALL provide visual feedback ("X") to the user.
+
 #### Scenario: Delta position adjustment syncs FSM state
 - **WHEN** `cmd_adjust_sec_sub_pos` is called with a delta value
 - **THEN** the system SHALL compute the new position, apply it to the mpv property, and write the same value back to `FSM.native_sec_sub_pos`

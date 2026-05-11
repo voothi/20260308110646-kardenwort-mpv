@@ -86,6 +86,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Language-Aware Context** | Logic | Filtering context extraction to exclude translations (e.g. via Cyrillic detection). |
 | **Layout Agnosticism** | UX | Mapping standard keys across multiple keyboard layouts (EN/RU). |
 | **Interaction Shield** | Stability | A 50-150ms suppression window to ignore hardware jitter (ghost-clicks). |
+| **X Feedback** | UX | The standardized "X" OSD message indicating a key action is managed or restricted. |
 | **Grounded Match** | Accuracy | Highlighting anchored to a specific `logical_idx` and `time_pos`. |
 
 ### Requirement: Historical Entity Mapping
@@ -96,6 +97,7 @@ When processing user requests referencing legacy terms or analyzing ZIDs from pr
 | `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
 | `kardenwort-mpv.lua` | Script | `kardenwort/main.lua` | 20260414150031 |
+| `lls_core.lua` | Script | `kardenwort/main.lua` | 20260511182348 |
 | `sub_context.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
 | `autopause.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
 | `copy_sub.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
