@@ -4,8 +4,8 @@ Test Creation ZID: 20260509113830
 Feature: Mouse Isotropic Scaling
 
 Structural tests verifying the isotropic mouse-coordinate mapping and drum-window
-hit-zone infrastructure in lls_core.lua.
-The IPC test handler (lls-test-mouse-logic) is not implemented, so these tests
+hit-zone infrastructure in kardenwort.lua.
+The IPC test handler (kardenwort-test-mouse-logic) is not implemented, so these tests
 validate the scaling formulas and hit-zone data structures directly from source.
 """
 
@@ -13,10 +13,10 @@ import re
 import pytest
 import time
 
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
-LUA = "scripts/lls_core.lua"
+LUA = "scripts/kardenwort/main.lua"
 
 
 def _lua():
@@ -34,7 +34,7 @@ def test_mouse_isotropic_scaling():
         "scale_isotropic variable not found; isotropic mouse scaling not implemented"
     )
     assert re.search(r"scale_isotropic\s*=\s*oh\s*/\s*1080", content), (
-        "Isotropic scale formula (oh / 1080) not found in lls_core.lua"
+        "Isotropic scale formula (oh / 1080) not found in kardenwort.lua"
     )
     assert re.search(r"osd_x\s*=\s*960\s*\+", content), (
         "osd_x = 960 + ... formula not found; OSD-space X mapping is missing"
@@ -61,3 +61,7 @@ def test_drum_window_hit_test():
     assert "DW_TOOLTIP_HIT_ZONES" in content, (
         "DW_TOOLTIP_HIT_ZONES not found; word-level hit zone tracking is missing"
     )
+
+
+
+

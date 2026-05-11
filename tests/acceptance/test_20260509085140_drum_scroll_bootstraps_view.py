@@ -20,7 +20,7 @@ before any subtitle becomes active and before any explicit scroll call.
 """
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 
 # ---------------------------------------------------------------------------
@@ -28,14 +28,14 @@ from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
 # ---------------------------------------------------------------------------
 
 def _enable_drum(ipc):
-    ipc.command(['script-binding', 'lls_core/toggle-drum-mode'])
+    ipc.command(['script-binding', 'kardenwort/toggle-drum-mode'])
     time.sleep(0.15)
-    assert query_lls_state(ipc)['drum_mode'] == 'ON', "drum mode should be ON"
+    assert query_kardenwort_state(ipc)['drum_mode'] == 'ON', "drum mode should be ON"
 
 
 def _scroll(ipc, direction, n=1):
     for _ in range(n):
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-scroll', str(direction)])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-scroll', str(direction)])
         time.sleep(0.05)
     time.sleep(0.1)
 
@@ -52,13 +52,13 @@ def test_drum_scroll_bootstraps_view_center(mpv_fragment1):
     ipc = mpv_fragment1.ipc
     _enable_drum(ipc)
 
-    pre = query_lls_state(ipc)
+    pre = query_kardenwort_state(ipc)
     assert pre['dw_view_center'] in [-1, 1], (
         f"DW_VIEW_CENTER must be -1 or 1 (bootstrapped) before any scroll at time 0; got {pre['dw_view_center']}"
     )
 
     _scroll(ipc, 1)
-    post = query_lls_state(ipc)
+    post = query_kardenwort_state(ipc)
 
     assert post['dw_view_center'] >= 1, (
         f"DW_VIEW_CENTER must be >= 1 after bootstrapping scroll; got {post['dw_view_center']}"
@@ -70,13 +70,13 @@ def test_drum_scroll_sets_follow_player_false(mpv_fragment1):
     ipc = mpv_fragment1.ipc
     _enable_drum(ipc)
 
-    before = query_lls_state(ipc)
+    before = query_kardenwort_state(ipc)
     assert before['dw_follow_player'] is True, (
         f"dw_follow_player must start True; got {before['dw_follow_player']}"
     )
 
     _scroll(ipc, 1)
-    after = query_lls_state(ipc)
+    after = query_kardenwort_state(ipc)
 
     assert after['dw_follow_player'] is False, (
         "DW_FOLLOW_PLAYER must be False after a manual scroll"
@@ -93,11 +93,11 @@ def test_drum_scroll_view_center_advances(mpv_fragment1):
     # After first scroll (dir=+1): center = min(5, 1+1) = 2
     # After second scroll (dir=+1): center = min(5, 2+1) = 3
     _scroll(ipc, 1)
-    mid = query_lls_state(ipc)
+    mid = query_kardenwort_state(ipc)
     mid_center = mid['dw_view_center']
 
     _scroll(ipc, 1)
-    after = query_lls_state(ipc)
+    after = query_kardenwort_state(ipc)
 
     assert after['dw_view_center'] == mid_center + 1, (
         f"Each forward scroll must increment DW_VIEW_CENTER by 1; "
@@ -111,7 +111,7 @@ def test_drum_scroll_view_center_clamped_at_lower_bound(mpv_fragment1):
     _enable_drum(ipc)
 
     _scroll(ipc, -1, n=20)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
 
     assert state['dw_view_center'] >= 1, (
         f"DW_VIEW_CENTER must not go below 1; got {state['dw_view_center']}"
@@ -124,7 +124,7 @@ def test_drum_scroll_view_center_clamped_at_upper_bound(mpv_fragment1):
     _enable_drum(ipc)
 
     _scroll(ipc, 1, n=20)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
 
     # fragment1 has 5 subtitles
     assert state['dw_view_center'] <= 5, (
@@ -142,7 +142,7 @@ def test_dual_track_drum_scroll_does_not_crash(mpv_dual):
     _enable_drum(ipc)
 
     _scroll(ipc, 1)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
 
     assert state['dw_follow_player'] is False
     assert state['dw_view_center'] >= 1
@@ -157,7 +157,7 @@ def test_dual_track_scroll_drum_renders(mpv_dual):
     time.sleep(0.3)
 
     _scroll(ipc, 1)
-    render = query_lls_render(ipc, 'drum')
+    render = query_kardenwort_render(ipc, 'drum')
 
     assert render, "drum OSD must contain render data after scroll in dual-track mode"
 
@@ -167,13 +167,17 @@ def test_drum_mode_scroll_independent_of_drum_window(mpv_dual):
     ipc = mpv_dual.ipc
     _enable_drum(ipc)
 
-    before = query_lls_state(ipc)
+    before = query_kardenwort_state(ipc)
     assert before['dw_follow_player'] is True
 
     _scroll(ipc, 1)
-    after = query_lls_state(ipc)
+    after = query_kardenwort_state(ipc)
 
     assert after['dw_follow_player'] is False, (
         "Manual scroll in Drum Mode must set DW_FOLLOW_PLAYER=False regardless of DW state"
     )
     assert after['drum_window'] == 'OFF', "Drum Window must remain closed"
+
+
+
+

@@ -6,20 +6,20 @@ Tests that RMB (and other mouse interactions) in Drum Mode work in the vertical 
 """
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 def test_drum_mode_gap_snapping(mpv_dual):
     """Mouse interactions in Drum Mode snap to the nearest line vertically."""
     ipc = mpv_dual.ipc
     
     # 1. Enable Drum Mode
-    ipc.command(['script-message-to', 'lls_core', 'lls-drum-mode-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
     time.sleep(0.2)
     
     # 2. Query hit zones to find a gap
-    ipc.command(['script-message-to', 'lls_core', 'lls-test-query-hit-zones'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-query-hit-zones'])
     time.sleep(0.1)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     hit_zones = state.get('test_data', {}).get('drum_hit_zones', [])
     
     assert len(hit_zones) >= 2, "Need at least 2 hit zones to test gap snapping"
@@ -35,10 +35,10 @@ def test_drum_mode_gap_snapping(mpv_dual):
         target_x = zone1['x_start'] + zone1['total_width'] / 2
         
         # 3. Perform hit-test in the gap
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-hit-test', str(target_x), str(gap_y)])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-hit-test', str(target_x), str(gap_y)])
         time.sleep(0.1)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         res = state.get('test_data', {}).get('hit_test_res', {})
         
         # It should hit either zone1 or zone2 (nearest one)
@@ -52,13 +52,13 @@ def test_drum_mode_horizontal_strictness(mpv_dual):
     ipc = mpv_dual.ipc
     
     # 1. Enable Drum Mode
-    ipc.command(['script-message-to', 'lls_core', 'lls-drum-mode-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
     time.sleep(0.2)
     
     # 2. Query hit zones
-    ipc.command(['script-message-to', 'lls_core', 'lls-test-query-hit-zones'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-query-hit-zones'])
     time.sleep(0.1)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     hit_zones = state.get('test_data', {}).get('drum_hit_zones', [])
     
     if not hit_zones:
@@ -70,13 +70,17 @@ def test_drum_mode_horizontal_strictness(mpv_dual):
     target_x = zone['x_start'] - 100
     target_y = (zone['y_top'] + zone['y_bottom']) / 2
     
-    ipc.command(['script-message-to', 'lls_core', 'lls-test-hit-test', str(target_x), str(target_y)])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-hit-test', str(target_x), str(target_y)])
     time.sleep(0.1)
     
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     res = state.get('test_data', {}).get('hit_test_res', {})
     # Handle empty Lua table being serialized as a list [] instead of {}
     if isinstance(res, list) or not res.get('line'):
         res = {}
         
     assert res.get('line') is None, "Should NOT snap horizontally when far outside bounds"
+
+
+
+

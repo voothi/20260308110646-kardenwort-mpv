@@ -7,7 +7,7 @@ Scenario under test:
   - Autopause ON
   - audio_padding_start=1000ms
   - audio_padding_end=1000ms
-  - press `a` (lls-seek_prev path => cmd_seek_with_repeat -> cmd_dw_seek_delta(-1))
+  - press `a` (kardenwort-seek_prev path => cmd_seek_with_repeat -> cmd_dw_seek_delta(-1))
 
 Expected current behavior:
   1) Seek target start for previous subtitle is identical in both modes:
@@ -20,16 +20,16 @@ Expected current behavior:
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 def _state(ipc, retries=8):
     for _ in range(retries):
-        s = query_lls_state(ipc)
+        s = query_kardenwort_state(ipc)
         if s and "options" in s:
             return s
         time.sleep(0.2)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 
 def _seek(ipc, pos):
@@ -38,17 +38,17 @@ def _seek(ipc, pos):
 
 
 def _setup(ipc, mode):
-    ipc.command(["script-message-to", "lls_core", "lls-autopause-set", "ON"])
-    ipc.command(["script-message-to", "lls_core", "lls-immersion-mode-set", mode])
-    ipc.command(["set_property", "options/lls-audio_padding_start", "1000"])
-    ipc.command(["set_property", "options/lls-audio_padding_end", "1000"])
+    ipc.command(["script-message-to", "kardenwort", "kardenwort-autopause-set", "ON"])
+    ipc.command(["script-message-to", "kardenwort", "kardenwort-immersion-mode-set", mode])
+    ipc.command(["set_property", "options/kardenwort-audio_padding_start", "1000"])
+    ipc.command(["set_property", "options/kardenwort-audio_padding_end", "1000"])
     ipc.command(["set_property", "pause", True])
     time.sleep(0.2)
 
 
 def _seek_prev_a_path(ipc):
     # Exact path used by key `a` bindings in this project.
-    ipc.command(["script-message-to", "lls_core", "lls-test-seek-delta", "-1"])
+    ipc.command(["script-message-to", "kardenwort", "kardenwort-test-seek-delta", "-1"])
     time.sleep(0.25)
 
 
@@ -106,3 +106,7 @@ def test_seek_prev_autopause_end_differs_between_phrase_and_movie(mpv_fragment1,
     assert abs(lpe - expected_end) < 0.08, (
         f"{mode}: expected last_paused_sub_end ~{expected_end:.3f}, got {lpe}"
     )
+
+
+
+

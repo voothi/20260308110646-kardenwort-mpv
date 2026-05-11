@@ -32,7 +32,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _lua_source():
-    with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
         return f.read()
 
 
@@ -42,13 +42,13 @@ def _input_conf():
 
 
 def robust_state(ipc, retries=5):
-    from tests.ipc.mpv_ipc import query_lls_state
+    from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and "options" in state:
             return state
         time.sleep(0.4)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ class TestAdaptiveContextTruncation:
         src = _lua_source()
         assert "adaptive-context-truncation" or True  # spec anchor
         assert "local function extract_anki_context" in src, (
-            "extract_anki_context function not found in lls_core.lua (adaptive-context-truncation)"
+            "extract_anki_context function not found in kardenwort.lua (adaptive-context-truncation)"
         )
 
     def test_extract_anki_context_accepts_max_words_override(self):
@@ -98,21 +98,21 @@ class TestAnkiExportMapping:
         """load_anki_mapping_ini must exist for profile-based TSV field mapping (anki-export-mapping)."""
         src = _lua_source()
         assert "local function load_anki_mapping_ini" in src, (
-            "anki-export-mapping: load_anki_mapping_ini not found in lls_core.lua"
+            "anki-export-mapping: load_anki_mapping_ini not found in kardenwort.lua"
         )
 
     def test_resolve_anki_field_exists(self):
         """resolve_anki_field must exist to map template placeholders to export values (anki-export-mapping)."""
         src = _lua_source()
         assert "local function resolve_anki_field" in src, (
-            "anki-export-mapping: resolve_anki_field not found in lls_core.lua"
+            "anki-export-mapping: resolve_anki_field not found in kardenwort.lua"
         )
 
     def test_dw_anki_export_selection_exists(self):
         """dw_anki_export_selection must exist as the TSV export entry point (anki-export-mapping)."""
         src = _lua_source()
         assert "local function dw_anki_export_selection" in src, (
-            "anki-export-mapping: dw_anki_export_selection not found in lls_core.lua"
+            "anki-export-mapping: dw_anki_export_selection not found in kardenwort.lua"
         )
 
     def test_resolve_anki_field_accepts_deck_and_lang(self):
@@ -143,7 +143,7 @@ class TestAnkiHighlighting:
         """calculate_highlight_stack must exist for multi-layer highlight rendering (anki-highlighting)."""
         src = _lua_source()
         assert "local function calculate_highlight_stack" in src, (
-            "anki-highlighting: calculate_highlight_stack not found in lls_core.lua"
+            "anki-highlighting: calculate_highlight_stack not found in kardenwort.lua"
         )
 
     def test_anki_highlighting_options_defaults(self, mpv):
@@ -225,7 +225,7 @@ class TestHighRecallHighlighting:
         """Source must contain cloze extraction logic for {{c#::...}} content (high-recall-highlighting)."""
         src = _lua_source()
         assert "{{c" in src or "cloze" in src.lower() or "c1::" in src, (
-            "high-recall-highlighting: no cloze extraction pattern found in lls_core.lua"
+            "high-recall-highlighting: no cloze extraction pattern found in kardenwort.lua"
         )
 
 
@@ -240,7 +240,7 @@ class TestHighlightTimeIndex:
         """ANKI_HIGHLIGHTS_SORTED must be declared for O(log N) time-indexed lookups (highlight-time-index)."""
         src = _lua_source()
         assert "ANKI_HIGHLIGHTS_SORTED" in src, (
-            "highlight-time-index: ANKI_HIGHLIGHTS_SORTED not found in lls_core.lua"
+            "highlight-time-index: ANKI_HIGHLIGHTS_SORTED not found in kardenwort.lua"
         )
 
     def test_anki_db_tracking_in_snapshot(self, mpv):
@@ -257,7 +257,7 @@ class TestHighlightTimeIndex:
         """save_anki_tsv_row must exist for incremental sorted insertion (highlight-time-index)."""
         src = _lua_source()
         assert "local function save_anki_tsv_row" in src, (
-            "highlight-time-index: save_anki_tsv_row not found in lls_core.lua"
+            "highlight-time-index: save_anki_tsv_row not found in kardenwort.lua"
         )
 
 
@@ -335,10 +335,10 @@ class TestHotkeySimplification:
         """'a' and 'd' must be single-key bindings for subtitle navigation (hotkey-simplification)."""
         ic = _input_conf()
         lines = ic.split("\n")
-        a_found = any(l.startswith("a ") and "lls-seek_prev" in l for l in lines)
-        d_found = any(l.startswith("d ") and "lls-seek_next" in l for l in lines)
-        assert a_found, "hotkey-simplification: 'a' not bound to lls-seek_prev"
-        assert d_found, "hotkey-simplification: 'd' not bound to lls-seek_next"
+        a_found = any(l.startswith("a ") and "kardenwort-seek_prev" in l for l in lines)
+        d_found = any(l.startswith("d ") and "kardenwort-seek_next" in l for l in lines)
+        assert a_found, "hotkey-simplification: 'a' not bound to kardenwort-seek_prev"
+        assert d_found, "hotkey-simplification: 'd' not bound to kardenwort-seek_next"
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +376,7 @@ class TestImmersionEngine:
     def test_immersion_mode_can_be_set_to_movie(self, mpv):
         """immersion_mode must support MOVIE value (immersion-engine)."""
         ipc = mpv.ipc
-        ipc.command(["script-message-to", "lls_core", "lls-immersion-mode-set", "MOVIE"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-immersion-mode-set", "MOVIE"])
         time.sleep(0.3)
         state = robust_state(ipc)
         assert state["immersion_mode"] == "MOVIE", (
@@ -467,22 +467,22 @@ class TestInputConfigMigration:
     """Tests for spec: input-config-migration"""
 
     def test_a_key_bound_to_lls_seek_prev(self):
-        """'a' must be bound to lls-seek_prev — custom seek over native sub-seek (input-config-migration)."""
+        """'a' must be bound to kardenwort-seek_prev — custom seek over native sub-seek (input-config-migration)."""
         ic = _input_conf()
         found = any(
-            l.startswith("a ") and "lls-seek_prev" in l
+            l.startswith("a ") and "kardenwort-seek_prev" in l
             for l in ic.split("\n")
         )
-        assert found, "input-config-migration: 'a' not bound to lls-seek_prev in input.conf"
+        assert found, "input-config-migration: 'a' not bound to kardenwort-seek_prev in input.conf"
 
     def test_d_key_bound_to_lls_seek_next(self):
-        """'d' must be bound to lls-seek_next — custom seek over native sub-seek (input-config-migration)."""
+        """'d' must be bound to kardenwort-seek_next — custom seek over native sub-seek (input-config-migration)."""
         ic = _input_conf()
         found = any(
-            l.startswith("d ") and "lls-seek_next" in l
+            l.startswith("d ") and "kardenwort-seek_next" in l
             for l in ic.split("\n")
         )
-        assert found, "input-config-migration: 'd' not bound to lls-seek_next in input.conf"
+        assert found, "input-config-migration: 'd' not bound to kardenwort-seek_next in input.conf"
 
     def test_no_native_sub_seek_on_a_or_d(self):
         """'a' and 'd' must NOT use native sub-seek command (input-config-migration)."""
@@ -495,13 +495,13 @@ class TestInputConfigMigration:
                 )
 
     def test_lls_seek_next_handler_exists_in_lua(self):
-        """lls-seek_next script message handler must be registered in lls_core.lua (input-config-migration)."""
+        """kardenwort-seek_next script message handler must be registered in kardenwort.lua (input-config-migration)."""
         src = _lua_source()
-        assert "lls-seek_next" in src, (
-            "input-config-migration: lls-seek_next handler not found in lls_core.lua"
+        assert "kardenwort-seek_next" in src, (
+            "input-config-migration: kardenwort-seek_next handler not found in kardenwort.lua"
         )
-        assert "lls-seek_prev" in src, (
-            "input-config-migration: lls-seek_prev handler not found in lls_core.lua"
+        assert "kardenwort-seek_prev" in src, (
+            "input-config-migration: kardenwort-seek_prev handler not found in kardenwort.lua"
         )
 
 
@@ -513,24 +513,24 @@ class TestIntelligentTrackDiagnostics:
     """Tests for spec: intelligent-track-diagnostics"""
 
     def test_secondary_subtitles_message_exists(self):
-        """'Secondary Subtitles' feedback message must exist in lls_core.lua (intelligent-track-diagnostics)."""
+        """'Secondary Subtitles' feedback message must exist in kardenwort.lua (intelligent-track-diagnostics)."""
         src = _lua_source()
         assert "Secondary Subtitles" in src, (
-            "intelligent-track-diagnostics: 'Secondary Subtitles' OSD message not found in lls_core.lua"
+            "intelligent-track-diagnostics: 'Secondary Subtitles' OSD message not found in kardenwort.lua"
         )
 
     def test_none_available_diagnostic_text(self):
         """'None available' diagnostic text must exist in track feedback (intelligent-track-diagnostics)."""
         src = _lua_source()
         assert "None available" in src, (
-            "intelligent-track-diagnostics: 'None available' diagnostic text missing from lls_core.lua"
+            "intelligent-track-diagnostics: 'None available' diagnostic text missing from kardenwort.lua"
         )
 
     def test_internal_count_in_diagnostic_logic(self):
         """internal_count must be referenced in diagnostic path for ASS track detection (intelligent-track-diagnostics)."""
         src = _lua_source()
         assert "internal_count" in src, (
-            "intelligent-track-diagnostics: internal_count logic not found in lls_core.lua"
+            "intelligent-track-diagnostics: internal_count logic not found in kardenwort.lua"
         )
 
 
@@ -560,7 +560,7 @@ class TestInterSegmentHighlighter:
         """load_anki_tsv must exist to feed inter-segment highlight data (inter-segment-highlighter)."""
         src = _lua_source()
         assert "local function load_anki_tsv" in src, (
-            "inter-segment-highlighter: load_anki_tsv not found in lls_core.lua"
+            "inter-segment-highlighter: load_anki_tsv not found in kardenwort.lua"
         )
 
 
@@ -590,7 +590,7 @@ class TestKeybindingConsolidation:
         )
 
     def test_keybinding_count_reasonable(self):
-        """At least 10 nil-keyed bindings must be registered in lls_core.lua (keybinding-consolidation)."""
+        """At least 10 nil-keyed bindings must be registered in kardenwort.lua (keybinding-consolidation)."""
         src = _lua_source()
         nil_binds = re.findall(r'mp\.add_key_binding\(nil,\s*"([^"]+)"', src)
         assert len(nil_binds) >= 10, (
@@ -598,7 +598,7 @@ class TestKeybindingConsolidation:
         )
 
     def test_physical_keys_deferred_to_input_conf(self):
-        """Core commands must be bound via input.conf, not hardcoded in lls_core.lua (keybinding-consolidation)."""
+        """Core commands must be bound via input.conf, not hardcoded in kardenwort.lua (keybinding-consolidation)."""
         ic = _input_conf()
         # Verify key bindings exist in input.conf
         assert "script-binding toggle-drum-mode" in ic, (
@@ -610,3 +610,7 @@ class TestKeybindingConsolidation:
         assert "script-binding toggle-autopause" in ic, (
             "keybinding-consolidation: toggle-autopause not found in input.conf"
         )
+
+
+
+

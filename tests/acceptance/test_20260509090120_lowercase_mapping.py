@@ -15,9 +15,9 @@ class TestRuKeyExpansion:
     """Verifies that English hotkeys are correctly expanded to Russian equivalents."""
 
     def _query_expansion(self, ipc, keys):
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-expand-ru-keys', keys])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-expand-ru-keys', keys])
         time.sleep(0.2)
-        raw = ipc.get_property('user-data/lls/last_export')
+        raw = ipc.get_property('user-data/kardenwort/last_export')
         return json.loads(raw) if raw else []
 
     def test_lowercase_mapping(self, mpv):
@@ -67,3 +67,7 @@ class TestRuKeyExpansion:
         """'1' should remain ['1']."""
         expanded = self._query_expansion(mpv.ipc, "1")
         assert expanded == ["1"]
+
+
+
+

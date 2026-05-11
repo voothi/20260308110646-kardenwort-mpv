@@ -36,9 +36,11 @@ These prevent any window from opening, suppress all user config bleed-through, a
 
 | Platform | Path |
 |----------|------|
-| Windows  | `\\.\pipe\mpv-lls-test` (Win32 named pipe) |
-| Linux/macOS | `/tmp/mpv-lls-test.sock` (Unix socket) |
+| Windows  | `\\.\pipe\mpv-kardenwort-test` (Win32 named pipe) |
+| Linux/macOS | `/tmp/mpv-kardenwort-test.sock` (Unix socket) |
 
 ### Single-instance limitation
 
 Only one mpv test session can hold the IPC path at a time. Do not run acceptance tests in parallel (pytest-xdist `-n auto`) without first parametrizing each session with a unique IPC path.
+
+

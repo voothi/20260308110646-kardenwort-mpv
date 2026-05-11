@@ -18,7 +18,7 @@ Spec: openspec\\specs\\automated-acceptance-testing
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 class TestCoreRegressions:
@@ -31,7 +31,7 @@ class TestCoreRegressions:
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # We can't easily see the tokenization directly without a state probe of the tokens.
@@ -49,9 +49,9 @@ class TestCoreRegressions:
         )
         session.start()
         try:
-            state = query_lls_state(session.ipc)
+            state = query_kardenwort_state(session.ipc)
             # If BOM parsing failed, the first sub might not be loaded or its index might be wrong.
-            # In lls_core, if it fails to find the index '1', it might not load the sub.
+            # In kardenwort, if it fails to find the index '1', it might not load the sub.
             # Check if ACTIVE_IDX or subs count is correct.
             # Note: state probe might need to expose subs count.
             pass
@@ -62,17 +62,17 @@ class TestCoreRegressions:
         """Verify that seeking triggers the centered OSD feedback (20260501120000)."""
         ipc = mpv.ipc
         
-        # Trigger a relative seek (which should be bound to lls-seek_time_forward)
+        # Trigger a relative seek (which should be bound to kardenwort-seek_time_forward)
         # Actually, let's trigger the script message directly to be sure.
-        ipc.command(['script-message-to', 'lls_core', 'lls-seek_time_forward'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_time_forward'])
         time.sleep(0.1)
         
         # The seek OSD uses a separate overlay 'ass-events'.
-        # We can query it if lls-render-query supports it.
-        # In lls_core.lua: seek_osd = mp.create_osd_overlay("ass-events")
-        # But wait, lls-render-query only checks named overlays in a table.
+        # We can query it if kardenwort-render-query supports it.
+        # In kardenwort.lua: seek_osd = mp.create_osd_overlay("ass-events")
+        # But wait, kardenwort-render-query only checks named overlays in a table.
         # Let's check if 'seek' is in that table.
-        render = query_lls_render(ipc, 'seek')
+        render = query_kardenwort_render(ipc, 'seek')
         # If it's not in the table, it might return empty.
         # But let's assume it works or we'll add it if needed.
         pass
@@ -82,17 +82,17 @@ class TestCoreRegressions:
         ipc = mpv_dual.ipc
         
         # Toggle sub visibility
-        ipc.command(['script-message-to', 'lls_core', 'cmd_toggle_sub_vis'])
+        ipc.command(['script-message-to', 'kardenwort', 'cmd_toggle_sub_vis'])
         time.sleep(0.2)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # Check native_sub_vis toggle
         assert 'native_sub_vis' in state
         
         # Movie Mode boundary check:
         # Toggle to MOVIE mode
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-cycle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-cycle'])
         time.sleep(0.2)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # assert state['immersion_mode'] == "MOVIE"
         pass
 
@@ -101,12 +101,12 @@ class TestCoreRegressions:
         ipc = mpv.ipc
         
         # Enable Book Mode
-        ipc.command(['script-message-to', 'lls_core', 'toggle-book-mode'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-book-mode'])
         time.sleep(0.2)
         
         # In Book Mode, arrow keys might have different behavior.
         # Verify it stays in Book Mode after some interactions.
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['book_mode'] is True
         
     def test_20260508_character_level_hit_highlighting(self, mpv_fragment1):
@@ -114,13 +114,13 @@ class TestCoreRegressions:
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Move cursor to line 2, word 1
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == 1
         
     def test_20260508_clipboard_refactoring_audit(self, mpv_fragment1):
@@ -128,30 +128,34 @@ class TestCoreRegressions:
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal"
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Copy to clipboard
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-copy'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-copy'])
         time.sleep(0.2)
         
         # Verify last_clipboard property
-        clipboard = ipc.get_property('user-data/lls/last_clipboard')
+        clipboard = ipc.get_property('user-data/kardenwort/last_clipboard')
         assert "Manchmal" in clipboard
 
     def test_20260504100000_clean_osd(self, mpv):
         """Verify that OSD is cleaned up properly (20260504100000)."""
         ipc = mpv.ipc
         # Open Drum Window then close it
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Verify DW render is empty
-        render = query_lls_render(ipc, 'dw')
+        render = query_kardenwort_render(ipc, 'dw')
         assert render == "" or render is None
+
+
+
+

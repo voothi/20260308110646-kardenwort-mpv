@@ -32,15 +32,15 @@ import time
 import pytest
 import os
 import re
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 def robust_query_state(ipc, retries=5):
     for i in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and 'options' in state:
             return state
         time.sleep(0.5)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 class TestOpenSpecComplianceBatch2:
 
@@ -56,7 +56,7 @@ class TestOpenSpecComplianceBatch2:
         """Verify no nil-value errors on word boundary calls (lua-scoping-correction)."""
         ipc = mpv.ipc
         # Trigger word boundary logic via a tokenization test
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-get-tokens', 'Test boundary'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', 'Test boundary'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert 'test_data' in state
@@ -65,11 +65,11 @@ class TestOpenSpecComplianceBatch2:
     def test_metadata_tag_filtering_strip(self, mpv):
         """Verify [musik] tags are stripped from context but preserved in selection (metadata-tag-filtering)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-option', 'anki_strip_metadata', 'yes'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'anki_strip_metadata', 'yes'])
         time.sleep(0.2)
         
         # Test case: [musik] Die Luftfahrt
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-get-tokens', '[musik] Die Luftfahrt'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', '[musik] Die Luftfahrt'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         tokens = state['test_data']['test_tokens']
@@ -101,7 +101,7 @@ class TestOpenSpecComplianceBatch2:
         """Verify search relevance scoring constants (multi-dimensional-relevance-scoring)."""
         # This is internal logic, we check if the search command is responsive
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-search-input', 'test'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', 'test'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None
@@ -110,15 +110,15 @@ class TestOpenSpecComplianceBatch2:
         """Verify Shift-navigation for range selection (multi-line-substring-selection)."""
         ipc = mpv.ipc
         # Ensure we have a sub active
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-double-click', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-double-click', '1'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         
         # Set anchor
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '1', '1'])
         time.sleep(0.2)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-key', 'Shift+RIGHT'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-key', 'Shift+RIGHT'])
         time.sleep(0.5)
         
         state = robust_query_state(ipc)
@@ -128,7 +128,7 @@ class TestOpenSpecComplianceBatch2:
     def test_native_conflict_management_suppression(self, mpv):
         """Verify window-dragging is suppressed in DW (native-conflict-management)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         pass
 
@@ -171,7 +171,7 @@ class TestOpenSpecComplianceBatch2:
         """Verify Z-index logic is handled (osd-layer-management)."""
         # Internal logic test: ensure render query returns data
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-render-query', 'dw'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'dw'])
         time.sleep(0.5)
         # We check if the snapshot contains layer info if available
         pass
@@ -184,11 +184,11 @@ class TestOpenSpecComplianceBatch2:
     def test_osd_uniformity_colors(self, mpv):
         """Verify color tags in render output (osd-uniformity)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
-        ipc.command(['script-message-to', 'lls_core', 'lls-render-query', 'dw'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'dw'])
         time.sleep(0.5)
-        render = ipc.get_property('user-data/lls/render')
+        render = ipc.get_property('user-data/kardenwort/render')
         if render:
             assert "1c" in render or "3c" in render
 
@@ -209,3 +209,7 @@ class TestOpenSpecComplianceBatch2:
         opts = state['options']
         assert 'win_clipboard_retries' in opts
         assert 'win_clipboard_retry_delay' in opts
+
+
+
+

@@ -7,7 +7,7 @@ Feature: Fixtures Load
 import time
 import pytest
 import json
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 def test_20260506223500_fixtures_load(mpv_fragment1):
@@ -17,7 +17,7 @@ def test_20260506223500_fixtures_load(mpv_fragment1):
     ipc.command(['seek', 4.5, 'absolute+exact'])
     time.sleep(0.3)
 
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 1, (
         f"fragment1 sub 1 (4.295–5.295s): expected index 1, got {state['active_sub_index']}"
     )
@@ -32,7 +32,7 @@ def test_20260506223500_natural_progression_skip(mpv_dual):
     # Step 1: Prime at sub 1
     ipc.command(['seek', 1.0, 'absolute+exact'])
     time.sleep(0.15)
-    assert query_lls_state(ipc)['active_sub_index'] == 1
+    assert query_kardenwort_state(ipc)['active_sub_index'] == 1
     
     # Step 2: Seek to exactly 2.0s (overlap zone)
     # Fixture sync-test: sub 1 ends at 2.000, sub 2 starts at 2.200
@@ -43,7 +43,7 @@ def test_20260506223500_natural_progression_skip(mpv_dual):
     ipc.command(['seek', 2.05, 'absolute+exact'])
     time.sleep(0.15)
     
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 2, (
         f"Expected Natural Progression to advance to index 2 at 2.05s, "
         f"got {state['active_sub_index']}"
@@ -54,7 +54,7 @@ def test_20260506232017_seek_bindings(mpv):
     ipc = mpv.ipc
     
     # Request Lua to bind them to unique keys
-    ipc.command(['script-message-to', 'lls_core', 'lls-test-bind-seek'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-bind-seek'])
     time.sleep(0.2)
 
     # Get input bindings from mpv
@@ -75,8 +75,8 @@ def test_20260507001035_movie_autopause_boundary(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Step 1: Set MOVIE mode and ensure autopause is ON
-    ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
-    ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
     time.sleep(0.15)
     
     # Step 2: Seek to near end of sub 1 (fixture: sub 1 ends at 2.0s, sub 2 starts at 2.2s)
@@ -109,16 +109,16 @@ def test_20260507090243_fsm_gap_visibility(mpv):
     ipc = mpv.ipc
     
     # Step 1: Open Drum Window
-    ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
     time.sleep(0.15)
-    assert query_lls_state(ipc)['drum_window'] != 'OFF'
+    assert query_kardenwort_state(ipc)['drum_window'] != 'OFF'
     
     # Step 2: Toggle visibility
-    initial_vis = query_lls_state(ipc)['native_sub_vis']
-    ipc.command(['script-message-to', 'lls_core', 'lls-toggle-sub-vis'])
+    initial_vis = query_kardenwort_state(ipc)['native_sub_vis']
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
     time.sleep(0.15)
     
-    new_state = query_lls_state(ipc)
+    new_state = query_kardenwort_state(ipc)
     assert new_state['native_sub_vis'] != initial_vis, "Visibility did not toggle while DW open"
     assert new_state['drum_window'] != 'OFF', "Drum Window closed unexpectedly"
 
@@ -127,10 +127,14 @@ def test_20260507102212_fsm_gap_sec_pos_sync(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Step 1: Set position absolutely
-    ipc.command(['script-message-to', 'lls_core', 'lls-native-sec-sub-pos-set', "50"])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-native-sec-sub-pos-set', "50"])
     time.sleep(0.3) # Give more time
     
     # Step 2: Verify FSM sync
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['native_sec_sub_pos'] == 50, f"FSM state not synced: {state['native_sec_sub_pos']}"
     assert ipc.get_property('secondary-sub-pos') == 50, "mpv property not set"
+
+
+
+

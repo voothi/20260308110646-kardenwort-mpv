@@ -39,7 +39,7 @@ Integration test strategy:
 import re
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 # ---------------------------------------------------------------------------
@@ -47,22 +47,22 @@ from tests.ipc.mpv_ipc import query_lls_state
 # ---------------------------------------------------------------------------
 
 def _src():
-    with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
         return f.read()
 
 
 def _state(ipc, retries=6):
     for _ in range(retries):
-        s = query_lls_state(ipc)
+        s = query_kardenwort_state(ipc)
         if s and "options" in s:
             return s
         time.sleep(0.3)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 
 def _setup_phrase_autopause(ipc):
-    ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'PHRASE'])
-    ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
     time.sleep(0.1)
 
 
@@ -73,7 +73,7 @@ def _seek(ipc, pos):
 
 def _seek_time(ipc, direction):
     """Trigger cmd_seek_time(direction) via IPC test message."""
-    ipc.command(['script-message-to', 'lls_core', 'lls-test-seek-time', str(direction)])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-time', str(direction)])
     time.sleep(0.15)
 
 
@@ -83,15 +83,15 @@ def _func_body(src, name):
         idx = src.find(prefix)
         if idx != -1:
             break
-    assert idx != -1, f"function {name} not found in lls_core.lua"
+    assert idx != -1, f"function {name} not found in kardenwort.lua"
     end = src.find("\nlocal function ", idx + 1)
     return src[idx: end if end != -1 else idx + 4000]
 
 
 def _set_padding(ipc, pad_start_ms, pad_end_ms):
     """Set audio_padding_start/end via IPC (options.read_options(Options,'lls') is wired)."""
-    ipc.command(['set_property', 'options/lls-audio_padding_start', str(pad_start_ms)])
-    ipc.command(['set_property', 'options/lls-audio_padding_end', str(pad_end_ms)])
+    ipc.command(['set_property', 'options/kardenwort-audio_padding_start', str(pad_start_ms)])
+    ipc.command(['set_property', 'options/kardenwort-audio_padding_end', str(pad_end_ms)])
     time.sleep(0.12)
 
 
@@ -117,7 +117,7 @@ def _sub4_movie_eff_end(pad_start_ms):
 # ---------------------------------------------------------------------------
 
 class TestTimseekTransitStructural:
-    """Verify the fix is wired correctly in lls_core.lua source."""
+    """Verify the fix is wired correctly in kardenwort.lua source."""
 
     def test_fsm_declares_timeseek_inhibit_until(self):
         """FSM must declare TIMESEEK_INHIBIT_UNTIL so the field is always initialised."""
@@ -259,9 +259,9 @@ class TestTimseekTransitStructural:
         )
 
     def test_test_seek_time_message_registered(self):
-        """lls-test-seek-time script message must be registered for IPC testing."""
-        assert '"lls-test-seek-time"' in _src(), (
-            "lls-test-seek-time message not registered — IPC test trigger missing"
+        """kardenwort-test-seek-time script message must be registered for IPC testing."""
+        assert '"kardenwort-test-seek-time"' in _src(), (
+            "kardenwort-test-seek-time message not registered — IPC test trigger missing"
         )
 
 
@@ -331,10 +331,10 @@ class TestTimseekTransitState:
     def test_backward_seek_cancels_active_loop(self, mpv_fragment1):
         """Backward time-seek must cancel an active LOOP_MODE (from 's' with Autopause OFF)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'OFF'])
         time.sleep(0.1)
         _seek(ipc, 4.8)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
         time.sleep(0.2)
 
         state_before = _state(ipc)
@@ -356,10 +356,10 @@ class TestTimseekTransitState:
         """Backward time-seek must cancel scheduled replay (from 's' with Autopause ON)."""
         ipc = mpv_fragment1.ipc
         _setup_phrase_autopause(ipc)
-        ipc.command(['set_property', 'options/lls-replay_count', '3'])
+        ipc.command(['set_property', 'options/kardenwort-replay_count', '3'])
         time.sleep(0.1)
         _seek(ipc, 4.8)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
         time.sleep(0.2)
 
         state_before = _state(ipc)
@@ -454,8 +454,8 @@ class TestTimseekTransitIntegration:
     def test_movie_mode_transit_no_pause_at_sub3_boundary(self, mpv_fragment1):
         """In MOVIE mode: direct seek to sub 3 eff end inside inhibit zone must not set last_paused_sub_end."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
         time.sleep(0.1)
 
         _seek(ipc, 14.5)
@@ -592,8 +592,8 @@ class TestTimseekTransitLive:
         next sub's padded start as the handover boundary, preventing overlap looping.
         """
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
         time.sleep(0.1)
 
         # seek_time_delta=2s, guard: gap(0.599s) < pad_start(1.0s) → eff_end = raw_end = 15.117
@@ -760,3 +760,7 @@ class TestTimseekTransitLiveFragment2:
             f"Player did not reach sub 5 eff_end ({sub5_eff_end:.3f}s) within 5s — "
             f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
         )
+
+
+
+

@@ -7,6 +7,7 @@ def mpv():
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
+        extra_args=['--pause'],
     )
     session.start()
     yield session
@@ -59,12 +60,12 @@ def mpv_fragment1():
 def mpv_movie_startup():
     """Single-subtitle session with MOVIE as the startup immersion mode.
 
-    Used to verify lls-immersion_mode_default=MOVIE option wiring.
+    Used to verify kardenwort-immersion_mode_default=MOVIE option wiring.
     """
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
-        extra_args=['--pause', '--script-opts=lls-immersion_mode_default=MOVIE'],
+        extra_args=['--pause', '--script-opts=kardenwort-immersion_mode_default=MOVIE'],
     )
     session.start()
     yield session
@@ -134,3 +135,7 @@ def mpv_merge_test():
     session.start()
     yield session
     session.stop()
+
+
+
+

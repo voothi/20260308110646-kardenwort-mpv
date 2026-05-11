@@ -24,7 +24,7 @@ import time
 
 import pytest
 
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 # ---------------------------------------------------------------------------
@@ -37,11 +37,11 @@ _SRT = os.path.abspath(f"{_FIXTURE_DIR}/20260502165659-test-fixture.en.srt")
 
 
 def _robust_state(ipc, attempts: int = 6) -> dict:
-    """Retry wrapper around query_lls_state to handle async property-change races."""
+    """Retry wrapper around query_kardenwort_state to handle async property-change races."""
     last_exc = None
     for _ in range(attempts):
         try:
-            return query_lls_state(ipc)
+            return query_kardenwort_state(ipc)
         except (RuntimeError, TimeoutError) as exc:
             last_exc = exc
             time.sleep(0.35)
@@ -107,20 +107,20 @@ class TestArchitecturalRemediation:
     Verifies:
     - flush_rendering_caches is present and callable via IPC.
     - WORD_CHAR_MAP is the single O(1) tokenizer used across the codebase.
-    - LAYOUT_VERSION sentinel exists in lls_core.lua.
+    - LAYOUT_VERSION sentinel exists in kardenwort.lua.
     """
 
     def test_flush_rendering_caches_exists(self):
-        """lls_core.lua must define flush_rendering_caches (centralized invalidation)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """kardenwort.lua must define flush_rendering_caches (centralized invalidation)."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         assert "flush_rendering_caches" in content, (
-            "flush_rendering_caches function not found in lls_core.lua"
+            "flush_rendering_caches function not found in kardenwort.lua"
         )
 
     def test_word_char_map_is_unified_tokenizer(self):
         """WORD_CHAR_MAP must be present as the single O(1) word-char lookup table."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         assert "WORD_CHAR_MAP" in content, (
             "WORD_CHAR_MAP not found; unified O(1) tokenizer is missing"
@@ -133,10 +133,10 @@ class TestArchitecturalRemediation:
 
     def test_layout_version_sentinel_exists(self):
         """LAYOUT_VERSION must exist to drive cache invalidation on config change."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         assert "LAYOUT_VERSION" in content, (
-            "LAYOUT_VERSION sentinel not found in lls_core.lua"
+            "LAYOUT_VERSION sentinel not found in kardenwort.lua"
         )
 
     def test_cache_flush_triggered_by_drum_toggle(self, mpv):
@@ -180,7 +180,7 @@ class TestAutomatedAcceptanceTesting:
     """
 
     def test_state_probe_returns_semantic_fields(self, mpv):
-        """lls-state-query must return stable, semantic field names."""
+        """kardenwort-state-query must return stable, semantic field names."""
         state = _robust_state(mpv.ipc)
         required_fields = {"autopause", "drum_mode", "playback_state"}
         missing = required_fields - set(state.keys())
@@ -189,15 +189,15 @@ class TestAutomatedAcceptanceTesting:
         )
 
     def test_render_probe_returns_ass_string(self, mpv):
-        """lls-render-query must return a string (possibly empty) for 'drum'."""
-        result = query_lls_render(mpv.ipc, "drum")
+        """kardenwort-render-query must return a string (possibly empty) for 'drum'."""
+        result = query_kardenwort_render(mpv.ipc, "drum")
         assert isinstance(result, str), (
-            f"lls-render-query 'drum' returned non-string: {type(result)}"
+            f"kardenwort-render-query 'drum' returned non-string: {type(result)}"
         )
 
     def test_render_probe_unknown_overlay_returns_empty(self, mpv):
         """Querying an unknown overlay name must return empty string, no Lua error."""
-        result = query_lls_render(mpv.ipc, "non_existent_overlay_xyz")
+        result = query_kardenwort_render(mpv.ipc, "non_existent_overlay_xyz")
         assert result == "" or result is None, (
             f"Expected empty string for unknown overlay, got: {result!r}"
         )
@@ -244,11 +244,11 @@ class TestCacheHardening:
     """
 
     def test_cache_tables_are_defined(self):
-        """DRUM_DRAW_CACHE and DW_DRAW_CACHE must be defined in lls_core.lua."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """DRUM_DRAW_CACHE and DW_DRAW_CACHE must be defined in kardenwort.lua."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
-        assert "DRUM_DRAW_CACHE" in content, "DRUM_DRAW_CACHE missing from lls_core.lua"
-        assert "DW_DRAW_CACHE" in content, "DW_DRAW_CACHE missing from lls_core.lua"
+        assert "DRUM_DRAW_CACHE" in content, "DRUM_DRAW_CACHE missing from kardenwort.lua"
+        assert "DW_DRAW_CACHE" in content, "DW_DRAW_CACHE missing from kardenwort.lua"
 
     def test_flush_rendering_caches_called_on_mode_toggle(self, mpv):
         """
@@ -270,8 +270,8 @@ class TestCacheHardening:
         time.sleep(0.2)
 
     def test_layout_version_is_integer(self):
-        """LAYOUT_VERSION must be initialized to an integer (0 or 1) in lls_core.lua."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """LAYOUT_VERSION must be initialized to an integer (0 or 1) in kardenwort.lua."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         match = re.search(r"LAYOUT_VERSION\s*=\s*(\d+)", content)
         assert match, "LAYOUT_VERSION not initialized to an integer"
@@ -287,17 +287,17 @@ class TestCentralizedScriptConfig:
     Spec: openspec/specs/centralized-script-config
 
     Verifies:
-    - mpv.conf contains script-opts-append entries for lls_core parameters.
+    - mpv.conf contains script-opts-append entries for kardenwort parameters.
     - sec_pos_bottom is configurable via script-opts.
     - mpv.conf contains [LINKED] documentation tags.
     """
 
     def test_mpv_conf_contains_script_opts(self):
-        """mpv.conf must contain script-opts-append entries for lls_core."""
+        """mpv.conf must contain script-opts-append entries for kardenwort."""
         with open("mpv.conf", encoding="utf-8") as f:
             content = f.read()
-        assert "script-opts-append=lls" in content or "script-opts-append=lls_core" in content, (
-            "mpv.conf does not contain script-opts-append entries for lls_core"
+        assert "script-opts-append=lls" in content or "script-opts-append=kardenwort" in content, (
+            "mpv.conf does not contain script-opts-append entries for kardenwort"
         )
 
     def test_mpv_conf_has_sec_pos_bottom(self):
@@ -331,16 +331,16 @@ class TestCentralizedScriptOptions:
     Spec: openspec/specs/centralized-script-options
 
     Verifies:
-    - lls_core.lua uses mp.options to read its Options table.
+    - kardenwort.lua uses mp.options to read its Options table.
     - Every key in the Options table has a corresponding script-opts-append in mpv.conf.
     """
 
-    def test_lls_core_uses_mp_options(self):
-        """lls_core.lua must call mp.options to read script-opts."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    def test_kardenwort_uses_mp_options(self):
+        """kardenwort.lua must call mp.options to read script-opts."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         assert "mp.options" in content, (
-            "lls_core.lua does not reference mp.options; centralized config not wired"
+            "kardenwort.lua does not reference mp.options; centralized config not wired"
         )
 
     def test_mpv_conf_coverage_of_critical_options(self):
@@ -418,22 +418,22 @@ class TestDisplay:
 
     Verifies that the build_word_list scanner captures whitespace tokens and
     that selection navigation skips whitespace-only tokens.
-    The scanner logic lives entirely in lls_core.lua; we validate structural
+    The scanner logic lives entirely in kardenwort.lua; we validate structural
     invariants rather than booting mpv for each case.
     """
 
     def test_build_word_list_handles_whitespace_as_token(self):
         """
-        lls_core.lua must contain logic that identifies whitespace tokens
+        kardenwort.lua must contain logic that identifies whitespace tokens
         separately from word tokens (required for original-spacing-preservation).
         """
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         # The scanner must reference 'dw_original_spacing' or equivalent
         assert "original_spacing" in content or "ws_token" in content or (
             "is_space" in content
         ), (
-            "No whitespace-token handling found in lls_core.lua "
+            "No whitespace-token handling found in kardenwort.lua "
             "(dw_original_spacing / is_space / ws_token)"
         )
 
@@ -448,17 +448,17 @@ class TestDisplay:
         time.sleep(0.3)
 
         # Open drum window
-        ipc.command(["script-message", "lls-toggle-drum-window"])
+        ipc.command(["script-message", "kardenwort-toggle-drum-window"])
         time.sleep(0.3)
 
-        render = query_lls_render(ipc, "dw")
+        render = query_kardenwort_render(ipc, "dw")
         if render:
             assert "  " not in re.sub(r"\{[^}]*\}", "", render), (
                 "Drum Window render contains double-space artifacts"
             )
 
         # Close drum window
-        ipc.command(["script-message", "lls-toggle-drum-window"])
+        ipc.command(["script-message", "kardenwort-toggle-drum-window"])
         time.sleep(0.2)
 
 
@@ -471,24 +471,24 @@ class TestKeybindingConsolidation:
     Spec: openspec/specs/keybinding-consolidation
 
     Verifies:
-    - lls_core.lua registers commands with nil as the default key (deferred to input.conf).
+    - kardenwort.lua registers commands with nil as the default key (deferred to input.conf).
     - input.conf is the exclusive key-binding authority.
     """
 
-    def test_lls_core_registers_commands_with_nil_default(self):
+    def test_kardenwort_registers_commands_with_nil_default(self):
         """
-        mp.add_key_binding calls in lls_core.lua must use nil as the default key,
+        mp.add_key_binding calls in kardenwort.lua must use nil as the default key,
         deferring all physical key assignments to input.conf.
         """
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             content = f.read()
         assert "mp.add_key_binding(nil," in content, (
-            "lls_core.lua must use mp.add_key_binding(nil, ...) for user-configurable commands"
+            "kardenwort.lua must use mp.add_key_binding(nil, ...) for user-configurable commands"
         )
         # Ensure there are NO hardcoded single-character defaults
         hardcoded = re.findall(r'mp\.add_key_binding\("([a-zA-Z])"', content)
         assert not hardcoded, (
-            f"lls_core.lua hardcodes key bindings: {hardcoded}; "
+            f"kardenwort.lua hardcodes key bindings: {hardcoded}; "
             "all bindings must go through input.conf"
         )
 
@@ -545,3 +545,7 @@ class TestConsumptionFocusedDocumentation:
             "README.md must document the language acquisition workflow "
             "(workflow / acquisition / immersion / anki keywords expected)"
         )
+
+
+
+

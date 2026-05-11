@@ -21,3 +21,5 @@ end
 function TestUtf8:testMixed()
     lu.assertEquals(#U.utf8_to_table("héllo"), 5)
 end
+
+

@@ -11,7 +11,7 @@ Anki export sanitization, and specialized character support.
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 class TestAprilEarlyRegressions:
@@ -22,17 +22,17 @@ class TestAprilEarlyRegressions:
         ipc = mpv.ipc
         
         # Toggle Book Mode
-        ipc.command(['script-message-to', 'lls_core', 'toggle-book-mode'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-book-mode'])
         time.sleep(0.2)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # state['book_mode'] is a boolean
         assert state['book_mode'] is True, "Book Mode should be True after toggle"
         
         # Verify it can be toggled back
-        ipc.command(['script-message-to', 'lls_core', 'toggle-book-mode'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-book-mode'])
         time.sleep(0.2)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['book_mode'] is False, "Book Mode should be False after second toggle"
 
     def test_20260417031800_german_search_support(self, mpv):
@@ -40,15 +40,15 @@ class TestAprilEarlyRegressions:
         ipc = mpv.ipc
         
         # Open Search HUD
-        ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
         time.sleep(0.2)
         
         # Input German characters "größe"
         for char in "größe":
-            ipc.command(['script-message-to', 'lls_core', 'lls-test-search-input', char])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', char])
         time.sleep(0.1)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['search_query'] == "größe", f"Expected search query 'größe', got '{state.get('search_query')}'"
 
     def test_20260417112500_tsv_spacing_unify_joiners(self, mpv_fragment1):
@@ -60,21 +60,21 @@ class TestAprilEarlyRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal" (1) and "hat" (2)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         # Shift+Right to select "Manchmal hat"
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-word-move', '1', 'yes'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes'])
         time.sleep(0.2)
         
         # Prepare export
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'RANGE', '2', '1', '2', '2'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'RANGE', '2', '1', '2', '2'])
         time.sleep(0.2)
         
-        export = ipc.get_property('user-data/lls/last_export')
+        export = ipc.get_property('user-data/kardenwort/last_export')
         # Check for space preservation
         assert "Manchmal hat" in export, f"Export content mismatch: '{export}'"
 
@@ -84,26 +84,26 @@ class TestAprilEarlyRegressions:
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal"
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Prepare export
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'POINT', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'POINT', '2', '1'])
         time.sleep(0.2)
         
-        export = ipc.get_property('user-data/lls/last_export')
+        export = ipc.get_property('user-data/kardenwort/last_export')
         assert "{\\" not in export, f"Export should be sanitized of ASS tags, got '{export}'"
 
     def test_20260413101458_dw_dark_theme_persistence(self, mpv):
         """Verify Drum Window dark theme option is registered (20260413101458)."""
         ipc = mpv.ipc
         
-        state = query_lls_state(ipc)
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        state = query_kardenwort_state(ipc)
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         assert state['drum_window'] in ['OFF', 'DOCKED'], "Drum Window should be in a valid state"
 
@@ -112,14 +112,14 @@ class TestAprilEarlyRegressions:
         ipc = mpv.ipc
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Toggle tooltip
-        ipc.command(['script-message-to', 'lls_core', 'lls-dw-tooltip-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-dw-tooltip-toggle'])
         time.sleep(0.2)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # Should be either HOVER or CLICK
         assert state.get('dw_tooltip_mode') in ['HOVER', 'CLICK']
 
@@ -129,10 +129,14 @@ class TestAprilEarlyRegressions:
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == 1
+
+
+
+

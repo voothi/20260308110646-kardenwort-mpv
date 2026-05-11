@@ -31,18 +31,18 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _src():
-    with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
         return f.read()
 
 
 def robust_state(ipc, retries=5):
-    from tests.ipc.mpv_ipc import query_lls_state
+    from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and "options" in state:
             return state
         time.sleep(0.4)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 
 # ---------------------------------------------------------------------------
@@ -55,25 +55,25 @@ class TestDrumWindowTooltip:
     def test_draw_dw_tooltip_exists(self):
         """draw_dw_tooltip must exist for tooltip rendering (drum-window-tooltip)."""
         assert "local function draw_dw_tooltip" in _src(), (
-            "drum-window-tooltip: draw_dw_tooltip not found in lls_core.lua"
+            "drum-window-tooltip: draw_dw_tooltip not found in kardenwort.lua"
         )
 
     def test_tooltip_bg_opacity_option_exists(self):
         """tooltip_bg_opacity must be in Options for configurable transparency (drum-window-tooltip)."""
         assert "tooltip_bg_opacity" in _src(), (
-            "drum-window-tooltip: tooltip_bg_opacity option not found in lls_core.lua"
+            "drum-window-tooltip: tooltip_bg_opacity option not found in kardenwort.lua"
         )
 
     def test_tooltip_font_size_option_exists(self):
         """tooltip_font_size must be in Options for unified visual sizing (drum-window-tooltip)."""
         assert "tooltip_font_size" in _src(), (
-            "drum-window-tooltip: tooltip_font_size option not found in lls_core.lua"
+            "drum-window-tooltip: tooltip_font_size option not found in kardenwort.lua"
         )
 
     def test_dw_tooltip_mode_fsm_field_exists(self):
         """DW_TOOLTIP_MODE must be in FSM for click/hover mode control (drum-window-tooltip)."""
         assert "DW_TOOLTIP_MODE" in _src(), (
-            "drum-window-tooltip: DW_TOOLTIP_MODE FSM field not found in lls_core.lua"
+            "drum-window-tooltip: DW_TOOLTIP_MODE FSM field not found in kardenwort.lua"
         )
 
     def test_dw_tooltip_osd_z_is_25(self):
@@ -131,13 +131,13 @@ class TestDrumWindowReadingMode:
     def test_dw_follow_player_fsm_field_exists(self):
         """DW_FOLLOW_PLAYER must exist in FSM to control Follow/Manual Mode (drum-window-reading-mode)."""
         assert "DW_FOLLOW_PLAYER" in _src(), (
-            "drum-window-reading-mode: DW_FOLLOW_PLAYER not found in lls_core.lua"
+            "drum-window-reading-mode: DW_FOLLOW_PLAYER not found in kardenwort.lua"
         )
 
     def test_dw_view_center_fsm_field_exists(self):
         """DW_VIEW_CENTER must track the current viewport scroll position (drum-window-reading-mode)."""
         assert "DW_VIEW_CENTER" in _src(), (
-            "drum-window-reading-mode: DW_VIEW_CENTER not found in lls_core.lua"
+            "drum-window-reading-mode: DW_VIEW_CENTER not found in kardenwort.lua"
         )
 
     def test_dw_follow_player_exposed_in_state(self, mpv):
@@ -176,7 +176,7 @@ class TestCyclicNavigation:
         )
 
     def test_seek_prev_next_registered_with_complex_flag(self):
-        """lls-seek_prev and lls-seek_next must be registered with {complex=true} for hold detection (cyclic-navigation)."""
+        """kardenwort-seek_prev and kardenwort-seek_next must be registered with {complex=true} for hold detection (cyclic-navigation)."""
         src = _src()
         assert 'complex = true' in src or '{complex = true}' in src, (
             "cyclic-navigation: seek bindings lack {complex=true} for key-hold repeat detection"
@@ -212,7 +212,7 @@ class TestKaraokeAutopause:
     def test_spacebar_fsm_field_exists(self):
         """FSM.SPACEBAR state machine must exist for hold detection (karaoke-autopause)."""
         assert "SPACEBAR" in _src(), (
-            "karaoke-autopause: SPACEBAR FSM field not found in lls_core.lua"
+            "karaoke-autopause: SPACEBAR FSM field not found in kardenwort.lua"
         )
 
 
@@ -224,9 +224,9 @@ class TestLivePositioningSync:
     """Tests for spec: live-positioning-sync"""
 
     def test_secondary_sub_pos_property_in_source(self):
-        """'secondary-sub-pos' mpv property must be referenced in lls_core.lua (live-positioning-sync)."""
+        """'secondary-sub-pos' mpv property must be referenced in kardenwort.lua (live-positioning-sync)."""
         assert "secondary-sub-pos" in _src(), (
-            "live-positioning-sync: 'secondary-sub-pos' property not referenced in lls_core.lua"
+            "live-positioning-sync: 'secondary-sub-pos' property not referenced in kardenwort.lua"
         )
 
     def test_sec_pos_bottom_option_controls_positioning(self):
@@ -319,19 +319,19 @@ class TestSubtitleReplay:
     def test_replay_ms_option_exists(self):
         """replay_ms must be in Options for configurable replay window (subtitle-replay)."""
         assert "replay_ms" in _src(), (
-            "subtitle-replay: replay_ms option not found in lls_core.lua"
+            "subtitle-replay: replay_ms option not found in kardenwort.lua"
         )
 
     def test_replay_count_option_exists(self):
         """replay_count must be in Options for multi-iteration replay (subtitle-replay)."""
         assert "replay_count" in _src(), (
-            "subtitle-replay: replay_count option not found in lls_core.lua"
+            "subtitle-replay: replay_count option not found in kardenwort.lua"
         )
 
     def test_replay_autostop_option_exists(self):
         """replay_autostop must be in Options for autopause-after-iterations behavior (subtitle-replay)."""
         assert "replay_autostop" in _src(), (
-            "subtitle-replay: replay_autostop option not found in lls_core.lua"
+            "subtitle-replay: replay_autostop option not found in kardenwort.lua"
         )
 
     def test_ghost_hold_expiry_used_for_2s_leash(self):
@@ -360,7 +360,7 @@ class TestTargetedContentFiltering:
     def test_cyrillic_char_set_defined(self):
         """CYRILLIC character sets must be defined for content filtering (targeted-content-filtering)."""
         assert "CYRILLIC" in _src(), (
-            "targeted-content-filtering: CYRILLIC character set not defined in lls_core.lua"
+            "targeted-content-filtering: CYRILLIC character set not defined in kardenwort.lua"
         )
 
     def test_word_char_map_enables_language_filtering(self):
@@ -422,13 +422,13 @@ class TestUiIntegrationHooks:
     def test_manage_ui_border_override_exists(self):
         """manage_ui_border_override must exist for OSD style override on UI open/close (ui-integration-hooks)."""
         assert "function manage_ui_border_override" in _src(), (
-            "ui-integration-hooks: manage_ui_border_override not found in lls_core.lua"
+            "ui-integration-hooks: manage_ui_border_override not found in kardenwort.lua"
         )
 
     def test_manage_search_bindings_exists(self):
         """manage_search_bindings must exist for search HUD key-binding lifecycle (ui-integration-hooks)."""
         assert "local function manage_search_bindings" in _src(), (
-            "ui-integration-hooks: manage_search_bindings not found in lls_core.lua"
+            "ui-integration-hooks: manage_search_bindings not found in kardenwort.lua"
         )
 
     def test_saved_osd_border_style_persists_across_toggles(self):
@@ -448,13 +448,13 @@ class TestUnifiedClipboardAbstraction:
     def test_set_clipboard_exists(self):
         """set_clipboard must exist as the unified clipboard write abstraction (unified-clipboard-abstraction)."""
         assert "local function set_clipboard" in _src(), (
-            "unified-clipboard-abstraction: set_clipboard not found in lls_core.lua"
+            "unified-clipboard-abstraction: set_clipboard not found in kardenwort.lua"
         )
 
     def test_gd_trigger_lock_duration_option_exists(self):
         """gd_trigger_lock_duration must be in Options for recursive-trigger prevention (unified-clipboard-abstraction)."""
         assert "gd_trigger_lock_duration" in _src(), (
-            "unified-clipboard-abstraction: gd_trigger_lock_duration not found in lls_core.lua"
+            "unified-clipboard-abstraction: gd_trigger_lock_duration not found in kardenwort.lua"
         )
 
     def test_set_clipboard_accepts_mode_parameter(self):
@@ -488,19 +488,19 @@ class TestRenderingOptimization:
     def test_populate_token_meta_exists(self):
         """populate_token_meta must exist for parameter-driven token colorization (rendering-optimization)."""
         assert "local function populate_token_meta" in _src(), (
-            "rendering-optimization: populate_token_meta not found in lls_core.lua"
+            "rendering-optimization: populate_token_meta not found in kardenwort.lua"
         )
 
     def test_lower_clean_cached_on_token(self):
         """Tokens must cache lower_clean for O(1) case-normalized matching (rendering-optimization)."""
         assert "lower_clean" in _src(), (
-            "rendering-optimization: lower_clean token property not found in lls_core.lua"
+            "rendering-optimization: lower_clean token property not found in kardenwort.lua"
         )
 
     def test_calculate_highlight_stack_exists(self):
         """calculate_highlight_stack must exist for memoized highlight calculation (rendering-optimization)."""
         assert "local function calculate_highlight_stack" in _src(), (
-            "rendering-optimization: calculate_highlight_stack not found in lls_core.lua"
+            "rendering-optimization: calculate_highlight_stack not found in kardenwort.lua"
         )
 
     def test_drum_draw_cache_and_dw_draw_cache_exist(self):
@@ -530,7 +530,7 @@ class TestScriptStabilityHardening:
     """Tests for spec: script-stability-hardening"""
 
     def test_key_bindings_in_final_section_of_file(self):
-        """mp.add_key_binding registrations must appear in the final section of lls_core.lua (script-stability-hardening)."""
+        """mp.add_key_binding registrations must appear in the final section of kardenwort.lua (script-stability-hardening)."""
         src = _src()
         first_binding = src.find("mp.add_key_binding(nil,")
         assert first_binding != -1, "script-stability-hardening: no mp.add_key_binding(nil,...) found"
@@ -555,7 +555,7 @@ class TestScriptStabilityHardening:
         """parse_time must normalize 2-digit centiseconds to milliseconds (script-stability-hardening)."""
         src = _src()
         assert "function parse_time" in src, (
-            "script-stability-hardening: parse_time not found in lls_core.lua"
+            "script-stability-hardening: parse_time not found in kardenwort.lua"
         )
         idx = src.find("function parse_time")
         body = src[idx:idx + 600]
@@ -563,3 +563,7 @@ class TestScriptStabilityHardening:
         assert has_centisec, (
             "script-stability-hardening: parse_time does not handle 2-digit centisecond normalization"
         )
+
+
+
+

@@ -11,7 +11,7 @@ drum window interaction, and export fidelity.
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 class TestAprilMidRegressions:
@@ -26,23 +26,23 @@ class TestAprilMidRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Select from "Manchmal" (1) to "Gefühl," (5)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '5'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '5'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         # Move right with shift to word 5 (RANGE)
         for _ in range(4):
-            ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-word-move', '1', 'yes'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes'])
         time.sleep(0.2)
         
         # Call copy
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-copy'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-copy'])
         time.sleep(0.2)
         
-        clip = ipc.get_property('user-data/lls/last_clipboard')
+        clip = ipc.get_property('user-data/kardenwort/last_clipboard')
         assert "Manchmal hat man das Gefühl" in clip, f"Expected range in clipboard, got '{clip}'"
 
     def test_20260418195829_elliptical_export(self, mpv_fragment1):
@@ -52,19 +52,19 @@ class TestAprilMidRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Line 2, word 1 ("Manchmal")
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
         # Line 3, word 1 ("Man")
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '3', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '3', '1'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
         time.sleep(0.2)
         
-        term = ipc.get_property('user-data/lls/last_export')
+        term = ipc.get_property('user-data/kardenwort/last_export')
         assert " ... " in term, f"Expected elliptical export for multi-line selection, got '{term}'"
 
     def test_20260418194004_highlight_priority(self, mpv_fragment1):
@@ -74,31 +74,31 @@ class TestAprilMidRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
         time.sleep(0.1)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['dw_selection_count'] == 1
 
     def test_20260420003934_search_hud_toggle(self, mpv):
         """Verify Search HUD can be toggled without crashing (20260420003934)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
         time.sleep(0.2)
-        ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
         time.sleep(0.2)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['drum_window'] == 'OFF'
 
     def test_20260419191638_mining_shortcuts(self, mpv):
         """Verify that mining shortcuts are registered when DW is open (20260419191638)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         bindings = ipc.get_property('input-bindings')
@@ -117,25 +117,29 @@ class TestAprilMidRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.3)
         
         # Set cursor to word 1
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Instead of dw-export-yellow (which writes to file), we use prepare-export to verify text
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'POINT', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'POINT', '2', '1'])
         time.sleep(0.2)
         
-        export = ipc.get_property('user-data/lls/last_export')
+        export = ipc.get_property('user-data/kardenwort/last_export')
         assert "Manchmal" in export, f"Expected 'Manchmal' to be prepared, got '{export}'"
 
     def test_20260418213707_grounding_neighbor_check(self, mpv_fragment1):
         """Verify that grounding logic is active (20260418213707)."""
         ipc = mpv_fragment1.ipc
         # This is a placeholder as grounding is internal, but we check if it doesn't crash
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == 1
+
+
+
+

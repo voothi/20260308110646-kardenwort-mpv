@@ -60,7 +60,7 @@ class MpvSession:
         cmd = [
             'mpv', '--no-config', '--config-dir=.', '--vo=null', '--ao=null', '--idle=once',
             f'--input-ipc-server={self.ipc_path}',
-            '--script=scripts/lls_core.lua',
+            '--script=scripts/kardenwort',
             self.video,
         ]
         if self.subtitle:
@@ -94,3 +94,7 @@ class MpvSession:
             except Exception:
                 pass
         self.ipc.close()
+
+
+
+

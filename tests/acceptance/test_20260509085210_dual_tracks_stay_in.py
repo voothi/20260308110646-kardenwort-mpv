@@ -19,7 +19,7 @@ Feature: Dual Tracks Stay In
 #    padded window still contains the new seek position (e.g. short sub with 1s padding).
 #    Fix: set FSM.SEC_ACTIVE_IDX = target_idx wherever ACTIVE_IDX is explicitly assigned.
 import time
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 def test_dual_tracks_stay_in_sync_through_padded_overlap(mpv_dual):
@@ -29,7 +29,7 @@ def test_dual_tracks_stay_in_sync_through_padded_overlap(mpv_dual):
     ipc.command(['seek', 1.0, 'absolute+exact'])
     time.sleep(0.15)
 
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 1, (
         f"expected sentinels primed at sub 1 (pri={state['active_sub_index']}, "
         f"sec={state['sec_active_sub_index']}) after seek to 1.0s"
@@ -43,7 +43,7 @@ def test_dual_tracks_stay_in_sync_through_padded_overlap(mpv_dual):
     ipc.command(['seek', 1.5, 'absolute+exact'])
     time.sleep(0.15)
 
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == state['sec_active_sub_index'], (
         f"primary index {state['active_sub_index']} != "
         f"secondary index {state['sec_active_sub_index']} in padded overlap zone at ~2.0s"
@@ -64,23 +64,23 @@ def test_navigation_seek_syncs_both_sentinels(mpv_dual):
     ipc = mpv_dual.ipc
 
     # Enable Drum Mode so the dw-seek-next binding is registered by manage_dw_bindings.
-    ipc.command(['script-binding', 'lls_core/toggle-drum-mode'])
+    ipc.command(['script-binding', 'kardenwort/toggle-drum-mode'])
     time.sleep(0.15)
 
     # Prime both sentinels at sub 1.
     ipc.command(['seek', 1.0, 'absolute+exact'])
     time.sleep(0.15)
 
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 1
     assert state['sec_active_sub_index'] == 1
 
     # Navigate forward one subtitle (equivalent to pressing d).
     # Default dw_key_seek_next = "d в"; the binding name is dw-seek-next-1.
-    ipc.command(['script-binding', 'lls_core/dw-seek-next-1'])
+    ipc.command(['script-binding', 'kardenwort/dw-seek-next-1'])
     time.sleep(0.15)
 
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == state['sec_active_sub_index'], (
         f"after d-seek: primary={state['active_sub_index']} != "
         f"secondary={state['sec_active_sub_index']} — sentinels desynced"
@@ -88,3 +88,7 @@ def test_navigation_seek_syncs_both_sentinels(mpv_dual):
     assert state['active_sub_index'] == 2, (
         f"expected both sentinels at sub 2 after seek-next, got {state['active_sub_index']}"
     )
+
+
+
+

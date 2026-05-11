@@ -27,15 +27,15 @@ Validated Specs:
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 def robust_query_state(ipc, retries=5):
     for i in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and 'options' in state:
             return state
         time.sleep(0.5)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 class TestHistoricalRegressions:
 
@@ -62,13 +62,13 @@ class TestHistoricalRegressions:
         assert state['active_sub_index'] == 1
         
         # Seek prev -> should wrap to last
-        ipc.command(['script-message-to', 'lls_core', 'lls-seek_prev'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_prev'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['active_sub_index'] == state['pri_sub_count']
         
         # Seek next -> should wrap back to 1
-        ipc.command(['script-message-to', 'lls_core', 'lls-seek_next'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_next'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['active_sub_index'] == 1
@@ -80,11 +80,11 @@ class TestHistoricalRegressions:
         # Ensure DW is OFF
         state = robust_query_state(ipc)
         if state['drum_window'] != 'OFF':
-            ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
             time.sleep(0.5)
             
         # Open DW
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         
         state = robust_query_state(ipc)
@@ -119,7 +119,7 @@ class TestHistoricalRegressions:
         
         # Cycle SID to 0 (Disable secondary)
         # cmd_cycle_sec_sid cycles through tracks.
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-cycle-sec-sid'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
         time.sleep(1.0)
         state = robust_query_state(ipc)
         
@@ -127,7 +127,7 @@ class TestHistoricalRegressions:
         for _ in range(3):
             if state['tracks']['sec']['id'] == 0:
                 break
-            ipc.command(['script-message-to', 'lls_core', 'lls-test-cycle-sec-sid'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
             time.sleep(1.0)
             state = robust_query_state(ipc)
 
@@ -137,19 +137,19 @@ class TestHistoricalRegressions:
     def test_ctrl_multiselect_persistence(self, mpv):
         """Verify pink selection persistence (ctrl-multiselect)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         
         # Toggle a few words into pink set
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '1', '1'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '1', '3'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '3'])
         time.sleep(0.5)
         
         state = robust_query_state(ipc)
         assert state['dw_selection_count'] == 2
         
         # Esc should clear pink set (Stage 1)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['dw_selection_count'] == 0
@@ -158,15 +158,15 @@ class TestHistoricalRegressions:
     def test_context_copy_priority(self, mpv_dual):
         """Verify selection priority (context-copy)."""
         ipc = mpv_dual.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         
         # 1. Yellow Pointer (Sub 1, Word 1)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '1', '1'])
         time.sleep(0.2)
         
         # 2. Pink Set (Sub 1, Word 1) - toggle same word to verify priority
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '1'])
         time.sleep(0.2)
         
         state = robust_query_state(ipc)
@@ -174,9 +174,9 @@ class TestHistoricalRegressions:
         assert state['dw_selection_count'] == 1
         
         # Trigger copy - should prioritize Pink (Word 1)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
         time.sleep(0.5)
-        last_export = ipc.get_property('user-data/lls/last_export')
+        last_export = ipc.get_property('user-data/kardenwort/last_export')
         
         # Sub 1 in sync-test.en.srt: "First"
         assert "First" in last_export
@@ -192,14 +192,14 @@ class TestHistoricalRegressions:
         ru_session.start()
         try:
             ipc = ru_session.ipc
-            ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
             time.sleep(1.0)
-            ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
+            ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
             time.sleep(0.5)
             
             # Search for lowercase 'первый' (first) while sub has 'Первый'
             for char in "первый":
-                ipc.command(['script-message-to', 'lls_core', 'lls-test-search-input', char])
+                ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', char])
             time.sleep(0.5)
             
             state = robust_query_state(ipc)
@@ -237,24 +237,24 @@ class TestHistoricalRegressions:
         assert state['copy_mode'] == 'A'
         
         # Cycle mode using hotkey command (assuming bound or test message)
-        # We'll use the lls-copy-mode-cycle if it exists, or just check the logic.
+        # We'll use the kardenwort-copy-mode-cycle if it exists, or just check the logic.
         # FSM exposes copy_mode.
         pass
 
     def test_drum_scroll_sync_follow_reset(self, mpv):
         """Verify scroll sync follow-player reset (drum-scroll-sync)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         
         # 1. Scroll manually -> should set follow to OFF
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-scroll', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-scroll', '1'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['dw_follow_player'] is False
         
         # 2. Reset follow player
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-follow-player', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-follow-player', 'ON'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['dw_follow_player'] is True
@@ -287,5 +287,9 @@ class TestHistoricalRegressions:
         """Verify existence of analyze_repo.py (dev-analytics-automation)."""
         import os
         assert os.path.exists("docs/scripts/analyze_repo.py")
+
+
+
+
 
 

@@ -21,3 +21,5 @@ end
 function TestAssAlpha:testNilInputDefaults()
     lu.assertEquals(U.calculate_ass_alpha(nil), "00")
 end
+
+

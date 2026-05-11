@@ -3,15 +3,15 @@ Feature ZID: 20260509090130
 Test Creation ZID: 20260509113830
 Feature: Search Exact Match Priority
 
-Structural tests verifying calculate_match_score scoring logic in lls_core.lua.
-The IPC test handler (lls-test-calculate-match-score) is not implemented, so these
+Structural tests verifying calculate_match_score scoring logic in kardenwort.lua.
+The IPC test handler (kardenwort-test-calculate-match-score) is not implemented, so these
 tests validate the scoring rules directly from source code.
 """
 
 import re
 
 
-LUA = "scripts/lls_core.lua"
+LUA = "scripts/kardenwort/main.lua"
 
 
 def _lua():
@@ -87,3 +87,7 @@ def test_search_contiguous_bonus():
     assert re.search(r"query_lower.*score\s*=\s*score\s*\+\s*400|score\s*=\s*score\s*\+\s*400.*query_lower", content, re.DOTALL), (
         "Contiguous whole-query bonus (+400) not found in calculate_match_score"
     )
+
+
+
+

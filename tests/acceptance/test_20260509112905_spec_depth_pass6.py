@@ -28,18 +28,18 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _src():
-    with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
         return f.read()
 
 
 def robust_state(ipc, retries=5):
-    from tests.ipc.mpv_ipc import query_lls_state
+    from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and "options" in state:
             return state
         time.sleep(0.4)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +151,7 @@ class TestOsdRequirements:
     def test_dw_double_gap_option_controls_spacing(self):
         """dw_double_gap option must control subtitle gap in Drum Window (osd-requirements)."""
         assert "dw_double_gap" in _src(), (
-            "osd-requirements: dw_double_gap option not found in lls_core.lua"
+            "osd-requirements: dw_double_gap option not found in kardenwort.lua"
         )
 
     def test_vsp_spacing_option_exists(self):
@@ -159,13 +159,13 @@ class TestOsdRequirements:
         src = _src()
         has_vsp = "dw_vsp" in src or "vsp_base" in src or "vsp_extra" in src
         assert has_vsp, (
-            "osd-requirements: No VSP vertical spacing parameter found in lls_core.lua"
+            "osd-requirements: No VSP vertical spacing parameter found in kardenwort.lua"
         )
 
     def test_tooltip_y_offset_option_exists(self):
         """tooltip_y_offset_lines must exist for tooltip centering control (osd-requirements)."""
         assert "tooltip_y_offset" in _src(), (
-            "osd-requirements: tooltip_y_offset option not found in lls_core.lua"
+            "osd-requirements: tooltip_y_offset option not found in kardenwort.lua"
         )
 
 
@@ -264,13 +264,13 @@ class TestSecondarySubtitleFiltering:
     def test_tracks_sec_in_source(self):
         """Tracks.sec must exist for secondary subtitle track management (secondary-subtitle-filtering)."""
         assert "Tracks.sec" in _src(), (
-            "secondary-subtitle-filtering: Tracks.sec not found in lls_core.lua"
+            "secondary-subtitle-filtering: Tracks.sec not found in kardenwort.lua"
         )
 
     def test_native_sec_sub_vis_tracked(self):
         """native_sec_sub_vis must be tracked for secondary subtitle visibility (secondary-subtitle-filtering)."""
         assert "native_sec_sub_vis" in _src(), (
-            "secondary-subtitle-filtering: native_sec_sub_vis not found in lls_core.lua"
+            "secondary-subtitle-filtering: native_sec_sub_vis not found in kardenwort.lua"
         )
 
     def test_native_sec_sub_vis_in_state(self, mpv):
@@ -291,7 +291,7 @@ class TestSmartDiagnostics:
     def test_log_level_option_exists(self):
         """log_level option must exist for configurable verbosity (smart-diagnostics)."""
         assert "log_level" in _src(), (
-            "smart-diagnostics: log_level option not found in lls_core.lua"
+            "smart-diagnostics: log_level option not found in kardenwort.lua"
         )
 
     def test_diagnostic_has_five_severity_levels(self):
@@ -299,7 +299,7 @@ class TestSmartDiagnostics:
         src = _src()
         for level in ("error", "warn", "info", "debug", "trace"):
             assert f"Diagnostic.{level}" in src, (
-                f"smart-diagnostics: Diagnostic.{level} not found in lls_core.lua"
+                f"smart-diagnostics: Diagnostic.{level} not found in kardenwort.lua"
             )
 
     def test_diagnostic_seen_deduplication(self):
@@ -326,7 +326,7 @@ class TestSourceUrlDiscovery:
     def test_find_source_url_exists(self):
         """find_source_url must exist for sidecar URL file discovery (source-url-discovery)."""
         assert "local function find_source_url" in _src(), (
-            "source-url-discovery: find_source_url not found in lls_core.lua"
+            "source-url-discovery: find_source_url not found in kardenwort.lua"
         )
 
     def test_source_url_mapped_in_anki_export(self):
@@ -338,7 +338,7 @@ class TestSourceUrlDiscovery:
     def test_anki_sync_period_option_exists(self):
         """anki_sync_period must exist for periodic URL cache refresh (source-url-discovery)."""
         assert "anki_sync_period" in _src(), (
-            "source-url-discovery: anki_sync_period option not found in lls_core.lua"
+            "source-url-discovery: anki_sync_period option not found in kardenwort.lua"
         )
 
 
@@ -437,10 +437,10 @@ class TestSubtitleRendering:
         """drum_font_bold and srt_font_bold must be referenced in drum/SRT rendering logic (subtitle-rendering)."""
         src = _src()
         assert "drum_font_bold" in src, (
-            "subtitle-rendering: drum_font_bold not referenced in lls_core.lua"
+            "subtitle-rendering: drum_font_bold not referenced in kardenwort.lua"
         )
         assert "srt_font_bold" in src, (
-            "subtitle-rendering: srt_font_bold not referenced in lls_core.lua"
+            "subtitle-rendering: srt_font_bold not referenced in kardenwort.lua"
         )
         # Both should appear in a branching expression
         count_bold = src.count("drum_font_bold")
@@ -481,3 +481,7 @@ class TestWordBasedDeletionLogicExtended:
         assert "get_word_boundary" in body, (
             "word-based-deletion-logic: get_word_boundary not called in move_search_cursor (Ctrl+word-delete)"
         )
+
+
+
+

@@ -3,15 +3,15 @@ Feature ZID: 20260509085806
 Test Creation ZID: 20260509113830
 Feature: Anki Context Verbatim
 
-Structural tests verifying extract_anki_context logic in lls_core.lua.
-The IPC test handler (lls-test-extract-anki-context) is not implemented, so these
+Structural tests verifying extract_anki_context logic in kardenwort.lua.
+The IPC test handler (kardenwort-test-extract-anki-context) is not implemented, so these
 tests validate the key algorithmic properties directly from source code.
 """
 
 import re
 
 
-LUA = "scripts/lls_core.lua"
+LUA = "scripts/kardenwort/main.lua"
 
 
 def _lua():
@@ -23,7 +23,7 @@ def test_anki_context_verbatim():
     """extract_anki_context must exist with the correct five-argument signature."""
     content = _lua()
     assert "extract_anki_context" in content, (
-        "extract_anki_context function not found in lls_core.lua"
+        "extract_anki_context function not found in kardenwort.lua"
     )
     assert re.search(
         r"function\s+extract_anki_context\s*\(full_line,\s*selected_term,\s*max_words_override",
@@ -88,3 +88,7 @@ def test_anki_context_wide_span():
     assert re.search(r"span\s*>=\s*limit", content), (
         "Wide-span guard (span >= limit → return full sentence) not found"
     )
+
+
+
+

@@ -19,6 +19,16 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 > *   **Workflow**: Optimized for both merged `.ass` and separate `.srt` files.
 > *   **Interface**: Distraction-free OSC (hidden by default).
 
+> [!CAUTION]
+> **Breaking Architectural Changes (v1.60.2+)**
+>
+> This version introduces significant structural changes to improve namespace isolation and portability:
+> 1.  **Namespace Shift**: The core script has moved from `lls_core.lua` to `scripts/kardenwort/`.
+> 2.  **Keybinding Migration**: All `script-binding` and `script-message` targets now use the `kardenwort/` prefix (e.g., `script-binding kardenwort/smart-space`).
+> 3.  **Config Prefix**: All `script-opts` parameters in `mpv.conf` now use the `kardenwort-` prefix (e.g., `kardenwort-autopause_default=yes`).
+> 4.  **Anki Mapping**: `anki_mapping.ini` has moved from `script-opts/` to the repository root for better visibility.
+
+
 
 ## Table of Contents
 
@@ -253,7 +263,7 @@ The primary immersion mode designed for rapid reading and phrasal awareness duri
 
 ### <span id="regular-mode"></span>Regular Mode (Minimalist View)
 The standard subtitle viewing experience, enhanced with the Kardenwort suite's professional aesthetics and word-level interactivity.
-- **Premium Background Box**: Implements a semi-transparent dark box (`LLS-SRT_BG_OPACITY`) to ensure perfect legibility against any video background.
+- **Premium Background Box**: Implements a semi-transparent dark box (`kardenwort-SRT_BG_OPACITY`) to ensure perfect legibility against any video background.
 - **Word-Level Interactivity**: Even in regular mode, you can use the mouse to select words for dictionary lookups (`e`) or Anki mining (`MMB`).
 - **Dual-Track Alignment**: Automatically handles secondary track positioning (Top/Bottom) to prevent visual overlap during dual-subtitle immersion.
 - **Default State**: Active when Drum Mode and Drum Window are toggled `OFF`.
@@ -455,7 +465,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 
 ## Configuration Guide (mpv.conf)
 
-The project uses a centralized configuration model. All core script behaviors are controlled directly from `mpv.conf` using the `lls-` prefix.
+The project uses a centralized configuration model. All core script behaviors are controlled directly from `mpv.conf` using the `kardenwort-` prefix.
 
 ### Key Operational Settings:
 - **`sub-align-y=bottom`**: Standardizes the layout for drum mode.
@@ -470,170 +480,170 @@ The project uses a centralized configuration model. All core script behaviors ar
 #### **1. Font Scaling & Layout**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-font_scaling_enabled` | `yes` | Enable smart scaling to keep text legible on small windows. |
-| `lls-font_base_height` | `1080` | Target vertical resolution for scaling calculations. |
-| `lls-font_base_scale` | `1.0` | Global scaling multiplier for all OSD text. |
-| `lls-font_scale_strength` | `0.5` | Scaling intensity (0.0=Native, 1.0=Strictly fixed size). |
-| `lls-sec_pos_top` | `10` | Top destination for `cycle-secondary-pos`. |
-| `lls-sec_pos_bottom` | `90` | Bottom destination for `cycle-secondary-pos`. |
+| `kardenwort-font_scaling_enabled` | `yes` | Enable smart scaling to keep text legible on small windows. |
+| `kardenwort-font_base_height` | `1080` | Target vertical resolution for scaling calculations. |
+| `kardenwort-font_base_scale` | `1.0` | Global scaling multiplier for all OSD text. |
+| `kardenwort-font_scale_strength` | `0.5` | Scaling intensity (0.0=Native, 1.0=Strictly fixed size). |
+| `kardenwort-sec_pos_top` | `10` | Top destination for `cycle-secondary-pos`. |
+| `kardenwort-sec_pos_bottom` | `90` | Bottom destination for `cycle-secondary-pos`. |
 
 #### **2. AutoPause & Spacebar**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-autopause_default` | `yes` | Enable automatic pausing at the end of each subtitle line by default. |
-| `lls-karaoke_every_word` | `no` | If enabled, autopause stops after every highlighted word (Karaoke mode). |
-| `lls-pause_padding` | `0.15` | Buffer delay (seconds) before pausing to ensure word completion. |
-| `lls-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
-| `lls-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
-| `lls-immersion_mode_default` | `PHRASE` | Default mode at startup (`PHRASE` or `MOVIE`). |
-| `lls-key_cycle_immersion_mode` | `O Щ` | Hotkey to cycle Phrase/Movie immersion modes. |
+| `kardenwort-autopause_default` | `yes` | Enable automatic pausing at the end of each subtitle line by default. |
+| `kardenwort-karaoke_every_word` | `no` | If enabled, autopause stops after every highlighted word (Karaoke mode). |
+| `kardenwort-pause_padding` | `0.15` | Buffer delay (seconds) before pausing to ensure word completion. |
+| `kardenwort-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
+| `kardenwort-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
+| `kardenwort-immersion_mode_default` | `PHRASE` | Default mode at startup (`PHRASE` or `MOVIE`). |
+| `kardenwort-key_cycle_immersion_mode` | `O Щ` | Hotkey to cycle Phrase/Movie immersion modes. |
 
 #### **3. Drum Mode (Dynamic Multi-line Context)**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-drum_font_size` | `34` | Text size used in Drum Mode. |
-| `lls-drum_font_name` | `Consolas` | Monospace font family for aligned context rendering. |
-| `lls-drum_font_bold` | `no` | Apply bold styling to all text in Drum Mode. |
-| `lls-drum_context_lines` | `3` | Number of surrounding subtitle lines shown for context. |
-| `lls-drum_context_color` | `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
-| `lls-drum_context_bold` | `no` | Apply bold styling to context lines specifically. |
-| `lls-drum_context_size_mul` | `1.0` | Scale factor for context line text size. |
-| `lls-drum_active_color` | `FFFFFF` | Text color for the currently active subtitle line (BGR Hex). |
-| `lls-drum_active_bold` | `no` | Apply bold styling to the active playback line. |
-| `lls-drum_active_size_mul` | `1.0` | Scale factor for the active line text size. |
-| `lls-drum_active_opacity` | `00` | Transparency for active text (00=Opaque, FF=Transparent). |
-| `lls-drum_context_opacity` | `20` | Transparency for context text (00=Opaque, FF=Transparent). |
-| `lls-drum_bg_color` | `000000` | Background box color (BGR Hex). |
-| `lls-drum_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
-| `lls-drum_border_size` | `1.5` | Size of the text outline/border. |
-| `lls-drum_shadow_offset` | `1.0` | Depth of the text shadow. |
-| `lls-drum_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
-| `lls-drum_double_gap` | `yes` | Use double spacing between distinct subtitle blocks. |
-| `lls-drum_block_gap_mul` | `-0.27` | Extra spacing between distinct subtitle blocks. |
-| `lls-drum_gap_adj` | `6` | Fine-tuning for vertical alignment (all tracks). |
-| `lls-drum_vsp` | `0` | Vertical shift pixels (manual offset). |
-| `lls-drum_track_gap" | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
-| `lls-osd_interactivity` | `yes` | Enable mouse word-selection for standard OSD subtitles. |
+| `kardenwort-drum_font_size` | `34` | Text size used in Drum Mode. |
+| `kardenwort-drum_font_name` | `Consolas` | Monospace font family for aligned context rendering. |
+| `kardenwort-drum_font_bold` | `no` | Apply bold styling to all text in Drum Mode. |
+| `kardenwort-drum_context_lines` | `3` | Number of surrounding subtitle lines shown for context. |
+| `kardenwort-drum_context_color` | `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
+| `kardenwort-drum_context_bold` | `no` | Apply bold styling to context lines specifically. |
+| `kardenwort-drum_context_size_mul` | `1.0` | Scale factor for context line text size. |
+| `kardenwort-drum_active_color` | `FFFFFF` | Text color for the currently active subtitle line (BGR Hex). |
+| `kardenwort-drum_active_bold` | `no` | Apply bold styling to the active playback line. |
+| `kardenwort-drum_active_size_mul` | `1.0` | Scale factor for the active line text size. |
+| `kardenwort-drum_active_opacity` | `00` | Transparency for active text (00=Opaque, FF=Transparent). |
+| `kardenwort-drum_context_opacity` | `20` | Transparency for context text (00=Opaque, FF=Transparent). |
+| `kardenwort-drum_bg_color` | `000000` | Background box color (BGR Hex). |
+| `kardenwort-drum_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
+| `kardenwort-drum_border_size` | `1.5` | Size of the text outline/border. |
+| `kardenwort-drum_shadow_offset` | `1.0` | Depth of the text shadow. |
+| `kardenwort-drum_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `kardenwort-drum_double_gap` | `yes` | Use double spacing between distinct subtitle blocks. |
+| `kardenwort-drum_block_gap_mul` | `-0.27` | Extra spacing between distinct subtitle blocks. |
+| `kardenwort-drum_gap_adj` | `6` | Fine-tuning for vertical alignment (all tracks). |
+| `kardenwort-drum_vsp` | `0` | Vertical shift pixels (manual offset). |
+| `kardenwort-drum_track_gap" | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
+| `kardenwort-osd_interactivity` | `yes` | Enable mouse word-selection for standard OSD subtitles. |
 
 #### **4. SRT Style (Regular Mode)**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-srt_font_size` | `34` | Text size for standard SRT rendering. |
-| `lls-srt_font_name` | `Consolas` | Font family for standard SRT rendering. |
-| `lls-srt_font_bold` | `no` | Apply bold styling to SRT subtitles. |
-| `lls-srt_active_color` | `FFFFFF` | Primary text color for the active playback line. |
-| `lls-srt_context_color` | `CCCCCC` | Color for non-active surrounding lines. |
-| `lls-srt_active_opacity` | `00` | Transparency for the active line (00-FF). |
-| `lls-srt_context_opacity` | `30` | Transparency for surrounding lines (00-FF). |
-| `lls-srt_bg_color` | `000000` | Shadow/Frame color (BGR Hex). |
-| `lls-srt_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
-| `lls-srt_border_size` | `1.5` | Size of text outline. |
-| `lls-srt_shadow_offset` | `1.0` | Depth of text shadow. |
-| `lls-srt_double_gap` | `yes` | Use expanded spacing for dual-track layouts. |
-| `lls-srt_vsp` | `0` | Vertical spacing adjustment (pixels). |
-| `lls-srt_block_gap_mul` | `-0.27` | Spacing between subtitle blocks in SRT mode. |
-| `lls-srt_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `kardenwort-srt_font_size` | `34` | Text size for standard SRT rendering. |
+| `kardenwort-srt_font_name` | `Consolas` | Font family for standard SRT rendering. |
+| `kardenwort-srt_font_bold` | `no` | Apply bold styling to SRT subtitles. |
+| `kardenwort-srt_active_color` | `FFFFFF` | Primary text color for the active playback line. |
+| `kardenwort-srt_context_color` | `CCCCCC` | Color for non-active surrounding lines. |
+| `kardenwort-srt_active_opacity` | `00` | Transparency for the active line (00-FF). |
+| `kardenwort-srt_context_opacity` | `30` | Transparency for surrounding lines (00-FF). |
+| `kardenwort-srt_bg_color` | `000000` | Shadow/Frame color (BGR Hex). |
+| `kardenwort-srt_bg_opacity` | `60` | Background box transparency (ASS Hex 00-FF). |
+| `kardenwort-srt_border_size` | `1.5` | Size of text outline. |
+| `kardenwort-srt_shadow_offset` | `1.0` | Depth of text shadow. |
+| `kardenwort-srt_double_gap` | `yes` | Use expanded spacing for dual-track layouts. |
+| `kardenwort-srt_vsp` | `0` | Vertical spacing adjustment (pixels). |
+| `kardenwort-srt_block_gap_mul` | `-0.27` | Spacing between subtitle blocks in SRT mode. |
+| `kardenwort-srt_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
 
 #### **5. Copy Mode Configuration**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-copy_default_mode` | `A` | Default track target for copy (A=Target, B=Translation). |
-| `lls-copy_filter_russian` | `yes` | Automatically strip Cyrillic characters from Target-track copies. |
-| `lls-copy_context_lines` | `2` | Number of surrounding lines to include in context copy (`X`). |
-| `lls-copy_word_limit` | `3` | Number of words shown in the OSD copy notification. |
+| `kardenwort-copy_default_mode` | `A` | Default track target for copy (A=Target, B=Translation). |
+| `kardenwort-copy_filter_russian` | `yes` | Automatically strip Cyrillic characters from Target-track copies. |
+| `kardenwort-copy_context_lines` | `2` | Number of surrounding lines to include in context copy (`X`). |
+| `kardenwort-copy_word_limit` | `3` | Number of words shown in the OSD copy notification. |
 
 #### **6. Drum Window (Static Reading Mode)**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-dw_font_name` | `Consolas` | Font family used in the Reading Mode window. |
-| `lls-dw_font_size` | `34` | Base text size for the Static Reading Mode window. |
-| `lls-dw_active_bold` | `no` | Bold active line in window. |
-| `lls-dw_context_bold` | `no` | Bold context lines in window. |
-| `lls-dw_active_opacity` | `00` | Transparency for active line (00-FF). |
-| `lls-dw_context_opacity` | `30` | Transparency for context lines (00-FF). |
-| `lls-dw_active_size_mul` | `1.0` | Scale active line font size. |
-| `lls-dw_context_size_mul` | `1.0` | Scale context line font size. |
-| `lls-dw_char_width` | `0.5` | Character width calibration (0.5 is exact for Consolas). |
-| `lls-dw_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
-| `lls-dw_block_gap_mul` | `-0.27` | Spacing between distinct subtitle blocks. |
-| `lls-dw_double_gap" | `yes` | Enable expanded dual-track spacing in the window. |
-| `lls-dw_vsp` | `0` | Vertical shift pixels for hit-zone calibration. |
-| `lls-dw_lines_visible` | `15` | Maximum number of subtitle lines visible in the viewport. |
-| `lls-dw_scrolloff` | `3` | Margin lines maintained at top/bottom before the viewport scrolls. |
-| `lls-dw_original_spacing` | `yes` | Preserve source subtitle's original whitespace and formatting. |
-| `lls-dw_jump_words` | `5` | Words jumped during `Ctrl+Left/Right`. |
-| `lls-dw_jump_lines` | `5` | Lines jumped during `Ctrl+Shift+Up/Down`. |
-| `lls-dw_highlight_color` | `00CCFF` | Color for active word selection (Gold BGR). |
-| `lls-dw_ctrl_select_color" | `FF88FF` | Color for split-word selection (Pink) in pending state. |
-| `lls-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights (Purple). |
-| `lls-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
+| `kardenwort-dw_font_name` | `Consolas` | Font family used in the Reading Mode window. |
+| `kardenwort-dw_font_size` | `34` | Base text size for the Static Reading Mode window. |
+| `kardenwort-dw_active_bold` | `no` | Bold active line in window. |
+| `kardenwort-dw_context_bold` | `no` | Bold context lines in window. |
+| `kardenwort-dw_active_opacity` | `00` | Transparency for active line (00-FF). |
+| `kardenwort-dw_context_opacity` | `30` | Transparency for context lines (00-FF). |
+| `kardenwort-dw_active_size_mul` | `1.0` | Scale active line font size. |
+| `kardenwort-dw_context_size_mul` | `1.0` | Scale context line font size. |
+| `kardenwort-dw_char_width` | `0.5` | Character width calibration (0.5 is exact for Consolas). |
+| `kardenwort-dw_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
+| `kardenwort-dw_block_gap_mul` | `-0.27` | Spacing between distinct subtitle blocks. |
+| `kardenwort-dw_double_gap" | `yes` | Enable expanded dual-track spacing in the window. |
+| `kardenwort-dw_vsp` | `0` | Vertical shift pixels for hit-zone calibration. |
+| `kardenwort-dw_lines_visible` | `15` | Maximum number of subtitle lines visible in the viewport. |
+| `kardenwort-dw_scrolloff` | `3` | Margin lines maintained at top/bottom before the viewport scrolls. |
+| `kardenwort-dw_original_spacing` | `yes` | Preserve source subtitle's original whitespace and formatting. |
+| `kardenwort-dw_jump_words` | `5` | Words jumped during `Ctrl+Left/Right`. |
+| `kardenwort-dw_jump_lines` | `5` | Lines jumped during `Ctrl+Shift+Up/Down`. |
+| `kardenwort-dw_highlight_color` | `00CCFF` | Color for active word selection (Gold BGR). |
+| `kardenwort-dw_ctrl_select_color" | `FF88FF` | Color for split-word selection (Pink) in pending state. |
+| `kardenwort-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights (Purple). |
+| `kardenwort-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
 
 #### **7. Translation Tooltips**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-tooltip_font_name` | `Consolas` | Font family for translation hints. |
-| `lls-tooltip_font_size` | `34` | Text size for translation hints. |
-| `lls-tooltip_font_bold` | `no` | Bold styling for tooltips. |
-| `lls-tooltip_active_color` | `FFFFFF` | Color for the primary translation line. |
-| `lls-tooltip_context_color` | `CCCCCC` | Color for surrounding context lines. |
-| `lls-tooltip_active_opacity` | `00` | Transparency for the primary line. |
-| `lls-tooltip_context_opacity` | `30` | Transparency for context lines. |
-| `lls-tooltip_bg_color` | `222222` | Background color for tooltips (BGR Hex). |
-| `lls-tooltip_bg_opacity` | `60` | Background box transparency (00-FF). |
-| `lls-tooltip_context_lines` | `3` | Surrounding lines captured for tooltip context. |
-| `lls-tooltip_line_height_mul` | `0.87` | Vertical spacing multiplier for tooltips. |
-| `lls-tooltip_y_offset_lines` | `0` | Manual vertical offset for tooltip positioning. |
+| `kardenwort-tooltip_font_name` | `Consolas` | Font family for translation hints. |
+| `kardenwort-tooltip_font_size` | `34` | Text size for translation hints. |
+| `kardenwort-tooltip_font_bold` | `no` | Bold styling for tooltips. |
+| `kardenwort-tooltip_active_color` | `FFFFFF` | Color for the primary translation line. |
+| `kardenwort-tooltip_context_color` | `CCCCCC` | Color for surrounding context lines. |
+| `kardenwort-tooltip_active_opacity` | `00` | Transparency for the primary line. |
+| `kardenwort-tooltip_context_opacity` | `30` | Transparency for context lines. |
+| `kardenwort-tooltip_bg_color` | `222222` | Background color for tooltips (BGR Hex). |
+| `kardenwort-tooltip_bg_opacity` | `60` | Background box transparency (00-FF). |
+| `kardenwort-tooltip_context_lines` | `3` | Surrounding lines captured for tooltip context. |
+| `kardenwort-tooltip_line_height_mul` | `0.87` | Vertical spacing multiplier for tooltips. |
+| `kardenwort-tooltip_y_offset_lines` | `0` | Manual vertical offset for tooltip positioning. |
 
 #### **8. Search HUD Styling**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-search_font_name` | `Consolas` | Font family for the Search overlay. |
-| `lls-search_font_size` | `34` | Text size for the Search input field. |
-| `lls-search_results_font_size` | `0` | Scaling for results list (0=100%, -1=80% of base size). |
-| `lls-search_bg_color` | `000000` | Background color for search panels (BGR Hex). |
-| `lls-search_bg_opacity` | `20` | Background box transparency (00-FF). |
-| `lls-search_text_color` | `FFFFFF` | Primary text color in search HUD. |
-| `lls-search_line_height_mul` | `1.2` | Line height for search results. |
-| `lls-search_hit_color` | `0088FF` | Color for query matches in results (BGR Hex). |
-| `lls-search_hit_bold` | `no` | Bold query matches in result list. |
-| `lls-search_sel_color` | `FFFFFF` | Color for the currently selected result (BGR Hex). |
-| `lls-search_sel_bold` | `no` | Bold selected result. |
-| `lls-search_query_hit_color` | `0088FF` | Color for hits within the input query itself. |
+| `kardenwort-search_font_name` | `Consolas` | Font family for the Search overlay. |
+| `kardenwort-search_font_size` | `34` | Text size for the Search input field. |
+| `kardenwort-search_results_font_size` | `0` | Scaling for results list (0=100%, -1=80% of base size). |
+| `kardenwort-search_bg_color` | `000000` | Background color for search panels (BGR Hex). |
+| `kardenwort-search_bg_opacity` | `20` | Background box transparency (00-FF). |
+| `kardenwort-search_text_color` | `FFFFFF` | Primary text color in search HUD. |
+| `kardenwort-search_line_height_mul` | `1.2` | Line height for search results. |
+| `kardenwort-search_hit_color` | `0088FF` | Color for query matches in results (BGR Hex). |
+| `kardenwort-search_hit_bold` | `no` | Bold query matches in result list. |
+| `kardenwort-search_sel_color` | `FFFFFF` | Color for the currently selected result (BGR Hex). |
+| `kardenwort-search_sel_bold` | `no` | Bold selected result. |
+| `kardenwort-search_query_hit_color` | `0088FF` | Color for hits within the input query itself. |
 
 #### **9. Anki & Mining Aesthetics**
 | Parameter | Default | Description |
 |---|---|---|
-| `lls-anki_highlight_depth_1/2/3` | - | Colors for contiguous matches (Light -> Deep Orange). |
-| `lls-anki_split_depth_1/2/3` | - | Colors for split-phrase matches (Light -> Deep Purple). |
-| `lls-anki_mix_depth_1/2/3` | - | Colors for mixed/overlapping matches (Light -> Deep Blue). |
-| `lls-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
-| `lls-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
-| `lls-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
-| `lls-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
-| `lls-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
+| `kardenwort-anki_highlight_depth_1/2/3` | - | Colors for contiguous matches (Light -> Deep Orange). |
+| `kardenwort-anki_split_depth_1/2/3` | - | Colors for split-phrase matches (Light -> Deep Purple). |
+| `kardenwort-anki_mix_depth_1/2/3` | - | Colors for mixed/overlapping matches (Light -> Deep Blue). |
+| `kardenwort-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
+| `kardenwort-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
+| `kardenwort-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
+| `kardenwort-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
+| `kardenwort-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
 
 #### **10. Detailed Key Mapping (Internal)**
 These parameters allow remapping internal script actions in `mpv.conf`. Values can be space, comma, or semicolon separated lists.
 
 | Parameter | Default Keys |
 |---|---|
-| `lls-dw_key_seek_prev` | `a ф` |
-| `lls-dw_key_seek_next` | `d в` |
-| `lls-dw_key_copy` | `Ctrl+c Ctrl+с` |
-| `lls-dw_key_search` | `Ctrl+f Ctrl+а` |
-| `lls-dw_key_add` | `g п MBTN_MID` |
-| `lls-dw_key_pair` | `f а Ctrl+MBTN_LEFT` |
-| `lls-dw_key_open_record` | `b и` |
-| `lls-dw_key_select` | `MBTN_LEFT` |
-| `lls-dw_key_tooltip_pin` | `MBTN_RIGHT` |
-| `lls-dw_key_tooltip_hover` | `E У` |
-| `lls-dw_key_tooltip_toggle` | `e у` |
-| `lls-dw_key_mouse_seek` | `MBTN_LEFT_DBL` |
-| `lls-dw_key_scroll_up/down` | `Ctrl+UP/DOWN` |
-| `lls-key_sub_pos_up/down` | `r/t к/е` |
-| `lls-key_sec_sub_pos_up/down`| `R/T К/Е` |
-| `lls-dw_key_cycle_copy_mode` | `Q Й` |
-| `lls-dw_key_toggle_copy_context`| `W Ц` |
+| `kardenwort-dw_key_seek_prev` | `a ф` |
+| `kardenwort-dw_key_seek_next` | `d в` |
+| `kardenwort-dw_key_copy` | `Ctrl+c Ctrl+с` |
+| `kardenwort-dw_key_search` | `Ctrl+f Ctrl+а` |
+| `kardenwort-dw_key_add` | `g п MBTN_MID` |
+| `kardenwort-dw_key_pair` | `f а Ctrl+MBTN_LEFT` |
+| `kardenwort-dw_key_open_record` | `b и` |
+| `kardenwort-dw_key_select` | `MBTN_LEFT` |
+| `kardenwort-dw_key_tooltip_pin` | `MBTN_RIGHT` |
+| `kardenwort-dw_key_tooltip_hover` | `E У` |
+| `kardenwort-dw_key_tooltip_toggle` | `e у` |
+| `kardenwort-dw_key_mouse_seek` | `MBTN_LEFT_DBL` |
+| `kardenwort-dw_key_scroll_up/down` | `Ctrl+UP/DOWN` |
+| `kardenwort-key_sub_pos_up/down` | `r/t к/е` |
+| `kardenwort-key_sec_sub_pos_up/down`| `R/T К/Е` |
+| `kardenwort-dw_key_cycle_copy_mode` | `Q Й` |
+| `kardenwort-dw_key_toggle_copy_context`| `W Ц` |
 
 #### **Mapping Keywords**
 When configuring `anki_mapping.ini`, use these keywords to pull dynamic data:
@@ -721,7 +731,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 ```
 
 ### 3. Verification
-1.  **Encoding**: Confirm that `lls_core.lua` is in **UTF-8** format.
+1.  **Encoding**: Confirm that `scripts/kardenwort/` is in **UTF-8** format.
 2.  **Activation**: Relaunch `mpv`. The specialized OSD should be active upon loading media.
 3.  **Hotkeys**: Refer to the commented `input.conf` as your primary manual.
 
@@ -747,3 +757,4 @@ git log --pretty=format:"%ad" --date=iso-strict | python docs/scripts/analyze_re
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 [Return to Top](#table-of-contents)
+

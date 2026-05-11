@@ -48,15 +48,15 @@ import time
 import pytest
 import os
 import re
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 def robust_query_state(ipc, retries=5):
     for i in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and 'options' in state:
             return state
         time.sleep(0.5)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 class TestOpenSpecComplianceBatch4:
 
@@ -64,11 +64,11 @@ class TestOpenSpecComplianceBatch4:
         """Verify smart joiner punctuation spacing (smart-joiner-service)."""
         ipc = mpv.ipc
         # We test the prepare-export logic which uses the smart joiner
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'POINT', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'POINT', '1', '1'])
         time.sleep(0.2)
         # Since we don't have a specific joiner test command that returns the string directly,
         # we check if the last_export property is updated.
-        export = ipc.get_property('user-data/lls/last_export')
+        export = ipc.get_property('user-data/kardenwort/last_export')
         assert export is not None
 
     def test_softer_scaling_formula_options(self, mpv):
@@ -86,7 +86,7 @@ class TestOpenSpecComplianceBatch4:
     def test_srt_parser_hardening_tokens(self, mpv):
         """Verify SRT parser tokenization (srt-parser-hardening)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-get-tokens', "This is a test."])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', "This is a test."])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         tokens = state['test_data']['test_tokens']
@@ -127,15 +127,15 @@ class TestOpenSpecComplianceBatch4:
     def test_subtitle_rendering_overlay(self, mpv):
         """Verify subtitle rendering overlays (subtitle-rendering)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-render-query', 'drum'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'drum'])
         time.sleep(0.2)
-        render = ipc.get_property('user-data/lls/render')
+        render = ipc.get_property('user-data/kardenwort/render')
         assert render is not None
 
     def test_subtitle_replay_cmd(self, mpv):
         """Verify replay command (subtitle-replay)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None
@@ -148,7 +148,7 @@ class TestOpenSpecComplianceBatch4:
     def test_synchronized_context_jumps_nav(self, mpv):
         """Verify context jump commands (synchronized-context-jumps)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-word-move', '1', 'false'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'false'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None
@@ -166,7 +166,7 @@ class TestOpenSpecComplianceBatch4:
         """Verify text truncation logic (text-processing-hardening)."""
         ipc = mpv.ipc
         long_text = "a" * 200
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-truncate', long_text])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-truncate', long_text])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert len(state['test_data']['test_truncated_str']) <= 123
@@ -174,7 +174,7 @@ class TestOpenSpecComplianceBatch4:
     def test_tokenized_fuzzy_search_logic(self, mpv):
         """Verify fuzzy search logic (tokenized-fuzzy-search)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-fuzzy-match', "test", "testing"])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-fuzzy-match', "test", "testing"])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['test_data']['test_fuzzy_match_result'] == True
@@ -182,15 +182,15 @@ class TestOpenSpecComplianceBatch4:
     def test_tooltip_hit_zone_lifecycle_osd(self, mpv):
         """Verify tooltip OSD query (tooltip-hit-zone-lifecycle)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-render-query', 'tooltip'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'tooltip'])
         time.sleep(0.2)
-        render = ipc.get_property('user-data/lls/render')
+        render = ipc.get_property('user-data/kardenwort/render')
         assert render is not None
 
     def test_track_scrolling_accessibility_cmd(self, mpv):
         """Verify track scrolling commands (track-scrolling-accessibility)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-scroll', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-scroll', '1'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None
@@ -213,9 +213,9 @@ class TestOpenSpecComplianceBatch4:
     def test_ui_integration_hooks_render(self, mpv):
         """Verify UI rendering hooks (ui-integration-hooks)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-render-query', 'dw'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'dw'])
         time.sleep(0.2)
-        render = ipc.get_property('user-data/lls/render')
+        render = ipc.get_property('user-data/kardenwort/render')
         assert render is not None
 
     def test_ui_noise_reduction_options(self, mpv):
@@ -225,15 +225,15 @@ class TestOpenSpecComplianceBatch4:
 
     def test_unified_clipboard_abstraction_last(self, mpv):
         """Verify clipboard state property (unified-clipboard-abstraction)."""
-        last_cb = mpv.ipc.get_property('user-data/lls/last_clipboard')
+        last_cb = mpv.ipc.get_property('user-data/kardenwort/last_clipboard')
         assert last_cb is not None
 
     def test_unified_drum_rendering_overlay(self, mpv):
         """Verify unified drum rendering (unified-drum-rendering)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-render-query', 'drum'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'drum'])
         time.sleep(0.2)
-        render = ipc.get_property('user-data/lls/render')
+        render = ipc.get_property('user-data/kardenwort/render')
         assert render is not None
 
     def test_unified_navigation_logic_cursor(self, mpv):
@@ -249,7 +249,7 @@ class TestOpenSpecComplianceBatch4:
     def test_universal_subtitle_search_mode(self, mpv):
         """Verify search mode state (universal-subtitle-search)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-search-mode-set', 'true'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-mode-set', 'true'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['search_query'] == ""
@@ -284,7 +284,11 @@ class TestOpenSpecComplianceBatch4:
     def test_x_axis_re_anchoring_sticky(self, mpv):
         """Verify X-axis sticky position (x-axis-re-anchoring)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-line-move', '1', 'false'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-line-move', '1', 'false'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert 'dw_sticky_x' in state
+
+
+
+

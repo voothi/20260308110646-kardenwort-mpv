@@ -7,14 +7,14 @@ Regression tests for archived changes from April 2026 (20260427 - 20260429).
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 # Helper for polling state
 def wait_for_state(ipc, key, value, timeout=2.0):
     start = time.time()
     while time.time() - start < timeout:
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state.get(key) == value:
             return True
         time.sleep(0.1)
@@ -35,11 +35,11 @@ class TestAprilArchivedRegressions:
         # In reality, this change was about the logic inside cmd_copy_sub.
         # We trigger 'copy-subtitle' and verify it doesn't fail or return empty if we can instrument it.
         # Since we can't easily check clipboard in CI, we check if the state is consistent.
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] > 0
         
         # Trigger copy-subtitle
-        ipc.command(['script-message-to', 'lls_core', 'copy-subtitle'])
+        ipc.command(['script-message-to', 'kardenwort', 'copy-subtitle'])
         time.sleep(0.1)
         # If it didn't crash, it likely used the fallback.
 
@@ -48,9 +48,9 @@ class TestAprilArchivedRegressions:
         ipc = mpv_fragment1.ipc
         
         # Ensure Drum Mode is ON but Drum Window is OFF
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-mode-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
         time.sleep(0.1)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['drum_mode'] == 'ON'
         assert state['drum_window'] == 'OFF'
         
@@ -58,7 +58,7 @@ class TestAprilArchivedRegressions:
         ipc.command(['seek', 4.5, 'absolute+exact'])
         time.sleep(0.5)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         active_sub_index = state['active_sub_index']
         dw_active_line = state.get('dw_active_line')
         
@@ -69,18 +69,18 @@ class TestAprilArchivedRegressions:
         ipc = mpv_fragment1.ipc
         
         # Enable Drum Mode
-        ipc.command(['script-message-to', 'lls_core', 'lls-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
         time.sleep(0.1)
         
         # Toggle visibility OFF
-        ipc.command(['script-message-to', 'lls_core', 'lls-sub-visibility-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'OFF'])
         time.sleep(0.5)
         
         # Verify both Drum and DW-OSD are suppressed
-        render = query_lls_render(ipc, 'drum')
+        render = query_kardenwort_render(ipc, 'drum')
         assert render == ""
         
-        render = query_lls_render(ipc, 'dw-osd')
+        render = query_kardenwort_render(ipc, 'dw-osd')
         assert render == ""
         
     def test_20260427161414_sub_merging(self, mpv_merge_test):
@@ -88,13 +88,13 @@ class TestAprilArchivedRegressions:
         ipc = mpv_merge_test.ipc
         
         # We expect 5 subtitles after merging Bridge (5+6) but NOT merging Music (2+4).
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['pri_sub_count'] == 5, f"Expected 5 subs after merge, got {state['pri_sub_count']}"
 
     def test_20260427200421_drum_spacing(self, mpv_fragment1):
         """Verify drum spacing doesn't crash with zero intervals (20260427200421)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
         time.sleep(0.2)
         # Play for a bit to trigger layout
         ipc.command(['set_property', 'pause', 'no'])
@@ -106,28 +106,28 @@ class TestAprilArchivedRegressions:
         """Verify drum_upper_gap_adj option integration (20260427233207)."""
         ipc = mpv_fragment1.ipc
         # Set a large adjustment to see if it causes issues
-        ipc.command(['set_property', 'options/lls-drum_upper_gap_adj', '20'])
+        ipc.command(['set_property', 'options/kardenwort-drum_upper_gap_adj', '20'])
         time.sleep(0.1)
         # Trigger re-render
-        ipc.command(['script-message-to', 'lls_core', 'lls-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
         time.sleep(0.2)
         # Check state if possible, or just ensure no crash
         
     def test_20260429195210_keyboard_precision_nav(self, mpv_fragment1):
         """Verify Shift+Arrow moves by tokens (including symbols) (20260429195210)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
         
         # Initial position: word -1
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         initial_word = state['dw_cursor']['word']
         
         # Move right with Shift (should move by 1 token)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-word-move', '1', 'yes']) 
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes']) 
         time.sleep(0.1)
         
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # We check if dw_cursor.word changed.
         assert state['dw_cursor']['word'] != initial_word
 
@@ -143,13 +143,13 @@ class TestAprilArchivedRegressions:
         # Fragment 1, sub 1 ends at ~5.3s. Seek to 5.29s.
         ipc.command(['seek', 5.29, 'absolute+exact'])
         time.sleep(0.5)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 1
 
     def test_20260429133044_empty_sub_height(self, mpv_fragment1):
         """Verify empty subtitles reserve vertical space in Drum Mode (20260429133044)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-mode-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
         time.sleep(0.2)
         # Just ensure no crash
         
@@ -160,14 +160,14 @@ class TestAprilArchivedRegressions:
         time.sleep(0.5)
         
         # Set cursor to line 2, word 1
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Call copy
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-copy'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-copy'])
         time.sleep(0.2)
         
-        clip = ipc.get_property('user-data/lls/last_clipboard')
+        clip = ipc.get_property('user-data/kardenwort/last_clipboard')
         assert clip == "Manchmal"
         
     def test_20260429142144_terminal_period_restoration(self, mpv_fragment1):
@@ -179,18 +179,18 @@ class TestAprilArchivedRegressions:
         time.sleep(0.5)
         
         # Set cursor to line 2, word 1
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Select "Manchmal" (word 1) and "Gefühl" (word 5) -> Pink selection
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '5'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '5'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
         time.sleep(0.2)
         
-        term = ipc.get_property('user-data/lls/last_export')
+        term = ipc.get_property('user-data/kardenwort/last_export')
         # This is a sub-phrase, should NOT have a period.
         assert "Manchmal" in term
         assert "Gefühl" in term
@@ -198,21 +198,21 @@ class TestAprilArchivedRegressions:
         
         # Now select a sentence-ending phrase: "Manchmal" (1) to "abgesehen" (12)
         # First clear
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc']) 
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc']) 
         time.sleep(0.1)
         
         # Set cursor to line 2, word 1
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '12'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '12'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
         time.sleep(0.2)
         
-        term = ipc.get_property('user-data/lls/last_export')
+        term = ipc.get_property('user-data/kardenwort/last_export')
         assert "Manchmal" in term
         assert "abgesehen" in term
         # As per 20260430233400, sentence restoration is deprecated.
@@ -226,18 +226,22 @@ class TestAprilArchivedRegressions:
         time.sleep(0.5)
         
         # Set cursor
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Non-contiguous Pink: "Manchmal" (1) and "abgesehen" (12)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '1'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '2', '12'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '12'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
         time.sleep(0.2)
         
-        term = ipc.get_property('user-data/lls/last_export')
+        term = ipc.get_property('user-data/kardenwort/last_export')
         # Should have " ... " in the middle
         assert "Manchmal ... abgesehen" in term
+
+
+
+
 

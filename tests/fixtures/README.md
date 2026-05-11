@@ -22,4 +22,6 @@ A minimal English SRT file with three subtitle entries, loaded as an external su
 
 ## 20260502165659-test-fixture.tsv
 
-Auto-generated empty highlights file associated with the video above. Committed as an empty header so lls_core does not attempt to create it at test time.
+Auto-generated empty highlights file associated with the video above. Committed as an empty header so kardenwort does not attempt to create it at test time.
+
+

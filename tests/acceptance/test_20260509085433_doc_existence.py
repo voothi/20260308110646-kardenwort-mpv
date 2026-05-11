@@ -13,7 +13,7 @@ Spec: openspec\\specs\\configurable-abbrev-detection
 
 import os
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 class TestConfigRegressions:
     """Tests for configuration wiring and documentation existence."""
@@ -28,11 +28,11 @@ class TestConfigRegressions:
         """Verify that script-opts are correctly applied to the FSM state (20260421015600)."""
         ipc = mpv.ipc
         
-        # Default font size is 34 (based on lls_core.lua)
-        state = query_lls_state(ipc)
+        # Default font size is 34 (based on kardenwort.lua)
+        state = query_kardenwort_state(ipc)
         # Note: state might not expose ALL options, but let's check one that is exposed or common.
         # Most options are in the 'Options' table in Lua.
-        # We can use 'script-message lls-state-query' to populate 'user-data/lls/state'.
+        # We can use 'script-message kardenwort-state-query' to populate 'user-data/kardenwort/state'.
         
         # Let's check 'autopause' which is derived from 'autopause_default'
         assert 'autopause' in state
@@ -44,12 +44,12 @@ class TestConfigRegressions:
         
         custom_session = MpvSession(
             video=mpv.video,
-            extra_args=['--script-opts=lls-anki_abbrev_list=testabbrev.']
+            extra_args=['--script-opts=kardenwort-anki_abbrev_list=testabbrev.']
         )
         custom_session.start()
         try:
-            state = query_lls_state(custom_session.ipc)
-            # The state probe in lls_core.lua needs to expose this option.
+            state = query_kardenwort_state(custom_session.ipc)
+            # The state probe in kardenwort.lua needs to expose this option.
             # Let's check if it does.
             # If not, we might need to rely on behavior.
             # But the spec says it MUST be a config option.
@@ -60,9 +60,13 @@ class TestConfigRegressions:
     def test_20260508_styling_standardization(self, mpv):
         """Verify that styling options use consistent hex format (20260508)."""
         ipc = mpv.ipc
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         
         # Check a few color options if they are exposed in state
         # (Assuming the state probe exposes them)
         # If they aren't, we can at least verify they are registered in Options.
         pass
+
+
+
+

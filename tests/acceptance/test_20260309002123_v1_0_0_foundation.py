@@ -10,16 +10,16 @@ fuzzy search scoring, and external subtitle validation.
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 def robust_query_state(ipc, retries=3):
-    """Retries query_lls_state if it returns an empty or incomplete state."""
+    """Retries query_kardenwort_state if it returns an empty or incomplete state."""
     for i in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and 'tracks' in state:
             return state
         time.sleep(0.5)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 class TestMarchEarlyRegressions:
     """Tests for archived changes in early March 2026."""
@@ -36,7 +36,7 @@ class TestMarchEarlyRegressions:
         assert 'playback_state' in state
 
     def test_20260310002147_v1_2_0_centralization(self, mpv):
-        """Verify centralization into lls_core and master tick presence (20260310002147)."""
+        """Verify centralization into kardenwort and master tick presence (20260310002147)."""
         ipc = mpv.ipc
         state = robust_query_state(ipc)
         
@@ -51,15 +51,15 @@ class TestMarchEarlyRegressions:
         ipc = mpv_fragment1.ipc
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         
         # Open Search
-        ipc.command(['script-message-to', 'lls_core', 'toggle-drum-search'])
+        ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
         time.sleep(0.5)
         
         # v1.25.0 Decision: Multi-keyword AND logic.
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-search-input', 'Paket Ende'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', 'Paket Ende'])
         time.sleep(0.8) # Allow time for scoring logic
         
         state = robust_query_state(ipc)
@@ -82,7 +82,7 @@ class TestMarchEarlyRegressions:
         assert state['tracks']['pri']['path'] is not None
         
         # Toggle Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(1.0)
         state = robust_query_state(ipc)
         assert state['drum_window'] != 'OFF'
@@ -97,8 +97,12 @@ class TestMarchEarlyRegressions:
         assert state['tracks']['pri']['is_ass'] == True
         
         # Try to toggle Drum Mode
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-toggle'])
         time.sleep(1.0)
         
         state = robust_query_state(ipc)
         assert state['drum_mode'] == 'OFF', "Drum Mode should be inhibited on ASS tracks"
+
+
+
+

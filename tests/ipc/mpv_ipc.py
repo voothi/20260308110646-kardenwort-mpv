@@ -108,8 +108,8 @@ if os.name == 'nt':
 
 def default_ipc_path():
     if os.name == 'nt':
-        return r'\\.\pipe\mpv-lls-test'
-    return os.path.join(tempfile.gettempdir(), 'mpv-lls-test.sock')
+        return r'\\.\pipe\mpv-kardenwort-test'
+    return os.path.join(tempfile.gettempdir(), 'mpv-kardenwort-test.sock')
 
 
 class MpvIpc:
@@ -207,24 +207,24 @@ class MpvIpc:
                 pass
 
 
-def query_lls_state(ipc, timeout=5.0):
+def query_kardenwort_state(ipc, timeout=5.0):
     # Observe property if not already observed
-    if 'user-data/lls/state' not in ipc._prop_events:
-        ipc.observe_property(99, 'user-data/lls/state')
+    if 'user-data/kardenwort/state' not in ipc._prop_events:
+        ipc.observe_property(99, 'user-data/kardenwort/state')
         # Wait a bit for the initial value event to pass
         time.sleep(0.1)
     
     # Clear the event before sending the query
-    ipc._prop_events['user-data/lls/state'].clear()
+    ipc._prop_events['user-data/kardenwort/state'].clear()
     
-    ipc.command(['script-message-to', 'lls_core', 'lls-state-query'])
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-state-query'])
     
     # Wait for the change
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            ipc.wait_property_change('user-data/lls/state', timeout=1.0)
-            raw = ipc.get_property('user-data/lls/state')
+            ipc.wait_property_change('user-data/kardenwort/state', timeout=1.0)
+            raw = ipc.get_property('user-data/kardenwort/state')
             if raw and '|' in raw:
                 raw = raw.split('|', 1)[1]
             if raw and raw != "{}":
@@ -234,11 +234,16 @@ def query_lls_state(ipc, timeout=5.0):
     return {}
 
 
-def query_lls_render(ipc, overlay_name, timeout=2.0):
-    ipc.observe_property(98, 'user-data/lls/render')
-    ipc.command(['script-message-to', 'lls_core', 'lls-render-query', overlay_name])
-    ipc.wait_property_change('user-data/lls/render', timeout)
-    raw = ipc.get_property('user-data/lls/render') or ''
+def query_kardenwort_render(ipc, overlay_name, timeout=2.0):
+    ipc.observe_property(98, 'user-data/kardenwort/render')
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', overlay_name])
+    ipc.wait_property_change('user-data/kardenwort/render', timeout)
+    raw = ipc.get_property('user-data/kardenwort/render') or ''
     if '|' in raw:
         return raw.split('|', 1)[1]
     return raw
+
+
+
+
+

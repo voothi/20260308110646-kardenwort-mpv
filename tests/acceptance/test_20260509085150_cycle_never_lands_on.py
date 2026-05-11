@@ -14,21 +14,21 @@ Acceptance tests for 7 archived immersion-pipeline changes:
 
 Infrastructure used:
   MpvSession / MpvIpc  – headless mpv process with IPC pipe
-  query_lls_state      – reads FSM snapshot via lls-state-query message
-  query_lls_render     – reads a named OSD overlay's ASS data
-  lls-test-seek-delta  – triggers cmd_dw_seek_delta(dir) (added for this suite)
-  lls-test-cycle-sec-sid – triggers cmd_cycle_sec_sid() (added for this suite)
+  query_kardenwort_state      – reads FSM snapshot via kardenwort-state-query message
+  query_kardenwort_render     – reads a named OSD overlay's ASS data
+  kardenwort-test-seek-delta  – triggers cmd_dw_seek_delta(dir) (added for this suite)
+  kardenwort-test-cycle-sec-sid – triggers cmd_cycle_sec_sid() (added for this suite)
 
 Fixtures from conftest.py:
   mpv              – single external SRT, not paused
   mpv_dual         – two external SRTs (sync-test), paused, 200 ms gap/padding
   mpv_fragment1    – real 25 fps DE+RU, paused; 5 subs
-  mpv_movie_startup – single SRT with lls-immersion_mode_default=MOVIE
+  mpv_movie_startup – single SRT with kardenwort-immersion_mode_default=MOVIE
 """
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 
@@ -50,7 +50,7 @@ class TestFilteredSecondarySubtitleCycle:
 
         visited = set()
         for _ in range(4):
-            ipc.command(['script-message-to', 'lls_core', 'lls-test-cycle-sec-sid'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
             time.sleep(0.2)
             sid = ipc.get_property('secondary-sid')
             visited.add(sid)
@@ -65,7 +65,7 @@ class TestFilteredSecondarySubtitleCycle:
 
         visited = set()
         for _ in range(4):
-            ipc.command(['script-message-to', 'lls_core', 'lls-test-cycle-sec-sid'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
             time.sleep(0.2)
             visited.add(ipc.get_property('secondary-sid'))
 
@@ -81,7 +81,7 @@ class TestFilteredSecondarySubtitleCycle:
         start_sid = ipc.get_property('secondary-sid')
 
         for _ in range(8):
-            ipc.command(['script-message-to', 'lls_core', 'lls-test-cycle-sec-sid'])
+            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
             time.sleep(0.2)
             if ipc.get_property('secondary-sid') == start_sid:
                 return  # full rotation confirmed
@@ -101,17 +101,17 @@ class TestImmersionSuiteHardening:
 
     def test_startup_immersion_mode_is_phrase(self, mpv):
         """Default startup immersion mode must be PHRASE."""
-        state = query_lls_state(mpv.ipc)
+        state = query_kardenwort_state(mpv.ipc)
         assert state['immersion_mode'] == 'PHRASE', (
             f"Expected PHRASE at startup, got {state['immersion_mode']}"
         )
 
     def test_set_movie_mode_reflects_in_state(self, mpv_dual):
-        """lls-immersion-mode-set MOVIE must update FSM state immediately."""
+        """kardenwort-immersion-mode-set MOVIE must update FSM state immediately."""
         ipc = mpv_dual.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
         time.sleep(0.15)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['immersion_mode'] == 'MOVIE', (
             f"Expected MOVIE after set; got {state['immersion_mode']}"
         )
@@ -124,14 +124,14 @@ class TestImmersionSuiteHardening:
         Overlap zone: 2.000–2.200s. Seeking to 2.05s must result in ACTIVE_IDX=2.
         """
         ipc = mpv_dual.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'PHRASE'])
-        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'OFF'])
         time.sleep(0.1)
 
         ipc.command(['seek', 2.05, 'absolute+exact'])
         time.sleep(0.35)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 2, (
             f"Expected Jerk-Back to advance to sub 2 at 2.05s; got {state['active_sub_index']}"
         )
@@ -147,7 +147,7 @@ class TestImmersionSuiteHardening:
         ipc.command(['seek', 4.5, 'absolute+exact'])
         time.sleep(0.6)  # nav_cooldown default = 0.5s
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 1, (
             f"Sentinel not primed after seek to 4.5s (sub 1); got {state['active_sub_index']}"
         )
@@ -155,13 +155,13 @@ class TestImmersionSuiteHardening:
     def test_movie_mode_handover_state_change(self, mpv_dual):
         """Switching to MOVIE and back to PHRASE keeps immersion_mode consistent."""
         ipc = mpv_dual.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
         time.sleep(0.1)
-        assert query_lls_state(ipc)['immersion_mode'] == 'MOVIE'
+        assert query_kardenwort_state(ipc)['immersion_mode'] == 'MOVIE'
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'PHRASE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
         time.sleep(0.1)
-        assert query_lls_state(ipc)['immersion_mode'] == 'PHRASE'
+        assert query_kardenwort_state(ipc)['immersion_mode'] == 'PHRASE'
 
 
 # ─────────────────────────────────────────────────────────────
@@ -182,14 +182,14 @@ class TestSubtitleInteractivityRegressions:
         ipc.command(['seek', 8.0, 'absolute+exact'])
         time.sleep(0.4)
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
         time.sleep(0.1)
 
         # Toggle back to PHRASE — this must sync ACTIVE_IDX before next tick
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'PHRASE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
         time.sleep(0.35)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 2, (
             f"Expected ACTIVE_IDX=2 at 8.0s after MOVIE→PHRASE toggle; got {state['active_sub_index']}"
         )
@@ -201,19 +201,19 @@ class TestSubtitleInteractivityRegressions:
 
     def test_drum_window_off_on_startup(self, mpv):
         """Drum Window must be OFF at startup (auto-scroll guard precondition)."""
-        state = query_lls_state(mpv.ipc)
+        state = query_kardenwort_state(mpv.ipc)
         assert state['drum_window'] == 'OFF'
 
     def test_drum_window_returns_to_off_after_close(self, mpv):
         """Drum Window state must be OFF after a toggle-open / toggle-close cycle."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
-        assert query_lls_state(ipc)['drum_window'] != 'OFF'
+        assert query_kardenwort_state(ipc)['drum_window'] != 'OFF'
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
-        assert query_lls_state(ipc)['drum_window'] == 'OFF', (
+        assert query_kardenwort_state(ipc)['drum_window'] == 'OFF', (
             "Drum Window did not return to OFF after second toggle"
         )
 
@@ -227,26 +227,26 @@ class TestConfigurableImmersionModeStartup:
 
     def test_default_startup_is_phrase(self, mpv):
         """Without any script-opts override the startup mode must be PHRASE."""
-        state = query_lls_state(mpv.ipc)
+        state = query_kardenwort_state(mpv.ipc)
         assert state['immersion_mode'] == 'PHRASE'
 
     def test_movie_startup_via_script_opt(self, mpv_movie_startup):
-        """With lls-immersion_mode_default=MOVIE the startup mode must be MOVIE."""
-        state = query_lls_state(mpv_movie_startup.ipc)
+        """With kardenwort-immersion_mode_default=MOVIE the startup mode must be MOVIE."""
+        state = query_kardenwort_state(mpv_movie_startup.ipc)
         assert state['immersion_mode'] == 'MOVIE', (
             f"Expected MOVIE from script-opts override; got {state['immersion_mode']}"
         )
 
     def test_invalid_option_value_falls_back_to_phrase(self):
-        """An invalid lls-immersion_mode_default value must silently fall back to PHRASE."""
+        """An invalid kardenwort-immersion_mode_default value must silently fall back to PHRASE."""
         session = MpvSession(
             video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
             subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
-            extra_args=['--pause', '--script-opts=lls-immersion_mode_default=INVALID'],
+            extra_args=['--pause', '--script-opts=kardenwort-immersion_mode_default=INVALID'],
         )
         session.start()
         try:
-            state = query_lls_state(session.ipc)
+            state = query_kardenwort_state(session.ipc)
             assert state['immersion_mode'] == 'PHRASE', (
                 f"Invalid option must fall back to PHRASE; got {state['immersion_mode']}"
             )
@@ -256,11 +256,11 @@ class TestConfigurableImmersionModeStartup:
     def test_movie_startup_can_switch_to_phrase(self, mpv_movie_startup):
         """A MOVIE-startup session must still allow switching to PHRASE at runtime."""
         ipc = mpv_movie_startup.ipc
-        assert query_lls_state(ipc)['immersion_mode'] == 'MOVIE'
+        assert query_kardenwort_state(ipc)['immersion_mode'] == 'MOVIE'
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-immersion-mode-set', 'PHRASE'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
         time.sleep(0.1)
-        assert query_lls_state(ipc)['immersion_mode'] == 'PHRASE'
+        assert query_kardenwort_state(ipc)['immersion_mode'] == 'PHRASE'
 
 
 # ─────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ class TestCyclicSubtitleNav:
         """Seek to time_s and assert that ACTIVE_IDX == expected_idx."""
         ipc.command(['seek', time_s, 'absolute+exact'])
         time.sleep(0.6)  # wait for nav_cooldown (0.5 s) + tick
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == expected_idx, (
             f"Prime failed: expected sub {expected_idx} at {time_s}s ({label}); "
             f"got {state['active_sub_index']}"
@@ -289,10 +289,10 @@ class TestCyclicSubtitleNav:
         ipc = mpv_fragment1.ipc
         self._prime_at(ipc, 17.0, 5, 'sub 5')
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-seek-delta', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
         time.sleep(0.3)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 1, (
             f"Expected wrap to sub 1 from sub 5; got {state['active_sub_index']}"
         )
@@ -302,10 +302,10 @@ class TestCyclicSubtitleNav:
         ipc = mpv_fragment1.ipc
         self._prime_at(ipc, 4.5, 1, 'sub 1')
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-seek-delta', '-1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '-1'])
         time.sleep(0.3)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 5, (
             f"Expected wrap to sub 5 (last) from sub 1; got {state['active_sub_index']}"
         )
@@ -319,7 +319,7 @@ class TestCyclicSubtitleNav:
         ipc.command(['seek', 0.5, 'absolute+exact'])
         time.sleep(0.6)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] != 5, (
             f"ACTIVE_IDX jumped to last sub (5) before first subtitle at 0.5s"
         )
@@ -329,10 +329,10 @@ class TestCyclicSubtitleNav:
         ipc = mpv_fragment1.ipc
         self._prime_at(ipc, 8.0, 2, 'sub 2')
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-seek-delta', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
         time.sleep(0.3)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 3, (
             f"Expected advance to sub 3 from sub 2; got {state['active_sub_index']}"
         )
@@ -350,7 +350,7 @@ class TestCyclicSubtitleNav:
         ipc.command(['seek', 13.5, 'absolute+exact'])
         time.sleep(0.7)  # cooldown 0.5s + tick margin
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 4, (
             f"Expected ACTIVE_IDX=4 after jump to 13.5s (sub 4: 12.762–15.117s); "
             f"got {state['active_sub_index']}"
@@ -366,7 +366,7 @@ class TestCenteredSeekOsd:
 
     def _bind_seek_keys(self, ipc):
         """Register KP0 (forward) and KP1 (backward) via the test helper."""
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-bind-seek'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-bind-seek'])
         time.sleep(0.1)
 
     def test_forward_seek_populates_osd_right_aligned(self, mpv):
@@ -377,7 +377,7 @@ class TestCenteredSeekOsd:
         ipc.command(['keypress', 'KP0'])
         time.sleep(0.2)
 
-        render = query_lls_render(ipc, 'seek')
+        render = query_kardenwort_render(ipc, 'seek')
         assert render, "Seek OSD must have content after forward seek"
         assert r'{\an6}' in render, (
             f"Expected right-side alignment (\\an6) in forward seek OSD; got: {render!r}"
@@ -394,7 +394,7 @@ class TestCenteredSeekOsd:
         ipc.command(['keypress', 'KP1'])
         time.sleep(0.2)
 
-        render = query_lls_render(ipc, 'seek')
+        render = query_kardenwort_render(ipc, 'seek')
         assert render, "Seek OSD must have content after backward seek"
         assert r'{\an4}' in render, (
             f"Expected left-side alignment (\\an4) in backward seek OSD; got: {render!r}"
@@ -410,7 +410,7 @@ class TestCenteredSeekOsd:
         ipc.command(['keypress', 'KP0'])
         time.sleep(0.2)
 
-        render = query_lls_render(ipc, 'seek')
+        render = query_kardenwort_render(ipc, 'seek')
         assert render, "Seek OSD must have content after two consecutive forward seeks"
 
     def test_direction_change_produces_new_osd(self, mpv):
@@ -426,7 +426,7 @@ class TestCenteredSeekOsd:
         ipc.command(['keypress', 'KP1'])
         time.sleep(0.2)
 
-        render = query_lls_render(ipc, 'seek')
+        render = query_kardenwort_render(ipc, 'seek')
         assert render, "Seek OSD must have content after direction change"
         # After direction change, accumulator resets → backward alignment
         assert r'{\an4}' in render, (
@@ -436,7 +436,7 @@ class TestCenteredSeekOsd:
     def test_osd_clears_after_timeout(self, mpv):
         """Seek OSD must be empty before any seek occurs (clean state at startup)."""
         ipc = mpv.ipc
-        render = query_lls_render(ipc, 'seek')
+        render = query_kardenwort_render(ipc, 'seek')
         assert not render, f"Seek OSD must be empty at startup; got: {render!r}"
 
 
@@ -457,25 +457,25 @@ class TestImmersionHardeningOsdRefinement:
         DW never closes from Esc alone.
         """
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['drum_window'] != 'OFF', "DW must be open for this test"
 
         # Add word 1 of sub 1 to pending set (pink)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '1'])
         time.sleep(0.1)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['dw_selection_count'] > 0, (
             "Expected pending-set entry after ctrl-toggle-word"
         )
 
         # Fire Esc — should clear the pending set, not close DW
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc'])
         time.sleep(0.15)
 
-        state_after = query_lls_state(ipc)
+        state_after = query_kardenwort_state(ipc)
         assert state_after['dw_selection_count'] == 0, (
             "Stage-1 Esc must clear the pending set"
         )
@@ -489,16 +489,16 @@ class TestImmersionHardeningOsdRefinement:
         Spec: 'pressing Esc MUST perform no further action (the window remains open)'.
         """
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['drum_window'] != 'OFF'
         assert state['dw_selection_count'] == 0
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc'])
         time.sleep(0.15)
 
-        state_after = query_lls_state(ipc)
+        state_after = query_kardenwort_state(ipc)
         assert state_after['drum_window'] != 'OFF', (
             f"DW closed on Esc with no selections; got {state_after['drum_window']}"
         )
@@ -510,24 +510,28 @@ class TestImmersionHardeningOsdRefinement:
         Second Esc: no selection remaining → Stage 3 (pointer reset) but DW stays open.
         """
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
 
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '1'])
         time.sleep(0.1)
-        assert query_lls_state(ipc)['dw_selection_count'] > 0
+        assert query_kardenwort_state(ipc)['dw_selection_count'] > 0
 
         # First Esc: clears pending set
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc'])
         time.sleep(0.12)
-        state1 = query_lls_state(ipc)
+        state1 = query_kardenwort_state(ipc)
         assert state1['dw_selection_count'] == 0
         assert state1['drum_window'] != 'OFF', "DW must stay open after first Esc"
 
         # Second Esc: nothing to clear — pointer reset only, DW stays open
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-dw-esc'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc'])
         time.sleep(0.12)
-        state2 = query_lls_state(ipc)
+        state2 = query_kardenwort_state(ipc)
         assert state2['drum_window'] != 'OFF', (
             f"DW must stay open after second Esc; got {state2['drum_window']}"
         )
+
+
+
+

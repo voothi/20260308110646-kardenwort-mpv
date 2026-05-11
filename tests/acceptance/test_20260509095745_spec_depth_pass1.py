@@ -34,7 +34,7 @@ import time
 
 import pytest
 
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def _state(ipc, attempts: int = 6) -> dict:
     last_exc = None
     for _ in range(attempts):
         try:
-            s = query_lls_state(ipc)
+            s = query_kardenwort_state(ipc)
             if s:
                 return s
         except (RuntimeError, TimeoutError) as exc:
@@ -78,10 +78,10 @@ class TestAdaptiveContextTruncation:
     """
 
     def test_truncate_function_exists_in_lua(self):
-        """lls_core.lua must define a truncation/context helper."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """kardenwort.lua must define a truncation/context helper."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "truncate" in src, "No truncation logic found in lls_core.lua"
+        assert "truncate" in src, "No truncation logic found in kardenwort.lua"
 
     def test_anki_context_max_words_option_exposed(self, mpv):
         """anki_context_max_words must be in the Options probe (adaptive-context-truncation)."""
@@ -154,11 +154,11 @@ class TestAnkiHighlighting:
     """
 
     def test_set_clipboard_abstraction_in_lua(self):
-        """lls_core.lua must use set_clipboard (unified abstraction, not raw powershell)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """kardenwort.lua must use set_clipboard (unified abstraction, not raw powershell)."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         assert "set_clipboard" in src, (
-            "set_clipboard abstraction not found in lls_core.lua"
+            "set_clipboard abstraction not found in kardenwort.lua"
         )
         # Raw inline powershell should NOT exist anymore
         raw_ps = 'io.popen("powershell'
@@ -177,7 +177,7 @@ class TestAnkiHighlighting:
         ipc.command(["seek", 1.5, "absolute+exact"])
         time.sleep(0.4)
 
-        render = query_lls_render(ipc, "drum")
+        render = query_kardenwort_render(ipc, "drum")
         # ASS color tags look like {\1c&H...&} or {\c&H...&}
         has_color = bool(re.search(r"\{\\1?c&H", render or ""))
         assert has_color, (
@@ -196,37 +196,37 @@ class TestArchivedFeaturesVerification:
     """Spec: openspec/specs/archived-features-verification
 
     Verifies natural progression (sub i -> i+1 in overlap zone) and
-    seek repeatability (lls-seek_time_forward works).
+    seek repeatability (kardenwort-seek_time_forward works).
     """
 
     def test_seek_time_forward_advances_position(self, mpv):
-        """lls-seek_time_forward must advance the media position (archived-features-verification)."""
+        """kardenwort-seek_time_forward must advance the media position (archived-features-verification)."""
         ipc = mpv.ipc
         ipc.command(["seek", 1.0, "absolute+exact"])
         time.sleep(0.3)
         pos_before = ipc.get_property("time-pos") or 0.0
 
-        ipc.command(["script-binding", "lls-seek_time_forward"])
+        ipc.command(["script-binding", "kardenwort-seek_time_forward"])
         time.sleep(0.5)
         pos_after = ipc.get_property("time-pos") or 0.0
 
         assert pos_after > pos_before, (
-            f"lls-seek_time_forward did not advance time-pos: {pos_before} -> {pos_after}"
+            f"kardenwort-seek_time_forward did not advance time-pos: {pos_before} -> {pos_after}"
         )
 
     def test_seek_time_backward_reduces_position(self, mpv):
-        """lls-seek_time_backward must reduce the media position."""
+        """kardenwort-seek_time_backward must reduce the media position."""
         ipc = mpv.ipc
         ipc.command(["seek", 5.0, "absolute+exact"])
         time.sleep(0.3)
         pos_before = ipc.get_property("time-pos") or 5.0
 
-        ipc.command(["script-binding", "lls-seek_time_backward"])
+        ipc.command(["script-binding", "kardenwort-seek_time_backward"])
         time.sleep(0.5)
         pos_after = ipc.get_property("time-pos") or 5.0
 
         assert pos_after < pos_before, (
-            f"lls-seek_time_backward did not reduce time-pos: {pos_before} -> {pos_after}"
+            f"kardenwort-seek_time_backward did not reduce time-pos: {pos_before} -> {pos_after}"
         )
 
 
@@ -243,11 +243,11 @@ class TestAtomicPunctuationTokens:
 
     def test_bracket_excluded_from_word_char_map(self):
         """'[' must NOT be classified as a word character (atomic-punctuation-tokens)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         # The map exists but may be built programmatically.
         # Verify that '[' is NOT being set to true in the WORD_CHAR_MAP.
-        assert 'WORD_CHAR_MAP' in src, "WORD_CHAR_MAP not defined in lls_core.lua"
+        assert 'WORD_CHAR_MAP' in src, "WORD_CHAR_MAP not defined in kardenwort.lua"
         # Look for a pattern like ["["] = true which would be wrong
         bad_pattern = re.search(r'WORD_CHAR_MAP\["\["\]\s*=\s*true', src)
         assert bad_pattern is None, (
@@ -256,7 +256,7 @@ class TestAtomicPunctuationTokens:
 
     def test_hyphen_excluded_from_word_char_map(self):
         """'-' must NOT be set as a word character in WORD_CHAR_MAP."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         # Look for explicit hyphen=true assignment in WORD_CHAR_MAP
         bad_pattern = re.search(r'WORD_CHAR_MAP\["-"\]\s*=\s*true', src)
@@ -264,9 +264,9 @@ class TestAtomicPunctuationTokens:
             "Hyphen '-' is explicitly set to true in WORD_CHAR_MAP; it must be atomic"
         )
 
-    def test_lls_core_has_is_word_char_usage(self):
-        """lls_core.lua must reference WORD_CHAR_MAP for word-char checks (not ad-hoc regex)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    def test_kardenwort_has_is_word_char_usage(self):
+        """kardenwort.lua must reference WORD_CHAR_MAP for word-char checks (not ad-hoc regex)."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         # Multiple usages expected
         count = src.count("WORD_CHAR_MAP")
@@ -305,7 +305,7 @@ class TestBookModeNavigation:
         state_before = _state(ipc)
         book_before = state_before.get("options", {}).get("book_mode")
 
-        ipc.command(["script-message-to", "lls_core", "lls-test-set-option", "book_mode", "yes" if not book_before else "no"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-set-option", "book_mode", "yes" if not book_before else "no"])
         time.sleep(0.3)
 
         state_after = _state(ipc)
@@ -315,7 +315,7 @@ class TestBookModeNavigation:
         )
 
         # Restore
-        ipc.command(["script-message-to", "lls_core", "lls-test-set-option", "book_mode", "no" if not book_before else "yes"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-set-option", "book_mode", "no" if not book_before else "yes"])
         time.sleep(0.2)
 
 
@@ -326,7 +326,7 @@ class TestBookModeNavigation:
 class TestCenteredSeekFeedback:
     """Spec: openspec/specs/centered-seek-feedback
 
-    Verifies seek_msg_format option exists and lls-seek_time_forward binding
+    Verifies seek_msg_format option exists and kardenwort-seek_time_forward binding
     exists in input.conf (directional OSD feedback).
     """
 
@@ -340,19 +340,19 @@ class TestCenteredSeekFeedback:
     def test_seek_time_bindings_in_input_conf(self):
         """input.conf must bind both seek_time_forward and seek_time_backward."""
         content = open("input.conf", encoding="utf-8").read()
-        assert "seek_time_forward" in content or "lls-seek_time_forward" in content, (
-            "lls-seek_time_forward binding not found in input.conf"
+        assert "seek_time_forward" in content or "kardenwort-seek_time_forward" in content, (
+            "kardenwort-seek_time_forward binding not found in input.conf"
         )
-        assert "seek_time_backward" in content or "lls-seek_time_backward" in content, (
-            "lls-seek_time_backward binding not found in input.conf"
+        assert "seek_time_backward" in content or "kardenwort-seek_time_backward" in content, (
+            "kardenwort-seek_time_backward binding not found in input.conf"
         )
 
     def test_seek_time_forward_binding_registered(self, mpv):
-        """lls-seek_time_forward must be registered in lls_core.lua."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """kardenwort-seek_time_forward must be registered in kardenwort.lua."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "lls-seek_time_forward" in src or "seek_time_forward" in src, (
-            "seek_time_forward command not found in lls_core.lua"
+        assert "kardenwort-seek_time_forward" in src or "seek_time_forward" in src, (
+            "seek_time_forward command not found in kardenwort.lua"
         )
 
 
@@ -367,13 +367,13 @@ class TestCharacterLevelHitHighlighting:
     """
 
     def test_fuzzy_match_indices_in_lua(self):
-        """lls_core.lua must contain fuzzy match index tracking logic."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """kardenwort.lua must contain fuzzy match index tracking logic."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         # fuzzy span / indices tracking
         has_fuzzy = "fuzzy" in src.lower() or "match_indices" in src or "char_idx" in src
         assert has_fuzzy, (
-            "No fuzzy match index logic found in lls_core.lua (character-level-hit-highlighting)"
+            "No fuzzy match index logic found in kardenwort.lua (character-level-hit-highlighting)"
         )
 
     def test_search_hit_color_option_exists(self, mpv):
@@ -409,11 +409,11 @@ class TestCleanOsd:
         )
 
     def test_middle_left_an4_tag_in_lua(self):
-        """lls_core.lua must use {\\an4} for status OSD positioning (clean-osd)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """kardenwort.lua must use {\\an4} for status OSD positioning (clean-osd)."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         assert r"\an4" in src or r"\\an4" in src, (
-            r"{\an4} (middle-left) tag not found in lls_core.lua OSD messages"
+            r"{\an4} (middle-left) tag not found in kardenwort.lua OSD messages"
         )
 
 
@@ -430,20 +430,20 @@ class TestClipboardRefactoringAudit:
 
     def test_cmd_dw_copy_uses_set_clipboard(self):
         """cmd_dw_copy must use set_clipboard (clipboard-refactoring-audit)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "cmd_dw_copy" in src, "cmd_dw_copy not found in lls_core.lua"
+        assert "cmd_dw_copy" in src, "cmd_dw_copy not found in kardenwort.lua"
         assert "set_clipboard" in src, "set_clipboard abstraction not found"
 
     def test_cmd_copy_sub_exists(self):
-        """cmd_copy_sub must exist in lls_core.lua (clipboard-refactoring-audit)."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """cmd_copy_sub must exist in kardenwort.lua (clipboard-refactoring-audit)."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "cmd_copy_sub" in src, "cmd_copy_sub not found in lls_core.lua"
+        assert "cmd_copy_sub" in src, "cmd_copy_sub not found in kardenwort.lua"
 
     def test_no_inline_powershell_clipboard(self):
-        """No inline io.popen powershell clipboard strings in lls_core.lua."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """No inline io.popen powershell clipboard strings in kardenwort.lua."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
         raw_ps = 'io.popen("powershell'
         assert raw_ps not in src, (
@@ -451,10 +451,10 @@ class TestClipboardRefactoringAudit:
         )
 
     def test_get_clipboard_function_defined(self):
-        """get_clipboard helper function must be defined in lls_core.lua."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """get_clipboard helper function must be defined in kardenwort.lua."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "get_clipboard" in src, "get_clipboard function not defined in lls_core.lua"
+        assert "get_clipboard" in src, "get_clipboard function not defined in kardenwort.lua"
 
 
 # ---------------------------------------------------------------------------
@@ -509,10 +509,10 @@ class TestConfigurableAbbrevDetection:
         )
 
     def test_is_abbrev_function_in_lua(self):
-        """is_abbrev function must be defined in lls_core.lua."""
-        with open("scripts/lls_core.lua", encoding="utf-8") as f:
+        """is_abbrev function must be defined in kardenwort.lua."""
+        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "is_abbrev" in src, "is_abbrev function not found in lls_core.lua"
+        assert "is_abbrev" in src, "is_abbrev function not found in kardenwort.lua"
 
     def test_abbrev_list_default_is_string(self, mpv):
         """anki_abbrev_list default must be a non-nil string."""
@@ -543,7 +543,7 @@ class TestDrumWindowHighPrecisionRendering:
         ipc.command(["seek", 1.5, "absolute+exact"])
         time.sleep(0.4)
 
-        render = query_lls_render(ipc, "drum") or ""
+        render = query_kardenwort_render(ipc, "drum") or ""
         # Check that "[" is not immediately preceded by a color tag
         # Color tag pattern: {\1c&H......&}[
         bracket_colored = bool(re.search(r"\{\\1?c&H[0-9A-Fa-f]{6}&\}\[", render))
@@ -593,7 +593,7 @@ class TestLayoutAgnosticSeeking:
     def test_both_en_and_ru_seek_bindings(self):
         """Both Latin (RIGHT/LEFT) and Cyrillic equivalents must be in input.conf."""
         content = open("input.conf", encoding="utf-8").read()
-        assert "RIGHT" in content or "lls-seek_time" in content, (
+        assert "RIGHT" in content or "kardenwort-seek_time" in content, (
             "English seek binding not found in input.conf"
         )
         # Cyrillic variant
@@ -601,3 +601,7 @@ class TestLayoutAgnosticSeeking:
         assert has_any_cyrillic, (
             "No non-ASCII (Cyrillic) key mappings found in input.conf"
         )
+
+
+
+

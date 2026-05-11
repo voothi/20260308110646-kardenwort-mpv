@@ -1,4 +1,4 @@
-﻿--[[
+--[[
         luaunit.lua
 
 Description: A unit testing framework
@@ -3619,4 +3619,6 @@ M.SetVerbosity = M.setVerbosity
 
 
 return M
+
+
 

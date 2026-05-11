@@ -30,7 +30,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _src():
-    with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
         return f.read()
 
 
@@ -49,13 +49,13 @@ class TestContextCopyFsmRepair:
     def test_get_copy_context_text_exists(self):
         """get_copy_context_text must exist as the pivot-aware copy context extractor."""
         assert "function get_copy_context_text" in _src(), (
-            "context-copy-fsm-repair: get_copy_context_text not found in lls_core.lua"
+            "context-copy-fsm-repair: get_copy_context_text not found in kardenwort.lua"
         )
 
     def test_copy_context_lines_option_exists(self):
         """copy_context_lines option must be present for configurable context depth."""
         assert "copy_context_lines" in _src(), (
-            "context-copy-fsm-repair: copy_context_lines option not found in lls_core.lua"
+            "context-copy-fsm-repair: copy_context_lines option not found in kardenwort.lua"
         )
 
     def test_copy_context_traversal_uses_pri_subs(self):
@@ -77,32 +77,32 @@ class TestGlobalNavigationBindings:
     """Tests for spec: global-navigation-bindings"""
 
     def test_lls_seek_prev_registered(self):
-        """lls-seek_prev must be registered via mp.add_key_binding (global-navigation-bindings)."""
-        assert 'mp.add_key_binding(nil, "lls-seek_prev"' in _src(), (
-            "global-navigation-bindings: lls-seek_prev not registered with nil key"
+        """kardenwort-seek_prev must be registered via mp.add_key_binding (global-navigation-bindings)."""
+        assert 'mp.add_key_binding(nil, "kardenwort-seek_prev"' in _src(), (
+            "global-navigation-bindings: kardenwort-seek_prev not registered with nil key"
         )
 
     def test_lls_seek_next_registered(self):
-        """lls-seek_next must be registered via mp.add_key_binding (global-navigation-bindings)."""
-        assert 'mp.add_key_binding(nil, "lls-seek_next"' in _src(), (
-            "global-navigation-bindings: lls-seek_next not registered with nil key"
+        """kardenwort-seek_next must be registered via mp.add_key_binding (global-navigation-bindings)."""
+        assert 'mp.add_key_binding(nil, "kardenwort-seek_next"' in _src(), (
+            "global-navigation-bindings: kardenwort-seek_next not registered with nil key"
         )
 
     def test_lls_seek_prev_bound_in_input_conf(self):
-        """'a' key must delegate to lls-seek_prev in input.conf (global-navigation-bindings)."""
+        """'a' key must delegate to kardenwort-seek_prev in input.conf (global-navigation-bindings)."""
         found = any(
-            l.startswith("a ") and "lls-seek_prev" in l
+            l.startswith("a ") and "kardenwort-seek_prev" in l
             for l in _input_conf().split("\n")
         )
-        assert found, "global-navigation-bindings: 'a' not bound to lls-seek_prev in input.conf"
+        assert found, "global-navigation-bindings: 'a' not bound to kardenwort-seek_prev in input.conf"
 
     def test_lls_seek_next_bound_in_input_conf(self):
-        """'d' key must delegate to lls-seek_next in input.conf (global-navigation-bindings)."""
+        """'d' key must delegate to kardenwort-seek_next in input.conf (global-navigation-bindings)."""
         found = any(
-            l.startswith("d ") and "lls-seek_next" in l
+            l.startswith("d ") and "kardenwort-seek_next" in l
             for l in _input_conf().split("\n")
         )
-        assert found, "global-navigation-bindings: 'd' not bound to lls-seek_next in input.conf"
+        assert found, "global-navigation-bindings: 'd' not bound to kardenwort-seek_next in input.conf"
 
 
 # ---------------------------------------------------------------------------
@@ -145,13 +145,13 @@ class TestScannerParser:
     def test_build_word_list_internal_exists(self):
         """build_word_list_internal must exist as the core tokenizer (scanner-parser)."""
         assert "local function build_word_list_internal" in _src(), (
-            "scanner-parser: build_word_list_internal not found in lls_core.lua"
+            "scanner-parser: build_word_list_internal not found in kardenwort.lua"
         )
 
     def test_build_word_list_exists(self):
         """build_word_list must exist as the public scanner API (scanner-parser)."""
         assert "local function build_word_list" in _src(), (
-            "scanner-parser: build_word_list not found in lls_core.lua"
+            "scanner-parser: build_word_list not found in kardenwort.lua"
         )
 
     def test_word_char_map_covers_cyrillic(self):
@@ -216,7 +216,7 @@ class TestWordBasedDeletionLogic:
     def test_get_word_boundary_exists(self):
         """get_word_boundary must exist for word-based cursor deletion (word-based-deletion-logic)."""
         assert "local function get_word_boundary" in _src(), (
-            "word-based-deletion-logic: get_word_boundary not found in lls_core.lua"
+            "word-based-deletion-logic: get_word_boundary not found in kardenwort.lua"
         )
 
     def test_get_word_boundary_accepts_direction(self):
@@ -230,7 +230,7 @@ class TestWordBasedDeletionLogic:
         )
 
     def test_word_deletion_handler_registered(self):
-        """A Ctrl+W or word-delete binding must be registered in lls_core.lua (word-based-deletion-logic)."""
+        """A Ctrl+W or word-delete binding must be registered in kardenwort.lua (word-based-deletion-logic)."""
         src = _src()
         has_ctrl_w = "Ctrl+w" in src or "ctrl-w" in src.lower() or "ctrl+w" in src.lower()
         has_word_del = "word_delete" in src or "word-delete" in src or "delete_word" in src
@@ -276,13 +276,13 @@ class TestUnifiedTickLoop:
     def test_tick_loop_exists(self):
         """tick_loop must exist as the feature boundary enforcer (unified-tick-loop)."""
         assert "local function tick_loop" in _src(), (
-            "unified-tick-loop: tick_loop function not found in lls_core.lua"
+            "unified-tick-loop: tick_loop function not found in kardenwort.lua"
         )
 
     def test_master_tick_exists(self):
         """master_tick must exist as the periodic timer entry point (unified-tick-loop)."""
         assert "local function master_tick" in _src(), (
-            "unified-tick-loop: master_tick function not found in lls_core.lua"
+            "unified-tick-loop: master_tick function not found in kardenwort.lua"
         )
 
     def test_tick_rate_option_is_0_05(self):
@@ -315,7 +315,7 @@ class TestSearchSystemStructural:
     def test_render_search_exists(self):
         """render_search must exist as the search HUD render function (search-system)."""
         assert "local function render_search" in _src(), (
-            "search-system: render_search not found in lls_core.lua"
+            "search-system: render_search not found in kardenwort.lua"
         )
 
     def test_search_mode_fsm_field_exists(self):
@@ -361,7 +361,7 @@ class TestVariableDrivenRendering:
         """draw_search_ui (the actual renderer called by render_search) must use color options (variable-driven-rendering)."""
         src = _src()
         idx = src.find("local function draw_search_ui")
-        assert idx != -1, "variable-driven-rendering: draw_search_ui not found in lls_core.lua"
+        assert idx != -1, "variable-driven-rendering: draw_search_ui not found in kardenwort.lua"
         body = src[idx:idx + 3000]
         has_colors = ("search_hit_color" in body or "search_sel_color" in body or
                       "search_query_hit_color" in body)
@@ -380,13 +380,13 @@ class TestDrumContext:
     def test_drum_context_lines_option_exists(self):
         """drum_context_lines must be in Options for configurable context depth (drum-context)."""
         assert "drum_context_lines" in _src(), (
-            "drum-context: drum_context_lines option not found in lls_core.lua"
+            "drum-context: drum_context_lines option not found in kardenwort.lua"
         )
 
     def test_draw_drum_exists(self):
         """draw_drum must exist as the Drum Mode rendering entry point (drum-context)."""
         assert "local function draw_drum" in _src(), (
-            "drum-context: draw_drum function not found in lls_core.lua"
+            "drum-context: draw_drum function not found in kardenwort.lua"
         )
 
     def test_draw_drum_uses_context_lines(self):
@@ -417,13 +417,13 @@ class TestOpenRecordFile:
     def test_cmd_open_record_file_exists(self):
         """cmd_open_record_file must exist to launch the record editor (open-record-file)."""
         assert "local function cmd_open_record_file" in _src(), (
-            "open-record-file: cmd_open_record_file not found in lls_core.lua"
+            "open-record-file: cmd_open_record_file not found in kardenwort.lua"
         )
 
     def test_record_editor_option_exists(self):
         """record_editor must be in Options for user-configurable editor path (open-record-file)."""
         assert "record_editor" in _src(), (
-            "open-record-file: record_editor option not found in lls_core.lua"
+            "open-record-file: record_editor option not found in kardenwort.lua"
         )
 
     def test_record_editor_checked_before_opening(self):
@@ -450,7 +450,7 @@ class TestDwMouseSelectionEngine:
     def test_dw_build_layout_exists(self):
         """dw_build_layout must exist as the pre-calculated hit-test layout builder (dw-mouse-selection-engine)."""
         assert "local function dw_build_layout" in _src(), (
-            "dw-mouse-selection-engine: dw_build_layout not found in lls_core.lua"
+            "dw-mouse-selection-engine: dw_build_layout not found in kardenwort.lua"
         )
 
     def test_dw_anchor_word_initialized_in_fsm(self):
@@ -486,13 +486,13 @@ class TestNavAutoRepeatStructural:
     def test_seek_hold_rate_option_exists(self):
         """seek_hold_rate must be in Options — controls auto-repeat frequency (nav-auto-repeat)."""
         assert "seek_hold_rate" in _src(), (
-            "nav-auto-repeat: seek_hold_rate option not found in lls_core.lua"
+            "nav-auto-repeat: seek_hold_rate option not found in kardenwort.lua"
         )
 
     def test_seek_hold_delay_option_exists(self):
         """seek_hold_delay must be in Options — controls hold-before-repeat onset delay (nav-auto-repeat)."""
         assert "seek_hold_delay" in _src(), (
-            "nav-auto-repeat: seek_hold_delay option not found in lls_core.lua"
+            "nav-auto-repeat: seek_hold_delay option not found in kardenwort.lua"
         )
 
     def test_seek_repeat_timer_initialized_nil(self):
@@ -558,3 +558,7 @@ class TestOsdLayerManagement:
         assert drums < dw < tip < srch, (
             f"osd-layer-management: z-values not strictly ordered: drum={drums} dw={dw} tip={tip} search={srch}"
         )
+
+
+
+

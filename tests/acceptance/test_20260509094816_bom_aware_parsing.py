@@ -11,7 +11,7 @@ import shutil
 import time
 
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 from tests.ipc.mpv_session import MpvSession
 
 _FIXTURE_DIR = "tests/fixtures/20260502165659-test-fixture"
@@ -21,7 +21,7 @@ def _query_state_reliable(ipc, max_attempts: int = 6) -> dict:
     last_exc = None
     for _ in range(max_attempts):
         try:
-            return query_lls_state(ipc)
+            return query_kardenwort_state(ipc)
         except (RuntimeError, TimeoutError) as exc:
             last_exc = exc
             time.sleep(0.4)
@@ -63,4 +63,8 @@ def test_bom_aware_parsing_index_1(bom_session):
         f"Primary track count should be >= 1 (BOM subtitle loaded). "
         f"tracks: {tracks}"
     )
+
+
+
+
 

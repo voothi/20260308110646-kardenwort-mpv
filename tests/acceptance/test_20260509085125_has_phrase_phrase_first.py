@@ -32,7 +32,7 @@ from typing import Optional
 
 import pytest
 
-from tests.ipc.mpv_ipc import query_lls_render, query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_render, query_kardenwort_state
 from tests.ipc.mpv_session import MpvSession
 
 # ---------------------------------------------------------------------------
@@ -90,17 +90,17 @@ def _snippet(render: str, word: str, radius: int = 60) -> str:
 
 def _query_state_reliable(ipc, max_attempts: int = 6) -> dict:
     """
-    Retry wrapper around query_lls_state.
+    Retry wrapper around query_kardenwort_state.
 
     observe_property can fire an initial null property-change notification that
     races with the Event object creation in mpv_ipc.py, causing wait_property_change
-    to return before the lls-state-query handler has run.  Retrying with a short
+    to return before the kardenwort-state-query handler has run.  Retrying with a short
     sleep resolves the race in practice.
     """
     last_exc = None
     for _ in range(max_attempts):
         try:
-            return query_lls_state(ipc)
+            return query_kardenwort_state(ipc)
         except (RuntimeError, TimeoutError) as exc:
             last_exc = exc
             time.sleep(0.4)
@@ -196,7 +196,7 @@ def test_has_phrase_phrase_first_order(mpv_fragment2):
         f"Expected sub 2 active at {_SUB2_SEEK}s, got index {state['active_sub_index']}"
     )
 
-    render = query_lls_render(ipc, "drum")
+    render = query_kardenwort_render(ipc, "drum")
     assert render, "drum OSD returned empty render after seek"
 
     _assert_phrase_mode(render, "Zeit")
@@ -225,8 +225,12 @@ def test_has_phrase_singles_first_order(mpv_fragment2_singles_first):
         f"Expected sub 2 active at {_SUB2_SEEK}s, got index {state['active_sub_index']}"
     )
 
-    render = query_lls_render(ipc, "drum")
+    render = query_kardenwort_render(ipc, "drum")
     assert render, "drum OSD returned empty render after seek (singles-first fixture)"
 
     _assert_phrase_mode(render, "Zeit")
     _assert_phrase_mode(render, "Geld")
+
+
+
+

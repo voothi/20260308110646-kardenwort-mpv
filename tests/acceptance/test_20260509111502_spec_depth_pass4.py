@@ -31,7 +31,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _src():
-    with open("scripts/lls_core.lua", encoding="utf-8") as f:
+    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
         return f.read()
 
 
@@ -41,13 +41,13 @@ def _input_conf():
 
 
 def robust_state(ipc, retries=5):
-    from tests.ipc.mpv_ipc import query_lls_state
+    from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state and "options" in state:
             return state
         time.sleep(0.4)
-    return query_lls_state(ipc)
+    return query_kardenwort_state(ipc)
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ class TestTsvStateRecovery:
     def test_load_anki_tsv_exists(self):
         """load_anki_tsv must exist to load highlight data from TSV (tsv-state-recovery)."""
         assert "local function load_anki_tsv" in _src(), (
-            "tsv-state-recovery: load_anki_tsv not found in lls_core.lua"
+            "tsv-state-recovery: load_anki_tsv not found in kardenwort.lua"
         )
 
     def test_load_anki_tsv_uses_safe_read(self):
@@ -79,7 +79,7 @@ class TestTsvStateRecovery:
         src = _src()
         has_field = "ANKI_HIGHLIGHTS" in src or "anki_highlights" in src
         assert has_field, (
-            "tsv-state-recovery: ANKI_HIGHLIGHTS FSM field not found in lls_core.lua"
+            "tsv-state-recovery: ANKI_HIGHLIGHTS FSM field not found in kardenwort.lua"
         )
 
 
@@ -125,7 +125,7 @@ class TestSofterScalingFormula:
         """scale_isotropic = oh / 1080 must appear in coordinate math (softer-scaling-formula)."""
         src = _src()
         assert "scale_isotropic" in src, (
-            "softer-scaling-formula: scale_isotropic variable not found in lls_core.lua"
+            "softer-scaling-formula: scale_isotropic variable not found in kardenwort.lua"
         )
         assert "oh / 1080" in src or "oh/1080" in src, (
             "softer-scaling-formula: scale_isotropic formula (oh/1080) not found"
@@ -134,7 +134,7 @@ class TestSofterScalingFormula:
     def test_font_scale_strength_option_exists(self):
         """font_scale_strength must be a configurable option controlling scaling softness (softer-scaling-formula)."""
         assert "font_scale_strength" in _src(), (
-            "softer-scaling-formula: font_scale_strength option not found in lls_core.lua"
+            "softer-scaling-formula: font_scale_strength option not found in kardenwort.lua"
         )
 
 
@@ -179,7 +179,7 @@ class TestSubtitleSafetyGuards:
     def test_sec_pos_bottom_option_exists(self):
         """sec_pos_bottom must be in Options for configurable secondary subtitle positioning (subtitle-safety-guards)."""
         assert "sec_pos_bottom" in _src(), (
-            "subtitle-safety-guards: sec_pos_bottom option not found in lls_core.lua"
+            "subtitle-safety-guards: sec_pos_bottom option not found in kardenwort.lua"
         )
 
     def test_sec_pos_bottom_default_is_90(self):
@@ -252,22 +252,22 @@ class TestTrackScrollingAccessibility:
     """Tests for spec: track-scrolling-accessibility"""
 
     def test_uppercase_A_seeks_time_backward(self):
-        """'A' (Shift+a) must be bound to lls-seek_time_backward for track-independent 2s seek (track-scrolling-accessibility)."""
+        """'A' (Shift+a) must be bound to kardenwort-seek_time_backward for track-independent 2s seek (track-scrolling-accessibility)."""
         ic = _input_conf()
         found = any(
-            l.startswith("A ") and "lls-seek_time_backward" in l
+            l.startswith("A ") and "kardenwort-seek_time_backward" in l
             for l in ic.split("\n")
         )
-        assert found, "track-scrolling-accessibility: 'A' not bound to lls-seek_time_backward in input.conf"
+        assert found, "track-scrolling-accessibility: 'A' not bound to kardenwort-seek_time_backward in input.conf"
 
     def test_uppercase_D_seeks_time_forward(self):
-        """'D' (Shift+d) must be bound to lls-seek_time_forward for track-independent 2s seek (track-scrolling-accessibility)."""
+        """'D' (Shift+d) must be bound to kardenwort-seek_time_forward for track-independent 2s seek (track-scrolling-accessibility)."""
         ic = _input_conf()
         found = any(
-            l.startswith("D ") and "lls-seek_time_forward" in l
+            l.startswith("D ") and "kardenwort-seek_time_forward" in l
             for l in ic.split("\n")
         )
-        assert found, "track-scrolling-accessibility: 'D' not bound to lls-seek_time_forward in input.conf"
+        assert found, "track-scrolling-accessibility: 'D' not bound to kardenwort-seek_time_forward in input.conf"
 
     def test_seek_time_delta_option_exists(self):
         """seek_time_delta option must be present and control 2s step (track-scrolling-accessibility)."""
@@ -282,9 +282,9 @@ class TestTrackScrollingAccessibility:
         )
 
     def test_lls_seek_time_forward_registered(self):
-        """lls-seek_time_forward must be registered via mp.add_key_binding (track-scrolling-accessibility)."""
-        assert 'mp.add_key_binding(nil, "lls-seek_time_forward"' in _src(), (
-            "track-scrolling-accessibility: lls-seek_time_forward not registered in lls_core.lua"
+        """kardenwort-seek_time_forward must be registered via mp.add_key_binding (track-scrolling-accessibility)."""
+        assert 'mp.add_key_binding(nil, "kardenwort-seek_time_forward"' in _src(), (
+            "track-scrolling-accessibility: kardenwort-seek_time_forward not registered in kardenwort.lua"
         )
 
 
@@ -308,7 +308,7 @@ class TestSynchronizedContextJumps:
         """mp.commandv('seek', ..., 'absolute+exact') pattern must be present (synchronized-context-jumps)."""
         src = _src()
         assert 'mp.commandv("seek"' in src or "mp.commandv('seek'" in src, (
-            "synchronized-context-jumps: mp.commandv('seek',...) not found in lls_core.lua"
+            "synchronized-context-jumps: mp.commandv('seek',...) not found in kardenwort.lua"
         )
 
 
@@ -371,17 +371,17 @@ class TestSearchSystemRuntime:
         )
 
     def test_search_mode_can_be_toggled_via_test_handler(self, mpv):
-        """SEARCH_MODE must be settable via lls-test-search-mode-set for test instrumentation (search-system)."""
+        """SEARCH_MODE must be settable via kardenwort-test-search-mode-set for test instrumentation (search-system)."""
         ipc = mpv.ipc
-        ipc.command(["script-message-to", "lls_core", "lls-test-search-mode-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "ON"])
         time.sleep(0.3)
         state = robust_state(ipc)
         # With search mode ON, search_query should be accessible (not error)
         assert state is not None, (
-            "search-system: state probe failed after lls-test-search-mode-set ON"
+            "search-system: state probe failed after kardenwort-test-search-mode-set ON"
         )
         # Cleanup
-        ipc.command(["script-message-to", "lls_core", "lls-test-search-mode-set", "OFF"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "OFF"])
         time.sleep(0.2)
 
 
@@ -442,7 +442,7 @@ class TestTokenizedFuzzySearch:
         has_query = ("SEARCH_QUERY" in src or "search_query" in src or
                      "QUERY_CHARS" in src or "query_chars" in src or "SEARCH_CHARS" in src)
         assert has_query, (
-            "tokenized-fuzzy-search: No SEARCH_QUERY / QUERY_CHARS FSM field found in lls_core.lua"
+            "tokenized-fuzzy-search: No SEARCH_QUERY / QUERY_CHARS FSM field found in kardenwort.lua"
         )
 
 
@@ -456,14 +456,14 @@ class TestFuzzySearchOptimization:
     def test_search_mode_activation_does_not_error(self, mpv):
         """Activating search mode must succeed without Lua error (fuzzy-search-optimization)."""
         ipc = mpv.ipc
-        ipc.command(["script-message-to", "lls_core", "lls-test-search-mode-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "ON"])
         time.sleep(0.4)
         state = robust_state(ipc)
         assert state is not None, (
             "fuzzy-search-optimization: state probe failed after search mode activation"
         )
         # Cleanup
-        ipc.command(["script-message-to", "lls_core", "lls-test-search-mode-set", "OFF"])
+        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "OFF"])
         time.sleep(0.2)
 
     def test_render_search_exists_for_optimized_rendering(self):
@@ -494,10 +494,10 @@ class TestDrumScrollSyncStructural:
         """Both drum_osd and seek_osd must exist for dual-lane synchronized rendering (drum-scroll-sync)."""
         src = _src()
         assert "local drum_osd" in src or "drum_osd =" in src, (
-            "drum-scroll-sync: drum_osd not found in lls_core.lua"
+            "drum-scroll-sync: drum_osd not found in kardenwort.lua"
         )
         assert "local seek_osd" in src or "seek_osd =" in src, (
-            "drum-scroll-sync: seek_osd not found in lls_core.lua"
+            "drum-scroll-sync: seek_osd not found in kardenwort.lua"
         )
 
 
@@ -511,7 +511,7 @@ class TestVerticalGapElimination:
     def test_dw_double_gap_option_exists(self):
         """dw_double_gap option must exist to control double-newline gap in drum mode (vertical-gap-elimination)."""
         assert "dw_double_gap" in _src(), (
-            "vertical-gap-elimination: dw_double_gap option not found in lls_core.lua"
+            "vertical-gap-elimination: dw_double_gap option not found in kardenwort.lua"
         )
 
     def test_rendering_respects_double_gap_flag(self):
@@ -533,5 +533,9 @@ class TestVerticalGapElimination:
         """\\an8 anchor must appear in drum context rendering for top-aligned layout (vertical-gap-elimination)."""
         src = _src()
         assert "\\an8" in src or "an8" in src, (
-            "vertical-gap-elimination: \\an8 top-anchor tag not found in lls_core.lua"
+            "vertical-gap-elimination: \\an8 top-anchor tag not found in kardenwort.lua"
         )
+
+
+
+

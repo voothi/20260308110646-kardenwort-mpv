@@ -27,14 +27,14 @@ Covers archives:
 
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state, query_lls_render
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
 # Helper for polling state
 def wait_for_state(ipc, key, value, timeout=2.0):
     start = time.time()
     while time.time() - start < timeout:
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         if state.get(key) == value:
             return True
         time.sleep(0.1)
@@ -50,9 +50,9 @@ class TestImmersionRegressions:
     def test_20260504174809_adaptive_replay(self, mpv_fragment1):
         """Replay (s) in Autopause ON must set REPLAY_REMAINING and seek (20260504174809)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
         # Set replay_count=2
-        ipc.command(['set_property', 'options/lls-replay_count', '2'])
+        ipc.command(['set_property', 'options/kardenwort-replay_count', '2'])
         time.sleep(0.1)
 
         # Sub 1: 4.295–5.295s. Seek to middle.
@@ -60,10 +60,10 @@ class TestImmersionRegressions:
         time.sleep(0.6) # wait for priming
 
         # Trigger replay
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
         time.sleep(0.2)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['replay_remaining'] == 2, f"Expected REPLAY_REMAINING=2, got {state['replay_remaining']}"
         
         # Verify seek happened (should be back at start of sub or segment)
@@ -73,7 +73,7 @@ class TestImmersionRegressions:
     def test_20260504021904_subtitle_looping(self, mpv_fragment1):
         """Replay (s) in Autopause OFF triggers looping (20260504021904)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'lls_core', 'lls-autopause-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'OFF'])
         time.sleep(0.1)
 
         # Seek to sub 1
@@ -81,10 +81,10 @@ class TestImmersionRegressions:
         time.sleep(0.6)
 
         # Trigger replay
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
         time.sleep(0.2)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # In OFF mode, it might use a different looping mechanism, but let's check state
         # Usually it sets REPLAY_REMAINING to a high value or toggles a loop flag.
         assert state['replay_remaining'] > 0
@@ -93,14 +93,14 @@ class TestImmersionRegressions:
         """Drum mode navigation must sync primary and secondary tracks (20260504033538)."""
         ipc = mpv_dual.ipc
         # Enable Drum Mode (C)
-        ipc.command(['script-message-to', 'lls_core', 'lls-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
         time.sleep(0.2)
 
         # Seek to next sub
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-seek-delta', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
         time.sleep(0.5)
 
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         # Verify active sub index is advanced
         assert state['active_sub_index'] == 2, f"Expected sub 2, got {state['active_sub_index']}"
         # Secondary track should also be at sub 2 (if synced)
@@ -119,19 +119,19 @@ class TestInputClipboardRegressions:
         """Ctrl+C must copy selection over context if selection exists (20260502211505)."""
         ipc = mpv.ipc
         # Enable Drum Window to set selection
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
 
         # Set a selection (word 0 of sub 1)
-        ipc.command(['script-message-to', 'lls_core', 'lls-test-ctrl-toggle-word', '1', '0'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '0'])
         time.sleep(0.1)
 
         # Verify selection count
-        state = query_lls_state(ipc)
+        state = query_kardenwort_state(ipc)
         assert state['dw_selection_count'] == 1
 
         # Trigger copy-subtitle (Ctrl+C)
-        ipc.command(['script-message-to', 'lls_core', 'copy-subtitle'])
+        ipc.command(['script-message-to', 'kardenwort', 'copy-subtitle'])
         time.sleep(0.2)
 
         # Verification of clipboard content would require more instrumentation.
@@ -152,7 +152,7 @@ class TestUiSystemRegressions:
         """Tooltip hit-zones must be accurate without ghost interference (20260503190627)."""
         ipc = mpv.ipc
         # Enable Drum Window
-        ipc.command(['script-message-to', 'lls_core', 'lls-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
         time.sleep(0.2)
         
         # Simulation of mouse move would require more instrumentation.
@@ -182,3 +182,7 @@ class TestSystemHardeningRegressions:
         # This is partially covered by the fact that mpv started correctly with our fixtures.
         # We could add a specific fixture with malformed SRT if needed.
         pass
+
+
+
+

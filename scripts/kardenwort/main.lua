@@ -6,9 +6,15 @@
 -- =========================================================================
 
 local mp = require 'mp'
+local script_dir = mp.get_script_directory()
+if script_dir then
+    package.path = script_dir .. "/?.lua;" .. package.path
+end
+
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
+require 'resume'
 
 -- Fallback for older mpv versions missing utils.read_file
 local function safe_read_file(path)
@@ -27,7 +33,7 @@ end
 
 
 -- =========================================================================
--- LLS CORE CONFIGURATION
+-- KARDENWORT CORE CONFIGURATION
 -- =========================================================================
 
 -- Forward declarations for interactive logic
@@ -57,7 +63,7 @@ Diagnostic.log = function(level, text, dedupe_key)
         Diagnostic.SEEN[dedupe_key] = true
     end
     
-    local prefix = "[LLS]"
+    local prefix = "[Kardenwort]"
     if level == Diagnostic.ERROR then 
         msg.error(prefix .. " " .. text)
     elseif level == Diagnostic.WARN then
@@ -77,13 +83,13 @@ Diagnostic.info  = function(text, key) Diagnostic.log(Diagnostic.INFO, text, key
 Diagnostic.debug = function(text, key) Diagnostic.log(Diagnostic.DEBUG, text, key) end
 Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, key) end
 
-Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "lls_core"))
+Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "kardenwort"))
 
 -- Initialize user-data properties for IPC querying
-mp.set_property("user-data/lls/last_clipboard", "")
-mp.set_property("user-data/lls/last_export", "")
-mp.set_property("user-data/lls/state", "{}")
-mp.set_property("user-data/lls/render", "")
+mp.set_property("user-data/kardenwort/last_clipboard", "")
+mp.set_property("user-data/kardenwort/last_export", "")
+mp.set_property("user-data/kardenwort/state", "{}")
+mp.set_property("user-data/kardenwort/render", "")
 
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
@@ -184,7 +190,7 @@ local function validate_config()
         "key_sec_sub_pos_up", "key_sec_sub_pos_down"
     }
     
-    for _, opt in ipairs(key_opts) do check_keys(Options[opt], "lls-" .. opt) end
+    for _, opt in ipairs(key_opts) do check_keys(Options[opt], "kardenwort-" .. opt) end
     
     if #errors > 0 then
         local summary = "CONFIGURATION HEALTH CHECK FAILED:\n"
@@ -494,7 +500,7 @@ Options = {
     seek_msg_format = "%p%v",
     seek_msg_cumulative_format = "%P%V"
 }
-options.read_options(Options, "lls")
+options.read_options(Options, "kardenwort")
 
 -- =========================================================================
 -- STATE MACHINE
@@ -1110,8 +1116,16 @@ local ANKI_MAPPING_CACHE = nil
 local function load_anki_mapping_ini()
     if ANKI_MAPPING_CACHE then return ANKI_MAPPING_CACHE end
     
-    local path = mp.command_native({"expand-path", "~~/anki_mapping.ini"})
-    local f = io.open(path, "r")
+    local paths = {
+        utils.join_path(mp.get_script_directory(), "../../anki_mapping.ini"),
+        mp.command_native({"expand-path", "~~/anki_mapping.ini"}),
+        mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
+    }
+    local f = nil
+    for _, p in ipairs(paths) do
+        f = io.open(p, "r")
+        if f then break end
+    end
     local config = {
         fields = {},
         mapping = {},
@@ -2389,7 +2403,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local best_dist = math.huge
     local search_from = 1
     
-    print(string.format("[LLS] Search Pivot: %.1f | Term: '%s' | Text Len: %d", center, selected_term, #full_line))
+    print(string.format("[Kardenwort] Search Pivot: %.1f | Term: '%s' | Text Len: %d", center, selected_term, #full_line))
     while true do
         local s, e = full_lower:find(term_lower, search_from, true)
         if not s then break end
@@ -2614,7 +2628,7 @@ local function cmd_open_record_file()
     local editor = Options.record_editor
     if not editor or editor == "" then
         mp.msg.info("OPEN-RECORD: record_editor not configured")
-        show_osd("Set lls-record_editor in mpv.conf")
+        show_osd("Set kardenwort-record_editor in mpv.conf")
         return
     end
 
@@ -4352,7 +4366,7 @@ local function drum_osd_hit_test(osd_x, osd_y)
     return nil, nil, nil
 end
 
-local function lls_hit_test_all(osd_x, osd_y)
+local function kardenwort_hit_test_all(osd_x, osd_y)
     if not Options.osd_interactivity then return nil, nil end
     
     if FSM.DRUM_WINDOW ~= "OFF" then
@@ -4395,7 +4409,7 @@ local function dw_sync_cursor_to_mouse()
     local line_idx, word_idx
     
     if FSM.DRUM_WINDOW ~= "OFF" or Options.osd_interactivity then
-        line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+        line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
     end
 
     if line_idx and word_idx then
@@ -4473,7 +4487,7 @@ local function cmd_dw_tooltip_pin(tbl)
         if dw_mode then
             line_idx, _ = dw_hit_test(osd_x, osd_y)
         else
-            line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+            line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
         end
         
         if line_idx then
@@ -4567,9 +4581,9 @@ local function dw_tooltip_mouse_update()
         line_idx, _ = dw_hit_test(osd_x, osd_y)
     elseif FSM.DW_TOOLTIP_HOLDING then
         -- During RMB hold in non-DW modes, keep stable routing through shared hit-test.
-        line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+        line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
     else
-        line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+        line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
     end
     
     -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
@@ -4965,7 +4979,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
             -- Dismiss tooltip on click and lock suppression for the current focus
             local is_tooltip_hit = dw_tooltip_hit_test(osd_x, osd_y)
-            local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+            local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
             
             if line_idx then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
@@ -5025,7 +5039,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             local dy = math.abs(osd_y - (FSM.DW_MOUSE_DOWN_Y or 0))
             
             if (dx > 5 or dy > 5) and updates_selection then
-                local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+                local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
                 
                 if line_idx and word_idx then
                     if not FSM.DW_PROTECTED_SELECTION then
@@ -5131,7 +5145,7 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         -- Fallback to single word toggle (standard behavior)
         if was_mouse then
             local osd_x, osd_y = dw_get_mouse_osd()
-            line, word = lls_hit_test_all(osd_x, osd_y)
+            line, word = kardenwort_hit_test_all(osd_x, osd_y)
         else
             line, word = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
         end
@@ -5150,7 +5164,7 @@ local function cmd_dw_double_click()
     if not subs or #subs == 0 then return end
 
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, word_idx = lls_hit_test_all(osd_x, osd_y)
+    local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
     if not line_idx then return end
 
     local sub = subs[line_idx]
@@ -5754,7 +5768,7 @@ end
 
 local function cmd_dw_wheel_scroll(dir)
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+    local line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
     
     -- In Drum Window (DOCKED), ALWAYS scroll.
     -- In Drum Mode (OSD), also ALWAYS scroll to match DW field behavior
@@ -6662,7 +6676,7 @@ end
 
 local function set_clipboard(text, mode)
     if text and text ~= "" then
-        mp.set_property("user-data/lls/last_clipboard", text)
+        mp.set_property("user-data/kardenwort/last_clipboard", text)
     end
     -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
@@ -7560,7 +7574,7 @@ function cmd_toggle_drum_window()
         -- Roll back FSM state to prevent phantom window open/close on next toggle
         FSM.DRUM_WINDOW = prev_drum_window
         Diagnostic.error("Drum Window Toggle: " .. tostring(err))
-        show_osd("LLS ERROR: " .. tostring(err):sub(1, 100))
+        show_osd("Kardenwort ERROR: " .. tostring(err):sub(1, 100))
     end
 
 end
@@ -7900,7 +7914,7 @@ mp.observe_property("pause", "bool", function(name, paused)
 end)
 
 mp.observe_property("script-opts", "string", function()
-    options.read_options(Options, "lls")
+    options.read_options(Options, "kardenwort")
     validate_config()
     flush_rendering_caches()
     drum_osd:update()
@@ -7919,7 +7933,7 @@ end)
 -- =========================================================================
 -- INITIALIZATION
 -- =========================================================================
-options.read_options(Options, "lls")
+options.read_options(Options, "kardenwort")
 validate_config()
 
 -- Register Bindings
@@ -7951,8 +7965,8 @@ local function register_global_copy_keys()
             i = i + 1
         end
     end
-    bind(Options.key_copy_popup, "lls-global-copy-side", function() cmd_copy_sub("side") end)
-    bind(Options.key_copy_main, "lls-global-copy-main", function() cmd_copy_sub("main") end)
+    bind(Options.key_copy_popup, "kardenwort-global-copy-side", function() cmd_copy_sub("side") end)
+    bind(Options.key_copy_main, "kardenwort-global-copy-main", function() cmd_copy_sub("main") end)
 end
 register_global_copy_keys()
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
@@ -7961,11 +7975,11 @@ mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
 mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
-mp.add_key_binding(nil, "lls-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
-mp.add_key_binding(nil, "lls-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
+mp.add_key_binding(nil, "kardenwort-seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
+mp.add_key_binding(nil, "kardenwort-seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
 
-mp.add_key_binding(nil, "lls-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
-mp.add_key_binding(nil, "lls-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
+mp.add_key_binding(nil, "kardenwort-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
+mp.add_key_binding(nil, "kardenwort-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 
@@ -7983,10 +7997,10 @@ local function register_global_position_keys()
             i = i + 1
         end
     end
-    bind(Options.key_sub_pos_up, "lls-sub-pos-up", function() cmd_adjust_sub_pos(-1) end)
-    bind(Options.key_sub_pos_down, "lls-sub-pos-down", function() cmd_adjust_sub_pos(1) end)
-    bind(Options.key_sec_sub_pos_up, "lls-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end)
-    bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
+    bind(Options.key_sub_pos_up, "kardenwort-sub-pos-up", function() cmd_adjust_sub_pos(-1) end)
+    bind(Options.key_sub_pos_down, "kardenwort-sub-pos-down", function() cmd_adjust_sub_pos(1) end)
+    bind(Options.key_sec_sub_pos_up, "kardenwort-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end)
+    bind(Options.key_sec_sub_pos_down, "kardenwort-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
 end
 register_global_position_keys()
 
@@ -8034,16 +8048,16 @@ recover_native_osd_style()
 -- [v1.58.51] Global Immersion Mode Toggle (Shift+o / O Щ)
 -- Parameterized to allow user overrides via mpv.conf
 for k in string.gmatch(Options.key_cycle_immersion_mode, "%S+") do
-    mp.add_forced_key_binding(k, "lls-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
+    mp.add_forced_key_binding(k, "kardenwort-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
 end
 
 -- =========================================================================
 -- STATE PROBE (test instrumentation)
--- Dormant in production. Activated by IPC `script-message-to lls_core ...`.
+-- Dormant in production. Activated by IPC `script-message-to kardenwort ...`.
 -- =========================================================================
-local LlsProbe = {}
+local KardenwortProbe = {}
 
-function LlsProbe._snapshot()
+function KardenwortProbe._snapshot()
     local tracks_summary = {
         pri = { 
             id = Tracks.pri.id, 
@@ -8105,14 +8119,14 @@ end
 
 local _probe_seq = 0
 
-mp.register_script_message("lls-state-query", function()
+mp.register_script_message("kardenwort-state-query", function()
     _probe_seq = _probe_seq + 1
-    local snap = LlsProbe._snapshot()
+    local snap = KardenwortProbe._snapshot()
     snap._seq = _probe_seq
-    mp.set_property("user-data/lls/state", utils.format_json(snap))
+    mp.set_property("user-data/kardenwort/state", utils.format_json(snap))
 end)
 
-mp.register_script_message("lls-render-query", function(overlay_name)
+mp.register_script_message("kardenwort-render-query", function(overlay_name)
     local map = {
         drum    = drum_osd,
         dw      = dw_osd,
@@ -8123,28 +8137,28 @@ mp.register_script_message("lls-render-query", function(overlay_name)
     local osd = map[overlay_name]
     local data = (osd and osd.data) or ""
     _probe_seq = _probe_seq + 1
-    mp.set_property("user-data/lls/render", _probe_seq .. "|" .. data)
+    mp.set_property("user-data/kardenwort/render", _probe_seq .. "|" .. data)
 end)
 
 -- Test Instrumentation
-mp.register_script_message("lls-immersion-mode-set", function(mode)
+mp.register_script_message("kardenwort-immersion-mode-set", function(mode)
     if mode == "MOVIE" or mode == "PHRASE" then
         FSM.IMMERSION_MODE = mode
         master_tick()
     end
 end)
 
-mp.register_script_message("lls-autopause-set", function(state)
+mp.register_script_message("kardenwort-autopause-set", function(state)
     if state == "ON" or state == "OFF" then
         FSM.AUTOPAUSE = state
     end
 end)
 
-mp.register_script_message("lls-adjust-sec-sub-pos", function(val)
+mp.register_script_message("kardenwort-adjust-sec-sub-pos", function(val)
     cmd_adjust_sec_sub_pos(tonumber(val))
 end)
 
-mp.register_script_message("lls-native-sec-sub-pos-set", function(val)
+mp.register_script_message("kardenwort-native-sec-sub-pos-set", function(val)
     local n = tonumber(val)
     if n then
         FSM.native_sec_sub_pos = n
@@ -8152,57 +8166,57 @@ mp.register_script_message("lls-native-sec-sub-pos-set", function(val)
     end
 end)
 
-mp.register_script_message("lls-toggle-sub-vis", function()
+mp.register_script_message("kardenwort-toggle-sub-vis", function()
     cmd_toggle_sub_vis()
 end)
 
-mp.register_script_message("lls-drum-window-toggle", function()
+mp.register_script_message("kardenwort-drum-window-toggle", function()
     cmd_toggle_drum_window()
 end)
 
-mp.register_script_message("lls-test-bind-seek", function()
-    mp.add_forced_key_binding("KP0", "lls-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
-    mp.add_forced_key_binding("KP1", "lls-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
+mp.register_script_message("kardenwort-test-bind-seek", function()
+    mp.add_forced_key_binding("KP0", "kardenwort-seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
+    mp.add_forced_key_binding("KP1", "kardenwort-seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
 end)
 
-mp.register_script_message("lls-test-dw-word-move", function(dir, shift)
-    Diagnostic.info("RECEIVED lls-test-dw-word-move: " .. tostring(dir) .. " " .. tostring(shift))
+mp.register_script_message("kardenwort-test-dw-word-move", function(dir, shift)
+    Diagnostic.info("RECEIVED kardenwort-test-dw-word-move: " .. tostring(dir) .. " " .. tostring(shift))
     cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true")
 end)
 
-mp.register_script_message("lls-test-ctrl-toggle-word", function(line_str, word_str)
+mp.register_script_message("kardenwort-test-ctrl-toggle-word", function(line_str, word_str)
     local line, word = tonumber(line_str), tonumber(word_str)
     if line and word then ctrl_toggle_word(line, word, false) end
 end)
 
-mp.register_script_message("lls-test-dw-esc", function()
+mp.register_script_message("kardenwort-test-dw-esc", function()
     cmd_dw_esc()
 end)
 
-mp.register_script_message("lls-test-dw-tooltip-toggle", function()
+mp.register_script_message("kardenwort-test-dw-tooltip-toggle", function()
     cmd_dw_tooltip_toggle()
 end)
 
-mp.register_script_message("lls-test-dw-line-move", function(dir_str, shift)
+mp.register_script_message("kardenwort-test-dw-line-move", function(dir_str, shift)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_line_move(dir, shift == "yes" or shift == "true") end
 end)
 
-mp.register_script_message("lls-test-dw-scroll", function(dir_str)
+mp.register_script_message("kardenwort-test-dw-scroll", function(dir_str)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_scroll(dir) end
 end)
 
-mp.register_script_message("lls-test-replay", function()
+mp.register_script_message("kardenwort-test-replay", function()
     cmd_replay_sub()
 end)
 
-mp.register_script_message("lls-test-seek-time", function(dir_str)
+mp.register_script_message("kardenwort-test-seek-time", function(dir_str)
     local dir = tonumber(dir_str)
     if dir then cmd_seek_time(dir) end
 end)
 
-mp.register_script_message("lls-test-set-cursor", function(line_str, word_str)
+mp.register_script_message("kardenwort-test-set-cursor", function(line_str, word_str)
     local line, word = tonumber(line_str), tonumber(word_str)
     if line and word then
         FSM.DW_CURSOR_LINE = line
@@ -8211,43 +8225,43 @@ mp.register_script_message("lls-test-set-cursor", function(line_str, word_str)
     end
 end)
 
-mp.register_script_message("lls-test-set-follow-player", function(state)
+mp.register_script_message("kardenwort-test-set-follow-player", function(state)
     FSM.DW_FOLLOW_PLAYER = (state == "ON" or state == "true")
 end)
 
-mp.register_script_message("lls-test-seek-delta", function(dir_str)
+mp.register_script_message("kardenwort-test-seek-delta", function(dir_str)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_seek_delta(dir) end
 end)
 
-mp.register_script_message("lls-test-cycle-sec-sid", function()
+mp.register_script_message("kardenwort-test-cycle-sec-sid", function()
     cmd_cycle_sec_sid()
 end)
 
-mp.register_script_message("lls-sub-visibility-set", function(state)
+mp.register_script_message("kardenwort-sub-visibility-set", function(state)
     local val = (state == "ON")
     FSM.native_sub_vis = val
     FSM.native_sec_sub_vis = val
     master_tick()
 end)
 
-mp.register_script_message("lls-drum-mode-set", function(state)
+mp.register_script_message("kardenwort-drum-mode-set", function(state)
     if state == "ON" or state == "OFF" then
         FSM.DRUM = state
         master_tick()
     end
 end)
 
-mp.register_script_message("lls-test-dw-export-pink", function()
-    Diagnostic.info("RECEIVED lls-test-dw-export-pink")
+mp.register_script_message("kardenwort-test-dw-export-pink", function()
+    Diagnostic.info("RECEIVED kardenwort-test-dw-export-pink")
     ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
 end)
 
-mp.register_script_message("lls-test-dw-export-yellow", function()
+mp.register_script_message("kardenwort-test-dw-export-yellow", function()
     cmd_dw_anki_export_selection()
 end)
 
-mp.register_script_message("lls-test-prepare-export", function(type, p1_l, p1_w, p2_l, p2_w)
+mp.register_script_message("kardenwort-test-prepare-export", function(type, p1_l, p1_w, p2_l, p2_w)
     local params
     if type == "RANGE" then
         params = { type = "RANGE", p1_l = tonumber(p1_l), p1_w = tonumber(p1_w), p2_l = tonumber(p2_l), p2_w = tonumber(p2_w) }
@@ -8257,14 +8271,14 @@ mp.register_script_message("lls-test-prepare-export", function(type, p1_l, p1_w,
         params = { type = "POINT", line = tonumber(p1_l), word = tonumber(p1_w) }
     end
     local term = prepare_export_text(params, { clean = true, restore_sentence = true })
-    mp.set_property("user-data/lls/last_export", term)
+    mp.set_property("user-data/kardenwort/last_export", term)
 end)
 
-mp.register_script_message("lls-test-dw-copy", function()
+mp.register_script_message("kardenwort-test-dw-copy", function()
     cmd_dw_copy()
 end)
 
-mp.register_script_message("lls-test-search-input", function(char)
+mp.register_script_message("kardenwort-test-search-input", function(char)
     if FSM.SEARCH_MODE then
         -- This is a simplification of the actual char handler
         local q_table = utf8_to_table(FSM.SEARCH_QUERY)
@@ -8277,7 +8291,7 @@ mp.register_script_message("lls-test-search-input", function(char)
     end
 end)
 
-mp.register_script_message("lls-test-get-tokens", function(text)
+mp.register_script_message("kardenwort-test-get-tokens", function(text)
     local tokens = build_word_list_internal(text, true)
     local snap = {}
     for i, t in ipairs(tokens) do
@@ -8287,7 +8301,7 @@ mp.register_script_message("lls-test-get-tokens", function(text)
     FSM.TEST_DATA.test_tokens = snap
 end)
 
-mp.register_script_message("lls-test-set-option", function(name, val)
+mp.register_script_message("kardenwort-test-set-option", function(name, val)
     if val == "yes" or val == "true" then val = true
     elseif val == "no" or val == "false" then val = false
     elseif tonumber(val) then val = tonumber(val) end
@@ -8296,11 +8310,11 @@ mp.register_script_message("lls-test-set-option", function(name, val)
     flush_rendering_caches()
 end)
 
-mp.register_script_message("lls-test-dw-toggle", function()
+mp.register_script_message("kardenwort-test-dw-toggle", function()
     cmd_toggle_drum_window()
 end)
 
-mp.register_script_message("lls-test-dw-tooltip-pin", function(arg1)
+mp.register_script_message("kardenwort-test-dw-tooltip-pin", function(arg1)
     local tbl = { event = "down" }
     if arg1 and arg1:sub(1,1) == "{" then
         local ok, parsed = pcall(utils.parse_json, arg1)
@@ -8309,7 +8323,7 @@ mp.register_script_message("lls-test-dw-tooltip-pin", function(arg1)
     cmd_dw_tooltip_pin(tbl)
 end)
 
-mp.register_script_message("lls-test-dw-tooltip-pin-at", function(x_str, y_str, arg3)
+mp.register_script_message("kardenwort-test-dw-tooltip-pin-at", function(x_str, y_str, arg3)
     local x, y = tonumber(x_str), tonumber(y_str)
     if not x or not y then return end
     local tbl = { event = "down" }
@@ -8329,7 +8343,7 @@ mp.register_script_message("lls-test-dw-tooltip-pin-at", function(x_str, y_str, 
         if dw_mode then
             line_idx = select(1, dw_hit_test(x, y))
         else
-            line_idx = select(1, lls_hit_test_all(x, y))
+            line_idx = select(1, kardenwort_hit_test_all(x, y))
         end
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
@@ -8347,7 +8361,7 @@ mp.register_script_message("lls-test-dw-tooltip-pin-at", function(x_str, y_str, 
     end
 end)
 
-mp.register_script_message("lls-test-dw-key", function(key)
+mp.register_script_message("kardenwort-test-dw-key", function(key)
     local shift = key:find("Shift%+") ~= nil
     local ctrl = key:find("Ctrl%+") ~= nil
     local base = key:gsub("Shift%+", ""):gsub("Ctrl%+", "")
@@ -8366,7 +8380,7 @@ mp.register_script_message("lls-test-dw-key", function(key)
     end
 end)
 
-mp.register_script_message("lls-test-dw-double-click", function(line_str)
+mp.register_script_message("kardenwort-test-dw-double-click", function(line_str)
     local ok, err = xpcall(function()
         local line = tonumber(line_str)
         if line and Tracks and Tracks.pri and Tracks.pri.subs then
@@ -8387,10 +8401,10 @@ mp.register_script_message("lls-test-dw-double-click", function(line_str)
             end
         end
     end, debug.traceback)
-    if not ok then Diagnostic.error("lls-test-dw-double-click error: " .. tostring(err)) end
+    if not ok then Diagnostic.error("kardenwort-test-dw-double-click error: " .. tostring(err)) end
 end)
 
-mp.register_script_message("lls-test-truncate", function(text)
+mp.register_script_message("kardenwort-test-truncate", function(text)
     local truncated = text
     if #text > 120 then
         truncated = text:sub(1, 120) .. "..."
@@ -8399,14 +8413,14 @@ mp.register_script_message("lls-test-truncate", function(text)
     FSM.TEST_DATA.test_truncated_str = truncated
 end)
 
-mp.register_script_message("lls-test-validate-term", function(term)
+mp.register_script_message("kardenwort-test-validate-term", function(term)
     local clean = term:gsub("{.-}", ""):match("^%s*(.-)%s*$")
     local valid = (clean and #clean > 0)
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.test_term_valid = valid
 end)
 
-mp.register_script_message("lls-test-search-mode-set", function(state)
+mp.register_script_message("kardenwort-test-search-mode-set", function(state)
     FSM.SEARCH_MODE = (state == "ON" or state == "true")
     if FSM.SEARCH_MODE then
         FSM.SEARCH_QUERY = ""
@@ -8415,29 +8429,29 @@ mp.register_script_message("lls-test-search-mode-set", function(state)
     end
 end)
 
-mp.register_script_message("lls-test-hit-test", function(x_str, y_str)
+mp.register_script_message("kardenwort-test-hit-test", function(x_str, y_str)
     local x, y = tonumber(x_str), tonumber(y_str)
     local l, w, p = drum_osd_hit_test(x, y)
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.hit_test_res = { line = l, word = w, is_pri = p }
 end)
 
-mp.register_script_message("lls-test-query-tooltip-state", function()
+mp.register_script_message("kardenwort-test-query-tooltip-state", function()
     local res = {
         data = dw_tooltip_osd.data,
         line = FSM.DW_TOOLTIP_LINE,
         holding = FSM.DW_TOOLTIP_HOLDING,
         force = FSM.DW_TOOLTIP_FORCE
     }
-    mp.set_property("user-data/lls-test-tooltip-state", utils.format_json(res))
+    mp.set_property("user-data/kardenwort-test-tooltip-state", utils.format_json(res))
 end)
 
-mp.register_script_message("lls-test-query-hit-zones", function()
+mp.register_script_message("kardenwort-test-query-hit-zones", function()
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.drum_hit_zones = FSM.DRUM_HIT_ZONES
 end)
 
-mp.register_script_message("lls-test-fuzzy-match", function(query, target)
+mp.register_script_message("kardenwort-test-fuzzy-match", function(query, target)
     local q = query:lower():gsub("%s+", "")
     local t = target:lower()
     local q_idx = 1
@@ -8451,7 +8465,9 @@ mp.register_script_message("lls-test-fuzzy-match", function(query, target)
     FSM.TEST_DATA.test_fuzzy_match_result = (q_idx > #q)
 end)
 
-mp.register_script_message("lls-test-expand-ru-keys", function(key_str)
+mp.register_script_message("kardenwort-test-expand-ru-keys", function(key_str)
     local results = expand_ru_keys(key_str, "test-expand")
-    mp.set_property("user-data/lls/last_export", utils.format_json(results))
+    mp.set_property("user-data/kardenwort/last_export", utils.format_json(results))
 end)
+
+

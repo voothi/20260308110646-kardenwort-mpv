@@ -18,7 +18,7 @@ ASS gatekeeping contract:
 """
 import time
 import pytest
-from tests.ipc.mpv_ipc import query_lls_state
+from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 # ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ from tests.ipc.mpv_ipc import query_lls_state
 
 def test_ass_media_state_is_single_ass(mpv_ass):
     """Loading an ASS subtitle sets playback_state to SINGLE_ASS."""
-    state = query_lls_state(mpv_ass.ipc)
+    state = query_kardenwort_state(mpv_ass.ipc)
     assert 'ASS' in state['playback_state'], (
         f"Expected playback_state to contain 'ASS', got {state['playback_state']!r}"
     )
@@ -35,7 +35,7 @@ def test_ass_media_state_is_single_ass(mpv_ass):
 
 def test_ass_gatekeeper_drum_mode_starts_off(mpv_ass):
     """Drum Mode is forced OFF when an ASS subtitle track is active."""
-    state = query_lls_state(mpv_ass.ipc)
+    state = query_kardenwort_state(mpv_ass.ipc)
     assert state['drum_mode'] == 'OFF', (
         f"ASS gatekeeping must force drum_mode=OFF; got {state['drum_mode']!r}"
     )
@@ -43,7 +43,7 @@ def test_ass_gatekeeper_drum_mode_starts_off(mpv_ass):
 
 def test_ass_gatekeeper_drum_window_starts_off(mpv_ass):
     """Drum Window is forced OFF when an ASS subtitle track is active."""
-    state = query_lls_state(mpv_ass.ipc)
+    state = query_kardenwort_state(mpv_ass.ipc)
     assert state['drum_window'] == 'OFF', (
         f"ASS gatekeeping must force drum_window=OFF; got {state['drum_window']!r}"
     )
@@ -52,9 +52,9 @@ def test_ass_gatekeeper_drum_window_starts_off(mpv_ass):
 def test_ass_gatekeeper_blocks_drum_mode_toggle(mpv_ass):
     """Attempting to toggle Drum Mode with ASS loaded keeps it OFF."""
     ipc = mpv_ass.ipc
-    ipc.command(['script-binding', 'lls_core/toggle-drum-mode'])
+    ipc.command(['script-binding', 'kardenwort/toggle-drum-mode'])
     time.sleep(0.15)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['drum_mode'] == 'OFF', (
         f"cmd_toggle_drum must refuse to enable Drum Mode when ASS is loaded; "
         f"got {state['drum_mode']!r}"
@@ -74,7 +74,7 @@ def test_sentinel_primes_on_seek_into_sub(mpv_dual):
     # Fixture sync-test: sub 1 spans 1.000–2.000s
     ipc.command(['seek', 1.5, 'absolute+exact'])
     time.sleep(0.2)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 1, (
         f"Sentinel should select sub 1 at 1.5s; got {state['active_sub_index']}"
     )
@@ -86,12 +86,12 @@ def test_sentinel_remains_on_active_sub_before_srt_end(mpv_dual):
     # Prime at 1.0s (clearly in sub 1: 1.000–2.000s)
     ipc.command(['seek', 1.0, 'absolute+exact'])
     time.sleep(0.15)
-    assert query_lls_state(ipc)['active_sub_index'] == 1
+    assert query_kardenwort_state(ipc)['active_sub_index'] == 1
 
     # Seek to 1.8s — still inside sub 1's SRT window; active index must not advance
     ipc.command(['seek', 1.8, 'absolute+exact'])
     time.sleep(0.15)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 1, (
         f"Active index must stay at 1 at 1.8s (sub 1 SRT window 1.0–2.0s); "
         f"got {state['active_sub_index']}"
@@ -103,8 +103,12 @@ def test_secondary_sentinel_mirrors_primary(mpv_dual):
     ipc = mpv_dual.ipc
     ipc.command(['seek', 1.5, 'absolute+exact'])
     time.sleep(0.2)
-    state = query_lls_state(ipc)
+    state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == state['sec_active_sub_index'], (
         f"Primary and secondary sentinels must match at 1.5s; "
         f"pri={state['active_sub_index']}, sec={state['sec_active_sub_index']}"
     )
+
+
+
+

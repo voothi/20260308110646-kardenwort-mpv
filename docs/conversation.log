@@ -1863,7 +1863,7 @@
 20260511181806 │  └── kardenwort/        # <--- Isolated project namespace - shouldn't there be a name here kardenwort-mpv, kardenwort is a common name.
 20260511181936 Is it okay that we will have a repetition of the name kardenwort-mpv in the name of the repository and in the namespace?
 20260511182130 Yes, come on Option B, make a plan, don’t forget that you need to make these renamings in the specification specifically for renaming and terms.
-
+20260511182903 opsx-apply 20260511182348-kardenwort-restructuring-and-namespace-unification
 
 
 
