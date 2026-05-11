@@ -1853,8 +1853,7 @@
 20260511172400 Change Drum Window: Active to Managed by Drum Window, if it's logical.
 20260511172846 I renamed `Managed by Drum Window` to `X`.
 20260511173651 We have a well-described switching, the appropriate term is used for the `z` key, from it you can understand that we use it to switch between DW modes / SRT or DM? 
-
-
+20260511174153 Take it away ` [Double Gap: %s]` lls_core.lua#L7534 lls_core.lua#L7676, we don’t need to show it, because we don’t control it at runtime through a keyboard shortcut.
 
 
 

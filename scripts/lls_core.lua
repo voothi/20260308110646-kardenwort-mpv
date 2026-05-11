@@ -5717,7 +5717,7 @@ local function cmd_toggle_drum()
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
         if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
 
-        show_osd(string.format("Drum Mode: ON [Double Gap: %s]", Options.drum_double_gap and "YES" or "NO"))
+        show_osd("Drum Mode: ON")
     else
         FSM.DRUM = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
@@ -7531,7 +7531,7 @@ function cmd_toggle_drum_window()
         if FSM.DRUM_WINDOW == "DOCKED" then
             local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
-            show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
+            show_osd("Drum Window: ON")
         end
     else
 
@@ -7673,7 +7673,7 @@ local function cmd_toggle_sub_vis()
         clear_tooltip_overlay("sub-vis-off")
     end
     
-    show_osd("Subtitles: " .. (nxt and string.format("ON [Double Gap: %s]", Options.srt_double_gap and "YES" or "NO") or "OFF"))
+    show_osd("Subtitles: " .. (nxt and "ON" or "OFF"))
     master_tick()
 end
 

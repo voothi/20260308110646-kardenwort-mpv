@@ -17,3 +17,12 @@ The Drum Window status message SHALL be concise and focused on the active state 
 - **AND** the user attempts to adjust subtitle positioning (e.g., `r`, `t`, `R`, `T`)
 - **THEN** the system SHALL display "X".
 - **AND** the " (Position Locked)" suffix SHALL be removed.
+
+### Requirement: Mode Toggle OSD Feedback
+The system SHALL provide clear OSD feedback when toggling primary modes.
+
+#### Scenario: Toggling Drum Window
+- **WHEN** the Drum Window is toggled ON
+- **THEN** the system SHALL display "Drum Window: ON".
+- **WHEN** the Drum Window is toggled OFF
+- **THEN** the system SHALL display "Drum Window: OFF".
