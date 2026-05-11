@@ -160,10 +160,10 @@ class TestUiSystemRegressions:
 
     def test_20260502005934_session_resume(self, mpv):
         """Resume last file session must restore position (20260502005934)."""
-        # We verify that resume_session.state exists and is updated.
+        # We verify that resume-session.state exists and is updated.
         import os
-        state_file = 'resume_session.state'
-        assert os.path.exists(state_file), "resume_session.state must exist"
+        state_file = 'resume-session.state'
+        assert os.path.exists(state_file), "resume-session.state must exist"
 
     def test_20260502082941_logging_suppression(self, mpv):
         """Logging must be suppressed for redundant events (20260502082941)."""
