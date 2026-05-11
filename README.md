@@ -410,7 +410,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `Q` / `Й` | `Q` / `Й` | Cycle **Copy Mode** (Drum Window) |
 | `W` / `Ц` | `W` / `Ц` | Toggle **Context Copy** (Drum Window) |
 | `E` / `У` | `E` / `У` | Toggle **Hover Tooltips** (Drum Window) |
-| `F` / `А` | `F` / `А` | Toggle **Karaoke Mode** (Autopause granularity) |
+| `F` / `А` | `F` / `А` | **Cycle Immersion Mode** (Phrase ↔ Movie) |
 | `X` / `Ч` | `X` / `Ч` | Cycle **Secondary Position** (Top ↔ Bottom) |
 | `C` / `С` | `C` / `С` | **Cycle Secondary Track** (Translation) |
 | `s` / `ы` | `s` / `ы` | **Subtitle Replay** (Loop / One-shot) |
@@ -434,7 +434,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `h` | `р` | Toggle **Global Highlighting** (Anki Matches) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+c` | `Ctrl+с` | **Copy Subtitle** (Extract clean text to clipboard) |
-| `H` | `Р` | **Cycle Immersion Mode** (Phrase ↔ Movie) |
+| `H` / `Р` | `H` / `Р` | **Toggle Karaoke Mode** (Autopause granularity) |
  
 ### Visual Keyboard Layout (English)
 
@@ -448,8 +448,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 |  Vis  | Mode | Tgl | Tgl |  Up | Down|
 +-----------------------------------------------------------+
 |  CAPS |  A  |  S  |  D  |  F  |  G  |
-|       | Prev| REPL| Next| Kara| Add |
-|       | Sub | LOOP| Sub | Tgl | Word|
+|       | Prev| REPL| Next| Immr| Add |
+|       | Sub | LOOP| Sub | Mode| Word|
 +-----------------------------------------------------------+
 |   SHIFT   |  Z  |  X  |  C  |  V  |  B  |
 |   Select  | DW  | Drum| Vis | Full| Open|
@@ -469,8 +469,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 |     |     |     |     |     | Down| Up  |         |
 +-----------------------------------------------------------+
 |  H  |  J  |  K  |  L  |  ;  |  '  |    ENTER    |
-| Tgl |     |     |     |     |     |     Seek    |
-| High/Immr |     |     |     |     |    (Drum)   |
+| Kara|     |     |     |     |     |     Seek    |
+| Tgl |     |     |     |     |     |    (Drum)   |
 +-----------------------------------------------------------+
 |  N  |  M  |  ,  |  .  |  /  |      SHIFT      |
 |     | Mute| Frm | Frm |     |      Select     |
@@ -519,7 +519,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-karaoke_token` | `{\c}` | ASS markup tag used to identify active karaoke words. |
 | `kardenwort-space_tap_delay` | `0.2` | Time threshold to distinguish between tap (Toggle) and hold (Play) on Space. |
 | `kardenwort-immersion_mode_default` | `PHRASE` | Default mode at startup (`PHRASE` or `MOVIE`). |
-| `kardenwort-key_cycle_immersion_mode` | `O Щ` | Hotkey to cycle Phrase/Movie immersion modes. |
+| `kardenwort-key_cycle_immersion_mode` | `F А` | Hotkey to cycle Phrase/Movie immersion modes. |
 
 #### **3. Drum Mode (Dynamic Multi-line Context)**
 | Parameter | Default | Description |
