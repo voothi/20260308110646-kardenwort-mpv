@@ -26,3 +26,9 @@ The immersion engine MUST suppress autopause boundary triggers and PHRASE overla
 - **AND** `Space` is in held state
 - **THEN** effective boundary computation MUST follow MOVIE-style handover and MUST suppress PHRASE jerk-back seeks
 - **AND** releasing `Space` MUST restore normal PHRASE behavior without changing the configured immersion mode.
+
+#### Scenario: Space tap keeps PHRASE semantics
+- **WHEN** `FSM.AUTOPAUSE == "ON"` and immersion mode is `PHRASE`
+- **AND** `Space` is tapped within the configured tap window (`space_tap_delay`)
+- **THEN** the temporary MOVIE-style override MUST NOT activate
+- **AND** boundary and start behavior MUST remain PHRASE-consistent.

@@ -678,9 +678,11 @@ local function get_effective_boundaries(subs, sub, idx)
     -- [v1.58.51] Movie Mode: Seamless handover at the next subtitle's padded start.
     -- This prevents overlapping audio loops while still ensuring the pre-roll is heard.
     -- [20260510193230] PHRASE Mode: Seamless handover during rewind transit to prevent overlay/jerking.
+    local hold_elapsed = mp.get_time() - (FSM.space_down_time or 0)
     local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
         and FSM.IMMERSION_MODE == "PHRASE"
         and FSM.PHYSICAL_SPACE_HOLD
+        and hold_elapsed > Options.space_tap_delay
 
     if FSM.IMMERSION_MODE == "MOVIE"
        or phrase_space_movie_override
@@ -5437,9 +5439,11 @@ local function master_tick()
             -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
             -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
             -- is expected: no jerking, no overlap-driven snaps.
+            local hold_elapsed = mp.get_time() - (FSM.space_down_time or 0)
             local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
                 and FSM.IMMERSION_MODE == "PHRASE"
                 and FSM.PHYSICAL_SPACE_HOLD
+                and hold_elapsed > Options.space_tap_delay
 
             if FSM.IMMERSION_MODE == "PHRASE" and not phrase_space_movie_override and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
                and (not FSM.TIMESEEK_INHIBIT_UNTIL or not FSM.REWIND_TRANSIT_CROSS_CARD) then

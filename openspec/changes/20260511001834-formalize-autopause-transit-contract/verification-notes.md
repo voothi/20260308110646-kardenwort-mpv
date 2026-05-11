@@ -40,6 +40,7 @@
 ### Space-hold PHRASE nuance (new)
 - Implemented temporary MOVIE-like handover while `Space` is held in `Autopause ON + PHRASE`.
 - Release semantics remain edge-triggered by `cmd_smart_space` key-up; implicit key-up events from mpv/hardware multi-key behavior are treated as release and normal PHRASE autopause resumes at the next boundary.
+- Refined guard: the override now activates only after the hold exceeds `space_tap_delay`, so quick taps do not accidentally switch PHRASE into MOVIE-like progression.
 
 ### Test execution (this session)
 - `python -m pytest -q tests/acceptance/test_20260509134903_timeseek_transit.py -k Structural`
