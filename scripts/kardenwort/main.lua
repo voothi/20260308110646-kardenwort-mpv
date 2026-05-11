@@ -1117,9 +1117,15 @@ local function load_anki_mapping_ini()
     if ANKI_MAPPING_CACHE then return ANKI_MAPPING_CACHE end
     
     local paths = {
+        -- Preferred modern root location (kebab-case), then underscore variant.
         utils.join_path(mp.get_script_directory(), "../../anki-mapping.ini"),
+        utils.join_path(mp.get_script_directory(), "../../anki_mapping.ini"),
+        -- MPV-config-relative root fallback.
         mp.command_native({"expand-path", "~~/anki-mapping.ini"}),
-        mp.command_native({"expand-path", "~~/script-opts/anki-mapping.ini"})
+        mp.command_native({"expand-path", "~~/anki_mapping.ini"}),
+        -- Legacy script-opts fallback for backward compatibility.
+        mp.command_native({"expand-path", "~~/script-opts/anki-mapping.ini"}),
+        mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
     }
     local f = nil
     for _, p in ipairs(paths) do
