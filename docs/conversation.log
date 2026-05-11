@@ -1839,6 +1839,10 @@
 20260511151805 Not solved yet. I was able to reproduce it immediately in Codex under VSCode. What I ran: Get-Content C:\Users\voothi\.codex\config.toml Get-ChildItem C:\Users\voothi\Documents\WindowsPowerShell Both commands completed, and both also emitted the same error: C:\Users\voothi\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1 cannot be loaded because running scripts is disabled on this system Control check: Running with login=false (Write-Output 'no-profile test ok') worked without that error. So the failure is specifically tied to profile loading in login shell mode.
 20260511151809 Can you fix the problem?
 20260511152011 Fixed. I applied two changes and verified in a fresh PowerShell process: 1. Set execution policy for your user: - `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force` 2. Unblocked your profile file: - `Unblock-File C:\Users\voothi\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1` Verification: - Ran `powershell -NoLogo -Command "Write-Output 'profile-load-check'"` and it executed cleanly without the profile error. If the old error still appears in an already-open terminal tab, close and reopen that terminal session once so it picks up the new policy state.
+20260511152234 Check work PS.
+20260511152327 Result: profile-load-check with exit code 0, so no profile-load error appeared.
+
+
 
 
 
