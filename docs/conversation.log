@@ -1831,8 +1831,7 @@
 20260511123418 4 passed in 14.27s PS U:\voothi\20260308110646-kardenwort-mpv> python -m pytest -q tests/acceptance/test_20260511122721_autopause_seek_prev_modes.py.... [100%] 4 passed in 14.27s
 20260511125342 Check the final decision on the changes, see my file selection, dialog anchors, I need the work on this complex piece of code to be well documented, specified, and covered with tests. Anchors 20260511112322 20260511114031 20260511114259 20260511115004 20260511115519 20260511115438 20260511120546 20260511121128 20260511121840 20260511122721 20260511123343 20260511123418 Commits diff c643e674e47e3de8445cab2cbf5904b2ac5cbc2f..488d6ef53f87accf8fa21a4b50bc88bd93b88fd9
 20260511132448 Findings first (after auditing anchors + diff c643e674..488d6ef5): Medium: OpenSpec implementation status was stale (tasks left unchecked despite completed code/tests). Fixed in tasks.md (line 3). Medium: Spec coverage missed the confirmed DW HOVER border-flicker routing rule (dw_hit_test routing in DW mode). Fixed in tooltip-stability.md (line 13). Medium: New a-key PHRASE vs MOVIE timing tests existed, but explicit normative spec text for that exact behavior was missing in shared verification spec. Fixed in spec.md (line 25). Current decision: the change set is now documented/spec’d/test-linked consistently, and the final direction is sound. Validation note: I attempted to run the three acceptance files, but this environment failed to execute Python (python.exe logon session error), so I could not re-run runtime checks locally in this session.
-
-
+20260511142734 ========================================= 680 passed in 790.93s (0:13:10) ==========================================
 
 
 
