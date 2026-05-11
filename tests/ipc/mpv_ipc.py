@@ -239,21 +239,32 @@ def query_kardenwort_render(ipc, overlay_name, timeout=2.0):
     if prop not in ipc._prop_events:
         ipc.observe_property(98, prop)
         time.sleep(0.1)
-    
+
     ipc._prop_events[prop].clear()
     ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', overlay_name])
-    
+
     deadline = time.time() + timeout
     while time.time() < deadline:
+        # First, try direct property reads in case script returns the same value
+        # as the previous query (no property-change event emitted by mpv).
+        raw = ipc.get_property(prop) or ''
+        if raw and '|' in raw:
+            return raw.split('|', 1)[1]
+        if raw:
+            return raw
+
         try:
-            ipc.wait_property_change(prop, timeout=1.0)
+            remaining = max(0.05, min(1.0, deadline - time.time()))
+            ipc.wait_property_change(prop, timeout=remaining)
             raw = ipc.get_property(prop) or ''
             if raw and '|' in raw:
                 return raw.split('|', 1)[1]
-            if raw and raw != "":
+            if raw:
                 return raw
         except TimeoutError:
-            continue
+            # Keep polling until overall timeout.
+            pass
+        time.sleep(0.05)
     return ""
 
 

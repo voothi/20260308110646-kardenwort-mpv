@@ -1885,6 +1885,9 @@
 20260511231142 ==================================== short test summary info ==================================== FAILED tests/acceptance/test_20260504174809_adaptive_replay.py::TestUiSystemRegressions::test_20260502005934_session_resume - AssertionError: resume_session.state must exist =========================== 1 failed, 680 passed in 786.73s (0:13:06) =========================== PS U:\voothi\20260308110646-kardenwort-mpv>
 20260511232831 ==================================== short test summary info ==================================== FAILED tests/acceptance/test_20260509085125_has_phrase_phrase_first.py::test_has_phrase_singles_first_order - AssertionError: drum OSD returned empty render after seek (singles-first fixture) =========================== 1 failed, 680 passed in 773.32s (0:12:53) =========================== PS U:\voothi\20260308110646-kardenwort-mpv>
 20260511233137 Delete from git cache resume-session.state
+20260511233648 Check this solution ead42142116d0d4bbf17aad18afe597a91dd6ce3..1e4a1422c696adc788307e708d82d6b2bd8e9082
+20260511234207 fix it
+20260511234405 Check for regression 332fdeff486f11385f5df0a8a11a305e7463b17c
 
 
 

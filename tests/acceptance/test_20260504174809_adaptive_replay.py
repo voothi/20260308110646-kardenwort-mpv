@@ -26,6 +26,7 @@ Covers archives:
 """
 
 import time
+from pathlib import Path
 import pytest
 from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
@@ -160,10 +161,15 @@ class TestUiSystemRegressions:
 
     def test_20260502005934_session_resume(self, mpv):
         """Resume last file session must restore position (20260502005934)."""
-        # We verify that resume-session.state exists and is updated.
-        import os
-        state_file = 'resume-session.state'
-        assert os.path.exists(state_file), "resume-session.state must exist"
+        # We verify that resume-session.state exists and is updated in project root.
+        state_file = Path(__file__).resolve().parents[2] / "resume-session.state"
+        deadline = time.time() + 2.0
+        while time.time() < deadline:
+            if state_file.exists() and state_file.stat().st_size > 0:
+                break
+            time.sleep(0.1)
+        assert state_file.exists(), "resume-session.state must exist"
+        assert state_file.stat().st_size > 0, "resume-session.state must not be empty"
 
     def test_20260502082941_logging_suppression(self, mpv):
         """Logging must be suppressed for redundant events (20260502082941)."""
