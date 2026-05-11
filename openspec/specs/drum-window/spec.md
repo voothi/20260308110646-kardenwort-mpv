@@ -195,6 +195,12 @@ The system SHALL provide consistent feedback when global keys that are managed o
 - **THEN** the system SHALL display a "X" OSD message.
 - **AND** the default action for these keys SHALL be suppressed.
 
+#### Scenario: Pressing Pause Mode toggle (Shift+f) on non-ASS tracks
+- **WHEN** the user presses `Shift+f`
+- **AND** the active subtitle track is NOT an ASS file (`FSM.MEDIA_STATE` does not contain "ASS")
+- **THEN** the system SHALL display a "X" OSD message.
+- **AND** the Pause Mode SHALL NOT be toggled.
+
 ### Requirement: Cross-Mode Cursor Synchronization
 The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mode C) and Drum Window (Mode W).
 

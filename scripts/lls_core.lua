@@ -5653,6 +5653,10 @@ local function cmd_toggle_karaoke()
         show_osd("X")
         return
     end
+    if not FSM.MEDIA_STATE:match("ASS") then
+        show_osd("X")
+        return
+    end
     FSM.KARAOKE = (FSM.KARAOKE == "WORD") and "PHRASE" or "WORD"
     if FSM.KARAOKE == "WORD" then
         show_osd("Pause Mode: EVERY WORD", Options.osd_duration + 0.5)

@@ -26,3 +26,11 @@ The system SHALL provide clear OSD feedback when toggling primary modes.
 - **THEN** the system SHALL display "Drum Window: ON".
 - **WHEN** the Drum Window is toggled OFF
 - **THEN** the system SHALL display "Drum Window: OFF".
+
+### Requirement: Conditional Pause Mode Toggle
+The Pause Mode (Karaoke) toggle SHALL be restricted to subtitle tracks that support word-level pausing.
+
+#### Scenario: Toggling Shift+f on non-ASS tracks
+- **WHEN** the user presses `Shift+f`
+- **AND** the active track is NOT an ASS file
+- **THEN** the system SHALL display "X".
