@@ -4285,7 +4285,7 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
     if not dw_mode and not Options.drum_sec_interactivity then return nil, nil end
     
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
-        if osd_y >= line.y_top - 60 and osd_y <= line.y_bottom + 60 then
+        if osd_y >= line.y_top and osd_y <= line.y_bottom then
             local rel_x = osd_x - line.x_start
             if rel_x >= 0 and rel_x <= line.total_width then
                 -- Find closest word in this line
@@ -4560,7 +4560,18 @@ local function dw_tooltip_mouse_update()
     if not subs or #subs == 0 then return end
     
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+    local line_idx, _
+    if FSM.DW_TOOLTIP_HOLDING then
+        -- During RMB hold, keep targeting the primary subtitle lane to avoid
+        -- feedback loops with tooltip hit-zones (which can oscillate on boundaries).
+        if dw_mode then
+            line_idx, _ = dw_hit_test(osd_x, osd_y)
+        else
+            line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+        end
+    else
+        line_idx, _ = lls_hit_test_all(osd_x, osd_y)
+    end
     
     -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
     if FSM.DW_TOOLTIP_FORCE then
