@@ -5700,16 +5700,11 @@ local function cmd_toggle_drum()
         return
     end
 
-    -- [20260511162248] Strict Mode Transition: DW -> DM
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        FSM.DRUM_WINDOW = "OFF"
-        FSM.DW_TOOLTIP_FORCE = false
-        clear_tooltip_overlay("drum-window-close-transition")
-        manage_ui_border_override(false)
-        dw_osd.data = ""
-        dw_osd:update()
-        -- Restore visibility from DW snapshot before enabling DM
-        FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS or FSM.native_sub_vis
+    -- Strict ownership: DM key only controls DM.
+    -- No implicit DW -> DM cross-switching is allowed.
+    if FSM.DRUM == "OFF" and FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Mode: Window [DW] active. Press z to return to Single first.")
+        return
     end
 
     if FSM.DRUM == "OFF" then
@@ -7504,13 +7499,11 @@ function cmd_toggle_drum_window()
 
 
     if FSM.DRUM_WINDOW == "OFF" then
-        -- [20260511162248] Strict Mode Transition: DM -> DW
+        -- Strict ownership: DW key only controls DW.
+        -- No implicit DM -> DW cross-switching is allowed.
         if FSM.DRUM == "ON" then
-            FSM.DRUM = "OFF"
-            FSM.DW_TOOLTIP_FORCE = false
-            clear_tooltip_overlay("drum-off-transition")
-            drum_osd.data = ""
-            drum_osd:update()
+            show_osd("Mode: Drum [DM] active. Press x to return to Single first.")
+            return
         end
 
         -- Update state immediately for responsiveness
