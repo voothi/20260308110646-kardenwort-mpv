@@ -53,11 +53,18 @@ The system SHALL evaluate the current tracks loaded into `FSM.MEDIA_STATE` and a
 - **AND** it SHALL restore native subtitle visibility and position properties from FSM-owned desired state variables.
 
 ### Requirement: Autopause Coordination (AUTOPAUSE / SPACEBAR)
-The system SHALL manage subtitle-boundary pausing autonomously based on FSM state flags. To ensure the audible tail is fully preserved, the autopause trigger MUST evaluate the end-of-subtitle threshold against the index resolved by the Deterministic Focus Sentinel.
+The FSM SHALL coordinate autopause with a deterministic transit-inhibit lifecycle for manual navigation, including set, guarded execution, and clear phases.
 
-#### Scenario: Autopause halts playback at subtitle boundaries
-- **WHEN** `FSM.AUTOPAUSE == "ON"` and playback crosses the threshold of `FSM.last_paused_sub_end` 
-- **THEN** it SHALL evaluate `FSM.SPACEBAR`. If `IDLE`, it pauses the player. If the user overrides via spacebar, the system yields until the next track boundary.
+#### Scenario: Transit inhibit lifecycle for cross-card navigation
+- **WHEN** manual navigation or replay command determines a cross-card transition
+- **THEN** FSM MUST set transit inhibition state before boundary evaluation
+- **AND** master playback loop MUST honor inhibition gates for autopause and PHRASE jerk-back branches
+- **AND** inhibition MUST clear only on deterministic completion criteria.
+
+#### Scenario: Stale inhibit hygiene on unrelated manual jumps
+- **WHEN** manual navigation actions occur outside the original rewind transit path
+- **THEN** FSM MUST clear stale transit inhibition state before applying new navigation state
+- **AND** subsequent boundary decisions MUST use the current navigation context only.
 
 ### Requirement: Tooltip Overlay Mutex (DW_TOOLTIP_MODE)
 The system SHALL render analytical tooltips safely within the overarching Drum Window subsystem.

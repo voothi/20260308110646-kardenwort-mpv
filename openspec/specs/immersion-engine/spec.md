@@ -40,18 +40,37 @@ All temporal thresholds driving the FSM MUST be configurable via `script-opts`.
 - **THEN** A tolerance of `nav_tolerance` (Default: 0.05s) MUST be applied to prevent floating-point errors from causing "stuck" states.
 
 ### Requirement: Navigation-Aware Boundary Suppression
-The immersion engine MUST suppress all autopause triggers and boundary-enforced stops during intentional subtitle navigation.
+The immersion engine MUST suppress autopause boundary triggers and PHRASE overlap jerk-back only during intentional cross-card subtitle navigation transit.
 
-#### Scenario: Subtitle Rewind (Shift+a) in Phrases Mode
-- **WHEN** `FSM.AUTOPAUSE == "ON"`.
-- **AND** The user performs a subtitle jump (`Shift+a` or `Shift+d`).
-- **THEN** All boundary-based pause triggers MUST be suspended for the duration of the jump and a subsequent "settle" period.
-- **AND** The system MUST NOT treat the entry into the target subtitle's padded boundary as a "Natural Progression" pause event.
+#### Scenario: Cross-card rewind transit in Autopause ON + PHRASE
+- **WHEN** `FSM.AUTOPAUSE == "ON"`
+- **AND** the user invokes subtitle navigation (`Shift+a`, `Shift+d`, or replay `s`) that transitions playback to a different subtitle card
+- **THEN** the engine MUST activate transit inhibition
+- **AND** while inhibition is active it MUST suppress both boundary-based autopause stops and PHRASE jerk-back overlap seeks.
 
-#### Scenario: Transient Movie Mode Guard
-- **WHEN** A manual subtitle jump is initiated.
-- **THEN** The engine MUST internally treat the transition as a `MOVIE` mode handover (gapless) to prevent the "jerking" effect of padded boundaries.
-- **AND** Normal `PHRASE` mode behavior MUST be restored once the playhead reaches the target subtitle's effective start.
+#### Scenario: Inside-card rewind retains normal phrase-end pause
+- **WHEN** `FSM.AUTOPAUSE == "ON"`
+- **AND** the user invokes rewind/navigation that remains within the same subtitle card
+- **THEN** cross-card transit inhibition MUST NOT be activated
+- **AND** normal PHRASE end-of-card autopause behavior MUST remain active.
+
+#### Scenario: Transit completion restores standard PHRASE behavior
+- **WHEN** a cross-card transit inhibition is active
+- **AND** transit completion criteria are met by playback position/state
+- **THEN** inhibition MUST clear deterministically
+- **AND** subsequent boundary behavior MUST follow normal PHRASE rules.
+
+#### Scenario: PHRASE temporary MOVIE override under held Space
+- **WHEN** `FSM.AUTOPAUSE == "ON"` and immersion mode is `PHRASE`
+- **AND** `Space` is in held state
+- **THEN** effective boundary computation MUST follow MOVIE-style handover and MUST suppress PHRASE jerk-back seeks
+- **AND** releasing `Space` MUST restore normal PHRASE behavior without changing the configured immersion mode.
+
+#### Scenario: Space tap keeps PHRASE semantics
+- **WHEN** `FSM.AUTOPAUSE == "ON"` and immersion mode is `PHRASE`
+- **AND** `Space` is tapped within the configured tap window (`space_tap_delay`)
+- **THEN** the temporary MOVIE-style override MUST NOT activate
+- **AND** boundary and start behavior MUST remain PHRASE-consistent.
 
 ## HARDENED Requirements
 
