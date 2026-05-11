@@ -133,8 +133,9 @@ The Drum Mode (Mode C) toggle SHALL control the rendering style (single-line vs 
 #### Scenario: Visibility Toggle in Drum Window
 - **GIVEN** the Drum Window (Mode W) is active
 - **WHEN** the user presses `s` or `ы`
-- **THEN** the system SHALL NOT change the subtitle visibility state
-- **AND** it SHALL display a warning OSD indicating that visibility is managed by the Drum Window.
+- **THEN** the system SHALL toggle the FSM visibility intent (`FSM.native_sub_vis` and `FSM.native_sec_sub_vis`)
+- **AND** the Drum Window SHALL remain open and continue rendering its own OSD surface while active
+- **AND** when the Drum Window is closed, native subtitle visibility restoration SHALL reflect the updated FSM intent.
 
 ### Requirement: Automatic Line Wrapping (SRT, Drum & Tooltip)
 The OSD rendering engine SHALL automatically wrap subtitle lines that exceed the visual safe area into multiple vertical lines to prevent text from bleeding off the screen.

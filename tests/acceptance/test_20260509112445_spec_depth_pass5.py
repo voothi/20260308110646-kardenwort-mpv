@@ -292,20 +292,20 @@ class TestSessionPersistence:
     """Tests for spec: session-persistence"""
 
     def test_resume_last_file_script_exists(self):
-        """scripts/resume_last_file.lua must exist for session persistence (session-persistence)."""
+        """scripts/kardenwort/resume.lua must exist for session persistence (session-persistence)."""
         import os
-        assert os.path.exists("scripts/resume_last_file.lua"), (
-            "session-persistence: scripts/resume_last_file.lua not found"
+        assert os.path.exists("scripts/kardenwort/resume.lua"), (
+            "session-persistence: scripts/kardenwort/resume.lua not found"
         )
 
     def test_resume_script_registers_file_events(self):
-        """resume_last_file.lua must register file events to save/restore session (session-persistence)."""
-        with open("scripts/resume_last_file.lua", encoding="utf-8") as f:
+        """resume.lua must register file events to save/restore session (session-persistence)."""
+        with open("scripts/kardenwort/resume.lua", encoding="utf-8") as f:
             content = f.read()
         has_event = ("file-loaded" in content or "shutdown" in content or
                      "end-file" in content or "mp.register_event" in content)
         assert has_event, (
-            "session-persistence: resume_last_file.lua does not register any file lifecycle events"
+            "session-persistence: scripts/kardenwort/resume.lua does not register any file lifecycle events"
         )
 
 

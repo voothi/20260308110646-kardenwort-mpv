@@ -1865,7 +1865,11 @@
 20260511182130 Yes, come on Option B, make a plan, don’t forget that you need to make these renamings in the specification specifically for renaming and terms.
 20260511182903 opsx-apply 20260511182348-kardenwort-restructuring-and-namespace-unification
 20260511184908 Check that everything is done correctly, that there are no errors in the renaming, that the documentation is updated. diff a6fd06705455fa929a7ce357072266427800d916..20260511184302
-
+20260511200338 Check these tests, they failed after renaming and changing the project structure.
+20260511201537 This is a recent change and should remain, change the tests quickly if there is a problem.
+20260511201759 Find and change the specs if necessary.
+20260511201944 What kind of terrible crutch are you putting up, remove it immediately and do it beautifully. scripts\resume_last_file.lua
+20260511202730 I don’t need this adapter, I rolled back these files, try again. No need to add new files.
 
 
 
