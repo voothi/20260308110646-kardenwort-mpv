@@ -419,8 +419,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 |       | Sub | LOOP| Sub | Tgl | Word|
 +-----------------------------------------------------------+
 |   SHIFT   |  Z  |  X  |  C  |  V  |  B  |
-|   Select  | Drum| Drum| Vis | Full| Open|
-|   Extend  | Win | Mode| Tgl | Scrn| Rec |
+|   Select  | DW  | Drum| Vis | Full| Open|
+|   Extend  | Mode| Mode| Tgl | Scrn| Rec |
 +-----------------------------------------------------------+
 |  CTRL  |  GUI  |  ALT  |           SPACEBAR               |
 | (Copy) |       |       |       SMART SPACE (HOLD=PLAY)    |

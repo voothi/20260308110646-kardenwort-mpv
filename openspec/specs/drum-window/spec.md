@@ -233,6 +233,11 @@ To ensure high-performance interaction on dual-track OSDs, the hit-testing pipel
 ### Requirement: Stability and Error Prevention
 The system MUST NOT crash when toggling modes or updating the OSD.
 
-#### Scenario: Opening Drum Window
-- **WHEN** The user toggles the Drum Window (Mode W) ON
+#### Scenario: Opening DW Mode
+- **WHEN** The user toggles the DW Mode (Mode W) ON
 - **THEN** The window must initialize and render without Lua errors, even if it's the first render of the session.
+- **AND** The system SHALL display "Drum Window: ON".
+
+#### Scenario: Closing DW Mode
+- **WHEN** The user toggles the DW Mode (Mode W) OFF
+- **THEN** The system SHALL display "Drum Window: OFF".

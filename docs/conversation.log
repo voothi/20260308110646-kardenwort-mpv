@@ -1852,6 +1852,7 @@
 20260511170929 I need to do in DW mode similar to how we display the Managed by Drum Window inscription when pressing the x key, so that it also happens when pressing the Shift+x, c, Shift+c, Shift+f keys in this DW mode, I need to unify these labels and rename Drum Window: Active (Position Locked) to remove unnecessary noise.
 20260511172400 Change Drum Window: Active to Managed by Drum Window, if it's logical.
 20260511172846 I renamed `Managed by Drum Window` to `X`.
+20260511173651 We have a well-described switching, the appropriate term is used for the `z` key, from it you can understand that we use it to switch between DW modes / SRT or DM? 
 
 
 
