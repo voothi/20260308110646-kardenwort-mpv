@@ -4285,7 +4285,7 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
     if not dw_mode and not Options.drum_sec_interactivity then return nil, nil end
     
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
-        if osd_y >= line.y_top and osd_y <= line.y_bottom then
+        if osd_y >= line.y_top - 60 and osd_y <= line.y_bottom + 60 then
             local rel_x = osd_x - line.x_start
             if rel_x >= 0 and rel_x <= line.total_width then
                 -- Find closest word in this line
@@ -4309,24 +4309,45 @@ end
 local function drum_osd_hit_test(osd_x, osd_y)
     if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then return nil, nil, nil end
     
+    local best_line = nil
+    local min_y_dist = 60 -- Snapping threshold (pixels)
+    
     for _, line in ipairs(FSM.DRUM_HIT_ZONES) do
-        if osd_y >= line.y_top and osd_y <= line.y_bottom then
-            local rel_x = osd_x - line.x_start
-            if rel_x >= 0 and rel_x <= line.total_width then
-                -- Find closest word in this line
-                local best_logical_idx = nil
-                local min_dist = math.huge
-                for _, word in ipairs(line.words) do
-                    local center = word.x_offset + word.width / 2
-                    local dist = math.abs(rel_x - center)
-                    if dist < min_dist then
-                        min_dist = dist
-                        best_logical_idx = word.logical_idx
-                    end
-                end
-                return line.sub_idx, best_logical_idx, line.is_pri
+        -- Horizontal alignment check (strict text bounds)
+        local rel_x = osd_x - line.x_start
+        if rel_x >= 0 and rel_x <= line.total_width then
+            -- Vertical proximity check
+            local dist_y = 0
+            if osd_y < line.y_top then
+                dist_y = line.y_top - osd_y
+            elseif osd_y > line.y_bottom then
+                dist_y = osd_y - line.y_bottom
+            end
+            
+            -- Prioritize direct hits (dist_y == 0) or the closest line within threshold
+            if dist_y < min_y_dist then
+                min_y_dist = dist_y
+                best_line = line
+                if dist_y == 0 then break end -- Early exit on direct hit
             end
         end
+    end
+
+    if best_line then
+        local line = best_line
+        local rel_x = osd_x - line.x_start
+        -- Find closest word in this line
+        local best_logical_idx = nil
+        local min_dist = math.huge
+        for _, word in ipairs(line.words) do
+            local center = word.x_offset + word.width / 2
+            local dist = math.abs(rel_x - center)
+            if dist < min_dist then
+                min_dist = dist
+                best_logical_idx = word.logical_idx
+            end
+        end
+        return line.sub_idx, best_logical_idx, line.is_pri
     end
     return nil, nil, nil
 end
@@ -8293,6 +8314,18 @@ mp.register_script_message("lls-test-search-mode-set", function(state)
         FSM.SEARCH_CURSOR = 0
         render_search()
     end
+end)
+
+mp.register_script_message("lls-test-hit-test", function(x_str, y_str)
+    local x, y = tonumber(x_str), tonumber(y_str)
+    local l, w, p = drum_osd_hit_test(x, y)
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.hit_test_res = { line = l, word = w, is_pri = p }
+end)
+
+mp.register_script_message("lls-test-query-hit-zones", function()
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.drum_hit_zones = FSM.DRUM_HIT_ZONES
 end)
 
 mp.register_script_message("lls-test-fuzzy-match", function(query, target)

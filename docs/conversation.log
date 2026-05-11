@@ -1808,7 +1808,7 @@
 20260511023833 You’re absolutely right, and this is now corrected. I changed the override so PHRASE behaves like MOVIE only on a real hold, not on a quick tap: In lls_core.lua (line 681) and lls_core.lua (line 5442), the temporary override now requires: physical hold flag, and hold_elapsed > space_tap_delay So a single quick Space press stays PHRASE-consistent (no MOVIE-style boundary swap). Hold behavior remains as requested. I also aligned tests/spec notes: Structural test tightened in test_20260509134903_timeseek_transit.py (line 237) to require Options.space_tap_delay gating. Spec nuance added in immersion-engine/spec.md (line 30). Verification updated in verification-notes.md (line 43). Validation run: python -m pytest -q tests/acceptance/test_20260509134903_timeseek_transit.py -k "space_hold_phrase_movie_override or jerkback_suppressed_while_space_hold_phrase_movie_override_active or Structural" Result: 17 passed, 25 deselected
 20260511023650 Okay, now all cases are working, I’m checking all the tests
 20260511030348 python -m pytest tests/acceptance/ -v =========================== 671 passed in 743.15s (0:12:23) ===========================
-
+20260511100140 # The operation of RMB in the lower window of the main subtitles in dm and in dw is different, in dw it works between the lines, and in dm you need to call it strictly above the text, otherwise it will not be called if you click between the lines. ## Description [[20260509201540-различается-работа-по-rmb|Различается работа по RMB в нижнем окне основных субтитров dm и в dw, в dw работает между строк, а в dm нужно строго над текстом вызывать, иначе не вызовется, если нажать между строк.]] ## MOC. ## Notes
 
 
 
