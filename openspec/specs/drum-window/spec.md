@@ -181,9 +181,19 @@ The system MUST automatically perform a full selection reset (equivalent to Stag
 ### Requirement: Drum Window Input Blocking
 Subtitle positioning controls MUST be intercepted and suppressed when the Drum Window is active to prevent accidental visual disruption of the high-precision interface.
 
-#### Scenario: Pressing 'r' while Drum Window is open
+#### Scenario: Pressing positioning keys while Drum Window is open
 - **WHEN** the Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
-- **THEN** the 'r' key MUST be blocked and display a "Drum Window: Active (Position Locked)" message.
+- **AND** the user attempts to adjust subtitle positioning (e.g., `r`, `t`, `R`, `T`)
+- **THEN** the system SHALL display "Drum Window: Active".
+
+### Requirement: Unified Drum Window Management Inscriptions
+The system SHALL provide consistent feedback when global keys that are managed or suppressed by the Drum Window are pressed.
+
+#### Scenario: Pressing managed global keys in DW mode
+- **WHEN** the Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
+- **AND** the user presses any of the following keys: `x`, `Shift+x`, `c`, `Shift+c`, `Shift+f`
+- **THEN** the system SHALL display a "Managed by Drum Window" OSD message.
+- **AND** the default action for these keys SHALL be suppressed.
 
 ### Requirement: Cross-Mode Cursor Synchronization
 The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mode C) and Drum Window (Mode W).

@@ -5649,6 +5649,10 @@ local function cmd_toggle_autopause()
 end
 
 local function cmd_toggle_karaoke()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     FSM.KARAOKE = (FSM.KARAOKE == "WORD") and "PHRASE" or "WORD"
     if FSM.KARAOKE == "WORD" then
         show_osd("Pause Mode: EVERY WORD", Options.osd_duration + 0.5)
@@ -7646,6 +7650,10 @@ end
 
 
 local function cmd_toggle_sub_vis()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     local nxt = not FSM.native_sub_vis
     FSM.native_sub_vis = nxt
     FSM.native_sec_sub_vis = nxt
@@ -7669,6 +7677,10 @@ local function cmd_toggle_sub_vis()
 end
 
 local function cmd_cycle_sec_pos()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     if Tracks.sec.id == 0 then
         show_osd("Secondary Sub Pos: No secondary subtitle loaded")
         return
@@ -7692,7 +7704,7 @@ end
 
 local function cmd_adjust_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Drum Window: Active (Position Locked)")
+        show_osd("Drum Window: Active")
         return
     end
     local p = mp.get_property_number("sub-pos", 95)
@@ -7701,7 +7713,7 @@ end
 
 local function cmd_adjust_sec_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Drum Window: Active (Position Locked)")
+        show_osd("Drum Window: Active")
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)
@@ -7711,6 +7723,10 @@ local function cmd_adjust_sec_sub_pos(delta)
 end
 
 local function cmd_cycle_sec_sid()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("Managed by Drum Window")
+        return
+    end
     FSM.native_sec_sub_vis = true
     -- [20260509180045] Synchronous Suppression: Prevent flash of native subs before next tick.
     local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
