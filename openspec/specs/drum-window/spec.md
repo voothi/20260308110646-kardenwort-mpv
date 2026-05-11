@@ -23,7 +23,7 @@ The Drum Window SHALL ensure that any active text selection, word-highlight, or 
 
 #### Scenario: Wheel Scroll Selection Stability
 - **WHEN** the user is actively dragging the mouse to select text (MBTN_LEFT down)
-- **AND** the user scrokardenwort the mouse wheel (WHEEL_UP or WHEEL_DOWN)
+- **AND** the user scrolls the mouse wheel (WHEEL_UP or WHEEL_DOWN)
 - **THEN** the system SHALL immediately update the selection range to include the word now under the mouse cursor at its new viewport position.
 - **AND** the selection SHALL NOT be cleared or disrupted by the scroll event.
 
@@ -247,4 +247,5 @@ The system MUST NOT crash when toggling modes or updating the OSD.
 #### Scenario: Closing DW Mode
 - **WHEN** The user toggles the DW Mode (Mode W) OFF
 - **THEN** The system SHALL display "Drum Window: OFF".
+
 

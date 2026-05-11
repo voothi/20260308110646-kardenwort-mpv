@@ -10,7 +10,7 @@ This spec documents the error-handling and stability requirements for `kardenwor
 ## Requirements
 
 ### Requirement: FSM State Consistency on Toggle Failure
-If `cmd_toggle_drum_window` throws a Lua error after `FSM.DRUM_WINDOW` has already been mutated, the FSM SHALL return to its pre-call state so that subsequent toggle cakardenwort behave correctly.
+If `cmd_toggle_drum_window` throws a Lua error after `FSM.DRUM_WINDOW` has already been mutated, the FSM SHALL return to its pre-call state so that subsequent toggle calls behave correctly.
 
 #### Scenario: Error thrown after DOCKED state is set
 - **WHEN** a toggle invocation mutates `FSM.DRUM_WINDOW` to `"DOCKED"`
@@ -71,4 +71,5 @@ A user who intentionally deletes their TSV file SHALL have visibility that the s
 - **AND** `load_anki_tsv` is next invoked
 - **THEN** a log message SHALL be emitted: `[Kardenwort] TSV file missing - attempting auto-creation: <path>`
 - **AND** the newly created file SHALL contain only the header row and no user data
+
 

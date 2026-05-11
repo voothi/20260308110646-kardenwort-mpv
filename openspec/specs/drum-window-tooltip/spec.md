@@ -33,7 +33,7 @@ When a tooltip is visible (toggled via keyboard or pinned via mouse), it SHALL d
 
 #### Scenario: Tooltip follows scrolling text
 - **WHEN** a translation tooltip is visible for a specific subtitle line
-- **AND** the user scrokardenwort the Drum Window (e.g., via wheel, arrow keys, or playback)
+- **AND** the user scrolls the Drum Window (e.g., via wheel, arrow keys, or playback)
 - **THEN** the tooltip SHALL move vertically on the screen, maintaining its alignment with the horizontal centerline of the target subtitle line.
 
 ### Requirement: Context-Sensitive Tooltip Targeting
@@ -61,7 +61,7 @@ The toggled keyboard tooltip ('e') SHALL prioritize different text elements base
 - **GIVEN** the target subtitle (active or cursor) is currently scrolled off-screen
 - **WHEN** the user toggles the keyboard tooltip ON ('e')
 - **THEN** the tooltip SHALL NOT appear on screen
-- **BUT** the system SHALL remember the forced state, so it appears automatically once the target line scrokardenwort back into view.
+- **BUT** the system SHALL remember the forced state, so it appears automatically once the target line scrolls back into view.
 
 ### Requirement: RMB Interaction Preservation
 The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns for tooltips.
@@ -193,3 +193,4 @@ The tooltip system SHALL be eligible for activation whenever the primary subtitl
 - **AND** `osd_interactivity` is true
 - **WHEN** the user hovers over a subtitle line in SRT mode
 - **THEN** the tooltip SHALL be eligible for display.
+

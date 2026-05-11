@@ -1,7 +1,7 @@
 ## 1. Preparation & Infrastructure
 
 - [ ] 1.1 Update `tests/ipc/mpv_session.py` to target `scripts/kardenwort/main.lua` and use script-name `kardenwort`.
-- [ ] 1.2 Update `tests/ipc/mpv_ipc.py` to replace `kardenwort_core` with `kardenwort` in all `script-message-to` cakardenwort.
+- [ ] 1.2 Update `tests/ipc/mpv_ipc.py` to replace `kardenwort_core` with `kardenwort` in all `script-message-to` calls.
 - [ ] 1.3 Perform a global search and replace in the `tests/` directory for `kardenwort_core` -> `kardenwort`.
 
 ## 2. Filesystem Restructuring
@@ -30,4 +30,5 @@
 - [ ] 5.1 Run the full acceptance test suite (`pytest`) to verify all 160+ tests pass with the new name.
 - [ ] 5.2 Update `README.md` with the new installation instructions and breaking change notice.
 - [ ] 5.3 Update `project-terminology-and-historicity/spec.md` with the new legacy mappings.
+
 

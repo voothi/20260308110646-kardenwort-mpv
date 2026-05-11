@@ -45,7 +45,7 @@ The system SHALL expose a set of pure utility functions in a stand-alone Lua mod
 The system SHALL provide a cross-platform Python helper (`MpvSession`) that boots mpv in a headless configuration suitable for unattended runs on Windows, Linux, and macOS.
 
 #### Scenario: Booting a headless test instance
-- **WHEN** the test harness instantiates `MpvSession` with a fixture path and cakardenwort `start()`
+- **WHEN** the test harness instantiates `MpvSession` with a fixture path and calls `start()`
 - **THEN** mpv SHALL launch with no video window, no terminal interaction, no user-config bleed-through, and an IPC server on a platform-appropriate path (Win32 named pipe on Windows, Unix socket on Linux/macOS).
 
 #### Scenario: Tearing down after a crash
@@ -71,7 +71,7 @@ The system SHALL provide a cross-platform Python IPC client that correlates JSON
 The script SHALL expose curated semantic state via the `user-data/Kardenwort/state` and `user-data/Kardenwort/render` properties, populated on demand by IPC `script-message` triggers.
 
 #### Scenario: Querying playback state
-- **WHEN** the test harness sends `script-message-to kardenwort_core kardenwort-state-query` and reads `user-data/Kardenwort/state`
+- **WHEN** the test harness sends `script-message-to kardenwort kardenwort-state-query` and reads `user-data/Kardenwort/state`
 - **THEN** the property SHALL contain a JSON object with stable, semantic field names (`autopause`, `drum_mode`, `playback_state`, etc.) and SHALL NOT expose raw FSM internal field names directly.
 
 #### Scenario: Probe is dormant in production
@@ -114,7 +114,9 @@ The automated test suite MUST use environment constants that align with producti
 The IPC test harness MUST be able to resolve and execute functions defined as methods of the `KardenwortProbe` table in the Lua global scope.
 
 #### Scenario: Querying KardenwortProbe:get_state()
-- **WHEN** the test harness cakardenwort a function named `get_state` via the probe.
+- **WHEN** the test harness calls a function named `get_state` via the probe.
 - **THEN** the harness MUST first look for `_G.get_state` and, if missing, fallback to `_G.KardenwortProbe.get_state`.
+
+
 
 

@@ -10,5 +10,6 @@ Exposing internal functions as script-bindings allows for more flexible and reli
 
 ## Verification
 - Use `mpv --input-test` to verify the bindings are recognized.
-- Manually trigger the bindings via the console (`script-binding kardenwort_core/kardenwort-seek_next`) and verify the video jumps to the next subtitle.
+- Manually trigger the bindings via the console (`script-binding kardenwort/kardenwort-seek_next`) and verify the video jumps to the next subtitle.
+
 

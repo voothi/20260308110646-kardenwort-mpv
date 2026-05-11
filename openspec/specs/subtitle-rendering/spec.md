@@ -35,7 +35,7 @@ The system SHALL ensure that subtitle centering logic (e.g., `get_center_index`)
 
 ### Requirement: Precision-Aware Active Highlighting
 The system SHALL ensure that the "active" subtitle (highlighted in white) remains consistently highlighted even during precise navigation or seek operations where the player position might land slightly outside the nominal `[start_time, end_time]` range (e.g., in the temporal gap between two subtitles).
-- **Nearest-Neighbor Grounding**: If the current player timestamp fakardenwort into a gap between two subtitles, the centering logic MUST identify and return the index of the subtitle whose temporal boundary (start or end) is nearest to the player position.
+- **Nearest-Neighbor Grounding**: If the current player timestamp falls into a gap between two subtitles, the centering logic MUST identify and return the index of the subtitle whose temporal boundary (start or end) is nearest to the player position.
 - **Visual Feedback**: This prevents the active highlight from "flickering" or disappearing during frame-by-frame navigation or precise seeking to subtitle boundaries.
 
 #### Scenario: Seeking to Subtitle Start
@@ -198,4 +198,5 @@ Drum Mode tooltip rendering SHALL obey effective subtitle visibility and media c
 - **AND** Drum Mode primary subtitle tooltip rendering is otherwise eligible
 - **THEN** the tooltip overlay SHALL remain available for primary subtitle interactions
 - **AND** tooltip content resolution SHALL NOT depend on current secondary subtitle visibility state.
+
 

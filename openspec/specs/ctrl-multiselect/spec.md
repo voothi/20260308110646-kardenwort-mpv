@@ -54,10 +54,10 @@ When multiple distinct ranges or words are paired, the system SHALL use the `Sma
 - **THEN** the resulting term MUST be "Marken-Discount".
 
 ### Requirement: Highlight Stability
-Selections in the "Cool Path" (Neon Pink) SHALL maintain their visibility and logical anchoring even if the user scrokardenwort the Drum Window or performs a seek operation, up until the moment of export or discard.
+Selections in the "Cool Path" (Neon Pink) SHALL maintain their visibility and logical anchoring even if the user scrolls the Drum Window or performs a seek operation, up until the moment of export or discard.
 
 #### Scenario: Scrolling preserves highlights
-- **WHEN** the user scrokardenwort the window
+- **WHEN** the user scrolls the window
 - **THEN** existing pink highlights SHALL remain at their logical positions.
 
 ### Requirement: Configurable Palette
@@ -76,4 +76,5 @@ Selection boundary checks SHALL use an epsilon-based comparison (`logical_cmp`) 
 - **GIVEN** a word index `1.1` and another index `1.1` from a different tokenization pass
 - **WHEN** comparing for equality in `get_dw_selection_bounds`
 - **THEN** the system SHALL use `logical_cmp(a, b)` (which allows for `0.0001` epsilon) to determine if they refer to the same word.
+
 

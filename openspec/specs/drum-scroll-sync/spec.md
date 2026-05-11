@@ -8,20 +8,20 @@ When manual drum scrolling is active, lower and upper subtitle lanes SHALL move 
 
 #### Scenario: Primary-only scroll behavior
 - **GIVEN** only primary subtitles are active
-- **WHEN** the user scrokardenwort in drum mode
+- **WHEN** the user scrolls in drum mode
 - **THEN** the viewport SHALL scroll relative to the active primary index
 - **AND** manual scroll state SHALL remain stable until explicit follow-player reset.
 
 #### Scenario: Dual-track synchronized scroll
 - **GIVEN** primary and secondary subtitle tracks are both active
 - **AND** manual viewport mode is active (`DW_FOLLOW_PLAYER == false`)
-- **WHEN** the user scrokardenwort by one step
+- **WHEN** the user scrolls by one step
 - **THEN** both lanes SHALL shift by an equivalent logical viewport offset
 - **AND** neither lane SHALL remain pinned to playhead-follow mode independently.
 
 #### Scenario: Secondary-only fallback
 - **GIVEN** only secondary subtitles are active
-- **WHEN** the user scrokardenwort in drum mode
+- **WHEN** the user scrolls in drum mode
 - **THEN** the viewport SHALL scroll relative to the active secondary index without requiring a primary index anchor.
 
 ### Requirement: Highlight and Active-Line Synchrony During Scroll
@@ -29,7 +29,7 @@ Manual viewport scrolling SHALL preserve synchronized visual semantics across bo
 
 #### Scenario: Synchronized emphasis and highlighting
 - **GIVEN** highlighted tokens are visible on both subtitle lanes
-- **WHEN** the user scrokardenwort the viewport
+- **WHEN** the user scrolls the viewport
 - **THEN** active-line emphasis SHALL remain tied to each lane's active index
 - **AND** semantic highlights SHALL remain tied to their original logical tokens
 - **AND** no highlight ownership transfer SHALL occur because of viewport movement.
@@ -62,4 +62,5 @@ The change SHALL be validated against baseline commit `4c634ed422844c475293dac07
 - Dual-track manual scrolling keeps equivalent logical offset between lanes.
 - Primary-only and secondary-only fallback scenarios both work as specified.
 - Scroll-only interactions do not alter autopause transitions in `MOVIE` or `PHRASE`.
+
 

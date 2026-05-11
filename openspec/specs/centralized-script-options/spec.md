@@ -4,7 +4,7 @@
 Decoupling configuration from code is essential for user-friendly customization.
 ## Requirements
 - All adjustable parameters SHALL be moved from `kardenwort/main.lua` to `mpv.conf`.
-- The `script-opts-append` syntax SHALL be used for the `kardenwort_core` identifier.
+- The `script-opts-append` syntax SHALL be used for the `kardenwort` identifier.
 - Parameters SHALL include AutoPause thresholds, Drum Mode settings, Immersion Modes, and UI toggles.
 
 ### Requirement: Full Configuration Parity
@@ -17,5 +17,7 @@ Decoupling configuration from code is essential for user-friendly customization.
 
 ## Verification
 - Verify that changes made to `script-opts` in `mpv.conf` are reflected in script behavior.
-- Confirm that `kardenwort/main.lua` cakardenwort `mp.options.read_options`.
+- Confirm that `kardenwort/main.lua` calls `mp.options.read_options`.
+
+
 

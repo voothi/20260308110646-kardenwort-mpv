@@ -70,7 +70,7 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Aural Buffer** | Timing | The temporal padding (`pause_padding`) added before autopause to prevent syllable clipping. |
 | **Consolas Calibration** | Rendering | The font-specific multipliers (`char_width`, `line_height`) used for pixel-perfect hit-testing. |
 | **Viewport Margin** | UI | The number of context lines kept visible during vertical scrolling (`scrolloff`). |
-| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrokardenwort. |
+| **scrolloff** | UI | The "Indentation Field" (default 3 lines) at the top/bottom before the viewport scrolls. |
 | **Fuzzy Search** | Search | Logic allowing typos and non-contiguous character matching in the Search HUD. |
 | **Order-Independent Search**| Search | Keyword matching that ignores the sequence of words in the query. |
 | **Query Buffer** | Search | The active text input field in the Search HUD. |
@@ -122,4 +122,5 @@ To prevent rendering ambiguity between ASS (BGR) and Web (RGB) hex formats, all 
 
 ### Requirement: Linear Evolution Ledger
 The project SHALL maintain a flat "Correspondence Table" for all renamings to allow the AI to trace chains of identity (e.g., A → B → C).
+
 
