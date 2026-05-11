@@ -8289,6 +8289,44 @@ mp.register_script_message("lls-test-dw-tooltip-pin", function(arg1)
     cmd_dw_tooltip_pin(tbl)
 end)
 
+mp.register_script_message("lls-test-dw-tooltip-pin-at", function(x_str, y_str, arg3)
+    local x, y = tonumber(x_str), tonumber(y_str)
+    if not x or not y then return end
+    local tbl = { event = "down" }
+    if arg3 and arg3:sub(1,1) == "{" then
+        local ok, parsed = pcall(utils.parse_json, arg3)
+        if ok and parsed then tbl = parsed end
+    end
+    local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
+    local drum_mode = is_osd_tooltip_mode_eligible()
+    if not dw_mode and not drum_mode then return end
+    if tbl.event == "down" then
+        FSM.DW_TOOLTIP_FORCE = false
+        FSM.DW_TOOLTIP_HOLDING = true
+        local subs = Tracks.pri.subs
+        if not subs or #subs == 0 then return end
+        local line_idx
+        if dw_mode then
+            line_idx = select(1, dw_hit_test(x, y))
+        else
+            line_idx = select(1, lls_hit_test_all(x, y))
+        end
+        if line_idx then
+            FSM.DW_TOOLTIP_LOCKED_LINE = -1
+            FSM.DW_TOOLTIP_LINE = line_idx
+            local py = get_tooltip_line_y(line_idx, y)
+            if py then py = math.floor(py + 0.5) end
+            local ass = draw_dw_tooltip(subs, line_idx, py)
+            if ass ~= dw_tooltip_osd.data then
+                dw_tooltip_osd.data = ass
+                dw_tooltip_osd:update()
+            end
+        end
+    elseif tbl.event == "up" then
+        FSM.DW_TOOLTIP_HOLDING = false
+    end
+end)
+
 mp.register_script_message("lls-test-dw-key", function(key)
     local shift = key:find("Shift%+") ~= nil
     local ctrl = key:find("Ctrl%+") ~= nil

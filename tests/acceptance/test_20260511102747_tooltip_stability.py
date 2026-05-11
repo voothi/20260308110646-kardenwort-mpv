@@ -1,6 +1,40 @@
 import pytest
 import time
 import json
+from tests.ipc.mpv_ipc import query_lls_state
+
+"""
+Feature ZID: 20260511102747
+Test Creation ZID: 20260511115438
+Feature: Cross-mode tooltip hold stability
+Ensures hold-hover tooltip behavior is stable in both DRUM_WINDOW=OFF (drum mode)
+and DRUM_WINDOW=DOCKED (dw mode).
+"""
+
+
+def _query_tooltip_state(ipc):
+    ipc.command(["script-message", "lls-test-query-tooltip-state"])
+    time.sleep(0.2)
+    raw = ipc.get_property("user-data/lls-test-tooltip-state")
+    return json.loads(raw) if raw else {}
+
+
+def _assert_stable_hold_payload(ipc, x, y, samples=5):
+    ipc.command(["script-message", "lls-test-dw-tooltip-pin-at", str(x), str(y), '{"event":"down"}'])
+    time.sleep(0.5)
+    first = _query_tooltip_state(ipc)
+    assert first.get("holding") is True, f"Expected holding=True after down, got: {first}"
+    payloads = [first.get("data", "")]
+    for _ in range(samples - 1):
+        time.sleep(0.2)
+        payloads.append(_query_tooltip_state(ipc).get("data", ""))
+    ipc.command(["script-message", "lls-test-dw-tooltip-pin-at", str(x), str(y), '{"event":"up"}'])
+    time.sleep(0.1)
+    released = _query_tooltip_state(ipc)
+    assert released.get("holding") is False, f"Expected holding=False after up, got: {released}"
+    assert payloads[0] != "", "Tooltip was not rendered during hold"
+    assert len(set(payloads)) == 1, f"Tooltip payload changed during hold: {len(set(payloads))} variants"
+
 
 @pytest.mark.acceptance
 def test_20260511102747_tooltip_stability_fixed_pos(mpv_fragment2):
@@ -97,3 +131,38 @@ def test_20260511102747_y_rounding_stability(mpv_fragment2):
 
     assert snapshots[0] != "", "Tooltip was not rendered for stability sampling"
     assert len(set(snapshots)) == 1, "Tooltip ASS payload changed across stable samples"
+
+
+@pytest.mark.acceptance
+def test_20260511115438_cross_mode_hold_hover_stability(mpv_fragment2):
+    """
+    Regression test: hold-hover tooltip must remain stable in both drum and dw modes.
+    """
+    ipc = mpv_fragment2.ipc
+
+    ipc.command(["seek", "7.0", "absolute"])
+    time.sleep(1.0)
+
+    # Mode A: drum (DRUM_WINDOW=OFF, DRUM=ON)
+    ipc.command(["script-message-to", "lls_core", "lls-drum-mode-set", "ON"])
+    time.sleep(0.5)
+    x, y = _pick_hit_zone_center(ipc)
+    _assert_stable_hold_payload(ipc, x, y)
+
+    # Mode B: dw (DRUM_WINDOW=DOCKED)
+    ipc.command(["script-message-to", "lls_core", "lls-drum-mode-set", "OFF"])
+    time.sleep(0.3)
+    ipc.command(["script-message", "lls-test-dw-toggle"])
+    time.sleep(1.0)
+    x, y = _pick_hit_zone_center(ipc)
+    _assert_stable_hold_payload(ipc, x, y)
+def _pick_hit_zone_center(ipc):
+    ipc.command(["script-message", "lls-test-query-hit-zones"])
+    time.sleep(0.2)
+    state = query_lls_state(ipc)
+    zones = state.get("test_data", {}).get("drum_hit_zones", [])
+    assert zones, "No drum hit-zones available"
+    z = zones[0]
+    x = z["x_start"] + (z["total_width"] / 2.0)
+    y = (z["y_top"] + z["y_bottom"]) / 2.0
+    return x, y
