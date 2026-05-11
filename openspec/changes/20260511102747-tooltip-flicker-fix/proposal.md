@@ -8,6 +8,10 @@ The tooltip window in Drum Window (DW) mode exhibits cyclical flickering when ho
 - **Cache Instability**: If the main DW layout re-calculates Y-positions with sub-pixel differences (e.g., due to odd total heights), the tooltip cache will miss, leading to re-rendering and slight position shifts.
 - **Mechanism**: The "cyclically continuous" flashing described by the user matches the 20Hz master tick rate.
 
+## Evidence
+![Flickering Evidence](file:///C:/Users/voothi/Videos/Recording%202026-05-11%20105230.mp4)
+The video demonstrates the continuous flickering of the tooltip OSD when the mouse is held stationary over the word "die" in Fragment2.
+
 ## Proposed Changes
 
 ### 1. Guard OSD Updates
