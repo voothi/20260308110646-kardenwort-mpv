@@ -3891,7 +3891,7 @@ local function draw_dw(subs, view_center, active_idx)
     local lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
-        FSM.DW_LINE_Y_MAP[i] = current_y + (entry.height / 2)
+        FSM.DW_LINE_Y_MAP[i] = math.floor(current_y + (entry.height / 2) + 0.5)
         current_y = current_y + entry.height
         if layout_i < #layout then
             local is_active = (entry.sub_idx == active_idx)
@@ -4457,6 +4457,7 @@ local function dw_mouse_auto_scroll()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
+    Diagnostic.debug("TOOLTIP PIN: event=" .. tostring(tbl.event))
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local drum_mode = is_osd_tooltip_mode_eligible()
     if not dw_mode and not drum_mode then return end
@@ -4479,9 +4480,12 @@ local function cmd_dw_tooltip_pin(tbl)
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
             local y = get_tooltip_line_y(line_idx, osd_y)
+            if y then y = math.floor(y + 0.5) end
             local ass = draw_dw_tooltip(subs, line_idx, y)
-            dw_tooltip_osd.data = ass
-            dw_tooltip_osd:update()
+            if ass ~= dw_tooltip_osd.data then
+                dw_tooltip_osd.data = ass
+                dw_tooltip_osd:update()
+            end
             Diagnostic.debug("TOOLTIP ROUTE: PIN->" .. (dw_mode and "DW" or "DRUM") .. " line=" .. tostring(line_idx))
         end
     elseif tbl.event == "up" then
@@ -4533,9 +4537,14 @@ local function cmd_dw_tooltip_toggle()
         local y = get_tooltip_line_y(line_idx, nil)
         if not y then
             y = 540 -- center of 1080p OSD
+        else
+            y = math.floor(y + 0.5)
         end
-        dw_tooltip_osd.data = draw_dw_tooltip(subs, line_idx, y)
-        dw_tooltip_osd:update()
+        local ass = draw_dw_tooltip(subs, line_idx, y)
+        if ass ~= dw_tooltip_osd.data then
+            dw_tooltip_osd.data = ass
+            dw_tooltip_osd:update()
+        end
     end
 end
 
@@ -4567,8 +4576,12 @@ local function dw_tooltip_mouse_update()
             FSM.DW_TOOLTIP_LINE = target_l
             local y = get_tooltip_line_y(target_l, nil)
             if y then
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, y)
-                dw_tooltip_osd:update()
+                y = math.floor(y + 0.5)
+                local new_ass = draw_dw_tooltip(subs, target_l, y)
+                if new_ass ~= dw_tooltip_osd.data then
+                    dw_tooltip_osd.data = new_ass
+                    dw_tooltip_osd:update()
+                end
             else
                 clear_tooltip_overlay("forced-target-missing")
             end
@@ -4604,10 +4617,14 @@ local function dw_tooltip_mouse_update()
         if target_l and target_l ~= -1 then
             local target_y = get_tooltip_line_y(target_l, nil)
             if target_y then
+                target_y = math.floor(target_y + 0.5)
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
-                FSM.DW_TOOLTIP_LINE = target_l
-                dw_tooltip_osd.data = draw_dw_tooltip(subs, target_l, target_y)
-                dw_tooltip_osd:update()
+                local new_ass = draw_dw_tooltip(subs, target_l, target_y)
+                if new_ass ~= dw_tooltip_osd.data then
+                    FSM.DW_TOOLTIP_LINE = target_l
+                    dw_tooltip_osd.data = new_ass
+                    dw_tooltip_osd:update()
+                end
             else
                 -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
                 if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
@@ -8248,6 +8265,19 @@ mp.register_script_message("lls-test-set-option", function(name, val)
     flush_rendering_caches()
 end)
 
+mp.register_script_message("lls-test-dw-toggle", function()
+    cmd_toggle_drum_window()
+end)
+
+mp.register_script_message("lls-test-dw-tooltip-pin", function(arg1)
+    local tbl = { event = "down" }
+    if arg1 and arg1:sub(1,1) == "{" then
+        local ok, parsed = pcall(utils.parse_json, arg1)
+        if ok and parsed then tbl = parsed end
+    end
+    cmd_dw_tooltip_pin(tbl)
+end)
+
 mp.register_script_message("lls-test-dw-key", function(key)
     local shift = key:find("Shift%+") ~= nil
     local ctrl = key:find("Ctrl%+") ~= nil
@@ -8321,6 +8351,16 @@ mp.register_script_message("lls-test-hit-test", function(x_str, y_str)
     local l, w, p = drum_osd_hit_test(x, y)
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.hit_test_res = { line = l, word = w, is_pri = p }
+end)
+
+mp.register_script_message("lls-test-query-tooltip-state", function()
+    local res = {
+        data = dw_tooltip_osd.data,
+        line = FSM.DW_TOOLTIP_LINE,
+        holding = FSM.DW_TOOLTIP_HOLDING,
+        force = FSM.DW_TOOLTIP_FORCE
+    }
+    mp.set_property("user-data/lls-test-tooltip-state", utils.format_json(res))
 end)
 
 mp.register_script_message("lls-test-query-hit-zones", function()
