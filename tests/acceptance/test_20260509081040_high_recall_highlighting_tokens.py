@@ -235,7 +235,7 @@ class TestOpenSpecCompliance:
         state = robust_query_state(ipc)
         assert state['native_sec_sub_pos'] == 40
 
-    def test_lls_mouse_input_lockout(self, mpv):
+    def test_kardenwort_mouse_input_lockout(self, mpv):
         """Verify mouse lockout after keyboard interaction (kardenwort-mouse-input)."""
         ipc = mpv.ipc
         # Trigger keyboard move

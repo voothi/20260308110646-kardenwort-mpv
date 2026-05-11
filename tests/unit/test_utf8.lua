@@ -1,5 +1,5 @@
 local lu = require("luaunit")
-local U  = require("lls_utils")
+local U  = require("kardenwort.utils")
 
 TestUtf8 = {}
 

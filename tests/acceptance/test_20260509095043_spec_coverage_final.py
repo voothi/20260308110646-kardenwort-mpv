@@ -296,7 +296,7 @@ class TestCentralizedScriptConfig:
         """mpv.conf must contain script-opts-append entries for kardenwort."""
         with open("mpv.conf", encoding="utf-8") as f:
             content = f.read()
-        assert "script-opts-append=lls" in content or "script-opts-append=kardenwort" in content, (
+        assert "script-opts-append=kardenwort" in content, (
             "mpv.conf does not contain script-opts-append entries for kardenwort"
         )
 
@@ -499,7 +499,7 @@ class TestKeybindingConsolidation:
         assert len(content.strip()) > 0, "input.conf is empty"
 
     def test_script_binding_commands_in_input_conf(self):
-        """input.conf must use 'script-binding' to invoke lls commands."""
+        """input.conf must use 'script-binding' to invoke kardenwort commands."""
         with open("input.conf", encoding="utf-8") as f:
             content = f.read()
         assert "script-binding" in content, (

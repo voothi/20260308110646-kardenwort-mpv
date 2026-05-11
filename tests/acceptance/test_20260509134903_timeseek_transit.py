@@ -79,7 +79,7 @@ def _seek_time(ipc, direction):
 
 def _func_body(src, name):
     """Return the body of the Lua function `name` up to the next top-level function."""
-    for prefix in (f"local function {name}", f"function LlsProbe.{name}", f"function {name}"):
+    for prefix in (f"local function {name}", f"function KardenwortProbe.{name}", f"function {name}"):
         idx = src.find(prefix)
         if idx != -1:
             break
@@ -89,7 +89,7 @@ def _func_body(src, name):
 
 
 def _set_padding(ipc, pad_start_ms, pad_end_ms):
-    """Set audio_padding_start/end via IPC (options.read_options(Options,'lls') is wired)."""
+    """Set audio_padding_start/end via IPC (options.read_options(Options,'kardenwort') is wired)."""
     ipc.command(['set_property', 'options/kardenwort-audio_padding_start', str(pad_start_ms)])
     ipc.command(['set_property', 'options/kardenwort-audio_padding_end', str(pad_end_ms)])
     time.sleep(0.12)
@@ -208,7 +208,7 @@ class TestTimseekTransitStructural:
         )
 
     def test_state_snapshot_exposes_rewind_transit(self):
-        """LlsProbe._snapshot must expose rewind transit state fields."""
+        """KardenwortProbe._snapshot must expose rewind transit state fields."""
         src = _src()
         assert "rewind_transit_active" in src, "rewind_transit_active not in state snapshot"
         assert "rewind_transit_until" in src, "rewind_transit_until not in state snapshot"
@@ -253,7 +253,7 @@ class TestTimseekTransitStructural:
         )
 
     def test_state_snapshot_exposes_last_paused_sub_end(self):
-        """LlsProbe._snapshot must expose last_paused_sub_end for integration testing."""
+        """KardenwortProbe._snapshot must expose last_paused_sub_end for integration testing."""
         assert "last_paused_sub_end" in _func_body(_src(), "_snapshot"), (
             "last_paused_sub_end not in state snapshot — integration tests cannot verify autopause"
         )

@@ -25,7 +25,7 @@ def _query_state_reliable(ipc, max_attempts: int = 6) -> dict:
         except (RuntimeError, TimeoutError) as exc:
             last_exc = exc
             time.sleep(0.4)
-    raise RuntimeError(f"lls state not available after {max_attempts} attempts: {last_exc}")
+    raise RuntimeError(f"kardenwort state not available after {max_attempts} attempts: {last_exc}")
 
 @pytest.fixture
 def bom_session(tmp_path):

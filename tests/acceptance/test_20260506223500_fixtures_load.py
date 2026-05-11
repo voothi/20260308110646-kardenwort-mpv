@@ -104,22 +104,32 @@ def test_20260507001035_movie_autopause_boundary(mpv_dual):
     assert time_pos >= 1.8, f"Paused too early at {time_pos}, expected >= 1.85 (approx)"
     # A more precise check would be comparing with PHRASE mode where it should pause later (~2.2s).
 
-def test_20260507090243_fsm_gap_visibility(mpv):
-    """Verify that cmd_toggle_sub_vis works while Drum Window is open."""
+def test_20260507090243_fsm_gap_visibility_lockout(mpv):
+    """Verify that cmd_toggle_sub_vis is locked (no-op) while Drum Window is open."""
     ipc = mpv.ipc
     
-    # Step 1: Open Drum Window
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+    # Ensure DW is OFF initially
+    assert query_kardenwort_state(ipc)['drum_window'] == 'OFF'
+    
+    # Step 1: Toggle works when DW is OFF
+    v1 = query_kardenwort_state(ipc)['native_sub_vis']
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
     time.sleep(0.15)
+    v2 = query_kardenwort_state(ipc)['native_sub_vis']
+    assert v2 != v1, "Visibility should toggle when DW is OFF"
+    
+    # Step 2: Open Drum Window
+    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+    time.sleep(0.3)
     assert query_kardenwort_state(ipc)['drum_window'] != 'OFF'
     
-    # Step 2: Toggle visibility
+    # Step 3: Toggle should be LOCKED (no change) when DW is open
     initial_vis = query_kardenwort_state(ipc)['native_sub_vis']
     ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
     time.sleep(0.15)
     
     new_state = query_kardenwort_state(ipc)
-    assert new_state['native_sub_vis'] != initial_vis, "Visibility did not toggle while DW open"
+    assert new_state['native_sub_vis'] == initial_vis, "Visibility toggled while DW open (lockout failed)"
     assert new_state['drum_window'] != 'OFF', "Drum Window closed unexpectedly"
 
 def test_20260507102212_fsm_gap_sec_pos_sync(mpv_dual):
