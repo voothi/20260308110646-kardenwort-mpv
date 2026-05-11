@@ -5650,7 +5650,7 @@ end
 
 local function cmd_toggle_karaoke()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     FSM.KARAOKE = (FSM.KARAOKE == "WORD") and "PHRASE" or "WORD"
@@ -5691,7 +5691,7 @@ end
 
 local function cmd_toggle_drum()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     if FSM.MEDIA_STATE == "NO_SUBS" then
@@ -7651,7 +7651,7 @@ end
 
 local function cmd_toggle_sub_vis()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     local nxt = not FSM.native_sub_vis
@@ -7678,7 +7678,7 @@ end
 
 local function cmd_cycle_sec_pos()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     if Tracks.sec.id == 0 then
@@ -7704,7 +7704,7 @@ end
 
 local function cmd_adjust_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     local p = mp.get_property_number("sub-pos", 95)
@@ -7713,7 +7713,7 @@ end
 
 local function cmd_adjust_sec_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)
@@ -7724,7 +7724,7 @@ end
 
 local function cmd_cycle_sec_sid()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
+        show_osd("X")
         return
     end
     FSM.native_sec_sub_vis = true
