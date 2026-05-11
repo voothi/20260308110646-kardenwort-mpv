@@ -7536,10 +7536,12 @@ function cmd_toggle_drum_window()
             update_interactive_bindings()
         end
 
-        -- Explicitly trigger first render for instant appearance
-            tick_dw(time_pos or 0, active_idx)
-            show_osd("Mode: Window [DW]")
-        end
+        -- Explicitly trigger first render for instant appearance.
+        -- Compute active_idx locally; relying on an outer-scope symbol can leave
+        -- DW opening with a nil index and inconsistent initial render state.
+        local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
+        tick_dw(time_pos or 0, active_idx)
+        show_osd("Mode: Window [DW]")
     else
 
         -- Update state immediately
