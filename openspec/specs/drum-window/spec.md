@@ -191,12 +191,12 @@ The system SHALL provide consistent feedback when global keys that are managed o
 
 #### Scenario: Pressing managed global keys in DW mode
 - **WHEN** the Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
-- **AND** the user presses any of the following keys: `x`, `Shift+x`, `c`, `Shift+c`, `Shift+f`
+- **AND** the user presses any of the following keys: `x`, `Shift+x`, `c`, `Shift+c`, `Shift+h`
 - **THEN** the system SHALL display a "X" OSD message.
 - **AND** the default action for these keys SHALL be suppressed.
 
-#### Scenario: Pressing Pause Mode toggle (Shift+f) on non-ASS tracks
-- **WHEN** the user presses `Shift+f`
+#### Scenario: Pressing Pause Mode toggle (Shift+h) on non-ASS tracks
+- **WHEN** the user presses `Shift+h`
 - **AND** the active subtitle track is NOT an ASS file (`FSM.MEDIA_STATE` does not contain "ASS")
 - **THEN** the system SHALL display a "X" OSD message.
 - **AND** the Pause Mode SHALL NOT be toggled.

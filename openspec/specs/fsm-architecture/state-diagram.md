@@ -50,8 +50,8 @@ stateDiagram-v2
     state "Phrase Mode (Padded)" as PHRASE_MODE
     state "Movie Mode (Gapless)" as MOVIE_MODE
     
-    PHRASE_MODE --> MOVIE_MODE : Cycle (Shift+O)
-    MOVIE_MODE --> PHRASE_MODE : Cycle (Shift+O)
+    PHRASE_MODE --> MOVIE_MODE : Cycle (Shift+F)
+    MOVIE_MODE --> PHRASE_MODE : Cycle (Shift+F)
     
     state PHRASE_MODE {
         [*] --> IDLE
@@ -485,8 +485,8 @@ Controls autopause firing logic.
 stateDiagram-v2
     [*] --> PHRASE_MODE : Default
     
-    PHRASE_MODE --> WORD_MODE : Shift+F
-    WORD_MODE --> PHRASE_MODE : Shift+F
+    PHRASE_MODE --> WORD_MODE : Shift+H
+    WORD_MODE --> PHRASE_MODE : Shift+H
     
     note right of WORD_MODE
         FSM.KARAOKE = 'WORD'
