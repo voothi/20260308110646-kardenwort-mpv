@@ -22,6 +22,16 @@ In `MOVIE` mode, the autopause trigger MUST NOT fire before the subtitle's SRT `
 - **AND** a small gap exists between subtitle `i` and `i+1`
 - **THEN** the player SHALL NOT pause until `time_pos >= subs[i].end_time`
 
+### Requirement: Seek-Prev (`a`) Timing Verification in PHRASE and MOVIE
+With `AUTOPAUSE=ON`, pressing seek-prev (`a`) SHALL land on the same effective start in both immersion modes, while the autopause stop boundary SHALL follow mode-specific end rules.
+
+#### Scenario: Shared seek-prev landing with mode-specific stop boundaries
+- **WHEN** `audio_padding_start=1000` and `audio_padding_end=1000`
+- **AND** the user presses `a` from subtitle `i+1` to subtitle `i`
+- **THEN** playback start SHALL be `subs[i].start_time - 1.0` in both `PHRASE` and `MOVIE`
+- **AND** in `PHRASE`, autopause stop SHALL be `subs[i].end_time + 1.0`
+- **AND** in `MOVIE`, autopause stop SHALL be `max(subs[i].end_time, subs[i+1].start_time - 1.0)`.
+
 ### Requirement: FSM Architecture Gap Verification
 The FSM SHALL maintain correct state for subtitle visibility and secondary track positioning regardless of active OSD modes (e.g., Drum Window).
 
