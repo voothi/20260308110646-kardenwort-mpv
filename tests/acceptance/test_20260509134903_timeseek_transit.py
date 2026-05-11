@@ -234,6 +234,20 @@ class TestTimseekTransitStructural:
             "get_effective_boundaries missing REWIND_TRANSIT_CROSS_CARD gate"
         )
 
+    def test_get_effective_boundaries_has_space_hold_phrase_movie_override(self):
+        """Holding Space in Autopause ON + PHRASE must force MOVIE-like boundaries."""
+        body = _func_body(_src(), "get_effective_boundaries")
+        assert "FSM.AUTOPAUSE == \"ON\"" in body and "FSM.SPACEBAR == \"HOLDING\"" in body, (
+            "Space-hold PHRASE override is missing in get_effective_boundaries"
+        )
+
+    def test_jerkback_suppressed_while_space_hold_phrase_movie_override_active(self):
+        """PHRASE jerk-back must be disabled while Space-hold MOVIE override is active."""
+        body = _func_body(_src(), "master_tick")
+        assert "not phrase_space_movie_override" in body, (
+            "Jerk-back is not gated by Space-hold PHRASE override in master_tick"
+        )
+
     def test_state_snapshot_exposes_last_paused_sub_end(self):
         """LlsProbe._snapshot must expose last_paused_sub_end for integration testing."""
         assert "last_paused_sub_end" in _func_body(_src(), "_snapshot"), (

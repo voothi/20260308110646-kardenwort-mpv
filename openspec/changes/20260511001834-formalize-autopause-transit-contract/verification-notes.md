@@ -34,6 +34,17 @@
   - `REWIND_TRANSIT_CROSS_CARD` declared in FSM
   - cross-card gate present in `tick_autopause`
   - cross-card gate present in `get_effective_boundaries`
+  - Autopause ON + PHRASE + `Space` hold override is present in `get_effective_boundaries`
+  - PHRASE jerk-back gate disables while the `Space` hold override is active
+
+### Space-hold PHRASE nuance (new)
+- Implemented temporary MOVIE-like handover while `Space` is held in `Autopause ON + PHRASE`.
+- Release semantics remain edge-triggered by `cmd_smart_space` key-up; implicit key-up events from mpv/hardware multi-key behavior are treated as release and normal PHRASE autopause resumes at the next boundary.
+
+### Test execution (this session)
+- `python -m pytest -q tests/acceptance/test_20260509134903_timeseek_transit.py -k Structural`
+- Result: `17 passed`
+- Full mpv-backed run attempted but blocked in this environment (`TimeoutError: mpv IPC not ready`, Windows pipe access `OSError: 5`), so runtime acceptance remains pending local replay.
 
 ### Remaining validation item
-- Full non-regression boundary sweep (`tasks.md` item 4.2) remains open until broader acceptance set is re-run.
+- Full non-regression boundary sweep (`tasks.md` item 4.2) remains open until broader acceptance set is re-run with working mpv IPC access.

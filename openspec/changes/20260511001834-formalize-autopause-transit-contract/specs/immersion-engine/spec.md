@@ -20,3 +20,9 @@ The immersion engine MUST suppress autopause boundary triggers and PHRASE overla
 - **AND** transit completion criteria are met by playback position/state
 - **THEN** inhibition MUST clear deterministically
 - **AND** subsequent boundary behavior MUST follow normal PHRASE rules.
+
+#### Scenario: PHRASE temporary MOVIE override under held Space
+- **WHEN** `FSM.AUTOPAUSE == "ON"` and immersion mode is `PHRASE`
+- **AND** `Space` is in held state
+- **THEN** effective boundary computation MUST follow MOVIE-style handover and MUST suppress PHRASE jerk-back seeks
+- **AND** releasing `Space` MUST restore normal PHRASE behavior without changing the configured immersion mode.
