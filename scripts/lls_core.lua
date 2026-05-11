@@ -5686,10 +5686,6 @@ local function cmd_toggle_anki_global()
 end
 
 local function cmd_toggle_drum()
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Managed by Drum Window")
-        return
-    end
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Drum Mode: No subtitles loaded")
         return
@@ -5703,22 +5699,32 @@ local function cmd_toggle_drum()
         return
     end
 
+    -- [20260511162248] Strict Mode Transition: DW -> DM
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        FSM.DRUM_WINDOW = "OFF"
+        FSM.DW_TOOLTIP_FORCE = false
+        clear_tooltip_overlay("drum-window-close-transition")
+        manage_ui_border_override(false)
+        dw_osd.data = ""
+        dw_osd:update()
+        -- Restore visibility from DW snapshot before enabling DM
+        FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS or FSM.native_sub_vis
+    end
+
     if FSM.DRUM == "OFF" then
         FSM.DRUM = "ON"
         clear_tooltip_overlay("drum-on-transition")
-        -- We no longer update FSM.native_sub_vis here because it's managed by cmd_toggle_sub_vis
-        -- and would be overwritten by our own suppression logic.
         
         -- Boot subs for drum memory
         if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
         if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
 
-        show_osd(string.format("Drum Mode: ON [Double Gap: %s]", Options.drum_double_gap and "YES" or "NO"))
+        show_osd("Mode: Drum [DM]")
     else
         FSM.DRUM = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
         clear_tooltip_overlay("drum-off-transition")
-        show_osd("Drum Mode: OFF")
+        show_osd("Mode: Single (SRT)")
     end
     update_interactive_bindings()
     flush_rendering_caches()
@@ -7484,6 +7490,14 @@ function cmd_toggle_drum_window()
 
 
     if FSM.DRUM_WINDOW == "OFF" then
+        -- [20260511162248] Strict Mode Transition: DM -> DW
+        if FSM.DRUM == "ON" then
+            FSM.DRUM = "OFF"
+            FSM.DW_TOOLTIP_FORCE = false
+            clear_tooltip_overlay("drum-off-transition")
+            drum_osd.data = ""
+            drum_osd:update()
+        end
 
         -- Update state immediately for responsiveness
         FSM.DRUM_WINDOW = "DOCKED"
@@ -7495,7 +7509,6 @@ function cmd_toggle_drum_window()
 
         -- Snapshot and hide all subtitle overlays to prevent overlap
         FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
-        FSM.DW_SAVED_DRUM_STATE = FSM.DRUM
 
         -- Hide native subs (for compatibility and to ensure they are off)
         mp.set_property_bool("sub-visibility", false)
@@ -7524,10 +7537,8 @@ function cmd_toggle_drum_window()
         end
 
         -- Explicitly trigger first render for instant appearance
-        if FSM.DRUM_WINDOW == "DOCKED" then
-            local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
             tick_dw(time_pos or 0, active_idx)
-            show_osd(string.format("Drum Window: ON [Double Gap: %s]", Options.dw_double_gap and "YES" or "NO"))
+            show_osd("Mode: Window [DW]")
         end
     else
 
@@ -7544,7 +7555,8 @@ function cmd_toggle_drum_window()
         dw_osd:update()
 
         -- Restore subtitle visibility
-        FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
+        FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS or FSM.native_sub_vis
+        show_osd("Mode: Single (SRT)")
     end
     end, debug.traceback)
     if not ok then
@@ -7968,6 +7980,22 @@ local function register_global_position_keys()
     bind(Options.key_sec_sub_pos_down, "lls-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
 end
 register_global_position_keys()
+
+local function register_ignore_keys()
+    -- [20260511162248] Centralized ignore list for accidental key presses.
+    -- Prevents context-switching and accidental triggers during intensive immersion.
+    local ignore_list = {
+        "j", "u", "n", "p", "l", "o", "g", "G", "m", "M", "y", "Y", "tab", "i", "I"
+    }
+    
+    for _, k in ipairs(ignore_list) do
+        local expanded = expand_ru_keys(k, "lls-ignore")
+        for i, key in ipairs(expanded) do
+            mp.add_key_binding(key, "lls-ignore-" .. k .. "-" .. i, function() end)
+        end
+    end
+end
+register_ignore_keys()
 
 local function register_global_playback_keys()
     local function bind(opt, name, fn)
