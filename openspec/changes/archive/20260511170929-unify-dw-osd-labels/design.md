@@ -6,7 +6,7 @@ The Drum Window (DW) mode currently manages several global keybindings but does 
 
 **Goals:**
 - Unify OSD feedback for keys that are managed by the Drum Window.
-- Simplify the "Position Locked" OSD message to just "Drum Window: Active".
+- Simplify the "Position Locked" OSD message to "Managed by Drum Window" for total consistency.
 - Ensure consistent UI behavior when attempting to use global shortcuts that are irrelevant or suppressed while the Drum Window is active.
 
 **Non-Goals:**
@@ -21,7 +21,7 @@ The Drum Window (DW) mode currently manages several global keybindings but does 
    - `cmd_cycle_sec_pos` (Shift+x)
    - `cmd_toggle_karaoke` (Shift+f)
    
-2. **Rename Status Label**: Update `cmd_adjust_sub_pos` and `cmd_adjust_sec_sub_pos` to show "Drum Window: Active" instead of "Drum Window: Active (Position Locked)".
+2. **Rename Status Label**: Update `cmd_adjust_sub_pos` and `cmd_adjust_sec_sub_pos` to show "Managed by Drum Window" instead of "Drum Window: Active (Position Locked)".
 
 3. **Check for Redundancy**: `cmd_toggle_drum` already has the check, so it remains as is for consistency.
 

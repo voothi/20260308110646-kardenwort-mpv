@@ -7704,7 +7704,7 @@ end
 
 local function cmd_adjust_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Drum Window: Active")
+        show_osd("Managed by Drum Window")
         return
     end
     local p = mp.get_property_number("sub-pos", 95)
@@ -7713,7 +7713,7 @@ end
 
 local function cmd_adjust_sec_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("Drum Window: Active")
+        show_osd("Managed by Drum Window")
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)

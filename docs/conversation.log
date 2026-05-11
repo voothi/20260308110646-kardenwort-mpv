@@ -1850,6 +1850,7 @@
 20260511170439 x This doesn't work, I'm rolling back.
 20260511170719 I've rolled back to a state 20260511152334.
 20260511170929 I need to do in DW mode similar to how we display the Managed by Drum Window inscription when pressing the x key, so that it also happens when pressing the Shift+x, c, Shift+c, Shift+f keys in this DW mode, I need to unify these labels and rename Drum Window: Active (Position Locked) to remove unnecessary noise.
+20260511172400 Change Drum Window: Active to Managed by Drum Window, if it's logical.
 
 
 

@@ -184,7 +184,7 @@ Subtitle positioning controls MUST be intercepted and suppressed when the Drum W
 #### Scenario: Pressing positioning keys while Drum Window is open
 - **WHEN** the Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
 - **AND** the user attempts to adjust subtitle positioning (e.g., `r`, `t`, `R`, `T`)
-- **THEN** the system SHALL display "Drum Window: Active".
+- **THEN** the system SHALL display "Managed by Drum Window".
 
 ### Requirement: Unified Drum Window Management Inscriptions
 The system SHALL provide consistent feedback when global keys that are managed or suppressed by the Drum Window are pressed.

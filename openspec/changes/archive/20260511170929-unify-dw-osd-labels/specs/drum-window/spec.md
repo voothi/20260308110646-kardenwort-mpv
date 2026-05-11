@@ -15,5 +15,5 @@ The Drum Window status message SHALL be concise and focused on the active state 
 #### Scenario: Triggering DW-blocked positioning controls
 - **WHEN** the Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
 - **AND** the user attempts to adjust subtitle positioning (e.g., `r`, `t`, `R`, `T`)
-- **THEN** the system SHALL display "Drum Window: Active".
+- **THEN** the system SHALL display "Managed by Drum Window".
 - **AND** the " (Position Locked)" suffix SHALL be removed.
