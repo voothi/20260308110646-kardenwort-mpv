@@ -235,13 +235,26 @@ def query_kardenwort_state(ipc, timeout=5.0):
 
 
 def query_kardenwort_render(ipc, overlay_name, timeout=2.0):
-    ipc.observe_property(98, 'user-data/kardenwort/render')
+    prop = 'user-data/kardenwort/render'
+    if prop not in ipc._prop_events:
+        ipc.observe_property(98, prop)
+        time.sleep(0.1)
+    
+    ipc._prop_events[prop].clear()
     ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', overlay_name])
-    ipc.wait_property_change('user-data/kardenwort/render', timeout)
-    raw = ipc.get_property('user-data/kardenwort/render') or ''
-    if '|' in raw:
-        return raw.split('|', 1)[1]
-    return raw
+    
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            ipc.wait_property_change(prop, timeout=1.0)
+            raw = ipc.get_property(prop) or ''
+            if raw and '|' in raw:
+                return raw.split('|', 1)[1]
+            if raw and raw != "":
+                return raw
+        except TimeoutError:
+            continue
+    return ""
 
 
 
