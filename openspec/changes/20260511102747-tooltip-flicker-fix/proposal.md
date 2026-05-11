@@ -9,8 +9,8 @@ The tooltip window in Drum Window (DW) mode exhibits cyclical flickering when ho
 - **Mechanism**: The "cyclically continuous" flashing described by the user matches the 20Hz master tick rate.
 
 ## Evidence
-- ![Flickering Evidence](file:///C:/Users/voothi/Videos/Recording%202026-05-11%20105230.mp4)
-- [Detailed Frame-by-Frame Analysis](file:///u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511102747-tooltip-flicker-fix/analysis.md)
+- Flickering capture: `C:\Users\voothi\Videos\Recording 2026-05-11 105230.mp4`
+- Detailed analysis: [analysis.md](./analysis.md)
 
 The video demonstrates the continuous flickering of the tooltip OSD when the mouse is held stationary over the word "die" in Fragment2.
 

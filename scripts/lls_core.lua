@@ -4620,8 +4620,8 @@ local function dw_tooltip_mouse_update()
                 target_y = math.floor(target_y + 0.5)
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 local new_ass = draw_dw_tooltip(subs, target_l, target_y)
+                FSM.DW_TOOLTIP_LINE = target_l
                 if new_ass ~= dw_tooltip_osd.data then
-                    FSM.DW_TOOLTIP_LINE = target_l
                     dw_tooltip_osd.data = new_ass
                     dw_tooltip_osd:update()
                 end

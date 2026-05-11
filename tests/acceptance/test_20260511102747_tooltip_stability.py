@@ -1,7 +1,6 @@
 import pytest
 import time
 import json
-import os
 
 @pytest.mark.acceptance
 def test_20260511102747_tooltip_stability_fixed_pos(mpv_fragment2):
@@ -74,17 +73,27 @@ def test_20260511102747_tooltip_stability_fixed_pos(mpv_fragment2):
 @pytest.mark.acceptance
 def test_20260511102747_y_rounding_stability(mpv_fragment2):
     """
-    Verify that Y-position rounding prevents sub-pixel jitter from invalidating caches.
+    Verify rounded Y is stable enough to keep tooltip ASS output deterministic.
     """
     ipc = mpv_fragment2.ipc
     
     ipc.command(["script-message", "lls-test-dw-toggle"])
+    time.sleep(2.0)
+    ipc.command(["seek", "7.0", "absolute"])
     time.sleep(1.0)
-    
-    # Query hit zones to get a base Y for the active line
-    ipc.command(["script-message", "lls-test-query-hit-zones"])
-    time.sleep(0.2)
-    # If the rounding works, the Y should be an integer
-    ipc.command(["script-message", "lls-test-query-tooltip-state"])
-    # Not strictly testable without deep internal inspection, but we verify it doesn't crash
-    pass
+
+    # Pin tooltip once and ensure subsequent polls return identical serialized ASS payload.
+    ipc.command(["script-message", "lls-test-dw-tooltip-pin", '{"event":"down"}'])
+    time.sleep(0.5)
+
+    snapshots = []
+    for _ in range(5):
+        ipc.command(["script-message", "lls-test-query-tooltip-state"])
+        time.sleep(0.2)
+        state = json.loads(ipc.get_property("user-data/lls-test-tooltip-state"))
+        snapshots.append(state.get("data", ""))
+
+    ipc.command(["script-message", "lls-test-dw-tooltip-pin", '{"event":"up"}'])
+
+    assert snapshots[0] != "", "Tooltip was not rendered for stability sampling"
+    assert len(set(snapshots)) == 1, "Tooltip ASS payload changed across stable samples"
