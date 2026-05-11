@@ -4561,14 +4561,13 @@ local function dw_tooltip_mouse_update()
     
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, _
-    if FSM.DW_TOOLTIP_HOLDING then
-        -- During RMB hold, keep targeting the primary subtitle lane to avoid
-        -- feedback loops with tooltip hit-zones (which can oscillate on boundaries).
-        if dw_mode then
-            line_idx, _ = dw_hit_test(osd_x, osd_y)
-        else
-            line_idx, _ = lls_hit_test_all(osd_x, osd_y)
-        end
+    if dw_mode then
+        -- In DW, always target via primary DW hit-test for tooltip routing.
+        -- This avoids hover flicker on borders caused by mixed tooltip-vs-primary hit-zones.
+        line_idx, _ = dw_hit_test(osd_x, osd_y)
+    elseif FSM.DW_TOOLTIP_HOLDING then
+        -- During RMB hold in non-DW modes, keep stable routing through shared hit-test.
+        line_idx, _ = lls_hit_test_all(osd_x, osd_y)
     else
         line_idx, _ = lls_hit_test_all(osd_x, osd_y)
     end
