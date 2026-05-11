@@ -994,7 +994,18 @@ dw_tooltip_osd.z = 25
 
 local dw_ensure_visible -- forward declaration
 
+local function is_dw_mode_active()
+    return FSM.DRUM_WINDOW ~= "OFF"
+end
+
+local function require_dw_mode(action_label)
+    if is_dw_mode_active() then return true end
+    show_osd((action_label or "Action") .. ": Drum Window only")
+    return false
+end
+
 function cmd_cycle_copy_mode()
+    if not require_dw_mode("Copy Mode") then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Copy Mode: No subtitles loaded")
         return
@@ -1028,6 +1039,7 @@ function cmd_cycle_immersion_mode()
 end
 
 function cmd_toggle_copy_ctx()
+    if not require_dw_mode("Context Copy") then return end
     if FSM.MEDIA_STATE == "NO_SUBS" then
         show_osd("Context Copy: No subtitles loaded")
         return
@@ -5414,7 +5426,7 @@ end
 
 update_interactive_bindings = function()
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
-    local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
+    local osd_on = (FSM.DRUM == "ON") and Options.osd_interactivity
     
     local need_mouse = dw_on or osd_on
     local need_kb = dw_on or osd_on
