@@ -33,6 +33,7 @@ end
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
+local manage_ui_border_override
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -6566,8 +6567,21 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
     parse_and_collect(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
     parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
-    parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
-    parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
+
+    -- Reserve mode-switch keys globally:
+    -- z/я must always target DW toggle, x/ч must always target DM toggle.
+    local function strip_mode_toggle_keys(key_string)
+        if not key_string or key_string == "" then return key_string end
+        local kept = {}
+        for token in key_string:gmatch("[^%s,;]+") do
+            if token ~= "z" and token ~= "я" and token ~= "x" and token ~= "ч" then
+                table.insert(kept, token)
+            end
+        end
+        return table.concat(kept, " ")
+    end
+    parse_and_collect(strip_mode_toggle_keys(Options.dw_key_cycle_copy_mode), "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
+    parse_and_collect(strip_mode_toggle_keys(Options.dw_key_toggle_copy_context), "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
 
 
     for _, k in ipairs(keys) do
