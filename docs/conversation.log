@@ -1855,8 +1855,8 @@
 20260511173651 We have a well-described switching, the appropriate term is used for the `z` key, from it you can understand that we use it to switch between DW modes / SRT or DM? 
 20260511174153 Take it away ` [Double Gap: %s]` lls_core.lua#L7534 lls_core.lua#L7676, we don’t need to show it, because we don’t control it at runtime through a keyboard shortcut.
 20260511174819 Let's also hide it under X Pause Mode if it's not an ASS file that supports it.
-
-
+20260511175308 Is it true that the pytest.ini file is in the root of the project?
+20260511175333 Yes, that is correct. The pytest.ini file is located in the root of the project directory (u:\voothi\20260308110646-kardenwort-mpv\pytest.ini), alongside other project-level configuration files like input.conf, mpv.conf, and README.md.
 
 
 
