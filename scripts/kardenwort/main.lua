@@ -3355,7 +3355,7 @@ local function populate_token_meta(subs, sub_idx, tokens, base_color, t_pos, ent
     return token_meta
 end
 
-local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold, is_manual, bg_color, bg_alpha)
+local function format_highlighted_word(word, h_color, base_color, is_phrase, bold_state, use_1c, force_bold, is_manual, bg_color, bg_alpha, border_size)
     if type(word) == "table" then word = word.text end
     if not word then return "" end
     
@@ -3370,8 +3370,9 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     -- frame expansion when selection colors are active.
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, Options.dw_border_size)
-    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, Options.dw_border_size)
+    border_size = border_size or Options.dw_border_size
+    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
 
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
@@ -3665,7 +3666,7 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or meta.h_bold
                     local is_man = (meta_item.priority == 1 or meta_item.priority == 2)
                     local bg_alpha = calculate_ass_alpha(is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity)
-                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold, is_man, is_drum and Options.drum_bg_color or Options.srt_bg_color, bg_alpha))
+                    table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold, is_man, is_drum and Options.drum_bg_color or Options.srt_bg_color, bg_alpha, bord))
                 else
                     table.insert(formatted_parts, meta_item.text)
                 end
@@ -3936,7 +3937,7 @@ local function draw_dw(subs, view_center, active_idx)
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
                     local is_manual = (meta_item.priority == 1 or meta_item.priority == 2)
-                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold, is_manual, Options.dw_bg_color, bg_alpha))
+                    table.insert(formatted_words, format_highlighted_word({text = meta_item.text}, meta_item.color, color, meta_item.is_phrase, bold_state, true, final_bold, is_manual, Options.dw_bg_color, bg_alpha, Options.dw_border_size))
                 else
                     table.insert(formatted_words, meta_item.text)
                 end
@@ -4078,7 +4079,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 
                 local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
                 local is_man = (tm.priority == 1 or tm.priority == 2)
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, Options.tooltip_bg_color, bg_alpha)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, Options.tooltip_bg_color, bg_alpha, Options.tooltip_border_size)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
