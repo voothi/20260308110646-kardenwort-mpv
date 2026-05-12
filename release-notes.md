@@ -1,3 +1,30 @@
+# Release Notes - v1.80.4 (Architectural Consolidation & Functional Audit)
+
+**Date**: 2026-05-12
+**Version**: v1.80.4
+**Implementation ZIDs**: 20260511182348, 20260512130623, 20260512182824, 20260512183542, 20260512183826
+
+## Highlights
+
+### 📁 **Architectural Consolidation**
+- **Unified Namespace Integrity**: Finalized the transition to the **Kardenwort** brand. All core engine logic is now strictly isolated within the `scripts/kardenwort/` directory structure.
+- **Breaking Structural Refinements**: 
+    - Standardized internal property prefixes to canonical lowercase `user-data/kardenwort/`.
+    - Centralized `anki-mapping.ini` to the repository root for improved visibility and maintainability.
+    - Standardized all OSD and log prefixes to the unified `[kardenwort]` format.
+
+### 🧪 **Functional Audit & Coverage Remediation**
+- **New Acceptance Suite**: Integrated a comprehensive verification suite (`test_missed_functional_coverage.py`) covering critical v1.80 workflows.
+- **Shortcut Ergonomics**: Successfully validated the functional swap of `Shift+H` (Karaoke Mode) and `h` (Anki Global) bindings to match the production layout.
+- **Search UX Validation**: Verified the complete end-to-end Search Mode flow, including multi-line wrapping, Cyrillic layout compatibility (`Ctrl+ц`), and automated seeking.
+- **Persistence Integrity**: Hardened the Anki record management logic, ensuring stable TSV database updates and reliable file existence checks.
+
+### 🛡️ **Infrastructure Hardening**
+- **IPC Stability Patch**: Remediated the transient `OSError: 232` (Broken Pipe) race condition in the Windows test harness by implementing proactive handle management and orphan process cleanup.
+- **Diagnostic Instrumentation**: Exposed internal FSM states through new diagnostic hooks (`test-set-search-query`, `test-get-tokens`), enabling 100% automated verification of Search and Tokenization logic.
+
+---
+
 # Release Notes - v1.80.0 (Kardenwort Namespace & FSM Harmonization)
 
 **Date**: 2026-05-12
