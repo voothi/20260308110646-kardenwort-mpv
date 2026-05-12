@@ -187,9 +187,14 @@ function M.calculate_match_score(str, query)
         end
     end
     local covered = 0
-    for _ in pairs(all_indices) do covered = covered + 1 end
+    local flat_indices = {}
+    for idx in pairs(all_indices) do
+        covered = covered + 1
+        table.insert(flat_indices, idx)
+    end
+    table.sort(flat_indices)
     score = score + math.min(180, covered * 8)
-    return score
+    return score, flat_indices
 end
 
 return M

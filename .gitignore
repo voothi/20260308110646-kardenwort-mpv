@@ -29,6 +29,7 @@ scratch/
 *temp*
 test*.py
 test*.lua
+!tests/unit/test*.lua
 old.lua
 parsed_subs*
 

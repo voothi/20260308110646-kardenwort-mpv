@@ -1903,6 +1903,8 @@
 20260512024727 Check that everything is done correctly, that there are no errors in the renaming, that the documentation is updated. diff a6fd06705455fa929a7ce357072266427800d916..af7a9cd98cf46c827355e3bb2aaaa8f33a8f9057
 20260512031224 Check it **20260512022453 Specification vs Code Analysis Report**
 20260512031755 fix it
+20260512032208 If you want, I can next wire main.lua to import and reuse these shared utility implementations directly (to remove duplication and make spec alignment stricter). - Accept
+20260512032508 Next natural step if you want: I can add a small unit test asserting calculate_match_score second return (indices) shape explicitly, to lock this contract down. - Accept
 
 
 
