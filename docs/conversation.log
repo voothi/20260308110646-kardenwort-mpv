@@ -1968,7 +1968,7 @@
 20260512232622 /opsx-apply 20260512231050-dual-track-sync-fixes `ZID: unavailable (command failed in this shell: \`python U:\voothi\20241116203211-zid\zid.py --no-clipboard\`, logon session error).` Rolled back and fixed. - Restored the full `fsm-architecture` spec content (the unintentionally dropped requirement blocks are back) and kept the settle-period default aligned to current config (`0.2s`) in [spec.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/fsm-architecture/spec.md). - Fixed replay template defaults in [mpv.conf](/u:/voothi/20260308110646-kardenwort-mpv/mpv.conf) so they no longer override the Lua templates with plain text: - `kardenwort-replay_msg_format=Replay: %mms%x` - `kardenwort-replay_on_msg_format=Replaying segment: %mms%x` If you want, I can also append a short trace entry to [conversation.log](/u:/voothi/20260308110646-kardenwort-mpv/docs/conversation.log) with your ZID `20260512235033` describing this rollback/fix.
 20260512235508 opsx-archive 20260512215725-configurable-replay-messages
 20260512235602 Sync now 
-
+20260513002249 ================================================================ 707 passed in 839.58s (0:13:59) ================================================================= 
 
 
 
