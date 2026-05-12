@@ -3641,6 +3641,11 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
         end
     end
 
+    local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
+    local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
+    local bord = is_drum and Options.drum_border_size or Options.srt_border_size
+    local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
+
     -- Rendering logic
     local function format_sub_wrapped(meta, is_active, t_pos)
         local tokens = meta.tokens
@@ -3701,10 +3706,6 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
         end
     end
 
-    local bg_color = is_drum and Options.drum_bg_color or Options.srt_bg_color
-    local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
-    local bord = is_drum and Options.drum_border_size or Options.srt_border_size
-    local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
     local style_block = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s", 
         bord, shad, bg_color, bg_color, calculate_ass_alpha(bg_opacity), calculate_ass_alpha(bg_opacity), vsp_tag)
 
