@@ -88,6 +88,7 @@ Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() o
 -- Initialize user-data properties for IPC querying
 mp.set_property("user-data/kardenwort/last_clipboard", "")
 mp.set_property("user-data/kardenwort/last_export", "")
+mp.set_property("user-data/kardenwort/last_osd", "")
 mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
 
@@ -625,6 +626,8 @@ local Tracks = {
 
 function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
+    -- IPC diagnostics contract used by acceptance tests
+    mp.set_property("user-data/kardenwort/last_osd", tostring(msg or ""))
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
 end
 
