@@ -1944,6 +1944,7 @@
 20260512142923 Accept
 20260512142944 Applied. `C:\Users\voothi\.codex\config.toml` now includes: `writable_roots = ["U:\\voothi", "U:\\voothi\\20260308110646-kardenwort-mpv", "U:\\voothi\\20241116203211-zid", "C:\\tmp"]` Restart/reload the Codex plugin/session once so this takes effect.
 20260512143046 model = "gpt-5.3-codex" model_reasoning_effort = "medium" [marketplaces.openai-bundled] last_updated = "2026-05-06T15:59:27Z" source_type = "local" source = '\\?\C:\Users\voothi\.codex\.tmp\bundled-marketplaces\openai-bundled' [plugins."browser-use@openai-bundled"] enabled = true [windows] sandbox = "elevated" [projects.'u:\voothi\20260308110646-kardenwort-mpv'] trust_level = "trusted" writable_roots = ["U:\\voothi", "U:\\voothi\\20260308110646-kardenwort-mpv", "U:\\voothi\\20241116203211-zid", "C:\\tmp"]
+20260512143254 If you want, I can next prepare a minimal patch set to restore only the three critical items (option, snapshot fields, and deleted acceptance file) without touching anything else. - Accept
 
 
 
