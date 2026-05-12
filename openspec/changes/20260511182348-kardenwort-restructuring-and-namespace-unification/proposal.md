@@ -12,7 +12,7 @@ To unify the project identity under the **Kardenwort** brand and eliminate the l
 - **BREAKING**: Move `script-opts/anki_mapping.ini` to the repository root for better visibility.
 - **BREAKING**: Update all script-message and script-binding targets from `kardenwort_core` to `kardenwort`.
 - **BREAKING**: Rename internal prefixes and properties:
-    - Log prefix: `[Kardenwort]` -> `[Kardenwort]`
+    - Log prefix: `[Kardenwort]` -> `[kardenwort]`
     - User-data properties: `user-data/Kardenwort/` -> `user-data/kardenwort/`
     - Options identity: `Kardenwort` -> `kardenwort` (affects `script-opts/kardenwort.conf`)
 - Update the full IPC test suite to target the new script name and message prefixes.
@@ -24,7 +24,7 @@ To unify the project identity under the **Kardenwort** brand and eliminate the l
 - `directory-based-scripting`: Formalizes the use of `scripts/<namespace>/main.lua` for multi-module isolation in mpv.
 
 ### Modified Capabilities
-- `project-terminology-and-historicity`: Updating the canonical thesaurus and legacy mappings for the Kardenwort -> Kardenwort transition.
+- `project-terminology-and-historicity`: Updating the canonical thesaurus and legacy mappings for the Kardenwort -> kardenwort transition.
 - `modular-architecture`: Updating requirements to use the `scripts/kardenwort/` directory instead of `scripts/lib/`.
 - `centralized-script-config`: Updating configuration override targets (e.g., `kardenwort_core-` -> `kardenwort-`).
 

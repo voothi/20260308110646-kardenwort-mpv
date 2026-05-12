@@ -7,7 +7,7 @@
 ## 2. Filesystem Restructuring
 
 - [x] 2.1 Create directory `scripts/kardenwort/`.
-- [x] 2.2 Move `scripts/kardenwort/main.lua` to `scripts/kardenwort/main.lua`.
+- [x] 2.2 Move `scripts/kardenwort_core.lua` to `scripts/kardenwort/main.lua`.
 - [x] 2.3 Move `scripts/kardenwort_utils.lua` to `scripts/kardenwort/utils.lua`.
 - [x] 2.4 Move `scripts/resume_last_file.lua` to `scripts/kardenwort/resume.lua`.
 - [x] 2.5 Move `script-opts/anki-mapping.ini` to the repository root.
