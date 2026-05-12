@@ -5396,6 +5396,16 @@ local function tick_loop(time_pos)
             
             if FSM.REPLAY_REMAINING > 1 then
                 FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
+                local pri_subs = Tracks.pri.subs
+                if pri_subs and #pri_subs > 0 then
+                    local idx = get_center_index(pri_subs, FSM.LOOP_START)
+                    if idx ~= -1 then FSM.ACTIVE_IDX = idx end
+                end
+                local sec_subs = Tracks.sec.subs
+                if sec_subs and #sec_subs > 0 then
+                    local idx = get_center_index(sec_subs, FSM.LOOP_START)
+                    if idx ~= -1 then FSM.SEC_ACTIVE_IDX = idx end
+                end
                 mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
             else
                 FSM.REPLAY_REMAINING = 0
@@ -5422,6 +5432,16 @@ local function tick_scheduled_replay(time_pos)
             FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
             FSM.IGNORE_NEXT_JUMP = true
             FSM.last_paused_sub_end = nil
+            local pri_subs = Tracks.pri.subs
+            if pri_subs and #pri_subs > 0 then
+                local idx = get_center_index(pri_subs, FSM.SCHEDULED_REPLAY_START)
+                if idx ~= -1 then FSM.ACTIVE_IDX = idx end
+            end
+            local sec_subs = Tracks.sec.subs
+            if sec_subs and #sec_subs > 0 then
+                local idx = get_center_index(sec_subs, FSM.SCHEDULED_REPLAY_START)
+                if idx ~= -1 then FSM.SEC_ACTIVE_IDX = idx end
+            end
             mp.commandv("seek", FSM.SCHEDULED_REPLAY_START, "absolute+exact")
             return true
         else
@@ -6246,6 +6266,8 @@ local function cmd_replay_sub()
         replay_start_idx = get_center_index(subs, replay_start)
     end
     local is_cross_card_replay = (current_idx ~= -1 and replay_start_idx ~= -1 and current_idx ~= replay_start_idx)
+    local sec_subs = Tracks.sec.subs
+    local sec_replay_start_idx = (sec_subs and #sec_subs > 0) and get_center_index(sec_subs, replay_start) or -1
 
     if FSM.AUTOPAUSE == "OFF" then
         -- Autopause OFF: "Flashback" Replay (Finite Segment)
@@ -6256,6 +6278,12 @@ local function cmd_replay_sub()
         FSM.LOOP_ARMED = false
         FSM.IGNORE_NEXT_JUMP = true
         FSM.REPLAY_REMAINING = Options.replay_count
+        if replay_start_idx ~= -1 then
+            FSM.ACTIVE_IDX = replay_start_idx
+        end
+        if sec_replay_start_idx ~= -1 then
+            FSM.SEC_ACTIVE_IDX = sec_replay_start_idx
+        end
         
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
@@ -6278,6 +6306,12 @@ local function cmd_replay_sub()
         FSM.REPLAY_REMAINING = Options.replay_count
         FSM.SCHEDULED_REPLAY_START = replay_start
         FSM.SCHEDULED_REPLAY_END = replay_end
+        if replay_start_idx ~= -1 then
+            FSM.ACTIVE_IDX = replay_start_idx
+        end
+        if sec_replay_start_idx ~= -1 then
+            FSM.SEC_ACTIVE_IDX = sec_replay_start_idx
+        end
         
         mp.commandv("seek", replay_start, "absolute+exact")
         if is_paused then mp.set_property_bool("pause", false) end
