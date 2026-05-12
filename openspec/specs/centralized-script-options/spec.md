@@ -13,7 +13,7 @@ Decoupling configuration from code is essential for user-friendly customization.
 #### Scenario: Missing options in mpv.conf
 - **WHEN** an option is added to the script's `Options` table (e.g., `seek_time_delta`, `seek_font_size`, or `seek_msg_format`)
 - **THEN** it must be added to `mpv.conf` with a corresponding comment and `script-opts-append` entry.
-- **AND** for templates, it MUST include placeholder documentation (`%p`, `%v`, etc.).
+- **AND** for templates (like `seek_msg_format`, `replay_msg_format`), it MUST include placeholder documentation (`%p`, `%v`, `%m`, `%c`, etc.).
 
 ## Verification
 - Verify that changes made to `script-opts` in `mpv.conf` are reflected in script behavior.

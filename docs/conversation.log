@@ -1966,6 +1966,14 @@
 20260512225811 PS U:\voothi\20260308110646-kardenwort-mpv> python -m pytest tests\acceptance\test_20260512220652_configurable_replay_messages.py tests\acceptance\test_20260512223046_shift_ad_seek_anchor.py tests\acceptance\test_20260512223306_replay_repeat_dual_sync.py -q......... [100%] 9 passed in 18.50s PS U:\voothi\20260308110646-kardenwort-mpv>
 20260512230953 /opsx-propose Compile documentation on diff e6095bb59c0bf5bcb2d011ce47e74e88deaad599 ba68e15a3308c53d557863d40439c8b4d03dc4e6
 20260512232622 /opsx-apply 20260512231050-dual-track-sync-fixes `ZID: unavailable (command failed in this shell: \`python U:\voothi\20241116203211-zid\zid.py --no-clipboard\`, logon session error).` Rolled back and fixed. - Restored the full `fsm-architecture` spec content (the unintentionally dropped requirement blocks are back) and kept the settle-period default aligned to current config (`0.2s`) in [spec.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/fsm-architecture/spec.md). - Fixed replay template defaults in [mpv.conf](/u:/voothi/20260308110646-kardenwort-mpv/mpv.conf) so they no longer override the Lua templates with plain text: - `kardenwort-replay_msg_format=Replay: %mms%x` - `kardenwort-replay_on_msg_format=Replaying segment: %mms%x` If you want, I can also append a short trace entry to [conversation.log](/u:/voothi/20260308110646-kardenwort-mpv/docs/conversation.log) with your ZID `20260512235033` describing this rollback/fix.
+20260512235508 opsx-archive 20260512215725-configurable-replay-messages
+20260512235602 Sync now 
+
+
+
+
+
+
 
 
 
