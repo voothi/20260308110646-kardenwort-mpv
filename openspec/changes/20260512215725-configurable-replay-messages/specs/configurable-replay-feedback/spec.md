@@ -6,6 +6,8 @@ The system SHALL provide a lightweight template engine for formatting replay-rel
 #### Scenario: Placeholder Substitution
 - **WHEN** a template string contains `%m`
 - **THEN** it SHALL be replaced by the value of `Options.replay_ms`.
+- **WHEN** a template string contains `%s`
+- **THEN** it SHALL be replaced by the value of `Options.replay_ms / 1000` (e.g., "2").
 - **WHEN** a template string contains `%c`
 - **THEN** it SHALL be replaced by the value of `Options.replay_count`.
 - **WHEN** a template string contains `%x`

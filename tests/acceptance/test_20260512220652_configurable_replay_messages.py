@@ -82,3 +82,18 @@ def test_replay_message_custom_template(mpv):
     
     osd_text = _robust_get_property(ipc, "user-data/kardenwort/last_osd", "FLASHBACK")
     assert "FLASHBACK: 2000ms (count=1)" in osd_text, f"Custom template failed. Got: {osd_text}"
+
+@pytest.mark.acceptance
+def test_replay_message_seconds(mpv):
+    """Verify that %s placeholder correctly outputs seconds."""
+    ipc = mpv.ipc
+    
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "replay_ms", "2500"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "replay_msg_format", "Replay: %s sec"])
+    ipc.command(["script-message-to", "kardenwort", "autopause-set", "OFF"])
+    time.sleep(1.0)
+    
+    ipc.command(["script-message-to", "kardenwort", "test-replay"])
+    
+    osd_text = _robust_get_property(ipc, "user-data/kardenwort/last_osd", "sec")
+    assert "Replay: 2.5 sec" in osd_text, f"Seconds placeholder failed. Got: {osd_text}"

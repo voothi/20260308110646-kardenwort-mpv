@@ -6265,7 +6265,10 @@ local function cmd_replay_sub()
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         local x_str = (Options.replay_count > 1) and (" x" .. Options.replay_count) or ""
         local template = Options.replay_msg_format
-        local msg = template:gsub("%%m", tostring(Options.replay_ms)):gsub("%%c", tostring(Options.replay_count)):gsub("%%x", x_str)
+        local msg = template:gsub("%%m", tostring(Options.replay_ms))
+                            :gsub("%%s", tostring(Options.replay_ms / 1000))
+                            :gsub("%%c", tostring(Options.replay_count))
+                            :gsub("%%x", x_str)
         show_osd(msg)
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
@@ -6290,7 +6293,10 @@ local function cmd_replay_sub()
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         local x_str = (Options.replay_count > 1) and (" (x" .. Options.replay_count .. ")") or ""
         local template = Options.replay_on_msg_format
-        local msg = template:gsub("%%m", tostring(Options.replay_ms)):gsub("%%c", tostring(Options.replay_count)):gsub("%%x", x_str)
+        local msg = template:gsub("%%m", tostring(Options.replay_ms))
+                            :gsub("%%s", tostring(Options.replay_ms / 1000))
+                            :gsub("%%c", tostring(Options.replay_count))
+                            :gsub("%%x", x_str)
         show_osd(msg)
     end
 end

@@ -1952,8 +1952,7 @@
 20260512183542 create-release-2 v1.80.4 openspec\changes\archive\20260511182348-kardenwort-restructuring-and-namespace-unification openspec\changes\archive\20260512130623-missed-functional-coverage
 20260512215612 # Place all messages in configurable messages via mpv.conf, similar to `seek_msg_`., in particular for kardenwort-replay ## Description [[20260505181230-вынести-все-сообщения-в|Вынести все сообщения в настраиваемые через mpv.conf по аналогии с `seek_msg_`.]]
 20260512220652 opsx-apply 20260512215725-configurable-replay-messages
-
-
+20260512221335 How can I output in seconds? mpv.conf#L364-367
 
 
 
