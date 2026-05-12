@@ -1,3 +1,4 @@
+20260512232642 /opsx-apply 20260512231050-dual-track-sync-fixes Implemented dual-track synchronization fixes for Shift+A/D scrubbing and Replay operations. Added immediate dual-track anchoring in cmd_seek_time(), cmd_replay_sub(), tick_loop(), and tick_scheduled_replay() functions. Reduced nav_cooldown from 0.5s to 0.2s. Restored user-data/kardenwort/last_osd property for IPC diagnostics. Created test files test_20260512223046_shift_ad_seek_anchor.py and test_20260512223306_replay_repeat_dual_sync.py. All 9 tests pass (2+2+5).
 20260418143225 /opsx-propose.md I documented the behavior of the program in cases of text selection in openspec\changes\archive\20260418074913-window-mode-highlighting-spec and window-highlighting-spec I need to check and implement according to the specs. Previous branch, where it worked as it should and at what state of the code I made 20260418074913-window-mode-highlighting-spec commit efb3792a7f37ca1cc4deea386297e17a31e3748b
 20260418153101 Multi-line mode does not work. Check the implementation again using the specs.
 20260418154509 Accept.
@@ -1964,6 +1965,7 @@
 20260512225539 Fixed. The failures were caused by a missing diagnostics property, not replay logic. What I changed: - Restored `user-data/kardenwort/last_osd` contract in [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua): - Initialize at startup: - `mp.set_property("user-data/kardenwort/last_osd", "")` - Update on every `show_osd(msg, dur)` call: - `mp.set_property("user-data/kardenwort/last_osd", tostring(msg or ""))` Validation: - Re-ran failing suite: - `tests/acceptance/test_20260512220652_configurable_replay_messages.py` - Result: `5 passed` - Re-ran new regression suites: - `test_20260512223046_shift_ad_seek_anchor.py` - `test_20260512223306_replay_repeat_dual_sync.py` - Result: `4 passed` So now: - Replay message tests are green again. - Shift+A/D sync and repeated replay sync fixes remain green.
 20260512225811 PS U:\voothi\20260308110646-kardenwort-mpv> python -m pytest tests\acceptance\test_20260512220652_configurable_replay_messages.py tests\acceptance\test_20260512223046_shift_ad_seek_anchor.py tests\acceptance\test_20260512223306_replay_repeat_dual_sync.py -q......... [100%] 9 passed in 18.50s PS U:\voothi\20260308110646-kardenwort-mpv>
 20260512230953 /opsx-propose Compile documentation on diff e6095bb59c0bf5bcb2d011ce47e74e88deaad599 ba68e15a3308c53d557863d40439c8b4d03dc4e6
+20260512232622 /opsx-apply 20260512231050-dual-track-sync-fixes
 
 
 
@@ -2024,4 +2026,6 @@
 
 
 
+
+20260512232642 /opsx-apply 20260512231050-dual-track-sync-fixes Implemented dual-track synchronization fixes for Shift+A/D scrubbing and Replay operations. Added immediate dual-track anchoring in cmd_seek_time(), cmd_replay_sub(), tick_loop(), and tick_scheduled_replay() functions. Reduced nav_cooldown from 0.5s to 0.2s. Restored user-data/kardenwort/last_osd property for IPC diagnostics. Created test files test_20260512223046_shift_ad_seek_anchor.py and test_20260512223306_replay_repeat_dual_sync.py. All 9 tests pass (2+2+5).
 
