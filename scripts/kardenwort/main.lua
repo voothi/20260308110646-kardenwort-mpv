@@ -6435,6 +6435,8 @@ local function cmd_seek_time(dir)
     local subs = Tracks.pri.subs
     local current_idx = (subs and #subs > 0) and get_center_index(subs, current_pos) or -1
     local target_idx = (subs and #subs > 0) and get_center_index(subs, target_pos) or -1
+    local sec_subs = Tracks.sec.subs
+    local sec_target_idx = (sec_subs and #sec_subs > 0) and get_center_index(sec_subs, target_pos) or -1
     local is_cross_card_seek = (current_idx ~= -1 and target_idx ~= -1 and current_idx ~= target_idx)
 
     -- Forward seek clears transit inhibit immediately.
@@ -6448,6 +6450,15 @@ local function cmd_seek_time(dir)
         FSM.TIMESEEK_INHIBIT_UNTIL = math.max(FSM.TIMESEEK_INHIBIT_UNTIL or current_pos, current_pos)
         FSM.REWIND_START_IDX = current_idx
         FSM.REWIND_TRANSIT_CROSS_CARD = is_cross_card_seek
+    end
+
+    -- Immediate anchor during Shift+A/D to minimize upper-track perceived lag
+    -- before natural sentinel scan catches up after cooldown.
+    if target_idx ~= -1 then
+        FSM.ACTIVE_IDX = target_idx
+    end
+    if sec_target_idx ~= -1 then
+        FSM.SEC_ACTIVE_IDX = sec_target_idx
     end
 
     mp.commandv("seek", delta, "relative+exact")

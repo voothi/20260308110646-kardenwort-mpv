@@ -1954,9 +1954,10 @@
 20260512220652 opsx-apply 20260512215725-configurable-replay-messages
 20260512221335 How can I output in seconds? mpv.conf#L364-367
 20260512221839 To output the replay duration in seconds, you can now use the %s placeholder in your templates. I've updated the implementation to support: %m: Milliseconds (e.g., 2000) %s: Seconds (e.g., 2) %c: Iteration count %x: Conditional count display Example configuration for mpv.conf: To show only seconds, you can change your format strings like this: ini # Displaying in seconds instead of milliseconds script-opts-append=kardenwort-replay_msg_format=Replay: %s sec%x script-opts-append=kardenwort-replay_on_msg_format=Replaying segment: %s sec%x I have already updated the documentation in your mpv.conf to include this new placeholder.
-
-
-
+20260512222027 Are the main lower and additional upper subtitles synchronized well in DM mode during Replay s, when scrolling Shift+a/d?
+20260512222451 Why then do the upper subtitles visually lag behind when scrolling?
+20260512222730 So if primary/secondary subtitle timings are not perfectly aligned (very common), fast Shift+a/d scrubbing makes upper text look like it “lags,” even though scroll logic is working as designed. If you want, I can tune this to reduce the visual lag (first step: lower kardenwort-nav_cooldown, then tighten secondary active-index anchoring during seek_time). - Accept
+20260512222840 Implemented. - Reduced cooldown for faster settling: - [mpv.conf](/u:/voothi/20260308110646-kardenwort-mpv/mpv.conf):76 - `kardenwort-nav_cooldown=0.2` (was `0.5`) - Tightened secondary anchoring during `Shift+a/d` time seek: - [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua):6438 - [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua):6455 - Added immediate `target_pos`-based anchors: - `FSM.ACTIVE_IDX = target_idx` - `FSM.SEC_ACTIVE_IDX = sec_target_idx` - This reduces the visual delay before sentinel/cooldown logic updates naturally. I did not run mpv runtime playback tests in this environment, so please validate with your usual fast `Shift+a/d` scrub scenario in DM mode.
 
 
 
