@@ -1925,8 +1925,8 @@
 20260512114135 Findings (spec vs code/tests): 1. Medium: spec text has incorrect rename target for log prefix in [proposal.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/proposal.md:15). It says `[Kardenwort] -> [Kardenwort]`, but code uses `[kardenwort]` in [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua:58). 2. Low: spec text has a terminology transition typo in [proposal.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/proposal.md:27). It says `Kardenwort -> Kardenwort` (no effective change). 3. Low: task 2.2 is a no-op description in [tasks.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/tasks.md:10). It says move `scripts/kardenwort/main.lua` to the same path. Test status: - Full suite executed: `python -m pytest` - Result: **695 passed, 0 failed** (runtime ~13m08s). - This includes acceptance + unit coverage, so the “all tests are there” check is currently satisfied.
 20260512120035 fix it 20260512114135
 20260512120104 Fixed `20260512114135` items. Updated: - [proposal.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/proposal.md:15) log prefix corrected to `[Kardenwort]` -> `[kardenwort]` - [proposal.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/proposal.md:27) terminology transition corrected to `Kardenwort -> kardenwort` - [tasks.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/tasks.md:10) no-op move fixed to `scripts/kardenwort_core.lua` -> `scripts/kardenwort/main.lua`
-
-
+20260512120245 opsx-archive 20260511182348-kardenwort-restructuring-and-namespace-unification
+20260512120628 Sync now
 
 
 

@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Infrastructure & Ecosystem Vocabulary
-The project environment uses a specific set of terms to describe its tooling and methodology:
+The project environment SHALL use a specific set of terms to describe its tooling and methodology:
 
 | Term | Subject | Definition |
 | :--- | :--- | :--- |

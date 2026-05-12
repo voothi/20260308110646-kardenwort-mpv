@@ -17,4 +17,3 @@ The configuration system SHALL provide cross-referencing documentation within `m
 - **WHEN** a user inspects the `sec_pos_bottom` option in `mpv.conf`
 - **THEN** they SHALL find a `[LINKED]` tag warning about the 5% gap required from the primary `sub-pos`.
 
-

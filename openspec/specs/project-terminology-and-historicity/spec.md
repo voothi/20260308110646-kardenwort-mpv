@@ -2,11 +2,9 @@
 
 ## Purpose
 Define the project's canonical language, color space, and historical evolution to ensure consistency across AI-generated code, documentation, and user requests.
-
 ## Requirements
-
 ### Requirement: Infrastructure & Ecosystem Vocabulary
-The project environment uses a specific set of terms to describe its tooling and methodology:
+The project environment SHALL use a specific set of terms to describe its tooling and methodology:
 
 | Term | Subject | Definition |
 | :--- | :--- | :--- |
@@ -21,12 +19,15 @@ The project environment uses a specific set of terms to describe its tooling and
 | **Change Archive** | Organization | The `openspec/changes/archive` directory containing historical completed tasks. |
 | **mpv.conf** | Configuration | The primary player and script configuration file. |
 | **input.conf** | Configuration | The centralized keybinding configuration file. |
-| **anki-mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki-mapping.ini`). |
+| **anki_mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki_mapping.ini`) located in the repository root. |
 | **Central Register** | Log | The `docs/conversation.log` file, acting as the master registry of all requests and interactions. |
 | **Legacy Release Store**| Organization | The `docs/rfcs` directory containing historical releases using the **SDD** methodology. |
 | **OpenSpec** | Methodology | The modern, agentic-centric specification framework for active development. |
 | **SDD** | Methodology | **Software Design Document**: The legacy planning methodology (now archived). |
-| **resume-session.state**| State | The persistent playback state registry (`resume-session.state`). |
+
+#### Scenario: Terminology audit
+- **WHEN** reviewing project documentation
+- **THEN** all infrastructure terms SHALL match the definitions above.
 
 ### Requirement: The ZID Traceability Model
 The project utilizes a timestamp-based anchoring system (**ZID**) to ensure absolute traceability:
@@ -87,22 +88,28 @@ The AI agent and developers SHALL prioritize the following canonical terms over 
 | **Language-Aware Context** | Logic | Filtering context extraction to exclude translations (e.g. via Cyrillic detection). |
 | **Layout Agnosticism** | UX | Mapping standard keys across multiple keyboard layouts (EN/RU). |
 | **Interaction Shield** | Stability | A 50-150ms suppression window to ignore hardware jitter (ghost-clicks). |
-| **X Feedback** | UX | The standardized "X" OSD message indicating a key action is managed or restricted. |
 | **Grounded Match** | Accuracy | Highlighting anchored to a specific `logical_idx` and `time_pos`. |
 
+#### Scenario: Thesaurus consistency
+- **WHEN** generating OSD feedback or log messages
+- **THEN** the system SHALL use terms defined in the thesaurus (e.g., `[Kardenwort]` instead of `[Kardenwort]`).
+
 ### Requirement: Historical Entity Mapping
-When processing user requests referencing legacy terms or analyzing ZIDs from previous versions, the agent SHALL apply the following mappings:
+The project SHALL maintain a flat "Correspondence Table" for all renamings to allow the AI to trace chains of identity (e.g., A → B → C).
+
 | Legacy Term | Subject | Modern Equivalent | Transition ZID |
 | :--- | :--- | :--- | :--- |
 | `mpv Language Learning Suite`| Project | `mpv Language Acquisition Suite`| 20260310145846 |
 | `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
 | `kardenwort-mpv.lua` | Script | `kardenwort/main.lua` | 20260414150031 |
-| `lls_core.lua` | Script | `kardenwort/main.lua` | 20260511182348 |
 | `sub_context.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
 | `autopause.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
 | `copy_sub.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
 | `fixed_font.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `kardenwort/main.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
+| `kardenwort_utils.lua` | Script | `scripts/kardenwort/utils.lua` | 20260511182348 |
+| `resume_last_file.lua`| Script | `scripts/kardenwort/resume.lua`| 20260511182348 |
 | `Normal Mode` | UI Mode | `SRT Mode` | Early Development |
 | `Reel Mode` | UI Mode | `Drum Mode` | 20260412105348 |
 | `Window Mode` | UI Mode | `Drum Window` | 20260414115025 |
@@ -118,6 +125,10 @@ When processing user requests referencing legacy terms or analyzing ZIDs from pr
 | `Green` | Match | `Orange` | 20260419140508 |
 | `Auto-hover` | Tooltip | `Translation Tooltip`| 20260412105348 |
 
+#### Scenario: Legacy term lookup
+- **WHEN** an AI agent encounters the term `kardenwort/main.lua`
+- **THEN** it SHALL treat it as an alias for `scripts/kardenwort/main.lua` based on the mapping table.
+
 ### Requirement: Dual-Notation Color Specification
 To prevent rendering ambiguity between ASS (BGR) and Web (RGB) hex formats, all color definitions in specifications MUST use the dual-notation standard:
 - **Format**: `Color Name (BGR: [HEX] | RGB: #[HEX])`
@@ -125,5 +136,4 @@ To prevent rendering ambiguity between ASS (BGR) and Web (RGB) hex formats, all 
 
 ### Requirement: Linear Evolution Ledger
 The project SHALL maintain a flat "Correspondence Table" for all renamings to allow the AI to trace chains of identity (e.g., A → B → C).
-
 
