@@ -3374,9 +3374,9 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, Options.dw_border_size)
 
     if is_phrase or is_manual then
-        -- Full highlighting for phrases or manual user focus (Gold/Pink)
-        -- Enforce "Premium" regular weight for manual selections
-        return string.format("{\\b0}%s%s%s{\\b%s}", h_tags, word, r_tags, bold_state or "0")
+        -- Full highlighting for phrases or manual user focus (Gold/Pink).
+        -- Keep bold state parity with baseline text to prevent width jitter.
+        return string.format("%s%s%s%s%s", b_on, h_tags, word, r_tags, b_off)
     else
         -- Surgical highlighting for automated database matches (Surgical Punctuation)
         local pre = word:match("^[%p%s]*")
