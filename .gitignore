@@ -31,6 +31,7 @@ scratch/
 # old.lua
 # parsed_subs*
 tests/mpv_last_run.log
+pytest_out.log
 
 # --- Specific Legacy Exclusions ---
 # scripts/*_old*.lua

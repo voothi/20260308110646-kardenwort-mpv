@@ -454,6 +454,7 @@ Options = {
     anki_mix_depth_2 = "3636A8",
     anki_mix_depth_3 = "151578",
     anki_global_highlight = false,
+    anki_record_file = "",
     log_level = "info",
     anki_sync_period = 5,
     anki_context_lines = 6,
@@ -2612,6 +2613,7 @@ end
 
 
 local function get_tsv_path()
+    if Options.anki_record_file and Options.anki_record_file ~= "" then return Options.anki_record_file end
     local path = mp.get_property("path")
     if not path then return nil end
     local base = path:match("(.+)%.[^%.]+$")
@@ -7392,7 +7394,7 @@ local function manage_search_bindings(enable)
             update_search_results()
             render_search()
         end
-        bind(Options.search_key_delete_word, "delete-word", delete_word_before_cursor, "repeatable")
+        bind(Options.search_key_delete_word, "delete-word", delete_word_before_cursor, "repeatable")  
         
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
@@ -8115,6 +8117,8 @@ function kardenwortProbe._snapshot()
         rewind_transit_until  = FSM.TIMESEEK_INHIBIT_UNTIL or 0,
         rewind_transit_cross_card = FSM.REWIND_TRANSIT_CROSS_CARD == true,
         last_paused_sub_end   = FSM.last_paused_sub_end,
+        karaoke_mode          = FSM.KARAOKE,
+        search_mode           = FSM.SEARCH_MODE,
         search_query       = FSM.SEARCH_QUERY,
         search_results     = FSM.SEARCH_RESULTS,
         dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
@@ -8485,5 +8489,4 @@ mp.register_script_message("test-expand-ru-keys", function(key_str)
     local results = expand_ru_keys(key_str, "test-expand")
     mp.set_property("user-data/kardenwort/last_export", utils.format_json(results))
 end)
-
 
