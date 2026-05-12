@@ -1914,7 +1914,7 @@
 20260512095351 Create tests to cover this.
 20260512100816 Added regression coverage for your DM border-jump case. New tests: tests/acceptance/test_20260512095351_dm_selection_geometry_stability.py What they verify: In DM ON, selecting a word does not change vertical hit-zone envelopes for primary and secondary tracks. In DM ON, selecting a word does not change inter-track vertical gap (the upper/lower window boundary remains stable). Technical approach: Uses existing IPC probes: test-query-hit-zones test-set-cursor test-ctrl-toggle-word state-query Compares pre/post geometry with tight tolerance (abs=0.01). Validation note: I could not run pytest here due environment failure: python.exe... A specified logon session does not exist If you want, next I can add one more variant for “top subtitle click path” by selecting the top-most visible zone explicitly from hit-zones rather than active line.
 20260512100833 2 passed in 7.54s; python -m pytest tests/acceptance/test_20260512095351_dm_selection_geometry_stability.py -vv
-
+20260512103245 ========================================== 683 passed in 860.92s (0:14:20) ===========================================
 
 
 
