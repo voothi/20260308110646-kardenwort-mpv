@@ -4,41 +4,41 @@
 
 # --- System & IDE ---
 .history/
-.claude/
-.cline/
-.roo/
-.opencode/
+# .claude/
+# .cline/
+# .roo/
+# .opencode/
 *.code-workspace
 
 # --- Python & Build ---
 __pycache__/
 *.pyc
 .pytest_cache/
-tests/mpv_last_run.log
 
 # --- Persistent State ---
 resume-session.state
 
 # --- Temporary & Development Artifacts ---
 scratch/
-*.txt
-*.patch
-*.log
-*.bak
-*.old
-*temp*
-test*.py
-test*.lua
-old.lua
-parsed_subs*
+# *.txt
+# *.patch
+# *.log
+# *.bak
+# *.old
+# *temp*
+# test*.py
+# test*.lua
+# old.lua
+# parsed_subs*
+tests/mpv_last_run.log
 
 # --- Specific Legacy Exclusions ---
-scripts/*_old*.lua
-scripts/test_osd.lua
-scripts/old_copy_sub.lua
-scripts/lls_core_good*.lua
+# scripts/*_old*.lua
+# scripts/test_osd.lua
+# scripts/old_copy_sub.lua
+# scripts/lls_core_good*.lua
+# tests/fixtures/20260502165659-test-fixture.tsv
 20260304233334-you-dont-need-saas.ass
-tests/fixtures/20260502165659-test-fixture.tsv
 
 # --- User Settings (Optional) ---
 # anki-mapping.ini is versioned, but users can untrack it if needed.
