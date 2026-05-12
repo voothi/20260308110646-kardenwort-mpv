@@ -1,18 +1,16 @@
 # Test Suite
 
-Two test tiers: Lua unit tests (no mpv required) and Python acceptance tests (headless mpv via IPC).
+Unified pytest suite with:
+- Python unit tests (no mpv required)
+- Python acceptance tests (headless mpv via IPC)
 
 ## Run unit tests
-
-Requires a Lua interpreter (`lua`, `lua5.4`, `lua5.3`, or `luajit`) on `PATH`, or set `LUA=/path/to/lua`.
 
 Run from the **project root**:
 
 ```
-python tests/run_unit.py
+python -m pytest tests/unit/ -v
 ```
-
-Expected output: `OK (6 tests, 6 assertions)` or similar.
 
 ## Run acceptance tests
 
@@ -24,6 +22,12 @@ Run from the **project root**:
 
 ```
 python -m pytest tests/acceptance/ -v
+```
+
+## Run all tests
+
+```
+python -m pytest -v
 ```
 
 ### Headless mpv flags used

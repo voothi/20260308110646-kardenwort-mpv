@@ -687,7 +687,7 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 │       ├── main.lua        # Master entry point and FSM controller
 │       ├── utils.lua       # Unified rendering and path utilities
 │       └── resume.lua      # Session persistence manager
-├── tests/                  # Pytest and LuaUnit verification suite
+├── tests/                  # Unified pytest verification suite
 ├── anki-mapping.ini        # Anki field mapping configuration
 ├── input.conf              # Keybindings and interaction mappings
 ├── mpv.conf                # Global player and script configuration
@@ -698,12 +698,11 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 
 ## Testing
 
-The project maintains high architectural integrity through a two-tier test suite: Lua unit tests for logic verification and Python acceptance tests for headless mpv interaction.
+The project maintains high architectural integrity through a unified `pytest` suite: fast Python unit tests for logic contracts and acceptance tests for headless mpv interaction.
 
-### Unit Tests (Lua)
-Requires a Lua interpreter (`lua`, `luajit`) on your `PATH`.
+### Unit Tests (Python)
 ```powershell
-python tests/run_unit.py
+python -m pytest tests/unit/ -v
 ```
 
 ### Acceptance Tests (Python + mpv)
@@ -714,6 +713,9 @@ pip install -r tests/requirements.txt
 
 # Run all acceptance tests
 python -m pytest tests/acceptance/ -v
+
+# Run full test suite (unit + acceptance)
+python -m pytest -v
 ```
 
 [Return to Top](#table-of-contents)
