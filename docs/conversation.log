@@ -1947,7 +1947,7 @@
 20260512143254 If you want, I can next prepare a minimal patch set to restore only the three critical items (option, snapshot fields, and deleted acceptance file) without touching anything else. - Accept
 20260512155201 opsx-apply 20260512130623-missed-functional-coverage
 20260512172916 python -m pytest tests/acceptance/test_20260512130623_missed_functional_coverage.py -v ======================================== 3 passed in 16.83s =========================================
-
+20260512175128 ==================================================================== 698 passed in 810.45s (0:13:30) =====================================================================
 
 
 
