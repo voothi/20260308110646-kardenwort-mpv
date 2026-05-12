@@ -499,7 +499,9 @@ Options = {
     seek_shadow_offset = 1.0,
     seek_show_accumulator = true,
     seek_msg_format = "%p%v",
-    seek_msg_cumulative_format = "%P%V"
+    seek_msg_cumulative_format = "%P%V",
+    replay_msg_format = "Replay: %mms%x",
+    replay_on_msg_format = "Replaying segment: %mms%x"
 }
 options.read_options(Options, "kardenwort")
 
@@ -6261,7 +6263,10 @@ local function cmd_replay_sub()
         FSM.REWIND_START_IDX = nil
         FSM.REWIND_TRANSIT_CROSS_CARD = false
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-        show_osd("Replay: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" x" .. Options.replay_count) or ""))
+        local x_str = (Options.replay_count > 1) and (" x" .. Options.replay_count) or ""
+        local template = Options.replay_msg_format
+        local msg = template:gsub("%%m", tostring(Options.replay_ms)):gsub("%%c", tostring(Options.replay_count)):gsub("%%x", x_str)
+        show_osd(msg)
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
         FSM.LOOP_MODE = "OFF"
@@ -6283,7 +6288,10 @@ local function cmd_replay_sub()
             FSM.REWIND_TRANSIT_CROSS_CARD = false
         end
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-        show_osd("Replaying segment: " .. Options.replay_ms .. "ms" .. (Options.replay_count > 1 and (" (x" .. Options.replay_count .. ")") or ""))
+        local x_str = (Options.replay_count > 1) and (" (x" .. Options.replay_count .. ")") or ""
+        local template = Options.replay_on_msg_format
+        local msg = template:gsub("%%m", tostring(Options.replay_ms)):gsub("%%c", tostring(Options.replay_count)):gsub("%%x", x_str)
+        show_osd(msg)
     end
 end
 
