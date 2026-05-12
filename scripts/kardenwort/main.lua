@@ -6086,7 +6086,10 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
-    dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+    local is_mode_c = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
+    if not is_mode_c then
+        dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+    end
 end
 
 local function cmd_dw_word_move(dir, shift)
@@ -6199,7 +6202,10 @@ local function cmd_dw_word_move(dir, shift)
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
-    dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+    local is_mode_c = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
+    if not is_mode_c then
+        dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+    end
 
     if not shift then
         FSM.DW_ANCHOR_LINE = -1

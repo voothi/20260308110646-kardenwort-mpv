@@ -1,6 +1,6 @@
 package.path = package.path .. ";tests/lua/?.lua;tests/unit/?.lua;scripts/?.lua"
 local lu = require("luaunit")
-for _, name in ipairs({ "test_ass_alpha", "test_utf8" }) do
+for _, name in ipairs({ "test_ass_alpha", "test_utf8", "test_text_utils" }) do
     require(name)
 end
 os.exit(lu.LuaUnit.run())
