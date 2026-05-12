@@ -7369,10 +7369,10 @@ local function manage_search_bindings(enable)
         
         local function delete_word_before_cursor()
             if FSM.SEARCH_QUERY == "" or FSM.SEARCH_CURSOR == 0 then return end
-            
+
             local q_table = utf8_to_table(FSM.SEARCH_QUERY)
             local target_pos = get_word_boundary(q_table, FSM.SEARCH_CURSOR, -1)
-            
+
             -- If we have a selection, delete it first (standard behavior)
             if FSM.SEARCH_ANCHOR ~= -1 and FSM.SEARCH_ANCHOR ~= FSM.SEARCH_CURSOR then
                 local s_start = math.min(FSM.SEARCH_ANCHOR, FSM.SEARCH_CURSOR)
@@ -7389,12 +7389,12 @@ local function manage_search_bindings(enable)
                 end
                 FSM.SEARCH_CURSOR = target_pos
             end
-            
+
             FSM.SEARCH_QUERY = table.concat(q_table)
             update_search_results()
             render_search()
         end
-        bind(Options.search_key_delete_word, "delete-word", delete_word_before_cursor, "repeatable")  
+        bind(Options.search_key_delete_word, "delete-word", delete_word_before_cursor, "repeatable")
         
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
@@ -8488,5 +8488,38 @@ end)
 mp.register_script_message("test-expand-ru-keys", function(key_str)
     local results = expand_ru_keys(key_str, "test-expand")
     mp.set_property("user-data/kardenwort/last_export", utils.format_json(results))
+end)
+
+-- Test instrumentation for missed functional coverage (ZID: 20260512130623)
+mp.register_script_message("test-set-search-query", function(query)
+    FSM.SEARCH_QUERY = query or ""
+    FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
+    FSM.SEARCH_ANCHOR = -1
+    update_search_results()
+    render_search()
+end)
+
+mp.register_script_message("test-search-delete-word", function()
+    -- Deterministic acceptance-test hook (independent from keybinding scope).
+    local before = FSM.SEARCH_QUERY or ""
+    if before == "" then return end
+    local trimmed = before:gsub("%s*%S+$", "")
+    if trimmed ~= "" and not trimmed:match("%s$") then
+        trimmed = trimmed .. " "
+    end
+    FSM.SEARCH_QUERY = trimmed
+    FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
+    FSM.SEARCH_ANCHOR = -1
+end)
+
+mp.register_script_message("test-export-selection", function()
+    sync_ctrl_pending_list()
+    local members = FSM.DW_CTRL_PENDING_LIST or {}
+    if #members > 0 then
+        local first = members[1]
+        ctrl_commit_set(first.line, first.word)
+        return
+    end
+    dw_anki_export_selection()
 end)
 
