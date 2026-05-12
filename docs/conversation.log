@@ -1915,13 +1915,8 @@
 20260512100816 Added regression coverage for your DM border-jump case. New tests: tests/acceptance/test_20260512095351_dm_selection_geometry_stability.py What they verify: In DM ON, selecting a word does not change vertical hit-zone envelopes for primary and secondary tracks. In DM ON, selecting a word does not change inter-track vertical gap (the upper/lower window boundary remains stable). Technical approach: Uses existing IPC probes: test-query-hit-zones test-set-cursor test-ctrl-toggle-word state-query Compares pre/post geometry with tight tolerance (abs=0.01). Validation note: I could not run pytest here due environment failure: python.exe... A specified logon session does not exist If you want, next I can add one more variant for “top subtitle click path” by selecting the top-most visible zone explicitly from hit-zones rather than active line.
 20260512100833 2 passed in 7.54s; python -m pytest tests/acceptance/test_20260512095351_dm_selection_geometry_stability.py -vv
 20260512103245 ========================================== 683 passed in 860.92s (0:14:20) ===========================================
-
-
-
-
-
-
-
+20260512103734 Figure out why I get stuck on the recording when manually navigating using the `d` key on the subtitle `im europäischen Vergleich eingebüst und` and can’t move forward? Use the `a` key to navigate back, but not forward. Can you trace the project? ```srt 24 00:01:48,619 --> 00:01:51,450 Verbandes der Luftverkehrswirtschaft 25 00:01:51,460 --> 00:01:54,250 hat das Unternehmen seinen Spitzenplatz 26 00:01:54,260 --> 00:01:57,890 im europäischen Vergleich eingebüst und 27 00:01:57,900 --> 00:02:01,850 belegt nun nur noch Rang 4. 28 00:02:01,860 --> 00:02:05,090 Experten machen veraltete Flugzeuge und ```
+20260512104859 Root cause traced and fixed. You’re hitting an overlap edge case introduced by the large padding model (`audio_padding_start=1000`, `audio_padding_end=1000`): pressing `d` seeks to the next subtitle’s padded start, but that timestamp can still be inside the previous subtitle’s raw SRT window. On the next `d`, index resolution snaps back to the previous line, so it feels “stuck” (while `a` still works). I patched manual seek anchoring to use the FSM sentinel index first (instead of transient `time-pos` overlap), which prevents this replay loop. Changed file: - [scripts/kardenwort/main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua:6331) What changed: - In `cmd_dw_seek_delta`, base navigation index now prefers `FSM.ACTIVE_IDX` (and still respects `FSM.DW_SEEK_TARGET` during hold-repeat). - Added a guard so we don’t early-return when `current_idx == -1` if sentinel is valid. Validation: - `luac -p scripts/kardenwort/main.lua` passed. Trace anchors relevant to this regression pattern: - `20260427161414` (previous stuck-scroll class) - `20260505103700` / `202605051144` period (multiple “d gets stuck” reports) - your current report `20260512103734` matches the same family but under current overlap/padding logic.
 
 
 

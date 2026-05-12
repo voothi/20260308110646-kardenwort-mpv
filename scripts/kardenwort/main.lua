@@ -6329,9 +6329,15 @@ local function cmd_dw_seek_delta(dir)
     FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown -- Settle period for smart logic
     
     local current_idx = get_center_index(subs, time_pos)
-    if current_idx == -1 then return end
-    
+    if current_idx == -1 and (not FSM.ACTIVE_IDX or FSM.ACTIVE_IDX == -1) then return end
+
+    -- Use the sentinel as the primary navigation anchor.
+    -- With large pre-roll padding, the seek target can sit inside the previous raw SRT window;
+    -- anchoring to transient time_pos would make repeated `d` presses replay the same line.
     local base_idx = current_idx
+    if FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 and subs[FSM.ACTIVE_IDX] then
+        base_idx = FSM.ACTIVE_IDX
+    end
     if FSM.DW_SEEKING_MANUALLY and FSM.DW_SEEK_TARGET ~= -1 then
         base_idx = FSM.DW_SEEK_TARGET
     end
