@@ -1905,7 +1905,7 @@
 20260512031755 x fix it
 20260512032208 x If you want, I can next wire main.lua to import and reuse these shared utility implementations directly (to remove duplication and make spec alignment stricter). - Accept
 20260512032508 x Next natural step if you want: I can add a small unit test asserting calculate_match_score second return (indices) shape explicitly, to lock this contract down. - Accept
-
+20260512033656 create-release-2 v1.80.0 openspec\changes\archive\20260508183430-create-regression-tests openspec\changes\archive\20260509001712-fix-drum-mode-paired-selection openspec\changes\archive\20260509152445-fix-autopause-phrase-movie-rewind openspec\changes\archive\20260509175704-fix-secondary-sub-flash openspec\changes\archive\20260509181204-srt-tooltip-parity openspec\changes\archive\20260510193230-rewind-autopause-logic-cleanup openspec\changes\archive\20260511001834-formalize-autopause-transit-contract openspec\changes\archive\20260511100252-rmb-hit-testing-parity openspec\changes\archive\20260511102747-tooltip-flicker-fix openspec\changes\archive\20260511170929-unify-dw-osd-labels docs\conversation.log conversation.log#L1656-1907
 
 
 

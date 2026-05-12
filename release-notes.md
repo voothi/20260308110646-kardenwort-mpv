@@ -1,3 +1,44 @@
+# Release Notes - v1.80.0 (Kardenwort Namespace & FSM Harmonization)
+
+**Date**: 2026-05-12
+**Version**: v1.80.0
+**Implementation ZIDs**: 20260508183430, 20260509001712, 20260509152445, 20260509175704, 20260509181204, 20260510193230, 20260511001834, 20260511100252, 20260511102747, 20260511170929
+
+## Highlights
+
+### 📁 **Architectural Namespace Migration**
+- **Canonical Renaming**: Completed the full transition to the `kardenwort/` namespace. The core script has been moved from `lls_core.lua` to `scripts/kardenwort/main.lua`, and all internal modules now reside within this unified directory structure.
+- **Breaking Structural Changes**: This version introduces significant structural changes to improve namespace isolation and portability:
+    - **Namespace Shift**: The core script has moved from `lls_core.lua` to `scripts/kardenwort/`.
+    - **Keybinding Migration**: All `script-binding` and `script-message` targets now use the `kardenwort/` prefix (e.g., `script-binding kardenwort/smart-space`).
+    - **Config Prefix**: All `script-opts` parameters in `mpv.conf` now use the `kardenwort-` prefix (e.g., `kardenwort-autopause_default=yes`).
+    - **Anki Mapping**: `anki-mapping.ini` has moved from `script-opts/` to the repository root for better visibility.
+- **Configuration Centralization**: Relocated `anki_mapping.ini` to the repository root for better visibility and simplified multi-project management.
+- **Documentation Restructure**: Reorganized `README.md` to prioritize the visual showcase and project goals, moving technical specifications and repository structure to a dedicated section near the installation guide.
+- **Branding Sanitation**: Systematically purged legacy "LLS" branding from all active specifications, OSD feedback, and configuration keys, ensuring a professional and consistent product identity.
+
+### 🛡️ **FSM Harmonization & Mode Integrity**
+- **Strict Mode Transitions**: Implemented non-cyclical, exclusive switching between **SRT (Single)**, **Drum Mode (DM)**, and **Drum Window (DW)**. Modes are now gated by dedicated `z` and `x` bindings, eliminating "state leakage" and unexpected toggling.
+- **Unified OSD Feedback**: Standardized user feedback during mode transitions. Redundant status messages have been replaced with concise indicators (e.g., "Managed by Drum Window" or "X") when actions are restricted by the active immersion state.
+- **Input Silencing**: Hardened the FSM to ignore accidental keystrokes and redundant positioning commands (`r`, `t`) when in managed reading modes, ensuring an uninterrupted study experience.
+
+### ⏯️ **Immersion Engine Hardening**
+- **Autopause & Rewind Stability**: Stabilized the behavioral contract for `PHRASE` and `MOVIE` modes during manual rewind (`Shift+a/d`) and replay (`s`). Handover logic now suppresses "jerk-back" artifacts and ensures smooth continuous playback through subtitle boundaries.
+- **Spacebar Hold Logic**: Refined the interaction between the spacebar and autopause. Holding the spacebar now enables a "MOVIE-like" flow during `PHRASE` mode, allowing users to listen through multiple subtitles without manual intervention until the key is released.
+- **Boundary Precision**: Hardened subtitle timing verification to ensure audio capture strictly respects `.srt` boundaries, even when using aggressive audio padding.
+
+### 🎨 **UI/UX Stabilization & Tooltip Evolution**
+- **Flicker-Free Tooltips**: Eliminated cyclical flickering in the Drum Window tooltip by implementing OSD data-guarding and stabilizing coordinate cache keys. Updates now only fire when visual content or position actually changes.
+- **Universal Tooltip Parity**: Extended the translation tooltip system (`e` / `RMB`) to standard SRT mode, providing feature parity across all rendering interfaces.
+- **Permissive Hit-Testing**: Aligned Drum Mode hit-testing with the Drum Window's "snap-to-nearest-line" behavior, making mouse-driven interactions more intuitive in the lower subtitle window.
+
+### 🧪 **Verification & Test Infrastructure**
+- **Comprehensive Regression Suite**: Expanded the automated acceptance test suite to over 680 tests, achieving 100% coverage of archived specifications and FSM invariants.
+- **Hardware-Agnostic IPC**: Hardened the Windows IPC bridge using `ctypes` and overlapped I/O, eliminating deadlocks and ensuring reliable state probing in headless environments.
+- **Dual-Track Synchronization**: Fixed a 1-index desynchronization bug between primary and secondary tracks caused by overlapping padding windows during continuous playback.
+
+---
+
 # Release Notes - v1.60.2 (Deterministic Phrase Highlighting)
 
 **Date**: 2026-05-07

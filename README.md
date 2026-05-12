@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.60.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.60.2) 
+[![Version](https://img.shields.io/badge/version-v1.80.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -19,43 +19,11 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 > *   **Workflow**: Optimized for both merged `.ass` and separate `.srt` files.
 > *   **Interface**: Distraction-free OSC (hidden by default).
 
-> [!CAUTION]
-> **Breaking Architectural Changes (v1.60.2+)**
->
-> This version introduces significant structural changes to improve namespace isolation and portability:
-> 1.  **Namespace Shift**: The core script has moved from `lls_core.lua` to `scripts/kardenwort/`.
-> 2.  **Keybinding Migration**: All `script-binding` and `script-message` targets now use the `kardenwort/` prefix (e.g., `script-binding kardenwort/smart-space`).
-> 3.  **Config Prefix**: All `script-opts` parameters in `mpv.conf` now use the `kardenwort-` prefix (e.g., `kardenwort-autopause_default=yes`).
-> 4.  **Anki Mapping**: `anki-mapping.ini` has moved from `script-opts/` to the repository root for better visibility.
-
-## Repository Structure
-
-```text
-.
-├── .agent/                 # Agentic configurations and workflows
-├── docs/                   # Documentation and conversation logs
-├── openspec/               # OpenSpec architectural specifications
-│   ├── changes/            # Active feature implementations
-│   └── specs/              # System specifications and requirements
-├── scripts/
-│   └── kardenwort/         # Core Lua engine and modules
-│       ├── main.lua        # Master entry point and FSM controller
-│       ├── utils.lua       # Unified rendering and path utilities
-│       └── resume.lua      # Session persistence manager
-├── tests/                  # Pytest and LuaUnit verification suite
-├── anki-mapping.ini        # Anki field mapping configuration
-├── input.conf              # Keybindings and interaction mappings
-├── mpv.conf                # Global player and script configuration
-├── release-notes.md        # Historical evolution and feature ledger
-└── resume-session.state    # Persistent playback state registry
-```
-
 
 
 ## Table of Contents
 
 - [Visual Showcase](#visual-showcase)
-- [Repository Structure](#repository-structure)
 - [Project Goals](#project-goals)
 - [Distinctive Advantages](#distinctive-advantages)
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
@@ -75,6 +43,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
   - [Visual Keyboard Layout (English)](#visual-keyboard-layout-english)
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
+- [Repository Structure](#repository-structure)
 - [Testing](#testing)
 - [Installation](#installation)
 - [Development Analytics](#development-analytics)
@@ -703,6 +672,30 @@ The configuration supports a **Mode-based architecture**. You can define and swi
 
 [Return to Top](#table-of-contents)
 
+
+## Repository Structure
+
+```text
+.
+├── .agent/                 # Agentic configurations and workflows
+├── docs/                   # Documentation and conversation logs
+├── openspec/               # OpenSpec architectural specifications
+│   ├── changes/            # Active feature implementations
+│   └── specs/              # System specifications and requirements
+├── scripts/
+│   └── kardenwort/         # Core Lua engine and modules
+│       ├── main.lua        # Master entry point and FSM controller
+│       ├── utils.lua       # Unified rendering and path utilities
+│       └── resume.lua      # Session persistence manager
+├── tests/                  # Pytest and LuaUnit verification suite
+├── anki-mapping.ini        # Anki field mapping configuration
+├── input.conf              # Keybindings and interaction mappings
+├── mpv.conf                # Global player and script configuration
+├── release-notes.md        # Historical evolution and feature ledger
+└── resume-session.state    # Persistent playback state registry
+```
+
+
 ## Testing
 
 The project maintains high architectural integrity through a two-tier test suite: Lua unit tests for logic verification and Python acceptance tests for headless mpv interaction.
@@ -765,7 +758,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~1874 Commits (v1.60.2)
+- **Current Maturity**: ~2035 Commits (v1.80.0)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
