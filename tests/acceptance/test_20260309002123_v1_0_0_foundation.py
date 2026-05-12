@@ -51,7 +51,7 @@ class TestMarchEarlyRegressions:
         ipc = mpv_fragment1.ipc
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
         
         # Open Search
@@ -59,7 +59,7 @@ class TestMarchEarlyRegressions:
         time.sleep(0.5)
         
         # v1.25.0 Decision: Multi-keyword AND logic.
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', 'Paket Ende'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-input', 'Paket Ende'])
         time.sleep(0.8) # Allow time for scoring logic
         
         state = robust_query_state(ipc)
@@ -82,7 +82,7 @@ class TestMarchEarlyRegressions:
         assert state['tracks']['pri']['path'] is not None
         
         # Toggle Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
         state = robust_query_state(ipc)
         assert state['drum_window'] != 'OFF'
@@ -97,7 +97,7 @@ class TestMarchEarlyRegressions:
         assert state['tracks']['pri']['is_ass'] == True
         
         # Try to toggle Drum Mode
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-toggle'])
         time.sleep(1.0)
         
         state = robust_query_state(ipc)

@@ -13,11 +13,11 @@ def test_drum_mode_gap_snapping(mpv_dual):
     ipc = mpv_dual.ipc
     
     # 1. Enable Drum Mode
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
     time.sleep(0.2)
     
     # 2. Query hit zones to find a gap
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-query-hit-zones'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-query-hit-zones'])
     time.sleep(0.1)
     state = query_kardenwort_state(ipc)
     hit_zones = state.get('test_data', {}).get('drum_hit_zones', [])
@@ -35,7 +35,7 @@ def test_drum_mode_gap_snapping(mpv_dual):
         target_x = zone1['x_start'] + zone1['total_width'] / 2
         
         # 3. Perform hit-test in the gap
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-hit-test', str(target_x), str(gap_y)])
+        ipc.command(['script-message-to', 'kardenwort', 'test-hit-test', str(target_x), str(gap_y)])
         time.sleep(0.1)
         
         state = query_kardenwort_state(ipc)
@@ -52,11 +52,11 @@ def test_drum_mode_horizontal_strictness(mpv_dual):
     ipc = mpv_dual.ipc
     
     # 1. Enable Drum Mode
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
     time.sleep(0.2)
     
     # 2. Query hit zones
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-query-hit-zones'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-query-hit-zones'])
     time.sleep(0.1)
     state = query_kardenwort_state(ipc)
     hit_zones = state.get('test_data', {}).get('drum_hit_zones', [])
@@ -70,7 +70,7 @@ def test_drum_mode_horizontal_strictness(mpv_dual):
     target_x = zone['x_start'] - 100
     target_y = (zone['y_top'] + zone['y_bottom']) / 2
     
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-hit-test', str(target_x), str(target_y)])
+    ipc.command(['script-message-to', 'kardenwort', 'test-hit-test', str(target_x), str(target_y)])
     time.sleep(0.1)
     
     state = query_kardenwort_state(ipc)

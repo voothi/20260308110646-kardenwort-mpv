@@ -32,10 +32,10 @@ def test_srt_tooltip_activation_parity(mpv_dual):
     
     # 2. Toggle tooltip ON in SRT mode
     # Ensure SRT OSD mode is active
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_size', '40'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_size', '40'])
     time.sleep(0.1)
     
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.2)
     
     # 3. Verify tooltip is forced ON and rendered
@@ -51,13 +51,13 @@ def test_tooltip_forced_state_sync(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Toggle ON
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.15)
     state = query_kardenwort_state(ipc)
     assert state['tooltip_forced'] is True
     
     # Toggle OFF
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.15)
     state = query_kardenwort_state(ipc)
     assert state['tooltip_forced'] is False
@@ -67,13 +67,13 @@ def test_srt_tooltip_eligibility_guards(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Disable SRT OSD styling completely
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_size', '0'])
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_name', ''])
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_bold', 'no'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_size', '0'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_name', ''])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_bold', 'no'])
     time.sleep(0.2)
     
     # Attempt to toggle tooltip
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.2)
     
     # Verify tooltip is NOT ON and NOT rendered
@@ -90,7 +90,7 @@ def test_srt_track_cycle_bootstrapping_and_twitch_suppression(mpv_dual):
     ipc = mpv_dual.ipc
     
     # 1. Enable SRT OSD mode
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_size', '40'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_size', '40'])
     time.sleep(0.1)
     
     # 2. Verify cache is bootstrapped before switching
@@ -98,7 +98,7 @@ def test_srt_track_cycle_bootstrapping_and_twitch_suppression(mpv_dual):
     assert state['tooltip_cache_size'] > 0, "Cache should be bootstrapped at startup"
     
     # 3. Cycle to secondary track (RU) for the FIRST time
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-cycle-sec-sid'])
+    ipc.command(['script-message-to', 'kardenwort', 'cycle-sec-sid'])
     
     # 4. Immediate synchronous checks
     # Property suppression

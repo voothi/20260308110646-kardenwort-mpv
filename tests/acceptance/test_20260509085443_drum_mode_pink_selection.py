@@ -20,19 +20,19 @@ class TestDrumPinkSelection:
         time.sleep(0.5)
         
         # Ensure we are in SRT Mode
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'OFF'])
         time.sleep(0.3)
         
         # Move cursor to line 2, word 1
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.3)
         
         # Query render to force cache to build with the new cursor position
         _ = query_kardenwort_render(ipc, 'drum')
         
         # Trigger toggle to add to pink set
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '1'])
         time.sleep(0.3)
         
         # Verify visual state in drum_osd

@@ -61,8 +61,8 @@ def _state(ipc, retries=6):
 
 
 def _setup_phrase_autopause(ipc):
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'immersion-mode-set', 'PHRASE'])
+    ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
     time.sleep(0.1)
 
 
@@ -73,13 +73,13 @@ def _seek(ipc, pos):
 
 def _seek_time(ipc, direction):
     """Trigger cmd_seek_time(direction) via IPC test message."""
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-time', str(direction)])
+    ipc.command(['script-message-to', 'kardenwort', 'test-seek-time', str(direction)])
     time.sleep(0.15)
 
 
 def _func_body(src, name):
     """Return the body of the Lua function `name` up to the next top-level function."""
-    for prefix in (f"local function {name}", f"function KardenwortProbe.{name}", f"function {name}"):
+    for prefix in (f"local function {name}", f"function kardenwortProbe.{name}", f"function {name}"):
         idx = src.find(prefix)
         if idx != -1:
             break
@@ -208,7 +208,7 @@ class TestTimseekTransitStructural:
         )
 
     def test_state_snapshot_exposes_rewind_transit(self):
-        """KardenwortProbe._snapshot must expose rewind transit state fields."""
+        """kardenwortProbe._snapshot must expose rewind transit state fields."""
         src = _src()
         assert "rewind_transit_active" in src, "rewind_transit_active not in state snapshot"
         assert "rewind_transit_until" in src, "rewind_transit_until not in state snapshot"
@@ -253,15 +253,15 @@ class TestTimseekTransitStructural:
         )
 
     def test_state_snapshot_exposes_last_paused_sub_end(self):
-        """KardenwortProbe._snapshot must expose last_paused_sub_end for integration testing."""
+        """kardenwortProbe._snapshot must expose last_paused_sub_end for integration testing."""
         assert "last_paused_sub_end" in _func_body(_src(), "_snapshot"), (
             "last_paused_sub_end not in state snapshot — integration tests cannot verify autopause"
         )
 
     def test_test_seek_time_message_registered(self):
-        """kardenwort-test-seek-time script message must be registered for IPC testing."""
-        assert '"kardenwort-test-seek-time"' in _src(), (
-            "kardenwort-test-seek-time message not registered — IPC test trigger missing"
+        """test-seek-time script message must be registered for IPC testing."""
+        assert '"test-seek-time"' in _src(), (
+            "test-seek-time message not registered — IPC test trigger missing"
         )
 
 
@@ -331,10 +331,10 @@ class TestTimseekTransitState:
     def test_backward_seek_cancels_active_loop(self, mpv_fragment1):
         """Backward time-seek must cancel an active LOOP_MODE (from 's' with Autopause OFF)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'OFF'])
         time.sleep(0.1)
         _seek(ipc, 4.8)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-replay'])
         time.sleep(0.2)
 
         state_before = _state(ipc)
@@ -359,7 +359,7 @@ class TestTimseekTransitState:
         ipc.command(['set_property', 'options/kardenwort-replay_count', '3'])
         time.sleep(0.1)
         _seek(ipc, 4.8)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-replay'])
         time.sleep(0.2)
 
         state_before = _state(ipc)
@@ -454,8 +454,8 @@ class TestTimseekTransitIntegration:
     def test_movie_mode_transit_no_pause_at_sub3_boundary(self, mpv_fragment1):
         """In MOVIE mode: direct seek to sub 3 eff end inside inhibit zone must not set last_paused_sub_end."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
         time.sleep(0.1)
 
         _seek(ipc, 14.5)
@@ -592,8 +592,8 @@ class TestTimseekTransitLive:
         next sub's padded start as the handover boundary, preventing overlap looping.
         """
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'immersion-mode-set', 'MOVIE'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
         time.sleep(0.1)
 
         # seek_time_delta=2s, guard: gap(0.599s) < pad_start(1.0s) → eff_end = raw_end = 15.117

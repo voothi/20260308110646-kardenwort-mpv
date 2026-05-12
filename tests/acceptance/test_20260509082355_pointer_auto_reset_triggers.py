@@ -53,14 +53,14 @@ class TestOpenSpecComplianceBatch3:
     def test_pointer_auto_reset_triggers_scroll(self, mpv):
         """Verify scroll resets word selection (pointer-auto-reset-triggers)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '1', '5'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '1', '5'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['dw_cursor']['word'] == 5
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-scroll', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', '1'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['dw_cursor']['word'] == -1
@@ -84,8 +84,8 @@ class TestOpenSpecComplianceBatch3:
     def test_proximity_based_relevance_logic(self, mpv):
         """Verify search system is responsive (proximity-based-relevance)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-mode-set', 'true'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', 'mne'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-mode-set', 'true'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-input', 'mne'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None
@@ -108,7 +108,7 @@ class TestOpenSpecComplianceBatch3:
         """Verify custom seek delta command (reliable-subtitle-seeking-custom-logic)."""
         ipc = mpv.ipc
         # Trigger the command, verify no crash
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '1'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None
@@ -132,7 +132,7 @@ class TestOpenSpecComplianceBatch3:
     def test_scanner_parser_german(self, mpv):
         """Verify German word tokenization (scanner-parser)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', 'Häuser'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-get-tokens', 'Häuser'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         tokens = state['test_data']['test_tokens']
@@ -156,9 +156,9 @@ class TestOpenSpecComplianceBatch3:
     def test_search_selection_stability_input(self, mpv):
         """Verify search input doesn't crash (search-selection-stability)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-mode-set', 'true'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-mode-set', 'true'])
         time.sleep(0.2)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', 'a'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-input', 'a'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['search_query'] == "a"
@@ -166,9 +166,9 @@ class TestOpenSpecComplianceBatch3:
     def test_search_system_placeholder(self, mpv):
         """Verify search placeholder in render output (search-system)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-mode-set', 'true'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-mode-set', 'true'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'search'])
+        ipc.command(['script-message-to', 'kardenwort', '', 'search'])
         time.sleep(0.5)
         render = ipc.get_property('user-data/kardenwort/render')
         if render:
@@ -187,7 +187,7 @@ class TestOpenSpecComplianceBatch3:
     def test_secondary_subtitle_filtering_cycle(self, mpv):
         """Verify secondary track cycle message (secondary-subtitle-filtering)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-cycle-sec-sid'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state is not None

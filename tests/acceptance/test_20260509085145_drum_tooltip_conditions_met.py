@@ -49,7 +49,7 @@ def test_drum_tooltip_ineligible_when_drum_window_open(mpv):
     time.sleep(0.15)
     assert query_kardenwort_state(ipc)['drum_mode'] == 'ON'
 
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
     time.sleep(0.15)
     state = query_kardenwort_state(ipc)
 
@@ -67,7 +67,7 @@ def test_drum_tooltip_ineligible_when_sub_hidden(mpv):
     time.sleep(0.15)
 
     # Hide native subtitles
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
+    ipc.command(['script-message-to', 'kardenwort', 'toggle-sub-vis'])
     time.sleep(0.1)
     state = query_kardenwort_state(ipc)
 
@@ -111,7 +111,7 @@ def test_drum_mode_tooltip_render_initially_empty(mpv):
 def test_drum_window_tooltip_render_initially_empty(mpv):
     """Tooltip OSD starts empty when Drum Window opens without activation."""
     ipc = mpv.ipc
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
     time.sleep(0.15)
 
     render = query_kardenwort_render(ipc, 'tooltip')

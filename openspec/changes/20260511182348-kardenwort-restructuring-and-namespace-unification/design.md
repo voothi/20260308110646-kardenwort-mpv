@@ -7,7 +7,7 @@ The current architecture uses a flat `scripts/` directory with legacy `kardenwor
 **Goals:**
 - **Encapsulation**: Move all Lua logic into the `scripts/kardenwort/` directory.
 - **Identity Unification**: Replace the `Kardenwort` acronym with `kardenwort` globally.
-- **Config Discoverability**: Elevate `anki_mapping.ini` to the repository root.
+- **Config Discoverability**: Elevate `anki-mapping.ini` to the repository root.
 - **Test Parity**: Ensure 100% of acceptance tests pass after the rename.
 - **Keybinding Efficiency**: Ensure script-bindings are concise (e.g., `kardenwort/toggle`).
 
@@ -27,13 +27,13 @@ We will use a subdirectory instead of a single file in the root `scripts/` folde
 - **Rationale**: This is the idiomatic way to define a directory-based mpv script. It simplifies the script name in the logs and binding tables.
 
 ### 3. Global Prefix Migration
-- **Log Prefix**: `[Kardenwort]` -> `[Kardenwort]`
+- **Log Prefix**: `[Kardenwort]` -> `[kardenwort]`
 - **IPC Script Name**: `kardenwort_core` -> `kardenwort`
 - **User-Data Prefix**: `user-data/Kardenwort/` -> `user-data/kardenwort/`
 - **Options Identity**: `Kardenwort` -> `kardenwort` (affects the `script-opts/` file name).
 
 ### 4. Config Elevation
-`anki_mapping.ini` will move from `script-opts/` to the repository root.
+`anki-mapping.ini` will move from `script-opts/` to the repository root.
 - **Rationale**: This is a high-traffic configuration file. Placing it at the root makes it immediately visible to new users and simplifies the onboarding process.
 
 ## Risks / Trade-offs

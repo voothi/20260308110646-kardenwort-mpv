@@ -30,19 +30,19 @@ class TestMarchLateRegressions:
         ipc = mpv.ipc
         
         # 1. Pointer should be -1 on Open
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.5)
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == -1, "Pointer should be hidden (-1) when opening Drum Window"
         
         # 2. Activate pointer with Right arrow
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'no'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'no'])
         time.sleep(0.2)
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] >= 1, "Pointer should be active after arrow key move"
         
         # 3. Pointer should be -1 after Scroll
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-scroll', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', '1'])
         time.sleep(0.2)
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == -1, "Pointer should be hidden (-1) after manual scroll"
@@ -52,7 +52,7 @@ class TestMarchLateRegressions:
         ipc = mpv.ipc
         
         # Ensure DW is open
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.5)
         
         # Open Search
@@ -60,20 +60,20 @@ class TestMarchLateRegressions:
         time.sleep(0.3)
         
         # Input 'a' (simplistic test)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', 'a'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-search-input', 'a'])
         time.sleep(0.1)
         
         # Press Enter to select
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '0']) # Simplest way to 'select' if we don't have a direct enter test
-        # Actually, let's look for kardenwort-test-search-enter
+        ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '0']) # Simplest way to 'select' if we don't have a direct enter test
+        # Actually, let's look for test-search-enter
         # I didn't find it earlier. Let's check kardenwort again for search enter.
         
-        # Wait, I'll use kardenwort-test-seek-delta(0) as a proxy if it works, 
+        # Wait, I'll use test-seek-delta(0) as a proxy if it works, 
         # or better, I'll just check if search selection resets pointer.
         
         # [REVISED] I'll trigger the actual search selection if I can find the handler.
         # But for now, let's use what we know resets it.
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '1'])
         time.sleep(0.3)
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == -1, "Pointer should be reset after navigation seek"
@@ -83,13 +83,13 @@ class TestMarchLateRegressions:
         ipc = mpv.ipc
         
         # Open DW
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.5)
         
         start_time = ipc.get_property('time-pos')
         
-        # Trigger kardenwort-test-seek-delta
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
+        # Trigger test-seek-delta
+        ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '1'])
         time.sleep(0.5)
         
         end_time = ipc.get_property('time-pos')
@@ -103,13 +103,13 @@ class TestMarchLateRegressions:
         ipc = mpv.ipc
         
         # Ensure DW is OFF
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-state-query'])
+        ipc.command(['script-message-to', 'kardenwort', 'state-query'])
         # (Assuming it starts OFF or we can toggle it)
         
         start_time = ipc.get_property('time-pos')
         
-        # Trigger kardenwort-test-seek-delta
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
+        # Trigger test-seek-delta
+        ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '1'])
         time.sleep(0.5)
         
         end_time = ipc.get_property('time-pos')

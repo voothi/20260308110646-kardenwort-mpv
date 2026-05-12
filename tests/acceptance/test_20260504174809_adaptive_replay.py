@@ -51,7 +51,7 @@ class TestImmersionRegressions:
     def test_20260504174809_adaptive_replay(self, mpv_fragment1):
         """Replay (s) in Autopause ON must set REPLAY_REMAINING and seek (20260504174809)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
         # Set replay_count=2
         ipc.command(['set_property', 'options/kardenwort-replay_count', '2'])
         time.sleep(0.1)
@@ -61,7 +61,7 @@ class TestImmersionRegressions:
         time.sleep(0.6) # wait for priming
 
         # Trigger replay
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-replay'])
         time.sleep(0.2)
 
         state = query_kardenwort_state(ipc)
@@ -74,7 +74,7 @@ class TestImmersionRegressions:
     def test_20260504021904_subtitle_looping(self, mpv_fragment1):
         """Replay (s) in Autopause OFF triggers looping (20260504021904)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'OFF'])
         time.sleep(0.1)
 
         # Seek to sub 1
@@ -82,7 +82,7 @@ class TestImmersionRegressions:
         time.sleep(0.6)
 
         # Trigger replay
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-replay'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-replay'])
         time.sleep(0.2)
 
         state = query_kardenwort_state(ipc)
@@ -94,11 +94,11 @@ class TestImmersionRegressions:
         """Drum mode navigation must sync primary and secondary tracks (20260504033538)."""
         ipc = mpv_dual.ipc
         # Enable Drum Mode (C)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
         time.sleep(0.2)
 
         # Seek to next sub
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-seek-delta', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '1'])
         time.sleep(0.5)
 
         state = query_kardenwort_state(ipc)
@@ -120,11 +120,11 @@ class TestInputClipboardRegressions:
         """Ctrl+C must copy selection over context if selection exists (20260502211505)."""
         ipc = mpv.ipc
         # Enable Drum Window to set selection
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.2)
 
         # Set a selection (word 0 of sub 1)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '1', '0'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '1', '0'])
         time.sleep(0.1)
 
         # Verify selection count
@@ -153,7 +153,7 @@ class TestUiSystemRegressions:
         """Tooltip hit-zones must be accurate without ghost interference (20260503190627)."""
         ipc = mpv.ipc
         # Enable Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.2)
         
         # Simulation of mouse move would require more instrumentation.

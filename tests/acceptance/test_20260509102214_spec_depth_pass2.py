@@ -335,10 +335,10 @@ class TestHotkeySimplification:
         """'a' and 'd' must be single-key bindings for subtitle navigation (hotkey-simplification)."""
         ic = _input_conf()
         lines = ic.split("\n")
-        a_found = any(l.startswith("a ") and "kardenwort-seek_prev" in l for l in lines)
-        d_found = any(l.startswith("d ") and "kardenwort-seek_next" in l for l in lines)
-        assert a_found, "hotkey-simplification: 'a' not bound to kardenwort-seek_prev"
-        assert d_found, "hotkey-simplification: 'd' not bound to kardenwort-seek_next"
+        a_found = any(l.startswith("a ") and "seek_prev" in l for l in lines)
+        d_found = any(l.startswith("d ") and "seek_next" in l for l in lines)
+        assert a_found, "hotkey-simplification: 'a' not bound to seek_prev"
+        assert d_found, "hotkey-simplification: 'd' not bound to seek_next"
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +376,7 @@ class TestImmersionEngine:
     def test_immersion_mode_can_be_set_to_movie(self, mpv):
         """immersion_mode must support MOVIE value (immersion-engine)."""
         ipc = mpv.ipc
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-immersion-mode-set", "MOVIE"])
+        ipc.command(["script-message-to", "kardenwort", "immersion-mode-set", "MOVIE"])
         time.sleep(0.3)
         state = robust_state(ipc)
         assert state["immersion_mode"] == "MOVIE", (
@@ -467,22 +467,22 @@ class TestInputConfigMigration:
     """Tests for spec: input-config-migration"""
 
     def test_a_key_bound_to_kardenwort_seek_prev(self):
-        """'a' must be bound to kardenwort-seek_prev — custom seek over native sub-seek (input-config-migration)."""
+        """'a' must be bound to seek_prev — custom seek over native sub-seek (input-config-migration)."""
         ic = _input_conf()
         found = any(
-            l.startswith("a ") and "kardenwort-seek_prev" in l
+            l.startswith("a ") and "seek_prev" in l
             for l in ic.split("\n")
         )
-        assert found, "input-config-migration: 'a' not bound to kardenwort-seek_prev in input.conf"
+        assert found, "input-config-migration: 'a' not bound to seek_prev in input.conf"
 
     def test_d_key_bound_to_kardenwort_seek_next(self):
-        """'d' must be bound to kardenwort-seek_next — custom seek over native sub-seek (input-config-migration)."""
+        """'d' must be bound to seek_next — custom seek over native sub-seek (input-config-migration)."""
         ic = _input_conf()
         found = any(
-            l.startswith("d ") and "kardenwort-seek_next" in l
+            l.startswith("d ") and "seek_next" in l
             for l in ic.split("\n")
         )
-        assert found, "input-config-migration: 'd' not bound to kardenwort-seek_next in input.conf"
+        assert found, "input-config-migration: 'd' not bound to seek_next in input.conf"
 
     def test_no_native_sub_seek_on_a_or_d(self):
         """'a' and 'd' must NOT use native sub-seek command (input-config-migration)."""
@@ -495,13 +495,13 @@ class TestInputConfigMigration:
                 )
 
     def test_kardenwort_seek_next_handler_exists_in_lua(self):
-        """kardenwort-seek_next script message handler must be registered in kardenwort.lua (input-config-migration)."""
+        """seek_next script message handler must be registered in kardenwort.lua (input-config-migration)."""
         src = _lua_source()
-        assert "kardenwort-seek_next" in src, (
-            "input-config-migration: kardenwort-seek_next handler not found in kardenwort.lua"
+        assert "seek_next" in src, (
+            "input-config-migration: seek_next handler not found in kardenwort.lua"
         )
-        assert "kardenwort-seek_prev" in src, (
-            "input-config-migration: kardenwort-seek_prev handler not found in kardenwort.lua"
+        assert "seek_prev" in src, (
+            "input-config-migration: seek_prev handler not found in kardenwort.lua"
         )
 
 

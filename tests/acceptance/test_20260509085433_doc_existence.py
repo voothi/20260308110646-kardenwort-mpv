@@ -32,7 +32,7 @@ class TestConfigRegressions:
         state = query_kardenwort_state(ipc)
         # Note: state might not expose ALL options, but let's check one that is exposed or common.
         # Most options are in the 'Options' table in Lua.
-        # We can use 'script-message kardenwort-state-query' to populate 'user-data/kardenwort/state'.
+        # We can use 'script-message state-query' to populate 'user-data/kardenwort/state'.
         
         # Let's check 'autopause' which is derived from 'autopause_default'
         assert 'autopause' in state

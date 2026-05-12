@@ -94,7 +94,7 @@ def _query_state_reliable(ipc, max_attempts: int = 6) -> dict:
 
     observe_property can fire an initial null property-change notification that
     races with the Event object creation in mpv_ipc.py, causing wait_property_change
-    to return before the kardenwort-state-query handler has run.  Retrying with a short
+    to return before the state-query handler has run.  Retrying with a short
     sleep resolves the race in practice.
     """
     last_exc = None

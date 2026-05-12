@@ -252,22 +252,22 @@ class TestTrackScrollingAccessibility:
     """Tests for spec: track-scrolling-accessibility"""
 
     def test_uppercase_A_seeks_time_backward(self):
-        """'A' (Shift+a) must be bound to kardenwort-seek_time_backward for track-independent 2s seek (track-scrolling-accessibility)."""
+        """'A' (Shift+a) must be bound to seek_time_backward for track-independent 2s seek (track-scrolling-accessibility)."""
         ic = _input_conf()
         found = any(
-            l.startswith("A ") and "kardenwort-seek_time_backward" in l
+            l.startswith("A ") and "seek_time_backward" in l
             for l in ic.split("\n")
         )
-        assert found, "track-scrolling-accessibility: 'A' not bound to kardenwort-seek_time_backward in input.conf"
+        assert found, "track-scrolling-accessibility: 'A' not bound to seek_time_backward in input.conf"
 
     def test_uppercase_D_seeks_time_forward(self):
-        """'D' (Shift+d) must be bound to kardenwort-seek_time_forward for track-independent 2s seek (track-scrolling-accessibility)."""
+        """'D' (Shift+d) must be bound to seek_time_forward for track-independent 2s seek (track-scrolling-accessibility)."""
         ic = _input_conf()
         found = any(
-            l.startswith("D ") and "kardenwort-seek_time_forward" in l
+            l.startswith("D ") and "seek_time_forward" in l
             for l in ic.split("\n")
         )
-        assert found, "track-scrolling-accessibility: 'D' not bound to kardenwort-seek_time_forward in input.conf"
+        assert found, "track-scrolling-accessibility: 'D' not bound to seek_time_forward in input.conf"
 
     def test_seek_time_delta_option_exists(self):
         """seek_time_delta option must be present and control 2s step (track-scrolling-accessibility)."""
@@ -282,9 +282,9 @@ class TestTrackScrollingAccessibility:
         )
 
     def test_kardenwort_seek_time_forward_registered(self):
-        """kardenwort-seek_time_forward must be registered via mp.add_key_binding (track-scrolling-accessibility)."""
-        assert 'mp.add_key_binding(nil, "kardenwort-seek_time_forward"' in _src(), (
-            "track-scrolling-accessibility: kardenwort-seek_time_forward not registered in kardenwort.lua"
+        """seek_time_forward must be registered via mp.add_key_binding (track-scrolling-accessibility)."""
+        assert 'mp.add_key_binding(nil, "seek_time_forward"' in _src(), (
+            "track-scrolling-accessibility: seek_time_forward not registered in kardenwort.lua"
         )
 
 
@@ -371,17 +371,17 @@ class TestSearchSystemRuntime:
         )
 
     def test_search_mode_can_be_toggled_via_test_handler(self, mpv):
-        """SEARCH_MODE must be settable via kardenwort-test-search-mode-set for test instrumentation (search-system)."""
+        """SEARCH_MODE must be settable via test-search-mode-set for test instrumentation (search-system)."""
         ipc = mpv.ipc
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "test-search-mode-set", "ON"])
         time.sleep(0.3)
         state = robust_state(ipc)
         # With search mode ON, search_query should be accessible (not error)
         assert state is not None, (
-            "search-system: state probe failed after kardenwort-test-search-mode-set ON"
+            "search-system: state probe failed after test-search-mode-set ON"
         )
         # Cleanup
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "OFF"])
+        ipc.command(["script-message-to", "kardenwort", "test-search-mode-set", "OFF"])
         time.sleep(0.2)
 
 
@@ -456,14 +456,14 @@ class TestFuzzySearchOptimization:
     def test_search_mode_activation_does_not_error(self, mpv):
         """Activating search mode must succeed without Lua error (fuzzy-search-optimization)."""
         ipc = mpv.ipc
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "test-search-mode-set", "ON"])
         time.sleep(0.4)
         state = robust_state(ipc)
         assert state is not None, (
             "fuzzy-search-optimization: state probe failed after search mode activation"
         )
         # Cleanup
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-search-mode-set", "OFF"])
+        ipc.command(["script-message-to", "kardenwort", "test-search-mode-set", "OFF"])
         time.sleep(0.2)
 
     def test_render_search_exists_for_optimized_rendering(self):

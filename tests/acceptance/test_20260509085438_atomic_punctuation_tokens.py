@@ -31,7 +31,7 @@ class TestCoreRegressions:
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # We can't easily see the tokenization directly without a state probe of the tokens.
@@ -62,15 +62,15 @@ class TestCoreRegressions:
         """Verify that seeking triggers the centered OSD feedback (20260501120000)."""
         ipc = mpv.ipc
         
-        # Trigger a relative seek (which should be bound to kardenwort-seek_time_forward)
+        # Trigger a relative seek (which should be bound to seek_time_forward)
         # Actually, let's trigger the script message directly to be sure.
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_time_forward'])
+        ipc.command(['script-message-to', 'kardenwort', 'seek_time_forward'])
         time.sleep(0.1)
         
         # The seek OSD uses a separate overlay 'ass-events'.
-        # We can query it if kardenwort-render-query supports it.
+        # We can query it if render-query supports it.
         # In kardenwort.lua: seek_osd = mp.create_osd_overlay("ass-events")
-        # But wait, kardenwort-render-query only checks named overlays in a table.
+        # But wait, render-query only checks named overlays in a table.
         # Let's check if 'seek' is in that table.
         render = query_kardenwort_render(ipc, 'seek')
         # If it's not in the table, it might return empty.
@@ -90,7 +90,7 @@ class TestCoreRegressions:
         
         # Movie Mode boundary check:
         # Toggle to MOVIE mode
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-cycle'])
+        ipc.command(['script-message-to', 'kardenwort', 'immersion-mode-cycle'])
         time.sleep(0.2)
         state = query_kardenwort_state(ipc)
         # assert state['immersion_mode'] == "MOVIE"
@@ -114,11 +114,11 @@ class TestCoreRegressions:
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Move cursor to line 2, word 1
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == 1
@@ -128,15 +128,15 @@ class TestCoreRegressions:
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal"
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Copy to clipboard
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-copy'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-copy'])
         time.sleep(0.2)
         
         # Verify last_clipboard property
@@ -147,9 +147,9 @@ class TestCoreRegressions:
         """Verify that OSD is cleaned up properly (20260504100000)."""
         ipc = mpv.ipc
         # Open Drum Window then close it
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Verify DW render is empty

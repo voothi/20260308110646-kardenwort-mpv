@@ -10,15 +10,15 @@
 - [x] 2.2 Move `scripts/kardenwort/main.lua` to `scripts/kardenwort/main.lua`.
 - [x] 2.3 Move `scripts/kardenwort_utils.lua` to `scripts/kardenwort/utils.lua`.
 - [x] 2.4 Move `scripts/resume_last_file.lua` to `scripts/kardenwort/resume.lua`.
-- [x] 2.5 Move `script-opts/anki_mapping.ini` to the repository root.
+- [x] 2.5 Move `script-opts/anki-mapping.ini` to the repository root.
 
 ## 3. Core Logic Refactoring
 
 - [x] 3.1 Update `main.lua` to include `package.path` adjustment for the new subdirectory.
-- [x] 3.2 Update `main.lua` to replace all `[Kardenwort]` log prefixes with `[Kardenwort]`.
+- [x] 3.2 Update `main.lua` to replace all `[Kardenwort]` log prefixes with `[kardenwort]`.
 - [x] 3.3 Update `main.lua` to replace `user-data/Kardenwort/` with `user-data/kardenwort/`.
 - [x] 3.4 Update `main.lua` to use `options.read_options(Options, "kardenwort")` and update relevant script-opts prefixes.
-- [x] 3.5 Update `main.lua` to look for `anki_mapping.ini` in the repository root.
+- [x] 3.5 Update `main.lua` to look for `anki-mapping.ini` in the repository root.
 
 ## 4. Configuration & Binding Updates
 

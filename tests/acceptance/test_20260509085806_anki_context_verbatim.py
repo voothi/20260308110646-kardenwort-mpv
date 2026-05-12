@@ -4,7 +4,7 @@ Test Creation ZID: 20260509113830
 Feature: Anki Context Verbatim
 
 Structural tests verifying extract_anki_context logic in kardenwort.lua.
-The IPC test handler (kardenwort-test-extract-anki-context) is not implemented, so these
+The IPC test handler (test-extract-anki-context) is not implemented, so these
 tests validate the key algorithmic properties directly from source code.
 """
 

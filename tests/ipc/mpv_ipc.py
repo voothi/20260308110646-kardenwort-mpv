@@ -217,7 +217,7 @@ def query_kardenwort_state(ipc, timeout=5.0):
     # Clear the event before sending the query
     ipc._prop_events['user-data/kardenwort/state'].clear()
     
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-state-query'])
+    ipc.command(['script-message-to', 'kardenwort', 'state-query'])
     
     # Wait for the change
     deadline = time.time() + timeout
@@ -241,7 +241,7 @@ def query_kardenwort_render(ipc, overlay_name, timeout=2.0):
         time.sleep(0.1)
 
     ipc._prop_events[prop].clear()
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', overlay_name])
+    ipc.command(['script-message-to', 'kardenwort', 'render-query', overlay_name])
 
     deadline = time.time() + timeout
     while time.time() < deadline:

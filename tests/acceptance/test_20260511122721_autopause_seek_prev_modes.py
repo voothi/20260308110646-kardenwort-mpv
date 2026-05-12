@@ -7,7 +7,7 @@ Scenario under test:
   - Autopause ON
   - audio_padding_start=1000ms
   - audio_padding_end=1000ms
-  - press `a` (kardenwort-seek_prev path => cmd_seek_with_repeat -> cmd_dw_seek_delta(-1))
+  - press `a` (seek_prev path => cmd_seek_with_repeat -> cmd_dw_seek_delta(-1))
 
 Expected current behavior:
   1) Seek target start for previous subtitle is identical in both modes:
@@ -38,8 +38,8 @@ def _seek(ipc, pos):
 
 
 def _setup(ipc, mode):
-    ipc.command(["script-message-to", "kardenwort", "kardenwort-autopause-set", "ON"])
-    ipc.command(["script-message-to", "kardenwort", "kardenwort-immersion-mode-set", mode])
+    ipc.command(["script-message-to", "kardenwort", "autopause-set", "ON"])
+    ipc.command(["script-message-to", "kardenwort", "immersion-mode-set", mode])
     ipc.command(["set_property", "options/kardenwort-audio_padding_start", "1000"])
     ipc.command(["set_property", "options/kardenwort-audio_padding_end", "1000"])
     ipc.command(["set_property", "pause", True])
@@ -48,7 +48,7 @@ def _setup(ipc, mode):
 
 def _seek_prev_a_path(ipc):
     # Exact path used by key `a` bindings in this project.
-    ipc.command(["script-message-to", "kardenwort", "kardenwort-test-seek-delta", "-1"])
+    ipc.command(["script-message-to", "kardenwort", "test-seek-delta", "-1"])
     time.sleep(0.25)
 
 

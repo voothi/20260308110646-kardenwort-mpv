@@ -54,7 +54,7 @@ def test_20260506232017_seek_bindings(mpv):
     ipc = mpv.ipc
     
     # Request Lua to bind them to unique keys
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-bind-seek'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-bind-seek'])
     time.sleep(0.2)
 
     # Get input bindings from mpv
@@ -75,8 +75,8 @@ def test_20260507001035_movie_autopause_boundary(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Step 1: Set MOVIE mode and ensure autopause is ON
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'MOVIE'])
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
+    ipc.command(['script-message-to', 'kardenwort', 'immersion-mode-set', 'MOVIE'])
+    ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
     time.sleep(0.15)
     
     # Step 2: Seek to near end of sub 1 (fixture: sub 1 ends at 2.0s, sub 2 starts at 2.2s)
@@ -113,19 +113,19 @@ def test_20260507090243_fsm_gap_visibility_lockout(mpv):
     
     # Step 1: Toggle works when DW is OFF
     v1 = query_kardenwort_state(ipc)['native_sub_vis']
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
+    ipc.command(['script-message-to', 'kardenwort', 'toggle-sub-vis'])
     time.sleep(0.15)
     v2 = query_kardenwort_state(ipc)['native_sub_vis']
     assert v2 != v1, "Visibility should toggle when DW is OFF"
     
     # Step 2: Open Drum Window
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
     time.sleep(0.3)
     assert query_kardenwort_state(ipc)['drum_window'] != 'OFF'
     
     # Step 3: Toggle should be SUPPRESSED when DW is open (managed by DW)
     initial_vis = query_kardenwort_state(ipc)['native_sub_vis']
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
+    ipc.command(['script-message-to', 'kardenwort', 'toggle-sub-vis'])
     time.sleep(0.15)
     
     new_state = query_kardenwort_state(ipc)
@@ -137,7 +137,7 @@ def test_20260507102212_fsm_gap_sec_pos_sync(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Step 1: Set position absolutely
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-native-sec-sub-pos-set', "50"])
+    ipc.command(['script-message-to', 'kardenwort', 'native-sec-sub-pos-set', "50"])
     time.sleep(0.3) # Give more time
     
     # Step 2: Verify FSM sync

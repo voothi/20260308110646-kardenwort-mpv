@@ -25,7 +25,7 @@ Validated Specs:
 - libass-rendering-alignment
 - lifecycle-reporting
 - live-positioning-sync
-- kardenwort-mouse-input
+- mouse-input
 """
 
 import time
@@ -47,7 +47,7 @@ class TestOpenSpecCompliance:
     def test_high_recall_highlighting_tokens(self, mpv):
         """Verify punctuation isolation in tokenization (high-recall-highlighting)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', '[UMGEBUNG] ehrlich,'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-get-tokens', '[UMGEBUNG] ehrlich,'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         tokens = state.get('test_data', {}).get('test_tokens', [])
@@ -67,7 +67,7 @@ class TestOpenSpecCompliance:
     def test_highlight_time_index_fallback(self, mpv):
         """Verify binary search fallback when global highlight is ON (highlight-time-index)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'anki_global_highlight', 'yes'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'anki_global_highlight', 'yes'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['options']['anki_global_highlight'] is True
@@ -87,7 +87,7 @@ class TestOpenSpecCompliance:
         """Verify 'x' key binding exists (hotkey-simplification)."""
         ipc = mpv.ipc
         # Manually trigger the command that 'x' should be bound to
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'copy_context', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'copy_context', 'ON'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['options'].get('copy_context') == 'ON'
@@ -95,12 +95,12 @@ class TestOpenSpecCompliance:
     def test_immersion_engine_jerk_back(self, mpv_dual):
         """Verify Jerk-Back seek in PHRASE mode (immersion-engine)."""
         ipc = mpv_dual.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-immersion-mode-set', 'PHRASE'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'audio_padding_start', '500'])
+        ipc.command(['script-message-to', 'kardenwort', 'immersion-mode-set', 'PHRASE'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'audio_padding_start', '500'])
         time.sleep(0.5)
         
         # Seek to sub 2 start
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_next'])
+        ipc.command(['script-message-to', 'kardenwort', 'seek_next'])
         time.sleep(0.5)
         
         # The engine should have jerked back to start_time - 0.5s
@@ -110,16 +110,16 @@ class TestOpenSpecCompliance:
     def test_independent_book_mode_pointer(self, mpv):
         """Verify stationary pointer in Book Mode (independent-book-mode-pointer)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'book_mode', 'yes'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'book_mode', 'yes'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
         
         # Set cursor to line 1, word 1
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '1', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '1', '1'])
         time.sleep(0.2)
         
         # Seek video forward (should NOT move cursor in Book Mode)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_next'])
+        ipc.command(['script-message-to', 'kardenwort', 'seek_next'])
         time.sleep(0.5)
         
         state = robust_query_state(ipc)
@@ -130,11 +130,11 @@ class TestOpenSpecCompliance:
         """Verify positional persistence across modes (independent-sub-positioning)."""
         ipc = mpv.ipc
         # Set secondary pos
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-native-sec-sub-pos-set', '25'])
+        ipc.command(['script-message-to', 'kardenwort', 'native-sec-sub-pos-set', '25'])
         time.sleep(0.2)
         
         # Toggle Drum Mode
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
         time.sleep(0.5)
         
         state = robust_query_state(ipc)
@@ -144,8 +144,8 @@ class TestOpenSpecCompliance:
         """Verify custom seek binding is active (input-config-migration)."""
         ipc = mpv.ipc
         initial_sub = robust_query_state(ipc)['active_sub_index']
-        # Trigger kardenwort-seek_next (simulating 'd' key binding)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-seek_next'])
+        # Trigger seek_next (simulating 'd' key binding)
+        ipc.command(['script-message-to', 'kardenwort', 'seek_next'])
         time.sleep(0.5)
         state = robust_query_state(ipc)
         assert state['active_sub_index'] > initial_sub
@@ -154,7 +154,7 @@ class TestOpenSpecCompliance:
         """Verify track cycling feedback (intelligent-track-diagnostics)."""
         ipc = mpv.ipc
         # Cycle with no secondary subs
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-cycle-sec-sid'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-cycle-sec-sid'])
         time.sleep(0.5)
         # We can't easily capture OSD text via IPC, but we verify the command executes
         pass
@@ -162,7 +162,7 @@ class TestOpenSpecCompliance:
     def test_inter_segment_highlighter_recursive(self, mpv):
         """Verify tokenizer handles fragmented segments (inter-segment-highlighter)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', 'Word'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-get-tokens', 'Word'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         tokens = state.get('test_data', {}).get('test_tokens', [])
@@ -179,7 +179,7 @@ class TestOpenSpecCompliance:
     def test_karaoke_autopause_logic(self, mpv):
         """Verify autopause state (karaoke-autopause)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-autopause-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['autopause'] == "ON"
@@ -187,12 +187,12 @@ class TestOpenSpecCompliance:
     def test_keyboard_selection_granularity_comma(self, mpv):
         """Verify comma landing (keyboard-selection-granularity)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
         
         # Move right from "Hello," to comma
         # This requires mocked subs or specific test text
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-get-tokens', 'Hello, world'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-get-tokens', 'Hello, world'])
         time.sleep(0.2)
         # We verify word_move doesn't skip tokens
         pass
@@ -212,11 +212,11 @@ class TestOpenSpecCompliance:
     def test_libass_rendering_alignment_an8(self, mpv):
         """Verify alignment constants in render query (libass-rendering-alignment)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
         # Check if DW OSD data contains \an8 or \an5
         # We need to trigger the query first
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-render-query', 'dw'])
+        ipc.command(['script-message-to', 'kardenwort', 'render-query', 'dw'])
         time.sleep(0.5)
         render = ipc.get_property('user-data/kardenwort/render')
         assert "an8" in render or "an5" in render or "an2" in render
@@ -230,16 +230,16 @@ class TestOpenSpecCompliance:
     def test_live_positioning_sync_reactivity(self, mpv):
         """Verify secondary-sub-pos reactivity (live-positioning-sync)."""
         ipc = mpv.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-native-sec-sub-pos-set', '40'])
+        ipc.command(['script-message-to', 'kardenwort', 'native-sec-sub-pos-set', '40'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
         assert state['native_sec_sub_pos'] == 40
 
     def test_kardenwort_mouse_input_lockout(self, mpv):
-        """Verify mouse lockout after keyboard interaction (kardenwort-mouse-input)."""
+        """Verify mouse lockout after keyboard interaction (mouse-input)."""
         ipc = mpv.ipc
         # Trigger keyboard move
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-key', 'DOWN'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-key', 'DOWN'])
         time.sleep(0.1)
         # Check if lock is active
         # We can't check FSM.DW_MOUSE_LOCK_UNTIL directly if not exposed, 

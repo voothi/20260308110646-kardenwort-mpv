@@ -35,7 +35,7 @@ def _enable_drum(ipc):
 
 def _scroll(ipc, direction, n=1):
     for _ in range(n):
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-scroll', str(direction)])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', str(direction)])
         time.sleep(0.05)
     time.sleep(0.1)
 

@@ -48,7 +48,7 @@ class TestAprilArchivedRegressions:
         ipc = mpv_fragment1.ipc
         
         # Ensure Drum Mode is ON but Drum Window is OFF
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
         time.sleep(0.1)
         state = query_kardenwort_state(ipc)
         assert state['drum_mode'] == 'ON'
@@ -69,11 +69,11 @@ class TestAprilArchivedRegressions:
         ipc = mpv_fragment1.ipc
         
         # Enable Drum Mode
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
         time.sleep(0.1)
         
         # Toggle visibility OFF
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'OFF'])
+        ipc.command(['script-message-to', 'kardenwort', 'sub-visibility-set', 'OFF'])
         time.sleep(0.5)
         
         # Verify both Drum and DW-OSD are suppressed
@@ -94,7 +94,7 @@ class TestAprilArchivedRegressions:
     def test_20260427200421_drum_spacing(self, mpv_fragment1):
         """Verify drum spacing doesn't crash with zero intervals (20260427200421)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
         time.sleep(0.2)
         # Play for a bit to trigger layout
         ipc.command(['set_property', 'pause', 'no'])
@@ -109,14 +109,14 @@ class TestAprilArchivedRegressions:
         ipc.command(['set_property', 'options/kardenwort-drum_upper_gap_adj', '20'])
         time.sleep(0.1)
         # Trigger re-render
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-sub-visibility-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'autopause-set', 'ON'])
         time.sleep(0.2)
         # Check state if possible, or just ensure no crash
         
     def test_20260429195210_keyboard_precision_nav(self, mpv_fragment1):
         """Verify Shift+Arrow moves by tokens (including symbols) (20260429195210)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.2)
         
         # Initial position: word -1
@@ -124,7 +124,7 @@ class TestAprilArchivedRegressions:
         initial_word = state['dw_cursor']['word']
         
         # Move right with Shift (should move by 1 token)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes']) 
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'yes']) 
         time.sleep(0.1)
         
         state = query_kardenwort_state(ipc)
@@ -149,7 +149,7 @@ class TestAprilArchivedRegressions:
     def test_20260429133044_empty_sub_height(self, mpv_fragment1):
         """Verify empty subtitles reserve vertical space in Drum Mode (20260429133044)."""
         ipc = mpv_fragment1.ipc
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-mode-set', 'ON'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-mode-set', 'ON'])
         time.sleep(0.2)
         # Just ensure no crash
         
@@ -160,11 +160,11 @@ class TestAprilArchivedRegressions:
         time.sleep(0.5)
         
         # Set cursor to line 2, word 1
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Call copy
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-copy'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-copy'])
         time.sleep(0.2)
         
         clip = ipc.get_property('user-data/kardenwort/last_clipboard')
@@ -179,15 +179,15 @@ class TestAprilArchivedRegressions:
         time.sleep(0.5)
         
         # Set cursor to line 2, word 1
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Select "Manchmal" (word 1) and "Gefühl" (word 5) -> Pink selection
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '5'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '5'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'SET'])
         time.sleep(0.2)
         
         term = ipc.get_property('user-data/kardenwort/last_export')
@@ -198,18 +198,18 @@ class TestAprilArchivedRegressions:
         
         # Now select a sentence-ending phrase: "Manchmal" (1) to "abgesehen" (12)
         # First clear
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-esc']) 
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-esc']) 
         time.sleep(0.1)
         
         # Set cursor to line 2, word 1
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '12'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '12'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'SET'])
         time.sleep(0.2)
         
         term = ipc.get_property('user-data/kardenwort/last_export')
@@ -226,15 +226,15 @@ class TestAprilArchivedRegressions:
         time.sleep(0.5)
         
         # Set cursor
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Non-contiguous Pink: "Manchmal" (1) and "abgesehen" (12)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '1'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-ctrl-toggle-word', '2', '12'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-ctrl-toggle-word', '2', '12'])
         time.sleep(0.2)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'SET'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'SET'])
         time.sleep(0.2)
         
         term = ipc.get_property('user-data/kardenwort/last_export')

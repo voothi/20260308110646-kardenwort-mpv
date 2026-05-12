@@ -25,20 +25,20 @@ class TestAnkiRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal hat man das Gefühl" (5 words)
         # 1: Manchmal, 2: hat, 3: man, 4: das, 5: Gefühl
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         # Shift+Right 4 times to select 5 words
         for _ in range(4):
-            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes'])
+            ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'yes'])
             time.sleep(0.05)
         
         # Trigger export
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'RANGE', '2', '1', '2', '5'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'RANGE', '2', '1', '2', '5'])
         time.sleep(0.2)
         
         export = ipc.get_property('user-data/kardenwort/last_export')
@@ -56,21 +56,21 @@ class TestAnkiRegressions:
         ipc = mpv_fragment1.ipc
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
 
         # Scenario 1: 1 word (Word Profile)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'POINT', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'POINT', '2', '1'])
         time.sleep(0.2)
         export_word = ipc.get_property('user-data/kardenwort/last_export')
         
         # Scenario 2: 4 words (Sentence Profile - threshold 3)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         for _ in range(3):
-            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes'])
+            ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'yes'])
             time.sleep(0.05)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'RANGE', '2', '1', '2', '4'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'RANGE', '2', '1', '2', '4'])
         time.sleep(0.2)
         export_sent = ipc.get_property('user-data/kardenwort/last_export')
         
@@ -114,11 +114,11 @@ class TestAnkiRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Toggle global highlights (h)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-keypress', 'h'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-keypress', 'h'])
         time.sleep(0.5)
         
         # Query render data for Drum Window

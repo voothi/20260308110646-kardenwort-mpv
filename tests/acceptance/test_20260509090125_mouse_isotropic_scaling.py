@@ -5,7 +5,7 @@ Feature: Mouse Isotropic Scaling
 
 Structural tests verifying the isotropic mouse-coordinate mapping and drum-window
 hit-zone infrastructure in kardenwort.lua.
-The IPC test handler (kardenwort-test-mouse-logic) is not implemented, so these tests
+The IPC test handler (test-mouse-logic) is not implemented, so these tests
 validate the scaling formulas and hit-zone data structures directly from source.
 """
 

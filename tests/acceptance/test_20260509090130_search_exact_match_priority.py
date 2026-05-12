@@ -4,7 +4,7 @@ Test Creation ZID: 20260509113830
 Feature: Search Exact Match Priority
 
 Structural tests verifying calculate_match_score scoring logic in kardenwort.lua.
-The IPC test handler (kardenwort-test-calculate-match-score) is not implemented, so these
+The IPC test handler (test-calculate-match-score) is not implemented, so these
 tests validate the scoring rules directly from source code.
 """
 

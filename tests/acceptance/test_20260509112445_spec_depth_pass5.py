@@ -176,7 +176,7 @@ class TestCyclicNavigation:
         )
 
     def test_seek_prev_next_registered_with_complex_flag(self):
-        """kardenwort-seek_prev and kardenwort-seek_next must be registered with {complex=true} for hold detection (cyclic-navigation)."""
+        """seek_prev and seek_next must be registered with {complex=true} for hold detection (cyclic-navigation)."""
         src = _src()
         assert 'complex = true' in src or '{complex = true}' in src, (
             "cyclic-navigation: seek bindings lack {complex=true} for key-hold repeat detection"

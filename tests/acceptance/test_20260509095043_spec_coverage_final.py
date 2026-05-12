@@ -180,7 +180,7 @@ class TestAutomatedAcceptanceTesting:
     """
 
     def test_state_probe_returns_semantic_fields(self, mpv):
-        """kardenwort-state-query must return stable, semantic field names."""
+        """state-query must return stable, semantic field names."""
         state = _robust_state(mpv.ipc)
         required_fields = {"autopause", "drum_mode", "playback_state"}
         missing = required_fields - set(state.keys())
@@ -189,10 +189,10 @@ class TestAutomatedAcceptanceTesting:
         )
 
     def test_render_probe_returns_ass_string(self, mpv):
-        """kardenwort-render-query must return a string (possibly empty) for 'drum'."""
+        """render-query must return a string (possibly empty) for 'drum'."""
         result = query_kardenwort_render(mpv.ipc, "drum")
         assert isinstance(result, str), (
-            f"kardenwort-render-query 'drum' returned non-string: {type(result)}"
+            f"render-query 'drum' returned non-string: {type(result)}"
         )
 
     def test_render_probe_unknown_overlay_returns_empty(self, mpv):
@@ -448,7 +448,7 @@ class TestDisplay:
         time.sleep(0.3)
 
         # Open drum window
-        ipc.command(["script-message", "kardenwort-toggle-drum-window"])
+        ipc.command(["script-message", "toggle-drum-window"])
         time.sleep(0.3)
 
         render = query_kardenwort_render(ipc, "dw")
@@ -458,7 +458,7 @@ class TestDisplay:
             )
 
         # Close drum window
-        ipc.command(["script-message", "kardenwort-toggle-drum-window"])
+        ipc.command(["script-message", "toggle-drum-window"])
         time.sleep(0.2)
 
 

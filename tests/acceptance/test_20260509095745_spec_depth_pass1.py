@@ -205,37 +205,37 @@ class TestArchivedFeaturesVerification:
     """Spec: openspec/specs/archived-features-verification
 
     Verifies natural progression (sub i -> i+1 in overlap zone) and
-    seek repeatability (kardenwort-seek_time_forward works).
+    seek repeatability (seek_time_forward works).
     """
 
     def test_seek_time_forward_advances_position(self, mpv):
-        """kardenwort-seek_time_forward must advance the media position (archived-features-verification)."""
+        """seek_time_forward must advance the media position (archived-features-verification)."""
         ipc = mpv.ipc
         ipc.command(["seek", 1.0, "absolute+exact"])
         time.sleep(0.3)
         pos_before = ipc.get_property("time-pos") or 0.0
 
-        ipc.command(["script-binding", "kardenwort-seek_time_forward"])
+        ipc.command(["script-binding", "seek_time_forward"])
         time.sleep(0.5)
         pos_after = ipc.get_property("time-pos") or 0.0
 
         assert pos_after > pos_before, (
-            f"kardenwort-seek_time_forward did not advance time-pos: {pos_before} -> {pos_after}"
+            f"seek_time_forward did not advance time-pos: {pos_before} -> {pos_after}"
         )
 
     def test_seek_time_backward_reduces_position(self, mpv):
-        """kardenwort-seek_time_backward must reduce the media position."""
+        """seek_time_backward must reduce the media position."""
         ipc = mpv.ipc
         ipc.command(["seek", 5.0, "absolute+exact"])
         time.sleep(0.3)
         pos_before = ipc.get_property("time-pos") or 5.0
 
-        ipc.command(["script-binding", "kardenwort-seek_time_backward"])
+        ipc.command(["script-binding", "seek_time_backward"])
         time.sleep(0.5)
         pos_after = ipc.get_property("time-pos") or 5.0
 
         assert pos_after < pos_before, (
-            f"kardenwort-seek_time_backward did not reduce time-pos: {pos_before} -> {pos_after}"
+            f"seek_time_backward did not reduce time-pos: {pos_before} -> {pos_after}"
         )
 
 
@@ -314,7 +314,7 @@ class TestBookModeNavigation:
         state_before = _state(ipc)
         book_before = state_before.get("options", {}).get("book_mode")
 
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-set-option", "book_mode", "yes" if not book_before else "no"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "book_mode", "yes" if not book_before else "no"])
         time.sleep(0.3)
 
         state_after = _state(ipc)
@@ -324,7 +324,7 @@ class TestBookModeNavigation:
         )
 
         # Restore
-        ipc.command(["script-message-to", "kardenwort", "kardenwort-test-set-option", "book_mode", "no" if not book_before else "yes"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "book_mode", "no" if not book_before else "yes"])
         time.sleep(0.2)
 
 
@@ -335,7 +335,7 @@ class TestBookModeNavigation:
 class TestCenteredSeekFeedback:
     """Spec: openspec/specs/centered-seek-feedback
 
-    Verifies seek_msg_format option exists and kardenwort-seek_time_forward binding
+    Verifies seek_msg_format option exists and seek_time_forward binding
     exists in input.conf (directional OSD feedback).
     """
 
@@ -349,18 +349,18 @@ class TestCenteredSeekFeedback:
     def test_seek_time_bindings_in_input_conf(self):
         """input.conf must bind both seek_time_forward and seek_time_backward."""
         content = open("input.conf", encoding="utf-8").read()
-        assert "seek_time_forward" in content or "kardenwort-seek_time_forward" in content, (
-            "kardenwort-seek_time_forward binding not found in input.conf"
+        assert "seek_time_forward" in content or "seek_time_forward" in content, (
+            "seek_time_forward binding not found in input.conf"
         )
-        assert "seek_time_backward" in content or "kardenwort-seek_time_backward" in content, (
-            "kardenwort-seek_time_backward binding not found in input.conf"
+        assert "seek_time_backward" in content or "seek_time_backward" in content, (
+            "seek_time_backward binding not found in input.conf"
         )
 
     def test_seek_time_forward_binding_registered(self, mpv):
-        """kardenwort-seek_time_forward must be registered in kardenwort.lua."""
+        """seek_time_forward must be registered in kardenwort.lua."""
         with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "kardenwort-seek_time_forward" in src or "seek_time_forward" in src, (
+        assert "seek_time_forward" in src or "seek_time_forward" in src, (
             "seek_time_forward command not found in kardenwort.lua"
         )
 
@@ -602,7 +602,7 @@ class TestLayoutAgnosticSeeking:
     def test_both_en_and_ru_seek_bindings(self):
         """Both Latin (RIGHT/LEFT) and Cyrillic equivalents must be in input.conf."""
         content = open("input.conf", encoding="utf-8").read()
-        assert "RIGHT" in content or "kardenwort-seek_time" in content, (
+        assert "RIGHT" in content or "seek_time" in content, (
             "English seek binding not found in input.conf"
         )
         # Cyrillic variant

@@ -77,32 +77,32 @@ class TestGlobalNavigationBindings:
     """Tests for spec: global-navigation-bindings"""
 
     def test_kardenwort_seek_prev_registered(self):
-        """kardenwort-seek_prev must be registered via mp.add_key_binding (global-navigation-bindings)."""
-        assert 'mp.add_key_binding(nil, "kardenwort-seek_prev"' in _src(), (
-            "global-navigation-bindings: kardenwort-seek_prev not registered with nil key"
+        """seek_prev must be registered via mp.add_key_binding (global-navigation-bindings)."""
+        assert 'mp.add_key_binding(nil, "seek_prev"' in _src(), (
+            "global-navigation-bindings: seek_prev not registered with nil key"
         )
 
     def test_kardenwort_seek_next_registered(self):
-        """kardenwort-seek_next must be registered via mp.add_key_binding (global-navigation-bindings)."""
-        assert 'mp.add_key_binding(nil, "kardenwort-seek_next"' in _src(), (
-            "global-navigation-bindings: kardenwort-seek_next not registered with nil key"
+        """seek_next must be registered via mp.add_key_binding (global-navigation-bindings)."""
+        assert 'mp.add_key_binding(nil, "seek_next"' in _src(), (
+            "global-navigation-bindings: seek_next not registered with nil key"
         )
 
     def test_kardenwort_seek_prev_bound_in_input_conf(self):
-        """'a' key must delegate to kardenwort-seek_prev in input.conf (global-navigation-bindings)."""
+        """'a' key must delegate to seek_prev in input.conf (global-navigation-bindings)."""
         found = any(
-            l.startswith("a ") and "kardenwort-seek_prev" in l
+            l.startswith("a ") and "seek_prev" in l
             for l in _input_conf().split("\n")
         )
-        assert found, "global-navigation-bindings: 'a' not bound to kardenwort-seek_prev in input.conf"
+        assert found, "global-navigation-bindings: 'a' not bound to seek_prev in input.conf"
 
     def test_kardenwort_seek_next_bound_in_input_conf(self):
-        """'d' key must delegate to kardenwort-seek_next in input.conf (global-navigation-bindings)."""
+        """'d' key must delegate to seek_next in input.conf (global-navigation-bindings)."""
         found = any(
-            l.startswith("d ") and "kardenwort-seek_next" in l
+            l.startswith("d ") and "seek_next" in l
             for l in _input_conf().split("\n")
         )
-        assert found, "global-navigation-bindings: 'd' not bound to kardenwort-seek_next in input.conf"
+        assert found, "global-navigation-bindings: 'd' not bound to seek_next in input.conf"
 
 
 # ---------------------------------------------------------------------------

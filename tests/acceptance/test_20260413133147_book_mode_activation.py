@@ -45,7 +45,7 @@ class TestAprilEarlyRegressions:
         
         # Input German characters "größe"
         for char in "größe":
-            ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-search-input', char])
+            ipc.command(['script-message-to', 'kardenwort', 'test-search-input', char])
         time.sleep(0.1)
         
         state = query_kardenwort_state(ipc)
@@ -60,18 +60,18 @@ class TestAprilEarlyRegressions:
         time.sleep(0.5)
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal" (1) and "hat" (2)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         # Shift+Right to select "Manchmal hat"
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-word-move', '1', 'yes'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'yes'])
         time.sleep(0.2)
         
         # Prepare export
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'RANGE', '2', '1', '2', '2'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'RANGE', '2', '1', '2', '2'])
         time.sleep(0.2)
         
         export = ipc.get_property('user-data/kardenwort/last_export')
@@ -84,15 +84,15 @@ class TestAprilEarlyRegressions:
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Select "Manchmal"
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         
         # Prepare export
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-prepare-export', 'POINT', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-prepare-export', 'POINT', '2', '1'])
         time.sleep(0.2)
         
         export = ipc.get_property('user-data/kardenwort/last_export')
@@ -103,7 +103,7 @@ class TestAprilEarlyRegressions:
         ipc = mpv.ipc
         
         state = query_kardenwort_state(ipc)
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         assert state['drum_window'] in ['OFF', 'DOCKED'], "Drum Window should be in a valid state"
 
@@ -112,11 +112,11 @@ class TestAprilEarlyRegressions:
         ipc = mpv.ipc
         
         # Open Drum Window
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
         # Toggle tooltip
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-dw-tooltip-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'dw-tooltip-toggle'])
         time.sleep(0.2)
         
         state = query_kardenwort_state(ipc)
@@ -129,10 +129,10 @@ class TestAprilEarlyRegressions:
         ipc.command(['seek', 7.0, 'absolute+exact'])
         time.sleep(0.5)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-drum-window-toggle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
         
-        ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-cursor', '2', '1'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '1'])
         time.sleep(0.1)
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] == 1

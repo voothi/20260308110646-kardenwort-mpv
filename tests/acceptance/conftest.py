@@ -60,7 +60,7 @@ def mpv_fragment1():
 def mpv_movie_startup():
     """Single-subtitle session with MOVIE as the startup immersion mode.
 
-    Used to verify kardenwort-immersion_mode_default=MOVIE option wiring.
+    Used to verify immersion_mode_default=MOVIE option wiring.
     """
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',

@@ -19,7 +19,7 @@ def test_srt_tooltip_activation_parity(mpv_dual):
     assert 'SRT' in state['playback_state']
     
     # 2. Toggle tooltip with 'e' (keyboard force)
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.15)
     
     # 3. Verify tooltip is rendered
@@ -33,13 +33,13 @@ def test_srt_tooltip_ineligible_without_osd_styling(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Disable SRT OSD styling
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_size', '0'])
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_name', ''])
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-set-option', 'srt_font_bold', 'no'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_size', '0'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_name', ''])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'srt_font_bold', 'no'])
     time.sleep(0.1)
     
     # Attempt to toggle tooltip
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.15)
     
     # Verify tooltip is NOT rendered (cleared by eligibility check)
@@ -52,12 +52,12 @@ def test_srt_tooltip_dismiss_on_mode_change(mpv_dual):
     ipc = mpv_dual.ipc
     
     # Toggle tooltip ON in SRT mode
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-test-dw-tooltip-toggle'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-dw-tooltip-toggle'])
     time.sleep(0.15)
     assert query_kardenwort_render(ipc, 'tooltip') != ''
     
     # Hide subtitles
-    ipc.command(['script-message-to', 'kardenwort', 'kardenwort-toggle-sub-vis'])
+    ipc.command(['script-message-to', 'kardenwort', 'toggle-sub-vis'])
     time.sleep(0.15)
     
     # Verify tooltip is cleared
