@@ -102,12 +102,12 @@ The project SHALL maintain a flat "Correspondence Table" for all renamings to al
 | `mpv Language Learning Suite`| Project | `mpv Language Acquisition Suite`| 20260310145846 |
 | `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
-| `lls_core.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
-| `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
 | `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `autopause.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `copy_sub.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `fixed_font.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
+| `lls_core.lua` | Script | `kardenwort/main.lua` | 20260511182348 |
 | `kardenwort/main.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
 | `kardenwort_utils.lua` | Script | `scripts/kardenwort/utils.lua` | 20260511182348 |
 | `resume_last_file.lua`| Script | `scripts/kardenwort/resume.lua`| 20260511182348 |
