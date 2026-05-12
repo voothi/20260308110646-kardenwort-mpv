@@ -745,7 +745,10 @@ function get_center_index(subs, time_pos)
 
     if active_idx and active_idx ~= -1 and subs[active_idx] then
         local s, e = get_effective_boundaries(subs, subs[active_idx], active_idx)
-        if time_pos >= s and time_pos <= e then
+        -- Tolerate sub-frame seek rounding around exact padded boundaries.
+        -- Without this, manual `d` can land a few milliseconds before `s`,
+        -- causing fallback to previous raw SRT index and apparent "stuck next".
+        if time_pos >= (s - Options.nav_tolerance) and time_pos <= (e + Options.nav_tolerance) then
             return active_idx
         end
     end
@@ -6329,9 +6332,12 @@ local function cmd_dw_seek_delta(dir)
     FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown -- Settle period for smart logic
     
     local current_idx = get_center_index(subs, time_pos)
-    if current_idx == -1 then return end
+    if current_idx == -1 and (not FSM.ACTIVE_IDX or FSM.ACTIVE_IDX == -1) then return end
     
     local base_idx = current_idx
+    if FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 and subs[FSM.ACTIVE_IDX] then
+        base_idx = FSM.ACTIVE_IDX
+    end
     if FSM.DW_SEEKING_MANUALLY and FSM.DW_SEEK_TARGET ~= -1 then
         base_idx = FSM.DW_SEEK_TARGET
     end
