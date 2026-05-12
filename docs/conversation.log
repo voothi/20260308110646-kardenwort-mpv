@@ -2027,5 +2027,5 @@
 
 
 
-20260512232642 /opsx-apply 20260512231050-dual-track-sync-fixes Implemented dual-track synchronization fixes for Shift+A/D scrubbing and Replay operations. Added immediate dual-track anchoring in cmd_seek_time(), cmd_replay_sub(), tick_loop(), and tick_scheduled_replay() functions. Reduced nav_cooldown from 0.5s to 0.2s. Restored user-data/kardenwort/last_osd property for IPC diagnostics. Created test files test_20260512223046_shift_ad_seek_anchor.py and test_20260512223306_replay_repeat_dual_sync.py. All 9 tests pass (2+2+5).
+ /opsx-apply 20260512231050-dual-track-sync-fixes Implemented dual-track synchronization fixes for Shift+A/D scrubbing and Replay operations. Added immediate dual-track anchoring in cmd_seek_time(), cmd_replay_sub(), tick_loop(), and tick_scheduled_replay() functions. Reduced nav_cooldown from 0.5s to 0.2s. Restored user-data/kardenwort/last_osd property for IPC diagnostics. Created test files test_20260512223046_shift_ad_seek_anchor.py and test_20260512223306_replay_repeat_dual_sync.py. All 9 tests pass (2+2+5).
 
