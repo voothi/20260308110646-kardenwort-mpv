@@ -1927,10 +1927,8 @@
 20260512120104 Fixed `20260512114135` items. Updated: - [proposal.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/proposal.md:15) log prefix corrected to `[Kardenwort]` -> `[kardenwort]` - [proposal.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/proposal.md:27) terminology transition corrected to `Kardenwort -> kardenwort` - [tasks.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260511182348-kardenwort-restructuring-and-namespace-unification/tasks.md:10) no-op move fixed to `scripts/kardenwort_core.lua` -> `scripts/kardenwort/main.lua`
 20260512120245 opsx-archive 20260511182348-kardenwort-restructuring-and-namespace-unification
 20260512120628 Sync now
-
-
-
-
+20260512121550 Accept
+20260512121111 spec.md#L22 spec.md#L106-109 Look historically in this file, in git history, to see that this is true. It seems to me that there is an lls-core and it should be taken into account.
 
 
 

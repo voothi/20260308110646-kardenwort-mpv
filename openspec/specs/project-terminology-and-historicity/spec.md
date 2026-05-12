@@ -19,7 +19,7 @@ The project environment SHALL use a specific set of terms to describe its toolin
 | **Change Archive** | Organization | The `openspec/changes/archive` directory containing historical completed tasks. |
 | **mpv.conf** | Configuration | The primary player and script configuration file. |
 | **input.conf** | Configuration | The centralized keybinding configuration file. |
-| **anki_mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki_mapping.ini`) located in the repository root. |
+| **anki-mapping.ini** | Configuration | The dynamic Anki field mapping configuration (`anki-mapping.ini`) located in the repository root. |
 | **Central Register** | Log | The `docs/conversation.log` file, acting as the master registry of all requests and interactions. |
 | **Legacy Release Store**| Organization | The `docs/rfcs` directory containing historical releases using the **SDD** methodology. |
 | **OpenSpec** | Methodology | The modern, agentic-centric specification framework for active development. |
@@ -102,14 +102,16 @@ The project SHALL maintain a flat "Correspondence Table" for all renamings to al
 | `mpv Language Learning Suite`| Project | `mpv Language Acquisition Suite`| 20260310145846 |
 | `Learning` | Domain | `Acquisition` | 20260310145846 |
 | `mpv Language Acquisition Suite`| Project | `Kardenwort MPV` | 20260322202226 |
-| `kardenwort-mpv.lua` | Script | `kardenwort/main.lua` | 20260414150031 |
-| `sub_context.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
-| `autopause.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
-| `copy_sub.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
-| `fixed_font.lua` | Script | `kardenwort/main.lua` | 20260408221530 |
+| `lls_core.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
+| `kardenwort-mpv.lua` | Script | `lls_core.lua` | 20260414150031 |
+| `sub_context.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `autopause.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `copy_sub.lua` | Script | `lls_core.lua` | 20260408221530 |
+| `fixed_font.lua` | Script | `lls_core.lua` | 20260408221530 |
 | `kardenwort/main.lua` | Script | `scripts/kardenwort/main.lua`| 20260511182348 |
 | `kardenwort_utils.lua` | Script | `scripts/kardenwort/utils.lua` | 20260511182348 |
 | `resume_last_file.lua`| Script | `scripts/kardenwort/resume.lua`| 20260511182348 |
+| `anki_mapping.ini` | Config | `anki-mapping.ini` | 20260511224837 |
 | `Normal Mode` | UI Mode | `SRT Mode` | Early Development |
 | `Reel Mode` | UI Mode | `Drum Mode` | 20260412105348 |
 | `Window Mode` | UI Mode | `Drum Window` | 20260414115025 |
