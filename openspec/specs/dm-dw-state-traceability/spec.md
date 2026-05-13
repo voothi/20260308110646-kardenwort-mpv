@@ -68,6 +68,15 @@ Book Mode paging semantics MUST be behaviorally equivalent in DW and DM mini vie
 - **THEN** workflow SHALL remain in DM (no forced mode jump to DW)
 - **AND** DM SHALL adopt DW-equivalent Book paging semantics.
 
+### Requirement: Dual-Track DM Viewport Parity
+In dual-track Drum Mode, upper/lower subtitle lanes MUST remain viewport-synchronized across follow and paged states.
+
+#### Scenario: Upper/lower viewport synchronization
+- **WHEN** DM is rendering both primary and secondary subtitle lanes
+- **AND** viewport context changes due to follow-leading, manual scroll context, or Book Mode paging
+- **THEN** the secondary (upper) lane SHALL follow the same effective viewport context as the primary (lower) lane
+- **AND** the upper lane SHALL NOT stay independently centered while the lower lane moves.
+
 ### Requirement: Cross-Spec Traceability Mapping
 DM/DW traceability SHALL map resolved behavior to governing specs.
 
@@ -88,4 +97,5 @@ The traceability spec SHALL provide executable validation intent for non-regress
 2. `a`/`d` then `Esc` then arrow activation from current white context,
 3. null-pointer scroll then arrow activation from current viewport context,
 4. Book Mode enable in DM without forced DW switch and with paged follow parity,
-5. repeat checks with Book Mode OFF and ON.
+5. upper/lower lane viewport synchronization in DM with Book Mode OFF and ON,
+6. repeat checks with Book Mode OFF and ON.

@@ -22,6 +22,7 @@ When in Book Mode, the system SHALL automatically scroll the viewport in "pages"
 - **THEN** the active subtitle highlight SHALL move
 - **AND** when the highlight reaches the bottom margin, the viewport SHALL jump forward so the active line is at the top margin.
 - **AND** this behavior SHALL apply consistently in both Drum Window mode (W) and Drum Mode mini viewport (C with W closed).
+- **AND** in dual-track Drum Mode, the secondary (upper) viewport SHALL follow the same effective viewport offset as the primary (lower) viewport.
 
 #### Scenario: Enabling Book Mode while DM is active
 - **WHEN** Drum Mode (C) is active and Drum Window (W) is closed

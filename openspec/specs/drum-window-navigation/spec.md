@@ -21,6 +21,19 @@ The system SHALL use `Options.dw_scrolloff` to determine the number of lines to 
 - **WHEN** `dw_scrolloff` is set to `5` in `mpv.conf`
 - **THEN** both `paged` and `pushed` scrolling logic SHALL maintain a 5-line buffer from the viewport edges.
 
+### Requirement: Dual-Track Viewport Synchronization in Drum Mode
+When Drum Mode renders both primary (lower) and secondary (upper) tracks, the secondary viewport SHALL remain synchronized to the primary viewport context.
+
+#### Scenario: Follow mode synchronization (Book Mode OFF)
+- **WHEN** Drum Mode follow-leading is active and playback advances
+- **THEN** the secondary (upper) viewport SHALL track the same effective viewport context as the primary (lower) viewport
+- **AND** the upper track SHALL NOT remain independently center-locked while the lower track follows context behavior.
+
+#### Scenario: Paged synchronization (Book Mode ON)
+- **WHEN** Book Mode is ON in Drum Mode and paged viewport updates occur
+- **THEN** the secondary (upper) viewport SHALL apply the same effective page/offset transition as the primary (lower) viewport
+- **AND** both tracks SHALL move together across page boundaries.
+
 ### Requirement: Independent Pointer and Selection States
 The Drum Window SHALL maintain separate states for the active video subtitle (white) and the manual navigation cursor (yellow) to allow for decoupled reading and seeking.
 
