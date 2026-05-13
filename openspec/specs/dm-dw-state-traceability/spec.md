@@ -29,7 +29,7 @@ Final `Esc` clear MUST establish a deterministic follow-ready state in both DM a
 #### Scenario: Final staged clear
 - **WHEN** Esc reaches Stage 3 (final yellow pointer clear)
 - **THEN** `DW_CURSOR_WORD` SHALL be `-1`
-- **AND** `DW_CURSOR_LINE` SHALL be synchronized to current active playback line
+- **AND** `DW_CURSOR_LINE` SHALL be synchronized to the active playback line resolved from live `time-pos` at Esc time
 - **AND** `DW_FOLLOW_PLAYER` SHALL be `true`
 - **AND** manual seek transit markers SHALL be cleared (`DW_SEEKING_MANUALLY = false`, `DW_SEEK_TARGET = -1`).
 

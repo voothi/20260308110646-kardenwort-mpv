@@ -4891,6 +4891,13 @@ local function cmd_dw_esc()
 
     -- Stage 3: Clear Yellow Pointer & Full Reset
     if FSM.DW_CURSOR_WORD ~= -1 then
+        -- Re-anchor from live playback time to avoid latching a stale pre-boundary line
+        -- when Esc lands between render ticks.
+        local time_pos = mp.get_property_number("time-pos") or 0
+        local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if live_active_idx and live_active_idx ~= -1 then
+            FSM.DW_ACTIVE_LINE = live_active_idx
+        end
         dw_reset_selection()
         -- After full selection clear via Esc, return to normal auto-follow behavior.
         FSM.DW_FOLLOW_PLAYER = true

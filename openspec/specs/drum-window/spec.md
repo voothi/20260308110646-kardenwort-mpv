@@ -184,7 +184,7 @@ The `Esc` key MUST follow a strict staged hierarchy for clearing state:
 #### Scenario: Stage 3 Uses Current Playback Anchor
 - **WHEN** Stage 3 executes during DM/DW interaction
 - **AND** `Esc` is pressed near a subtitle boundary
-- **THEN** cursor synchronization SHALL anchor to the current active playback subtitle
+- **THEN** cursor synchronization SHALL resolve the active subtitle from live playback time at the moment of `Esc` (not from a stale cached line)
 - **AND** the next white subtitle transition SHALL continue from this updated anchor rather than a stale pre-boundary line.
 
 ### Requirement: Post-Export Selection Reset
@@ -228,7 +228,7 @@ The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mo
 - **WHEN** Drum Mode (Mode C) is ON and the Drum Window (Mode W) is OFF
 - **WHEN** A selection (Pink, Yellow Range, or Pointer) exists and the user presses `Esc`
 - **THEN** The system SHALL evaluate and clear states in sequential order.
-- **AND** When the final Yellow Pointer is cleared, `FSM.DW_CURSOR_LINE` MUST be synchronized with the currently active playback line index.
+- **AND** When the final Yellow Pointer is cleared, `FSM.DW_CURSOR_LINE` MUST be synchronized with the active playback line resolved at `Esc` time.
 - **AND** follow-leading MUST be re-enabled immediately after this final clear.
 
 ### Requirement: Independent Mode C Viewport

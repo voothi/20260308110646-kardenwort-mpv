@@ -2037,7 +2037,10 @@
 20260513234821 You should have done this according to OpenSpec standards, create a Propose.
 20260513234821 Created OpenSpec Propose change: openspec/changes/20260513234821-dm-dw-state-parity-and-esc-follow (proposal, design, tasks, and spec deltas for drum-window, drum-window-navigation, book-mode-navigation, dm-dw-state-traceability).
 20260513235532 OpenSpec archive completed for 20260513234821-dm-dw-state-parity-and-esc-follow. Sync attempted first, archive-time matcher failed on book-mode-navigation header lookup; content already present in main specs, so archive finalized with --skip-specs.
-
+20260513235933 Review the solution to see if there are any unnecessary things, if the code meets the specifications? 4017e04ddcc597128201b27864f45d4466c70223..v1.80.14
+20260514000933 I don’t understand, if you need to strengthen the logic, and you definitely think it’s appropriate and it won’t break what we have now, decide whether to do it and reflect it in the specification.
+20260514001043 Implemented. I decided to strengthen it, and I consider this change appropriate and low-risk. What I changed: - Runtime fix in `Esc` Stage 3: resolve active line from live `time-pos` before reset, then perform existing reset/follow restore. [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua:4893) - Spec clarification in core DW spec: Stage 3 anchor is resolved at `Esc` time from live playback (not stale cache). [spec.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/drum-window/spec.md:184) [spec.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/drum-window/spec.md:227) - Traceability spec updated to the same contract. [spec.md](/u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/dm-dw-state-traceability/spec.md:29) Why this is safe: - It only affects Stage 3 `Esc` path when a yellow pointer exists. - Existing follow/manual-seek reset behavior remains unchanged. - It removes stale-line dependency between ticks; no mode-switch logic was altered. I did not run mpv runtime validation in this turn. Natural next step is a quick manual check of: boundary-time `Esc` in DM and DW, then first arrow activation behavior.
+20260514001127 Are our tests up to date and covering all the rough edges?
 
 
 
