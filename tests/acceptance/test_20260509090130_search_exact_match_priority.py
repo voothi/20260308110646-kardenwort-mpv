@@ -89,5 +89,24 @@ def test_search_contiguous_bonus():
     )
 
 
+def test_search_returns_highlight_lookup_map():
+    """Search scoring must return a char-index lookup map for UI hit coloring."""
+    content = _lua()
+    assert "return score, indices_map" in content, (
+        "calculate_match_score should return indices_map (char-index -> true) for search highlighting"
+    )
+
+
+def test_search_results_keep_highlight_payload():
+    """SEARCH_RESULTS entries must preserve hl so draw_search_ui can color all hits."""
+    content = _lua()
+    assert re.search(
+        r"table\.insert\(FSM\.SEARCH_RESULTS,\s*\{idx\s*=\s*item\.idx,\s*text\s*=\s*subs\[item\.idx\]\.text,\s*hl\s*=\s*item\.hl\}\)",
+        content
+    ), (
+        "update_search_results must keep idx/text/hl in SEARCH_RESULTS entries"
+    )
+
+
 
 

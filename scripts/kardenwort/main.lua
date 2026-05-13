@@ -1886,21 +1886,16 @@ local function calculate_match_score(str, query)
         score = score + 400
     end
 
-    -- Aggregate all indices for highlighting as a sorted array
+    -- Aggregate all indices for highlighting as a direct lookup map
+    -- (char-index -> true) consumed by draw_search_ui().
     local indices_map = {}
     for _, m in ipairs(matches) do
         for _, idx in ipairs(m.indices) do
             indices_map[idx] = true
         end
     end
-    
-    local all_indices = {}
-    for idx, _ in pairs(indices_map) do
-        table.insert(all_indices, idx)
-    end
-    table.sort(all_indices)
 
-    return score, all_indices
+    return score, indices_map
 end
 
 
@@ -6928,11 +6923,27 @@ local function update_search_results()
     
     local query = FSM.SEARCH_QUERY
     local scored_results = {}
+
+    local function normalize_hl(indices)
+        local hl = {}
+        if type(indices) ~= "table" then return hl end
+        for k, v in pairs(indices) do
+            if type(k) == "number" and v == true then
+                hl[k] = true
+            elseif type(v) == "number" then
+                hl[v] = true
+            elseif type(k) == "string" and v == true then
+                local nk = tonumber(k)
+                if nk then hl[nk] = true end
+            end
+        end
+        return hl
+    end
     
     for i, sub in ipairs(subs) do
         local score, indices = calculate_match_score(sub.text, query)
         if score > 0 then
-            table.insert(scored_results, {idx = i, score = score, hl = indices})
+            table.insert(scored_results, {idx = i, score = score, hl = normalize_hl(indices)})
         end
     end
     
@@ -6945,7 +6956,7 @@ local function update_search_results()
     end)
     
     for _, item in ipairs(scored_results) do
-        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text})
+        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text, hl = item.hl})
     end
 end
 
