@@ -1,3 +1,27 @@
+# Release Notes - v1.80.14 (Search HUD Highlight Restoration)
+
+**Date**: 2026-05-13
+**Version**: v1.80.14
+**Implementation ZIDs**: 20260513181520, 20260513182127, 20260513182325, 20260513182733, 20260513183618, 20260513185155, 20260513185704
+
+## Highlights
+
+### 🔍 **Search HUD Highlight Restoration**
+- **Match Visualization Fixed**: Resolved a critical regression where search result occurrences were not being correctly highlighted in the dropdown menu. The interface now correctly applies the "Orange" highlight to all matched segments discovered by the search engine.
+- **Fuzzy Match Payload**: Re-implemented the fuzzy search highlight payload to ensure that non-contiguous matches (Fuzzy Search) are clearly visualized in the results list, improving user focus during rapid vocabulary lookup.
+- **Dynamic HUD Synchronicity**: Restored the bi-directional state synchronization between the search ranking engine and the OSD rendering loop, ensuring that visual highlights 100% match the underlying scoring logic.
+
+### 🛡️ **Search Ranking & IPC Hardening**
+- **Relevance Scoring Verification**: Successfully validated the multi-dimensional search ranking algorithm (Exact Match, Contiguous Bonus, Sequential Bonus, Start-of-Sentence Boost) across both English and Cyrillic tracks.
+- **Stabilized IPC Snapshotting**: Fixed a transient crash in the `LlsProbe` diagnostic hook that occurred when interrogating the search state while certain numeric key-mappings were active.
+- **Hardened Result Interrogation**: Improved the robustness of the `test-set-search-query` IPC hook, ensuring deterministic state updates for automated acceptance testing.
+
+### 🧪 **Milestone: 727 Acceptance Tests**
+- **Comprehensive Coverage**: The acceptance suite has grown to **727 tests**, incorporating 6 new high-resolution search ranking scenarios that verify the mathematical integrity of the search engine.
+- **Full Regression Pass**: Verified that the search highlighting restoration does not introduce side-regressions in Drum Mode or the Drum Window.
+
+---
+
 # Release Notes - v1.80.12 (Scroll-Aware Selection Continuity)
 
 **Date**: 2026-05-13
