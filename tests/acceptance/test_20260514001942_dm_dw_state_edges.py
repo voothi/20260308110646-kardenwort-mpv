@@ -102,4 +102,24 @@ def test_dm_book_mode_paging_path_structural():
     body = _fn_body(_src(), "tick_drum")
     assert "FSM.BOOK_MODE" in body
     assert "dw_ensure_visible(pri_active_idx, true)" in body
-    assert "view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or active_idx" in body
+    assert "pri_view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or pri_active_idx" in body
+
+
+def test_dm_secondary_viewport_uses_primary_offset_structural():
+    """
+    Secondary (upper) drum track must mirror the primary viewport offset in tick_drum.
+    This prevents upper-track center locking when primary is paged/scrolled.
+    """
+    body = _fn_body(_src(), "tick_drum")
+    assert "local pri_view_center = FSM.DW_VIEW_CENTER" in body
+    assert "local offset = pri_view_center - pri_active_idx" in body
+    assert "view_center = math.max(1, math.min(#Tracks.sec.subs, active_idx + offset))" in body
+
+
+def test_dm_secondary_viewport_not_locked_to_center_in_follow_structural():
+    """
+    Guard against regression where secondary view_center was forced to active_idx
+    while follow mode is on (which kept upper subtitles centered).
+    """
+    body = _fn_body(_src(), "tick_drum")
+    assert "if FSM.DW_FOLLOW_PLAYER then\n            view_center = active_idx" not in body
