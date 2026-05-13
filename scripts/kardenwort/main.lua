@@ -603,6 +603,7 @@ local FSM = {
     DW_SEEKING_MANUALLY = false,
     DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
+    DW_RESUME_FOLLOW_ON_NEXT_SUB = false, -- Arm follow restore after Esc clears all active selections
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -4862,6 +4863,12 @@ local function get_dw_selection_bounds()
     end
 end
 
+local function has_any_dw_selection()
+    if FSM.DW_CURSOR_WORD ~= -1 then return true end
+    if FSM.DW_ANCHOR_LINE ~= -1 and FSM.DW_ANCHOR_WORD ~= -1 then return true end
+    return next(FSM.DW_CTRL_PENDING_SET) ~= nil
+end
+
 -- Context-Aware Escape: Deterministic staged selection peel-back.
 -- Stage 1: Clear Pink Set (ctrl pending set)
 -- Stage 2: Clear Yellow Range (if anchor exists and is different from cursor)
@@ -4892,6 +4899,7 @@ local function cmd_dw_esc()
     -- Stage 3: Clear Yellow Pointer & Full Reset
     if FSM.DW_CURSOR_WORD ~= -1 then
         dw_reset_selection()
+        FSM.DW_RESUME_FOLLOW_ON_NEXT_SUB = true
         return
     end
 end
@@ -5542,6 +5550,7 @@ local function master_tick()
 
     -- Sync active line for Drum/DW logic
     local active_idx = -1
+    local prev_active_idx = FSM.ACTIVE_IDX
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if active_idx ~= -1 then
@@ -5590,6 +5599,13 @@ local function master_tick()
 
             FSM.ACTIVE_IDX = active_idx
             FSM.DW_ACTIVE_LINE = active_idx
+
+            if FSM.DW_RESUME_FOLLOW_ON_NEXT_SUB and prev_active_idx ~= -1 and active_idx ~= prev_active_idx and not has_any_dw_selection() then
+                FSM.DW_FOLLOW_PLAYER = true
+                FSM.DW_SEEKING_MANUALLY = false
+                FSM.DW_SEEK_TARGET = -1
+                FSM.DW_RESUME_FOLLOW_ON_NEXT_SUB = false
+            end
             
             -- [v1.58.49] Universal Cursor Synchronization
             -- Ensures that the "copy focus" always tracks playback when in follow mode,
