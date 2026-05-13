@@ -3799,6 +3799,18 @@ local function dw_build_layout(subs, view_center)
         -- subtitles. It is evicted only via flush_rendering_caches() or track reload.
         if s.layout_cache and s.layout_cache.version == FSM.LAYOUT_VERSION then
             entry = s.layout_cache.entry
+            -- Compatibility guard:
+            -- ensure_sub_layout() may cache a reduced entry for navigation that lacks
+            -- draw-time fields (e.g. height/sub_idx). Rebuild full draw entry when needed.
+            if not entry
+                or type(entry.height) ~= "number"
+                or not entry.vlines
+                or type(entry.sub_idx) ~= "number"
+                or not entry.logical_words
+                or not entry.visual_to_logical
+            then
+                entry = nil
+            end
         else
             local tokens = get_sub_tokens(s)
             if #tokens == 0 then tokens = {{text=""}} end
@@ -5919,12 +5931,18 @@ local function ensure_sub_layout(sub)
     if #cur_indices > 0 then table.insert(vlines, cur_indices) end
     if #vlines == 0 then vlines = {{1}} end
 
+    local lh_mul = Options.dw_line_height_mul
+    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local entry_h = #vlines * vline_h
+
     sub.layout_cache = {
         version = FSM.LAYOUT_VERSION,
         entry = {
+            sub_idx = -1, -- caller-specific; draw path will overwrite with real index
             vlines = vlines,
             logical_to_visual = logical_to_visual,
-            words = tokens
+            words = tokens,
+            height = entry_h
         }
     }
     return sub.layout_cache.entry
