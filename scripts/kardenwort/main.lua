@@ -8171,6 +8171,14 @@ end
 local kardenwortProbe = {}
 
 function kardenwortProbe._snapshot()
+    local safe_search_results = {}
+    for _, r in ipairs(FSM.SEARCH_RESULTS or {}) do
+        table.insert(safe_search_results, {
+            idx = r.idx,
+            text = r.text
+        })
+    end
+
     local tracks_summary = {
         pri = { 
             id = Tracks.pri.id, 
@@ -8217,7 +8225,7 @@ function kardenwortProbe._snapshot()
         karaoke_mode          = FSM.KARAOKE,
         search_mode           = FSM.SEARCH_MODE,
         search_query       = FSM.SEARCH_QUERY,
-        search_results     = FSM.SEARCH_RESULTS,
+        search_results     = safe_search_results,
         dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
         tracks             = tracks_summary,
         fsm_state          = FSM.MEDIA_STATE, -- Alias for easier access in some tests
