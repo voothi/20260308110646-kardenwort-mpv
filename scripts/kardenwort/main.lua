@@ -6945,7 +6945,11 @@ local function update_search_results()
     end)
     
     for _, item in ipairs(scored_results) do
-        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text})
+        table.insert(FSM.SEARCH_RESULTS, {
+            idx = item.idx,
+            text = subs[item.idx].text,
+            hl = item.hl
+        })
     end
 end
 
