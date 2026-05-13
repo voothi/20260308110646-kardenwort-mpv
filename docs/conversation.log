@@ -1998,8 +1998,9 @@
 20260513143307 Create tests.
 20260513143859 You are an archivist and openspec specialist, write documentation opsx-propose by conversation.log#L1991-1998 v1.80.8..055770ad1776ed0ae3dda2c32534fecdbede87d1
 20260513145124 Create documentation for these changes. Openspec Propose
-
-
-
-
 20260513145735 Applied OpenSpec change 20260513145124-document-dm-dw-scrolloff-and-layout-cache-hardening via /opsx:apply: verified spec deltas for drum-scroll-sync, config-documentation, automated-acceptance-testing, and dw-layout-cache-compatibility-guards; cross-checked README/mpv.conf/main.lua alignment for drum_scrolloff and zero-margin clamping; confirmed regression test mapping to tests/acceptance/test_20260513143307_dw_layout_cache_and_scrolloff_zero.py; marked all 9 tasks complete.
+20260513145903 Openspec Archive Change 20260513145124-document-dm-dw-scrolloff-and-layout-cache-hardening
+
+
+
+

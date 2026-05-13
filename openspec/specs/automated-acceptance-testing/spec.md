@@ -2,9 +2,7 @@
 
 ## Purpose
 Enable the automated verification of system behavior against formal specifications via CLI-driven integration tests.
-
 ## Requirements
-
 ### Requirement: CLI-Driven Interaction
 The system SHALL provide a mechanism to simulate user inputs (keyboard, mouse) from an external process.
 
@@ -117,6 +115,19 @@ The IPC test harness MUST be able to resolve and execute functions defined as me
 - **WHEN** the test harness calls a function named `get_state` via the probe.
 - **THEN** the harness MUST first look for `_G.get_state` and, if missing, fallback to `_G.KardenwortProbe.get_state`.
 
+### Requirement: Regression Coverage for DW Cache-Shape Compatibility
+Acceptance testing SHALL include a regression scenario that exercises reduced subtitle layout cache entries before DW draw rendering.
 
+#### Scenario: Reduced cache entry does not crash draw path
+- **WHEN** navigation code populates a reduced `layout_cache.entry` and `dw_build_layout` is executed afterwards
+- **THEN** rendering SHALL complete without `master_tick crash`
+- **AND** logs SHALL NOT contain nil failures for `entry` indexing or `height` arithmetic.
 
+### Requirement: Regression Coverage for Zero-Scrolloff Stability
+Acceptance testing SHALL include a stability scenario for zero-margin scrolling in compact viewports.
+
+#### Scenario: Zero-margin scroll remains stable
+- **WHEN** `dw_scrolloff=0` and `drum_scrolloff=0` are applied in tiny viewports
+- **THEN** repeated scroll commands SHALL keep `DW_VIEW_CENTER` in valid bounds
+- **AND** logs SHALL NOT contain `master_tick crash` signatures.
 

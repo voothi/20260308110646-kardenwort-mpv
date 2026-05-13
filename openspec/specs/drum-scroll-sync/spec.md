@@ -24,6 +24,15 @@ When manual drum scrolling is active, lower and upper subtitle lanes SHALL move 
 - **WHEN** the user scrolls in drum mode
 - **THEN** the viewport SHALL scroll relative to the active secondary index without requiring a primary index anchor.
 
+#### Scenario: Zero-scrolloff clamping in compact viewport
+- **GIVEN** drum mode is ON and drum window is OFF
+- **AND** `drum_scrolloff` is `0`
+- **AND** the effective DM mini viewport is compact (including one-line configuration)
+- **WHEN** manual scroll is applied repeatedly in either direction
+- **THEN** computed scroll margin SHALL be clamped to a non-negative value
+- **AND** viewport movement SHALL NOT use a `-1` margin path
+- **AND** pointer/context alignment SHALL remain stable.
+
 ### Requirement: Highlight and Active-Line Synchrony During Scroll
 Manual viewport scrolling SHALL preserve synchronized visual semantics across both lanes.
 
@@ -62,5 +71,4 @@ The change SHALL be validated against baseline commit `4c634ed422844c475293dac07
 - Dual-track manual scrolling keeps equivalent logical offset between lanes.
 - Primary-only and secondary-only fallback scenarios both work as specified.
 - Scroll-only interactions do not alter autopause transitions in `MOVIE` or `PHRASE`.
-
 
