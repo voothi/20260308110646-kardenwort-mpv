@@ -21,6 +21,13 @@ When in Book Mode, the system SHALL automatically scroll the viewport in "pages"
 - **AND** the video plays forward
 - **THEN** the active subtitle highlight SHALL move
 - **AND** when the highlight reaches the bottom margin, the viewport SHALL jump forward so the active line is at the top margin.
+- **AND** this behavior SHALL apply consistently in both Drum Window mode (W) and Drum Mode mini viewport (C with W closed).
+
+#### Scenario: Enabling Book Mode while DM is active
+- **WHEN** Drum Mode (C) is active and Drum Window (W) is closed
+- **AND** the user enables Book Mode
+- **THEN** the system SHALL keep the user in DM (no forced transition to DW)
+- **AND** the DM viewport SHALL adopt the same Book Mode paged follow behavior used in DW.
 
 #### Scenario: Manual navigation in Book Mode
 - **WHEN** the user seeks via `a`/`d`

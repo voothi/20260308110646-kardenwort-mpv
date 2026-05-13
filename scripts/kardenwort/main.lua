@@ -5301,10 +5301,28 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     
     FSM.DRUM_HIT_ZONES = {}
 
+    -- Book Mode parity for DM mini (DRUM=ON, DW_WINDOW=OFF):
+    -- keep follow enabled but page the viewport with dw_ensure_visible,
+    -- matching the DW Book Mode behavior.
+    if is_drum and FSM.DW_FOLLOW_PLAYER and FSM.BOOK_MODE and not FSM.DW_SEEKING_MANUALLY and #Tracks.pri.subs > 0 then
+        local pri_active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if pri_active_idx and pri_active_idx ~= -1 then
+            if FSM.DW_VIEW_CENTER == -1 then
+                FSM.DW_VIEW_CENTER = pri_active_idx
+            end
+            dw_ensure_visible(pri_active_idx, true)
+        end
+    end
+
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
         local active_idx = get_center_index(Tracks.pri.subs, time_pos)
-        local view_center = FSM.DW_FOLLOW_PLAYER and active_idx or FSM.DW_VIEW_CENTER
+        local view_center
+        if FSM.DW_FOLLOW_PLAYER then
+            view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or active_idx
+        else
+            view_center = FSM.DW_VIEW_CENTER
+        end
         if view_center == -1 then view_center = active_idx end
         
         local pri_plain = is_drum and (not Options.drum_pri_highlighting) or (not Options.srt_pri_highlighting)
@@ -7704,7 +7722,8 @@ end
 function toggle_book_mode()
     FSM.BOOK_MODE = not FSM.BOOK_MODE
     if FSM.BOOK_MODE then
-        if FSM.DRUM_WINDOW == "OFF" then
+        -- Keep DM workflows in-place: only auto-open DW when neither DM nor DW is active.
+        if FSM.DRUM_WINDOW == "OFF" and FSM.DRUM ~= "ON" then
             cmd_toggle_drum_window()
         end
         show_osd("Book Mode: ON")
