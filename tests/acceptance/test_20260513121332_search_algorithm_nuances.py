@@ -9,6 +9,7 @@ using IPC diagnostic hooks and a specialized fixture.
 
 import pytest
 import json
+import time
 from tests.ipc.mpv_session import MpvSession
 from tests.ipc.mpv_ipc import query_kardenwort_state
 
@@ -29,11 +30,25 @@ def get_search_results(mpv):
     state = query_kardenwort_state(mpv.ipc)
     return state.get("search_results", [])
 
+
+def set_search_query_and_wait(mpv, query, timeout=2.0):
+    """
+    Robust query setter for mpv startup races:
+    keep sending test hook until SEARCH_QUERY is observed in state snapshot.
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        mpv.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", query])
+        state = query_kardenwort_state(mpv.ipc)
+        if state.get("search_query") == query:
+            return state.get("search_results", [])
+        time.sleep(0.05)
+    return []
+
 def test_search_exact_match_priority(mpv_search):
     """Scenario: Exact match must return the highest score and rank first."""
     # Sub 1 is "test"
-    mpv_search.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", "test"])
-    results = get_search_results(mpv_search)
+    results = set_search_query_and_wait(mpv_search, "test")
     assert len(results) > 0
     # Exact match for "test" (sub 1) should be at index 0 in results
     assert results[0]["idx"] == 1
@@ -43,8 +58,7 @@ def test_search_contiguous_substring_bonus(mpv_search):
     """Scenario: Contiguous whole-query substring bonus (+400)."""
     # Sub 2 is "this is a test line"
     # Query "test line" is contiguous here.
-    mpv_search.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", "test line"])
-    results = get_search_results(mpv_search)
+    results = set_search_query_and_wait(mpv_search, "test line")
     assert len(results) > 0
     assert results[0]["idx"] == 2
     assert "test line" in results[0]["text"]
@@ -54,8 +68,7 @@ def test_search_sequential_order_bonus(mpv_search):
     # Query: "sequential logic"
     # Sub 7: "sequential test logic" (in order)
     # Sub 8: "logic test sequential" (out of order)
-    mpv_search.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", "sequential logic"])
-    results = get_search_results(mpv_search)
+    results = set_search_query_and_wait(mpv_search, "sequential logic")
     
     # Both should match, but sub 7 should be higher
     indices = [r["idx"] for r in results]
@@ -71,8 +84,7 @@ def test_search_start_of_sentence_bonus(mpv_search):
     # Query: "test"
     # Sub 3: "test is first here" (starts with test)
     # Sub 5: "the test of time" (test in middle)
-    mpv_search.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", "test"])
-    results = get_search_results(mpv_search)
+    results = set_search_query_and_wait(mpv_search, "test")
     
     indices = [r["idx"] for r in results]
     # Sub 1 is exact (1st)
@@ -89,8 +101,7 @@ def test_search_compactness_bonus(mpv_search):
     # Query: "test"
     # Sub 4: "a simple testing case" (literal "test" in "testing")
     # Sub 6: "t e s t fuzzy" (fuzzy "t...e...s...t")
-    mpv_search.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", "test"])
-    results = get_search_results(mpv_search)
+    results = set_search_query_and_wait(mpv_search, "test")
     
     indices = [r["idx"] for r in results]
     assert 4 in indices
@@ -105,8 +116,7 @@ def test_search_cyrillic_ranking_nuances(mpv_search):
     # Query: "проверка"
     # Sub 9: "проверка поиска" (start)
     # Sub 10: "это проверка" (middle)
-    mpv_search.ipc.command(["script-message-to", "kardenwort", "test-set-search-query", "проверка"])
-    results = get_search_results(mpv_search)
+    results = set_search_query_and_wait(mpv_search, "проверка")
     
     indices = [r["idx"] for r in results]
     assert 9 in indices
