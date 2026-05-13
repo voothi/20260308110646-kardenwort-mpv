@@ -2040,3 +2040,4 @@
 
 
 20260513234821 x Created OpenSpec Propose change: openspec/changes/20260513234821-dm-dw-state-parity-and-esc-follow (proposal, design, tasks, and spec deltas for drum-window, drum-window-navigation, book-mode-navigation, dm-dw-state-traceability).
+20260513235532 x OpenSpec archive completed for 20260513234821-dm-dw-state-parity-and-esc-follow. Sync attempted first, archive-time matcher failed on book-mode-navigation header lookup; content already present in main specs, so archive finalized with --skip-specs.
