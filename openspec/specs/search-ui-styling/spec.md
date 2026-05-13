@@ -34,6 +34,11 @@ The active selection SHALL maintain visibility of colored match highlights (as d
 - **WHEN** a search query matches multiple words in the selected result
 - **THEN** those words are rendered in the configured hit color while the rest of the line remains white
 
+#### Scenario: Fuzzy-occurrence highlighting across full match
+- **WHEN** a fuzzy query (for example `di`) matches multiple character occurrences in a result line
+- **THEN** all matched occurrence characters SHALL be highlighted in the configured hit color
+- **AND** the UI SHALL NOT degrade to highlighting only first letters of tokens when full occurrence metadata is available.
+
 ### Requirement: Dynamic Vertical Adaptation to Wrapped Content
 The search interface SHALL dynamically adjust the height of its background elements and the vertical positioning of its components to accommodate wrapped text content in both the search input field and the results dropdown items.
 

@@ -2014,6 +2014,7 @@
 20260513173958 x I rolled back to the previous commit, think better, I have Fuzzy search with additions implemented, and you simplified everything.
 20260513174901 x Take a good look at how it worked before, on commit b92817c3e40f8a47baf43964e11009dde676361a 20260507231430. Now you only mark the first letters of words in the drop-down menu, this makes no sense at all.
 20260513175446 Try to deal with this problem with fresh brains, you tried it, but it was unsuccessful, you can look at the action log in conversation.log, I also highlighted it. I am attaching a screenshot where you can see how it should be, that the occurrences of the Fuzzy search algorithm are highlighted, how it worked. Regression previously occurred between versions 73e18de4dd6c88ea5b61c9ef03a0db5e3d0c9f61..517c6b62b43258d5d561984d86480a24eed8c285 (20260508224630..20260508222251)
+20260513181618 Update the specifications.
 
 
 
