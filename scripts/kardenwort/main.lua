@@ -6109,6 +6109,22 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
+
+    -- Activation semantics after Esc:
+    -- First UP/DOWN press should "enter" on the current line (center-based),
+    -- not immediately jump to a neighboring subtitle line.
+    if FSM.DW_CURSOR_WORD == -1 then
+        local w = dw_closest_word_at_x(subs[line_idx], 960, true, nil)
+        if w ~= -1 then
+            FSM.DW_CURSOR_WORD = w
+            if not shift then
+                FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD = -1, -1
+            end
+            FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+            dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+            return
+        end
+    end
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
@@ -6137,16 +6153,13 @@ local function cmd_dw_line_move(dir, shift)
     end
 
     -- Scan for the target line that contains a valid word.
-    -- If no word is currently selected (e.g. after Esc), we first try to land on the CURRENT line.
     local start_scan_line = line_idx
-    if FSM.DW_CURSOR_WORD ~= -1 then
-        start_scan_line = start_scan_line + dir
-    end
+    start_scan_line = start_scan_line + dir
 
     for l = start_scan_line, (dir > 0 and #subs or 1), dir do
         local target_vl = nil
-        -- Entering a NEW subtitle OR re-activating after Esc: land on appropriate edge
-        if l ~= line_idx or FSM.DW_CURSOR_WORD == -1 then
+        -- Entering a NEW subtitle: land on appropriate edge
+        if l ~= line_idx then
             if dir > 0 then
                 target_vl = 1 -- Entry from top: land on first visual line
             else
