@@ -95,6 +95,20 @@ The system SHALL ensure that navigation is available immediately upon script ini
 - **THEN** the yellow pointer SHALL activate on the FIRST visual line of the current logical line.
 - **AND** if the user presses UP, it SHALL activate on the LAST visual line.
 
+#### Scenario: Deterministic Null-Selection Entry Source
+- **WHEN** the selection is cleared to null state (e.g., final `Esc` stage with `DW_CURSOR_WORD = -1`)
+- **AND** the user performs the first navigation action
+- **THEN** the "current logical line" SHALL resolve in this order:
+1. Existing standing cursor line (`DW_CURSOR_LINE`) when valid.
+2. Otherwise the active playback subtitle line (`DW_ACTIVE_LINE`).
+- **AND** this source resolution SHALL be identical in Drum Window (W) and Drum Mode (C).
+
+#### Scenario: First LEFT/RIGHT After Null Selection
+- **WHEN** `DW_CURSOR_WORD = -1` and the user presses RIGHT on the resolved current logical line
+- **THEN** the pointer SHALL activate on the first navigable token of that line.
+- **AND** pressing LEFT in the same state SHALL activate on the last navigable token of that line.
+- **AND** this activation rule SHALL NOT be substituted with a center-word heuristic unless a separate requirement explicitly enables such mode.
+
 #### Scenario: Startup Snap
 - **WHEN** the application starts AND the user performs a navigation action before playback has reached a subtitle.
 - **THEN** the system SHALL automatically snap the cursor to the nearest boundary (start or end of track) to prevent navigation deadlocks.
