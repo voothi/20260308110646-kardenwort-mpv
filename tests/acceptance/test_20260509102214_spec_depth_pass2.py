@@ -362,8 +362,8 @@ class TestImmersionEngine:
         assert "nav_cooldown" in opts, (
             "immersion-engine: nav_cooldown option not in runtime options"
         )
-        assert opts["nav_cooldown"] == 0.5, (
-            f"immersion-engine: nav_cooldown should default to 0.5s, got {opts['nav_cooldown']}"
+        assert opts["nav_cooldown"] == 0.2, (
+            f"immersion-engine: nav_cooldown should default to 0.2s, got {opts['nav_cooldown']}"
         )
 
     def test_active_idx_initialized(self, mpv):
