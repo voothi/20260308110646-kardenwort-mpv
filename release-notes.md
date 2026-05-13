@@ -1,4 +1,31 @@
+# Release Notes - v1.80.18 (Dual-Track Viewport Parity & State Resilience)
+
+**Date**: 2026-05-14
+**Version**: v1.80.18
+**Implementation ZIDs**: 20260513222855, 20260513223251, 20260513224230, 20260513224549, 20260513233501, 20260513233945, 20260514001043, 20260514002132, 20260514005117, 20260514011121
+
+## Highlights
+
+### 🥁 **Dual-Track Viewport Parity (Upper/Lower Sync)**
+- **Synchronized Viewport Offsets**: Implemented a "Surgical Offset Mirroring" logic in Drum Mode. The upper (secondary) track now strictly follows the viewport offset of the lower (primary) track in both **Book Mode ON** and **Book Mode OFF**.
+- **Independent Centering Elimination**: Resolved a UX friction point where upper subtitles would remain centered while the lower track paged through content. Viewport movement is now mathematically locked across both lanes.
+- **Drum Mode "Book Mode" Support**: Parity achieved between Drum Mode and Drum Window. Users can now lock the Drum Mode viewport using the "Book Mode" toggle (**`Z`**), providing a stable reading environment during playback.
+- **DM Book Mode Paging**: Successfully extended the stationary "Book Mode" logic to the secondary subtitle lane, ensuring consistent dual-track immersion during reading-focused sessions.
+
+
+### 🛡️ **State Resilience & "Esc" Follow Logic**
+- **Next-Subtitle Follow Restoration**: Refined the `Esc` key behavior to be more intuitive. Clearing all active selections (Yellow/Pink) now arms a "Resume Follow" sentinel that automatically restores auto-following from the **next subtitle transition**, eliminating the need for manual `a/d` nudging.
+- **Live Anchor Resolution**: Hardened the `Esc` Stage 3 reset logic to resolve the active line from the live `time-pos` at the exact moment of execution, preventing "stale line" jumps in high-latency rendering ticks.
+- **Manual Navigation Guard**: Added explicit guards to cancel pending auto-follow restorations if the user initiates manual arrow-key navigation, preserving user intent during precise term selection.
+
+### 🧪 **Milestone: 731 Acceptance Tests**
+- **Edge-Case Validation**: Expanded the acceptance suite to **731 tests**, adding specialized coverage for DM/DW state transitions, `Esc` follow arming, and dual-track viewport parity.
+- **State Parity Verification**: Integrated a comprehensive trace registry (`dm-dw-state-traceability`) to verify architectural alignment across all immersion interfaces.
+
+---
+
 # Release Notes - v1.80.14 (Search HUD Highlight Restoration)
+
 
 **Date**: 2026-05-13
 **Version**: v1.80.14
