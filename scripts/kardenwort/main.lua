@@ -3811,7 +3811,9 @@ local function dw_build_layout(subs, view_center)
             then
                 entry = nil
             end
-        else
+        end
+
+        if not entry then
             local tokens = get_sub_tokens(s)
             if #tokens == 0 then tokens = {{text=""}} end
 
