@@ -1886,19 +1886,14 @@ local function calculate_match_score(str, query)
         score = score + 400
     end
 
-    -- Aggregate all indices for highlighting as a sorted array
-    local indices_map = {}
+    -- Aggregate all indices for highlighting as lookup map.
+    -- draw_search_ui() expects O(1) membership checks via hl[char_index].
+    local all_indices = {}
     for _, m in ipairs(matches) do
         for _, idx in ipairs(m.indices) do
-            indices_map[idx] = true
+            all_indices[idx] = true
         end
     end
-    
-    local all_indices = {}
-    for idx, _ in pairs(indices_map) do
-        table.insert(all_indices, idx)
-    end
-    table.sort(all_indices)
 
     return score, all_indices
 end

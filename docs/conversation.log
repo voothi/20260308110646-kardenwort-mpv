@@ -2012,6 +2012,7 @@
 20260513165606 ========================= 725 passed in 866.88s (0:14:26) =========================
 20260513173329 x I discovered a regression that happened a long time ago, it worked well in v1.60.2, which I can confirm, the regression is due to the fact that occurrences stopped being highlighted in search mode. Look at the screenshots and compare them in version v1.60.2 (there is an orange highlight) and in the current version 87ca7a26d0b2c31706598aca0e3f6e1035e7d458 (there is no highlight).
 20260513173958 x I rolled back to the previous commit, think better, I have Fuzzy search with additions implemented, and you simplified everything.
+20260513174901 Take a good look at how it worked before, on commit b92817c3e40f8a47baf43964e11009dde676361a 20260507231430. Now you only mark the first letters of words in the drop-down menu, this makes no sense at all.
 
 
 
