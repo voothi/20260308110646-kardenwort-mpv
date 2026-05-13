@@ -6945,7 +6945,10 @@ local function update_search_results()
     end)
     
     for _, item in ipairs(scored_results) do
-        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text})
+        -- Preserve both payloads:
+        -- - hl: required by draw_search_ui() to color match occurrences
+        -- - text: kept for state probes/tests and downstream consumers
+        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text, hl = item.hl})
     end
 end
 

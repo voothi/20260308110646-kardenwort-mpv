@@ -8,9 +8,8 @@ using IPC diagnostic hooks and a specialized fixture.
 """
 
 import pytest
-import json
 from tests.ipc.mpv_session import MpvSession
-from tests.ipc.mpv_ipc import query_kardenwort_state
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 @pytest.fixture
 def mpv_search():
@@ -115,4 +114,25 @@ def test_search_cyrillic_ranking_nuances(mpv_search):
     idx_9_pos = indices.index(9)
     idx_10_pos = indices.index(10)
     assert idx_9_pos < idx_10_pos, f"Sub 9 (start) should rank above Sub 10 (middle) for Cyrillic. Results: {indices}"
+
+def test_search_highlight_payload_and_render_color(mpv_search):
+    """Scenario: SEARCH_RESULTS must retain highlight indices and render must contain hit coloring."""
+    ipc = mpv_search.ipc
+    ipc.command(["script-message", "test-set-search-query", "test"])
+
+    results = get_search_results(mpv_search)
+    assert len(results) > 0
+
+    exact = next((r for r in results if r["idx"] == 1), None)
+    assert exact is not None, f"Expected exact-match subtitle (idx=1) in results: {results}"
+    assert "hl" in exact and isinstance(exact["hl"], list) and len(exact["hl"]) > 0, (
+        f"Expected non-empty highlight index payload for idx=1, got: {exact}"
+    )
+
+    state = query_kardenwort_state(ipc)
+    hit_color = state.get("options", {}).get("search_hit_color", "0088FF")
+    render = query_kardenwort_render(ipc, "search")
+    assert f"\\c&H{hit_color}&" in render, (
+        f"Expected rendered search overlay to include hit color {hit_color}; render={render!r}"
+    )
 
