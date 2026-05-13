@@ -4892,6 +4892,10 @@ local function cmd_dw_esc()
     -- Stage 3: Clear Yellow Pointer & Full Reset
     if FSM.DW_CURSOR_WORD ~= -1 then
         dw_reset_selection()
+        -- After full selection clear via Esc, return to normal auto-follow behavior.
+        FSM.DW_FOLLOW_PLAYER = true
+        FSM.DW_SEEKING_MANUALLY = false
+        FSM.DW_SEEK_TARGET = -1
         return
     end
 end

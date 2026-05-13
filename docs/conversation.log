@@ -2032,5 +2032,6 @@
 20260513231511 This logic does not take into account moving the a/d of the current pointer, scrolling subtitles, the state remains outdated.
 20260513232211 Sorry, this problem is in version v1.80.14, but it is not yet in version v1.80.12 in DM mode, DW (Book Mode OFF), but it is in DW (Book Mode ON).
 20260513232755 # Make Book Mode for DM mode as it now works for DW mode. ## Description [[20260513222719-сделать-book-mode-для|Сделать Book Mode для DM режима так как это сейчас работает для режим DW.]] 11:27 PM Working
+20260513233501 Good, but what we did earlier does not work, when when removing selections by pressing Esc, in this state, the subtitles begin to follow the usual auto-leading mode.
 
 
