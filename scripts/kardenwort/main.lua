@@ -5810,6 +5810,11 @@ local function cmd_dw_scroll(dir)
     end
     FSM.DW_FOLLOW_PLAYER = false
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
+    -- Keep null-pointer source in sync with manual viewport scroll to avoid stale entry line
+    -- on the next UP/DOWN/LEFT/RIGHT activation after Esc.
+    if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 then
+        FSM.DW_CURSOR_LINE = FSM.DW_VIEW_CENTER
+    end
     dw_sync_cursor_to_mouse()
 end
 
@@ -6440,6 +6445,10 @@ local function cmd_dw_seek_delta(dir)
                 FSM.DW_CURSOR_LINE = target_idx
                 FSM.DW_CURSOR_WORD = -1
                 FSM.DW_CURSOR_X = nil
+            elseif FSM.DW_CURSOR_WORD == -1 then
+                -- In Book Mode, preserve intentional pointer selections, but when pointer is
+                -- already cleared keep the standing line synchronized with manual a/d seeks.
+                FSM.DW_CURSOR_LINE = target_idx
             end
         end
         

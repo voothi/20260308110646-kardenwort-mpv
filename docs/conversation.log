@@ -2029,5 +2029,7 @@
 20260513224804 x It should appear after Esc from the center, with UP DOWN, first on it, if LEFT RIGHT, look at the specifications, clarify regarding the current subtitle that is being played or on which we are standing.
 20260513225010 x Clarified and implemented per your requirement in DM: - After `Esc`, first `UP`/`DOWN` now activates yellow pointer on the **current line from center** (no immediate jump to previous/next subtitle). - `LEFT`/`RIGHT` activation remains on the **current standing line**; if no standing line exists, fallback is the **currently playing subtitle line**. Updated in [main.lua](u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua):6113. So the rule is now: 1. `Esc` clears selection state. 2. First `UP/DOWN` = enter current subtitle from center. 3. First `LEFT/RIGHT` = enter current standing/current playing subtitle as defined above.
 20260513230718 Now this does not work correctly, this is a regression that occurred during the implementation of the new functionality, in version v1.80.14 it still worked correctly, compare and find the bug, update the specifications to take this case into account if it does not exist.
+20260513231511 This logic does not take into account moving the a/d of the current pointer, scrolling subtitles, the state remains outdated.
+20260513232211 Sorry, this problem is in version v1.80.14, but it is not yet in version v1.80.12 in DM mode, DW (Book Mode OFF), but it is in DW (Book Mode ON).
 
 

@@ -109,6 +109,14 @@ The system SHALL ensure that navigation is available immediately upon script ini
 - **AND** pressing LEFT in the same state SHALL activate on the last navigable token of that line.
 - **AND** this activation rule SHALL NOT be substituted with a center-word heuristic unless a separate requirement explicitly enables such mode.
 
+#### Scenario: Null Selection After Manual Seek/Scroll
+- **WHEN** `DW_CURSOR_WORD = -1` (pointer cleared) and the user performs manual subtitle navigation (`a`/`d`) or manual viewport scrolling
+- **THEN** the standing logical line used for the next pointer activation SHALL be synchronized to the latest manual context:
+1. manual seek target line (for `a`/`d`),
+2. otherwise current manual viewport center line (for explicit scroll),
+3. otherwise active playback line.
+- **AND** the next `UP`/`DOWN` or `LEFT`/`RIGHT` activation SHALL use that synchronized line instead of a stale pre-seek/pre-scroll line.
+
 #### Scenario: Startup Snap
 - **WHEN** the application starts AND the user performs a navigation action before playback has reached a subtitle.
 - **THEN** the system SHALL automatically snap the cursor to the nearest boundary (start or end of track) to prevent navigation deadlocks.
