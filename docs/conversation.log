@@ -2035,9 +2035,9 @@
 20260513233501 Good, but what we did earlier does not work, when when removing selections by pressing Esc, in this state, the subtitles begin to follow the usual auto-leading mode. 20260513233945 Great, it works well, it switches as it should in DM, DW. Works well, the correct appearance of the yellow pointer, given the movement of the currently playing subtitle and navigation a, d, and then Esc, appears from the actual, current, white subtitles. I need you, as an experienced state and specification architect, to write down and document all these cases in detail without losing anything. Here are the conversation anchors 20260513185445 20260513222855 20260513223251 20260513223949 20260513224230 20260513224426 20260513224549 20260513224804 20260513225010 20260513230718 20260513231511 20260513232211 20260513232755 20260513233501
 20260513234603 Look at docs\20260513233945-dm-dw-state-spec-traceability.md, my specifications are all in openspec\specs
 20260513234821 You should have done this according to OpenSpec standards, create a Propose.
+20260513234821 Created OpenSpec Propose change: openspec/changes/20260513234821-dm-dw-state-parity-and-esc-follow (proposal, design, tasks, and spec deltas for drum-window, drum-window-navigation, book-mode-navigation, dm-dw-state-traceability).
+20260513235532 OpenSpec archive completed for 20260513234821-dm-dw-state-parity-and-esc-follow. Sync attempted first, archive-time matcher failed on book-mode-navigation header lookup; content already present in main specs, so archive finalized with --skip-specs.
 
 
 
 
-20260513234821 x Created OpenSpec Propose change: openspec/changes/20260513234821-dm-dw-state-parity-and-esc-follow (proposal, design, tasks, and spec deltas for drum-window, drum-window-navigation, book-mode-navigation, dm-dw-state-traceability).
-20260513235532 x OpenSpec archive completed for 20260513234821-dm-dw-state-parity-and-esc-follow. Sync attempted first, archive-time matcher failed on book-mode-navigation header lookup; content already present in main specs, so archive finalized with --skip-specs.
