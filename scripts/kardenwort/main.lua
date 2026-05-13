@@ -6085,6 +6085,8 @@ local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
+    -- User explicitly entered manual pointer navigation; cancel pending auto-follow restore.
+    FSM.DW_RESUME_FOLLOW_ON_NEXT_SUB = false
     FSM.DW_FOLLOW_PLAYER = false
     
     -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
@@ -6161,6 +6163,8 @@ local function cmd_dw_word_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
+    -- User explicitly entered manual pointer navigation; cancel pending auto-follow restore.
+    FSM.DW_RESUME_FOLLOW_ON_NEXT_SUB = false
     FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
