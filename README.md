@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.80.4-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.4) 
+[![Version](https://img.shields.io/badge/version-v1.80.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.8) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -163,7 +163,7 @@ This suite solves problems that standard video players and generic scripts ignor
 20. **Embedded Subtitle Support**: The Drum Window (Mode W) now supports internal/embedded subtitle tracks in MKV files, providing a consistent experience across all media formats.
 21. **Footprint-based Precision Rendering**: Overhauled punctuation discipline with sub-token stack recalculation and 3-tier nesting gradients. Implements a strictly **Surgical Highlighting** model that eliminates visual ambiguity by coloring only word-body tokens.
 22. **Zero-Overhead Periodic Sync**: Implements `mtime` + `size` fingerprinting to bypass expensive parsing and filesystem scanning for TSV and URL sidecars when data is unchanged.
-23. **Sticky Column Navigation**: Vertical keyboard movement in the Drum Window now preserves horizontal OSD position, snapping to the closest word on the target line for a professional, editor-like experience.
+23. **VSCode-inspired Navigation**: Vertical movement (Arrows Up/Down) in the Drum Window now preserves horizontal OSD position ("Sticky-X"), snapping to the closest word for a professional, editor-like experience. Supports **Shift-based selection** and **Ctrl-based jumping**.
 24. **Freeze-Proof Export Engine**: A hardened string search logic with mandatory forward-progress guards and empty-term validation to eliminate UI freezes during selection.
 25. **Contiguous Multi-Line Selection**: Refined selection logic that reliably maintains the highlighting anchor across subtitle line boundaries, enabling seamless "mass selection" via keyboard navigation.
 26. **Configurable Jump Distances**: Fully adjustable navigation speed. Users can customize the exact number of words or lines jumped during Ctrl-boosted navigation via `mpv.conf`.
@@ -173,7 +173,7 @@ This suite solves problems that standard video players and generic scripts ignor
 30. **Temporal Merging Guard**: Advanced navigation logic that prevents scrolling "stutter" by detecting and bridging natural gaps in subtitle timing during rapid seeks.
 31. **Hardened Performance Pipeline**: Systemic O(1) performance invariants for character scanning and character-class lookup, ensuring fluid OSD interaction even with massive subtitle files.
 32. **Absolute Verbatim Export**: 100% fidelity mining that preserves all source formatting, hyphens, and whitespace, strictly adhering to the "Source as Truth" philosophy.
-33. **Dynamic Search Wrapping**: The Search HUD now features a robust **multi-line wrapping engine** with pixel-perfect hit-testing, ensuring all results remain selectable regardless of layout complexity.
+33. **Hardened Search Ranking**: The Search HUD features a robust multi-line wrapping engine and a **relevance scoring algorithm** that prioritizes exact matches, contiguous substrings, and start-of-sentence phrases.
 34. **Intelligent Session Resumption**: Automatically reloads the last active media path on blank launch with high-resolution visual confirmation using a decoupled session manager.
 35. **Smart Diagnostics & Logging**: Level-aware logging with log deduplication and single-summary startup health checks to eliminate console spam and report configuration errors professionally.
 36. **Standardized Historicity**: Centralized "Ground Truth" for terminology and dual-notation color specifications (BGR/RGB) ensures long-term architectural integrity and AI consistency.
@@ -184,7 +184,7 @@ This suite solves problems that standard video players and generic scripts ignor
 41. **Prioritized Selection in Context Copy**: Manual selections (Pink Set, Yellow Range, or Yellow Pointer) now take absolute priority over "Context Copy" mode. This allows users to regulate the copying behavior via the `Esc` key stages: clearing specific term selections first before reverting to full context harvesting.
 42. **Ghost Hit-Zone Elimination**: Explicit lifecycle management for tooltip hit-zones prevents interaction bleed-through and ensures the Drum Window remains fully interactive after tooltip dismissal.
 43. **Adaptive Subtitle Replay & Looping**: A dual-mode replay engine (triggered via `s` / `ы`) that adapts to the active workflow. Implements **Sticky Hold** FSM logic to defeat hardware ghosting and supports **Spacebar Overrides** for seamless loop breaking.
-44. **YouTube-Style Seek Feedback**: Implemented a progressive directional OSD that tracks cumulative seek distance (+2, +4, +6) with professional spatially-aware positioning (Left/Right) and customizable message templates.
+44. **YouTube-Style Seek Feedback**: Implemented a progressive directional OSD for seeks. Features **Dual-Sentinel Anchoring** to keep primary and secondary subtitles perfectly synchronized during repeated replay loops.
 
 [Return to Top](#table-of-contents)
 
@@ -225,9 +225,10 @@ A high-performance navigation overlay that decouples content lookup from playbac
 
 ### Adaptive Subtitle Replay & Looping
 A robust, mode-aware replay system designed to eliminate friction during continuous immersion.
-- **Dual-Mode Logic**: Triggered via `s` / `ы`. In **Autopause OFF** mode, it toggles a persistent subtitle loop. In **Autopause ON** mode, it performs a one-shot manual replay.
+- **Dual-Mode Logic**: Triggered via `s` / `ы`. In **Autopause OFF** mode, it toggles a persistent subtitle loop. In **Autopause ON** mode, it performs a one-shot manual replay. Supports **Dual-Track Sync Anchoring** to prevent subtitle drift.
 - **Delayed Execution**: Prevents mid-phrase seeks by "arming" the command and waiting for the subtitle boundary before jumping back.
 - **Sticky Hold Recovery**: Defeats hardware keyboard ghosting on Windows by automatically recovering the "Space-hold" state if the signal drops during a replay trigger.
+- **Configurable OSD**: All replay messages are fully parameterized via `mpv.conf` (e.g., `kardenwort-replay_msg_format`), supporting placeholders for milliseconds (%m), seconds (%s), and iteration counts (%c).
 - **Toggle**: `s` (English) or `ы` (Russian).
 
 ### Karaoke-Safe Autopause
@@ -272,7 +273,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Boundary-Aware Sliding Window**: The viewport intelligently shifts at track edges to maintain consistent line density and vertical positioning.
 - **Interaction Shielding & Stability**: Features a 150ms shield that silences the mouse arrow following keyboard navigation, preventing accidental pointer "jumps" when using remote controls.
 - **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
-- **Sticky Column Navigation**: Vertical movement (Arrows Up/Down) now preserves the horizontal OSD position, mimicking the VSCode carriage transition for more predictable keyboard navigation.
+- **Ergonomic Keyboard Navigation**: Vertical movement (Arrows Up/Down) now preserves horizontal OSD position ("Sticky-X"). Supports **Shift + Arrows** for range selection and **Ctrl + Left/Right** for word-level jumps, mimicking VSCode carriage behavior.
 - **Performance Layout Cache**: A structure-aware caching engine that eliminates redundant OSD calculations during mouse movement, ensuring a smooth 60fps interaction experience.
 - **Toggle**: `z` (English) or `я` (Russian).
 
@@ -760,7 +761,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2056 Commits (v1.80.4)
+- **Current Maturity**: ~2080 Commits (v1.80.8)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

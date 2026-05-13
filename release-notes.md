@@ -1,3 +1,44 @@
+# Release Notes - v1.80.8 (Dual-Sync Anchoring & Navigation Ergonomics)
+
+**Date**: 2026-05-13
+**Version**: v1.80.8
+**Implementation ZIDs**: 20260512215725, 20260512223306, 20260513102658, 20260513121332, 20260513135931
+
+## Highlights
+
+### ⏯️ **Adaptive Replay & Dual-Track Synchronization**
+- **Dual-Sentinel Anchoring**: Resolved visual and temporal desynchronization between primary and secondary subtitles during repeated replay (`s`) and rapid `Shift+a/d` seeking. Both tracks are now mathematically anchored to the same index during seeks, preventing drift in DualSub immersion.
+- **Configurable Replay Messaging**: Overhauled OSD feedback for replay actions. Messages are now fully customizable via `mpv.conf` (e.g., `kardenwort-replay_msg_format`) with support for dynamic placeholders:
+    - `%m`: Milliseconds (e.g., 2000)
+    - `%s`: Seconds (e.g., 2)
+    - `%c`: Iteration count
+    - `%x`: Conditional count display (only shows if count > 1)
+
+### 🥁 **VSCode-inspired Text Navigation**
+- **Ergonomic Keyboard Selection**: Implemented a comprehensive suite of text-editor inspired navigation for the Drum Window (Static Reading Mode).
+- **Sticky-X Vertical Movement**: Vertical keyboard navigation (`Arrows Up/Down`) now preserves the horizontal character position, snapping to the closest word on the target line for a predictable, "IDE-like" experience.
+- **Selection Modifiers**:
+    - `Shift + Arrows`: Extend/shrink text selection ranges.
+    - `Ctrl + Left/Right`: Jump between word boundaries.
+    - `Ctrl + Shift + Left/Right`: Rapidly select multi-word segments.
+
+### 🔍 **Search Algorithm Hardening**
+- **Relevance Scoring Engine**: Formalized the search ranking logic to prioritize results based on linguistic density and query precision.
+    - **Exact Match Priority**: Direct hits are always promoted to the top.
+    - **Contiguous & Sequential Bonuses**: Higher weights for substring matches and matches that preserve the query's word order.
+    - **Start-of-Sentence Boost**: Phrases appearing at the beginning of a subtitle receive a relevance bonus.
+- **Cyrillic-Native Word Deletion**: Stabilized `Ctrl+W` / `Ctrl+ц` behavior in the Search HUD, ensuring UTF-8 boundary safety for Russian-layout users.
+
+### ⚙️ **Performance & Default Tuning**
+- **Responsive Navigation**: Reduced the default `nav_cooldown` from `0.5s` to **`0.2s`**. This significantly decreases the settling time after seeking, allowing for faster navigation through dense subtitle tracks.
+- **Instrumentation Expansion**: Enhanced `LlsProbe` to expose `karaoke_mode` and `search_mode` states, improving the reliability of external automation and diagnostic tooling.
+
+### 🧪 **Milestone: 720+ Acceptance Tests**
+- **Massive Test Coverage**: The acceptance suite has grown to **722 tests**, providing exhaustive verification for every FSM transition, IPC hook, and rendering invariant.
+- **Cross-Platform Stability**: Verified the entire suite on Windows 11, ensuring the IPC bridge handles rapid state polling without pipe contention or deadlocks.
+
+---
+
 # Release Notes - v1.80.4 (Architectural Consolidation & Functional Audit)
 
 **Date**: 2026-05-12
