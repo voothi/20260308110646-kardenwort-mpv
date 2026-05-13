@@ -2032,6 +2032,11 @@
 20260513231511 This logic does not take into account moving the a/d of the current pointer, scrolling subtitles, the state remains outdated.
 20260513232211 Sorry, this problem is in version v1.80.14, but it is not yet in version v1.80.12 in DM mode, DW (Book Mode OFF), but it is in DW (Book Mode ON).
 20260513232755 # Make Book Mode for DM mode as it now works for DW mode. ## Description [[20260513222719-сделать-book-mode-для|Сделать Book Mode для DM режима так как это сейчас работает для режим DW.]] 11:27 PM Working
-20260513233501 Good, but what we did earlier does not work, when when removing selections by pressing Esc, in this state, the subtitles begin to follow the usual auto-leading mode.
+20260513233501 Good, but what we did earlier does not work, when when removing selections by pressing Esc, in this state, the subtitles begin to follow the usual auto-leading mode. 20260513233945 Great, it works well, it switches as it should in DM, DW. Works well, the correct appearance of the yellow pointer, given the movement of the currently playing subtitle and navigation a, d, and then Esc, appears from the actual, current, white subtitles. I need you, as an experienced state and specification architect, to write down and document all these cases in detail without losing anything. Here are the conversation anchors 20260513185445 20260513222855 20260513223251 20260513223949 20260513224230 20260513224426 20260513224549 20260513224804 20260513225010 20260513230718 20260513231511 20260513232211 20260513232755 20260513233501
+20260513234603 Look at docs\20260513233945-dm-dw-state-spec-traceability.md, my specifications are all in openspec\specs
+20260513234821 You should have done this according to OpenSpec standards, create a Propose.
 
 
+
+
+20260513234821 x Created OpenSpec Propose change: openspec/changes/20260513234821-dm-dw-state-parity-and-esc-follow (proposal, design, tasks, and spec deltas for drum-window, drum-window-navigation, book-mode-navigation, dm-dw-state-traceability).

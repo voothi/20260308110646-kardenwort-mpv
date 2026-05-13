@@ -175,6 +175,18 @@ The `Esc` key MUST follow a strict staged hierarchy for clearing state:
 2. Stage 2: Clear Range Selection (Yellow).
 3. Stage 3: Full Pointer Reset & Cursor Synchronization.
 
+#### Scenario: Stage 3 Restores Follow Leading
+- **WHEN** Stage 3 is reached (final yellow pointer clear)
+- **THEN** the system SHALL restore normal follow-leading mode (`DW_FOLLOW_PLAYER = true`)
+- **AND** any manual seek transit markers used for repeated `a`/`d` stepping SHALL be cleared
+- **AND** this restore SHALL apply in both Drum Window (W) and Drum Mode (C).
+
+#### Scenario: Stage 3 Uses Current Playback Anchor
+- **WHEN** Stage 3 executes during DM/DW interaction
+- **AND** `Esc` is pressed near a subtitle boundary
+- **THEN** cursor synchronization SHALL anchor to the current active playback subtitle
+- **AND** the next white subtitle transition SHALL continue from this updated anchor rather than a stale pre-boundary line.
+
 ### Requirement: Post-Export Selection Reset
 The system MUST automatically perform a full selection reset (equivalent to Stage 3 of the Esc handler) immediately after a successful Anki export operation.
 
@@ -217,6 +229,7 @@ The sequential Escape mechanism SHALL be applied uniformly in both Drum Mode (Mo
 - **WHEN** A selection (Pink, Yellow Range, or Pointer) exists and the user presses `Esc`
 - **THEN** The system SHALL evaluate and clear states in sequential order.
 - **AND** When the final Yellow Pointer is cleared, `FSM.DW_CURSOR_LINE` MUST be synchronized with the currently active playback line index.
+- **AND** follow-leading MUST be re-enabled immediately after this final clear.
 
 ### Requirement: Independent Mode C Viewport
 The cursor navigation in Mode C MUST NOT trigger viewport scrolling.
