@@ -5325,16 +5325,17 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
         end
     end
 
+    local pri_active_idx = (#Tracks.pri.subs > 0) and get_center_index(Tracks.pri.subs, time_pos) or -1
+    local pri_view_center = FSM.DW_VIEW_CENTER
+    if FSM.DW_FOLLOW_PLAYER then
+        pri_view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or pri_active_idx
+    end
+    if pri_view_center == -1 then pri_view_center = pri_active_idx end
+
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
-        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
-        local view_center
-        if FSM.DW_FOLLOW_PLAYER then
-            view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or active_idx
-        else
-            view_center = FSM.DW_VIEW_CENTER
-        end
-        if view_center == -1 then view_center = active_idx end
+        local active_idx = pri_active_idx
+        local view_center = pri_view_center
         
         local pri_plain = is_drum and (not Options.drum_pri_highlighting) or (not Options.srt_pri_highlighting)
         ass_text = ass_text .. draw_drum(Tracks.pri.subs, view_center, active_idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
@@ -5342,17 +5343,10 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
         local active_idx = get_center_index(Tracks.sec.subs, time_pos)
-        -- [v1.58.52] Secondary track mirrors primary's scroll offset.
-        -- When the user scrolls, we compute the delta from primary's active index
-        -- and apply the same relative offset to the secondary's active index.
-        local view_center
-        if FSM.DW_FOLLOW_PLAYER then
-            view_center = active_idx
-        else
-            -- Translate the primary scroll offset to secondary index space.
-            -- Primary scroll offset = DW_VIEW_CENTER - pri_active_idx
-            local pri_active_idx = get_center_index(Tracks.pri.subs, time_pos)
-            local offset = FSM.DW_VIEW_CENTER - pri_active_idx
+        -- [v1.58.52] Secondary track mirrors primary viewport offset in all follow modes.
+        local view_center = active_idx
+        if pri_active_idx ~= -1 and pri_view_center ~= -1 then
+            local offset = pri_view_center - pri_active_idx
             view_center = math.max(1, math.min(#Tracks.sec.subs, active_idx + offset))
         end
         
