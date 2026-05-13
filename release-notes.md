@@ -1,4 +1,27 @@
+# Release Notes - v1.80.12 (Scroll-Aware Selection Continuity)
+
+**Date**: 2026-05-13
+**Version**: v1.80.12
+**Implementation ZIDs**: 20260513161028, 20260513161043
+
+## Highlights
+
+### 🥁 **Selection & Scroll Continuity**
+- **Manual Scroll Isolation**: Resolved a long-standing UX friction point where manual viewport scrolling (mouse wheel or `Ctrl+UP`/`Ctrl+DOWN`) would reset or clear the active text selection.
+- **State Preservation**: The Drum Window and Drum Mode now strictly preserve `DW_CURSOR` and `DW_ANCHOR` states during scroll events, allowing users to maintain focus on specific phrases while adjusting their visual context.
+- **Selection Set Stability**: Pink pending-set selections are now immune to scroll-induced resets, facilitating complex multi-word curation across larger viewport spans.
+
+### 📜 **Specification Harmonization**
+- **Architectural Isolation**: Formalized the separation of scroll state from selection state in the core specifications (`drum-window/spec.md` and `drum-scroll-sync/spec.md`).
+- **Verified Scenarios**: Explicitly documented the expected behavior for keyboard and wheel-driven scroll continuity.
+
+### 🧪 **Regression Test Coverage**
+- **Scroll Continuity Validation**: Integrated new acceptance tests (`test_20260513160318_scroll_preserves_selection.py`) to verify that selection state remains invariant across all manual scroll triggers.
+
+---
+
 # Release Notes - v1.80.10 (Layout Cache & Scrolloff Hardening)
+
 
 **Date**: 2026-05-13
 **Version**: v1.80.10

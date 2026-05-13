@@ -26,7 +26,7 @@ class TestMarchLateRegressions:
             assert "Agent Capabilities" in content
 
     def test_20260322174550_dw_pointer_behavior(self, mpv):
-        """Verify Drum Window pointer is inactive (-1) on open/scroll/seek (20260322174550)."""
+        """Verify Drum Window pointer is inactive on open and remains stable through manual scroll."""
         ipc = mpv.ipc
         
         # 1. Pointer should be -1 on Open
@@ -41,11 +41,11 @@ class TestMarchLateRegressions:
         state = query_kardenwort_state(ipc)
         assert state['dw_cursor']['word'] >= 1, "Pointer should be active after arrow key move"
         
-        # 3. Pointer should be -1 after Scroll
+        # 3. Pointer should remain active after Scroll
         ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', '1'])
         time.sleep(0.2)
         state = query_kardenwort_state(ipc)
-        assert state['dw_cursor']['word'] == -1, "Pointer should be hidden (-1) after manual scroll"
+        assert state['dw_cursor']['word'] >= 1, "Pointer should remain active after manual scroll"
 
     def test_20260322183001_hide_pointer_after_search_select(self, mpv):
         """Verify pointer is hidden after selecting a search result (20260322183001)."""

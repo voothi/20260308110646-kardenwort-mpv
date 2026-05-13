@@ -51,7 +51,7 @@ def robust_query_state(ipc, retries=5):
 class TestOpenSpecComplianceBatch3:
 
     def test_pointer_auto_reset_triggers_scroll(self, mpv):
-        """Verify scroll resets word selection (pointer-auto-reset-triggers)."""
+        """Verify scroll preserves word selection continuity (pointer-auto-reset-triggers)."""
         ipc = mpv.ipc
         ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(1.0)
@@ -63,7 +63,7 @@ class TestOpenSpecComplianceBatch3:
         ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', '1'])
         time.sleep(0.2)
         state = robust_query_state(ipc)
-        assert state['dw_cursor']['word'] == -1
+        assert state['dw_cursor']['word'] == 5
 
     def test_positioning_layout_agnosticism_ru(self, mpv):
         """Verify Russian key mappings exist (positioning-layout-agnosticism)."""
