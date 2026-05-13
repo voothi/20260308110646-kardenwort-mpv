@@ -17,6 +17,7 @@ __pycache__/
 
 # --- Persistent State ---
 resume-session.state
+resume_session.state
 
 # --- Temporary & Development Artifacts ---
 scratch/
