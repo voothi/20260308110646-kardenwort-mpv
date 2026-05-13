@@ -2002,3 +2002,4 @@
 
 
 
+20260513145735 Applied OpenSpec change 20260513145124-document-dm-dw-scrolloff-and-layout-cache-hardening via /opsx:apply: verified spec deltas for drum-scroll-sync, config-documentation, automated-acceptance-testing, and dw-layout-cache-compatibility-guards; cross-checked README/mpv.conf/main.lua alignment for drum_scrolloff and zero-margin clamping; confirmed regression test mapping to tests/acceptance/test_20260513143307_dw_layout_cache_and_scrolloff_zero.py; marked all 9 tasks complete.
