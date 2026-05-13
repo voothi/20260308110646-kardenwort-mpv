@@ -76,6 +76,11 @@ The script SHALL expose curated semantic state via the `user-data/Kardenwort/sta
 - **WHEN** no test client sends a probe message
 - **THEN** the probe SHALL perform no per-tick work and SHALL allocate no per-tick objects.
 
+#### Scenario: JSON-safe probe serialization
+- **WHEN** internal runtime structures contain numeric-key lookup maps (for example, character-hit maps used by search rendering)
+- **THEN** the state probe SHALL export a JSON-safe view that avoids numeric object keys
+- **AND** `state-query` SHALL NOT raise Lua serialization errors.
+
 ---
 
 ### Requirement: Rendering Verification via ASS Inspection

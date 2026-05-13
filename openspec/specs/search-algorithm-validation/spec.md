@@ -26,3 +26,11 @@ The search system SHALL be validated against a set of functional scenarios to en
 - **WHEN** a fuzzy match spans a range close to the keyword length
 - **THEN** the system SHALL apply a Compactness Bonus (+150 for very compact, +5 for reasonably compact).
 
+### Requirement: Deterministic Test Hook for Search Query Injection
+Acceptance verification of ranking SHALL support deterministic query injection without requiring interactive Search HUD activation.
+
+#### Scenario: IPC query injection during paused fixture playback
+- **WHEN** a test sends a query through the dedicated test hook
+- **THEN** the runtime SHALL ensure primary subtitle memory is available before scoring
+- **AND** `search_results` in the probe snapshot SHALL be populated according to ranking rules for matching fixtures.
+
