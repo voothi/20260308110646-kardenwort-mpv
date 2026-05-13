@@ -1,0 +1,19 @@
+1
+00:00:01,000 --> 00:00:04,000
+First line with multiple words
+
+2
+00:00:04,500 --> 00:00:07,500
+Second line punctuation
+
+3
+00:00:08,000 --> 00:00:11,000
+This is a very long line that should trigger wrapping behavior in the Drum Window if the font size is large enough
+
+4
+00:00:11,500 --> 00:00:14,500
+Short
+
+5
+00:00:15,000 --> 00:00:18,000
+End of the test sequence
