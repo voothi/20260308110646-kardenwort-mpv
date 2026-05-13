@@ -1,8 +1,26 @@
+# Release Notes - v1.80.10 (Layout Cache & Scrolloff Hardening)
+
+**Date**: 2026-05-13
+**Version**: v1.80.10
+**Implementation ZIDs**: 20260513145124, 20260513154936
+
+## Highlights
+
+### 🛡️ **Stability & Layout Hardening**
+- **Layout Cache Resilience**: Hardened the `dw_build_layout` engine to prevent crashes caused by partial or incompatible subtitle layout caches. This ensures stable rendering even during rapid track switching or when using malformed cache entries.
+- **Zero-Margin Scrolloff Safety**: Implemented a mandatory non-negative clamping rule for `dw_scrolloff` and `drum_scrolloff`. This prevents layout corruption and potential crashes when margins are set to `0` in extremely small viewports.
+- **Improved Option Visibility**: Formally documented the `kardenwort-drum_scrolloff` configuration option for the Drum Mode mini-viewport.
+
+### 🧪 **Regression Test Expansion**
+- **Stability Invariants**: Integrated a specialized acceptance test (`test_20260513143307_dw_layout_cache_and_scrolloff_zero.py`) that specifically validates layout cache compatibility and zero-margin scrolloff stability.
+
+---
+
 # Release Notes - v1.80.8 (Dual-Sync Anchoring & Navigation Ergonomics)
 
 **Date**: 2026-05-13
 **Version**: v1.80.8
-**Implementation ZIDs**: 20260512215725, 20260512223306, 20260513102658, 20260513121332, 20260513135931, 20260513145124
+**Implementation ZIDs**: 20260512215725, 20260512223306, 20260513102658, 20260513121332, 20260513135931
 
 ## Highlights
 
@@ -13,11 +31,6 @@
     - `%s`: Seconds (e.g., 2)
     - `%c`: Iteration count
     - `%x`: Conditional count display (only shows if count > 1)
-
-### 🛡️ **Stability & Layout Hardening**
-- **Viewport Scrolloff Control**: Introduced `kardenwort-drum_scrolloff` to allow users to reserve a scroll margin in the Drum Mode mini viewport.
-- **Zero-Margin Clamping**: Implemented robust non-negative margin guards for both `dw_scrolloff` and `drum_scrolloff`, preventing layout crashes in tiny viewports when margins are set to zero.
-- **Layout Cache Resilience**: Hardened `dw_build_layout` with shape-compatibility guards to handle partial or stale layout caches, eliminating `master_tick` crash signatures.
 
 ### 🥁 **VSCode-inspired Text Navigation**
 - **Ergonomic Keyboard Selection**: Implemented a comprehensive suite of text-editor inspired navigation for the Drum Window (Static Reading Mode).
@@ -39,7 +52,7 @@
 - **Instrumentation Expansion**: Enhanced `LlsProbe` to expose `karaoke_mode` and `search_mode` states, improving the reliability of external automation and diagnostic tooling.
 
 ### 🧪 **Milestone: 720+ Acceptance Tests**
-- **Massive Test Coverage**: The acceptance suite has grown to **726 tests**, providing exhaustive verification for every FSM transition, IPC hook, and rendering invariant.
+- **Massive Test Coverage**: The acceptance suite has grown to **722 tests**, providing exhaustive verification for every FSM transition, IPC hook, and rendering invariant.
 - **Cross-Platform Stability**: Verified the entire suite on Windows 11, ensuring the IPC bridge handles rapid state polling without pipe contention or deadlocks.
 
 ---

@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.80.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.8) 
+[![Version](https://img.shields.io/badge/version-v1.80.10-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.10) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -185,7 +185,6 @@ This suite solves problems that standard video players and generic scripts ignor
 42. **Ghost Hit-Zone Elimination**: Explicit lifecycle management for tooltip hit-zones prevents interaction bleed-through and ensures the Drum Window remains fully interactive after tooltip dismissal.
 43. **Adaptive Subtitle Replay & Looping**: A dual-mode replay engine (triggered via `s` / `ы`) that adapts to the active workflow. Implements **Sticky Hold** FSM logic to defeat hardware ghosting and supports **Spacebar Overrides** for seamless loop breaking.
 44. **YouTube-Style Seek Feedback**: Implemented a progressive directional OSD for seeks. Features **Dual-Sentinel Anchoring** to keep primary and secondary subtitles perfectly synchronized during repeated replay loops.
-- **Stability & Layout Hardening**: Implemented robust zero-margin clamping and `layout_cache` compatibility guards to eliminate crash paths in the `master_tick` rendering loop.
 
 [Return to Top](#table-of-contents)
 
@@ -763,7 +762,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2090 Commits (v1.80.8)
+- **Current Maturity**: ~2090 Commits (v1.80.10)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

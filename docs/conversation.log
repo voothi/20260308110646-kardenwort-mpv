@@ -2002,6 +2002,5 @@
 20260513145903 Openspec Archive Change 20260513145124-document-dm-dw-scrolloff-and-layout-cache-hardening
 20260513150322 Openspec Archive Change 20260513102658-vscode-text-navigation-tests
 20260513154301 python -m pytest tests/ -vv ========================================================= 724 passed in 924.47s (0:15:24) =========================================================
-
-
+20260513154326 create-release-2 1.80.10 openspec\changes\archive\20260513145124-document-dm-dw-scrolloff-and-layout-cache-hardening
 
