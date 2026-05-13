@@ -1997,7 +1997,7 @@
 20260513143110 Fixed this new crash in [main.lua](u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua:3800). Root cause: - We correctly detected invalid cached `entry` and set it to `nil`. - But rebuild logic was in `else`, so it never ran for the “cache exists but invalid” case. - Then code hit `table.insert(layout, entry)` with `entry=nil` and crashed (`attempt to index local 'entry'`). Patch: - Refactored flow to: 1. Try cache if valid. 2. `if not entry then` rebuild full entry. - This is now at [main.lua](u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua:3816). You can reload mpv/script now; this should stop the `line 3870`/`dw_build_layout` crash loop.
 20260513143307 Create tests.
 20260513143859 You are an archivist and openspec specialist, write documentation opsx-propose by conversation.log#L1991-1998 v1.80.8..055770ad1776ed0ae3dda2c32534fecdbede87d1
-
+20260513145124 Create documentation for these changes. Openspec Propose
 
 
 
