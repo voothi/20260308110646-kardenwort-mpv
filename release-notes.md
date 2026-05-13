@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-13
 **Version**: v1.80.8
-**Implementation ZIDs**: 20260512215725, 20260512223306, 20260513102658, 20260513121332, 20260513135931
+**Implementation ZIDs**: 20260512215725, 20260512223306, 20260513102658, 20260513121332, 20260513135931, 20260513145124
 
 ## Highlights
 
@@ -13,6 +13,11 @@
     - `%s`: Seconds (e.g., 2)
     - `%c`: Iteration count
     - `%x`: Conditional count display (only shows if count > 1)
+
+### 🛡️ **Stability & Layout Hardening**
+- **Viewport Scrolloff Control**: Introduced `kardenwort-drum_scrolloff` to allow users to reserve a scroll margin in the Drum Mode mini viewport.
+- **Zero-Margin Clamping**: Implemented robust non-negative margin guards for both `dw_scrolloff` and `drum_scrolloff`, preventing layout crashes in tiny viewports when margins are set to zero.
+- **Layout Cache Resilience**: Hardened `dw_build_layout` with shape-compatibility guards to handle partial or stale layout caches, eliminating `master_tick` crash signatures.
 
 ### 🥁 **VSCode-inspired Text Navigation**
 - **Ergonomic Keyboard Selection**: Implemented a comprehensive suite of text-editor inspired navigation for the Drum Window (Static Reading Mode).
@@ -34,7 +39,7 @@
 - **Instrumentation Expansion**: Enhanced `LlsProbe` to expose `karaoke_mode` and `search_mode` states, improving the reliability of external automation and diagnostic tooling.
 
 ### 🧪 **Milestone: 720+ Acceptance Tests**
-- **Massive Test Coverage**: The acceptance suite has grown to **722 tests**, providing exhaustive verification for every FSM transition, IPC hook, and rendering invariant.
+- **Massive Test Coverage**: The acceptance suite has grown to **726 tests**, providing exhaustive verification for every FSM transition, IPC hook, and rendering invariant.
 - **Cross-Platform Stability**: Verified the entire suite on Windows 11, ensuring the IPC bridge handles rapid state polling without pipe contention or deadlocks.
 
 ---
