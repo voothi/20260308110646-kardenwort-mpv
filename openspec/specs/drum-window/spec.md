@@ -27,6 +27,14 @@ The Drum Window SHALL ensure that any active text selection, word-highlight, or 
 - **THEN** the system SHALL immediately update the selection range to include the word now under the mouse cursor at its new viewport position.
 - **AND** the selection SHALL NOT be cleared or disrupted by the scroll event.
 
+#### Scenario: Scroll Does Not Reset Existing Selection State
+- **GIVEN** a yellow pointer or yellow range selection is active
+- **AND** optional pink pending-set selections exist
+- **WHEN** the user scrolls the viewport using mouse wheel or keyboard scroll (`Ctrl+UP`, `Ctrl+DOWN`)
+- **THEN** the system SHALL preserve the existing cursor (`DW_CURSOR_LINE`, `DW_CURSOR_WORD`) and anchor (`DW_ANCHOR_LINE`, `DW_ANCHOR_WORD`) state.
+- **AND** the pink pending set SHALL remain unchanged.
+- **AND** the scroll action SHALL only update viewport positioning, not clear or collapse selection state.
+
 ### Requirement: Drum Window Selection Priority
 The system SHALL prioritize the preservation of the active word pointer (Yellow Highlight) when opening the Drum Window and ensure the viewport alignment matches the cursor.
 

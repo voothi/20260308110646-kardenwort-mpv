@@ -43,6 +43,17 @@ Manual viewport scrolling SHALL preserve synchronized visual semantics across bo
 - **AND** semantic highlights SHALL remain tied to their original logical tokens
 - **AND** no highlight ownership transfer SHALL occur because of viewport movement.
 
+### Requirement: Scroll-State Isolation From Selection
+Manual viewport scrolling SHALL NOT mutate active selection structures.
+
+#### Scenario: Keyboard or wheel scroll with active selection
+- **GIVEN** Drum Mode or Drum Window is active
+- **AND** yellow pointer/range and/or pink pending-set selections are present
+- **WHEN** manual scrolling is triggered (wheel or `Ctrl+UP` / `Ctrl+DOWN`)
+- **THEN** selection anchor/cursor state SHALL remain intact
+- **AND** pending pink-set membership SHALL remain intact
+- **AND** only viewport center/follow state SHALL change.
+
 ### Requirement: Explicit Wheel Routing Policy
 Wheel behavior outside subtitle hit zones SHALL be explicitly defined and verified.
 
