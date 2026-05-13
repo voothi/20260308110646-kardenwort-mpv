@@ -15,5 +15,4 @@
 ## 3. Verification and Polish
 
 - [x] 3.1 Run the full search algorithm test suite and ensure all pass.
-- [x] 3.2 Perform a delta specification sync and archive the change.
-
+- [ ] 3.2 Perform a delta specification sync and archive the change.
