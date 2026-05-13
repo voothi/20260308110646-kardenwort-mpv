@@ -4898,6 +4898,19 @@ local function cmd_dw_esc()
 
     -- Stage 3: Clear Yellow Pointer & Full Reset
     if FSM.DW_CURSOR_WORD ~= -1 then
+        -- In DM/DW, Esc can be pressed between master ticks; refresh active line
+        -- from current time to avoid one-subtitle lag on follow restore.
+        local subs = Tracks.pri.subs
+        if subs and #subs > 0 then
+            local now = mp.get_property_number("time-pos")
+            if now then
+                local idx_now = get_center_index(subs, now)
+                if idx_now and idx_now ~= -1 then
+                    FSM.ACTIVE_IDX = idx_now
+                    FSM.DW_ACTIVE_LINE = idx_now
+                end
+            end
+        end
         dw_reset_selection()
         FSM.DW_RESUME_FOLLOW_ON_NEXT_SUB = true
         return
