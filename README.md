@@ -498,6 +498,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-drum_font_name` | `Consolas` | Monospace font family for aligned context rendering. |
 | `kardenwort-drum_font_bold` | `no` | Apply bold styling to all text in Drum Mode. |
 | `kardenwort-drum_context_lines` | `3` | Number of surrounding subtitle lines shown for context. |
+| `kardenwort-drum_scrolloff` | `0` | Reserved margin lines for DM mini viewport scrolling (`0` keeps no margin). |
 | `kardenwort-drum_context_color` | `CCCCCC` | Text color for context (non-active) lines (BGR Hex). |
 | `kardenwort-drum_context_bold` | `no` | Apply bold styling to context lines specifically. |
 | `kardenwort-drum_context_size_mul` | `1.0` | Scale factor for context line text size. |

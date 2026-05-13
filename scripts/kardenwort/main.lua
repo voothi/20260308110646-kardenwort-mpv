@@ -235,6 +235,7 @@ Options = {
     drum_block_gap_mul = -0.27,
     drum_gap_adj = 6,
     drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
+    drum_scrolloff = 0,           -- margin lines for Drum Mode mini viewport (0 = no reserved margin)
     drum_pri_highlight_color = "00CCFF", -- Gold (BGR: 00CCFF | RGB: #FFCC00)
     drum_sec_highlight_color = "00CCFF",
     drum_pri_ctrl_select_color = "FF88FF", -- Pink (BGR: FF88FF | RGB: #FF88FF)
@@ -6004,10 +6005,14 @@ end
 dw_ensure_visible = function(line_idx, paged)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
-    
-    local win_lines = Options.dw_lines_visible
+
+    local is_drum_mini = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
+    local win_lines = is_drum_mini and (Options.drum_context_lines * 2 + 1) or Options.dw_lines_visible
+    win_lines = math.max(1, math.floor(win_lines or 1))
     local half_win = math.floor(win_lines / 2)
-    local margin = math.min(Options.dw_scrolloff, math.floor(win_lines / 2) - 1)
+    local configured_scrolloff = is_drum_mini and Options.drum_scrolloff or Options.dw_scrolloff
+    local max_margin = math.max(0, math.floor(win_lines / 2) - 1)
+    local margin = math.max(0, math.min(math.floor(configured_scrolloff or 0), max_margin))
     
     -- Calculate current viewport bounds
     local view_min = FSM.DW_VIEW_CENTER - half_win
