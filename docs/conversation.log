@@ -2003,4 +2003,4 @@
 20260513150322 Openspec Archive Change 20260513102658-vscode-text-navigation-tests
 20260513154301 python -m pytest tests/ -vv ========================================================= 724 passed in 924.47s (0:15:24) =========================================================
 20260513154326 create-release-2 1.80.10 openspec\changes\archive\20260513145124-document-dm-dw-scrolloff-and-layout-cache-hardening
-
+20260513155650 Check and make sure that in modes (including drum, dm, dw) the selection (one word or several, several lines) is not reset to yellow or pink or others when scrolling with the mouse (wheel) or Ctrl+UP/DOWN. Now it is reset in the BW mods (including Book Mode ON OFF), DM and this is not convenient, the focus on the selected material is lost.

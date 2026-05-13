@@ -5815,7 +5815,6 @@ local function cmd_dw_scroll(dir)
     end
     FSM.DW_FOLLOW_PLAYER = false
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
-    FSM.DW_CURSOR_WORD = -1 -- [pointer-auto-reset-triggers]
     dw_sync_cursor_to_mouse()
 end
 

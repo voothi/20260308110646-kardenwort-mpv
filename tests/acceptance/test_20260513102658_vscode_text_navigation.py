@@ -237,3 +237,43 @@ def test_20260513102658_multiline_subtitle_navigation(mpv_fragment2):
     cursor, _ = _get_dw_state(ipc)
     assert cursor["line"] == 3
     assert cursor["word"] > 1
+
+
+@pytest.mark.acceptance
+def test_20260513155650_scroll_preserves_selection_and_pink_set(mpv_fragment2):
+    """Wheel/Ctrl-scroll must not collapse active selection or clear pink pending words."""
+    ipc = mpv_fragment2.ipc
+    ipc.command(["sub-add", "tests/fixtures/20260513104740-vscode-nav.srt", "select"])
+    time.sleep(0.5)
+    ipc.command(["script-message-to", "kardenwort", "drum-mode-set", "ON"])
+    time.sleep(0.5)
+
+    # Build a yellow range on line 1: words 1..3
+    _set_cursor(ipc, 1, 1)
+    _move_word(ipc, 1, shift=True)
+    _move_word(ipc, 1, shift=True)
+
+    # Add one pink pending word and remember baseline state.
+    ipc.command(["script-message-to", "kardenwort", "test-ctrl-toggle-word", "2", "1"])
+    time.sleep(0.15)
+    before = query_kardenwort_state(ipc)
+    before_cursor = before.get("dw_cursor", {})
+    before_anchor = before.get("dw_anchor", {})
+    before_pink = int(before.get("dw_selection_count") or 0)
+
+    # Simulate Ctrl+Down/Up behavior through DW scroll command path.
+    ipc.command(["script-message-to", "kardenwort", "test-dw-scroll", "1"])
+    time.sleep(0.1)
+    ipc.command(["script-message-to", "kardenwort", "test-dw-scroll", "-1"])
+    time.sleep(0.1)
+
+    after = query_kardenwort_state(ipc)
+    after_cursor = after.get("dw_cursor", {})
+    after_anchor = after.get("dw_anchor", {})
+    after_pink = int(after.get("dw_selection_count") or 0)
+
+    assert after_cursor.get("line") == before_cursor.get("line")
+    assert after_cursor.get("word") == before_cursor.get("word")
+    assert after_anchor.get("line") == before_anchor.get("line")
+    assert after_anchor.get("word") == before_anchor.get("word")
+    assert after_pink == before_pink
