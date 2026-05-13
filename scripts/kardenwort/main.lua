@@ -8589,6 +8589,11 @@ end)
 
 -- Test instrumentation for missed functional coverage (ZID: 20260512130623)
 mp.register_script_message("test-set-search-query", function(query)
+    -- Deterministic acceptance-test hook:
+    -- ensure primary subtitle memory is available even if Search UI was not toggled.
+    if Tracks.pri.path and (not Tracks.pri.subs or #Tracks.pri.subs == 0) then
+        Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+    end
     FSM.SEARCH_QUERY = query or ""
     FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
     FSM.SEARCH_ANCHOR = -1
