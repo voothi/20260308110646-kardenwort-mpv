@@ -112,6 +112,33 @@ class TestDrumWindowRegressions:
         # View center should sync to cursor line
         assert state['dw_view_center'] == 2
 
+    def test_20260514205615_esc_neutral_cycle_after_manual_scroll(self, mpv_fragment1):
+        """With no selection and follow OFF, Esc arms neutral first, then resumes follow on second press."""
+        ipc = mpv_fragment1.ipc
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
+        time.sleep(0.3)
+
+        # Manual scroll disables follow with no active pointer selection.
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', '1'])
+        time.sleep(0.15)
+        before = query_kardenwort_state(ipc)
+        assert before['dw_follow_player'] is False
+        assert before['dw_cursor']['word'] == -1
+
+        # First Esc: enter neutral state only.
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-esc'])
+        time.sleep(0.15)
+        mid = query_kardenwort_state(ipc)
+        assert mid['dw_follow_player'] is False
+        assert mid['dw_esc_neutral_armed'] is True
+
+        # Second Esc: explicit follow restore.
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-esc'])
+        time.sleep(0.15)
+        after = query_kardenwort_state(ipc)
+        assert after['dw_follow_player'] is True
+        assert after['dw_esc_neutral_armed'] is False
+
 class TestImmersionRegressions:
     """Tests for immersion engine behavior and spec compliance."""
 

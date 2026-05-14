@@ -415,6 +415,7 @@ Options = {
     dw_key_jump_select_right = "Ctrl+Shift+RIGHT",
     dw_key_scroll_up = "Ctrl+UP",
     dw_key_scroll_down = "Ctrl+DOWN",
+    dw_esc_auto_follow_restore = true, -- If true, clearing the last yellow pointer via Esc auto-enables follow.
     dw_key_jump_select_up = "Ctrl+Shift+UP",
     dw_key_jump_select_down = "Ctrl+Shift+DOWN",
     dw_key_select_left = "Shift+LEFT",
@@ -604,6 +605,9 @@ local FSM = {
     DW_SEEKING_MANUALLY = false,
     DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
+    DW_ESC_NEUTRAL_ARMED = false,    -- Neutral state entered after deselection/no-selection Esc in manual mode
+    DW_NEUTRAL_LINE = -1,            -- Last meaningful line before pointer clear
+    DW_NEUTRAL_WORD = -1,            -- Last meaningful word before pointer clear
 
     -- Repeat Timer
     SEEK_REPEAT_TIMER = nil,
@@ -834,8 +838,19 @@ local function sync_ctrl_pending_list()
     FSM.DW_CTRL_PENDING_LIST = members
 end
 
+local function dw_capture_neutral_marker()
+    if FSM.DW_CURSOR_LINE ~= -1 then
+        FSM.DW_NEUTRAL_LINE = FSM.DW_CURSOR_LINE
+    end
+    if FSM.DW_CURSOR_WORD ~= -1 then
+        FSM.DW_NEUTRAL_WORD = FSM.DW_CURSOR_WORD
+    end
+end
+
 
 local function dw_reset_selection()
+    dw_capture_neutral_marker()
+    FSM.DW_ESC_NEUTRAL_ARMED = true
     -- [v1.80.29] Synchronize active line to live playback to prevent stale jumps during reset
     local time_pos = mp.get_property_number("time-pos") or 0
     local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)
@@ -854,8 +869,10 @@ local function dw_reset_selection()
         FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
     end
 
-    -- After full selection clear, return to normal auto-follow behavior.
-    FSM.DW_FOLLOW_PLAYER = true
+    -- Optional auto-follow restore after full clear (can be disabled for explicit neutral Esc workflow).
+    if Options.dw_esc_auto_follow_restore then
+        FSM.DW_FOLLOW_PLAYER = true
+    end
     FSM.DW_SEEKING_MANUALLY = false
     FSM.DW_SEEK_TARGET = -1
 
@@ -4908,6 +4925,26 @@ local function cmd_dw_esc()
         dw_reset_selection()
         return
     end
+
+    -- Stage 4: Neutral no-selection Esc flow for manual mode.
+    -- 1st Esc arms neutral marker; 2nd Esc restores follow explicitly.
+    if FSM.DW_ESC_NEUTRAL_ARMED then
+        FSM.DW_FOLLOW_PLAYER = true
+        FSM.DW_ESC_NEUTRAL_ARMED = false
+        if FSM.DW_NEUTRAL_LINE ~= -1 and FSM.DW_CURSOR_LINE == -1 then
+            FSM.DW_CURSOR_LINE = FSM.DW_NEUTRAL_LINE
+        end
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
+        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        return
+    end
+    if not FSM.DW_FOLLOW_PLAYER then
+        dw_capture_neutral_marker()
+        FSM.DW_ESC_NEUTRAL_ARMED = true
+        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
+        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        return
+    end
 end
 
 
@@ -5235,6 +5272,8 @@ local function cmd_dw_double_click()
         end
 
         mp.commandv("seek", sub.start_time, "absolute+exact")
+        dw_capture_neutral_marker()
+        FSM.DW_ESC_NEUTRAL_ARMED = true
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
@@ -6552,6 +6591,8 @@ local function cmd_dw_seek_delta(dir)
         
         if FSM.DW_ANCHOR_LINE == -1 then
             if not FSM.BOOK_MODE then
+                dw_capture_neutral_marker()
+                FSM.DW_ESC_NEUTRAL_ARMED = true
                 FSM.DW_CURSOR_LINE = target_idx
                 FSM.DW_CURSOR_WORD = -1
                 FSM.DW_CURSOR_X = nil
@@ -8330,6 +8371,8 @@ function kardenwortProbe._snapshot()
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
         dw_view_center     = FSM.DW_VIEW_CENTER,
         dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
+        dw_esc_neutral_armed = FSM.DW_ESC_NEUTRAL_ARMED,
+        dw_neutral_cursor  = { line = FSM.DW_NEUTRAL_LINE, word = FSM.DW_NEUTRAL_WORD },
         dw_seeking_manually = FSM.DW_SEEKING_MANUALLY,
         immersion_mode     = FSM.IMMERSION_MODE,
         copy_mode          = FSM.COPY_MODE,
