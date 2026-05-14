@@ -867,6 +867,23 @@ local function dw_update_pointer_fsm()
     end
 end
 
+local function dw_try_rebase_pointer_to_active(state_active_idx, shift)
+    if shift then return false end
+    if FSM.BOOK_MODE or mp.get_property_bool("pause") then return false end
+    if not state_active_idx or state_active_idx == -1 then return false end
+    dw_update_pointer_fsm()
+    if FSM.DW_POINTER_FSM ~= "POINTER_ACTIVE_MANUAL" then return false end
+    if FSM.DW_CURSOR_LINE == state_active_idx then return false end
+    FSM.DW_CURSOR_LINE = state_active_idx
+    FSM.DW_CURSOR_WORD = -1
+    FSM.DW_CURSOR_X = nil
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+    dw_update_pointer_fsm()
+    return true
+end
+
 function parse_time(time_str)
     local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
     if h and m and s and ms then
@@ -6134,6 +6151,11 @@ local function cmd_dw_line_move(dir, shift, evt)
     dw_update_pointer_fsm()
     local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
 
+    if dw_try_rebase_pointer_to_active(state_active_idx, shift) then
+        line_idx = FSM.DW_CURSOR_LINE
+        entered_from_null = true
+    end
+
     -- FSM activation gate: from null-pointer state, consume only press/down event.
     -- Repeat events are ignored until pointer becomes active, preventing boundary double-steps.
     if entered_from_null and type(evt) == "table" and evt.event == "repeat" then
@@ -6229,6 +6251,11 @@ local function cmd_dw_word_move(dir, shift, evt)
     local line_idx = FSM.DW_CURSOR_LINE
     dw_update_pointer_fsm()
     local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
+
+    if dw_try_rebase_pointer_to_active(state_active_idx, shift) then
+        line_idx = FSM.DW_CURSOR_LINE
+        entered_from_null = true
+    end
 
     -- FSM activation gate: from null-pointer state, consume only press/down event.
     if entered_from_null and type(evt) == "table" and evt.event == "repeat" then

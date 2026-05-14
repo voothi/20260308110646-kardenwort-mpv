@@ -164,3 +164,16 @@ def test_pointer_activation_fsm_structural():
     assert "FSM.DW_POINTER_FSM = \"POINTER_ACTIVATING\"" in line_body
     assert "FSM.DW_POINTER_FSM = \"POINTER_ACTIVATING\"" in word_body
     assert "DW_NAV_ACTIVATION_GUARD_UNTIL" not in src
+
+
+def test_desynced_manual_pointer_rebases_to_active_structural():
+    """
+    If a manual pointer is active on a non-active line during live playback,
+    navigation should rebase to current active index before activation movement.
+    """
+    src = _src()
+    line_body = _fn_body(src, "cmd_dw_line_move")
+    word_body = _fn_body(src, "cmd_dw_word_move")
+    assert "local function dw_try_rebase_pointer_to_active(state_active_idx, shift)" in src
+    assert "if dw_try_rebase_pointer_to_active(state_active_idx, shift) then" in line_body
+    assert "if dw_try_rebase_pointer_to_active(state_active_idx, shift) then" in word_body

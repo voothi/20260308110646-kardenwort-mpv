@@ -53,6 +53,12 @@ First activation from null-pointer state MUST be immune to immediate keyboard au
 - **THEN** the system SHALL suppress that immediate repeat step
 - **AND** the resulting yellow pointer SHALL remain on the intended activation line for that single press.
 
+#### Scenario: Desynced manual pointer auto-rebase
+- **WHEN** pointer state is manual-active on a non-active line during live playback
+- **AND** user triggers navigation (`UP`/`DOWN`/`LEFT`/`RIGHT`) without Shift
+- **THEN** pointer source SHALL rebase to current active subtitle index first
+- **AND** the same navigation intent SHALL continue from that rebased state without requiring extra `Esc`.
+
 ### Requirement: Pointer Activation FSM
 Pointer activation semantics MUST be modeled as explicit FSM states, not timing windows.
 
