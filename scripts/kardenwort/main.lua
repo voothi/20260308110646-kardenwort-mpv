@@ -6772,6 +6772,11 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         if active and k.key and is_valid_mpv_key(k.key) then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
+                    -- For repeatable complex navigation bindings, ignore key-up events
+                    -- so a single physical press does not trigger an extra move on release.
+                    if k.repeatable and t and t.event == "up" then
+                        return
+                    end
                     if t and t.event == "down" then
 
                     end
