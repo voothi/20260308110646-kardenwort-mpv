@@ -210,3 +210,14 @@ def test_null_up_activation_is_line_locked_structural():
     body = _fn_body(_src(), "cmd_dw_line_move")
     assert "local scan_end_line = entered_from_null and start_scan_line" in body
     assert "if entered_from_null and FSM.DW_CURSOR_WORD == -1 then" in body
+
+
+def test_null_up_activation_uses_current_middle_structural():
+    """
+    First null-pointer UP during listening must enter from middle of current subtitle.
+    """
+    src = _src()
+    body = _fn_body(src, "cmd_dw_line_move")
+    assert "local function dw_pick_middle_word_idx(sub)" in src
+    assert "if entered_from_null and dir < 0 and not intent_ctx.paused" in body
+    assert "local middle_w = dw_pick_middle_word_idx(subs[line_idx])" in body

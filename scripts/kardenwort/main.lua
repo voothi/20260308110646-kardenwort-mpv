@@ -6191,6 +6191,21 @@ local function dw_try_rebase_pointer_to_active(intent_ctx, shift)
     return true
 end
 
+local function dw_pick_middle_word_idx(sub)
+    local entry = ensure_sub_layout(sub)
+    if not entry or not entry.vlines or #entry.vlines == 0 then
+        return -1
+    end
+
+    local middle_vl_idx = math.floor((#entry.vlines + 1) / 2)
+    local w = dw_closest_word_at_x(sub, 960, true, middle_vl_idx)
+    if w ~= -1 then
+        return w
+    end
+
+    return dw_closest_word_at_x(sub, 960, true, nil)
+end
+
 
 local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
@@ -6226,6 +6241,24 @@ local function cmd_dw_line_move(dir, shift, evt)
        and intent_ctx.active_line and intent_ctx.active_line ~= -1 then
         line_idx = intent_ctx.active_line
         FSM.DW_CURSOR_LINE = line_idx
+    end
+
+    -- Critical listening behavior:
+    -- first null-pointer UP must activate from the middle of the CURRENT subtitle only.
+    if entered_from_null and dir < 0 and not intent_ctx.paused and line_idx >= 1 and line_idx <= #subs then
+        local middle_w = dw_pick_middle_word_idx(subs[line_idx])
+        if middle_w ~= -1 then
+            FSM.DW_CURSOR_LINE = line_idx
+            FSM.DW_CURSOR_WORD = middle_w
+            FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[line_idx]) or 960
+            FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+            if not shift then
+                FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD = -1, -1
+            end
+            dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+            dw_update_pointer_fsm()
+            return
+        end
     end
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
