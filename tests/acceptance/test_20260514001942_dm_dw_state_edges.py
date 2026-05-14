@@ -28,13 +28,16 @@ def _fn_body(src: str, fn_name: str) -> str:
 
 def test_esc_stage3_live_anchor_structural():
     """
-    Stage 3 Esc path must resolve active line from live playback time before reset.
-    This guards the stale pre-boundary regression.
+    Stage 3 Esc path must trigger full reset (which now resolves active line from live playback).
+    This guards the stale pre-boundary regression across all reset paths.
     """
-    body = _fn_body(_src(), "cmd_dw_esc")
-    assert "local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)" in body
-    assert "FSM.DW_ACTIVE_LINE = live_active_idx" in body
-    assert "FSM.DW_FOLLOW_PLAYER = true" in body
+    body_esc = _fn_body(_src(), "cmd_dw_esc")
+    assert "dw_reset_selection()" in body_esc
+
+    body_reset = _fn_body(_src(), "dw_reset_selection")
+    assert "local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)" in body_reset
+    assert "FSM.DW_ACTIVE_LINE = live_active_idx" in body_reset
+    assert "FSM.DW_FOLLOW_PLAYER = true" in body_reset
 
 
 def test_esc_stage3_resets_pointer_to_current_active_line_runtime(mpv):
