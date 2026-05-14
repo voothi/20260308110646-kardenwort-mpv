@@ -6009,56 +6009,36 @@ end
 -- Uses the same monospace/proportional width model as dw_hit_test.
 -- Returns nil if the word cannot be located.
 local function dw_compute_word_center_x(sub)
-    -- Returns the OSD x-center of the currently active cursor word (FSM.DW_CURSOR_WORD).
     if not sub or FSM.DW_CURSOR_WORD == -1 then return nil end
-    local tokens = get_sub_tokens(sub)
+    local entry = ensure_sub_layout(sub)
+    if not entry then return nil end
+    
+    local v_idx = entry.logical_to_visual[FSM.DW_CURSOR_WORD]
+    if not v_idx then return nil end
+
+    local vl_idx, _ = dw_get_word_visual_line(sub, FSM.DW_CURSOR_WORD)
+    local vl_indices = entry.vlines[vl_idx]
+    if not vl_indices then return nil end
+
     local space_w = dw_get_str_width(" ")
-    local max_text_w = 1860
-
-    -- Replicate dw_build_layout word-wrap to find which vline contains our word.
-    local vlines = {}
-    local cur_indices = {}
-    local cur_w = 0
-    for j, w in ipairs(tokens) do
-        local ww = dw_get_str_width(w)
-        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
-        if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-            table.insert(vlines, cur_indices)
-            cur_indices = {j}
-            cur_w = ww
-        else
-            table.insert(cur_indices, j)
-            cur_w = cur_w + space + ww
-        end
+    local vl_width = 0
+    for k, wi in ipairs(vl_indices) do
+        vl_width = vl_width + dw_get_str_width(entry.words[wi])
+        if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
     end
-    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-    if #vlines == 0 then vlines = {{1}} end
-
-    -- Build visual->logical map.
-    local visual_to_logical = {}
-    for j, t in ipairs(tokens) do
-        if t.logical_idx then visual_to_logical[j] = t.logical_idx end
-    end
-
-    -- Scan vlines for the token whose logical_idx matches DW_CURSOR_WORD.
-    for _, vl_indices in ipairs(vlines) do
-        local vl_width = 0
-        for k, wi in ipairs(vl_indices) do
-            vl_width = vl_width + dw_get_str_width(tokens[wi])
-            if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+    
+    local vl_left = 960 - vl_width / 2
+    local pos = 0
+    for k, wi in ipairs(vl_indices) do
+        local ww = dw_get_str_width(entry.words[wi])
+        if wi == v_idx then
+            return vl_left + pos + ww / 2
         end
-        local vl_left = 960 - vl_width / 2
-        local pos = 0
-        for k, wi in ipairs(vl_indices) do
-            local ww = dw_get_str_width(tokens[wi])
-            if logical_cmp(visual_to_logical[wi], FSM.DW_CURSOR_WORD) then
-                return vl_left + pos + ww / 2
-            end
-            pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
-        end
+        pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
     end
     return nil
 end
+
 
 
 
@@ -6131,13 +6111,15 @@ local function dw_resolve_nav_intent_context(subs, snapshot)
         book_mode = FSM.BOOK_MODE,
     }
 
-    -- Deterministic live index resolution from snapshot time
+    local pad_s = (Options.audio_padding_start or 0) / 1000
+
+    -- Deterministic live index resolution from snapshot time (with padding awareness)
     if snapshot.time > 0 and subs and #subs > 0 then
         local low, high = 1, #subs
         local best = -1
         while low <= high do
             local mid = math.floor((low + high) / 2)
-            if subs[mid].start_time <= snapshot.time then
+            if (subs[mid].start_time - pad_s) <= snapshot.time then
                 best = mid
                 low = mid + 1
             else
@@ -6145,28 +6127,38 @@ local function dw_resolve_nav_intent_context(subs, snapshot)
             end
         end
         
+        -- Check 'best' boundaries
         if best ~= -1 then
             local s, e = get_effective_boundaries(subs, subs[best], best)
             if snapshot.time >= (s - Options.nav_tolerance) and snapshot.time <= (e + Options.nav_tolerance) then
                 ctx.active_line = best
             end
         end
+
+        -- Lookahead: check if next sub is already in its padding range
+        -- This eliminates "lag" when the player hasn't fired the official event yet.
+        local next_idx = (best ~= -1) and (best + 1) or 1
+        if next_idx <= #subs then
+            local ns, ne = get_effective_boundaries(subs, subs[next_idx], next_idx)
+            if snapshot.time >= (ns - Options.nav_tolerance) and snapshot.time <= (ne + Options.nav_tolerance) then
+                ctx.active_line = next_idx
+            end
+        end
     end
 
-    if (not ctx.active_line or ctx.active_line == -1) then
+    -- Fallback to internal state if resolution failed (e.g. deep in a gap)
+    if ctx.active_line == -1 then
         ctx.active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
     end
 
-    if (not ctx.active_line or ctx.active_line == -1) and ctx.cursor_line and ctx.cursor_line ~= -1 then
+    -- Final fallback to cursor context
+    if ctx.active_line == -1 and ctx.cursor_line and ctx.cursor_line ~= -1 then
         ctx.active_line = ctx.cursor_line
-    end
-
-    if ctx.active_line and ctx.active_line ~= -1 then
-        FSM.DW_ACTIVE_LINE = ctx.active_line
     end
 
     return ctx
 end
+
 
 
 local function cmd_dw_line_move(dir, shift, evt)
