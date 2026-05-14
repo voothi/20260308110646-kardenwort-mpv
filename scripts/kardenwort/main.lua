@@ -416,7 +416,6 @@ Options = {
     dw_key_scroll_up = "Ctrl+UP",
     dw_key_scroll_down = "Ctrl+DOWN",
     dw_esc_policy = "neutral", -- "auto_follow" | "neutral"
-    dw_esc_auto_follow_restore = true, -- Legacy alias: true=>"auto_follow", false=>"neutral" (used only if dw_esc_policy invalid)
     dw_neutral_cursor_source = "last_selection", -- "last_selection" | "current_subtitle" (applies only when dw_esc_policy="neutral")
     dw_key_jump_select_up = "Ctrl+Shift+UP",
     dw_key_jump_select_down = "Ctrl+Shift+DOWN",
@@ -852,9 +851,7 @@ end
 local function dw_is_neutral_policy_enabled()
     local p = tostring(Options.dw_esc_policy or ""):lower()
     if p == "auto_follow" then return false end
-    if p == "neutral" then return true end
-    -- Backward compatibility with legacy boolean setting.
-    return not Options.dw_esc_auto_follow_restore
+    return true
 end
 
 local function dw_resolve_neutral_cursor_line()
