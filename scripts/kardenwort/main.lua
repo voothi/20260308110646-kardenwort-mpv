@@ -6146,14 +6146,15 @@ local function dw_resolve_nav_intent_context(subs, snapshot)
         end
     end
 
-    -- Fallback to internal state if resolution failed (e.g. deep in a gap)
-    if ctx.active_line == -1 then
-        ctx.active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
-    end
-
-    -- Final fallback to cursor context
+    -- Fallback priority: standing cursor context before active playback line.
+    -- This preserves manual null-pointer context when snapshot time cannot resolve.
     if ctx.active_line == -1 and ctx.cursor_line and ctx.cursor_line ~= -1 then
         ctx.active_line = ctx.cursor_line
+    end
+
+    -- Final fallback to internal active state (e.g. startup/no standing cursor).
+    if ctx.active_line == -1 then
+        ctx.active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
     end
 
     return ctx

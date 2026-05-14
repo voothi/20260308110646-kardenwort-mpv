@@ -123,3 +123,28 @@ def test_dm_secondary_viewport_not_locked_to_center_in_follow_structural():
     """
     body = _fn_body(_src(), "tick_drum")
     assert "if FSM.DW_FOLLOW_PLAYER then\n            view_center = active_idx" not in body
+
+
+def test_nav_context_fallback_prefers_cursor_over_active_structural():
+    """
+    Null-selection deterministic source priority must remain:
+    snapshot -> standing cursor line -> active playback line.
+    """
+    body = _fn_body(_src(), "dw_resolve_nav_intent_context")
+    cursor_pos = body.find("if ctx.active_line == -1 and ctx.cursor_line and ctx.cursor_line ~= -1 then")
+    active_pos = body.find("ctx.active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX")
+    assert cursor_pos != -1
+    assert active_pos != -1
+    assert cursor_pos < active_pos
+
+
+def test_null_pointer_first_activation_ignores_repeat_structural():
+    """
+    First activation from null pointer must suppress repeat events to avoid double-jump.
+    """
+    line_body = _fn_body(_src(), "cmd_dw_line_move")
+    word_body = _fn_body(_src(), "cmd_dw_word_move")
+    assert "if FSM.DW_CURSOR_WORD == -1 then" in line_body
+    assert "if snapshot.is_repeat then return end" in line_body
+    assert "if FSM.DW_CURSOR_WORD == -1 then" in word_body
+    assert "if snapshot.is_repeat then return end" in word_body

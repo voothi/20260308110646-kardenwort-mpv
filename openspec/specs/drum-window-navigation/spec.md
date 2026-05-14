@@ -120,6 +120,12 @@ The system SHALL ensure that navigation is available immediately upon script ini
 - **AND** the `EVENT_SNAPSHOT` resolution SHALL be padding-aware and prioritize the upcoming subtitle during audio lead-ins.
 - **AND** this source resolution SHALL be identical in Drum Window (W) and Drum Mode (C).
 
+#### Scenario: Null-Selection First-Press Repeat Suppression
+- **WHEN** `DW_CURSOR_WORD = -1` and a first navigation activation (`UP`/`DOWN`/`LEFT`/`RIGHT`) is being resolved
+- **AND** the input event is a key-repeat event (not an initial key-down)
+- **THEN** the system SHALL ignore that repeat event for activation
+- **AND** only the initial non-repeat event SHALL establish the first activated cursor target.
+
 
 ### Requirement: Architectural Integrity
 - **Unified Engine**: ALL rendering and navigation components MUST utilize the unified `ensure_sub_layout` engine to ensure visual line boundaries are calculated consistently across all modes.
