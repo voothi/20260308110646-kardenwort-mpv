@@ -416,6 +416,7 @@ Options = {
     dw_key_scroll_up = "Ctrl+UP",
     dw_key_scroll_down = "Ctrl+DOWN",
     dw_esc_auto_follow_restore = true, -- If true, clearing the last yellow pointer via Esc auto-enables follow.
+    dw_neutral_cursor_source = "last_selection", -- "last_selection" | "current_subtitle"
     dw_key_jump_select_up = "Ctrl+Shift+UP",
     dw_key_jump_select_down = "Ctrl+Shift+DOWN",
     dw_key_select_left = "Shift+LEFT",
@@ -845,6 +846,23 @@ local function dw_capture_neutral_marker()
     if FSM.DW_CURSOR_WORD ~= -1 then
         FSM.DW_NEUTRAL_WORD = FSM.DW_CURSOR_WORD
     end
+end
+
+local function dw_resolve_neutral_cursor_line()
+    if Options.dw_neutral_cursor_source == "current_subtitle" then
+        if FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
+            return FSM.DW_ACTIVE_LINE
+        end
+        local time_pos = mp.get_property_number("time-pos") or 0
+        local live_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if live_idx and live_idx ~= -1 then
+            return live_idx
+        end
+    end
+    if FSM.DW_NEUTRAL_LINE and FSM.DW_NEUTRAL_LINE ~= -1 then
+        return FSM.DW_NEUTRAL_LINE
+    end
+    return FSM.DW_CURSOR_LINE
 end
 
 
@@ -4931,8 +4949,11 @@ local function cmd_dw_esc()
     if FSM.DW_ESC_NEUTRAL_ARMED then
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_ESC_NEUTRAL_ARMED = false
-        if FSM.DW_NEUTRAL_LINE ~= -1 and FSM.DW_CURSOR_LINE == -1 then
-            FSM.DW_CURSOR_LINE = FSM.DW_NEUTRAL_LINE
+        if FSM.DW_CURSOR_LINE == -1 then
+            local neutral_line = dw_resolve_neutral_cursor_line()
+            if neutral_line and neutral_line ~= -1 then
+                FSM.DW_CURSOR_LINE = neutral_line
+            end
         end
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
         elseif FSM.DRUM == "ON" then drum_osd:update() end
@@ -4940,6 +4961,10 @@ local function cmd_dw_esc()
     end
     if not FSM.DW_FOLLOW_PLAYER then
         dw_capture_neutral_marker()
+        local neutral_line = dw_resolve_neutral_cursor_line()
+        if neutral_line and neutral_line ~= -1 then
+            FSM.DW_CURSOR_LINE = neutral_line
+        end
         FSM.DW_ESC_NEUTRAL_ARMED = true
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
         elseif FSM.DRUM == "ON" then drum_osd:update() end
