@@ -866,13 +866,17 @@ local function dw_resolve_neutral_cursor_line()
 end
 
 local function dw_resolve_null_activation_line(ctx, dir, subs)
-    if Options.dw_neutral_cursor_source == "last_selection" then
-        if FSM.DW_NEUTRAL_LINE and FSM.DW_NEUTRAL_LINE ~= -1 then
-            return FSM.DW_NEUTRAL_LINE
-        end
-    elseif Options.dw_neutral_cursor_source == "current_subtitle" then
-        if ctx and ctx.active_line and ctx.active_line ~= -1 then
-            return ctx.active_line
+    -- Neutral-source policy applies ONLY while neutral mode is armed.
+    -- Outside neutral mode, keep legacy free-mode activation behavior.
+    if FSM.DW_ESC_NEUTRAL_ARMED then
+        if Options.dw_neutral_cursor_source == "last_selection" then
+            if FSM.DW_NEUTRAL_LINE and FSM.DW_NEUTRAL_LINE ~= -1 then
+                return FSM.DW_NEUTRAL_LINE
+            end
+        elseif Options.dw_neutral_cursor_source == "current_subtitle" then
+            if ctx and ctx.active_line and ctx.active_line ~= -1 then
+                return ctx.active_line
+            end
         end
     end
 
