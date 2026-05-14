@@ -1,5 +1,34 @@
+from pathlib import Path
 import pytest
 from tests.ipc.mpv_session import MpvSession
+
+_PRIMARY_EXPORT_FIXTURE = Path(
+    "tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.tsv"
+)
+
+
+@pytest.fixture(autouse=True)
+def restore_primary_export_fixture(request):
+    """Keep the primary TSV fixture git-clean across acceptance tests."""
+    mpv_fixtures = {
+        "mpv",
+        "mpv_dual",
+        "mpv_fragment1",
+        "mpv_movie_startup",
+        "mpv_ass",
+        "mpv_fragment2",
+        "mpv_merge_test",
+    }
+    needs_restore = any(name in request.fixturenames for name in mpv_fixtures)
+    if not needs_restore or not _PRIMARY_EXPORT_FIXTURE.exists():
+        yield
+        return
+
+    original = _PRIMARY_EXPORT_FIXTURE.read_bytes()
+    try:
+        yield
+    finally:
+        _PRIMARY_EXPORT_FIXTURE.write_bytes(original)
 
 
 @pytest.fixture
