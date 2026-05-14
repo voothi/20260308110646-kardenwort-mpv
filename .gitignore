@@ -45,10 +45,3 @@ pytest_out.log
 # --- User Settings (Optional) ---
 # anki-mapping.ini is versioned, but users can untrack it if needed.
 # !anki-mapping.ini
-diff_704ff906.patch
-diff_spec.patch
-diff_tests.patch
-diff_to_6fc8fc08.txt
-temp_diff.patch
-temp_main_6fc8fc08.lua
-temp_main_18018.lua
