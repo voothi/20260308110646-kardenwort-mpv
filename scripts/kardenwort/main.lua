@@ -836,6 +836,13 @@ end
 
 
 local function dw_reset_selection()
+    -- [v1.80.29] Synchronize active line to live playback to prevent stale jumps during reset
+    local time_pos = mp.get_property_number("time-pos") or 0
+    local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)
+    if live_active_idx and live_active_idx ~= -1 then
+        FSM.DW_ACTIVE_LINE = live_active_idx
+    end
+
     FSM.DW_CTRL_PENDING_SET = {}
     FSM.DW_CTRL_PENDING_LIST = {}
     FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
@@ -846,6 +853,12 @@ local function dw_reset_selection()
     if FSM.DW_ACTIVE_LINE ~= -1 then
         FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
     end
+
+    -- After full selection clear, return to normal auto-follow behavior.
+    FSM.DW_FOLLOW_PLAYER = true
+    FSM.DW_SEEKING_MANUALLY = false
+    FSM.DW_SEEK_TARGET = -1
+
     if FSM.DRUM_WINDOW ~= "OFF" then 
         if dw_osd then dw_osd:update() end
     elseif FSM.DRUM == "ON" then 
@@ -4892,18 +4905,7 @@ local function cmd_dw_esc()
 
     -- Stage 3: Clear Yellow Pointer & Full Reset
     if FSM.DW_CURSOR_WORD ~= -1 then
-        -- Re-anchor from live playback time to avoid latching a stale pre-boundary line
-        -- when Esc lands between render ticks.
-        local time_pos = mp.get_property_number("time-pos") or 0
-        local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)
-        if live_active_idx and live_active_idx ~= -1 then
-            FSM.DW_ACTIVE_LINE = live_active_idx
-        end
         dw_reset_selection()
-        -- After full selection clear via Esc, return to normal auto-follow behavior.
-        FSM.DW_FOLLOW_PLAYER = true
-        FSM.DW_SEEKING_MANUALLY = false
-        FSM.DW_SEEK_TARGET = -1
         return
     end
 end
@@ -8328,6 +8330,7 @@ function kardenwortProbe._snapshot()
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
         dw_view_center     = FSM.DW_VIEW_CENTER,
         dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
+        dw_seeking_manually = FSM.DW_SEEKING_MANUALLY,
         immersion_mode     = FSM.IMMERSION_MODE,
         copy_mode          = FSM.COPY_MODE,
         loop_mode          = FSM.LOOP_MODE,
