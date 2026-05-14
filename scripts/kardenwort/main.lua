@@ -865,6 +865,26 @@ local function dw_resolve_neutral_cursor_line()
     return FSM.DW_CURSOR_LINE
 end
 
+local function dw_resolve_null_activation_line(ctx, dir, subs)
+    if Options.dw_neutral_cursor_source == "last_selection" then
+        if FSM.DW_NEUTRAL_LINE and FSM.DW_NEUTRAL_LINE ~= -1 then
+            return FSM.DW_NEUTRAL_LINE
+        end
+    elseif Options.dw_neutral_cursor_source == "current_subtitle" then
+        if ctx and ctx.active_line and ctx.active_line ~= -1 then
+            return ctx.active_line
+        end
+    end
+
+    if ctx and ctx.active_line and ctx.active_line ~= -1 then
+        return ctx.active_line
+    end
+    if FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1 then
+        return FSM.DW_CURSOR_LINE
+    end
+    return (dir > 0 and 1 or #subs)
+end
+
 
 local function dw_reset_selection()
     dw_capture_neutral_marker()
@@ -6242,8 +6262,7 @@ local function cmd_dw_line_move(dir, shift, evt)
         -- Snap repeat during null activation to prevent immediate double-jump
         if snapshot.is_repeat then return end
 
-        local line_idx = ctx.active_line
-        if line_idx == -1 then line_idx = (dir > 0 and 1 or #subs) end
+        local line_idx = dw_resolve_null_activation_line(ctx, dir, subs)
         
         FSM.DW_CURSOR_LINE = line_idx
 
@@ -6320,8 +6339,7 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
     if FSM.DW_CURSOR_WORD == -1 then
         if snapshot.is_repeat then return end
 
-        local line_idx = ctx.active_line
-        if line_idx == -1 then line_idx = (dir > 0 and 1 or #subs) end
+        local line_idx = dw_resolve_null_activation_line(ctx, dir, subs)
         
         FSM.DW_CURSOR_LINE = line_idx
         local raw_sub = subs[line_idx]
