@@ -563,6 +563,7 @@ local FSM = {
     DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
+    DW_NAV_ACTIVATION_GUARD_UNTIL = nil, -- Suppress immediate key-repeat after null-pointer activation
     DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
@@ -6093,9 +6094,14 @@ dw_ensure_visible = function(line_idx, paged)
 end
 
 
-local function cmd_dw_line_move(dir, shift)
+local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+
+    if type(evt) == "table" and evt.event == "repeat" and FSM.DW_NAV_ACTIVATION_GUARD_UNTIL
+       and mp.get_time() <= FSM.DW_NAV_ACTIVATION_GUARD_UNTIL then
+        return
+    end
 
     local time_pos = mp.get_property_number("time-pos") or 0
     local live_active_idx = get_center_index(subs, time_pos)
@@ -6112,6 +6118,7 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
+    local entered_from_null = (FSM.DW_CURSOR_WORD == -1)
 
     -- Activation guard: when pointer is hidden during live playback, re-anchor from
     -- current time before applying UP/DOWN to avoid stale pre-boundary line grabs.
@@ -6180,12 +6187,21 @@ local function cmd_dw_line_move(dir, shift)
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+
+    if entered_from_null and FSM.DW_CURSOR_WORD ~= -1 then
+        FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12
+    end
 end
 
-local function cmd_dw_word_move(dir, shift)
+local function cmd_dw_word_move(dir, shift, evt)
     Diagnostic.info(string.format("cmd_dw_word_move(dir=%s, shift=%s) current_line=%s current_word=%s active_line=%s", tostring(dir), tostring(shift), tostring(FSM.DW_CURSOR_LINE), tostring(FSM.DW_CURSOR_WORD), tostring(FSM.DW_ACTIVE_LINE)))
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+
+    if type(evt) == "table" and evt.event == "repeat" and FSM.DW_NAV_ACTIVATION_GUARD_UNTIL
+       and mp.get_time() <= FSM.DW_NAV_ACTIVATION_GUARD_UNTIL then
+        return
+    end
 
     local time_pos = mp.get_property_number("time-pos") or 0
     local live_active_idx = get_center_index(subs, time_pos)
@@ -6196,6 +6212,7 @@ local function cmd_dw_word_move(dir, shift)
     FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
+    local entered_from_null = (FSM.DW_CURSOR_WORD == -1)
 
     -- Activation guard parity with UP/DOWN: when pointer is hidden during live playback,
     -- re-anchor from current time before entering the line with LEFT/RIGHT.
@@ -6232,6 +6249,9 @@ local function cmd_dw_word_move(dir, shift)
         FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, line_idx + (dir > 0 and 1 or -1)))
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
+        if entered_from_null and FSM.DW_CURSOR_WORD ~= -1 then
+            FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12
+        end
         return
     end
 
@@ -6311,6 +6331,10 @@ local function cmd_dw_word_move(dir, shift)
     if not shift then
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
+    end
+
+    if entered_from_null and FSM.DW_CURSOR_WORD ~= -1 then
+        FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12
     end
 end
 
@@ -6653,19 +6677,19 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     
     -- 1. Definitive Keyboard Navigation Group
     local kb_keys = {
-        {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end, "LEFT")},
-        {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
-        {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
-        {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
+        {key = "LEFT", name = "dw-word-left", fn = nav(function(t) cmd_dw_word_move(-1, false, t) end, "LEFT"), complex = true, repeatable = true},
+        {key = "RIGHT", name = "dw-word-right", fn = nav(function(t) cmd_dw_word_move(1, false, t) end, "RIGHT"), complex = true, repeatable = true},
+        {key = "UP", name = "dw-line-up", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "UP"), complex = true, repeatable = true},
+        {key = "DOWN", name = "dw-line-down", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "DOWN"), complex = true, repeatable = true},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_wheel_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_wheel_scroll(1) end},
         {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
         end, Options.dw_key_pair_mod), complex = true},
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function() cmd_dw_word_move(-1, false) end, "ЛЕВЫЙ")},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function() cmd_dw_word_move(1, false) end, "ПРАВЫЙ")},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function() cmd_dw_line_move(-1, false) end, "ВВЕРХ")},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function() cmd_dw_line_move(1, false) end, "ВНИЗ")},
+        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function(t) cmd_dw_word_move(-1, false, t) end, "ЛЕВЫЙ"), complex = true, repeatable = true},
+        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function(t) cmd_dw_word_move(1, false, t) end, "ПРАВЫЙ"), complex = true, repeatable = true},
+        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "ВВЕРХ"), complex = true, repeatable = true},
+        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "ВНИЗ"), complex = true, repeatable = true},
     }
 
     for _, k in ipairs(kb_keys) do 
@@ -6755,7 +6779,9 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 end
 
                 if k.complex then
-                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
+                    local opts = {complex = true}
+                    if k.repeatable then opts.repeatable = true end
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, opts)
                 else
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 

@@ -145,3 +145,18 @@ def test_live_activation_reanchors_before_left_right_structural():
     assert "local live_active_idx = get_center_index(subs, time_pos)" in body
     assert "FSM.DW_ACTIVE_LINE = live_active_idx" in body
     assert "if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE" in body
+
+
+def test_arrow_activation_repeat_guard_structural():
+    """
+    After null-pointer activation, immediate key-repeat must be guarded so a single
+    physical press does not perform a second unintended movement.
+    """
+    src = _src()
+    line_body = _fn_body(src, "cmd_dw_line_move")
+    word_body = _fn_body(src, "cmd_dw_word_move")
+    assert "DW_NAV_ACTIVATION_GUARD_UNTIL" in src
+    assert "if type(evt) == \"table\" and evt.event == \"repeat\" and FSM.DW_NAV_ACTIVATION_GUARD_UNTIL" in line_body
+    assert "if type(evt) == \"table\" and evt.event == \"repeat\" and FSM.DW_NAV_ACTIVATION_GUARD_UNTIL" in word_body
+    assert "FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12" in line_body
+    assert "FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12" in word_body

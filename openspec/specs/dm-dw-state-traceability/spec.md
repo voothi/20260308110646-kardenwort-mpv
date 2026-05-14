@@ -44,6 +44,15 @@ After pointer clear, first activation MUST resolve from current runtime context,
 - **AND** `UP`/`DOWN` SHALL use directional visual-line entry semantics
 - **AND** `LEFT`/`RIGHT` SHALL use line-edge token entry semantics.
 
+### Requirement: Null-Pointer Activation Repeat Resilience
+First activation from null-pointer state MUST be immune to immediate keyboard auto-repeat bleed.
+
+#### Scenario: Single physical press near subtitle boundary
+- **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`) and user presses `UP`/`DOWN`/`LEFT`/`RIGHT`
+- **AND** keyboard repeat emits an immediate follow-up repeat event
+- **THEN** the system SHALL suppress that immediate repeat step
+- **AND** the resulting yellow pointer SHALL remain on the intended activation line for that single press.
+
 ### Requirement: Seek/Scroll Null-Source Synchronization
 Manual `a`/`d` seek and explicit viewport scroll MUST keep null-pointer source state synchronized.
 
