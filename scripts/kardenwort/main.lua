@@ -563,6 +563,7 @@ local FSM = {
     DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
+    DW_POINTER_FSM = "POINTER_NULL_FOLLOW", -- POINTER_NULL_FOLLOW | POINTER_ACTIVE_MANUAL | POINTER_RANGE_ACTIVE
     DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
@@ -6092,20 +6093,106 @@ dw_ensure_visible = function(line_idx, paged)
     end
 end
 
+local function dw_update_pointer_fsm()
+    local has_range = FSM.DW_ANCHOR_LINE ~= -1 and FSM.DW_ANCHOR_WORD ~= -1
+        and FSM.DW_CURSOR_LINE ~= -1 and FSM.DW_CURSOR_WORD ~= -1
+        and not (FSM.DW_ANCHOR_LINE == FSM.DW_CURSOR_LINE and logical_cmp(FSM.DW_ANCHOR_WORD, FSM.DW_CURSOR_WORD))
+    if has_range then
+        FSM.DW_POINTER_FSM = "POINTER_RANGE_ACTIVE"
+    elseif FSM.DW_CURSOR_WORD == -1 then
+        FSM.DW_POINTER_FSM = "POINTER_NULL_FOLLOW"
+    else
+        FSM.DW_POINTER_FSM = "POINTER_ACTIVE_MANUAL"
+    end
+end
 
-local function cmd_dw_line_move(dir, shift)
+local function dw_resolve_nav_intent_context(subs)
+    local ctx = {
+        active_line = -1,
+        cursor_line = FSM.DW_CURSOR_LINE,
+        pointer_fsm = FSM.DW_POINTER_FSM,
+        paused = mp.get_property_bool("pause"),
+        book_mode = FSM.BOOK_MODE,
+    }
+
+    if FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
+        ctx.active_line = FSM.DW_ACTIVE_LINE
+    elseif FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 then
+        ctx.active_line = FSM.ACTIVE_IDX
+    else
+        local time_pos = mp.get_property_number("time-pos")
+        if time_pos and subs and #subs > 0 then
+            local live_idx = get_center_index(subs, time_pos)
+            if live_idx and live_idx ~= -1 then
+                ctx.active_line = live_idx
+            end
+        end
+    end
+
+    if (not ctx.active_line or ctx.active_line == -1) and ctx.cursor_line and ctx.cursor_line ~= -1 then
+        ctx.active_line = ctx.cursor_line
+    end
+
+    if ctx.active_line and ctx.active_line ~= -1 then
+        FSM.DW_ACTIVE_LINE = ctx.active_line
+    end
+
+    return ctx
+end
+
+local function dw_try_rebase_pointer_to_active(intent_ctx, shift)
+    if shift then return false end
+    if intent_ctx.book_mode or intent_ctx.paused then return false end
+    if not intent_ctx.active_line or intent_ctx.active_line == -1 then return false end
+    dw_update_pointer_fsm()
+    if FSM.DW_POINTER_FSM ~= "POINTER_ACTIVE_MANUAL" then return false end
+    if FSM.DW_CURSOR_LINE == intent_ctx.active_line then return false end
+    FSM.DW_CURSOR_LINE = intent_ctx.active_line
+    FSM.DW_CURSOR_WORD = -1
+    FSM.DW_CURSOR_X = nil
+    FSM.DW_ANCHOR_LINE = -1
+    FSM.DW_ANCHOR_WORD = -1
+    FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+    dw_update_pointer_fsm()
+    return true
+end
+
+
+local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+
+    if type(evt) == "table" and evt.event == "up" then
+        return
+    end
     
     FSM.DW_FOLLOW_PLAYER = false
+    dw_update_pointer_fsm()
+    local intent_ctx = dw_resolve_nav_intent_context(subs)
     
     -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
     if FSM.DW_CURSOR_LINE == -1 then
-        FSM.DW_CURSOR_LINE = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
+        FSM.DW_CURSOR_LINE = (intent_ctx.active_line ~= -1) and intent_ctx.active_line or (dir > 0 and 1 or #subs)
 
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
+    local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
+
+    if dw_try_rebase_pointer_to_active(intent_ctx, shift) then
+        line_idx = FSM.DW_CURSOR_LINE
+        entered_from_null = true
+    end
+
+    if entered_from_null and type(evt) == "table" and evt.event == "repeat" then
+        return
+    end
+
+    if entered_from_null and not intent_ctx.book_mode and not intent_ctx.paused
+       and intent_ctx.active_line and intent_ctx.active_line ~= -1 then
+        line_idx = intent_ctx.active_line
+        FSM.DW_CURSOR_LINE = line_idx
+    end
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
@@ -6166,21 +6253,44 @@ local function cmd_dw_line_move(dir, shift)
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+    dw_update_pointer_fsm()
 end
 
-local function cmd_dw_word_move(dir, shift)
+local function cmd_dw_word_move(dir, shift, evt)
     Diagnostic.info(string.format("cmd_dw_word_move(dir=%s, shift=%s) current_line=%s current_word=%s active_line=%s", tostring(dir), tostring(shift), tostring(FSM.DW_CURSOR_LINE), tostring(FSM.DW_CURSOR_WORD), tostring(FSM.DW_ACTIVE_LINE)))
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+
+    if type(evt) == "table" and evt.event == "up" then
+        return
+    end
     
     FSM.DW_FOLLOW_PLAYER = false
+    dw_update_pointer_fsm()
+    local intent_ctx = dw_resolve_nav_intent_context(subs)
     
     local line_idx = FSM.DW_CURSOR_LINE
+    local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
+
+    if dw_try_rebase_pointer_to_active(intent_ctx, shift) then
+        line_idx = FSM.DW_CURSOR_LINE
+        entered_from_null = true
+    end
+
+    if entered_from_null and type(evt) == "table" and evt.event == "repeat" then
+        return
+    end
+
+    if entered_from_null and not intent_ctx.book_mode and not intent_ctx.paused
+       and intent_ctx.active_line and intent_ctx.active_line ~= -1 then
+        line_idx = intent_ctx.active_line
+        FSM.DW_CURSOR_LINE = line_idx
+    end
     
     -- Recovery: If no cursor line is set (e.g. at startup or no active sub), 
     -- try to snap to the active line or the first/last sub.
     if line_idx == -1 then
-        line_idx = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
+        line_idx = (intent_ctx.active_line ~= -1) and intent_ctx.active_line or (dir > 0 and 1 or #subs)
         FSM.DW_CURSOR_LINE = line_idx
     end
 
@@ -6204,6 +6314,7 @@ local function cmd_dw_word_move(dir, shift)
         FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, line_idx + (dir > 0 and 1 or -1)))
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
+        dw_update_pointer_fsm()
         return
     end
 
@@ -6284,6 +6395,7 @@ local function cmd_dw_word_move(dir, shift)
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     end
+    dw_update_pointer_fsm()
 end
 
 
@@ -6625,19 +6737,19 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     
     -- 1. Definitive Keyboard Navigation Group
     local kb_keys = {
-        {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end, "LEFT")},
-        {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
-        {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
-        {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
+        {key = "LEFT", name = "dw-word-left", fn = nav(function(t) cmd_dw_word_move(-1, false, t) end, "LEFT"), complex = true, repeatable = true},
+        {key = "RIGHT", name = "dw-word-right", fn = nav(function(t) cmd_dw_word_move(1, false, t) end, "RIGHT"), complex = true, repeatable = true},
+        {key = "UP", name = "dw-line-up", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "UP"), complex = true, repeatable = true},
+        {key = "DOWN", name = "dw-line-down", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "DOWN"), complex = true, repeatable = true},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_wheel_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_wheel_scroll(1) end},
         {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
         end, Options.dw_key_pair_mod), complex = true},
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function() cmd_dw_word_move(-1, false) end, "ЛЕВЫЙ")},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function() cmd_dw_word_move(1, false) end, "ПРАВЫЙ")},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function() cmd_dw_line_move(-1, false) end, "ВВЕРХ")},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function() cmd_dw_line_move(1, false) end, "ВНИЗ")},
+        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function(t) cmd_dw_word_move(-1, false, t) end, "ЛЕВЫЙ"), complex = true, repeatable = true},
+        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function(t) cmd_dw_word_move(1, false, t) end, "ПРАВЫЙ"), complex = true, repeatable = true},
+        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "ВВЕРХ"), complex = true, repeatable = true},
+        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "ВНИЗ"), complex = true, repeatable = true},
     }
 
     for _, k in ipairs(kb_keys) do 
@@ -6720,6 +6832,9 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         if active and k.key and is_valid_mpv_key(k.key) then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
+                    if k.repeatable and t and t.event == "up" then
+                        return
+                    end
                     if t and t.event == "down" then
 
                     end
@@ -6727,7 +6842,9 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 end
 
                 if k.complex then
-                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
+                    local opts = {complex = true}
+                    if k.repeatable then opts.repeatable = true end
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, opts)
                 else
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
@@ -8340,6 +8457,11 @@ mp.register_script_message("test-dw-word-move", function(dir, shift)
     cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true")
 end)
 
+mp.register_script_message("test-dw-word-move-event", function(dir, shift, event_name, key_name)
+    local ev = { event = event_name or "press", key = key_name or "" }
+    cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true", ev)
+end)
+
 mp.register_script_message("test-ctrl-toggle-word", function(line_str, word_str)
     local line, word = tonumber(line_str), tonumber(word_str)
     if line and word then ctrl_toggle_word(line, word, false) end
@@ -8356,6 +8478,13 @@ end)
 mp.register_script_message("test-dw-line-move", function(dir_str, shift)
     local dir = tonumber(dir_str)
     if dir then cmd_dw_line_move(dir, shift == "yes" or shift == "true") end
+end)
+
+mp.register_script_message("test-dw-line-move-event", function(dir_str, shift, event_name, key_name)
+    local dir = tonumber(dir_str)
+    if not dir then return end
+    local ev = { event = event_name or "press", key = key_name or "" }
+    cmd_dw_line_move(dir, shift == "yes" or shift == "true", ev)
 end)
 
 mp.register_script_message("test-dw-scroll", function(dir_str)

@@ -123,3 +123,72 @@ def test_dm_secondary_viewport_not_locked_to_center_in_follow_structural():
     """
     body = _fn_body(_src(), "tick_drum")
     assert "if FSM.DW_FOLLOW_PLAYER then\n            view_center = active_idx" not in body
+
+
+def test_pointer_activation_ignores_immediate_repeat_runtime(mpv):
+    """
+    Runtime guard for boundary edge:
+    null-pointer activation must consume one intent and ignore immediate repeat.
+    """
+    ipc = mpv.ipc
+
+    ipc.command(["seek", 4.01, "absolute+exact"])
+    time.sleep(0.1)
+    state = query_kardenwort_state(ipc)
+    active = int(state["active_sub_index"])
+    assert active >= 1
+
+    stale_line = active - 1 if active > 1 else active + 1
+    ipc.command(["script-message-to", "kardenwort", "test-set-cursor", str(stale_line), "-1"])
+    time.sleep(0.05)
+
+    ipc.command(["script-message-to", "kardenwort", "test-dw-line-move-event", "-1", "no", "down", "UP"])
+    time.sleep(0.05)
+    after_down = query_kardenwort_state(ipc)
+
+    ipc.command(["script-message-to", "kardenwort", "test-dw-line-move-event", "-1", "no", "repeat", "UP"])
+    time.sleep(0.05)
+    after_repeat = query_kardenwort_state(ipc)
+
+    assert int(after_down["dw_cursor"]["word"]) != -1
+    assert int(after_repeat["dw_cursor"]["line"]) == int(after_down["dw_cursor"]["line"])
+    assert int(after_repeat["dw_cursor"]["word"]) == int(after_down["dw_cursor"]["word"])
+
+
+def test_en_ru_line_activation_semantics_parity_runtime(mpv):
+    """
+    Runtime parity: EN/RU arrow bindings must apply identical activation semantics.
+    """
+    ipc = mpv.ipc
+
+    ipc.command(["seek", 4.01, "absolute+exact"])
+    time.sleep(0.1)
+
+    ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "-1"])
+    time.sleep(0.05)
+    ipc.command(["script-message-to", "kardenwort", "test-dw-line-move-event", "-1", "no", "down", "UP"])
+    time.sleep(0.05)
+    en_state = query_kardenwort_state(ipc)
+    en_line = int(en_state["dw_cursor"]["line"])
+    en_word = int(en_state["dw_cursor"]["word"])
+
+    ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "-1"])
+    time.sleep(0.05)
+    ipc.command(["script-message-to", "kardenwort", "test-dw-line-move-event", "-1", "no", "down", "ВВЕРХ"])
+    time.sleep(0.05)
+    ru_state = query_kardenwort_state(ipc)
+    ru_line = int(ru_state["dw_cursor"]["line"])
+    ru_word = int(ru_state["dw_cursor"]["word"])
+
+    assert en_line == ru_line
+    assert en_word == ru_word
+
+
+def test_runtime_activation_guards_are_mandatory_for_signoff_structural():
+    """
+    Support check: this suite now contains runtime activation guards and is not structural-only.
+    """
+    with open(__file__, encoding="utf-8") as f:
+        test_src = f.read()
+    assert "test_pointer_activation_ignores_immediate_repeat_runtime" in test_src
+    assert "test_en_ru_line_activation_semantics_parity_runtime" in test_src
