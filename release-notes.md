@@ -1,3 +1,31 @@
+# Release Notes - v1.80.30 (Esc Matrix & Neutral Mode Hardening)
+
+**Date**: 2026-05-14
+**Version**: v1.80.30
+**Implementation ZIDs**: 20260514210426, 20260514211945, 20260514212102, 20260514212859, 20260514213352, 20260514215435, 20260514215844, 20260514220703, 20260514221001, 20260514221900, 20260514222123, 20260514222214, 20260514231336
+
+## Highlights
+
+### 🛡️ **Hardened Esc Logic & Staged Reset Matrix**
+- **Unified Selection Reset**: Refactored `dw_reset_selection()` to serve as the authoritative state-reset engine. It now ensures 100% synchronization of visual selections (Yellow/Pink) with logical follow-mode states across all triggers (Esc, Anki Export, and Context Commits).
+- **Esc Staged Reset Matrix**: Implemented the `dw_esc_mode` configuration, providing three deterministic behaviors for the Escape key:
+    - `auto_follow_current`: Instantly restores player-follow and re-centers the viewport on the live subtitle.
+    - `neutral_last_selection`: Arms a "Neutral" state that freezes the viewport at the last worked line, allowing for context analysis without follow-mode interference.
+    - `neutral_current_subtitle`: Arms a "Neutral" state centered on the current live subtitle, but decoupled from playback advancement.
+- **Follow-Restoration Auto-Maintenance**: Resolved a critical state-machine desync where the Drum Window would remain frozen in manual mode after an Anki export. The system now automatically restores `DW_FOLLOW_PLAYER` and clears seeking flags upon successful mining.
+
+### 🥁 **Neutral Mode & Navigation Hardening**
+- **Neutral State Tracking**: Introduced `DW_ESC_NEUTRAL_ARMED` and `DW_NEUTRAL_CURSOR` sentinels. This allows users to establish a stable "base camp" line in the reading window before deciding to resume playback-follow.
+- **Null-Activation Priority**: Overhauled the line and word activation logic for cursor-less states. The engine now deterministically resolves the target line based on mode priority: `Neutral Marker -> Standing Cursor -> Active Line`.
+- **Race Condition Immunity**: Hardened the FSM against "state leakage" where policy settings (Neutral vs. Auto-Follow) could interfere with subsequent navigation events.
+
+### 🧪 **Milestone: 741 Acceptance Tests**
+- **Esc Matrix Verification**: Added exhaustive coverage for the three-mode Esc matrix (`test_20260501160807_dw_esc_staged_reset.py`).
+- **Follow-Reset Integrity**: Validated auto-follow restoration after Anki mining and stage-3 Esc resets (`test_20260514165416_reset_follow.py`).
+- **Automatic Fixture Cleanup**: Integrated a `pytest` teardown fixture in `conftest.py` that automatically snapshots and restores TSV test fixtures, eliminating manual git resets after test runs.
+
+---
+
 # Release Notes - v1.80.28 (Hardened Drum Navigation & Zero-Lag Activation)
 
 **Date**: 2026-05-14

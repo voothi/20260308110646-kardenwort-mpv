@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.80.28-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.28) 
+[![Version](https://img.shields.io/badge/version-v1.80.30-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.30) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -189,8 +189,10 @@ This suite solves problems that standard video players and generic scripts ignor
 46. **Dual-Track Viewport Mirroring**: Upper subtitles now strictly follow the lower track's viewport offset in Drum Mode, ensuring visual parity across both lanes in both Book Mode ON and OFF.
 47. **Intelligent "Esc" Follow Restoration**: Refined state machine that automatically resumes player-following from the next subtitle transition after clearing selections, removing the need for manual navigation nudges.
 48. **Hardened Drum Navigation Engine**: Eliminates boundary lag and "state-snapping" during high-speed playback via deterministic **Event Snapshots**, ensuring the yellow pointer always lands on the intended visual context.
-49. **Scroll-Aware Selection Continuity**: Manual viewport scrolling now strictly preserves active text selection and pending mining sets, preventing focus loss during study.
-
+49. **Configurable "Esc" Reset Matrix**: Implements a three-mode Escape key behavior (`auto_follow_current`, `neutral_last_selection`, `neutral_current_subtitle`) for precise control over viewport re-centering and playback follow.
+50. **Mining Follow-Restoration**: Automatically restores auto-maintenance and re-synchronizes the live playback line after successful Anki mining (MMB/Add), preventing manual mode drift.
+51. **Neutral Mode Sentinel**: Introduced a specialized "Neutral" navigation state that allows for viewport exploration and context analysis while decoupled from playback-follow.
+52. **Automated Test Fixture Recovery**: Integrated a seamless `pytest` teardown bridge that automatically restores TSV database fixtures after test runs, ensuring a clean repository state for developers.
 
 [Return to Top](#table-of-contents)
 
@@ -768,7 +770,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2145 Commits (v1.80.28)
+- **Current Maturity**: ~2145 Commits (v1.80.30)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
