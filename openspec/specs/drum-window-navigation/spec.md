@@ -130,6 +130,12 @@ The system SHALL ensure that navigation is available immediately upon script ini
 3. otherwise active playback line.
 - **AND** the next `UP`/`DOWN` or `LEFT`/`RIGHT` activation SHALL use that synchronized line instead of a stale pre-seek/pre-scroll line.
 
+#### Scenario: First Null UP/DOWN Activation Is Line-Locked
+- **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`)
+- **AND** the first activation is `UP` or `DOWN`
+- **THEN** activation SHALL be line-locked to the resolved current logical line for that first step
+- **AND** it SHALL NOT fall through to adjacent subtitle lines if a targeted visual-row probe on that line fails.
+
 #### Scenario: Startup Snap
 - **WHEN** the application starts AND the user performs a navigation action before playback has reached a subtitle.
 - **THEN** the system SHALL automatically snap the cursor to the nearest boundary (start or end of track) to prevent navigation deadlocks.

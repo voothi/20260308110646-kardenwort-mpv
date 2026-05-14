@@ -192,3 +192,21 @@ def test_runtime_activation_guards_are_mandatory_for_signoff_structural():
         test_src = f.read()
     assert "test_pointer_activation_ignores_immediate_repeat_runtime" in test_src
     assert "test_en_ru_line_activation_semantics_parity_runtime" in test_src
+
+
+def test_intent_context_uses_unstuck_live_index_structural():
+    """
+    Activation context must use a dedicated non-sticky live index resolver.
+    """
+    body = _fn_body(_src(), "dw_resolve_nav_intent_context")
+    assert "dw_get_live_playback_index_for_activation(subs)" in body
+    assert "if follow_was_on and FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then" in body
+
+
+def test_null_up_activation_is_line_locked_structural():
+    """
+    First null-pointer UP/DOWN activation must not scan neighboring subtitles.
+    """
+    body = _fn_body(_src(), "cmd_dw_line_move")
+    assert "local scan_end_line = entered_from_null and start_scan_line" in body
+    assert "if entered_from_null and FSM.DW_CURSOR_WORD == -1 then" in body

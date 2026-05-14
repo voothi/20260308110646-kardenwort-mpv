@@ -6106,7 +6106,41 @@ local function dw_update_pointer_fsm()
     end
 end
 
-local function dw_resolve_nav_intent_context(subs)
+local function dw_get_live_playback_index_for_activation(subs)
+    if not subs or #subs == 0 then return -1 end
+    local time_pos = mp.get_property_number("time-pos")
+    if not time_pos then return -1 end
+
+    local low, high = 1, #subs
+    local best = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            best = mid
+            low = mid + 1
+        else
+            high = mid - 1
+        end
+    end
+
+    if best == -1 then return 1 end
+
+    if best < #subs then
+        local s_next, _ = get_effective_boundaries(subs, subs[best + 1], best + 1)
+        if s_next and time_pos >= s_next - Options.nav_tolerance then
+            return best + 1
+        end
+    end
+
+    local s, e = get_effective_boundaries(subs, subs[best], best)
+    if s and e and time_pos >= (s - Options.nav_tolerance) and time_pos <= (e + Options.nav_tolerance) then
+        return best
+    end
+
+    return best
+end
+
+local function dw_resolve_nav_intent_context(subs, follow_was_on)
     local ctx = {
         active_line = -1,
         cursor_line = FSM.DW_CURSOR_LINE,
@@ -6115,15 +6149,16 @@ local function dw_resolve_nav_intent_context(subs)
         book_mode = FSM.BOOK_MODE,
     }
 
-    -- Live-first active resolution removes 1-tick stale cache lag on subtitle boundaries.
-    -- Cached indices remain fallback for paused/edge cases.
-    if not ctx.paused and subs and #subs > 0 then
-        local time_pos = mp.get_property_number("time-pos")
-        if time_pos then
-            local live_idx = get_center_index(subs, time_pos)
-            if live_idx and live_idx ~= -1 then
-                ctx.active_line = live_idx
-            end
+    -- If follow was active at input time, prefer the currently displayed synced line first.
+    if follow_was_on and FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
+        ctx.active_line = FSM.DW_ACTIVE_LINE
+    end
+
+    -- Resolve live activation index without sticky ACTIVE_IDX sentinel bias.
+    if (not ctx.active_line or ctx.active_line == -1) and not ctx.paused and subs and #subs > 0 then
+        local live_idx = dw_get_live_playback_index_for_activation(subs)
+        if live_idx and live_idx ~= -1 then
+            ctx.active_line = live_idx
         end
     end
 
@@ -6169,10 +6204,11 @@ local function cmd_dw_line_move(dir, shift, evt)
     if type(evt) == "table" and evt.event == "up" then
         return
     end
-    
-    FSM.DW_FOLLOW_PLAYER = false
+
+    local follow_was_on = FSM.DW_FOLLOW_PLAYER
     dw_update_pointer_fsm()
-    local intent_ctx = dw_resolve_nav_intent_context(subs)
+    local intent_ctx = dw_resolve_nav_intent_context(subs, follow_was_on)
+    FSM.DW_FOLLOW_PLAYER = false
     
     -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
     if FSM.DW_CURSOR_LINE == -1 then
@@ -6231,7 +6267,8 @@ local function cmd_dw_line_move(dir, shift, evt)
         start_scan_line = start_scan_line + dir
     end
 
-    for l = start_scan_line, (dir > 0 and #subs or 1), dir do
+    local scan_end_line = entered_from_null and start_scan_line or (dir > 0 and #subs or 1)
+    for l = start_scan_line, scan_end_line, dir do
         local target_vl = nil
         -- Entering a NEW subtitle OR re-activating after Esc: land on appropriate edge
         if l ~= line_idx or FSM.DW_CURSOR_WORD == -1 then
@@ -6248,6 +6285,17 @@ local function cmd_dw_line_move(dir, shift, evt)
         if w ~= -1 then
             FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
             break
+        end
+    end
+
+    -- Null-pointer activation must not drift to adjacent subtitles if targeted vline had no word.
+    if entered_from_null and FSM.DW_CURSOR_WORD == -1 then
+        local fallback_w = dw_closest_word_at_x(subs[line_idx], FSM.DW_CURSOR_X, true, nil)
+        if fallback_w ~= -1 then
+            FSM.DW_CURSOR_LINE = line_idx
+            FSM.DW_CURSOR_WORD = fallback_w
+        else
+            FSM.DW_CURSOR_LINE = line_idx
         end
     end
 
@@ -6268,10 +6316,11 @@ local function cmd_dw_word_move(dir, shift, evt)
     if type(evt) == "table" and evt.event == "up" then
         return
     end
-    
-    FSM.DW_FOLLOW_PLAYER = false
+
+    local follow_was_on = FSM.DW_FOLLOW_PLAYER
     dw_update_pointer_fsm()
-    local intent_ctx = dw_resolve_nav_intent_context(subs)
+    local intent_ctx = dw_resolve_nav_intent_context(subs, follow_was_on)
+    FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
     local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
@@ -6315,6 +6364,13 @@ local function cmd_dw_word_move(dir, shift, evt)
     end
     
     if #logical_tokens == 0 then
+        if entered_from_null then
+            FSM.DW_CURSOR_LINE = line_idx
+            FSM.DW_CURSOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
+            dw_update_pointer_fsm()
+            return
+        end
         FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, line_idx + (dir > 0 and 1 or -1)))
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
@@ -8659,8 +8715,8 @@ mp.register_script_message("test-dw-key", function(key)
     
     if base == "DOWN" then cmd_dw_line_move(1, shift)
     elseif base == "UP" then cmd_dw_line_move(-1, shift)
-    elseif base == "LEFT" then cmd_dw_word_move(-1, shift, ctrl)
-    elseif base == "RIGHT" then cmd_dw_word_move(1, shift, ctrl)
+    elseif base == "LEFT" then cmd_dw_word_move(-1, shift, {event = "down", key = key, ctrl = ctrl})
+    elseif base == "RIGHT" then cmd_dw_word_move(1, shift, {event = "down", key = key, ctrl = ctrl})
     elseif key == "e" then 
         FSM.DW_TOOLTIP_FORCE = not FSM.DW_TOOLTIP_FORCE
         if FSM.DW_TOOLTIP_FORCE then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end

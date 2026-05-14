@@ -99,6 +99,7 @@ The traceability spec SHALL provide executable validation intent for non-regress
 4. Book Mode enable in DM without forced DW switch and with paged follow parity,
 5. upper/lower lane viewport synchronization in DM with Book Mode OFF and ON,
 6. repeat checks with Book Mode OFF and ON.
+7. first null-pointer `UP`/`DOWN` activation near boundaries remains locked to current resolved line (no previous-line fallback).
 
 ### Requirement: Pointer Intent Traceability
 DM/DW traceability SHALL include explicit pointer-intent lifecycle checkpoints for boundary-accurate activation.
