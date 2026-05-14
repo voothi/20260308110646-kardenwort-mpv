@@ -6115,18 +6115,22 @@ local function dw_resolve_nav_intent_context(subs)
         book_mode = FSM.BOOK_MODE,
     }
 
-    if FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
-        ctx.active_line = FSM.DW_ACTIVE_LINE
-    elseif FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 then
-        ctx.active_line = FSM.ACTIVE_IDX
-    else
+    -- Live-first active resolution removes 1-tick stale cache lag on subtitle boundaries.
+    -- Cached indices remain fallback for paused/edge cases.
+    if not ctx.paused and subs and #subs > 0 then
         local time_pos = mp.get_property_number("time-pos")
-        if time_pos and subs and #subs > 0 then
+        if time_pos then
             local live_idx = get_center_index(subs, time_pos)
             if live_idx and live_idx ~= -1 then
                 ctx.active_line = live_idx
             end
         end
+    end
+
+    if (not ctx.active_line or ctx.active_line == -1) and FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
+        ctx.active_line = FSM.DW_ACTIVE_LINE
+    elseif (not ctx.active_line or ctx.active_line == -1) and FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 then
+        ctx.active_line = FSM.ACTIVE_IDX
     end
 
     if (not ctx.active_line or ctx.active_line == -1) and ctx.cursor_line and ctx.cursor_line ~= -1 then
