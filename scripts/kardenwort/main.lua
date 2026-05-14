@@ -6328,6 +6328,7 @@ local function cmd_dw_line_move(dir, shift, evt)
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[line_idx]) or 960
         FSM.DW_POINTER_FSM = "POINTER_ACTIVE_MANUAL"
         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+        FSM.DW_ESC_NEUTRAL_ARMED = false
         dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
         return
     end
@@ -6411,6 +6412,7 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[line_idx])
         FSM.DW_POINTER_FSM = "POINTER_ACTIVE_MANUAL"
         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+        FSM.DW_ESC_NEUTRAL_ARMED = false
         dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
         return
     end

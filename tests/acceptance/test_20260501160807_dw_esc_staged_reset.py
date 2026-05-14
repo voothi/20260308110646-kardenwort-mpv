@@ -139,6 +139,83 @@ class TestDrumWindowRegressions:
         assert after['dw_follow_player'] is True
         assert after['dw_esc_neutral_armed'] is False
 
+    def test_20260514221401_auto_follow_mode_restores_follow_in_one_esc(self):
+        """auto_follow_current mode: Esc in manual no-selection restores follow immediately."""
+        session = MpvSession(
+            video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
+            subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
+            extra_args=['--pause', '--script-opts=kardenwort-dw_esc_mode=auto_follow_current'],
+        )
+        session.start()
+        try:
+            ipc = session.ipc
+            ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
+            time.sleep(0.3)
+            ipc.command(['script-message-to', 'kardenwort', 'test-dw-scroll', '1'])
+            time.sleep(0.15)
+            before = query_kardenwort_state(ipc)
+            assert before['dw_follow_player'] is False
+
+            ipc.command(['script-message-to', 'kardenwort', 'test-dw-esc'])
+            time.sleep(0.15)
+            after = query_kardenwort_state(ipc)
+            assert after['dw_follow_player'] is True
+            assert after['dw_esc_neutral_armed'] is False
+        finally:
+            session.stop()
+
+    def test_20260514221420_neutral_last_selection_uses_last_selected_line_for_null_activation(self, mpv):
+        """neutral_last_selection: activation after Esc reset must resume from last selected line."""
+        ipc = mpv.ipc
+        ipc.command(['set_property', 'script-opts', 'kardenwort-dw_esc_mode=neutral_last_selection'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
+        time.sleep(0.3)
+
+        # Set pointer at line 2, then Stage 3 reset to null while preserving neutral marker.
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '2', '0'])
+        time.sleep(0.15)
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-esc'])
+        time.sleep(0.15)
+        reset_state = query_kardenwort_state(ipc)
+        assert reset_state['dw_cursor']['word'] == -1
+        assert reset_state['dw_esc_neutral_armed'] is True
+
+        # First null activation should resume from line 2 (not active subtitle line).
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'false', 'false'])
+        time.sleep(0.15)
+        activated = query_kardenwort_state(ipc)
+        assert activated['dw_cursor']['line'] == 2
+        assert activated['dw_cursor']['word'] != -1
+        assert activated['dw_esc_neutral_armed'] is False
+
+    def test_20260514221436_neutral_current_subtitle_uses_active_line_for_null_activation(self, mpv):
+        """neutral_current_subtitle: activation after Esc reset must resume from active subtitle line."""
+        ipc = mpv.ipc
+        ipc.command(['set_property', 'script-opts', 'kardenwort-dw_esc_mode=neutral_current_subtitle'])
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
+        time.sleep(0.3)
+
+        # Active subtitle around 4.5s is line 2 in this fixture.
+        ipc.command(['seek', 4.5, 'absolute+exact'])
+        time.sleep(0.35)
+
+        # Move pointer away from active line then clear pointer with Esc Stage 3.
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '1', '0'])
+        time.sleep(0.15)
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-esc'])
+        time.sleep(0.15)
+        reset_state = query_kardenwort_state(ipc)
+        assert reset_state['dw_cursor']['word'] == -1
+        assert reset_state['dw_esc_neutral_armed'] is True
+
+        # First null activation should use current active subtitle line (=2), not last pointer line (=1).
+        ipc.command(['script-message-to', 'kardenwort', 'test-dw-word-move', '1', 'false', 'false'])
+        time.sleep(0.15)
+        activated = query_kardenwort_state(ipc)
+        assert activated['dw_cursor']['line'] == 2
+        assert activated['dw_cursor']['word'] != -1
+        assert activated['dw_esc_neutral_armed'] is False
+
 class TestImmersionRegressions:
     """Tests for immersion engine behavior and spec compliance."""
 

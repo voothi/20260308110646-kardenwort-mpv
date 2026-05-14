@@ -120,6 +120,14 @@ The system SHALL ensure that navigation is available immediately upon script ini
 - **AND** the `EVENT_SNAPSHOT` resolution SHALL be padding-aware and prioritize the upcoming subtitle during audio lead-ins.
 - **AND** this source resolution SHALL be identical in Drum Window (W) and Drum Mode (C).
 
+#### Scenario: Null-Selection Entry Source During Esc-Neutral Arm
+- **GIVEN** `DW_CURSOR_WORD = -1` and Esc-neutral mode is armed after staged reset
+- **WHEN** `dw_esc_mode=neutral_last_selection` and the first navigation action occurs
+- **THEN** the activation line SHALL resolve from the last meaningful selected line captured before pointer clear.
+- **WHEN** `dw_esc_mode=neutral_current_subtitle` and the first navigation action occurs
+- **THEN** the activation line SHALL resolve from the current active subtitle line resolved from the event snapshot.
+- **AND** after that first activation, Esc-neutral arm SHALL be cleared to prevent stale policy carryover.
+
 #### Scenario: Null-Selection First-Press Repeat Suppression
 - **WHEN** `DW_CURSOR_WORD = -1` and a first navigation activation (`UP`/`DOWN`/`LEFT`/`RIGHT`) is being resolved
 - **AND** the input event is a key-repeat event (not an initial key-down)

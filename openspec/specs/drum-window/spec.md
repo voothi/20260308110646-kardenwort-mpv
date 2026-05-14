@@ -174,10 +174,12 @@ The `Esc` key MUST follow a strict staged hierarchy for clearing state:
 1. Stage 1: Clear Pending Set (Pink).
 2. Stage 2: Clear Range Selection (Yellow).
 3. Stage 3: Full Pointer Reset & Cursor Synchronization.
+4. Stage 4 (policy-dependent, no selection): neutral arm or immediate follow restore.
 
 #### Scenario: Stage 3 Restores Follow Leading
 - **WHEN** Stage 3 is reached (final yellow pointer clear)
-- **THEN** the system SHALL restore normal follow-leading mode (`DW_FOLLOW_PLAYER = true`)
+- **THEN** in `dw_esc_mode=auto_follow_current`, the system SHALL restore normal follow-leading mode (`DW_FOLLOW_PLAYER = true`)
+- **AND** in `dw_esc_mode=neutral_last_selection` or `dw_esc_mode=neutral_current_subtitle`, the system SHALL keep manual mode and arm a neutral state for explicit follow restore on a later `Esc`
 - **AND** any manual seek transit markers used for repeated `a`/`d` stepping SHALL be cleared
 - **AND** this restore SHALL apply in both Drum Window (W) and Drum Mode (C).
 
@@ -186,6 +188,15 @@ The `Esc` key MUST follow a strict staged hierarchy for clearing state:
 - **AND** `Esc` is pressed near a subtitle boundary
 - **THEN** cursor synchronization SHALL resolve the active subtitle from live playback time at the moment of `Esc` (not from a stale cached line)
 - **AND** the next white subtitle transition SHALL continue from this updated anchor rather than a stale pre-boundary line.
+
+#### Scenario: Neutral Follow Restore Requires Explicit Second Esc
+- **GIVEN** `dw_esc_mode` is `neutral_last_selection` or `neutral_current_subtitle`
+- **AND** no pink/range/pointer selection is active
+- **AND** manual mode is active (`DW_FOLLOW_PLAYER = false`)
+- **WHEN** the user presses `Esc` once
+- **THEN** the system SHALL arm neutral state and SHALL NOT restore follow-leading yet
+- **WHEN** the user presses `Esc` a second time
+- **THEN** the system SHALL restore follow-leading and disarm neutral state.
 
 ### Requirement: Post-Export Selection Reset
 The system MUST automatically perform a full selection reset (equivalent to Stage 3 of the Esc handler) immediately after a successful Anki export operation.
