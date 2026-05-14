@@ -563,6 +563,7 @@ local FSM = {
     DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
+    DW_POINTER_FSM = "POINTER_NULL_FOLLOW", -- POINTER_NULL_FOLLOW | POINTER_ACTIVE_MANUAL | POINTER_RANGE_ACTIVE
     DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
@@ -5919,6 +5920,20 @@ local function dw_compute_word_center_x(sub)
     return nil
 end
 
+local function dw_pick_middle_word_idx(sub)
+    local entry = ensure_sub_layout(sub)
+    if not entry or not entry.vlines or #entry.vlines == 0 then
+        return -1
+    end
+
+    local middle_vl_idx = math.floor((#entry.vlines + 1) / 2)
+    local w = dw_closest_word_at_x(sub, 960, true, middle_vl_idx)
+    if w ~= -1 then
+        return w
+    end
+    return dw_closest_word_at_x(sub, 960, true, nil)
+end
+
 local function ensure_sub_layout(sub)
     if not sub then return nil end
     if sub.layout_cache and sub.layout_cache.version == FSM.LAYOUT_VERSION then
@@ -6093,66 +6108,127 @@ dw_ensure_visible = function(line_idx, paged)
 end
 
 
-local function cmd_dw_line_move(dir, shift)
+local function dw_create_nav_event_snapshot(evt)
+    local time_pos = mp.get_property_number("time-pos")
+    return {
+        time = time_pos or 0,
+        paused = mp.get_property_bool("pause"),
+        is_repeat = (type(evt) == "table" and evt.event == "repeat"),
+        event = evt
+    }
+end
+
+local function dw_resolve_nav_intent_context(subs, snapshot)
+    local ctx = {
+        active_line = -1,
+        cursor_line = FSM.DW_CURSOR_LINE,
+        pointer_fsm = FSM.DW_POINTER_FSM,
+        paused = snapshot.paused,
+        book_mode = FSM.BOOK_MODE,
+    }
+
+    -- Deterministic live index resolution from snapshot time
+    if snapshot.time > 0 and subs and #subs > 0 then
+        local low, high = 1, #subs
+        local best = -1
+        while low <= high do
+            local mid = math.floor((low + high) / 2)
+            if subs[mid].start_time <= snapshot.time then
+                best = mid
+                low = mid + 1
+            else
+                high = mid - 1
+            end
+        end
+        
+        if best ~= -1 then
+            local s, e = get_effective_boundaries(subs, subs[best], best)
+            if snapshot.time >= (s - Options.nav_tolerance) and snapshot.time <= (e + Options.nav_tolerance) then
+                ctx.active_line = best
+            end
+        end
+    end
+
+    if (not ctx.active_line or ctx.active_line == -1) then
+        ctx.active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
+    end
+
+    if (not ctx.active_line or ctx.active_line == -1) and ctx.cursor_line and ctx.cursor_line ~= -1 then
+        ctx.active_line = ctx.cursor_line
+    end
+
+    if ctx.active_line and ctx.active_line ~= -1 then
+        FSM.DW_ACTIVE_LINE = ctx.active_line
+    end
+
+    return ctx
+end
+
+
+local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
-    
-    FSM.DW_FOLLOW_PLAYER = false
-    
-    -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
-    if FSM.DW_CURSOR_LINE == -1 then
-        FSM.DW_CURSOR_LINE = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
 
+    local snapshot = dw_create_nav_event_snapshot(evt)
+    local ctx = dw_resolve_nav_intent_context(subs, snapshot)
+
+    FSM.DW_FOLLOW_PLAYER = false
+
+    -- Activation logic for NULL pointer
+    if FSM.DW_CURSOR_WORD == -1 then
+        -- Snap repeat during null activation to prevent immediate double-jump
+        if snapshot.is_repeat then return end
+
+        local line_idx = ctx.active_line
+        if line_idx == -1 then line_idx = (dir > 0 and 1 or #subs) end
+        
+        FSM.DW_CURSOR_LINE = line_idx
+
+        if dir < 0 and not snapshot.paused then
+            -- Requirement: UP enters from middle of current subtitle while listening
+            FSM.DW_CURSOR_WORD = dw_pick_middle_word_idx(subs[line_idx])
+        else
+            -- Directional entry: DOWN starts at top, UP (paused) starts at bottom
+            local entry = ensure_sub_layout(subs[line_idx])
+            local target_vl = (dir > 0) and 1 or (#entry.vlines)
+            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[line_idx], 960, true, target_vl)
+        end
+        
+        -- Hard-lock: initial activation DOES NOT MOVE beyond the resolved line
+        FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[line_idx]) or 960
+        FSM.DW_POINTER_FSM = "POINTER_ACTIVE_MANUAL"
+        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+        dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+        return
     end
-    
+
     local line_idx = FSM.DW_CURSOR_LINE
-    
+
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         local start_word = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
         FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or (start_word > 0 and start_word or 1)
     end
 
-    -- Sticky-X: capture current word's x-center before leaving this line.
-    -- If not set yet (fresh cursor), compute from current word; if still nil, use 960 (midpoint).
     if not FSM.DW_CURSOR_X then
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE]) or 960
     end
     
-    -- Intra-subtitle Vertical Navigation: 
-    -- If the current subtitle is multi-line, try moving between visual lines first.
-    if FSM.DW_CURSOR_WORD ~= -1 then
-        local cur_vl, total_vl = dw_get_word_visual_line(subs[line_idx], FSM.DW_CURSOR_WORD)
-        local target_vl = cur_vl + dir
-        if target_vl >= 1 and target_vl <= total_vl then
-            local w = dw_closest_word_at_x(subs[line_idx], FSM.DW_CURSOR_X, true, target_vl)
-            if w ~= -1 then
-                FSM.DW_CURSOR_WORD = w
-                return
-            end
+    -- Intra-subtitle Vertical Navigation
+    local cur_vl, total_vl = dw_get_word_visual_line(subs[line_idx], FSM.DW_CURSOR_WORD)
+    local target_vl = cur_vl + dir
+    if target_vl >= 1 and target_vl <= total_vl then
+        local w = dw_closest_word_at_x(subs[line_idx], FSM.DW_CURSOR_X, true, target_vl)
+        if w ~= -1 then
+            FSM.DW_CURSOR_WORD = w
+            return
         end
     end
 
-    -- Scan for the target line that contains a valid word.
-    -- If no word is currently selected (e.g. after Esc), we first try to land on the CURRENT line.
-    local start_scan_line = line_idx
-    if FSM.DW_CURSOR_WORD ~= -1 then
-        start_scan_line = start_scan_line + dir
-    end
-
-    for l = start_scan_line, (dir > 0 and #subs or 1), dir do
-        local target_vl = nil
-        -- Entering a NEW subtitle OR re-activating after Esc: land on appropriate edge
-        if l ~= line_idx or FSM.DW_CURSOR_WORD == -1 then
-            if dir > 0 then
-                target_vl = 1 -- Entry from top: land on first visual line
-            else
-                -- Entry from bottom: land on last visual line
-                local entry = subs[l].layout_cache and subs[l].layout_cache.entry
-                target_vl = entry and #entry.vlines or 1
-            end
-        end
-
+    -- Cross-subtitle Vertical Navigation
+    for l = line_idx + dir, (dir > 0 and #subs or 1), dir do
+        local entry = ensure_sub_layout(subs[l])
+        local target_vl = (dir > 0) and 1 or #entry.vlines
         local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true, target_vl)
         if w ~= -1 then
             FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
@@ -6168,35 +6244,57 @@ local function cmd_dw_line_move(dir, shift)
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
 end
 
-local function cmd_dw_word_move(dir, shift)
-    Diagnostic.info(string.format("cmd_dw_word_move(dir=%s, shift=%s) current_line=%s current_word=%s active_line=%s", tostring(dir), tostring(shift), tostring(FSM.DW_CURSOR_LINE), tostring(FSM.DW_CURSOR_WORD), tostring(FSM.DW_ACTIVE_LINE)))
+local function cmd_dw_word_move(dir, shift, ctrl, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
+    local snapshot = dw_create_nav_event_snapshot(evt)
+    local ctx = dw_resolve_nav_intent_context(subs, snapshot)
+
     FSM.DW_FOLLOW_PLAYER = false
-    
-    local line_idx = FSM.DW_CURSOR_LINE
-    
-    -- Recovery: If no cursor line is set (e.g. at startup or no active sub), 
-    -- try to snap to the active line or the first/last sub.
-    if line_idx == -1 then
-        line_idx = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or (dir > 0 and 1 or #subs)
+
+    -- Activation logic for NULL pointer
+    if FSM.DW_CURSOR_WORD == -1 then
+        if snapshot.is_repeat then return end
+
+        local line_idx = ctx.active_line
+        if line_idx == -1 then line_idx = (dir > 0 and 1 or #subs) end
+        
         FSM.DW_CURSOR_LINE = line_idx
+        local raw_sub = subs[line_idx]
+        local tokens = get_sub_tokens(raw_sub, true)
+        local logical_tokens = {}
+        for _, t in ipairs(tokens) do
+            if t.logical_idx and not t.text:match("^%s*$") then
+                table.insert(logical_tokens, t)
+            end
+        end
+
+        if #logical_tokens > 0 then
+            -- LEFT enters at end, RIGHT enters at start
+            local target_token = (dir > 0) and logical_tokens[1] or logical_tokens[#logical_tokens]
+            FSM.DW_CURSOR_WORD = target_token.logical_idx
+        else
+            FSM.DW_CURSOR_WORD = 1
+        end
+
+        -- Hard-lock: initial activation DOES NOT MOVE beyond the resolved line
+        FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[line_idx])
+        FSM.DW_POINTER_FSM = "POINTER_ACTIVE_MANUAL"
+        FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+        dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
+        return
     end
 
+    local line_idx = FSM.DW_CURSOR_LINE
     local raw_sub = subs[line_idx]
     if not raw_sub then return end
     
     local tokens = get_sub_tokens(raw_sub, true)
-    
-    -- logical_tokens contains all potential landing spots for the current mode
     local logical_tokens = {}
     for i, t in ipairs(tokens) do
-        if t.logical_idx then
-            -- Requirement: Do not land on invisible spaces (pure whitespace)
-            if not t.text:match("^%s*$") then
-                table.insert(logical_tokens, t)
-            end
+        if t.logical_idx and not t.text:match("^%s*$") then
+            table.insert(logical_tokens, t)
         end
     end
     
@@ -6207,10 +6305,9 @@ local function cmd_dw_word_move(dir, shift)
         return
     end
 
-    -- Capture anchor before moving if shift is held and no anchor exists
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
-        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD ~= -1 and FSM.DW_CURSOR_WORD or (dir > 0 and logical_tokens[1].logical_idx or logical_tokens[#logical_tokens].logical_idx)
+        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
     end
 
     local target_token = nil
@@ -6223,16 +6320,12 @@ local function cmd_dw_word_move(dir, shift)
     end
     
     if current_idx ~= -1 then
-        -- We are on a token valid for the current mode, just step
         local next_idx = current_idx + dir
         if next_idx >= 1 and next_idx <= #logical_tokens then
             target_token = logical_tokens[next_idx]
         end
-    elseif FSM.DW_CURSOR_WORD == -1 then
-        -- Activation: Nothing selected (e.g. after Esc), RIGHT enters at start, LEFT enters at end of current line
-        target_token = (dir > 0) and logical_tokens[1] or logical_tokens[#logical_tokens]
     else
-        -- Transition: We are on a symbol (fractional) but moving in word-only mode (no shift)
+        -- Transition: We are on a symbol but moving in word mode
         if dir > 0 then
             for _, t in ipairs(logical_tokens) do
                 if t.logical_idx > FSM.DW_CURSOR_WORD + L_EPSILON then
@@ -6261,10 +6354,8 @@ local function cmd_dw_word_move(dir, shift)
             local next_tokens = get_sub_tokens(subs[next_line], true)
             local next_logical = {}
             for _, t in ipairs(next_tokens) do
-                if t.logical_idx then
-                    if not t.text:match("^%s*$") then
-                        table.insert(next_logical, t)
-                    end
+                if t.logical_idx and not t.text:match("^%s*$") then
+                    table.insert(next_logical, t)
                 end
             end
             if #next_logical > 0 then
@@ -6275,17 +6366,14 @@ local function cmd_dw_word_move(dir, shift)
         end
     end
 
-    
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
 
     if not shift then
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
+        FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD = -1, -1
     end
 end
-
 
 local function cmd_replay_sub()
     local time_pos = mp.get_property_number("time-pos")
@@ -6625,19 +6713,19 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     
     -- 1. Definitive Keyboard Navigation Group
     local kb_keys = {
-        {key = "LEFT", name = "dw-word-left", fn = nav(function() cmd_dw_word_move(-1, false) end, "LEFT")},
-        {key = "RIGHT", name = "dw-word-right", fn = nav(function() cmd_dw_word_move(1, false) end, "RIGHT")},
-        {key = "UP", name = "dw-line-up", fn = nav(function() cmd_dw_line_move(-1, false) end, "UP")},
-        {key = "DOWN", name = "dw-line-down", fn = nav(function() cmd_dw_line_move(1, false) end, "DOWN")},
+        {key = "LEFT", name = "dw-word-left", fn = nav(function(t) cmd_dw_word_move(-1, false, false, t) end, "LEFT")},
+        {key = "RIGHT", name = "dw-word-right", fn = nav(function(t) cmd_dw_word_move(1, false, false, t) end, "RIGHT")},
+        {key = "UP", name = "dw-line-up", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "UP")},
+        {key = "DOWN", name = "dw-line-down", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "DOWN")},
         {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_wheel_scroll(-1) end},
         {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_wheel_scroll(1) end},
         {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t) 
             FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
         end, Options.dw_key_pair_mod), complex = true},
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function() cmd_dw_word_move(-1, false) end, "ЛЕВЫЙ")},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function() cmd_dw_word_move(1, false) end, "ПРАВЫЙ")},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function() cmd_dw_line_move(-1, false) end, "ВВЕРХ")},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function() cmd_dw_line_move(1, false) end, "ВНИЗ")},
+        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function(t) cmd_dw_word_move(-1, false, false, t) end, "ЛЕВЫЙ")},
+        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function(t) cmd_dw_word_move(1, false, false, t) end, "ПРАВЫЙ")},
+        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "ВВЕРХ")},
+        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "ВНИЗ")},
     }
 
     for _, k in ipairs(kb_keys) do 

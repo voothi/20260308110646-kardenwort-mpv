@@ -6,15 +6,10 @@ Provide canonical, requirement-level traceability for DM/DW state transitions va
 `20260513224230`, `20260513224426`, `20260513224549`, `20260513224804`,
 `20260513225010`, `20260513230718`, `20260513231511`, `20260513232211`,
 `20260513232755`, `20260513233501`.
-
 ## Requirements
-
 ### Requirement: Canonical DM/DW State Variables
-The project SHALL preserve a canonical state vocabulary for DM/DW interaction.
-
-#### Scenario: Core state contract
-- **WHEN** DM/DW behavior is documented or validated
-- **THEN** state semantics SHALL reference:
+The system SHALL utilize the following canonical state variables to ensure navigational traceability:
+- `DW_POINTER_FSM` (canonical FSM state: `POINTER_NULL_FOLLOW`, `POINTER_ACTIVE_MANUAL`, `POINTER_RANGE_ACTIVE`),
 - `DW_FOLLOW_PLAYER` (white-line follow-leading gate),
 - `DW_ACTIVE_LINE` (current playback subtitle index),
 - `DW_CURSOR_LINE` (standing yellow line context),
@@ -22,6 +17,10 @@ The project SHALL preserve a canonical state vocabulary for DM/DW interaction.
 - `DW_ANCHOR_LINE` and `DW_ANCHOR_WORD` (range anchor),
 - `DW_VIEW_CENTER` (manual/book viewport center),
 - `DW_SEEKING_MANUALLY` and `DW_SEEK_TARGET` (manual seek transit state).
+
+#### Scenario: State Variable Verification
+- **WHEN** auditing the internal FSM state
+- **THEN** all navigational intents SHALL be traceable to the canonical variables listed above.
 
 ### Requirement: Esc Stage 3 Post-Conditions
 Final `Esc` clear MUST establish a deterministic follow-ready state in both DM and DW.
@@ -34,14 +33,18 @@ Final `Esc` clear MUST establish a deterministic follow-ready state in both DM a
 - **AND** manual seek transit markers SHALL be cleared (`DW_SEEKING_MANUALLY = false`, `DW_SEEK_TARGET = -1`).
 
 ### Requirement: Null-Pointer Activation Source
-After pointer clear, first activation MUST resolve from current runtime context, not stale history.
+The system SHALL ensure that after pointer clear, the first activation resolves from current runtime context.
+- **WHEN** the pointer is cleared via Esc or Seek
+- **THEN** the first activation SHALL resolve from the current runtime context to prevent stale history drift.
 
 #### Scenario: First activation after final Esc
 - **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`) and user activates navigation
 - **THEN** source line resolution SHALL prioritize:
-1. valid standing `DW_CURSOR_LINE`,
-2. otherwise active `DW_ACTIVE_LINE`.
-- **AND** `UP`/`DOWN` SHALL use directional visual-line entry semantics
+1. current `EVENT_SNAPSHOT` active line,
+2. valid standing `DW_CURSOR_LINE`,
+3. otherwise active `DW_ACTIVE_LINE`.
+- **AND** `UP` SHALL use middle-word entry if playback is active
+- **AND** `DOWN` SHALL use directional visual-line entry semantics
 - **AND** `LEFT`/`RIGHT` SHALL use line-edge token entry semantics.
 
 ### Requirement: Seek/Scroll Null-Source Synchronization
@@ -99,3 +102,4 @@ The traceability spec SHALL provide executable validation intent for non-regress
 4. Book Mode enable in DM without forced DW switch and with paged follow parity,
 5. upper/lower lane viewport synchronization in DM with Book Mode OFF and ON,
 6. repeat checks with Book Mode OFF and ON.
+
