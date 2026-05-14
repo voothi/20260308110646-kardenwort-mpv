@@ -6096,6 +6096,12 @@ end
 local function cmd_dw_line_move(dir, shift)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+
+    local time_pos = mp.get_property_number("time-pos") or 0
+    local live_active_idx = get_center_index(subs, time_pos)
+    if live_active_idx and live_active_idx ~= -1 then
+        FSM.DW_ACTIVE_LINE = live_active_idx
+    end
     
     FSM.DW_FOLLOW_PLAYER = false
     
@@ -6106,6 +6112,14 @@ local function cmd_dw_line_move(dir, shift)
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
+
+    -- Activation guard: when pointer is hidden during live playback, re-anchor from
+    -- current time before applying UP/DOWN to avoid stale pre-boundary line grabs.
+    if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE
+       and not mp.get_property_bool("pause") and live_active_idx and live_active_idx ~= -1 then
+        line_idx = live_active_idx
+        FSM.DW_CURSOR_LINE = line_idx
+    end
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
@@ -6172,10 +6186,24 @@ local function cmd_dw_word_move(dir, shift)
     Diagnostic.info(string.format("cmd_dw_word_move(dir=%s, shift=%s) current_line=%s current_word=%s active_line=%s", tostring(dir), tostring(shift), tostring(FSM.DW_CURSOR_LINE), tostring(FSM.DW_CURSOR_WORD), tostring(FSM.DW_ACTIVE_LINE)))
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
+
+    local time_pos = mp.get_property_number("time-pos") or 0
+    local live_active_idx = get_center_index(subs, time_pos)
+    if live_active_idx and live_active_idx ~= -1 then
+        FSM.DW_ACTIVE_LINE = live_active_idx
+    end
     
     FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
+
+    -- Activation guard parity with UP/DOWN: when pointer is hidden during live playback,
+    -- re-anchor from current time before entering the line with LEFT/RIGHT.
+    if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE
+       and not mp.get_property_bool("pause") and live_active_idx and live_active_idx ~= -1 then
+        line_idx = live_active_idx
+        FSM.DW_CURSOR_LINE = line_idx
+    end
     
     -- Recovery: If no cursor line is set (e.g. at startup or no active sub), 
     -- try to snap to the active line or the first/last sub.

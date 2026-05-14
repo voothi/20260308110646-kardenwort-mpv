@@ -187,6 +187,12 @@ The `Esc` key MUST follow a strict staged hierarchy for clearing state:
 - **THEN** cursor synchronization SHALL resolve the active subtitle from live playback time at the moment of `Esc` (not from a stale cached line)
 - **AND** the next white subtitle transition SHALL continue from this updated anchor rather than a stale pre-boundary line.
 
+#### Scenario: Null-Pointer Arrow Activation Uses Live Playback Anchor
+- **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`) during live playback
+- **AND** user activates navigation with `UP`/`DOWN`/`LEFT`/`RIGHT`
+- **THEN** activation SHALL re-anchor source line from live `time-pos` before directional movement
+- **AND** this SHALL prevent stale pre-boundary grabs while preserving existing movement semantics.
+
 ### Requirement: Post-Export Selection Reset
 The system MUST automatically perform a full selection reset (equivalent to Stage 3 of the Esc handler) immediately after a successful Anki export operation.
 
