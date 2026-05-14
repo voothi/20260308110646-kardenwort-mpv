@@ -5855,84 +5855,6 @@ local function cmd_dw_wheel_scroll(dir)
 end
 
 
-local function get_first_valid_word_idx(sub)
-    if not sub then return -1 end
-    local tokens = get_sub_tokens(sub)
-    if not tokens then return -1 end
-    for _, t in ipairs(tokens) do
-        if t.is_word then return t.logical_idx end
-    end
-    return -1
-end
-
--- Returns the OSD-space x-center of the word with the given logical_idx on sub.
--- Uses the same monospace/proportional width model as dw_hit_test.
--- Returns nil if the word cannot be located.
-local function dw_compute_word_center_x(sub)
-    -- Returns the OSD x-center of the currently active cursor word (FSM.DW_CURSOR_WORD).
-    if not sub or FSM.DW_CURSOR_WORD == -1 then return nil end
-    local tokens = get_sub_tokens(sub)
-    local space_w = dw_get_str_width(" ")
-    local max_text_w = 1860
-
-    -- Replicate dw_build_layout word-wrap to find which vline contains our word.
-    local vlines = {}
-    local cur_indices = {}
-    local cur_w = 0
-    for j, w in ipairs(tokens) do
-        local ww = dw_get_str_width(w)
-        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
-        if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-            table.insert(vlines, cur_indices)
-            cur_indices = {j}
-            cur_w = ww
-        else
-            table.insert(cur_indices, j)
-            cur_w = cur_w + space + ww
-        end
-    end
-    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-    if #vlines == 0 then vlines = {{1}} end
-
-    -- Build visual->logical map.
-    local visual_to_logical = {}
-    for j, t in ipairs(tokens) do
-        if t.logical_idx then visual_to_logical[j] = t.logical_idx end
-    end
-
-    -- Scan vlines for the token whose logical_idx matches DW_CURSOR_WORD.
-    for _, vl_indices in ipairs(vlines) do
-        local vl_width = 0
-        for k, wi in ipairs(vl_indices) do
-            vl_width = vl_width + dw_get_str_width(tokens[wi])
-            if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
-        end
-        local vl_left = 960 - vl_width / 2
-        local pos = 0
-        for k, wi in ipairs(vl_indices) do
-            local ww = dw_get_str_width(tokens[wi])
-            if logical_cmp(visual_to_logical[wi], FSM.DW_CURSOR_WORD) then
-                return vl_left + pos + ww / 2
-            end
-            pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
-        end
-    end
-    return nil
-end
-
-local function dw_pick_middle_word_idx(sub)
-    local entry = ensure_sub_layout(sub)
-    if not entry or not entry.vlines or #entry.vlines == 0 then
-        return -1
-    end
-
-    local middle_vl_idx = math.floor((#entry.vlines + 1) / 2)
-    local w = dw_closest_word_at_x(sub, 960, true, middle_vl_idx)
-    if w ~= -1 then
-        return w
-    end
-    return dw_closest_word_at_x(sub, 960, true, nil)
-end
 
 local function ensure_sub_layout(sub)
     if not sub then return nil end
@@ -6057,6 +5979,88 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
 
     return best_logical or (not word_only and get_first_valid_word_idx(sub) or -1)
 end
+
+local function dw_pick_middle_word_idx(sub)
+    local entry = ensure_sub_layout(sub)
+    if not entry or not entry.vlines or #entry.vlines == 0 then
+        return -1
+    end
+
+    local middle_vl_idx = math.floor((#entry.vlines + 1) / 2)
+    local w = dw_closest_word_at_x(sub, 960, true, middle_vl_idx)
+    if w ~= -1 then
+        return w
+    end
+    return dw_closest_word_at_x(sub, 960, true, nil)
+end
+
+local function get_first_valid_word_idx(sub)
+
+    if not sub then return -1 end
+    local tokens = get_sub_tokens(sub)
+    if not tokens then return -1 end
+    for _, t in ipairs(tokens) do
+        if t.is_word then return t.logical_idx end
+    end
+    return -1
+end
+
+-- Returns the OSD-space x-center of the word with the given logical_idx on sub.
+-- Uses the same monospace/proportional width model as dw_hit_test.
+-- Returns nil if the word cannot be located.
+local function dw_compute_word_center_x(sub)
+    -- Returns the OSD x-center of the currently active cursor word (FSM.DW_CURSOR_WORD).
+    if not sub or FSM.DW_CURSOR_WORD == -1 then return nil end
+    local tokens = get_sub_tokens(sub)
+    local space_w = dw_get_str_width(" ")
+    local max_text_w = 1860
+
+    -- Replicate dw_build_layout word-wrap to find which vline contains our word.
+    local vlines = {}
+    local cur_indices = {}
+    local cur_w = 0
+    for j, w in ipairs(tokens) do
+        local ww = dw_get_str_width(w)
+        local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
+        if cur_w + space + ww > max_text_w and #cur_indices > 0 then
+            table.insert(vlines, cur_indices)
+            cur_indices = {j}
+            cur_w = ww
+        else
+            table.insert(cur_indices, j)
+            cur_w = cur_w + space + ww
+        end
+    end
+    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
+    if #vlines == 0 then vlines = {{1}} end
+
+    -- Build visual->logical map.
+    local visual_to_logical = {}
+    for j, t in ipairs(tokens) do
+        if t.logical_idx then visual_to_logical[j] = t.logical_idx end
+    end
+
+    -- Scan vlines for the token whose logical_idx matches DW_CURSOR_WORD.
+    for _, vl_indices in ipairs(vlines) do
+        local vl_width = 0
+        for k, wi in ipairs(vl_indices) do
+            vl_width = vl_width + dw_get_str_width(tokens[wi])
+            if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+        end
+        local vl_left = 960 - vl_width / 2
+        local pos = 0
+        for k, wi in ipairs(vl_indices) do
+            local ww = dw_get_str_width(tokens[wi])
+            if logical_cmp(visual_to_logical[wi], FSM.DW_CURSOR_WORD) then
+                return vl_left + pos + ww / 2
+            end
+            pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
+        end
+    end
+    return nil
+end
+
+
 
 
 dw_ensure_visible = function(line_idx, paged)
