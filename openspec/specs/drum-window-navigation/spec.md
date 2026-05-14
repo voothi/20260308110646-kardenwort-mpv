@@ -117,7 +117,9 @@ The system SHALL ensure that navigation is available immediately upon script ini
 1. Current `EVENT_SNAPSHOT` active line (if playback is active).
 2. Existing standing cursor line (`DW_CURSOR_LINE`) when valid.
 3. Otherwise the active playback subtitle line (`DW_ACTIVE_LINE`).
+- **AND** the `EVENT_SNAPSHOT` resolution SHALL be padding-aware and prioritize the upcoming subtitle during audio lead-ins.
 - **AND** this source resolution SHALL be identical in Drum Window (W) and Drum Mode (C).
+
 
 ### Requirement: Architectural Integrity
 - **Unified Engine**: ALL rendering and navigation components MUST utilize the unified `ensure_sub_layout` engine to ensure visual line boundaries are calculated consistently across all modes.

@@ -16,8 +16,15 @@
 - [x] 3.1 Implement middle-word priority for first null-pointer UP activation.
 - [x] 3.2 Ensure Book Mode parity for snapshot resolution.
 
-## 4. Validation
+## 4. Hardening and Production Readiness (Anchors 140004 - 140745)
 
-- [x] 4.1 Update `test_20260514001942_dm_dw_state_edges.py` with specific boundary race tests.
-- [x] 4.2 Verify zero-lag UP activation at the first ~100ms of a subtitle.
-- [x] 4.3 Run full regression suite to ensure no breakage of existing selection logic.
+- [x] 4.1 Relocate layout helper functions above callers to fix Lua visibility errors.
+- [x] 4.2 Implement padding-aware binary search in the resolution engine.
+- [x] 4.3 Add lookahead priority for next-sub activation during leading overlaps.
+- [x] 4.4 Decouple resolution from internal player state (remove FSM overwrite side-effects).
+
+## 5. Validation
+
+- [x] 5.1 Update `test_20260514001942_dm_dw_state_edges.py` with specific boundary race tests.
+- [x] 5.2 Verify zero-lag UP activation at the first ~100ms of a subtitle.
+- [x] 5.3 Run full regression suite to ensure no breakage of existing selection logic.

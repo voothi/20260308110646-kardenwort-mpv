@@ -40,9 +40,10 @@ The system SHALL ensure that after pointer clear, the first activation resolves 
 #### Scenario: First activation after final Esc
 - **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`) and user activates navigation
 - **THEN** source line resolution SHALL prioritize:
-1. current `EVENT_SNAPSHOT` active line,
+1. current `EVENT_SNAPSHOT` active line (with padding-aware lookahead),
 2. valid standing `DW_CURSOR_LINE`,
 3. otherwise active `DW_ACTIVE_LINE`.
+
 - **AND** `UP` SHALL use middle-word entry if playback is active
 - **AND** `DOWN` SHALL use directional visual-line entry semantics
 - **AND** `LEFT`/`RIGHT` SHALL use line-edge token entry semantics.
