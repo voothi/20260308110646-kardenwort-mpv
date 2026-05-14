@@ -200,7 +200,7 @@ def test_intent_context_uses_unstuck_live_index_structural():
     """
     body = _fn_body(_src(), "dw_resolve_nav_intent_context")
     assert "dw_get_live_playback_index_for_activation(subs)" in body
-    assert "if follow_was_on and FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then" in body
+    assert "if not ctx.paused and subs and #subs > 0 then" in body
 
 
 def test_null_up_activation_is_line_locked_structural():

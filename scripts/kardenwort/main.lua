@@ -6140,7 +6140,7 @@ local function dw_get_live_playback_index_for_activation(subs)
     return best
 end
 
-local function dw_resolve_nav_intent_context(subs, follow_was_on)
+local function dw_resolve_nav_intent_context(subs)
     local ctx = {
         active_line = -1,
         cursor_line = FSM.DW_CURSOR_LINE,
@@ -6149,13 +6149,8 @@ local function dw_resolve_nav_intent_context(subs, follow_was_on)
         book_mode = FSM.BOOK_MODE,
     }
 
-    -- If follow was active at input time, prefer the currently displayed synced line first.
-    if follow_was_on and FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
-        ctx.active_line = FSM.DW_ACTIVE_LINE
-    end
-
     -- Resolve live activation index without sticky ACTIVE_IDX sentinel bias.
-    if (not ctx.active_line or ctx.active_line == -1) and not ctx.paused and subs and #subs > 0 then
+    if not ctx.paused and subs and #subs > 0 then
         local live_idx = dw_get_live_playback_index_for_activation(subs)
         if live_idx and live_idx ~= -1 then
             ctx.active_line = live_idx
@@ -6205,9 +6200,8 @@ local function cmd_dw_line_move(dir, shift, evt)
         return
     end
 
-    local follow_was_on = FSM.DW_FOLLOW_PLAYER
     dw_update_pointer_fsm()
-    local intent_ctx = dw_resolve_nav_intent_context(subs, follow_was_on)
+    local intent_ctx = dw_resolve_nav_intent_context(subs)
     FSM.DW_FOLLOW_PLAYER = false
     
     -- Recovery: If no cursor line is set (startup/no active sub), snap to active or boundaries
@@ -6317,9 +6311,8 @@ local function cmd_dw_word_move(dir, shift, evt)
         return
     end
 
-    local follow_was_on = FSM.DW_FOLLOW_PLAYER
     dw_update_pointer_fsm()
-    local intent_ctx = dw_resolve_nav_intent_context(subs, follow_was_on)
+    local intent_ctx = dw_resolve_nav_intent_context(subs)
     FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
