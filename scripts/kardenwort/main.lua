@@ -6103,10 +6103,9 @@ local function cmd_dw_line_move(dir, shift, evt)
         return
     end
 
-    local time_pos = mp.get_property_number("time-pos") or 0
-    local live_active_idx = get_center_index(subs, time_pos)
-    if live_active_idx and live_active_idx ~= -1 then
-        FSM.DW_ACTIVE_LINE = live_active_idx
+    local state_active_idx = FSM.DW_ACTIVE_LINE
+    if (not state_active_idx or state_active_idx == -1) and FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 then
+        state_active_idx = FSM.ACTIVE_IDX
     end
     
     FSM.DW_FOLLOW_PLAYER = false
@@ -6121,10 +6120,10 @@ local function cmd_dw_line_move(dir, shift, evt)
     local entered_from_null = (FSM.DW_CURSOR_WORD == -1)
 
     -- Activation guard: when pointer is hidden during live playback, re-anchor from
-    -- current time before applying UP/DOWN to avoid stale pre-boundary line grabs.
+    -- current playback state before applying UP/DOWN to avoid stale/boundary grabs.
     if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE
-       and not mp.get_property_bool("pause") and live_active_idx and live_active_idx ~= -1 then
-        line_idx = live_active_idx
+       and not mp.get_property_bool("pause") and state_active_idx and state_active_idx ~= -1 then
+        line_idx = state_active_idx
         FSM.DW_CURSOR_LINE = line_idx
     end
     
@@ -6203,10 +6202,9 @@ local function cmd_dw_word_move(dir, shift, evt)
         return
     end
 
-    local time_pos = mp.get_property_number("time-pos") or 0
-    local live_active_idx = get_center_index(subs, time_pos)
-    if live_active_idx and live_active_idx ~= -1 then
-        FSM.DW_ACTIVE_LINE = live_active_idx
+    local state_active_idx = FSM.DW_ACTIVE_LINE
+    if (not state_active_idx or state_active_idx == -1) and FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 then
+        state_active_idx = FSM.ACTIVE_IDX
     end
     
     FSM.DW_FOLLOW_PLAYER = false
@@ -6215,10 +6213,10 @@ local function cmd_dw_word_move(dir, shift, evt)
     local entered_from_null = (FSM.DW_CURSOR_WORD == -1)
 
     -- Activation guard parity with UP/DOWN: when pointer is hidden during live playback,
-    -- re-anchor from current time before entering the line with LEFT/RIGHT.
+    -- re-anchor from current playback state before entering the line with LEFT/RIGHT.
     if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE
-       and not mp.get_property_bool("pause") and live_active_idx and live_active_idx ~= -1 then
-        line_idx = live_active_idx
+       and not mp.get_property_bool("pause") and state_active_idx and state_active_idx ~= -1 then
+        line_idx = state_active_idx
         FSM.DW_CURSOR_LINE = line_idx
     end
     

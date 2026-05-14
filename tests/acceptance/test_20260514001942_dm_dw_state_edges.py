@@ -127,12 +127,12 @@ def test_dm_secondary_viewport_not_locked_to_center_in_follow_structural():
 
 def test_live_activation_reanchors_before_up_down_structural():
     """
-    Pointer activation via UP/DOWN must re-anchor line selection from live time-pos.
-    This guards boundary-tick stale cursor line grabs during MOVIE live playback.
+    Pointer activation via UP/DOWN must re-anchor from synchronized current state
+    (`DW_ACTIVE_LINE`/`ACTIVE_IDX`) instead of ad-hoc time-pos recompute.
     """
     body = _fn_body(_src(), "cmd_dw_line_move")
-    assert "local live_active_idx = get_center_index(subs, time_pos)" in body
-    assert "FSM.DW_ACTIVE_LINE = live_active_idx" in body
+    assert "local state_active_idx = FSM.DW_ACTIVE_LINE" in body
+    assert "state_active_idx = FSM.ACTIVE_IDX" in body
     assert "if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE" in body
 
 
@@ -142,8 +142,8 @@ def test_live_activation_reanchors_before_left_right_structural():
     to keep behavior consistent with UP/DOWN.
     """
     body = _fn_body(_src(), "cmd_dw_word_move")
-    assert "local live_active_idx = get_center_index(subs, time_pos)" in body
-    assert "FSM.DW_ACTIVE_LINE = live_active_idx" in body
+    assert "local state_active_idx = FSM.DW_ACTIVE_LINE" in body
+    assert "state_active_idx = FSM.ACTIVE_IDX" in body
     assert "if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE" in body
 
 
