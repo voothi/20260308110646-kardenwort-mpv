@@ -219,5 +219,7 @@ def test_null_up_activation_uses_current_middle_structural():
     src = _src()
     body = _fn_body(src, "cmd_dw_line_move")
     assert "local function dw_pick_middle_word_idx(sub)" in src
+    assert "local function dw_get_raw_current_index_for_activation(subs)" in src
     assert "if entered_from_null and dir < 0 and not intent_ctx.paused" in body
+    assert "local raw_current_idx = dw_get_raw_current_index_for_activation(subs)" in body
     assert "local middle_w = dw_pick_middle_word_idx(subs[line_idx])" in body

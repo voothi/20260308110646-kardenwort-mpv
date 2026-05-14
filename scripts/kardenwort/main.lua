@@ -6140,6 +6140,37 @@ local function dw_get_live_playback_index_for_activation(subs)
     return best
 end
 
+local function dw_get_raw_current_index_for_activation(subs)
+    if not subs or #subs == 0 then return -1 end
+    local time_pos = mp.get_property_number("time-pos")
+    if not time_pos then return -1 end
+
+    local low, high = 1, #subs
+    local best = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            best = mid
+            low = mid + 1
+        else
+            high = mid - 1
+        end
+    end
+
+    if best ~= -1 and time_pos <= subs[best].end_time then
+        return best
+    end
+
+    if best < #subs and best + 1 >= 1 and subs[best + 1] then
+        local next_sub = subs[best + 1]
+        if time_pos >= next_sub.start_time and time_pos <= next_sub.end_time then
+            return best + 1
+        end
+    end
+
+    return -1
+end
+
 local function dw_resolve_nav_intent_context(subs)
     local ctx = {
         active_line = -1,
@@ -6246,6 +6277,11 @@ local function cmd_dw_line_move(dir, shift, evt)
     -- Critical listening behavior:
     -- first null-pointer UP must activate from the middle of the CURRENT subtitle only.
     if entered_from_null and dir < 0 and not intent_ctx.paused and line_idx >= 1 and line_idx <= #subs then
+        local raw_current_idx = dw_get_raw_current_index_for_activation(subs)
+        if raw_current_idx and raw_current_idx ~= -1 then
+            line_idx = raw_current_idx
+            FSM.DW_CURSOR_LINE = line_idx
+        end
         local middle_w = dw_pick_middle_word_idx(subs[line_idx])
         if middle_w ~= -1 then
             FSM.DW_CURSOR_LINE = line_idx
