@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-14
 **Version**: v1.80.28
-**Implementation ZIDs**: 20260514130624, 20260514134011, 20260514135828, 20260514140305, 20260514141342, 20260514141958, 20260514142424, 20260514145028, 20260514153159, 20260514154414
+**Implementation ZIDs**: 20260514130624, 20260514134011, 20260514135828, 20260514140305, 20260514141342, 20260514141958, 20260514142424, 20260514145028, 20260514153159, 20260514154414, 20260514154925, 20260514170457, 20260514171011, 20260514175116, 20260514175651, 20260514175739, 20260514182014, 20260514184310
 
 ## Highlights
 
@@ -12,14 +12,14 @@
 - **Middle-of-Line Entry Priority**: Restored the "UP enters from middle" requirement for live playback. The yellow pointer now deterministically lands on the most relevant central token of the active line when navigating from a null state.
 - **Surgical Resolution Engine**: Replaced fragile multi-layered "activation guards" and "repeat locks" with a unified, side-effect-free resolution logic that preserves the integrity of the player's internal state machine.
 
-### 🛡️ **Traceability & Tech Debt Removal**
-- **Unified State Traceability**: Aligned the `dm-dw-state-traceability` registry with the new snapshot-based FSM, ensuring consistent state verification across both Drum Mode and the Drum Window.
-- **Legacy Logic Purge**: Successfully removed redundant navigation hacks (`dw_nav_activation_repeat_is_locked`, `dw_get_live_playback_index_for_activation`) in favor of the clean, deterministic resolution engine.
-- **Improved FSM Robustness**: Hardened the transition between "Managed" and "Manual" navigation states to prevent accidental selection resets during rapid keyboard interaction.
+### 🛡️ **Pointer & Selection Continuity Hardening**
+- **Scroll-Aware Continuity**: Selection state (`DW_CURSOR_WORD`) is now strictly preserved during manual viewport scrolling (mouse wheel / keyboard). This allows users to adjust their visual context without losing focus on a specific highlighted term.
+- **Context-Switch Resets**: Implemented automatic pointer resets when switching contexts via **Search HUD** or **Double-click seeks**. This prevents "phantom highlights" from appearing in unrelated subtitle segments.
+- **Authoritative Esc-Follow Logic**: Overhauled the `Esc` key restoration logic to be fully deterministic. Clearing selections now forces a re-sync of `DW_ACTIVE_LINE` to the live `time-pos` and restores `DW_FOLLOW_PLAYER` state, ensuring a seamless return to playback follow mode.
 
-### 🧪 **Milestone: 735 Acceptance Tests**
-- **Boundary Precision Validation**: Expanded the acceptance suite to **735 tests**, adding 4 new high-resolution scenarios that specifically verify the mathematical precision of the navigation snapshot engine at subtitle boundaries.
-- **Zero-Regression Pass**: Confirmed that the navigation hardening does not introduce regressions in dual-track synchronization or `Esc` follow-logic.
+### 🧪 **Milestone: 737 Acceptance Tests**
+- **Follow-Reset Verification**: Added a comprehensive suite of tests (`test_20260514165416_reset_follow.py`) to verify the mathematical integrity of the auto-follow restoration and context-switch pointer resets.
+- **Refined State Probing**: Enhanced the diagnostic `_snapshot` hook to expose `dw_seeking_manually`, enabling 100% automated verification of manual navigation overrides.
 
 ---
 

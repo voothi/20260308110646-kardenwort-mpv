@@ -189,6 +189,7 @@ This suite solves problems that standard video players and generic scripts ignor
 46. **Dual-Track Viewport Mirroring**: Upper subtitles now strictly follow the lower track's viewport offset in Drum Mode, ensuring visual parity across both lanes in both Book Mode ON and OFF.
 47. **Intelligent "Esc" Follow Restoration**: Refined state machine that automatically resumes player-following from the next subtitle transition after clearing selections, removing the need for manual navigation nudges.
 48. **Hardened Drum Navigation Engine**: Eliminates boundary lag and "state-snapping" during high-speed playback via deterministic **Event Snapshots**, ensuring the yellow pointer always lands on the intended visual context.
+49. **Scroll-Aware Selection Continuity**: Manual viewport scrolling now strictly preserves active text selection and pending mining sets, preventing focus loss during study.
 
 
 [Return to Top](#table-of-contents)
@@ -767,7 +768,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2137 Commits (v1.80.28)
+- **Current Maturity**: ~2145 Commits (v1.80.28)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
