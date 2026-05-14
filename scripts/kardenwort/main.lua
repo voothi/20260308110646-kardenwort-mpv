@@ -415,8 +415,9 @@ Options = {
     dw_key_jump_select_right = "Ctrl+Shift+RIGHT",
     dw_key_scroll_up = "Ctrl+UP",
     dw_key_scroll_down = "Ctrl+DOWN",
-    dw_esc_auto_follow_restore = true, -- If true, clearing the last yellow pointer via Esc auto-enables follow.
-    dw_neutral_cursor_source = "last_selection", -- "last_selection" | "current_subtitle"
+    dw_esc_policy = "neutral", -- "auto_follow" | "neutral"
+    dw_esc_auto_follow_restore = true, -- Legacy alias: true=>"auto_follow", false=>"neutral" (used only if dw_esc_policy invalid)
+    dw_neutral_cursor_source = "last_selection", -- "last_selection" | "current_subtitle" (applies only when dw_esc_policy="neutral")
     dw_key_jump_select_up = "Ctrl+Shift+UP",
     dw_key_jump_select_down = "Ctrl+Shift+DOWN",
     dw_key_select_left = "Shift+LEFT",
@@ -848,6 +849,14 @@ local function dw_capture_neutral_marker()
     end
 end
 
+local function dw_is_neutral_policy_enabled()
+    local p = tostring(Options.dw_esc_policy or ""):lower()
+    if p == "auto_follow" then return false end
+    if p == "neutral" then return true end
+    -- Backward compatibility with legacy boolean setting.
+    return not Options.dw_esc_auto_follow_restore
+end
+
 local function dw_resolve_neutral_cursor_line()
     if Options.dw_neutral_cursor_source == "current_subtitle" then
         if FSM.DW_ACTIVE_LINE and FSM.DW_ACTIVE_LINE ~= -1 then
@@ -868,7 +877,7 @@ end
 local function dw_resolve_null_activation_line(ctx, dir, subs)
     -- Neutral-source policy applies ONLY while neutral mode is armed.
     -- Outside neutral mode, keep legacy free-mode activation behavior.
-    if FSM.DW_ESC_NEUTRAL_ARMED then
+    if dw_is_neutral_policy_enabled() and FSM.DW_ESC_NEUTRAL_ARMED then
         if Options.dw_neutral_cursor_source == "last_selection" then
             if FSM.DW_NEUTRAL_LINE and FSM.DW_NEUTRAL_LINE ~= -1 then
                 return FSM.DW_NEUTRAL_LINE
@@ -892,7 +901,7 @@ end
 
 local function dw_reset_selection()
     dw_capture_neutral_marker()
-    FSM.DW_ESC_NEUTRAL_ARMED = true
+    FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
     -- [v1.80.29] Synchronize active line to live playback to prevent stale jumps during reset
     local time_pos = mp.get_property_number("time-pos") or 0
     local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)
@@ -911,8 +920,9 @@ local function dw_reset_selection()
         FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
     end
 
-    -- Optional auto-follow restore after full clear (can be disabled for explicit neutral Esc workflow).
-    if Options.dw_esc_auto_follow_restore then
+    -- Esc follow policy:
+    -- auto_follow: restore immediately; neutral: stay manual and require extra Esc.
+    if not dw_is_neutral_policy_enabled() then
         FSM.DW_FOLLOW_PLAYER = true
     end
     FSM.DW_SEEKING_MANUALLY = false
@@ -4970,7 +4980,7 @@ local function cmd_dw_esc()
 
     -- Stage 4: Neutral no-selection Esc flow for manual mode.
     -- 1st Esc arms neutral marker; 2nd Esc restores follow explicitly.
-    if FSM.DW_ESC_NEUTRAL_ARMED then
+    if dw_is_neutral_policy_enabled() and FSM.DW_ESC_NEUTRAL_ARMED then
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_ESC_NEUTRAL_ARMED = false
         if FSM.DW_CURSOR_LINE == -1 then
@@ -4983,7 +4993,7 @@ local function cmd_dw_esc()
         elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
     end
-    if not FSM.DW_FOLLOW_PLAYER then
+    if dw_is_neutral_policy_enabled() and not FSM.DW_FOLLOW_PLAYER then
         dw_capture_neutral_marker()
         local neutral_line = dw_resolve_neutral_cursor_line()
         if neutral_line and neutral_line ~= -1 then
@@ -5322,7 +5332,7 @@ local function cmd_dw_double_click()
 
         mp.commandv("seek", sub.start_time, "absolute+exact")
         dw_capture_neutral_marker()
-        FSM.DW_ESC_NEUTRAL_ARMED = true
+        FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
@@ -6639,7 +6649,7 @@ local function cmd_dw_seek_delta(dir)
         if FSM.DW_ANCHOR_LINE == -1 then
             if not FSM.BOOK_MODE then
                 dw_capture_neutral_marker()
-                FSM.DW_ESC_NEUTRAL_ARMED = true
+                FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
                 FSM.DW_CURSOR_LINE = target_idx
                 FSM.DW_CURSOR_WORD = -1
                 FSM.DW_CURSOR_X = nil
