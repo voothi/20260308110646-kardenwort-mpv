@@ -39,6 +39,8 @@ end
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
+local get_dw_selection_bounds
+local dw_ensure_visible
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -1020,9 +1022,6 @@ local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
 dw_tooltip_osd.res_y = Options.font_base_height
 dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
-
-local dw_ensure_visible -- forward declaration
-local get_dw_selection_bounds -- forward declaration
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
