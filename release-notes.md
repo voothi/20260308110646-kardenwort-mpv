@@ -1,3 +1,28 @@
+# Release Notes - v1.80.28 (Hardened Drum Navigation & Zero-Lag Activation)
+
+**Date**: 2026-05-14
+**Version**: v1.80.28
+**Implementation ZIDs**: 20260514130624, 20260514134011, 20260514135828, 20260514140305, 20260514141342, 20260514141958, 20260514142424, 20260514145028, 20260514153159, 20260514154414
+
+## Highlights
+
+### 🥁 **Hardened Drum Navigation Engine (Zero-Lag Activation)**
+- **Eliminated Boundary Lag**: Resolved a critical race condition where navigation keys (UP/DOWN/LEFT/RIGHT) could snap to the previous subtitle if triggered within the first 200ms of a new line during high-speed playback.
+- **Deterministic Event Snapshots**: Implemented a "Snapshot-at-Event" model. The engine now captures the authoritative playback state at the exact millisecond of the key-down event, ensuring navigation is locked to the intended visual context even during high-latency rendering ticks.
+- **Middle-of-Line Entry Priority**: Restored the "UP enters from middle" requirement for live playback. The yellow pointer now deterministically lands on the most relevant central token of the active line when navigating from a null state.
+- **Surgical Resolution Engine**: Replaced fragile multi-layered "activation guards" and "repeat locks" with a unified, side-effect-free resolution logic that preserves the integrity of the player's internal state machine.
+
+### 🛡️ **Traceability & Tech Debt Removal**
+- **Unified State Traceability**: Aligned the `dm-dw-state-traceability` registry with the new snapshot-based FSM, ensuring consistent state verification across both Drum Mode and the Drum Window.
+- **Legacy Logic Purge**: Successfully removed redundant navigation hacks (`dw_nav_activation_repeat_is_locked`, `dw_get_live_playback_index_for_activation`) in favor of the clean, deterministic resolution engine.
+- **Improved FSM Robustness**: Hardened the transition between "Managed" and "Manual" navigation states to prevent accidental selection resets during rapid keyboard interaction.
+
+### 🧪 **Milestone: 735 Acceptance Tests**
+- **Boundary Precision Validation**: Expanded the acceptance suite to **735 tests**, adding 4 new high-resolution scenarios that specifically verify the mathematical precision of the navigation snapshot engine at subtitle boundaries.
+- **Zero-Regression Pass**: Confirmed that the navigation hardening does not introduce regressions in dual-track synchronization or `Esc` follow-logic.
+
+---
+
 # Release Notes - v1.80.18 (Dual-Track Viewport Parity & State Resilience)
 
 **Date**: 2026-05-14
