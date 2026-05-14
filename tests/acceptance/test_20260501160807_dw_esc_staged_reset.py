@@ -115,6 +115,7 @@ class TestDrumWindowRegressions:
     def test_20260514205615_esc_neutral_cycle_after_manual_scroll(self, mpv_fragment1):
         """With no selection and follow OFF, Esc arms neutral first, then resumes follow on second press."""
         ipc = mpv_fragment1.ipc
+        ipc.command(['set_property', 'script-opts', 'kardenwort-dw_esc_mode=neutral_last_selection'])
         ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
         time.sleep(0.3)
 
