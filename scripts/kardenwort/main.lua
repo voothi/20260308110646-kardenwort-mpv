@@ -564,6 +564,7 @@ local FSM = {
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
     DW_POINTER_FSM = "POINTER_NULL_FOLLOW", -- POINTER_NULL_FOLLOW | POINTER_ACTIVE_MANUAL | POINTER_RANGE_ACTIVE
+    DW_NAV_ACTIVATION_REPEAT_LOCK_KEY = "", -- Blocks repeat bleed-through after null-pointer activation
     DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
@@ -6140,37 +6141,6 @@ local function dw_get_live_playback_index_for_activation(subs)
     return best
 end
 
-local function dw_get_raw_current_index_for_activation(subs)
-    if not subs or #subs == 0 then return -1 end
-    local time_pos = mp.get_property_number("time-pos")
-    if not time_pos then return -1 end
-
-    local low, high = 1, #subs
-    local best = -1
-    while low <= high do
-        local mid = math.floor((low + high) / 2)
-        if subs[mid].start_time <= time_pos then
-            best = mid
-            low = mid + 1
-        else
-            high = mid - 1
-        end
-    end
-
-    if best ~= -1 and time_pos <= subs[best].end_time then
-        return best
-    end
-
-    if best < #subs and best + 1 >= 1 and subs[best + 1] then
-        local next_sub = subs[best + 1]
-        if time_pos >= next_sub.start_time and time_pos <= next_sub.end_time then
-            return best + 1
-        end
-    end
-
-    return -1
-end
-
 local function dw_resolve_nav_intent_context(subs)
     local ctx = {
         active_line = -1,
@@ -6237,12 +6207,38 @@ local function dw_pick_middle_word_idx(sub)
     return dw_closest_word_at_x(sub, 960, true, nil)
 end
 
+local function dw_nav_activation_lock_clear_on_down(evt)
+    if type(evt) ~= "table" or evt.event ~= "down" then return end
+    if FSM.DW_NAV_ACTIVATION_REPEAT_LOCK_KEY ~= "" then
+        FSM.DW_NAV_ACTIVATION_REPEAT_LOCK_KEY = ""
+    end
+end
+
+local function dw_nav_activation_repeat_is_locked(evt)
+    if type(evt) ~= "table" or evt.event ~= "repeat" then return false end
+    local lock_key = FSM.DW_NAV_ACTIVATION_REPEAT_LOCK_KEY
+    if not lock_key or lock_key == "" then return false end
+    local ev_key = evt.key or ""
+    return ev_key == "" or lock_key == "__ANY__" or ev_key == lock_key
+end
+
+local function dw_nav_activation_lock_repeat(evt)
+    if type(evt) ~= "table" then return end
+    if evt.event ~= "down" and evt.event ~= "press" then return end
+    local ev_key = evt.key or ""
+    FSM.DW_NAV_ACTIVATION_REPEAT_LOCK_KEY = (ev_key ~= "") and ev_key or "__ANY__"
+end
+
 
 local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
     if type(evt) == "table" and evt.event == "up" then
+        return
+    end
+    dw_nav_activation_lock_clear_on_down(evt)
+    if dw_nav_activation_repeat_is_locked(evt) then
         return
     end
 
@@ -6268,20 +6264,16 @@ local function cmd_dw_line_move(dir, shift, evt)
         return
     end
 
-    if entered_from_null and not intent_ctx.book_mode and not intent_ctx.paused
-       and intent_ctx.active_line and intent_ctx.active_line ~= -1 then
-        line_idx = intent_ctx.active_line
+    if entered_from_null and not intent_ctx.book_mode then
+        if intent_ctx.active_line and intent_ctx.active_line ~= -1 then
+            line_idx = intent_ctx.active_line
+        end
         FSM.DW_CURSOR_LINE = line_idx
     end
 
     -- Critical listening behavior:
     -- first null-pointer UP must activate from the middle of the CURRENT subtitle only.
     if entered_from_null and dir < 0 and not intent_ctx.paused and line_idx >= 1 and line_idx <= #subs then
-        local raw_current_idx = dw_get_raw_current_index_for_activation(subs)
-        if raw_current_idx and raw_current_idx ~= -1 then
-            line_idx = raw_current_idx
-            FSM.DW_CURSOR_LINE = line_idx
-        end
         local middle_w = dw_pick_middle_word_idx(subs[line_idx])
         if middle_w ~= -1 then
             FSM.DW_CURSOR_LINE = line_idx
@@ -6293,6 +6285,9 @@ local function cmd_dw_line_move(dir, shift, evt)
             end
             dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
             dw_update_pointer_fsm()
+            if entered_from_null then
+                dw_nav_activation_lock_repeat(evt)
+            end
             return
         end
     end
@@ -6369,6 +6364,9 @@ local function cmd_dw_line_move(dir, shift, evt)
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
     dw_update_pointer_fsm()
+    if entered_from_null then
+        dw_nav_activation_lock_repeat(evt)
+    end
 end
 
 local function cmd_dw_word_move(dir, shift, evt)
@@ -6377,6 +6375,10 @@ local function cmd_dw_word_move(dir, shift, evt)
     if not subs or #subs == 0 then return end
 
     if type(evt) == "table" and evt.event == "up" then
+        return
+    end
+    dw_nav_activation_lock_clear_on_down(evt)
+    if dw_nav_activation_repeat_is_locked(evt) then
         return
     end
 
@@ -6396,10 +6398,11 @@ local function cmd_dw_word_move(dir, shift, evt)
         return
     end
 
-    if entered_from_null and not intent_ctx.book_mode and not intent_ctx.paused
-       and intent_ctx.active_line and intent_ctx.active_line ~= -1 then
-        line_idx = intent_ctx.active_line
-        FSM.DW_CURSOR_LINE = line_idx
+    if entered_from_null and not intent_ctx.book_mode then
+        if intent_ctx.active_line and intent_ctx.active_line ~= -1 then
+            line_idx = intent_ctx.active_line
+            FSM.DW_CURSOR_LINE = line_idx
+        end
     end
     
     -- Recovery: If no cursor line is set (e.g. at startup or no active sub), 
@@ -6431,6 +6434,7 @@ local function cmd_dw_word_move(dir, shift, evt)
             FSM.DW_CURSOR_WORD = -1
             FSM.DW_CURSOR_X = nil
             dw_update_pointer_fsm()
+            dw_nav_activation_lock_repeat(evt)
             return
         end
         FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, line_idx + (dir > 0 and 1 or -1)))
@@ -6518,6 +6522,9 @@ local function cmd_dw_word_move(dir, shift, evt)
         FSM.DW_ANCHOR_WORD = -1
     end
     dw_update_pointer_fsm()
+    if entered_from_null then
+        dw_nav_activation_lock_repeat(evt)
+    end
 end
 
 
@@ -8774,11 +8781,12 @@ mp.register_script_message("test-dw-key", function(key)
     local shift = key:find("Shift%+") ~= nil
     local ctrl = key:find("Ctrl%+") ~= nil
     local base = key:gsub("Shift%+", ""):gsub("Ctrl%+", "")
+    local ev = {event = "down", key = key, ctrl = ctrl}
     
-    if base == "DOWN" then cmd_dw_line_move(1, shift)
-    elseif base == "UP" then cmd_dw_line_move(-1, shift)
-    elseif base == "LEFT" then cmd_dw_word_move(-1, shift, {event = "down", key = key, ctrl = ctrl})
-    elseif base == "RIGHT" then cmd_dw_word_move(1, shift, {event = "down", key = key, ctrl = ctrl})
+    if base == "DOWN" then cmd_dw_line_move(1, shift, ev)
+    elseif base == "UP" then cmd_dw_line_move(-1, shift, ev)
+    elseif base == "LEFT" then cmd_dw_word_move(-1, shift, ev)
+    elseif base == "RIGHT" then cmd_dw_word_move(1, shift, ev)
     elseif key == "e" then 
         FSM.DW_TOOLTIP_FORCE = not FSM.DW_TOOLTIP_FORCE
         if FSM.DW_TOOLTIP_FORCE then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end

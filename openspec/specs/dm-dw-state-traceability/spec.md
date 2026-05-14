@@ -39,8 +39,8 @@ After pointer clear, first activation MUST resolve from current runtime context,
 #### Scenario: First activation after final Esc
 - **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`) and user activates navigation
 - **THEN** source line resolution SHALL prioritize:
-1. valid standing `DW_CURSOR_LINE`,
-2. otherwise active `DW_ACTIVE_LINE`.
+1. active playback line resolved for that navigation intent,
+2. otherwise valid standing `DW_CURSOR_LINE`.
 - **AND** `UP`/`DOWN` SHALL use directional visual-line entry semantics
 - **AND** `LEFT`/`RIGHT` SHALL use line-edge token entry semantics.
 

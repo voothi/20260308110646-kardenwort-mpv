@@ -29,7 +29,8 @@ The system SHALL gate arrow-key events by event type and pointer activation stat
 #### Scenario: Null-pointer activation consumes one entry step
 - **WHEN** pointer state is null (`DW_CURSOR_WORD = -1`) and a navigation intent starts
 - **THEN** the first accepted activation event SHALL consume exactly one activation step
-- **AND** immediate duplicate repeat events for that activation SHALL NOT produce additional unintended movement.
+- **AND** immediate duplicate repeat events for that activation SHALL NOT produce additional unintended movement
+- **AND** repeat events for the same held key SHALL remain blocked until a new key-down intent starts.
 
 ### Requirement: Deterministic Desync Rebase Continuation
 The system SHALL deterministically rebase stale manual pointer state to current playback context before continuing user navigation intent.

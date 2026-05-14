@@ -112,8 +112,8 @@ The system SHALL ensure that navigation is available immediately upon script ini
 - **WHEN** the selection is cleared to null state (e.g., final `Esc` stage with `DW_CURSOR_WORD = -1`)
 - **AND** the user performs the first navigation action
 - **THEN** the "current logical line" SHALL resolve in this order:
-1. Existing standing cursor line (`DW_CURSOR_LINE`) when valid.
-2. Otherwise the active playback subtitle line (`DW_ACTIVE_LINE`).
+1. Active playback subtitle line resolved by the intent snapshot.
+2. Otherwise existing standing cursor line (`DW_CURSOR_LINE`) when valid.
 - **AND** this source resolution SHALL be identical in Drum Window (W) and Drum Mode (C).
 
 #### Scenario: First LEFT/RIGHT After Null Selection

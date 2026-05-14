@@ -155,6 +155,69 @@ def test_pointer_activation_ignores_immediate_repeat_runtime(mpv):
     assert int(after_repeat["dw_cursor"]["word"]) == int(after_down["dw_cursor"]["word"])
 
 
+def test_pointer_down_activation_ignores_immediate_repeat_runtime(mpv):
+    """
+    Runtime guard: first null DOWN activation must not drift on immediate repeat.
+    """
+    ipc = mpv.ipc
+
+    ipc.command(["seek", 4.01, "absolute+exact"])
+    time.sleep(0.1)
+    state = query_kardenwort_state(ipc)
+    active = int(state["active_sub_index"])
+    assert active >= 1
+
+    stale_line = active - 1 if active > 1 else active + 1
+    ipc.command(["script-message-to", "kardenwort", "test-set-cursor", str(stale_line), "-1"])
+    time.sleep(0.05)
+
+    ipc.command(["script-message-to", "kardenwort", "test-dw-line-move-event", "1", "no", "down", "DOWN"])
+    time.sleep(0.05)
+    after_down = query_kardenwort_state(ipc)
+
+    ipc.command(["script-message-to", "kardenwort", "test-dw-line-move-event", "1", "no", "repeat", "DOWN"])
+    time.sleep(0.05)
+    after_repeat = query_kardenwort_state(ipc)
+
+    assert int(after_down["dw_cursor"]["line"]) == int(after_down["active_sub_index"])
+    assert int(after_down["dw_cursor"]["word"]) != -1
+    assert int(after_repeat["dw_cursor"]["line"]) == int(after_down["dw_cursor"]["line"])
+    assert int(after_repeat["dw_cursor"]["word"]) == int(after_down["dw_cursor"]["word"])
+
+
+def test_pointer_left_right_activation_stays_on_current_line_runtime(mpv):
+    """
+    Runtime guard: first null LEFT/RIGHT activation must enter on current line and ignore immediate repeat.
+    """
+    ipc = mpv.ipc
+
+    ipc.command(["seek", 4.01, "absolute+exact"])
+    time.sleep(0.1)
+    state = query_kardenwort_state(ipc)
+    active = int(state["active_sub_index"])
+    assert active >= 1
+
+    stale_line = active - 1 if active > 1 else active + 1
+    scenarios = [(1, "RIGHT"), (-1, "LEFT")]
+
+    for direction, key_name in scenarios:
+        ipc.command(["script-message-to", "kardenwort", "test-set-cursor", str(stale_line), "-1"])
+        time.sleep(0.05)
+
+        ipc.command(["script-message-to", "kardenwort", "test-dw-word-move-event", str(direction), "no", "down", key_name])
+        time.sleep(0.05)
+        after_down = query_kardenwort_state(ipc)
+
+        ipc.command(["script-message-to", "kardenwort", "test-dw-word-move-event", str(direction), "no", "repeat", key_name])
+        time.sleep(0.05)
+        after_repeat = query_kardenwort_state(ipc)
+
+        assert int(after_down["dw_cursor"]["line"]) == int(after_down["active_sub_index"])
+        assert int(after_down["dw_cursor"]["word"]) != -1
+        assert int(after_repeat["dw_cursor"]["line"]) == int(after_down["dw_cursor"]["line"])
+        assert int(after_repeat["dw_cursor"]["word"]) == int(after_down["dw_cursor"]["word"])
+
+
 def test_en_ru_line_activation_semantics_parity_runtime(mpv):
     """
     Runtime parity: EN/RU arrow bindings must apply identical activation semantics.
@@ -191,6 +254,8 @@ def test_runtime_activation_guards_are_mandatory_for_signoff_structural():
     with open(__file__, encoding="utf-8") as f:
         test_src = f.read()
     assert "test_pointer_activation_ignores_immediate_repeat_runtime" in test_src
+    assert "test_pointer_down_activation_ignores_immediate_repeat_runtime" in test_src
+    assert "test_pointer_left_right_activation_stays_on_current_line_runtime" in test_src
     assert "test_en_ru_line_activation_semantics_parity_runtime" in test_src
 
 
@@ -219,7 +284,25 @@ def test_null_up_activation_uses_current_middle_structural():
     src = _src()
     body = _fn_body(src, "cmd_dw_line_move")
     assert "local function dw_pick_middle_word_idx(sub)" in src
-    assert "local function dw_get_raw_current_index_for_activation(subs)" in src
+    assert "if entered_from_null and not intent_ctx.book_mode then" in body
+    assert "line_idx = intent_ctx.active_line" in body
     assert "if entered_from_null and dir < 0 and not intent_ctx.paused" in body
-    assert "local raw_current_idx = dw_get_raw_current_index_for_activation(subs)" in body
     assert "local middle_w = dw_pick_middle_word_idx(subs[line_idx])" in body
+
+
+def test_null_activation_repeat_lock_structural():
+    """
+    Null-pointer activation must lock out repeat bleed-through for the same physical key hold.
+    """
+    src = _src()
+    line_body = _fn_body(src, "cmd_dw_line_move")
+    word_body = _fn_body(src, "cmd_dw_word_move")
+
+    assert "DW_NAV_ACTIVATION_REPEAT_LOCK_KEY" in src
+    assert "local function dw_nav_activation_repeat_is_locked(evt)" in src
+
+    assert "if dw_nav_activation_repeat_is_locked(evt) then" in line_body
+    assert "dw_nav_activation_lock_repeat(evt)" in line_body
+
+    assert "if dw_nav_activation_repeat_is_locked(evt) then" in word_body
+    assert "dw_nav_activation_lock_repeat(evt)" in word_body

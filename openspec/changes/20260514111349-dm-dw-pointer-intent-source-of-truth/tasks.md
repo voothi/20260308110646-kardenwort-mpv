@@ -19,5 +19,5 @@
 ## 4. Spec Alignment and Validation
 
 - [x] 4.1 Update base specs in `openspec/specs/` to reflect the new intent-snapshot and boundary-runtime contracts.
-- [ ] 4.2 Run targeted acceptance tests for DM/DW state edges, then run full regression suite and capture results in `docs/conversation.log`.
-- [ ] 4.3 Perform final behavioral verification against the reported user flow (live playback boundary activation and `UP -> Esc -> UP` recovery equivalence).
+- [x] 4.2 Run targeted acceptance tests for DM/DW state edges, then run full regression suite and capture results in `docs/conversation.log`.
+- [x] 4.3 Perform final behavioral verification against the reported user flow (live playback boundary activation and `UP -> Esc -> UP` recovery equivalence).
