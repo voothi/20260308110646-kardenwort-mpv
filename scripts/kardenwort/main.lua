@@ -563,7 +563,7 @@ local FSM = {
     DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
     DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
     DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
-    DW_NAV_ACTIVATION_GUARD_UNTIL = nil, -- Suppress immediate key-repeat after null-pointer activation
+    DW_POINTER_FSM = "POINTER_NULL_FOLLOW", -- POINTER_NULL_FOLLOW | POINTER_ACTIVATING | POINTER_ACTIVE_MANUAL | POINTER_RANGE_ACTIVE
     DW_VIEW_CENTER = -1,       -- Viewport center line index
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
@@ -846,10 +846,22 @@ local function dw_reset_selection()
     if FSM.DW_ACTIVE_LINE ~= -1 then
         FSM.DW_CURSOR_LINE = FSM.DW_ACTIVE_LINE
     end
+    FSM.DW_POINTER_FSM = "POINTER_NULL_FOLLOW"
     if FSM.DRUM_WINDOW ~= "OFF" then 
         if dw_osd then dw_osd:update() end
     elseif FSM.DRUM == "ON" then 
         if drum_osd then drum_osd:update() end 
+    end
+end
+
+local function dw_update_pointer_fsm()
+    local has_range = get_dw_selection_bounds() ~= nil
+    if has_range then
+        FSM.DW_POINTER_FSM = "POINTER_RANGE_ACTIVE"
+    elseif FSM.DW_CURSOR_WORD == -1 then
+        FSM.DW_POINTER_FSM = "POINTER_NULL_FOLLOW"
+    else
+        FSM.DW_POINTER_FSM = "POINTER_ACTIVE_MANUAL"
     end
 end
 
@@ -1010,6 +1022,7 @@ dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
 
 local dw_ensure_visible -- forward declaration
+local get_dw_selection_bounds -- forward declaration
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
@@ -4849,7 +4862,7 @@ local function ctrl_discard_set()
     end
 end
 
-local function get_dw_selection_bounds()
+get_dw_selection_bounds = function()
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
     
@@ -4875,6 +4888,7 @@ local function cmd_dw_esc()
         FSM.DW_CTRL_PENDING_SET = {}
         FSM.DW_CTRL_PENDING_LIST = {}
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
+        dw_update_pointer_fsm()
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
         elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
@@ -4885,6 +4899,7 @@ local function cmd_dw_esc()
     if get_dw_selection_bounds() then
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
+        dw_update_pointer_fsm()
         if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() 
         elseif FSM.DRUM == "ON" then drum_osd:update() end
         return
@@ -4904,6 +4919,7 @@ local function cmd_dw_esc()
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_SEEKING_MANUALLY = false
         FSM.DW_SEEK_TARGET = -1
+        dw_update_pointer_fsm()
         return
     end
 end
@@ -6098,8 +6114,7 @@ local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
-    if type(evt) == "table" and evt.event == "repeat" and FSM.DW_NAV_ACTIVATION_GUARD_UNTIL
-       and mp.get_time() <= FSM.DW_NAV_ACTIVATION_GUARD_UNTIL then
+    if type(evt) == "table" and evt.event == "up" then
         return
     end
 
@@ -6117,14 +6132,21 @@ local function cmd_dw_line_move(dir, shift, evt)
     end
     
     local line_idx = FSM.DW_CURSOR_LINE
-    local entered_from_null = (FSM.DW_CURSOR_WORD == -1)
+    dw_update_pointer_fsm()
+    local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
 
-    -- Activation guard: when pointer is hidden during live playback, re-anchor from
-    -- current playback state before applying UP/DOWN to avoid stale/boundary grabs.
-    if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE
-       and not mp.get_property_bool("pause") and state_active_idx and state_active_idx ~= -1 then
+    -- FSM activation gate: from null-pointer state, consume only press/down event.
+    -- Repeat events are ignored until pointer becomes active, preventing boundary double-steps.
+    if entered_from_null and type(evt) == "table" and evt.event == "repeat" then
+        return
+    end
+
+    -- Activation contract: bind first pointer activation to synchronized active subtitle state.
+    if entered_from_null and not FSM.BOOK_MODE and not mp.get_property_bool("pause")
+       and state_active_idx and state_active_idx ~= -1 then
         line_idx = state_active_idx
         FSM.DW_CURSOR_LINE = line_idx
+        FSM.DW_POINTER_FSM = "POINTER_ACTIVATING"
     end
     
     if shift and FSM.DW_ANCHOR_LINE == -1 then
@@ -6186,10 +6208,7 @@ local function cmd_dw_line_move(dir, shift, evt)
     
     FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
     dw_ensure_visible(FSM.DW_CURSOR_LINE, false)
-
-    if entered_from_null and FSM.DW_CURSOR_WORD ~= -1 then
-        FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12
-    end
+    dw_update_pointer_fsm()
 end
 
 local function cmd_dw_word_move(dir, shift, evt)
@@ -6197,8 +6216,7 @@ local function cmd_dw_word_move(dir, shift, evt)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
-    if type(evt) == "table" and evt.event == "repeat" and FSM.DW_NAV_ACTIVATION_GUARD_UNTIL
-       and mp.get_time() <= FSM.DW_NAV_ACTIVATION_GUARD_UNTIL then
+    if type(evt) == "table" and evt.event == "up" then
         return
     end
 
@@ -6210,14 +6228,21 @@ local function cmd_dw_word_move(dir, shift, evt)
     FSM.DW_FOLLOW_PLAYER = false
     
     local line_idx = FSM.DW_CURSOR_LINE
-    local entered_from_null = (FSM.DW_CURSOR_WORD == -1)
+    dw_update_pointer_fsm()
+    local entered_from_null = (FSM.DW_POINTER_FSM == "POINTER_NULL_FOLLOW")
+
+    -- FSM activation gate: from null-pointer state, consume only press/down event.
+    if entered_from_null and type(evt) == "table" and evt.event == "repeat" then
+        return
+    end
 
     -- Activation guard parity with UP/DOWN: when pointer is hidden during live playback,
     -- re-anchor from current playback state before entering the line with LEFT/RIGHT.
-    if FSM.DW_CURSOR_WORD == -1 and FSM.DW_ANCHOR_LINE == -1 and not FSM.BOOK_MODE
+    if entered_from_null and not FSM.BOOK_MODE
        and not mp.get_property_bool("pause") and state_active_idx and state_active_idx ~= -1 then
         line_idx = state_active_idx
         FSM.DW_CURSOR_LINE = line_idx
+        FSM.DW_POINTER_FSM = "POINTER_ACTIVATING"
     end
     
     -- Recovery: If no cursor line is set (e.g. at startup or no active sub), 
@@ -6247,9 +6272,7 @@ local function cmd_dw_word_move(dir, shift, evt)
         FSM.DW_CURSOR_LINE = math.max(1, math.min(#subs, line_idx + (dir > 0 and 1 or -1)))
         FSM.DW_CURSOR_WORD = 1
         FSM.DW_CURSOR_X = dw_compute_word_center_x(subs[FSM.DW_CURSOR_LINE])
-        if entered_from_null and FSM.DW_CURSOR_WORD ~= -1 then
-            FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12
-        end
+        dw_update_pointer_fsm()
         return
     end
 
@@ -6330,10 +6353,7 @@ local function cmd_dw_word_move(dir, shift, evt)
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
     end
-
-    if entered_from_null and FSM.DW_CURSOR_WORD ~= -1 then
-        FSM.DW_NAV_ACTIVATION_GUARD_UNTIL = mp.get_time() + 0.12
-    end
+    dw_update_pointer_fsm()
 end
 
 

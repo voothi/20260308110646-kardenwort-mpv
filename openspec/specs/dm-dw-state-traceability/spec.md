@@ -53,6 +53,18 @@ First activation from null-pointer state MUST be immune to immediate keyboard au
 - **THEN** the system SHALL suppress that immediate repeat step
 - **AND** the resulting yellow pointer SHALL remain on the intended activation line for that single press.
 
+### Requirement: Pointer Activation FSM
+Pointer activation semantics MUST be modeled as explicit FSM states, not timing windows.
+
+#### Scenario: Deterministic activation state transitions
+- **WHEN** pointer state transitions across null/active/range conditions
+- **THEN** implementation SHALL use explicit states:
+1. `POINTER_NULL_FOLLOW`,
+2. `POINTER_ACTIVATING`,
+3. `POINTER_ACTIVE_MANUAL`,
+4. `POINTER_RANGE_ACTIVE`.
+- **AND** transitions SHALL be driven by index state and key event type (`down`/`repeat`/`up`), not magic time delays.
+
 ### Requirement: Seek/Scroll Null-Source Synchronization
 Manual `a`/`d` seek and explicit viewport scroll MUST keep null-pointer source state synchronized.
 
