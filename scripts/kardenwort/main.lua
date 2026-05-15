@@ -7475,9 +7475,20 @@ local function get_keys_for_action(cmd_pattern, whitelist)
         local k = b.key
         if k == nil or k == "" then goto continue end
         
-        -- Transform single uppercase characters to Shift+lowercase notation
-        if #k == 1 and k:upper() == k and k:lower() ~= k then
-            k = "Shift+" .. k:lower()
+        -- Transform single characters to Shift+lowercase notation (Cyrillic aware)
+        if #k == 1 then
+            if k:upper() == k and k:lower() ~= k then
+                k = "Shift+" .. k:lower()
+            end
+        elseif #k == 2 then
+            local b1, b2 = k:byte(1, 2)
+            if b1 == 208 and b2 >= 144 and b2 <= 175 then
+                -- Cyrillic А-Я (D0 90-AF) -> а-я (D0 B0-BF)
+                k = "Shift+" .. string.char(208, b2 + 32)
+            elseif b1 == 208 and b2 == 129 then
+                -- Cyrillic Ё (D0 81) -> ё (D1 91)
+                k = "Shift+" .. string.char(209, 145)
+            end
         end
         
         -- Global filter: Hide mouse/wheel unless explicitly whitelisted

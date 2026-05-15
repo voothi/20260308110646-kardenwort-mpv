@@ -2172,4 +2172,5 @@
 20260515103244 Look LEFT RIGHT shouldn't be here, it doesn't work.
 20260515103503 I have removed the LEFT and RIGHT keyboard bindings for seeking from input.conf. Changes Made: input.conf: Deleted the global LEFT and RIGHT bindings for seek_time_backward and seek_time_forward. Result: Since the Help HUD dynamically queries active bindings, these keys will no longer appear in the overlay under the Navigation section. This resolves the visual clutter and ensures that only the intended Kardenwort shortcuts (A/D and ф/в) are displayed. The "don't work" issue you mentioned was likely due to these global bindings conflicting with the hardcoded LEFT/RIGHT navigation used within the Drum Window and Search HUD contexts. Removing them globally fixes this conflict and cleans up the UI.
 20260515103808 Is it possible to replace capital letters with the equivalent combination Shift+letter? For greater certainty, as is customary in writing shoftcuts.
+20260515104035 Does this work for Cyrillic, see photo?
 
