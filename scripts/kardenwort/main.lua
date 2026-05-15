@@ -7699,6 +7699,7 @@ local HELP_SCHEMA = {
         { desc = "Frame Step Fwd/Back", cmd = "frame.*step", whitelist = {["."]=true, [","]=true, ["ю"]=true, ["б"]=true} },
         { desc = "Toggle Fullscreen", cmd = "cycle fullscreen", whitelist = {["v"]=true, ["м"]=true} },
         { desc = "Debug Console", cmd = "console/enable", whitelist = {["`"]=true, ["ё"]=true} },
+        { desc = "Quit Player", cmd = "quit", whitelist = {["~"]=true, ["Ё"]=true} },
     }}
 }
 
