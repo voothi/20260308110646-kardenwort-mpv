@@ -800,6 +800,10 @@ Get-FileHash .\dist\20260515123456-kardenwort-mpv-full-windows11-x64.zip -Algori
 Get-Content .\dist\20260515123456-kardenwort-mpv-sha256.txt
 ```
 
+You can also verify the security of the files on VirusTotal:
+- **General Upload**: [VirusTotal Upload](https://www.virustotal.com/gui/home/upload)
+- **Direct Link**: [VirusTotal Analysis (v1.82.2)](https://www.virustotal.com/gui/file/2458615bbe3a9f7303cffcdcd75b79a7cfdec17960b23cdbc70ac3b5047e5dc7) (using the SHA256 hash from the checksum file).
+
 Optional: bundle an mpv distribution inside the archive.
 - Default config file: `scripts/deploy/build_distribution.config.json`
 - Example path: `C:\mpv\mpv-0.39.0-x86_64`
