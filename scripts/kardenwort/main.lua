@@ -640,7 +640,8 @@ local FSM = {
 
     -- Help State
     HELP_MODE = false,
-    HELP_SCROLL_OFFSET = 0
+    HELP_SCROLL_OFFSET = 0,
+    HELP_SCROLL_MAX = 0
 }
 
 local Tracks = {
@@ -7560,6 +7561,25 @@ local function truncate_keys(key_str, max_len)
     return truncated .. "..."
 end
 
+local function wrap_by_words(text, max_chars)
+    if not text or text == "" then return {"Unbound"} end
+    if max_chars == nil or max_chars < 8 then return {text} end
+    local out, line = {}, ""
+    for token in text:gmatch("%S+") do
+        if line == "" then
+            line = token
+        elseif (#line + 1 + #token) <= max_chars then
+            line = line .. " " .. token
+        else
+            table.insert(out, line)
+            line = token
+        end
+    end
+    if line ~= "" then table.insert(out, line) end
+    if #out == 0 then out = {"Unbound"} end
+    return out
+end
+
 local HELP_SCHEMA = {
     { category = "Immersion Features", actions = {
         { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space", whitelist = {["SPACE"]=true} },
@@ -7669,7 +7689,8 @@ load_help_overrides()
 
 local function help_scroll(direction)
     if not FSM.HELP_MODE then return end
-    FSM.HELP_SCROLL_OFFSET = math.max(0, FSM.HELP_SCROLL_OFFSET + (direction * Options.dw_font_size * 1.5))
+    local step = math.max(20, Options.help_font_size * 1.25)
+    FSM.HELP_SCROLL_OFFSET = math.max(0, math.min(FSM.HELP_SCROLL_MAX or 0, FSM.HELP_SCROLL_OFFSET + (direction * step)))
     render_help()
 end
 
@@ -7694,7 +7715,9 @@ render_help = function()
     local ass_bg = ""
     ass_bg = ass_bg .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
     ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
-    ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
+    local hx = math.floor(box_w / 2)
+    local hy = math.floor(box_h / 2)
+    ass_bg = ass_bg .. string.format("{\\p1}m %d %d l %d %d l %d %d l %d %d l %d %d {\\p0}", -hx, -hy, hx, -hy, hx, hy, -hx, hy, -hx, -hy)
     help_osd_bg.data = ass_bg
     help_osd_bg:update()
     
@@ -7712,22 +7735,34 @@ render_help = function()
     
     -- Column Content Helper
     local function format_category(cat)
+        local line_count = 0
         local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
             Options.help_title_color, Options.help_font_size * 0.9, cat.category:upper(), Options.help_font_size * 0.8)
+        line_count = line_count + 1
+        local key_wrap_chars = math.max(18, math.min(52, math.floor((Options.help_column_width or 40) / 8)))
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd, act.whitelist)
             local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
             -- Collapse multiple spaces into one and trim
             key_str = key_str:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
-            key_str = truncate_keys(key_str, Options.help_column_width)
+            local key_lines = wrap_by_words(key_str, key_wrap_chars)
             
             local desc = act.desc
             local padding = ""
             for j=1, (28 - #desc) do padding = padding .. "\\h" end
-            
-            res = res .. string.format("{\\1c&H%s&}%s%s{\\1c&H%s&}%s\\N", Options.help_text_color, desc, padding, Options.help_key_color, key_str)
+
+            res = res .. string.format("{\\1c&H%s&}%s%s{\\1c&H%s&}%s\\N", Options.help_text_color, desc, padding, Options.help_key_color, key_lines[1] or "Unbound")
+            line_count = line_count + 1
+            if #key_lines > 1 then
+                local cont_pad = ""
+                for j=1, 28 do cont_pad = cont_pad .. "\\h" end
+                for i=2, #key_lines do
+                    res = res .. string.format("{\\1c&H%s&}%s{\\1c&H%s&}%s\\N", Options.help_text_color, cont_pad, Options.help_key_color, key_lines[i])
+                    line_count = line_count + 1
+                end
+            end
         end
-        return res .. "\\N"
+        return res .. "\\N", line_count + 1
     end
 
     -- Split Schema and render Columns
@@ -7739,12 +7774,25 @@ render_help = function()
     local col2_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col2_x, start_y, clip_tag, Options.help_font_name, Options.help_font_size * 0.8)
     
     -- Logic to divide categories (simplified: first 3 left, rest right)
+    local col1_lines, col2_lines = 0, 0
     for i, cat in ipairs(HELP_SCHEMA) do
         if i <= 3 then
-            col1_text = col1_text .. format_category(cat)
+            local block, lines = format_category(cat)
+            col1_text = col1_text .. block
+            col1_lines = col1_lines + lines
         else
-            col2_text = col2_text .. format_category(cat)
+            local block, lines = format_category(cat)
+            col2_text = col2_text .. block
+            col2_lines = col2_lines + lines
         end
+    end
+
+    local max_lines = math.max(col1_lines, col2_lines)
+    local line_h = Options.help_font_size * 0.95
+    local viewport_h = math.max(1, clip_y2 - clip_y1 - 20)
+    FSM.HELP_SCROLL_MAX = math.max(0, (max_lines * line_h) - viewport_h)
+    if FSM.HELP_SCROLL_OFFSET > FSM.HELP_SCROLL_MAX then
+        FSM.HELP_SCROLL_OFFSET = FSM.HELP_SCROLL_MAX
     end
 
     help_osd_1.data = col1_text
