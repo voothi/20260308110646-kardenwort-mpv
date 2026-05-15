@@ -1,8 +1,32 @@
-# Release Notes - v1.80.30 (Esc Matrix & Neutral Mode Hardening)
+# Release Notes - v1.82.0 (Dynamic Help HUD & Ergonomics Hardening)
 
-**Date**: 2026-05-14
-**Version**: v1.80.30
-**Implementation ZIDs**: 20260514210426, 20260514211945, 20260514212102, 20260514212859, 20260514213352, 20260514215435, 20260514215844, 20260514220703, 20260514221001, 20260514221900, 20260514222123, 20260514222214, 20260514231336
+**Date**: 2026-05-15
+**Version**: v1.82.0
+**Implementation ZIDs**: 20260515171837, 20260515164633, 20260515162114, 20260515161852, 20260515161613, 20260515160000, 20260515155658, 20260515155443, 20260515155213, 20260515153250, 20260515151037, 20260515150047, 20260515145456, 20260515144419, 20260515143924, 20260515142902, 20260515142344, 20260515141313, 20260515140544, 20260515134504, 20260515131824, 20260515130927, 20260515130607, 20260515124948, 20260515120605, 20260515113956, 20260515113246, 20260515112943, 20260515112649, 20260515111422, 20260515110649, 20260515110611, 20260515105210, 20260515104448, 20260515104304, 20260515104147, 20260515103953, 20260515103723, 20260515103126, 20260515095225, 20260515094638, 20260515094322, 20260515093804, 20260515092950, 20260515090418, 20260515085845, 20260515084231, 20260515083732, 20260515083353, 20260515083131, 20260515082849, 20260515082615, 20260515080409, 20260515080243
+
+## Highlights
+
+### 🛡️ **Hardened Dynamic Help HUD**
+- **Externalized Reference System**: Transitioned the Help HUD into a fully configuration-driven system. Key descriptions and layouts are now decoupled from the core logic, allowing for easier maintenance.
+- **Key Normalization Engine**: Implemented an automatic normalization engine that ensures professional "Shift+letter" notation (e.g., `Shift+A` instead of `A`) across all OSD help displays.
+- **UTF-8 Resilience (Cyrillic Fix)**: Resolved persistent "Kryakozyabra" artifacts (encoding errors) in Cyrillic shortcut rendering, ensuring 100% legibility for Russian-speaking users.
+- **Configurable Styling**: Externalized visual parameters (font size, colors, opacity) to `mpv.conf`, allowing users to theme the Help HUD to match their preferred aesthetic.
+
+### 📖 **Documentation & Ergonomics**
+- **README Synchronization**: Updated the canonical keybinding table to include previously undocumented immersion shortcuts:
+    - **`Backspace`**: Playback speed reset to 1.0.
+    - **`9` / `0`**: High-resolution volume adjustment.
+    - **`` ` ``**: Access to the mpv debug console.
+- **Search HUD Hardening**: Finalized the multi-line wrapping engine and relevance scoring for the Search HUD, ensuring exact matches and contiguous substrings are prioritized.
+
+### 🧪 **Milestone: 751 Acceptance Tests**
+- **Full Suite Pass**: Achieved a 100% pass rate across the entire repository (751 passed in 904.71s).
+- **HUD Reliability**: Added exhaustive coverage for the key-normalization engine and help-system externalization.
+- **Clipboard Integrity**: Validated the `SmartPaste` and multi-tap logic under high-latency stress tests.
+
+---
+
+# Release Notes - v1.80.30 (Esc Matrix & Neutral Mode Hardening)
 
 ## Highlights
 

@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.80.30-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.80.30) 
+[![Version](https://img.shields.io/badge/version-v1.82.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.0) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -29,6 +29,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Advanced Subtitle Workflow](#advanced-subtitle-workflow)
 - [Intelligent Scripts](#intelligent-scripts)
   - [Universal Subtitle Search](#universal-subtitle-search)
+  - [Dynamic Help HUD](#dynamic-help-hud)
   - [Adaptive Subtitle Replay & Looping](#adaptive-subtitle-replay--looping)
   - [Karaoke-Safe Autopause](#karaoke-safe-autopause)
   - [Drum Mode (Dynamic Multi-line Flow)](#drum-mode)
@@ -80,6 +81,13 @@ The Kardenwort MPV suite provides three primary interfaces for language acquisit
 | *High-performance navigation overlay (Ctrl+F) with dynamic multi-line wrapping.* | *Seamless synchronization with external dictionaries for deep word analysis via [gd-main.ahk](https://github.com/voothi/20240411110510-autohotkey#gd-mainahk).* |
 | | ![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png) |
 | | *Zero-latency "Popup" mode for rapid translation peeks without leaving the player.* |
+
+### 🛡️ Dynamic Help HUD
+
+| Dynamic Help HUD (F1) |
+| :--- |
+| ![Help HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.help-f1.png) |
+| *Live shortcut reference (F1) with automatic key normalization and dual-layout support.* |
 
 ### 🎤 Karaoke & High-Density Immersion
 
@@ -230,6 +238,16 @@ A high-performance navigation overlay that decouples content lookup from playbac
 | `HOME` / `END` | Jump cursor to start/end of query |
 | `ESC` | Discard query or close search |
 | `MBTN_LEFT` | Click result to seek and close search |
+
+### <span id="dynamic-help-hud"></span>Dynamic Help HUD
+
+![Help HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.help-f1.png)
+
+A fully externalized, configuration-driven reference system for all immersion shortcuts.
+- **Key Normalization**: Automatically formats shortcuts using professional "Shift+letter" notation.
+- **Layout Aware**: Synchronizes English and Russian keybindings in real-time, ensuring the help reference is always accurate regardless of active system layout.
+- **Configurable Aesthetics**: Supports full theming (colors, opacity, scaling) via `mpv.conf`.
+- **Toggle**: `F1` (English and Russian layouts).
 
 ### Adaptive Subtitle Replay & Looping
 A robust, mode-aware replay system designed to eliminate friction during continuous immersion.
@@ -783,7 +801,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2145 Commits (v1.80.30)
+- **Current Maturity**: ~2214 Commits (v1.82.0)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
