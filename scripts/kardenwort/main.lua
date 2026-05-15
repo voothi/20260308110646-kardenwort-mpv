@@ -7473,8 +7473,17 @@ local function get_keys_for_action(cmd_pattern, is_standard)
     
     for _, b in ipairs(bindings) do
         if cmd_pattern == "fullscreen" and b.key == "ESC" then goto continue end
+        
         if is_standard then
-            if b.key:find("MBTN") or b.key:find("WHEEL") or b.key:find("KP_") then goto continue end
+            local k = b.key:upper()
+            -- Block mouse, wheel, keypad, and multimedia keys
+            if k:find("MBTN") or k:find("WHEEL") or k:find("KP_") or k:find("VOLUME") or k:find("MUTE") then 
+                goto continue 
+            end
+            -- Block long system key names (except common ones)
+            if #k > 5 and k ~= "SPACE" and k ~= "ENTER" then 
+                goto continue 
+            end
         end
         
         if b.cmd:find(pattern) then
@@ -7492,7 +7501,7 @@ end
 local function truncate_keys(key_str, max_len)
     if #key_str <= max_len then return key_str end
     local truncated = key_str:sub(1, max_len - 3)
-    local last_sep = truncated:match(".*() | ")
+    local last_sep = truncated:match(".*() / ")
     if last_sep then
         return truncated:sub(1, last_sep - 1) .. "..."
     end
@@ -7586,7 +7595,7 @@ render_help = function()
             Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd, act.is_std)
-            local key_str = (#keys > 0) and table.concat(keys, " | ") or "Unbound"
+            local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
             key_str = truncate_keys(key_str, 40)
             
             local desc = act.desc
