@@ -7515,10 +7515,25 @@ local function get_keys_for_action(cmd_pattern, whitelist)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
     local seen = {}
-    
-    local pattern = cmd_pattern
-    if not pattern:find("%%") and not pattern:find("%.%*") and not pattern:find("%.%-") then
-        pattern = pattern:gsub("([%-%+%.%[%]%*%?])", "%%%1")
+
+    local function prepare_pattern(raw)
+        local p = raw
+        if not p:find("%%") and not p:find("%.%*") and not p:find("%.%-") then
+            p = p:gsub("([%-%+%.%[%]%*%?])", "%%%1")
+        end
+        return p
+    end
+
+    local function cmd_matches(binding_cmd)
+        if type(cmd_pattern) == "table" then
+            for _, raw in ipairs(cmd_pattern) do
+                local p = prepare_pattern(raw)
+                if binding_cmd:find(p) then return true end
+            end
+            return false
+        end
+        local p = prepare_pattern(cmd_pattern)
+        return binding_cmd:find(p) ~= nil
     end
     
     for _, b in ipairs(bindings) do
@@ -7535,11 +7550,11 @@ local function get_keys_for_action(cmd_pattern, whitelist)
         end
         
         -- Special case: skip ESC for fullscreen unless explicitly whitelisted
-        if (cmd_pattern == "fullscreen" or cmd_pattern == "cycle fullscreen") and k == "ESC" and (not whitelist or not whitelist["ESC"]) then 
+        if type(cmd_pattern) == "string" and (cmd_pattern == "fullscreen" or cmd_pattern == "cycle fullscreen") and k == "ESC" and (not whitelist or not whitelist["ESC"]) then 
             goto continue 
         end
         
-        if b.cmd:find(pattern) then
+        if cmd_matches(b.cmd) then
             if not seen[k] and k ~= "" and k ~= nil then
                 table.insert(keys, k)
                 seen[k] = true
@@ -7614,21 +7629,21 @@ local HELP_SCHEMA = {
     { category = "Drum Window: Actions", actions = {
         { desc = "DW Add (Yellow)", cmd = "dw%-add" },
         { desc = "DW Pair Toggle (Pink)", cmd = "dw%-pair" },
-        { desc = "DW Selection Click", cmd = "dw%-select" },
+        { desc = "DW Selection Click", cmd = "dw%-select$", whitelist = {["MBTN_LEFT"]=true} },
         { desc = "DW Copy Selection", cmd = "dw%-copy" },
-        { desc = "DW Seek Selected", cmd = "dw%-seek" },
+        { desc = "DW Seek Selected", cmd = "dw%-seek$" },
         { desc = "DW Esc / Reset", cmd = "dw%-esc", whitelist = {["ESC"]=true} },
-        { desc = "DW Tooltip Pin", cmd = "dw%-tooltip%-pin" },
+        { desc = "DW Tooltip Pin", cmd = "dw%-tooltip%-pin", whitelist = {["MBTN_RIGHT"]=true} },
         { desc = "DW Tooltip Hover", cmd = "dw%-tooltip%-hover" },
         { desc = "DW Tooltip Toggle", cmd = "dw%-tooltip%-toggle" },
     }},
     { category = "Drum Window: Navigation", actions = {
-        { desc = "DW Prev/Next Subtitle", cmd = "dw%-seek%-" },
-        { desc = "DW Word Jump Left/Right", cmd = "dw%-jump%-" },
+        { desc = "DW Prev/Next Subtitle", cmd = {"dw%-seek%-prev", "dw%-seek%-next"} },
+        { desc = "DW Word Jump Left/Right", cmd = {"dw%-jump%-left", "dw%-jump%-right"} },
         { desc = "DW Scroll Up/Down", cmd = "dw%-scroll%-" },
-        { desc = "DW Select Jump Up/Down", cmd = "dw%-jump%-select%-" },
-        { desc = "DW Select Left/Right", cmd = "dw%-select%-(left|right)" },
-        { desc = "DW Select Up/Down", cmd = "dw%-select%-(up|down)" },
+        { desc = "DW Select Jump Up/Down", cmd = {"dw%-jump%-select%-up", "dw%-jump%-select%-down"} },
+        { desc = "DW Select Left/Right", cmd = {"dw%-select%-left", "dw%-select%-right"} },
+        { desc = "DW Select Up/Down", cmd = {"dw%-select%-up", "dw%-select%-down"} },
         { desc = "DW Open Record", cmd = "dw%-open%-record" },
         { desc = "DW Cycle Copy Mode", cmd = "dw%-cycle%-copy%-mode" },
         { desc = "DW Toggle Copy Context", cmd = "dw%-toggle%-copy%-context" },

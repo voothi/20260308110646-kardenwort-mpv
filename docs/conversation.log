@@ -2213,5 +2213,8 @@
 20260515141537 It doesn’t fit, I rolled it back, look at the photo what we see, let’s work on the mistakes, we need to wrap lines instead of reducing the text or changing styles, mouse scrolling and UP/DOWN should also work in this mode.
 20260515142250 Scrolling does not work, the window has broken up into some rectangles.
 20260515143021 Scrolling does not work, not with the mouse wheel, nor with the UP DOWN keys on the keyboard. There is also a problem with an unnecessary square, a rectangle on the top left, how to reliably remove this artifact?
+20260515143919 Scrolling now works, we need to see if all the shortcuts are displayed correctly, there are problems with Unbound.
+
+
 
 
