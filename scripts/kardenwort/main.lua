@@ -7805,18 +7805,21 @@ render_help = function()
         return res .. "\\N", line_count + 1
     end
 
-    -- Split schema into pre-rendered blocks first so we can compute scroll bounds
+    -- Build blocks per category, then balance columns by estimated rendered line count.
     local col1_block, col2_block = "", ""
     local col1_lines, col2_lines = 0, 0
-    for i, cat in ipairs(HELP_SCHEMA) do
-        if i <= 3 then
-            local block, lines = format_category(cat)
-            col1_block = col1_block .. block
-            col1_lines = col1_lines + lines
+    local cat_blocks = {}
+    for _, cat in ipairs(HELP_SCHEMA) do
+        local block, lines = format_category(cat)
+        table.insert(cat_blocks, { block = block, lines = lines })
+    end
+    for _, cb in ipairs(cat_blocks) do
+        if col1_lines <= col2_lines then
+            col1_block = col1_block .. cb.block
+            col1_lines = col1_lines + cb.lines
         else
-            local block, lines = format_category(cat)
-            col2_block = col2_block .. block
-            col2_lines = col2_lines + lines
+            col2_block = col2_block .. cb.block
+            col2_lines = col2_lines + cb.lines
         end
     end
 
