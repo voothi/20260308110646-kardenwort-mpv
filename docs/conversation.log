@@ -2214,7 +2214,7 @@
 20260515142250 Scrolling does not work, the window has broken up into some rectangles.
 20260515143021 Scrolling does not work, not with the mouse wheel, nor with the UP DOWN keys on the keyboard. There is also a problem with an unnecessary square, a rectangle on the top left, how to reliably remove this artifact?
 20260515143919 Scrolling now works, we need to see if all the shortcuts are displayed correctly, there are problems with Unbound.
-
-
+20260515145044 Okay, but how to fill in and solve the problem with Unbound?
+20260515145251 Great point. I fixed `Unbound` in a reliable way: - Corrected DW action match patterns to real indexed binding names: - `dw-select-1`, `dw-seek-1`, `dw-esc-1` style. - Added fallback key sources from config options for those rows: - `Options.dw_key_select` - `Options.dw_key_seek` - `Options.dw_key_esc` So now, if runtime `input-bindings` is temporarily overridden (for example `ESC` while Help mode is active), Help still shows the configured key instead of `Unbound`. Updated file: - [main.lua](u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua) Validation: - Targeted tests passed: `10 passed`. If you want, next I can apply the same fallback mechanism to all DW rows, not just the three problematic ones, for full consistency.
 
 

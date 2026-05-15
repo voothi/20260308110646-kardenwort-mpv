@@ -7511,7 +7511,7 @@ local function normalize_key_display(k)
     return k
 end
 
-local function get_keys_for_action(cmd_pattern, whitelist)
+local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
     local seen = {}
@@ -7563,6 +7563,28 @@ local function get_keys_for_action(cmd_pattern, whitelist)
         ::continue::
     end
     
+    if #keys == 0 and fallback_keys then
+        local raw = fallback_keys
+        if type(raw) == "function" then raw = raw() end
+        if type(raw) == "string" and raw ~= "" then
+            local expanded = expand_ru_keys(raw, "help-fallback")
+            for _, k0 in ipairs(expanded) do
+                local k = normalize_key_display(k0)
+                if k and k ~= "" and not seen[k] then
+                    if whitelist then
+                        if whitelist[k] or whitelist[k:upper()] then
+                            table.insert(keys, k)
+                            seen[k] = true
+                        end
+                    else
+                        table.insert(keys, k)
+                        seen[k] = true
+                    end
+                end
+            end
+        end
+    end
+
     return keys
 end
 
@@ -7629,10 +7651,10 @@ local HELP_SCHEMA = {
     { category = "Drum Window: Actions", actions = {
         { desc = "DW Add (Yellow)", cmd = "dw%-add" },
         { desc = "DW Pair Toggle (Pink)", cmd = "dw%-pair" },
-        { desc = "DW Selection Click", cmd = "dw%-select$", whitelist = {["MBTN_LEFT"]=true} },
+        { desc = "DW Selection Click", cmd = "dw%-select%-%d+$", whitelist = {["MBTN_LEFT"]=true}, fallback_keys = function() return Options.dw_key_select end },
         { desc = "DW Copy Selection", cmd = "dw%-copy" },
-        { desc = "DW Seek Selected", cmd = "dw%-seek$" },
-        { desc = "DW Esc / Reset", cmd = "dw%-esc", whitelist = {["ESC"]=true} },
+        { desc = "DW Seek Selected", cmd = "dw%-seek%-%d+$", fallback_keys = function() return Options.dw_key_seek end },
+        { desc = "DW Esc / Reset", cmd = "dw%-esc%-%d+$", whitelist = {["ESC"]=true}, fallback_keys = function() return Options.dw_key_esc end },
         { desc = "DW Tooltip Pin", cmd = "dw%-tooltip%-pin", whitelist = {["MBTN_RIGHT"]=true} },
         { desc = "DW Tooltip Hover", cmd = "dw%-tooltip%-hover" },
         { desc = "DW Tooltip Toggle", cmd = "dw%-tooltip%-toggle" },
@@ -7759,7 +7781,7 @@ render_help = function()
         local key_wrap_chars = math.max(14, row_chars - desc_chars - 2)
         local key_wrap_cont = math.max(20, row_chars - desc_chars)
         for _, act in ipairs(cat.actions) do
-            local keys = get_keys_for_action(act.cmd, act.whitelist)
+            local keys = get_keys_for_action(act.cmd, act.whitelist, act.fallback_keys)
             local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
             -- Collapse multiple spaces into one and trim
             key_str = key_str:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
