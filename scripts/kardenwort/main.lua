@@ -7619,13 +7619,13 @@ end
 
 local HELP_SCHEMA = {
     { category = "Interface Modes", actions = {
-        { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
         { desc = "Toggle Drum Window (W)", cmd = "kardenwort/toggle-drum-window" },
-        { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
-        { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
+        { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
         { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
-        { desc = "Cycle Secondary Subtitle Track", cmd = "kardenwort/cycle-sec-sid" },
+        { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
         { desc = "Cycle Secondary Subtitle Position", cmd = "kardenwort/cycle-secondary-pos" },
+        { desc = "Cycle Secondary Subtitle Track", cmd = "kardenwort/cycle-sec-sid" },
+        { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
         { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
     }},
     { category = "Navigation", actions = {
@@ -7638,8 +7638,8 @@ local HELP_SCHEMA = {
         { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space", whitelist = {["SPACE"]=true} },
         { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
         { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
-        { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
         { desc = "Cycle Immersion Mode", cmd = "kardenwort/cycle-immersion-mode" },
+        { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
     }},
     { category = "Mining & Tools", actions = {
         { desc = "Copy Subtitle", cmd = "kardenwort/copy-subtitle" },
@@ -7651,8 +7651,8 @@ local HELP_SCHEMA = {
         { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
     }},
     { category = "Drum Window: Actions", actions = {
-        { desc = "DW Add (Yellow)", cmd = "dw%-add" },
         { desc = "DW Pair Toggle (Pink)", cmd = "dw%-pair" },
+        { desc = "DW Add (Yellow)", cmd = "dw%-add" },
         { desc = "DW Selection Click", cmd = "dw%-select%-%d+$", whitelist = {["MBTN_LEFT"]=true}, fallback_keys = function() return Options.dw_key_select end },
         { desc = "DW Copy Selection", cmd = "dw%-copy" },
         { desc = "DW Seek Selected", cmd = "dw%-seek%-%d+$", fallback_keys = function() return Options.dw_key_seek end },
