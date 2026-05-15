@@ -7473,6 +7473,11 @@ local function get_keys_for_action(cmd_pattern, whitelist)
     
     for _, b in ipairs(bindings) do
         local k = b.key
+        if k == nil or k == "" then goto continue end
+        
+        -- Global filter: Hide mouse/wheel unless explicitly whitelisted
+        local is_mouse = k:find("MBTN") or k:find("WHEEL")
+        if is_mouse and (not whitelist or not whitelist[k]) then goto continue end
         
         -- If a whitelist is provided, strictly filter keys
         if whitelist then
@@ -7508,7 +7513,7 @@ end
 
 local HELP_SCHEMA = {
     { category = "Immersion Features", actions = {
-        { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space" },
+        { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space", whitelist = {["SPACE"]=true} },
         { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
         { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
         { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
