@@ -7482,12 +7482,17 @@ local function get_keys_for_action(cmd_pattern, whitelist)
             end
         elseif #k == 2 then
             local b1, b2 = k:byte(1, 2)
-            if b1 == 208 and b2 >= 144 and b2 <= 175 then
-                -- Cyrillic А-Я (D0 90-AF) -> а-я (D0 B0-BF)
-                k = "Shift+" .. string.char(208, b2 + 32)
-            elseif b1 == 208 and b2 == 129 then
-                -- Cyrillic Ё (D0 81) -> ё (D1 91)
-                k = "Shift+" .. string.char(209, 145)
+            if b1 == 208 then
+                if b2 >= 144 and b2 <= 159 then
+                    -- Cyrillic А-П (D0 90-9F) -> а-п (D0 B0-BF)
+                    k = "Shift+" .. string.char(208, b2 + 32)
+                elseif b2 >= 160 and b2 <= 175 then
+                    -- Cyrillic Р-Я (D0 A0-AF) -> р-я (D1 80-8F)
+                    k = "Shift+" .. string.char(209, b2 - 32)
+                elseif b2 == 129 then
+                    -- Cyrillic Ё (D0 81) -> ё (D1 91)
+                    k = "Shift+" .. string.char(209, 145)
+                end
             end
         end
         
