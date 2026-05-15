@@ -7534,7 +7534,7 @@ local function get_keys_for_action(cmd_pattern, whitelist)
         end
         
         -- Special case: skip ESC for fullscreen unless explicitly whitelisted
-        if cmd_pattern == "fullscreen" and k == "ESC" and (not whitelist or not whitelist["ESC"]) then 
+        if (cmd_pattern == "fullscreen" or cmd_pattern == "cycle fullscreen") and k == "ESC" and (not whitelist or not whitelist["ESC"]) then 
             goto continue 
         end
         
@@ -7687,7 +7687,7 @@ render_help = function()
             local keys = get_keys_for_action(act.cmd, act.whitelist)
             local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
             -- Collapse multiple spaces into one and trim
-            key_str = key_str:gsub("%%s+", " "):gsub("^%%s+", ""):gsub("%%s+$", "")
+            key_str = key_str:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
             key_str = truncate_keys(key_str, Options.help_column_width)
             
             local desc = act.desc

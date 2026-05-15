@@ -630,12 +630,12 @@ The project uses a centralized configuration model. All core script behaviors ar
 | Parameter | Default | Description |
 |---|---|---|
 | `kardenwort-help_font_name` | `Consolas` | Font family for the Help reference. |
-| `kardenwort-help_font_size` | `28` | Text size for help descriptions. |
-| `kardenwort-help_text_color` | `FFFFFF` | Color for help descriptions (BGR Hex). |
+| `kardenwort-help_font_size` | `34` | Text size for help descriptions. |
+| `kardenwort-help_text_color` | `CCCCCC` | Color for help descriptions (BGR Hex). |
 | `kardenwort-help_key_color` | `00CCFF` | Color for shortcut keys (Gold BGR Hex). |
 | `kardenwort-help_bg_color` | `000000` | Background color for help overlay. |
-| `kardenwort-help_bg_opacity` | `A0` | Background transparency (ASS Hex 00-FF). |
-| `kardenwort-help_column_width` | `350` | Spacing between categories and columns. |
+| `kardenwort-help_bg_opacity` | `60` | Background transparency (ASS Hex 00-FF). |
+| `kardenwort-help_column_width` | `40` | Key text truncation threshold (characters). |
 
 #### **12. Detailed Key Mapping (Internal)**
 These parameters allow remapping internal script actions in `mpv.conf`. Values can be space, comma, or semicolon separated lists.
