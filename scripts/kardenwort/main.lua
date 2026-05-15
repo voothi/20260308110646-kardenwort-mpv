@@ -7599,6 +7599,8 @@ render_help = function()
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd, act.whitelist)
             local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
+            -- Collapse multiple spaces into one and trim
+            key_str = key_str:gsub("%%s+", " "):gsub("^%%s+", ""):gsub("%%s+$", "")
             key_str = truncate_keys(key_str, 40)
             
             local desc = act.desc
