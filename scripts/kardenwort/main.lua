@@ -7745,7 +7745,8 @@ cmd_toggle_help = function()
     render_help()
 end
 
-local function render_search()
+-- local function render_search
+render_search = function()
     if not FSM.SEARCH_MODE then
         search_osd.data = ""
         search_osd:update()
