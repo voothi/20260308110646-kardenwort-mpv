@@ -7745,7 +7745,7 @@ cmd_toggle_help = function()
     render_help()
 end
 
-render_search = function()
+local function render_search()
     if not FSM.SEARCH_MODE then
         search_osd.data = ""
         search_osd:update()
@@ -8668,7 +8668,7 @@ mp.add_key_binding(nil, "seek_time_backward", function() cmd_seek_time(-1) end, 
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 mp.add_key_binding(nil, "cycle-immersion-mode", cmd_cycle_immersion_mode)
-mp.add_key_binding("F1", "toggle-help", cmd_toggle_help)
+mp.add_key_binding(nil, "toggle-help", cmd_toggle_help)
 
 local function register_global_position_keys()
     local function bind(opt, name, fn)
