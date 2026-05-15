@@ -7475,6 +7475,11 @@ local function get_keys_for_action(cmd_pattern, whitelist)
         local k = b.key
         if k == nil or k == "" then goto continue end
         
+        -- Transform single uppercase characters to Shift+lowercase notation
+        if #k == 1 and k:upper() == k and k:lower() ~= k then
+            k = "Shift+" .. k:lower()
+        end
+        
         -- Global filter: Hide mouse/wheel unless explicitly whitelisted
         local is_mouse = k:find("MBTN") or k:find("WHEEL")
         if is_mouse and (not whitelist or not whitelist[k]) then goto continue end
