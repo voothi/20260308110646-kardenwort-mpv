@@ -2240,6 +2240,10 @@
 20260515164619 python -m pytest tests/ -v
 20260515171830 ================================================================================== 751 passed in 904.71s (0:15:04) ===================================================================================
 20260515174229 I need to build infrastructure, project build scripts. # Automate the deployment of the distribution for the user to attract enthusiasts to try.
+20260515174613 Scripts must be in Python. Артефакт вида 20260515174645-kardenwort-mpv...
 20260515175009 Implemented Python-based distribution automation with ZID-style artifacts: Added build script: scripts/deploy/build_distribution.py Creates a release ZIP in dist/ Default name format: YYYYMMDDHHMMSS-kardenwort-mpv.zip Includes only runtime payload (mpv.conf, input.conf, fonts.conf, anki-mapping.ini, scripts/, docs/license) Added deploy script: scripts/deploy/deploy_distribution.py --mode copy: deploys payload into target (default %APPDATA%\mpv) --mode junction: creates Windows junction via mklink /J Supports --force replacement safety Updated docs: README.md (line 776) Added Python build instructions Added deploy commands for both copy and junction modes Added artifact naming note with ZID pattern Validation note: I could not run Python commands in this environment due python.exe launch failure, so runtime verification is pending on your machine.
+20260515175431 Can you additionally prepare an archive with an mpv distribution, the path to which I can set through the config for this script and or in its header, in the parameters? C:\mpv\mpv-0.39.0-x86_64
+20260515175814 Will he take all the necessary files from here?
+20260515175915 Is it correct that we chose json instead of ini? In our project we get .conf, .ini, .json.
 
 

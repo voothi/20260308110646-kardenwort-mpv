@@ -782,6 +782,15 @@ python scripts/deploy/build_distribution.py
 The artifact is generated in `dist/` with this format:
 `YYYYMMDDHHMMSS-kardenwort-mpv.zip`
 
+Optional: bundle an mpv distribution inside the archive.
+- Default config file: `scripts/deploy/build_distribution.config.json`
+- Example path: `C:\mpv\mpv-0.39.0-x86_64`
+
+Force from CLI:
+```powershell
+python scripts/deploy/build_distribution.py --with-mpv-dist --mpv-dist-path "C:\mpv\mpv-0.39.0-x86_64"
+```
+
 ### 3. Integration Strategies
 To connect the suite with your `mpv` instance, use one of the following methods:
 
