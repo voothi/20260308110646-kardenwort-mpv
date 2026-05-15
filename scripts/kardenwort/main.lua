@@ -521,7 +521,7 @@ Options = {
     help_bg_opacity = "60",
     help_title_color = "00CCFF", -- Gold (BGR: 00CCFF | RGB: #FFCC00)
     help_text_color = "CCCCCC",  -- Gray
-    help_key_color = "FFFFFF",   -- White
+    help_key_color = "00CCFF",   -- Gold (BGR: 00CCFF | RGB: #FFCC00)
     help_column_width = 40,
 }
 options.read_options(Options, "kardenwort")
