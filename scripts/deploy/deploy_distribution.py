@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Deploy kardenwort-mpv payload into mpv config directory.
+
+OS compatibility:
+    Windows 11 (validated target). Junction mode depends on Windows `mklink /J`.
 """
 
 from __future__ import annotations

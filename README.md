@@ -47,6 +47,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Repository Structure](#repository-structure)
 - [Testing](#testing)
 - [Installation](#installation)
+  - [Automated Distribution Build (Python)](#2-automated-distribution-build-python)
 - [Development Analytics](#development-analytics)
 - [License](#license)
 ---
@@ -774,13 +775,16 @@ Choose a permanent directory for the suite (e.g., `U:\voothi\20260308110646-kard
     ```
 
 ### 2. Automated Distribution Build (Python)
-Build a shareable artifact with an auto-ZID filename:
+Build shareable artifacts with an auto-ZID filename:
 ```powershell
 python scripts/deploy/build_distribution.py
 ```
 
-The artifact is generated in `dist/` with this format:
-`YYYYMMDDHHMMSS-kardenwort-mpv.zip`
+OS suitability: **Windows 11** is the primary validated target for these deployment scripts.
+
+Two archives are generated in `dist/`:
+- `YYYYMMDDHHMMSS-kardenwort-mpv-lite.zip` (without mpv distribution)
+- `YYYYMMDDHHMMSS-kardenwort-mpv-full-windows-x64.zip` (with mpv distribution and `mpv.exe`)
 
 Optional: bundle an mpv distribution inside the archive.
 - Default config file: `scripts/deploy/build_distribution.config.json`

@@ -2245,5 +2245,7 @@
 20260515175431 Can you additionally prepare an archive with an mpv distribution, the path to which I can set through the config for this script and or in its header, in the parameters? C:\mpv\mpv-0.39.0-x86_64
 20260515175814 Will he take all the necessary files from here?
 20260515175915 Is it correct that we chose json instead of ini? In our project we get .conf, .ini, .json.
-
-
+20260515180217 Add a link to TOC ### 2. Automated Distribution Build (Python)
+20260515180421 I need to create 2 archives separately, in any case, the archive without mpv.exe and with it.
+20260515180552 The development should also indicate which OS is suitable for.
+20260515180740 Here, you must clearly indicate the OS in the name of the archive with mpv.exe. Apply best practices.

@@ -2,8 +2,13 @@
 """
 Build a distributable archive for kardenwort-mpv.
 
+OS compatibility:
+    Primary/validated target: Windows 11.
+    Archive creation itself is cross-platform, but the bundled mpv path defaults to Windows.
+
 Default artifact format:
-    YYYYMMDDHHMMSS-kardenwort-mpv.zip
+    YYYYMMDDHHMMSS-kardenwort-mpv-lite.zip
+    YYYYMMDDHHMMSS-kardenwort-mpv-full-windows-x64.zip
 """
 
 from __future__ import annotations
@@ -125,16 +130,13 @@ def copy_mpv_distribution(staging_root: Path, payload_dirname: str, mpv_dist_pat
     shutil.copytree(mpv_dist_path, target, dirs_exist_ok=True)
 
 
-def main() -> int:
-    args = parse_args()
-    project_root = args.project_root.resolve()
-    output_dir = args.output_dir.resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    include_mpv_dist, mpv_dist_path = resolve_mpv_options(args)
-
-    zid = current_zid()
-    artifact_stem = args.artifact_name or f"{zid}-{ARTIFACT_SUFFIX}"
-
+def build_archive(
+    project_root: Path,
+    output_dir: Path,
+    artifact_stem: str,
+    include_mpv_dist: bool,
+    mpv_dist_path: Path,
+) -> str:
     with tempfile.TemporaryDirectory(prefix="kardenwort-build-") as temp_dir:
         staging_root = Path(temp_dir)
         copy_payload(project_root, staging_root, artifact_stem)
@@ -142,8 +144,38 @@ def main() -> int:
             copy_mpv_distribution(staging_root, artifact_stem, mpv_dist_path)
         archive_base = output_dir / artifact_stem
         archive_path = shutil.make_archive(str(archive_base), "zip", root_dir=staging_root)
+    return archive_path
 
-    print(archive_path)
+
+def main() -> int:
+    args = parse_args()
+    project_root = args.project_root.resolve()
+    output_dir = args.output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _include_mpv_dist, mpv_dist_path = resolve_mpv_options(args)
+
+    zid = current_zid()
+    artifact_base = args.artifact_name or f"{zid}-{ARTIFACT_SUFFIX}"
+    lite_stem = f"{artifact_base}-lite"
+    full_stem = f"{artifact_base}-full-windows-x64"
+
+    lite_archive = build_archive(
+        project_root=project_root,
+        output_dir=output_dir,
+        artifact_stem=lite_stem,
+        include_mpv_dist=False,
+        mpv_dist_path=mpv_dist_path,
+    )
+    full_archive = build_archive(
+        project_root=project_root,
+        output_dir=output_dir,
+        artifact_stem=full_stem,
+        include_mpv_dist=True,
+        mpv_dist_path=mpv_dist_path,
+    )
+
+    print(lite_archive)
+    print(full_archive)
     return 0
 
 
