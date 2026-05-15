@@ -7740,7 +7740,7 @@ cmd_toggle_help = function()
         }
         mp.set_key_bindings(help_keys, "help-keymap", "force")
     else
-        mp.set_key_bindings(nil, "help-keymap")
+        mp.set_key_bindings({}, "help-keymap")
     end
     render_help()
 end
@@ -9215,4 +9215,11 @@ end)
 mp.register_script_message("test-normalize-key-display", function(key)
     local normalized = normalize_key_display(key)
     mp.set_property("user-data/kardenwort/test_normalization", normalized)
+end)
+
+mp.register_script_message("test-help-toggle", function()
+    local ok, err = pcall(cmd_toggle_help)
+    mp.set_property("user-data/kardenwort/test_help_toggle_ok", ok and "1" or "0")
+    mp.set_property("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
+    mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
 end)
