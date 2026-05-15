@@ -9210,3 +9210,8 @@ mp.register_script_message("test-export-selection", function()
     dw_anki_export_selection()
 end)
 
+
+mp.register_script_message("test-normalize-key-display", function(key)
+    local normalized = normalize_key_display(key)
+    mp.set_property("user-data/kardenwort/test_normalization", normalized)
+end)
