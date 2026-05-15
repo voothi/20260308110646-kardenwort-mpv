@@ -512,7 +512,17 @@ Options = {
     seek_msg_format = "%p%v",
     seek_msg_cumulative_format = "%P%V",
     replay_msg_format = "Replay: %mms%x",
-    replay_on_msg_format = "Replaying segment: %mms%x"
+    replay_on_msg_format = "Replaying segment: %mms%x",
+
+    -- Help HUD Styling
+    help_font_name = "Consolas",
+    help_font_size = 34,
+    help_bg_color = "000000",
+    help_bg_opacity = "60",
+    help_title_color = "00CCFF", -- Gold (BGR: 00CCFF | RGB: #FFCC00)
+    help_text_color = "CCCCCC",  -- Gray
+    help_key_color = "FFFFFF",   -- White
+    help_column_width = 40,
 }
 options.read_options(Options, "kardenwort")
 
@@ -7588,6 +7598,44 @@ local HELP_SCHEMA = {
     }}
 }
 
+local function load_help_overrides()
+    local path = mp.get_property("input-conf-path")
+    if not path or path == "" then return end
+    
+    local f = io.open(path, "r")
+    if not f then return end
+    
+    for line in f:lines() do
+        -- Pattern: # @help: cmd_pattern | description | optional_whitelist
+        local pattern, desc, wl_str = line:match("^#%s*@help:%s*([^|]+)%s*|%s*([^|]+)%s*|?%s*(.*)")
+        if pattern then
+            pattern = pattern:gsub("%s+$", ""):gsub("^%s+", "")
+            desc = desc:gsub("%s+$", ""):gsub("^%s+", "")
+            
+            -- Search for matching action in the schema to override
+            for _, cat in ipairs(HELP_SCHEMA) do
+                for _, act in ipairs(cat.actions) do
+                    if act.cmd == pattern then
+                        act.desc = desc
+                        if wl_str and wl_str ~= "" then
+                            act.whitelist = {}
+                            for key in wl_str:gmatch("[^,%s]+") do
+                                act.whitelist[key] = true
+                                act.whitelist[key:upper()] = true
+                            end
+                        end
+                        goto next_line
+                    end
+                end
+            end
+        end
+        ::next_line::
+    end
+    f:close()
+end
+
+load_help_overrides()
+
 local function help_scroll(direction)
     if not FSM.HELP_MODE then return end
     FSM.HELP_SCROLL_OFFSET = math.max(0, FSM.HELP_SCROLL_OFFSET + (direction * Options.dw_font_size * 1.5))
@@ -7614,7 +7662,7 @@ render_help = function()
     -- Overlay 1: Background Box
     local ass_bg = ""
     ass_bg = ass_bg .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
-    ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
+    ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
     ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
     help_osd_bg.data = ass_bg
     help_osd_bg:update()
@@ -7622,7 +7670,7 @@ render_help = function()
     -- Overlay 2: Title
     local ass_title = ""
     ass_title = ass_title .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}", 
-        rx/2, ry/2 - box_h/2 + 40, Options.dw_font_name, Options.dw_font_size * 1.2, Options.dw_highlight_color)
+        rx/2, ry/2 - box_h/2 + 40, Options.help_font_name, Options.help_font_size * 1.2, Options.help_title_color)
     help_osd_title.data = ass_title
     help_osd_title:update()
     
@@ -7634,19 +7682,19 @@ render_help = function()
     -- Column Content Helper
     local function format_category(cat)
         local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
-            Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
+            Options.help_title_color, Options.help_font_size * 0.9, cat.category:upper(), Options.help_font_size * 0.8)
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd, act.whitelist)
             local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
             -- Collapse multiple spaces into one and trim
             key_str = key_str:gsub("%%s+", " "):gsub("^%%s+", ""):gsub("%%s+$", "")
-            key_str = truncate_keys(key_str, 40)
+            key_str = truncate_keys(key_str, Options.help_column_width)
             
             local desc = act.desc
             local padding = ""
             for j=1, (28 - #desc) do padding = padding .. "\\h" end
             
-            res = res .. string.format("{\\1c&HFFFFFF&}%s%s{\\1c&H%s&}%s\\N", desc, padding, Options.dw_highlight_color, key_str)
+            res = res .. string.format("{\\1c&H%s&}%s%s{\\1c&H%s&}%s\\N", Options.help_text_color, desc, padding, Options.help_key_color, key_str)
         end
         return res .. "\\N"
     end
@@ -7656,8 +7704,8 @@ render_help = function()
     local col2_x = rx/2 + 60
     local start_y = clip_y1 + 10 - FSM.HELP_SCROLL_OFFSET
     
-    local col1_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col1_x, start_y, clip_tag, Options.dw_font_name, Options.dw_font_size * 0.8)
-    local col2_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col2_x, start_y, clip_tag, Options.dw_font_name, Options.dw_font_size * 0.8)
+    local col1_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col1_x, start_y, clip_tag, Options.help_font_name, Options.help_font_size * 0.8)
+    local col2_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col2_x, start_y, clip_tag, Options.help_font_name, Options.help_font_size * 0.8)
     
     -- Logic to divide categories (simplified: first 3 left, rest right)
     for i, cat in ipairs(HELP_SCHEMA) do
