@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -147,6 +148,29 @@ def build_archive(
     return archive_path
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_hash_manifest(output_dir: Path, artifact_paths: list[Path], zid: str) -> Path:
+    manifest_path = output_dir / f"{zid}-{ARTIFACT_SUFFIX}-sha256.txt"
+    lines: list[str] = []
+    for artifact_path in artifact_paths:
+        lines.append(f"{sha256_file(artifact_path)} *{artifact_path.name}")
+    manifest_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return manifest_path
+
+
+def write_sidecar_hash_file(artifact_path: Path) -> Path:
+    sidecar_path = artifact_path.with_name(f"{artifact_path.name}.sha256")
+    sidecar_path.write_text(f"{sha256_file(artifact_path)} *{artifact_path.name}\n", encoding="utf-8")
+    return sidecar_path
+
+
 def main() -> int:
     args = parse_args()
     project_root = args.project_root.resolve()
@@ -174,8 +198,17 @@ def main() -> int:
         mpv_dist_path=mpv_dist_path,
     )
 
-    print(lite_archive)
-    print(full_archive)
+    lite_archive_path = Path(lite_archive)
+    full_archive_path = Path(full_archive)
+    manifest_path = write_hash_manifest(output_dir, [lite_archive_path, full_archive_path], zid)
+    lite_sidecar = write_sidecar_hash_file(lite_archive_path)
+    full_sidecar = write_sidecar_hash_file(full_archive_path)
+
+    print(lite_archive_path)
+    print(full_archive_path)
+    print(manifest_path)
+    print(lite_sidecar)
+    print(full_sidecar)
     return 0
 
 

@@ -2249,3 +2249,8 @@
 20260515180421 I need to create 2 archives separately, in any case, the archive without mpv.exe and with it.
 20260515180552 The development should also indicate which OS is suitable for.
 20260515180740 Here, you must clearly indicate the OS in the name of the archive with mpv.exe. Apply best practices.
+20260515181401 Can you also create your own hash prints for each file to check the archive?
+20260515181818 I need to shape like this scratch\20260515181149-kardenwort-mpv-full-windows-x64.zip.sha256
+
+
+

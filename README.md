@@ -784,7 +784,21 @@ OS suitability: **Windows 11** is the primary validated target for these deploym
 
 Two archives are generated in `dist/`:
 - `YYYYMMDDHHMMSS-kardenwort-mpv-lite.zip` (without mpv distribution)
-- `YYYYMMDDHHMMSS-kardenwort-mpv-full-windows-x64.zip` (with mpv distribution and `mpv.exe`)
+- `YYYYMMDDHHMMSS-kardenwort-mpv-full-windows11-x64.zip` (with mpv distribution and `mpv.exe`)
+
+A hash manifest is also generated:
+- `YYYYMMDDHHMMSS-kardenwort-mpv-sha256.txt`
+
+Per-archive sidecar hashes are generated in the exact form:
+- `YYYYMMDDHHMMSS-kardenwort-mpv-lite.zip.sha256`
+- `YYYYMMDDHHMMSS-kardenwort-mpv-full-windows11-x64.zip.sha256`
+
+Verify integrity in PowerShell:
+```powershell
+Get-FileHash .\dist\20260515123456-kardenwort-mpv-lite.zip -Algorithm SHA256
+Get-FileHash .\dist\20260515123456-kardenwort-mpv-full-windows11-x64.zip -Algorithm SHA256
+Get-Content .\dist\20260515123456-kardenwort-mpv-sha256.txt
+```
 
 Optional: bundle an mpv distribution inside the archive.
 - Default config file: `scripts/deploy/build_distribution.config.json`
