@@ -7466,18 +7466,16 @@ local function get_keys_for_action(cmd_pattern)
     local keys = {}
     local seen = {}
     
-    -- Escape special Lua pattern characters
-    local pattern = cmd_pattern:gsub("([%-%+%.%[%]%*%?])", "%%%1")
+    -- Escape special characters but allow wildcard patterns if already present
+    local pattern = cmd_pattern
+    if not pattern:find("%%") and not pattern:find("%.%*") and not pattern:find("%.%-") then
+        pattern = pattern:gsub("([%-%+%.%[%]%*%?])", "%%%1")
+    end
     
     for _, b in ipairs(bindings) do
-        -- Filter out ESC from fullscreen (usually 'set fullscreen no' in mpv)
         if cmd_pattern == "fullscreen" and b.key == "ESC" then goto continue end
         
         if b.cmd:find(pattern) then
-            -- Prefer keyboard keys over mouse buttons in help list, unless it's a mouse action
-            local is_mouse = b.key:find("MBTN") or b.key:find("WHEEL")
-            if is_mouse and #keys > 0 then goto continue end
-
             if not seen[b.key] then
                 table.insert(keys, b.key)
                 seen[b.key] = true
@@ -7486,17 +7484,29 @@ local function get_keys_for_action(cmd_pattern)
         ::continue::
     end
     
-    -- Fallback: if we filtered too much, try again without mouse filtering
-    if #keys == 0 then
-        for _, b in ipairs(bindings) do
-            if b.cmd:find(pattern) and not seen[b.key] then
-                table.insert(keys, b.key)
-                seen[b.key] = true
-            end
+    -- Filter and prioritize
+    local prioritized = {}
+    local kp_keys = {}
+    for _, k in ipairs(keys) do
+        if k:find("KP_") then
+            table.insert(kp_keys, k)
+        else
+            table.insert(prioritized, k)
         end
     end
     
-    return keys
+    -- Merge, but limit total keys to keep UI clean
+    for _, k in ipairs(kp_keys) do
+        if #prioritized < 5 then table.insert(prioritized, k) end
+    end
+    
+    if #prioritized > 5 then
+        local truncated_list = {}
+        for i=1, 5 do table.insert(truncated_list, prioritized[i]) end
+        return truncated_list
+    end
+    
+    return prioritized
 end
 
 local function truncate_keys(key_str, max_len)
@@ -7539,10 +7549,10 @@ local HELP_SCHEMA = {
         { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
     }},
     { category = "Standard Controls", actions = {
-        { desc = "Adjust Volume", cmd = "volume" },
+        { desc = "Adjust Volume", cmd = "add volume" },
         { desc = "Adjust Playback Speed", cmd = "speed" },
         { desc = "Frame Step Fwd/Back", cmd = "frame.*step" },
-        { desc = "Toggle Fullscreen", cmd = "fullscreen" },
+        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen" },
         { desc = "Debug Console", cmd = "console/enable" },
     }}
 }
