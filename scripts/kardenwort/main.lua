@@ -7461,6 +7461,45 @@ end
 -- HELP HUD FEATURE (F1)
 -- =========================================================================
 
+local function normalize_key_display(k)
+    if k == nil or k == "" then return k end
+    local parts = {}
+    for p in k:gmatch("[^+]+") do table.insert(parts, p) end
+    
+    local last = parts[#parts]
+    local lower = nil
+    
+    if #last == 1 then
+        if last:upper() == last and last:lower() ~= last then
+            lower = last:lower()
+        end
+    elseif #last == 2 then
+        local b1, b2 = last:byte(1, 2)
+        if b1 == 208 then
+            if b2 >= 144 and b2 <= 159 then
+                lower = string.char(208, b2 + 32)
+            elseif b2 >= 160 and b2 <= 175 then
+                lower = string.char(209, b2 - 32)
+            elseif b2 == 129 then
+                lower = string.char(209, 145)
+            end
+        end
+    end
+    
+    if lower then
+        local has_shift = false
+        for i=1, #parts-1 do
+            if parts[i]:lower() == "shift" then has_shift = true break end
+        end
+        if not has_shift then
+            table.insert(parts, #parts, "Shift")
+        end
+        parts[#parts] = lower
+        return table.concat(parts, "+")
+    end
+    return k
+end
+
 local function get_keys_for_action(cmd_pattern, whitelist)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
@@ -7472,29 +7511,8 @@ local function get_keys_for_action(cmd_pattern, whitelist)
     end
     
     for _, b in ipairs(bindings) do
-        local k = b.key
+        local k = normalize_key_display(b.key)
         if k == nil or k == "" then goto continue end
-        
-        -- Transform single characters to Shift+lowercase notation (Cyrillic aware)
-        if #k == 1 then
-            if k:upper() == k and k:lower() ~= k then
-                k = "Shift+" .. k:lower()
-            end
-        elseif #k == 2 then
-            local b1, b2 = k:byte(1, 2)
-            if b1 == 208 then
-                if b2 >= 144 and b2 <= 159 then
-                    -- Cyrillic А-П (D0 90-9F) -> а-п (D0 B0-BF)
-                    k = "Shift+" .. string.char(208, b2 + 32)
-                elseif b2 >= 160 and b2 <= 175 then
-                    -- Cyrillic Р-Я (D0 A0-AF) -> р-я (D1 80-8F)
-                    k = "Shift+" .. string.char(209, b2 - 32)
-                elseif b2 == 129 then
-                    -- Cyrillic Ё (D0 81) -> ё (D1 91)
-                    k = "Shift+" .. string.char(209, 145)
-                end
-            end
-        end
         
         -- Global filter: Hide mouse/wheel unless explicitly whitelisted
         local is_mouse = k:find("MBTN") or k:find("WHEEL")
