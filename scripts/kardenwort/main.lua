@@ -7449,8 +7449,11 @@ local function get_keys_for_action(cmd_pattern)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
     local seen = {}
+    -- Escape hyphen for Lua pattern matching
+    local pattern = cmd_pattern:gsub("%-", "%%-")
+    
     for _, b in ipairs(bindings) do
-        if b.cmd:find(cmd_pattern) then
+        if b.cmd:find(pattern) then
             if not seen[b.key] then
                 table.insert(keys, b.key)
                 seen[b.key] = true
@@ -7461,12 +7464,12 @@ local function get_keys_for_action(cmd_pattern)
 end
 
 local HELP_SCHEMA = {
-    { category = "Playback & Features", actions = {
-        { desc = "Smart Space (Hold=Play, Tap=P)", cmd = "kardenwort/smart-space" },
+    { category = "Immersion Features", actions = {
+        { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space" },
         { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
         { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
         { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
-        { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
+        { desc = "Cycle Immersion Mode", cmd = "kardenwort/cycle-immersion-mode" },
     }},
     { category = "Navigation", actions = {
         { desc = "Previous Subtitle", cmd = "kardenwort/seek_prev" },
@@ -7474,25 +7477,28 @@ local HELP_SCHEMA = {
         { desc = "Seek Backward (2s)", cmd = "kardenwort/seek_time_backward" },
         { desc = "Seek Forward (2s)", cmd = "kardenwort/seek_time_forward" },
     }},
-    { category = "Drum & Reading Mode", actions = {
+    { category = "Interface Modes", actions = {
         { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
-        { desc = "Toggle Drum Window (Static)", cmd = "kardenwort/toggle-drum-window" },
+        { desc = "Toggle Drum Window (W)", cmd = "kardenwort/toggle-drum-window" },
         { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
         { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
-        { desc = "Cycle Secondary Position", cmd = "kardenwort/cycle-secondary-pos" },
+        { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
+        { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
     }},
     { category = "Mining & Tools", actions = {
         { desc = "Copy Subtitle", cmd = "kardenwort/copy-subtitle" },
+        { desc = "Cycle Copy Mode (A/B)", cmd = "kardenwort/cycle-copy-mode" },
+        { desc = "Toggle Context Copy", cmd = "kardenwort/toggle-copy-context" },
         { desc = "Open Record (TSV) File", cmd = "kardenwort/toggle-record-file" },
         { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
-        { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
     }},
-    { category = "MPV Standard", actions = {
+    { category = "Standard Controls", actions = {
         { desc = "Adjust Volume", cmd = "add volume" },
         { desc = "Adjust Playback Speed", cmd = "multiply speed" },
         { desc = "Reset Playback Speed", cmd = "set speed 1.0" },
         { desc = "Frame Step Fwd/Back", cmd = "frame%-step" },
         { desc = "Toggle Fullscreen", cmd = "cycle fullscreen" },
+        { desc = "Debug Console", cmd = "console/enable" },
     }}
 }
 
@@ -7503,55 +7509,67 @@ render_help = function()
         return
     end
 
-    local ass = ""
     local ry = Options.font_base_height
     local rx = math.floor(ry * 16 / 9)
     
-    -- Background Box
+    local ass = ""
+    -- Background Box (Dark Blur-ish Overlay)
     ass = ass .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
     ass = ass .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
-    ass = ass .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", rx * 0.8, rx * 0.8, ry * 0.8, ry * 0.8)
+    local box_w, box_h = rx * 0.9, ry * 0.85
+    ass = ass .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
     
-    -- Text Start
-    local content = ""
-    content = content .. string.format("{\\an8}{\\pos(%d,%d)}", rx/2, ry/2 - ry*0.35)
-    content = content .. string.format("{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT HELP{\\b0}\\N\\N", Options.dw_font_name, Options.dw_font_size * 1.2, Options.dw_highlight_color)
+    -- Title
+    ass = ass .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}\\N\\N", 
+        rx/2, ry/2 - box_h/2 + 40, Options.dw_font_name, Options.dw_font_size * 1.2, Options.dw_highlight_color)
     
-    local col_width = rx * 0.35
-    local start_y = ry/2 - ry*0.25
-    local current_x = rx/2 - rx*0.38
-    local current_y = start_y
+    -- Columns
+    local col_count = 2
+    local col_w = box_w / col_count
+    local start_x = rx/2 - box_w/2 + 40
+    local start_y = ry/2 - box_h/2 + 120
     
-    local items_per_col = 15
-    local count = 0
+    local cur_x, cur_y = start_x, start_y
+    local line_h = Options.dw_font_size * 1.0
     
-    for _, cat in ipairs(HELP_SCHEMA) do
-        content = content .. string.format("{\\an7}{\\pos(%d,%d)}{\\fs%d}{\\b1}{\\1c&H%s&}%s{\\b0}\\N", current_x, current_y, Options.dw_font_size * 0.9, Options.dw_highlight_color, cat.category:upper())
-        current_y = current_y + Options.dw_font_size * 1.2
+    for i, cat in ipairs(HELP_SCHEMA) do
+        -- Category Header
+        ass = ass .. string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}%s{\\b0}\\N", 
+            cur_x, cur_y, Options.dw_font_name, Options.dw_font_size * 0.9, Options.dw_highlight_color, cat.category:upper())
+        cur_y = cur_y + line_h * 1.2
         
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd)
             local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
             
-            content = content .. string.format("{\\an7}{\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%-25s {\\1c&H%s&}%s\\N", 
-                current_x, current_y, Options.dw_font_size * 0.8, act.desc, Options.dw_highlight_color, key_str)
+            -- Truncate key_str if it's too long (mostly for standard mpv volume/speed keys)
+            if #key_str > 45 then
+                key_str = key_str:sub(1, 42) .. "..."
+            end
             
-            current_y = current_y + Options.dw_font_size * 1.0
-            count = count + 1
+            -- Description (Fixed width padding with non-breaking spaces)
+            local desc_padded = act.desc
+            while #desc_padded < 30 do desc_padded = desc_padded .. " " end
             
-            if current_y > ry/2 + ry*0.35 then
-                current_x = current_x + col_width
-                current_y = start_y
+            ass = ass .. string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\1c&HFFFFFF&}%s {\\1c&H%s&}%s\\N", 
+                cur_x, cur_y, Options.dw_font_name, Options.dw_font_size * 0.8, desc_padded, Options.dw_highlight_color, key_str)
+            
+            cur_y = cur_y + line_h
+            
+            -- Column wrap logic
+            if cur_y > ry/2 + box_h/2 - 60 then
+                cur_x = cur_x + col_w
+                cur_y = start_y
             end
         end
-        current_y = current_y + Options.dw_font_size * 0.5 -- Gap between categories
-        if current_y > ry/2 + ry*0.35 then
-            current_x = current_x + col_width
-            current_y = start_y
+        cur_y = cur_y + line_h * 0.5
+        if cur_y > ry/2 + box_h/2 - 60 then
+            cur_x = cur_x + col_w
+            cur_y = start_y
         end
     end
     
-    help_osd.data = content
+    help_osd.data = ass
     help_osd:update()
 end
 
