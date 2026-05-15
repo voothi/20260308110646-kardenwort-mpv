@@ -2209,6 +2209,7 @@
 20260515134459 ================================================================================== 750 passed in 906.75s (0:15:06) ===================================================================================
 20260515140602 Do I have all the keyboard shortcuts in the help? It feels like we took only those in input.conf and did not take into account mpv.conf.
 20260515140851 Add the remaining combinations consistently.
+20260515141224 Look at what happened, there is a second rectangle that has appeared at the bottom right, and also the text does not fit.
 
 
 
