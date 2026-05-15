@@ -7461,12 +7461,11 @@ end
 -- HELP HUD FEATURE (F1)
 -- =========================================================================
 
-local function get_keys_for_action(cmd_pattern)
+local function get_keys_for_action(cmd_pattern, is_standard)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
     local seen = {}
     
-    -- Escape special characters but allow wildcard patterns if already present
     local pattern = cmd_pattern
     if not pattern:find("%%") and not pattern:find("%.%*") and not pattern:find("%.%-") then
         pattern = pattern:gsub("([%-%+%.%[%]%*%?])", "%%%1")
@@ -7474,6 +7473,9 @@ local function get_keys_for_action(cmd_pattern)
     
     for _, b in ipairs(bindings) do
         if cmd_pattern == "fullscreen" and b.key == "ESC" then goto continue end
+        if is_standard then
+            if b.key:find("MBTN") or b.key:find("WHEEL") or b.key:find("KP_") then goto continue end
+        end
         
         if b.cmd:find(pattern) then
             if not seen[b.key] then
@@ -7484,35 +7486,13 @@ local function get_keys_for_action(cmd_pattern)
         ::continue::
     end
     
-    -- Filter and prioritize
-    local prioritized = {}
-    local kp_keys = {}
-    for _, k in ipairs(keys) do
-        if k:find("KP_") then
-            table.insert(kp_keys, k)
-        else
-            table.insert(prioritized, k)
-        end
-    end
-    
-    -- Merge, but limit total keys to keep UI clean
-    for _, k in ipairs(kp_keys) do
-        if #prioritized < 5 then table.insert(prioritized, k) end
-    end
-    
-    if #prioritized > 5 then
-        local truncated_list = {}
-        for i=1, 5 do table.insert(truncated_list, prioritized[i]) end
-        return truncated_list
-    end
-    
-    return prioritized
+    return keys
 end
 
 local function truncate_keys(key_str, max_len)
     if #key_str <= max_len then return key_str end
     local truncated = key_str:sub(1, max_len - 3)
-    local last_sep = truncated:match(".*(), ")
+    local last_sep = truncated:match(".*() | ")
     if last_sep then
         return truncated:sub(1, last_sep - 1) .. "..."
     end
@@ -7549,11 +7529,11 @@ local HELP_SCHEMA = {
         { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
     }},
     { category = "Standard Controls", actions = {
-        { desc = "Adjust Volume", cmd = "add volume" },
-        { desc = "Adjust Playback Speed", cmd = "speed" },
-        { desc = "Frame Step Fwd/Back", cmd = "frame.*step" },
-        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen" },
-        { desc = "Debug Console", cmd = "console/enable" },
+        { desc = "Adjust Volume", cmd = "volume", is_std = true },
+        { desc = "Adjust Playback Speed", cmd = "speed", is_std = true },
+        { desc = "Frame Step Fwd/Back", cmd = "frame.*step", is_std = true },
+        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen", is_std = true },
+        { desc = "Debug Console", cmd = "console/enable", is_std = true },
     }}
 }
 
@@ -7605,9 +7585,9 @@ render_help = function()
         local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
             Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
         for _, act in ipairs(cat.actions) do
-            local keys = get_keys_for_action(act.cmd)
-            local key_str = (#keys > 0) and table.concat(keys, ", ") or "Unbound"
-            key_str = truncate_keys(key_str, 35)
+            local keys = get_keys_for_action(act.cmd, act.is_std)
+            local key_str = (#keys > 0) and table.concat(keys, " | ") or "Unbound"
+            key_str = truncate_keys(key_str, 40)
             
             local desc = act.desc
             local padding = ""
