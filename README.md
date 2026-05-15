@@ -384,7 +384,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `a` / `d` | `ф` / `в` | **Seek** to prev/next subtitle (with cyclic wrap-around) |
 | `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** |
 | `1` / `2` | `1` / `2` | Decrease / Increase **Contrast** |
-| `~` / `ё` | `~` / `ё` | **Quit** |
+| `` ` `` / `~` | `ё` / `Ё` | **Debug Console** / **Quit** |
 | `Q` / `Й` | `Q` / `Й` | Cycle **Copy Mode** (Drum Window) |
 | `W` / `Ц` | `W` / `Ц` | Toggle **Context Copy** (Drum Window) |
 | `E` / `У` | `E` / `У` | Toggle **Hover Tooltips** (Drum Window) |
@@ -419,7 +419,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 ```text
 +-----------------------------------------------------------+
 |  ` ~  | 1 ! | 2 @ | 3 # | 4 $ | 5 % | 6 ^ | 7 & |
-|  Quit |  Contrast |     |     |     |     |     |
+|Console|  Contrast |     |     |     |     |     |
 +-----------------------------------------------------------+
 |  TAB  |  Q   |  W  |  E  |  R  |  T  |
 |  OSC  | Cycle| Ctxt| Tltp| Sub | Sub |
