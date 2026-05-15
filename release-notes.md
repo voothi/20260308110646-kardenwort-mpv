@@ -17,12 +17,10 @@
     - **`Backspace`**: Playback speed reset to 1.0.
     - **`9` / `0`**: High-resolution volume adjustment.
     - **`` ` ``**: Access to the mpv debug console.
-- **Search HUD Hardening**: Finalized the multi-line wrapping engine and relevance scoring for the Search HUD, ensuring exact matches and contiguous substrings are prioritized.
 
 ### 🧪 **Milestone: 751 Acceptance Tests**
-- **Full Suite Pass**: Achieved a 100% pass rate across the entire repository (751 passed in 904.71s).
+- **Full Suite Pass**: Achieved a 100% pass rate across the entire repository (751 passed).
 - **HUD Reliability**: Added exhaustive coverage for the key-normalization engine and help-system externalization.
-- **Clipboard Integrity**: Validated the `SmartPaste` and multi-tap logic under high-latency stress tests.
 
 ---
 
