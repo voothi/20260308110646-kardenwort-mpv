@@ -629,7 +629,8 @@ local FSM = {
     ANKI_DB_SIZE = 0,
 
     -- Help State
-    HELP_MODE = false
+    HELP_MODE = false,
+    HELP_SCROLL_OFFSET = 0
 }
 
 local Tracks = {
@@ -1115,15 +1116,25 @@ dw_tooltip_osd.res_y = Options.font_base_height
 dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
 
-local help_osd = mp.create_osd_overlay("ass-events")
-help_osd.res_y = Options.font_base_height
-help_osd.res_x = math.floor(help_osd.res_y * 16 / 9)
-help_osd.z = 100
+local help_osd_bg = mp.create_osd_overlay("ass-events")
+help_osd_bg.res_y = Options.font_base_height
+help_osd_bg.res_x = math.floor(help_osd_bg.res_y * 16 / 9)
+help_osd_bg.z = 100
+
+local help_osd_title = mp.create_osd_overlay("ass-events")
+help_osd_title.res_y = Options.font_base_height
+help_osd_title.res_x = math.floor(help_osd_title.res_y * 16 / 9)
+help_osd_title.z = 101
+
+local help_osd_1 = mp.create_osd_overlay("ass-events")
+help_osd_1.res_y = Options.font_base_height
+help_osd_1.res_x = math.floor(help_osd_1.res_y * 16 / 9)
+help_osd_1.z = 102
 
 local help_osd_2 = mp.create_osd_overlay("ass-events")
 help_osd_2.res_y = Options.font_base_height
 help_osd_2.res_x = math.floor(help_osd_2.res_y * 16 / 9)
-help_osd_2.z = 101
+help_osd_2.z = 103
 
 local dw_ensure_visible -- forward declaration
 
@@ -7498,20 +7509,29 @@ local HELP_SCHEMA = {
         { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
     }},
     { category = "Standard Controls", actions = {
-        { desc = "Adjust Volume", cmd = "add volume" },
-        { desc = "Adjust Playback Speed", cmd = "multiply speed" },
-        { desc = "Reset Playback Speed", cmd = "set speed 1.0" },
-        { desc = "Frame Step Fwd/Back", cmd = "frame%-step" },
-        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen" },
+        { desc = "Adjust Volume", cmd = "volume" },
+        { desc = "Adjust Playback Speed", cmd = "speed" },
+        { desc = "Frame Step Fwd/Back", cmd = "frame.*step" },
+        { desc = "Toggle Fullscreen", cmd = "fullscreen" },
         { desc = "Debug Console", cmd = "console/enable" },
     }}
 }
 
+local function help_scroll(direction)
+    if not FSM.HELP_MODE then return end
+    FSM.HELP_SCROLL_OFFSET = math.max(0, FSM.HELP_SCROLL_OFFSET + (direction * Options.dw_font_size * 1.5))
+    render_help()
+end
+
 render_help = function()
     if not FSM.HELP_MODE then
-        help_osd.data = ""
+        help_osd_bg.data = ""
+        help_osd_title.data = ""
+        help_osd_1.data = ""
         help_osd_2.data = ""
-        help_osd:update()
+        help_osd_bg:update()
+        help_osd_title:update()
+        help_osd_1:update()
         help_osd_2:update()
         return
     end
@@ -7520,26 +7540,27 @@ render_help = function()
     local rx = math.floor(ry * 16 / 9)
     local box_w, box_h = rx * 0.9, ry * 0.85
     
-    -- Overlay 1: Background Box & Column 1
-    local ass1 = ""
-    -- Background Box
-    ass1 = ass1 .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
-    ass1 = ass1 .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
-    ass1 = ass1 .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
+    -- Overlay 1: Background Box
+    local ass_bg = ""
+    ass_bg = ass_bg .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
+    ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
+    ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
+    help_osd_bg.data = ass_bg
+    help_osd_bg:update()
     
-    -- Title
-    ass1 = ass1 .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}", 
+    -- Overlay 2: Title
+    local ass_title = ""
+    ass_title = ass_title .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}", 
         rx/2, ry/2 - box_h/2 + 40, Options.dw_font_name, Options.dw_font_size * 1.2, Options.dw_highlight_color)
+    help_osd_title.data = ass_title
+    help_osd_title:update()
     
-    -- Column 1 Content
-    local start_x = rx/2 - box_w/2 + 60
-    local start_y = ry/2 - box_h/2 + 130
-    local col1_text = string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}", start_x, start_y, Options.dw_font_name, Options.dw_font_size * 0.8)
+    -- Viewport clipping area
+    local clip_y1 = ry/2 - box_h/2 + 110
+    local clip_y2 = ry/2 + box_h/2 - 40
+    local clip_tag = string.format("{\\clip(0,%d,%d,%d)}", clip_y1, rx, clip_y2)
     
-    -- Column 2 Content
-    local col2_x = rx/2 + 40
-    local col2_text = string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}", col2_x, start_y, Options.dw_font_name, Options.dw_font_size * 0.8)
-    
+    -- Column Content Helper
     local function format_category(cat)
         local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
             Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
@@ -7548,7 +7569,6 @@ render_help = function()
             local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
             if #key_str > 35 then key_str = key_str:sub(1, 32) .. "..." end
             
-            -- Manual padding for alignment (using \h for non-breaking space)
             local desc = act.desc
             local padding = ""
             for j=1, (28 - #desc) do padding = padding .. "\\h" end
@@ -7558,7 +7578,15 @@ render_help = function()
         return res .. "\\N"
     end
 
-    -- Split Schema: first 3 categories left, rest right
+    -- Split Schema and render Columns
+    local col1_x = rx/2 - box_w/2 + 80
+    local col2_x = rx/2 + 60
+    local start_y = clip_y1 + 10 - FSM.HELP_SCROLL_OFFSET
+    
+    local col1_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col1_x, start_y, clip_tag, Options.dw_font_name, Options.dw_font_size * 0.8)
+    local col2_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col2_x, start_y, clip_tag, Options.dw_font_name, Options.dw_font_size * 0.8)
+    
+    -- Logic to divide categories (simplified: first 3 left, rest right)
     for i, cat in ipairs(HELP_SCHEMA) do
         if i <= 3 then
             col1_text = col1_text .. format_category(cat)
@@ -7567,18 +7595,31 @@ render_help = function()
         end
     end
 
-    help_osd.data = ass1 .. col1_text
+    help_osd_1.data = col1_text
     help_osd_2.data = col2_text
-    help_osd:update()
+    help_osd_1:update()
     help_osd_2:update()
 end
 
 cmd_toggle_help = function()
     FSM.HELP_MODE = not FSM.HELP_MODE
     if FSM.HELP_MODE then
-        -- Close other HUDs if they might conflict
         FSM.SEARCH_MODE = false
+        FSM.HELP_SCROLL_OFFSET = 0
         render_search()
+        
+        -- Enable temporary keymap for scrolling
+        local help_keys = {
+            {"UP", function() help_scroll(-1) end},
+            {"DOWN", function() help_scroll(1) end},
+            {"WHEEL_UP", function() help_scroll(-1) end},
+            {"WHEEL_DOWN", function() help_scroll(1) end},
+            {"ESC", function() cmd_toggle_help() end},
+            {"F1", function() cmd_toggle_help() end},
+        }
+        mp.set_key_bindings(help_keys, "help-keymap", "force")
+    else
+        mp.set_key_bindings(nil, "help-keymap")
     end
     render_help()
 end
