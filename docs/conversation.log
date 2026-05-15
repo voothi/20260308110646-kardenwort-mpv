@@ -2257,3 +2257,8 @@
 20260515182420 create-release-2 v1.82.2 conversation.log#L2245-2257 No need to change file names.
 20260515183516 Add to README as you can check at https://www.virustotal.com/gui/home/upload or https://www.virustotal.com/gui/file/2458615bbe3a9f7303cffcdcd75b79a7cfdec17960b23cdbc70ac3b5047e5dc7
 20260515183730 You need to write that this long line is the line from the checksum file README.md#L805
+20260515183933 Do I need to put the LICENSE file somewhere when mpv.exe is distributed like this?
+20260515184124 There is no such file here, nor in the docs, there is only maual.
+20260515184245 Add to TOC ## Third-party Licenses, check the other subheadings.
+
+

@@ -46,9 +46,15 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 - [Configuration Guide (mpv.conf)](#configuration-guide-mpvconf)
 - [Repository Structure](#repository-structure)
 - [Testing](#testing)
+  - [Unit Tests (Python)](#unit-tests-python)
+  - [Acceptance Tests (Python + mpv)](#acceptance-tests-python--mpv)
 - [Installation](#installation)
-  - [Automated Distribution Build (Python)](#2-automated-distribution-build-python)
+  - [1. Deployment (Windows)](#1-deployment-windows)
+  - [2. Automated Distribution Build (Python)](#2-automated-distribution-build-python)
+  - [3. Integration Strategies](#3-integration-strategies)
+  - [4. Verification](#4-verification)
 - [Development Analytics](#development-analytics)
+- [Third-party Licenses](#third-party-licenses)
 - [License](#license)
 ---
 
@@ -863,6 +869,13 @@ To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
 git log --pretty=format:"%ad" --date=iso-strict | python docs/scripts/analyze_repo.py
 ```
+
+[Return to Top](#table-of-contents)
+
+## Third-party Licenses
+
+The **Full** distribution of this project includes bundled third-party software:
+- **mpv**: Distributed under the [GNU General Public License (GPL) / GNU Lesser General Public License (LGPL)](https://github.com/mpv-player/mpv/blob/master/Copyright). Refer to the `mpv/` directory for bundled documentation.
 
 [Return to Top](#table-of-contents)
 
