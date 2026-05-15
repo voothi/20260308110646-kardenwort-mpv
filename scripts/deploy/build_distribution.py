@@ -181,7 +181,7 @@ def main() -> int:
     zid = current_zid()
     artifact_base = args.artifact_name or f"{zid}-{ARTIFACT_SUFFIX}"
     lite_stem = f"{artifact_base}-lite"
-    full_stem = f"{artifact_base}-full-windows-x64"
+    full_stem = f"{artifact_base}-full-windows11-x64"
 
     lite_archive = build_archive(
         project_root=project_root,

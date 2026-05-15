@@ -2254,6 +2254,5 @@
 20260515180740 Here, you must clearly indicate the OS in the name of the archive with mpv.exe. Apply best practices.
 20260515181401 Can you also create your own hash prints for each file to check the archive?
 20260515181818 I need to shape like this scratch\20260515181149-kardenwort-mpv-full-windows-x64.zip.sha256
-
-
+20260515182420 create-release-2 v1.82.2 conversation.log#L2245-2257 No need to change file names.
 

@@ -1,3 +1,31 @@
+# Release Notes - v1.82.2 (Automated Distribution & Deployment Infrastructure)
+
+**Date**: 2026-05-15
+**Version**: v1.82.2
+**Implementation ZIDs**: 20260515182753, 20260515182420, 20260515181818, 20260515181401, 20260515180740, 20260515180552, 20260515180421, 20260515180217, 20260515175915, 20260515175814, 20260515175431, 20260515175009, 20260515174613, 20260515174229
+
+## Highlights
+
+### 🚀 **Automated Distribution Infrastructure**
+- **Python-Based Build System**: Introduced `scripts/deploy/build_distribution.py`, a robust automation script for generating distributable archives.
+- **Dual-Tier Artifacts**: Supports creation of two separate archive types:
+    - **Lite**: Minimal runtime payload including scripts, configs, and documentation.
+    - **Full**: Comprehensive bundle including a portable `mpv-0.39.0-x86_64` distribution for zero-config setup.
+- **Windows 11 Optimization**: The distribution system is explicitly validated and optimized for Windows 11 environments.
+- **Integrity Manifests**: Implemented automatic SHA256 checksum generation. Each archive receives a `.zip.sha256` sidecar, and a combined `sha256.txt` manifest is generated for the entire release.
+- **ZID-Indexed Artifacts**: Artifacts are automatically named using the current ZID (e.g., `YYYYMMDDHHMMSS-kardenwort-mpv-full-windows11-x64.zip`), ensuring perfect traceability.
+
+### 🛠️ **Deployment Automation**
+- **Flexible Deployment Script**: Added `scripts/deploy/deploy_distribution.py` to simplify the installation of payloads into the user's `AppData\Roaming\mpv` directory.
+- **Junction Mode Support**: Implemented a "Junction" deployment mode that utilizes Windows `mklink /J` to create a live link between the repository and the mpv config folder, ideal for developers.
+- **Safety Guards**: Both scripts include `--force` safety flags and comprehensive error handling for missing paths or existing target collisions.
+
+### 📖 **Documentation & TOC Improvements**
+- **Automated Build Guide**: Updated `README.md` with detailed instructions for the new Python-based distribution workflow.
+- **TOC Synchronization**: Integrated the new deployment section into the master Table of Contents.
+
+---
+
 # Release Notes - v1.82.0 (Dynamic Help HUD & Ergonomics Hardening)
 
 **Date**: 2026-05-15
