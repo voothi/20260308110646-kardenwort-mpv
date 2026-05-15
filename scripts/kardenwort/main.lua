@@ -7723,7 +7723,7 @@ render_help = function()
     
     -- Overlay 2: Title
     local ass_title = ""
-    ass_title = ass_title .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}", 
+    ass_title = ass_title .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\bord0}{\\shad0}{\\4a&HFF&}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}", 
         rx/2, ry/2 - box_h/2 + 40, Options.help_font_name, Options.help_font_size * 1.2, Options.help_title_color)
     help_osd_title.data = ass_title
     help_osd_title:update()
@@ -7739,7 +7739,10 @@ render_help = function()
         local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
             Options.help_title_color, Options.help_font_size * 0.9, cat.category:upper(), Options.help_font_size * 0.8)
         line_count = line_count + 1
-        local key_wrap_chars = math.max(18, math.min(52, math.floor((Options.help_column_width or 40) / 8)))
+        local row_chars = math.max(48, math.floor((box_w * 0.43) / (Options.help_font_size * 0.55)))
+        local desc_chars = 28
+        local key_wrap_chars = math.max(14, row_chars - desc_chars - 2)
+        local key_wrap_cont = math.max(20, row_chars - desc_chars)
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd, act.whitelist)
             local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
@@ -7748,41 +7751,34 @@ render_help = function()
             local key_lines = wrap_by_words(key_str, key_wrap_chars)
             
             local desc = act.desc
-            local padding = ""
-            for j=1, (28 - #desc) do padding = padding .. "\\h" end
-
-            res = res .. string.format("{\\1c&H%s&}%s%s{\\1c&H%s&}%s\\N", Options.help_text_color, desc, padding, Options.help_key_color, key_lines[1] or "Unbound")
+            local desc_pad = string.rep(" ", math.max(1, desc_chars - #desc))
+            res = res .. string.format("{\\1c&H%s&}%s%s {\\1c&H%s&}%s\\N", Options.help_text_color, desc, desc_pad, Options.help_key_color, key_lines[1] or "Unbound")
             line_count = line_count + 1
             if #key_lines > 1 then
-                local cont_pad = ""
-                for j=1, 28 do cont_pad = cont_pad .. "\\h" end
+                local cont_pad = string.rep(" ", desc_chars + 1)
                 for i=2, #key_lines do
-                    res = res .. string.format("{\\1c&H%s&}%s{\\1c&H%s&}%s\\N", Options.help_text_color, cont_pad, Options.help_key_color, key_lines[i])
-                    line_count = line_count + 1
+                    local cont_parts = wrap_by_words(key_lines[i], key_wrap_cont)
+                    for _, part in ipairs(cont_parts) do
+                        res = res .. string.format("{\\1c&H%s&}%s{\\1c&H%s&}%s\\N", Options.help_text_color, cont_pad, Options.help_key_color, part)
+                        line_count = line_count + 1
+                    end
                 end
             end
         end
         return res .. "\\N", line_count + 1
     end
 
-    -- Split Schema and render Columns
-    local col1_x = rx/2 - box_w/2 + 80
-    local col2_x = rx/2 + 60
-    local start_y = clip_y1 + 10 - FSM.HELP_SCROLL_OFFSET
-    
-    local col1_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col1_x, start_y, clip_tag, Options.help_font_name, Options.help_font_size * 0.8)
-    local col2_text = string.format("{\\an7}{\\pos(%d,%d)}%s{\\fn%s}{\\fs%d}", col2_x, start_y, clip_tag, Options.help_font_name, Options.help_font_size * 0.8)
-    
-    -- Logic to divide categories (simplified: first 3 left, rest right)
+    -- Split schema into pre-rendered blocks first so we can compute scroll bounds
+    local col1_block, col2_block = "", ""
     local col1_lines, col2_lines = 0, 0
     for i, cat in ipairs(HELP_SCHEMA) do
         if i <= 3 then
             local block, lines = format_category(cat)
-            col1_text = col1_text .. block
+            col1_block = col1_block .. block
             col1_lines = col1_lines + lines
         else
             local block, lines = format_category(cat)
-            col2_text = col2_text .. block
+            col2_block = col2_block .. block
             col2_lines = col2_lines + lines
         end
     end
@@ -7794,6 +7790,14 @@ render_help = function()
     if FSM.HELP_SCROLL_OFFSET > FSM.HELP_SCROLL_MAX then
         FSM.HELP_SCROLL_OFFSET = FSM.HELP_SCROLL_MAX
     end
+
+    -- Final positioned overlays after scroll clamp
+    local col1_x = rx/2 - box_w/2 + 80
+    local col2_x = rx/2 + 60
+    local start_y = clip_y1 + 10 - FSM.HELP_SCROLL_OFFSET
+    local base_tags = string.format("{\\an7}{\\fn%s}{\\fs%d}{\\bord0}{\\shad0}{\\4a&HFF&}%s", Options.help_font_name, Options.help_font_size * 0.8, clip_tag)
+    local col1_text = string.format("{\\pos(%d,%d)}%s%s", col1_x, start_y, base_tags, col1_block)
+    local col2_text = string.format("{\\pos(%d,%d)}%s%s", col2_x, start_y, base_tags, col2_block)
 
     help_osd_1.data = col1_text
     help_osd_2.data = col2_text
