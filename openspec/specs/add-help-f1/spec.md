@@ -41,3 +41,12 @@ The discovery engine must suppress technical "noise" (mouse buttons, wheels) glo
 - **WHEN** `WHEEL_UP` is bound to volume
 - **AND** it is not in the `Adjust Volume` whitelist
 - **THEN** it should be hidden from the HUD display
+
+### Requirement: Reliable Runtime Close Path
+Closing the Help HUD must work through both F1 and ESC paths without runtime failures.
+
+#### Scenario: ESC close path
+- **GIVEN** Help HUD is currently open
+- **WHEN** ESC is pressed
+- **THEN** Help HUD closes
+- **AND** no runtime error is thrown

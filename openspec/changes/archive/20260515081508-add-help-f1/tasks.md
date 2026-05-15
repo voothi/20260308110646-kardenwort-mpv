@@ -24,3 +24,6 @@
 
 - [x] 5.1 Verify that Help HUD displays correct keys after remapping in `mpv.conf`.
 - [x] 5.2 Verify visual alignment and premium aesthetics.
+- [x] 5.3 Add acceptance test for key normalization (`test_20260515112708_help_hud_normalization.py`).
+- [x] 5.4 Add acceptance test for runtime toggle safety (`test_20260515131351_help_hud_toggle_runtime.py`).
+- [x] 5.5 Add acceptance test for ESC close path (`test_20260515161820_help_hud_esc_close.py`).

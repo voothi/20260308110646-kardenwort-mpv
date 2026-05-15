@@ -13,6 +13,12 @@ The help system must display a list of current keyboard shortcuts by querying th
 - **WHEN** the Help HUD is open and the user presses F1 (or ESC)
 - **THEN** the Help HUD is immediately hidden
 
+#### Scenario: ESC closes without side effects
+- **GIVEN** the Help HUD is open
+- **WHEN** the user presses ESC
+- **THEN** Help mode turns OFF
+- **AND** no runtime error is raised
+
 ### Requirement: Multi-Layout Key Support
 The help system must correctly identify and display both English and Russian layout variants of a key if they are bound to the same action.
 
@@ -25,6 +31,6 @@ The Help HUD must match the visual language of Kardenwort (monospaced fonts, sem
 
 #### Scenario: Theming the HUD
 - **WHEN** the Help HUD is rendered
-- **THEN** it uses `Consolas` font (or configured `dw_font_name`)
-- **AND** it uses `Options.dw_bg_color` and `Options.dw_bg_opacity` for the background
-- **AND** headers are highlighted using `Options.dw_highlight_color`.
+- **THEN** it uses `Consolas` font (or configured `help_font_name`)
+- **AND** it uses `Options.help_bg_color` and `Options.help_bg_opacity` for the background
+- **AND** headers are highlighted using `Options.help_title_color`.

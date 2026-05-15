@@ -9370,3 +9370,19 @@ mp.register_script_message("test-help-toggle", function()
     mp.set_property("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
     mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
 end)
+
+mp.register_script_message("test-help-close-esc", function()
+    if not FSM.HELP_MODE then
+        local ok_open = pcall(cmd_toggle_help)
+        if not ok_open then
+            mp.set_property("user-data/kardenwort/test_help_esc_ok", "0")
+            mp.set_property("user-data/kardenwort/test_help_esc_error", "failed to open help before ESC test")
+            mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+            return
+        end
+    end
+    local ok, err = pcall(cmd_dw_esc)
+    mp.set_property("user-data/kardenwort/test_help_esc_ok", ok and "1" or "0")
+    mp.set_property("user-data/kardenwort/test_help_esc_error", ok and "" or tostring(err))
+    mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+end)
