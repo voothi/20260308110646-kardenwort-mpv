@@ -1120,6 +1120,11 @@ help_osd.res_y = Options.font_base_height
 help_osd.res_x = math.floor(help_osd.res_y * 16 / 9)
 help_osd.z = 100
 
+local help_osd_2 = mp.create_osd_overlay("ass-events")
+help_osd_2.res_y = Options.font_base_height
+help_osd_2.res_x = math.floor(help_osd_2.res_y * 16 / 9)
+help_osd_2.z = 101
+
 local dw_ensure_visible -- forward declaration
 
 function cmd_cycle_copy_mode()
@@ -7505,72 +7510,67 @@ local HELP_SCHEMA = {
 render_help = function()
     if not FSM.HELP_MODE then
         help_osd.data = ""
+        help_osd_2.data = ""
         help_osd:update()
+        help_osd_2:update()
         return
     end
 
     local ry = Options.font_base_height
     local rx = math.floor(ry * 16 / 9)
-    
-    local ass = ""
-    -- Background Box (Dark Blur-ish Overlay)
-    ass = ass .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
-    ass = ass .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
     local box_w, box_h = rx * 0.9, ry * 0.85
-    ass = ass .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
+    
+    -- Overlay 1: Background Box & Column 1
+    local ass1 = ""
+    -- Background Box
+    ass1 = ass1 .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
+    ass1 = ass1 .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
+    ass1 = ass1 .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
     
     -- Title
-    ass = ass .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}\\N\\N", 
+    ass1 = ass1 .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}", 
         rx/2, ry/2 - box_h/2 + 40, Options.dw_font_name, Options.dw_font_size * 1.2, Options.dw_highlight_color)
     
-    -- Columns
-    local col_count = 2
-    local col_w = box_w / col_count
-    local start_x = rx/2 - box_w/2 + 40
-    local start_y = ry/2 - box_h/2 + 120
+    -- Column 1 Content
+    local start_x = rx/2 - box_w/2 + 60
+    local start_y = ry/2 - box_h/2 + 130
+    local col1_text = string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}", start_x, start_y, Options.dw_font_name, Options.dw_font_size * 0.8)
     
-    local cur_x, cur_y = start_x, start_y
-    local line_h = Options.dw_font_size * 1.0
+    -- Column 2 Content
+    local col2_x = rx/2 + 40
+    local col2_text = string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}", col2_x, start_y, Options.dw_font_name, Options.dw_font_size * 0.8)
     
-    for i, cat in ipairs(HELP_SCHEMA) do
-        -- Category Header
-        ass = ass .. string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}%s{\\b0}\\N", 
-            cur_x, cur_y, Options.dw_font_name, Options.dw_font_size * 0.9, Options.dw_highlight_color, cat.category:upper())
-        cur_y = cur_y + line_h * 1.2
-        
+    local function format_category(cat)
+        local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
+            Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd)
             local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
+            if #key_str > 35 then key_str = key_str:sub(1, 32) .. "..." end
             
-            -- Truncate key_str if it's too long (mostly for standard mpv volume/speed keys)
-            if #key_str > 45 then
-                key_str = key_str:sub(1, 42) .. "..."
-            end
+            -- Manual padding for alignment (using \h for non-breaking space)
+            local desc = act.desc
+            local padding = ""
+            for j=1, (28 - #desc) do padding = padding .. "\\h" end
             
-            -- Description (Fixed width padding with non-breaking spaces)
-            local desc_padded = act.desc
-            while #desc_padded < 30 do desc_padded = desc_padded .. " " end
-            
-            ass = ass .. string.format("{\\an7}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\1c&HFFFFFF&}%s {\\1c&H%s&}%s\\N", 
-                cur_x, cur_y, Options.dw_font_name, Options.dw_font_size * 0.8, desc_padded, Options.dw_highlight_color, key_str)
-            
-            cur_y = cur_y + line_h
-            
-            -- Column wrap logic
-            if cur_y > ry/2 + box_h/2 - 60 then
-                cur_x = cur_x + col_w
-                cur_y = start_y
-            end
+            res = res .. string.format("{\\1c&HFFFFFF&}%s%s{\\1c&H%s&}%s\\N", desc, padding, Options.dw_highlight_color, key_str)
         end
-        cur_y = cur_y + line_h * 0.5
-        if cur_y > ry/2 + box_h/2 - 60 then
-            cur_x = cur_x + col_w
-            cur_y = start_y
+        return res .. "\\N"
+    end
+
+    -- Split Schema: first 3 categories left, rest right
+    for i, cat in ipairs(HELP_SCHEMA) do
+        if i <= 3 then
+            col1_text = col1_text .. format_category(cat)
+        else
+            col2_text = col2_text .. format_category(cat)
         end
     end
-    
-    help_osd.data = ass
+
+    help_osd.data = ass1 .. col1_text
+    help_osd_2.data = col2_text
     help_osd:update()
+    help_osd_2:update()
 end
 
 cmd_toggle_help = function()
@@ -8505,6 +8505,7 @@ mp.add_key_binding(nil, "seek_time_forward", function() cmd_seek_time(1) end, {r
 mp.add_key_binding(nil, "seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
+mp.add_key_binding(nil, "cycle-immersion-mode", cmd_cycle_immersion_mode)
 mp.add_key_binding("F1", "toggle-help", cmd_toggle_help)
 
 local function register_global_position_keys()
