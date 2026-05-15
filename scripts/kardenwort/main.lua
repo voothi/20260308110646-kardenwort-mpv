@@ -39,6 +39,7 @@ end
 -- Forward declarations for interactive logic
 local manage_dw_bindings
 local update_interactive_bindings
+local render_help, render_search, cmd_toggle_help
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -7495,7 +7496,7 @@ local HELP_SCHEMA = {
     }}
 }
 
-local function render_help()
+render_help = function()
     if not FSM.HELP_MODE then
         help_osd.data = ""
         help_osd:update()
@@ -7554,7 +7555,7 @@ local function render_help()
     help_osd:update()
 end
 
-function cmd_toggle_help()
+cmd_toggle_help = function()
     FSM.HELP_MODE = not FSM.HELP_MODE
     if FSM.HELP_MODE then
         -- Close other HUDs if they might conflict
@@ -7564,7 +7565,7 @@ function cmd_toggle_help()
     render_help()
 end
 
-local function render_search()
+render_search = function()
     if not FSM.SEARCH_MODE then
         search_osd.data = ""
         search_osd:update()
