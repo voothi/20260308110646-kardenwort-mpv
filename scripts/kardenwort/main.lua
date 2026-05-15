@@ -7618,19 +7618,6 @@ local function wrap_by_words(text, max_chars)
 end
 
 local HELP_SCHEMA = {
-    { category = "Immersion Features", actions = {
-        { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space", whitelist = {["SPACE"]=true} },
-        { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
-        { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
-        { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
-        { desc = "Cycle Immersion Mode", cmd = "kardenwort/cycle-immersion-mode" },
-    }},
-    { category = "Navigation", actions = {
-        { desc = "Previous Subtitle", cmd = "kardenwort/seek_prev" },
-        { desc = "Next Subtitle", cmd = "kardenwort/seek_next" },
-        { desc = "Seek Backward (2s)", cmd = "kardenwort/seek_time_backward" },
-        { desc = "Seek Forward (2s)", cmd = "kardenwort/seek_time_forward" },
-    }},
     { category = "Interface Modes", actions = {
         { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
         { desc = "Toggle Drum Window (W)", cmd = "kardenwort/toggle-drum-window" },
@@ -7638,6 +7625,19 @@ local HELP_SCHEMA = {
         { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
         { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
         { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
+    }},
+    { category = "Navigation", actions = {
+        { desc = "Previous Subtitle", cmd = "kardenwort/seek_prev" },
+        { desc = "Next Subtitle", cmd = "kardenwort/seek_next" },
+        { desc = "Seek Backward (2s)", cmd = "kardenwort/seek_time_backward" },
+        { desc = "Seek Forward (2s)", cmd = "kardenwort/seek_time_forward" },
+    }},
+    { category = "Immersion Features", actions = {
+        { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space", whitelist = {["SPACE"]=true} },
+        { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
+        { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
+        { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
+        { desc = "Cycle Immersion Mode", cmd = "kardenwort/cycle-immersion-mode" },
     }},
     { category = "Mining & Tools", actions = {
         { desc = "Copy Subtitle", cmd = "kardenwort/copy-subtitle" },
