@@ -7713,11 +7713,11 @@ render_help = function()
     
     -- Overlay 1: Background Box
     local ass_bg = ""
-    ass_bg = ass_bg .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
+    local box_left = math.floor((rx - box_w) / 2)
+    local box_top = math.floor((ry - box_h) / 2)
+    ass_bg = ass_bg .. string.format("{\\an7}{\\pos(%d,%d)}", box_left, box_top)
     ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
-    local hx = math.floor(box_w / 2)
-    local hy = math.floor(box_h / 2)
-    ass_bg = ass_bg .. string.format("{\\p1}m %d %d l %d %d l %d %d l %d %d l %d %d {\\p0}", -hx, -hy, hx, -hy, hx, hy, -hx, hy, -hx, -hy)
+    ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
     help_osd_bg.data = ass_bg
     help_osd_bg:update()
     
@@ -7805,25 +7805,33 @@ render_help = function()
     help_osd_2:update()
 end
 
+local function bind_help_keymap()
+    mp.add_forced_key_binding("UP", "help-scroll-up", function() help_scroll(-1) end, {repeatable = true})
+    mp.add_forced_key_binding("DOWN", "help-scroll-down", function() help_scroll(1) end, {repeatable = true})
+    mp.add_forced_key_binding("WHEEL_UP", "help-wheel-up", function() help_scroll(-1) end)
+    mp.add_forced_key_binding("WHEEL_DOWN", "help-wheel-down", function() help_scroll(1) end)
+    mp.add_forced_key_binding("ESC", "help-close-esc", function() cmd_toggle_help() end)
+    mp.add_forced_key_binding("F1", "help-close-f1", function() cmd_toggle_help() end)
+end
+
+local function unbind_help_keymap()
+    mp.remove_key_binding("help-scroll-up")
+    mp.remove_key_binding("help-scroll-down")
+    mp.remove_key_binding("help-wheel-up")
+    mp.remove_key_binding("help-wheel-down")
+    mp.remove_key_binding("help-close-esc")
+    mp.remove_key_binding("help-close-f1")
+end
+
 cmd_toggle_help = function()
     FSM.HELP_MODE = not FSM.HELP_MODE
     if FSM.HELP_MODE then
         FSM.SEARCH_MODE = false
         FSM.HELP_SCROLL_OFFSET = 0
         render_search()
-        
-        -- Enable temporary keymap for scrolling
-        local help_keys = {
-            {"UP", function() help_scroll(-1) end},
-            {"DOWN", function() help_scroll(1) end},
-            {"WHEEL_UP", function() help_scroll(-1) end},
-            {"WHEEL_DOWN", function() help_scroll(1) end},
-            {"ESC", function() cmd_toggle_help() end},
-            {"F1", function() cmd_toggle_help() end},
-        }
-        mp.set_key_bindings(help_keys, "help-keymap", "force")
+        bind_help_keymap()
     else
-        mp.set_key_bindings({}, "help-keymap")
+        unbind_help_keymap()
     end
     render_help()
 end
