@@ -2159,6 +2159,7 @@
 20260515083008 Watch this.
 20260515083152 Look what now, correct it.
 20260515083428 Look. We also need to make it possible to scroll UP DOWN, WHEEL UP DOWN.
-
-
+20260515084445 Check these shortcuts, something is wrong. 
+20260515084514 I have refined the key discovery engine to eliminate the confusion caused by slashes and system-override keys. Key Refinements: Fixed Separator Conflict: I've switched the shortcut separator from / to,. Previously, when keys like / (standard for volume) were present, they merged with the separator to create a confusing / / / / pattern. Now they appear clearly as 9, /, *, WHEEL_UP. Filtered "Force Off" Keys: I've removed ESC from the Toggle Fullscreen list. In mpv, ESC is often bound to a "force fullscreen off" command; while it matches the word "fullscreen", it isn't a toggle and was cluttering your reference. Keyboard-First Prioritization: The HUD now prioritizes keyboard keys over mouse buttons (MBTN_LEFT, etc.) when multiple shortcuts exist. This makes the list much cleaner for actions like Smart Space or Toggle Fullscreen, only showing mouse buttons if no keyboard alternative exists. Full Command Discovery: I've hardened the Lua pattern matching to handle special characters like [ and ], ensuring Playback Speed and other bracket-based controls are detected with 100% accuracy. Clean Truncation: The truncation logic now understands the new, separator, so it will never cut a key name in half at the end of a line. Please try F1 again. You should see a much cleaner, comma-separated list of keys without the misleading system overrides!
+20260515085828 Look what we have, I noted the errors.
 

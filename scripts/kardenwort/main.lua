@@ -7466,27 +7466,32 @@ local function get_keys_for_action(cmd_pattern)
     local keys = {}
     local seen = {}
     
-    -- Escape hyphen for Lua pattern matching
-    local pattern = cmd_pattern:gsub("%-", "%%-")
+    -- Escape special Lua pattern characters
+    local pattern = cmd_pattern:gsub("([%-%+%.%[%]%*%?])", "%%%1")
     
     for _, b in ipairs(bindings) do
-        -- Try exact script-binding match first, then pattern
-        if b.cmd:find("script%-binding " .. pattern) or b.cmd:find("^" .. pattern) then
+        -- Filter out ESC from fullscreen (usually 'set fullscreen no' in mpv)
+        if cmd_pattern == "fullscreen" and b.key == "ESC" then goto continue end
+        
+        if b.cmd:find(pattern) then
+            -- Prefer keyboard keys over mouse buttons in help list, unless it's a mouse action
+            local is_mouse = b.key:find("MBTN") or b.key:find("WHEEL")
+            if is_mouse and #keys > 0 then goto continue end
+
             if not seen[b.key] then
                 table.insert(keys, b.key)
                 seen[b.key] = true
             end
         end
+        ::continue::
     end
     
-    -- Fallback: if no script-binding found, try general pattern (for mpv standard commands)
+    -- Fallback: if we filtered too much, try again without mouse filtering
     if #keys == 0 then
         for _, b in ipairs(bindings) do
-            if b.cmd:find(pattern) then
-                if not seen[b.key] then
-                    table.insert(keys, b.key)
-                    seen[b.key] = true
-                end
+            if b.cmd:find(pattern) and not seen[b.key] then
+                table.insert(keys, b.key)
+                seen[b.key] = true
             end
         end
     end
@@ -7497,7 +7502,7 @@ end
 local function truncate_keys(key_str, max_len)
     if #key_str <= max_len then return key_str end
     local truncated = key_str:sub(1, max_len - 3)
-    local last_sep = truncated:match(".*() / ")
+    local last_sep = truncated:match(".*(), ")
     if last_sep then
         return truncated:sub(1, last_sep - 1) .. "..."
     end
@@ -7591,7 +7596,7 @@ render_help = function()
             Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd)
-            local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
+            local key_str = (#keys > 0) and table.concat(keys, ", ") or "Unbound"
             key_str = truncate_keys(key_str, 35)
             
             local desc = act.desc
