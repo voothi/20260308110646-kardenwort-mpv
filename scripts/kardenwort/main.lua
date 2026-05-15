@@ -625,7 +625,10 @@ local FSM = {
     ANKI_VERSION = 0,             -- Version counter for cache invalidation
     ANKI_DB_PATH = nil,
     ANKI_DB_MTIME = 0,
-    ANKI_DB_SIZE = 0
+    ANKI_DB_SIZE = 0,
+
+    -- Help State
+    HELP_MODE = false
 }
 
 local Tracks = {
@@ -1110,6 +1113,11 @@ local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
 dw_tooltip_osd.res_y = Options.font_base_height
 dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
+
+local help_osd = mp.create_osd_overlay("ass-events")
+help_osd.res_y = Options.font_base_height
+help_osd.res_x = math.floor(help_osd.res_y * 16 / 9)
+help_osd.z = 100
 
 local dw_ensure_visible -- forward declaration
 
@@ -4972,6 +4980,11 @@ end
 -- No implicit window close occurs in cmd_dw_esc itself.
 
 local function cmd_dw_esc()
+    if FSM.HELP_MODE then
+        FSM.HELP_MODE = false
+        render_help()
+        return
+    end
     -- Stage 1: Clear Pink Set (Purple highlights)
     if next(FSM.DW_CTRL_PENDING_SET) then
         FSM.DW_CTRL_PENDING_SET = {}
@@ -7427,6 +7440,130 @@ local function draw_search_ui()
     return ass
 end
 
+-- =========================================================================
+-- HELP HUD FEATURE (F1)
+-- =========================================================================
+
+local function get_keys_for_action(cmd_pattern)
+    local bindings = mp.get_property_native("input-bindings") or {}
+    local keys = {}
+    local seen = {}
+    for _, b in ipairs(bindings) do
+        if b.cmd:find(cmd_pattern) then
+            if not seen[b.key] then
+                table.insert(keys, b.key)
+                seen[b.key] = true
+            end
+        end
+    end
+    return keys
+end
+
+local HELP_SCHEMA = {
+    { category = "Playback & Features", actions = {
+        { desc = "Smart Space (Hold=Play, Tap=P)", cmd = "kardenwort/smart-space" },
+        { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
+        { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
+        { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
+        { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
+    }},
+    { category = "Navigation", actions = {
+        { desc = "Previous Subtitle", cmd = "kardenwort/seek_prev" },
+        { desc = "Next Subtitle", cmd = "kardenwort/seek_next" },
+        { desc = "Seek Backward (2s)", cmd = "kardenwort/seek_time_backward" },
+        { desc = "Seek Forward (2s)", cmd = "kardenwort/seek_time_forward" },
+    }},
+    { category = "Drum & Reading Mode", actions = {
+        { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
+        { desc = "Toggle Drum Window (Static)", cmd = "kardenwort/toggle-drum-window" },
+        { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
+        { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
+        { desc = "Cycle Secondary Position", cmd = "kardenwort/cycle-secondary-pos" },
+    }},
+    { category = "Mining & Tools", actions = {
+        { desc = "Copy Subtitle", cmd = "kardenwort/copy-subtitle" },
+        { desc = "Open Record (TSV) File", cmd = "kardenwort/toggle-record-file" },
+        { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
+        { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
+    }},
+    { category = "MPV Standard", actions = {
+        { desc = "Adjust Volume", cmd = "add volume" },
+        { desc = "Adjust Playback Speed", cmd = "multiply speed" },
+        { desc = "Reset Playback Speed", cmd = "set speed 1.0" },
+        { desc = "Frame Step Fwd/Back", cmd = "frame%-step" },
+        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen" },
+    }}
+}
+
+local function render_help()
+    if not FSM.HELP_MODE then
+        help_osd.data = ""
+        help_osd:update()
+        return
+    end
+
+    local ass = ""
+    local ry = Options.font_base_height
+    local rx = math.floor(ry * 16 / 9)
+    
+    -- Background Box
+    ass = ass .. string.format("{\\an5}{\\pos(%d,%d)}", rx/2, ry/2)
+    ass = ass .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.dw_bg_color, Options.dw_bg_opacity)
+    ass = ass .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", rx * 0.8, rx * 0.8, ry * 0.8, ry * 0.8)
+    
+    -- Text Start
+    local content = ""
+    content = content .. string.format("{\\an8}{\\pos(%d,%d)}", rx/2, ry/2 - ry*0.35)
+    content = content .. string.format("{\\fn%s}{\\fs%d}{\\b1}{\\1c&H%s&}KARDENWORT SHORTCUT HELP{\\b0}\\N\\N", Options.dw_font_name, Options.dw_font_size * 1.2, Options.dw_highlight_color)
+    
+    local col_width = rx * 0.35
+    local start_y = ry/2 - ry*0.25
+    local current_x = rx/2 - rx*0.38
+    local current_y = start_y
+    
+    local items_per_col = 15
+    local count = 0
+    
+    for _, cat in ipairs(HELP_SCHEMA) do
+        content = content .. string.format("{\\an7}{\\pos(%d,%d)}{\\fs%d}{\\b1}{\\1c&H%s&}%s{\\b0}\\N", current_x, current_y, Options.dw_font_size * 0.9, Options.dw_highlight_color, cat.category:upper())
+        current_y = current_y + Options.dw_font_size * 1.2
+        
+        for _, act in ipairs(cat.actions) do
+            local keys = get_keys_for_action(act.cmd)
+            local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
+            
+            content = content .. string.format("{\\an7}{\\pos(%d,%d)}{\\fs%d}{\\1c&HFFFFFF&}%-25s {\\1c&H%s&}%s\\N", 
+                current_x, current_y, Options.dw_font_size * 0.8, act.desc, Options.dw_highlight_color, key_str)
+            
+            current_y = current_y + Options.dw_font_size * 1.0
+            count = count + 1
+            
+            if current_y > ry/2 + ry*0.35 then
+                current_x = current_x + col_width
+                current_y = start_y
+            end
+        end
+        current_y = current_y + Options.dw_font_size * 0.5 -- Gap between categories
+        if current_y > ry/2 + ry*0.35 then
+            current_x = current_x + col_width
+            current_y = start_y
+        end
+    end
+    
+    help_osd.data = content
+    help_osd:update()
+end
+
+function cmd_toggle_help()
+    FSM.HELP_MODE = not FSM.HELP_MODE
+    if FSM.HELP_MODE then
+        -- Close other HUDs if they might conflict
+        FSM.SEARCH_MODE = false
+        render_search()
+    end
+    render_help()
+end
+
 local function render_search()
     if not FSM.SEARCH_MODE then
         search_osd.data = ""
@@ -8349,6 +8486,7 @@ mp.add_key_binding(nil, "seek_time_forward", function() cmd_seek_time(1) end, {r
 mp.add_key_binding(nil, "seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
+mp.add_key_binding("F1", "toggle-help", cmd_toggle_help)
 
 local function register_global_position_keys()
     local function bind(opt, name, fn)
