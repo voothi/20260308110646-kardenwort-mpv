@@ -7624,6 +7624,8 @@ local HELP_SCHEMA = {
         { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
         { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
         { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
+        { desc = "Cycle Secondary Subtitle Track", cmd = "kardenwort/cycle-sec-sid" },
+        { desc = "Cycle Secondary Subtitle Position", cmd = "kardenwort/cycle-secondary-pos" },
         { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
     }},
     { category = "Navigation", actions = {

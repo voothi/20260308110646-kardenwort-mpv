@@ -2219,5 +2219,9 @@
 20260515145643 Okay, is it possible to now distribute these sections more evenly and meaningfully across the screen without changing much? Now the right column is very stretched down, you have to scroll a lot.
 20260515145825 Yes, and now it’s done with minimal change. I changed only the column distribution logic: - Before: hardcoded split (`first 3 categories left`, rest right). - Now: line-aware balancing by estimated rendered height, while preserving category order flow. File: - [main.lua](u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua) Effect: - Left/right columns are much closer in total height. - Less excessive right-column scrolling. - No visual style changes. Validation: - Targeted tests still pass: `9 passed`. If you want, next step can be a lightweight “pinned groups” rule (for example always keep `Standard Controls` at bottom-right) while still balancing everything else.
 20260515150715 Swap the IMMERSION FEATURES and INTERFACE MODES blocks
+20260515151323 I can't find Shift+c.
+20260515151542 Now Shift+c is to switch Secondary Sub:..
+20260515151734 Why is this not in F1 help?
+20260515151847 Do it.
 
 
