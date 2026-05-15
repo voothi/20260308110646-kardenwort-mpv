@@ -381,6 +381,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | Key (EN) | Key (RU) | Action |
 |---|---|---|
 | `RIGHT` / `LEFT` | `RIGHT` / `LEFT` | Exact **2-second** seek forward / backward |
+| `F1` | `F1` | **Toggle Dynamic Help HUD** (Live reference) |
 | `a` / `d` | `ф` / `в` | **Seek** to prev/next subtitle (with cyclic wrap-around) |
 | `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** |
 | `1` / `2` | `1` / `2` | Decrease / Increase **Contrast** |
@@ -623,8 +624,20 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
 | `kardenwort-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
 | `kardenwort-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
+| `kardenwort-anki_context_strict` | `yes` | Strictly enforce context boundaries. |
 
-#### **10. Detailed Key Mapping (Internal)**
+#### **11. Help HUD (F1) Styling**
+| Parameter | Default | Description |
+|---|---|---|
+| `kardenwort-help_font_name` | `Consolas` | Font family for the Help reference. |
+| `kardenwort-help_font_size` | `28` | Text size for help descriptions. |
+| `kardenwort-help_text_color` | `FFFFFF` | Color for help descriptions (BGR Hex). |
+| `kardenwort-help_key_color` | `00CCFF` | Color for shortcut keys (Gold BGR Hex). |
+| `kardenwort-help_bg_color` | `000000` | Background color for help overlay. |
+| `kardenwort-help_bg_opacity` | `A0` | Background transparency (ASS Hex 00-FF). |
+| `kardenwort-help_column_width` | `350` | Spacing between categories and columns. |
+
+#### **12. Detailed Key Mapping (Internal)**
 These parameters allow remapping internal script actions in `mpv.conf`. Values can be space, comma, or semicolon separated lists.
 
 | Parameter | Default Keys |
