@@ -371,7 +371,7 @@ class TestConfigDocumentation:
 
     Verifies:
     - input.conf is organized into labeled functional sections.
-    - The LEFT arrow binding exists with a comment explaining its 2-second behavior.
+    - The seek-backward binding exists with a comment explaining its 2-second behavior.
     """
 
     def test_input_conf_has_navigation_section(self):
@@ -382,20 +382,29 @@ class TestConfigDocumentation:
             "No NAVIGATION section found in input.conf"
         )
 
-    def test_input_conf_left_arrow_has_comment(self):
-        """The LEFT arrow binding must include a descriptive comment."""
+    def test_input_conf_seek_backward_binding_has_comment(self):
+        """The active seek-backward binding must include a descriptive comment."""
         with open("input.conf", encoding="utf-8") as f:
             content = f.read()
         lines = content.split("\n")
-        left_idx = next(
-            (i for i, l in enumerate(lines) if l.strip().startswith("LEFT")), None
+        bind_idx = next(
+            (
+                i
+                for i, l in enumerate(lines)
+                if "script-binding kardenwort/seek_time_backward" in l
+                and not l.lstrip().startswith("#")
+            ),
+            None,
         )
-        assert left_idx is not None, "LEFT arrow binding not found in input.conf"
+        assert bind_idx is not None, (
+            "Active seek-backward binding not found in input.conf"
+        )
         # Check for a comment line in the surrounding context (within 5 lines above)
-        context_start = max(0, left_idx - 5)
-        context = "\n".join(lines[context_start: left_idx + 1])
+        context_start = max(0, bind_idx - 5)
+        context = "\n".join(lines[context_start : bind_idx + 1])
         assert "#" in context, (
-            f"No comment found near LEFT binding in input.conf.\nContext:\n{context}"
+            "No comment found near seek-backward binding in input.conf."
+            f"\nContext:\n{context}"
         )
 
     def test_input_conf_has_multiple_sections(self):
