@@ -2164,6 +2164,8 @@
 20260515085828 Look what we have, I noted the errors.
 20260515090516 Look, it didn’t work out, it’s not right. It should be `9, 0` `[, }, BS` `.,,, ю, б` `v, м` ``, ё`
 20260515092811 Let's remove the separator in the form | and replace it with a space and signs. You also need to remove the mouse from the volume, this is not working now, where do you get this from?
+20260515093801 Remove commas and other characters, only a combination with + or one character separated by a space is meaningful, as in the configs 
+20260515094038 Look at my notes and comments in the screenshot.
 
 
 

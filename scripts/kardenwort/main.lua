@@ -7461,7 +7461,7 @@ end
 -- HELP HUD FEATURE (F1)
 -- =========================================================================
 
-local function get_keys_for_action(cmd_pattern, is_standard)
+local function get_keys_for_action(cmd_pattern, whitelist)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
     local seen = {}
@@ -7472,24 +7472,22 @@ local function get_keys_for_action(cmd_pattern, is_standard)
     end
     
     for _, b in ipairs(bindings) do
-        if cmd_pattern == "fullscreen" and b.key == "ESC" then goto continue end
+        local k = b.key
         
-        if is_standard then
-            local k = b.key:upper()
-            -- Block mouse, wheel, keypad, and multimedia keys
-            if k:find("MBTN") or k:find("WHEEL") or k:find("KP_") or k:find("VOLUME") or k:find("MUTE") then 
-                goto continue 
-            end
-            -- Block long system key names (except common ones)
-            if #k > 5 and k ~= "SPACE" and k ~= "ENTER" then 
-                goto continue 
-            end
+        -- If a whitelist is provided, strictly filter keys
+        if whitelist then
+            if not whitelist[k] and not whitelist[k:upper()] then goto continue end
+        end
+        
+        -- Special case: skip ESC for fullscreen unless explicitly whitelisted
+        if cmd_pattern == "fullscreen" and k == "ESC" and (not whitelist or not whitelist["ESC"]) then 
+            goto continue 
         end
         
         if b.cmd:find(pattern) then
-            if not seen[b.key] then
-                table.insert(keys, b.key)
-                seen[b.key] = true
+            if not seen[k] then
+                table.insert(keys, k)
+                seen[k] = true
             end
         end
         ::continue::
@@ -7501,7 +7499,7 @@ end
 local function truncate_keys(key_str, max_len)
     if #key_str <= max_len then return key_str end
     local truncated = key_str:sub(1, max_len - 3)
-    local last_sep = truncated:match(".*() / ")
+    local last_sep = truncated:match(".*() ")
     if last_sep then
         return truncated:sub(1, last_sep - 1) .. "..."
     end
@@ -7538,11 +7536,11 @@ local HELP_SCHEMA = {
         { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
     }},
     { category = "Standard Controls", actions = {
-        { desc = "Adjust Volume", cmd = "volume", is_std = true },
-        { desc = "Adjust Playback Speed", cmd = "speed", is_std = true },
-        { desc = "Frame Step Fwd/Back", cmd = "frame.*step", is_std = true },
-        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen", is_std = true },
-        { desc = "Debug Console", cmd = "console/enable", is_std = true },
+        { desc = "Adjust Volume", cmd = "volume", whitelist = {["9"]=true, ["0"]=true} },
+        { desc = "Adjust Playback Speed", cmd = "speed", whitelist = {["["]=true, ["]"]=true, ["{"]=true, ["}"]=true, ["BS"]=true} },
+        { desc = "Frame Step Fwd/Back", cmd = "frame.*step", whitelist = {["."]=true, [","]=true, ["ю"]=true, ["б"]=true} },
+        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen", whitelist = {["v"]=true, ["м"]=true} },
+        { desc = "Debug Console", cmd = "console/enable", whitelist = {["`"]=true, ["ё"]=true} },
     }}
 }
 
@@ -7594,8 +7592,8 @@ render_help = function()
         local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N", 
             Options.dw_highlight_color, Options.dw_font_size * 0.9, cat.category:upper(), Options.dw_font_size * 0.8)
         for _, act in ipairs(cat.actions) do
-            local keys = get_keys_for_action(act.cmd, act.is_std)
-            local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
+            local keys = get_keys_for_action(act.cmd, act.whitelist)
+            local key_str = (#keys > 0) and table.concat(keys, " ") or "Unbound"
             key_str = truncate_keys(key_str, 40)
             
             local desc = act.desc
