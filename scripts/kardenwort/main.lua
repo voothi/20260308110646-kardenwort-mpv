@@ -7652,7 +7652,7 @@ local HELP_SCHEMA = {
     }},
     { category = "Drum Window: Actions", actions = {
         { desc = "DW Pair Toggle (Pink)", cmd = "dw%-pair" },
-        { desc = "DW Add (Yellow)", cmd = "dw%-add" },
+        { desc = "DW Add (Yellow)", cmd = "dw%-add", whitelist = {["g"]=true, ["п"]=true, ["MBTN_MID"]=true, ["Ctrl+MBTN_MID"]=true} },
         { desc = "DW Selection Click", cmd = "dw%-select%-%d+$", whitelist = {["MBTN_LEFT"]=true}, fallback_keys = function() return Options.dw_key_select end },
         { desc = "DW Copy Selection", cmd = "dw%-copy" },
         { desc = "DW Seek Selected", cmd = "dw%-seek%-%d+$", fallback_keys = function() return Options.dw_key_seek end },
