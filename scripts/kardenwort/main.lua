@@ -7465,18 +7465,43 @@ local function get_keys_for_action(cmd_pattern)
     local bindings = mp.get_property_native("input-bindings") or {}
     local keys = {}
     local seen = {}
+    
     -- Escape hyphen for Lua pattern matching
     local pattern = cmd_pattern:gsub("%-", "%%-")
     
     for _, b in ipairs(bindings) do
-        if b.cmd:find(pattern) then
+        -- Try exact script-binding match first, then pattern
+        if b.cmd:find("script%-binding " .. pattern) or b.cmd:find("^" .. pattern) then
             if not seen[b.key] then
                 table.insert(keys, b.key)
                 seen[b.key] = true
             end
         end
     end
+    
+    -- Fallback: if no script-binding found, try general pattern (for mpv standard commands)
+    if #keys == 0 then
+        for _, b in ipairs(bindings) do
+            if b.cmd:find(pattern) then
+                if not seen[b.key] then
+                    table.insert(keys, b.key)
+                    seen[b.key] = true
+                end
+            end
+        end
+    end
+    
     return keys
+end
+
+local function truncate_keys(key_str, max_len)
+    if #key_str <= max_len then return key_str end
+    local truncated = key_str:sub(1, max_len - 3)
+    local last_sep = truncated:match(".*() / ")
+    if last_sep then
+        return truncated:sub(1, last_sep - 1) .. "..."
+    end
+    return truncated .. "..."
 end
 
 local HELP_SCHEMA = {
@@ -7567,7 +7592,7 @@ render_help = function()
         for _, act in ipairs(cat.actions) do
             local keys = get_keys_for_action(act.cmd)
             local key_str = (#keys > 0) and table.concat(keys, " / ") or "Unbound"
-            if #key_str > 35 then key_str = key_str:sub(1, 32) .. "..." end
+            key_str = truncate_keys(key_str, 35)
             
             local desc = act.desc
             local padding = ""
