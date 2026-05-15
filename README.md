@@ -773,13 +773,32 @@ Choose a permanent directory for the suite (e.g., `U:\voothi\20260308110646-kard
     git clone https://github.com/voothi/20260308110646-kardenwort-mpv.git
     ```
 
-### 2. Integration Strategies
+### 2. Automated Distribution Build (Python)
+Build a shareable artifact with an auto-ZID filename:
+```powershell
+python scripts/deploy/build_distribution.py
+```
+
+The artifact is generated in `dist/` with this format:
+`YYYYMMDDHHMMSS-kardenwort-mpv.zip`
+
+### 3. Integration Strategies
 To connect the suite with your `mpv` instance, use one of the following methods:
 
 #### **A. Portable / AppData Placement**
 Copy the contents (`mpv.conf`, `input.conf`, and `scripts/`) into:
 - The **root folder** of your `mpv` installation (next to `mpv.exe`).
 - **OR** the standard config path: `%APPDATA%\mpv\`
+
+Automated copy deployment:
+```powershell
+python scripts/deploy/deploy_distribution.py --source . --target "$env:APPDATA\mpv" --mode copy --force
+```
+
+Deploy directly from built artifact:
+```powershell
+python scripts/deploy/deploy_distribution.py --source .\dist\YYYYMMDDHHMMSS-kardenwort-mpv.zip --target "$env:APPDATA\mpv" --mode copy --force
+```
 
 #### **B. Symbolic Linking (Junctions)**
 For advanced users, it is recommended to use a **Junction** or **Hardlink** to keep the configuration synchronized with the source repository. 
@@ -789,7 +808,12 @@ You can use the [voothi/createjunction](https://github.com/voothi/20251206145855
 createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 ```
 
-### 3. Verification
+Python automation for junction mode:
+```powershell
+python scripts/deploy/deploy_distribution.py --source . --target "$env:APPDATA\mpv" --mode junction --force
+```
+
+### 4. Verification
 1.  **Encoding**: Confirm that `scripts/kardenwort/` is in **UTF-8** format.
 2.  **Activation**: Relaunch `mpv`. The specialized OSD should be active upon loading media.
 3.  **Hotkeys**: Refer to the commented `input.conf` as your primary manual.

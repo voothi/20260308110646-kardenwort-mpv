@@ -34,6 +34,7 @@ scratch/
 tests/mpv_last_run.log
 pytest_out.log
 .pytest_tmp/
+dist/
 
 # --- Specific Legacy Exclusions ---
 # scripts/*_old*.lua
