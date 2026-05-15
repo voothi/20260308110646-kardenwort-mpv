@@ -2167,6 +2167,7 @@
 20260515093801 Remove commas and other characters, only a combination with + or one character separated by a space is meaningful, as in the configs 
 20260515094038 Look at my notes and comments in the screenshot.
 20260515094327 Okay, remove the extra space and MBTN after the space, it doesn't work.
+20260515095007 Let's say it again about the space, you should have removed it only before BS, you should have left the rest of the combinations in this line. You correctly removed it from above next to the Space MBTN key. 
 
 
 

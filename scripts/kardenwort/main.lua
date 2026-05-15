@@ -7490,7 +7490,7 @@ local function get_keys_for_action(cmd_pattern, whitelist)
         end
         
         if b.cmd:find(pattern) then
-            if not seen[k] then
+            if not seen[k] and k ~= "" and k ~= nil then
                 table.insert(keys, k)
                 seen[k] = true
             end
@@ -7542,7 +7542,7 @@ local HELP_SCHEMA = {
     }},
     { category = "Standard Controls", actions = {
         { desc = "Adjust Volume", cmd = "volume", whitelist = {["9"]=true, ["0"]=true} },
-        { desc = "Adjust Playback Speed", cmd = "speed", whitelist = {["["]=true, ["]"]=true, ["{"]=true, ["}"]=true, ["BS"]=true} },
+        { desc = "Adjust Playback Speed", cmd = "speed" },
         { desc = "Frame Step Fwd/Back", cmd = "frame.*step", whitelist = {["."]=true, [","]=true, ["ю"]=true, ["б"]=true} },
         { desc = "Toggle Fullscreen", cmd = "cycle fullscreen", whitelist = {["v"]=true, ["м"]=true} },
         { desc = "Debug Console", cmd = "console/enable", whitelist = {["`"]=true, ["ё"]=true} },
