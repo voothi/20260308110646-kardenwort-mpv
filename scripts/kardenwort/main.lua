@@ -5308,10 +5308,18 @@ end
 local cmd_dw_export_anki = make_mouse_handler(false, dw_anki_export_smart_callback)
 
 local function cmd_dw_add_smart()
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     ctrl_commit_set(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
 end
 
 local function cmd_dw_toggle_pink(tbl, was_mouse)
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     -- Only trigger mouse buttons on release to avoid double-toggle
     if was_mouse and tbl and tbl.event ~= "up" then return end
     
@@ -5954,6 +5962,10 @@ local function cmd_smart_space(table)
 end
 
 local function cmd_toggle_anki_global()
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     Options.anki_global_highlight = not Options.anki_global_highlight
     show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
     flush_rendering_caches()
@@ -5963,6 +5975,10 @@ end
 
 local function cmd_toggle_drum()
     if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("X")
+        return
+    end
+    if not FSM.native_sub_vis then
         show_osd("X")
         return
     end
@@ -8314,6 +8330,10 @@ end
 
 function cmd_toggle_search()
     if not FSM.SEARCH_MODE then
+        if not FSM.native_sub_vis then
+            show_osd("X")
+            return
+        end
         if FSM.MEDIA_STATE == "NO_SUBS" then
             show_osd("Search: No subtitles loaded")
             return
