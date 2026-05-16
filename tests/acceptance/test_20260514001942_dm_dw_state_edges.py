@@ -160,7 +160,7 @@ def test_null_activation_prefers_stable_active_line_over_lookahead_context_struc
     """
     body = _fn_body(_src(), "dw_resolve_null_activation_line")
     stable_pos = body.find("local stable_active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX")
-    ctx_pos = body.find("if ctx and ctx.active_line and ctx.active_line ~= -1 then")
+    ctx_pos = body.rfind("if ctx and ctx.active_line and ctx.active_line ~= -1 then")
     assert stable_pos != -1
     assert ctx_pos != -1
     assert stable_pos < ctx_pos
