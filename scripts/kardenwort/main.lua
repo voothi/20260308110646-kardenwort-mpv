@@ -925,6 +925,13 @@ local function dw_resolve_null_activation_line(ctx, dir, subs)
         end
     end
 
+    -- Boundary hardening: on first activation, prefer synchronized active subtitle
+    -- ownership over navigation-time lookahead context.
+    local stable_active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
+    if stable_active_line and stable_active_line ~= -1 then
+        return stable_active_line
+    end
+
     if ctx and ctx.active_line and ctx.active_line ~= -1 then
         return ctx.active_line
     end

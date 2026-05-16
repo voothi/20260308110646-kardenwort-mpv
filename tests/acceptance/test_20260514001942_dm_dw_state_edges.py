@@ -151,3 +151,16 @@ def test_null_pointer_first_activation_ignores_repeat_structural():
     assert "if snapshot.is_repeat then return end" in line_body
     assert "if FSM.DW_CURSOR_WORD == -1 then" in word_body
     assert "if snapshot.is_repeat then return end" in word_body
+
+
+def test_null_activation_prefers_stable_active_line_over_lookahead_context_structural():
+    """
+    Boundary guard: null activation must prefer synchronized active subtitle ownership
+    (DW_ACTIVE_LINE/ACTIVE_IDX) before snapshot lookahead-derived context.
+    """
+    body = _fn_body(_src(), "dw_resolve_null_activation_line")
+    stable_pos = body.find("local stable_active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX")
+    ctx_pos = body.find("if ctx and ctx.active_line and ctx.active_line ~= -1 then")
+    assert stable_pos != -1
+    assert ctx_pos != -1
+    assert stable_pos < ctx_pos
