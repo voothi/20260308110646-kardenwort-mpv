@@ -2271,7 +2271,7 @@
 20260516111110 I need to work on the states when hiding subtitles. Now if I hide all subtitles Subtitle OFF (c), then the options f - pink, g - add, h - global, x - drum mode continue to work, but they should be unavailable and X should be displayed.
 20260516112250 Okay, check also Shift+x.
 20260516112513 There is no obvious signal whether the functions of the e, r, t keys will work when all subtitles are hidden.
-
+20260516113220 This needs to be done when the subtitles are on (c) and the upper subtitles are off (Shift+c), so that when you press Shift+x, in this case it will be shown instead of the long No secondary subtitle loaded, just X.
 
 
 

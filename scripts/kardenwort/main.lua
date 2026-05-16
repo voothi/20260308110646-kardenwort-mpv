@@ -8578,7 +8578,7 @@ local function cmd_cycle_sec_pos()
         return
     end
     if Tracks.sec.id == 0 then
-        show_osd("Secondary Sub Pos: No secondary subtitle loaded")
+        show_osd("X")
         return
     end
     if Tracks.sec.is_ass then
