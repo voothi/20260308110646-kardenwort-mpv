@@ -5,7 +5,6 @@ Feature: Secondary Only Mode
 """
 
 import time
-import pytest
 from tests.ipc.mpv_session import MpvSession
 from tests.ipc.mpv_ipc import query_kardenwort_state
 
@@ -18,18 +17,30 @@ def test_toggle_secondary_only_mode_functional(mpv_dual):
     assert state['sec_only_mode'] is False
     assert state['native_sub_vis'] is True
     assert state['native_sec_sub_vis'] is True
+    sid_before = int(mpv_dual.ipc.get_property('sid') or 0)
     
     # 2. Toggle ON
     mpv_dual.ipc.command(['script-binding', 'kardenwort/toggle-secondary-only'])
     time.sleep(0.1)
     state = query_kardenwort_state(mpv_dual.ipc)
     assert state['sec_only_mode'] is True
+    # Contract: mode ON forces both visibility flags true and selects a secondary track.
+    assert state['native_sub_vis'] is True
+    assert state['native_sec_sub_vis'] is True
+    sec_sid_after_on = int(mpv_dual.ipc.get_property('secondary-sid') or 0)
+    assert sec_sid_after_on > 0
+    assert sec_sid_after_on != int(mpv_dual.ipc.get_property('sid') or 0)
     
     # 3. Toggle OFF
     mpv_dual.ipc.command(['script-binding', 'kardenwort/toggle-secondary-only'])
     time.sleep(0.1)
     state = query_kardenwort_state(mpv_dual.ipc)
     assert state['sec_only_mode'] is False
+    # Contract: mode OFF returns to normal master-on state without corrupting track selection.
+    assert state['native_sub_vis'] is True
+    assert state['native_sec_sub_vis'] is True
+    assert int(mpv_dual.ipc.get_property('sid') or 0) == sid_before
+    assert int(mpv_dual.ipc.get_property('secondary-sid') or 0) == sec_sid_after_on
 
 def test_toggle_secondary_only_requires_secondary_track():
     """
