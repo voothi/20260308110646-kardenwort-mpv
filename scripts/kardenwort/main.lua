@@ -575,6 +575,7 @@ local FSM = {
     native_sub_vis = mp.get_property_bool("sub-visibility", true),
     native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true),
     native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
+    SUB_VIS_COMBO_BEFORE_OFF = "both", -- "both" | "bottom" | "top"
 
     -- Drum Window State
     DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
@@ -8549,15 +8550,40 @@ local function cmd_toggle_sub_vis()
         show_osd("X")
         return
     end
-    local nxt = not FSM.native_sub_vis
-    FSM.native_sub_vis = nxt
-    FSM.native_sec_sub_vis = nxt
-    FSM.SEC_ONLY_MODE = false
+    local function capture_sub_vis_combo()
+        if FSM.SEC_ONLY_MODE then return "top" end
+        if FSM.native_sub_vis and FSM.native_sec_sub_vis then return "both" end
+        if FSM.native_sub_vis and not FSM.native_sec_sub_vis then return "bottom" end
+        return "both"
+    end
+
+    local function apply_sub_vis_combo(combo)
+        local mode = combo or "both"
+        if mode == "top" then
+            FSM.SEC_ONLY_MODE = true
+            FSM.native_sub_vis = true
+            FSM.native_sec_sub_vis = true
+        elseif mode == "bottom" then
+            FSM.SEC_ONLY_MODE = false
+            FSM.native_sub_vis = true
+            FSM.native_sec_sub_vis = false
+        else
+            FSM.SEC_ONLY_MODE = false
+            FSM.native_sub_vis = true
+            FSM.native_sec_sub_vis = true
+        end
+    end
+
+    local turning_off = FSM.native_sub_vis
     
     -- We don't set mpv's sub-visibility to 'true' here because master_tick 
     -- would immediately set it back to 'false' to render our styled OSD.
     -- If user wants to DISABLE subs, we set it to false for safety.
-    if not nxt then
+    if turning_off then
+        FSM.SUB_VIS_COMBO_BEFORE_OFF = capture_sub_vis_combo()
+        FSM.SEC_ONLY_MODE = false
+        FSM.native_sub_vis = false
+        FSM.native_sec_sub_vis = false
         mp.set_property_bool("sub-visibility", false)
         mp.set_property_bool("secondary-sub-visibility", false)
         -- [20260509192327] Dismiss tooltip immediately when subs are hidden.
@@ -8566,9 +8592,11 @@ local function cmd_toggle_sub_vis()
         -- for the next dw_tooltip_mouse_update() tick to do it.
         FSM.DW_TOOLTIP_FORCE = false
         clear_tooltip_overlay("sub-vis-off")
+    else
+        apply_sub_vis_combo(FSM.SUB_VIS_COMBO_BEFORE_OFF)
     end
     
-    show_osd("Subtitles: " .. (nxt and "ON" or "OFF"))
+    show_osd("Subtitles: " .. (turning_off and "OFF" or "ON"))
     master_tick()
 end
 
