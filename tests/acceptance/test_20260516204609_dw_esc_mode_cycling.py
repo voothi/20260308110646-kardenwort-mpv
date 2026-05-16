@@ -9,12 +9,11 @@ from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 def _wait_for_osd(ipc, expected, timeout=1.5):
-    """Wait until mpv OSD text contains expected substring."""
+    """Wait until script-reported OSD text contains expected substring."""
     start = time.time()
     while time.time() - start < timeout:
-        msg1 = ipc.get_property('osd-msg1') or ""
-        msg2 = ipc.get_property('osd-msg2') or ""
-        if expected in msg1 or expected in msg2:
+        msg = ipc.get_property('user-data/kardenwort/last_osd') or ""
+        if expected in msg:
             return True
         time.sleep(0.05)
     return False
