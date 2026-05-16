@@ -69,3 +69,24 @@ def test_toggle_secondary_only_requires_secondary_track():
         assert state['sec_only_mode'] is False
     finally:
         session.stop()
+
+
+def test_shift_c_blocked_while_secondary_sub_only_on(mpv_dual):
+    """
+    While Secondary Sub Only mode is ON, Shift+C (cycle secondary subtitle track)
+    must be blocked to avoid contradictory "Secondary Sub: OFF" state overlays.
+    """
+    ipc = mpv_dual.ipc
+
+    ipc.command(['script-binding', 'kardenwort/toggle-secondary-only'])
+    time.sleep(0.1)
+    state = query_kardenwort_state(ipc)
+    assert state['sec_only_mode'] is True
+
+    sid_before = int(ipc.get_property('secondary-sid') or 0)
+    assert sid_before > 0
+
+    ipc.command(['script-binding', 'kardenwort/cycle-sec-sid'])
+    time.sleep(0.1)
+    sid_after = int(ipc.get_property('secondary-sid') or 0)
+    assert sid_after == sid_before
