@@ -560,6 +560,7 @@ local FSM = {
     REWIND_START_IDX = nil,      -- Starting subtitle index when rewind began (for within-subtitle detection)
     REWIND_TRANSIT_CROSS_CARD = false, -- True only when backward time-seek crosses subtitle card boundary
     LOOP_MODE = "OFF",
+    SEC_ONLY_MODE = false,
     LOOP_ARMED = false,
     LOOP_START = nil,
     LOOP_END = nil,
@@ -5858,14 +5859,16 @@ local function master_tick()
     -- 4. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
     local has_ptr = (FSM.DW_CURSOR_WORD ~= -1 and active_idx == FSM.DW_CURSOR_LINE)
     local has_pink = (next(FSM.DW_CTRL_PENDING_SET) ~= nil)
-    local pri_use_osd = FSM.native_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.pri.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
-    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
+    local pri_effective_vis = FSM.native_sub_vis and not FSM.SEC_ONLY_MODE
+    local sec_effective_vis = (FSM.native_sub_vis and FSM.native_sec_sub_vis) or FSM.SEC_ONLY_MODE
+    local pri_use_osd = pri_effective_vis and ((FSM.DRUM == "ON") or (not Tracks.pri.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
+    local sec_use_osd = sec_effective_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
 
     if dw_active or pri_use_osd or sec_use_osd then
         -- Suppression Logic
         -- We hide native if DW is active OR if we are using OSD for that specific track.
-        local target_pri_vis = not dw_active and not pri_use_osd and FSM.native_sub_vis
-        local target_sec_vis = not dw_active and not sec_use_osd and FSM.native_sec_sub_vis
+        local target_pri_vis = not dw_active and not pri_use_osd and pri_effective_vis
+        local target_sec_vis = not dw_active and not sec_use_osd and sec_effective_vis
 
         if mp.get_property_bool("sub-visibility") ~= target_pri_vis then
             mp.set_property_bool("sub-visibility", target_pri_vis)
@@ -8549,6 +8552,7 @@ local function cmd_toggle_sub_vis()
     local nxt = not FSM.native_sub_vis
     FSM.native_sub_vis = nxt
     FSM.native_sec_sub_vis = nxt
+    FSM.SEC_ONLY_MODE = false
     
     -- We don't set mpv's sub-visibility to 'true' here because master_tick 
     -- would immediately set it back to 'false' to render our styled OSD.
@@ -8568,6 +8572,44 @@ local function cmd_toggle_sub_vis()
     master_tick()
 end
 
+local function has_available_secondary_track()
+    local tracks = mp.get_property_native("track-list") or {}
+    local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
+    for _, t in ipairs(tracks) do
+        if t.type == "sub" and t.external then
+            local tid = tonumber(t.id)
+            if tid and tid ~= 0 and tid ~= primary_sid then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function cmd_toggle_secondary_only_mode()
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("X")
+        return
+    end
+    if not has_available_secondary_track() then
+        show_osd("X")
+        Diagnostic.info("Secondary Only requested, but no secondary subtitle track is available")
+        return
+    end
+
+    FSM.SEC_ONLY_MODE = not FSM.SEC_ONLY_MODE
+    if FSM.SEC_ONLY_MODE then
+        FSM.native_sub_vis = false
+        FSM.native_sec_sub_vis = true
+        show_osd("Secondary Only: ON")
+    else
+        FSM.native_sub_vis = false
+        FSM.native_sec_sub_vis = false
+        show_osd("Secondary Only: OFF")
+    end
+    master_tick()
+end
+
 local function cmd_cycle_sec_pos()
     if FSM.DRUM_WINDOW ~= "OFF" then
         show_osd("X")
@@ -8578,18 +8620,7 @@ local function cmd_cycle_sec_pos()
         return
     end
     if Tracks.sec.id == 0 then
-        local tracks = mp.get_property_native("track-list") or {}
-        local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
-        local has_available_secondary = false
-        for _, t in ipairs(tracks) do
-            if t.type == "sub" and t.external then
-                local tid = tonumber(t.id)
-                if tid and tid ~= 0 and tid ~= primary_sid then
-                    has_available_secondary = true
-                    break
-                end
-            end
-        end
+        local has_available_secondary = has_available_secondary_track()
         show_osd("X")
         if not has_available_secondary then
             Diagnostic.info("Secondary Sub Pos requested, but no secondary subtitle track is available")
@@ -8847,6 +8878,7 @@ mp.add_key_binding(nil, "toggle-karaoke-mode", cmd_toggle_karaoke)
 mp.add_key_binding(nil, "smart-space", cmd_smart_space, {complex=true})
 mp.add_key_binding(nil, "toggle-drum-mode", cmd_toggle_drum)
 mp.add_key_binding(nil, "toggle-sub-visibility", cmd_toggle_sub_vis)
+mp.add_key_binding(nil, "toggle-secondary-only", cmd_toggle_secondary_only_mode)
 mp.add_key_binding(nil, "cycle-secondary-pos", cmd_cycle_sec_pos)
 mp.add_key_binding(nil, "cycle-sec-sid", cmd_cycle_sec_sid)
 mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
@@ -9012,6 +9044,7 @@ function kardenwortProbe._snapshot()
         book_mode          = FSM.BOOK_MODE,
         native_sub_vis     = FSM.native_sub_vis,
         native_sec_sub_vis = FSM.native_sec_sub_vis,
+        sec_only_mode      = FSM.SEC_ONLY_MODE,
         native_sec_sub_pos = FSM.native_sec_sub_pos,
         replay_remaining      = FSM.REPLAY_REMAINING or 0,
         rewind_transit_active = FSM.TIMESEEK_INHIBIT_UNTIL ~= nil,
@@ -9163,6 +9196,7 @@ mp.register_script_message("sub-visibility-set", function(state)
     local val = (state == "ON")
     FSM.native_sub_vis = val
     FSM.native_sec_sub_vis = val
+    FSM.SEC_ONLY_MODE = false
     master_tick()
 end)
 
