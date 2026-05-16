@@ -1180,6 +1180,11 @@ function cmd_cycle_dw_esc_mode()
         "neutral_last_selection",
         "neutral_current_subtitle",
     }
+    local labels = {
+        auto_follow_current = "AUTO FOLLOW CURRENT",
+        neutral_last_selection = "NEUTRAL LAST SELECTION",
+        neutral_current_subtitle = "NEUTRAL CURRENT SUBTITLE",
+    }
     local current = dw_get_esc_mode()
     local next_idx = 1
     for i, mode in ipairs(order) do
@@ -1189,7 +1194,7 @@ function cmd_cycle_dw_esc_mode()
         end
     end
     Options.dw_esc_mode = order[next_idx]
-    show_osd("DW Esc Mode: " .. Options.dw_esc_mode)
+    show_osd("DW Esc Mode: " .. (labels[Options.dw_esc_mode] or Options.dw_esc_mode))
 end
 
 function cmd_cycle_immersion_mode()
