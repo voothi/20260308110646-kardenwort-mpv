@@ -119,6 +119,7 @@ All word-width calculations for hit-testing and selection highlights SHALL use c
 
 ### Requirement: Drum Mode Visibility Master
 The Drum Mode (Mode C) toggle SHALL control the rendering style (single-line vs multi-line context), but SHALL respect the global subtitle visibility toggle (`s` key).
+- **Secondary Only Mode**: The system SHALL support a state where only secondary subtitles are rendered, while maintaining primary track synchronization.
 
 #### Scenario: Hiding Subtitles in Drum Mode
 - **GIVEN** Drum Mode is toggled ON and subtitles are visible
@@ -136,6 +137,12 @@ The Drum Mode (Mode C) toggle SHALL control the rendering style (single-line vs 
 - **THEN** the system SHALL toggle the FSM visibility intent (`FSM.native_sub_vis` and `FSM.native_sec_sub_vis`)
 - **AND** the Drum Window SHALL remain open and continue rendering its own OSD surface while active
 - **AND** when the Drum Window is closed, native subtitle visibility restoration SHALL reflect the updated FSM intent.
+
+#### Scenario: Cycling to Secondary Only Mode
+- **WHEN** the user cycles through visibility states
+- **THEN** the system SHALL enter a state where `FSM.SEC_ONLY_MODE` is true
+- **AND** the OSD SHALL render only the secondary subtitle track
+- **AND** the primary track SHALL remain active in the FSM but hidden from the OSD.
 
 ### Requirement: Automatic Line Wrapping (SRT, Drum & Tooltip)
 The OSD rendering engine SHALL automatically wrap subtitle lines that exceed the visual safe area into multiple vertical lines to prevent text from bleeding off the screen.

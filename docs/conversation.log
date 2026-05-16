@@ -2287,6 +2287,6 @@
 20260516122955 You are like a big model, review our work with the small model, correct us if necessary, add what is needed. Commits 055b1997fd5f404a51b0d9df2eae2b8bfb37fa76..590520a1eb3649c2bae6698921eec7db159a79ad
 20260516123210 **Findings (by severity)** 1. Medium: New test only validated `sec_only_mode` flag flips, but did not verify the contract that Secondary-Only forces visible subtitle state and selects a real secondary track. This could let real regressions pass while the mode bit still toggles. I fixed this by adding assertions for `native_sub_vis`, `native_sec_sub_vis`, `secondary-sid > 0`, and track integrity across ON/OFF in [test_20260516122540_secondary_only_mode.py](/u:/voothi/20260308110646-kardenwort-mpv/tests/acceptance/test_20260516122540_secondary_only_mode.py:28). 2. Low: Unused import `pytest` in the new test file. Removed in [test_20260516122540_secondary_only_mode.py](/u:/voothi/20260308110646-kardenwort-mpv/tests/acceptance/test_20260516122540_secondary_only_mode.py:7). **What I changed** - Hardened the test coverage in [test_20260516122540_secondary_only_mode.py](/u:/voothi/20260308110646-kardenwort-mpv/tests/acceptance/test_20260516122540_secondary_only_mode.py:11). - Removed the unused import in the same file. **Validation** - Ran: `pytest -q tests/acceptance/test_20260516122540_secondary_only_mode.py` - Result: `2 passed`
 20260516123440 PS U:\voothi\20260308110646-kardenwort-mpv> pytest -q tests/acceptance/test_20260516122540_secondary_only_mode.py.. [100%] 2 passed in 3.35s
-
-
+20260516123644 opsx-archive 20260516121530-record-v1-82-changes
+20260516123727 Sync now
 
