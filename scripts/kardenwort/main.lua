@@ -4645,6 +4645,10 @@ local function dw_mouse_auto_scroll()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     Diagnostic.debug("TOOLTIP PIN: event=" .. tostring(tbl.event))
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local drum_mode = is_osd_tooltip_mode_eligible()
@@ -4682,6 +4686,10 @@ local function cmd_dw_tooltip_pin(tbl)
 end
 
 local function cmd_toggle_dw_tooltip_hover()
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     FSM.DW_TOOLTIP_MODE = (FSM.DW_TOOLTIP_MODE == "CLICK") and "HOVER" or "CLICK"
     show_osd("DW Translation: " .. FSM.DW_TOOLTIP_MODE)
     if FSM.DW_TOOLTIP_MODE == "CLICK" then
@@ -4691,6 +4699,10 @@ local function cmd_toggle_dw_tooltip_hover()
 end
 
 local function cmd_dw_tooltip_toggle()
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local drum_mode = is_osd_tooltip_mode_eligible()
     if not dw_mode and not drum_mode then return end
@@ -8591,12 +8603,20 @@ local function cmd_adjust_sub_pos(delta)
         show_osd("X")
         return
     end
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     local p = mp.get_property_number("sub-pos", 95)
     mp.set_property_number("sub-pos", math.max(0, math.min(150, p + delta)))
 end
 
 local function cmd_adjust_sec_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
+        show_osd("X")
+        return
+    end
+    if not FSM.native_sub_vis then
         show_osd("X")
         return
     end
