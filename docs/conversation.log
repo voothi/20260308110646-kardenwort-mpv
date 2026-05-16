@@ -2280,4 +2280,7 @@
 20260516120126 This mod should forcefully turn on subtitles (c) and make only the second, top ones visible.
 20260516120326 It should force the second subtitles to turn on as well because they might not be turned on until you press Shift+v.
 20260516120522 Wait, at the same time, the c key should store the state before it was turned off and restore exactly this combination - both, only bottom, only top. Try to comb your hair and make it simple, think well, without spaghetti code.
+20260516121008 opsx-propose Okay, now, being a nerd, a senior architect of specifications architects, a surgeon, create specifications based on the results of our work to record changes to the project, as well as run tests. You can use the following conversation anchors as contextual guides: 20260516101705 20260516101829 20260516101848 20260516102020 20260516102030 20260516110315 20260516111110 20260516112250 20260516112513 20260516113220 20260516113550 20260516113756 20260516114055 20260516114521 20260516115141 20260516120126 20260516120326 20260516120522. Commits v1.82.2..52b113e8feafc0f27c1f8d0422f3332820946fc3
+
+
 
