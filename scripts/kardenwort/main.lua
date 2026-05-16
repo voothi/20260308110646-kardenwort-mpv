@@ -8578,7 +8578,24 @@ local function cmd_cycle_sec_pos()
         return
     end
     if Tracks.sec.id == 0 then
-        show_osd("X")
+        local tracks = mp.get_property_native("track-list") or {}
+        local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
+        local has_available_secondary = false
+        for _, t in ipairs(tracks) do
+            if t.type == "sub" and t.external then
+                local tid = tonumber(t.id)
+                if tid and tid ~= 0 and tid ~= primary_sid then
+                    has_available_secondary = true
+                    break
+                end
+            end
+        end
+        if has_available_secondary then
+            show_osd("X")
+        else
+            show_osd("Secondary Sub Pos: No secondary subtitle loaded")
+            Diagnostic.info("Secondary Sub Pos requested, but no secondary subtitle track is available")
+        end
         return
     end
     if Tracks.sec.is_ass then
