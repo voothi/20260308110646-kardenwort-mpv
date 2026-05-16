@@ -8472,11 +8472,25 @@ end
 
 
 local function get_clipboard_text_smart(time_pos, line_idx)
-    local cl = line_idx or FSM.DW_CURSOR_LINE
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cw = FSM.DW_CURSOR_WORD
+    local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
+    local has_pink_set = #FSM.DW_CTRL_PENDING_LIST > 0
+    local has_yellow_range = p1_l ~= nil
+    local has_yellow_point = cw ~= -1
+
+    local cl = line_idx or FSM.DW_CURSOR_LINE
 
     -- 0. Smart Fallback / Focus
+    -- If there is no explicit selection, trust live playback focus first.
+    if line_idx == nil and not has_pink_set and not has_yellow_range and not has_yellow_point then
+        if time_pos then
+            cl = get_center_index(Tracks.pri.subs, time_pos)
+        else
+            cl = FSM.DW_ACTIVE_LINE
+        end
+    end
+
     if cl == -1 then
         if FSM.BOOK_MODE and FSM.DW_FOLLOW_PLAYER and al == -1 and cw == -1 then
             cl = FSM.DW_ACTIVE_LINE
@@ -8492,7 +8506,7 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     -- [v1.58.51] Explicit priority allows user to regulate behavior via Esc stages.
     
     -- Stage 1: Pink Set (Multi-word Selection via Ctrl+Click)
-    if #FSM.DW_CTRL_PENDING_LIST > 0 then
+    if has_pink_set then
         return prepare_export_text({ type = "SET", members = FSM.DW_CTRL_PENDING_LIST }, { 
             copy_mode = FSM.COPY_MODE, 
             filter_russian = Options.copy_filter_russian 
@@ -8500,8 +8514,7 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     end
 
     -- Stage 2 & 3: Yellow Selection (Range or Point)
-    local p1_l, p1_w, p2_l, p2_w = get_dw_selection_bounds()
-    if p1_l or cw ~= -1 then
+    if has_yellow_range or has_yellow_point then
         local params = p1_l and { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
                              or { type = "POINT", line = cl, word = cw }
         

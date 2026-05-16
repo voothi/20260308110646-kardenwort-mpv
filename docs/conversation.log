@@ -2291,5 +2291,5 @@
 20260516123727 Sync now
 20260516123929 python -m pytest tests/ -v 
 20260516132348 ================================================================= 754 passed in 902.84s (0:15:02) ================================================================= 
-
+20260516165938 Another bug has been identified, now in the copying mechanism Ctrl+c, w, q, during free playback, copying does not occur of the current white subtitle (when there are no selections), but according to the visibility of the last one, which I selected by manual navigation a/d or another. Look at the photo, white, current subtitle, which I listen to naturally after the subtitle `like this. If someone wanted to poison`, but it is not the new one that is copied, but the one `like this. If someone wanted to poison`.
 
