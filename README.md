@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.82.2-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.2) 
+[![Version](https://img.shields.io/badge/version-v1.82.8-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.8) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -208,6 +208,7 @@ This suite solves problems that standard video players and generic scripts ignor
 50. **Mining Follow-Restoration**: Automatically restores auto-maintenance and re-synchronizes the live playback line after successful Anki mining (MMB/Add), preventing manual mode drift.
 51. **Neutral Mode Sentinel**: Introduced a specialized "Neutral" navigation state that allows for viewport exploration and context analysis while decoupled from playback-follow.
 52. **Automated Test Fixture Recovery**: Integrated a seamless `pytest` teardown bridge that automatically restores TSV database fixtures after test runs, ensuring a clean repository state for developers.
+53. **Secondary Only Subtitle Mode**: A dedicated focus state that displays only the translation track while maintaining full background synchronization with the primary target-language stream for mining and FSM logic.
 
 [Return to Top](#table-of-contents)
 
@@ -293,6 +294,12 @@ The standard subtitle viewing experience, enhanced with the Kardenwort suite's p
 - **Word-Level Interactivity**: Even in regular mode, you can use the mouse to select words for dictionary lookups (`e`) or Anki mining (`MMB`).
 - **Dual-Track Alignment**: Automatically handles secondary track positioning (Top/Bottom) to prevent visual overlap during dual-subtitle immersion.
 - **Default State**: Active when Drum Mode and Drum Window are toggled `OFF`.
+
+### Secondary Only Subtitle Mode
+A dedicated immersion state where only the translation track is visible, while the primary track remains active in the background for FSM logic and mining.
+- **Deterministic Cycling**: Refactored visibility toggle (`c` / `с`) to cycle through three states: Primary Only, Both, and Secondary Only (Top).
+- **Background Sync**: Full parity with the primary subtitle track, ensuring that mining actions (MMB/Add) and navigation (a/d) always target the correct target-language context.
+- **Toggle**: Cycle via `c` (English) or `с` (Russian).
 
 ### <span id="static-reading-mode"></span>Static Reading Mode (Drum Window)
 A high-performance rolling context engine that has evolved into a robust **Static Reading Mode** for in-depth immersion analysis.
@@ -435,6 +442,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `BS` | `BS` | **Reset Playback Speed** (Set to 1.0) |
 | `.` / `,` | `ю` / `б` | Frame Step Forward / Backward |
 | `v` / `м` | `v` / `м` | Toggle **Fullscreen** |
+| `V` / `М` | `V` / `М` | Toggle **Secondary Only Mode** |
 | `h` | `р` | Toggle **Global Highlighting** (Anki Matches) |
 | `Ctrl+f` | `Ctrl+а` | Toggle **Universal Subtitle Search** Overlay |
 | `Ctrl+c` | `Ctrl+с` | **Copy Subtitle** (Extract clean text to clipboard) |

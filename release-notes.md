@@ -1,4 +1,35 @@
+# Release Notes - v1.82.8 (Secondary Only Mode & Drum Window Hardening)
+
+**Date**: 2026-05-16
+**Version**: v1.82.8
+**Implementation ZIDs**: 20260516123858, 20260516123555, 20260516122931, 20260516122801, 20260516122041, 20260516120913, 20260516120756, 20260516120246, 20260516115545, 20260516115334, 20260516113937, 20260516113751, 20260516113520, 20260516112958, 20260516112507, 20260516112117, 20260516111059, 20260516104626, 20260516101954, 20260516101841
+
+## Highlights
+
+### 📺 **Secondary Only Subtitle Mode**
+- **Focused Translation Viewing**: Introduced a dedicated display state where only the secondary subtitle track is visible. This allows users to focus on translations or supplementary text while keeping the primary track active in the background for FSM logic and mining.
+- **Refined Visibility Cycling**: Refactored the subtitle visibility toggle (`c`) to cycle through three deterministic states:
+    1. **Primary Only**: Standard acquisition focus.
+    2. **Both (Primary + Secondary)**: Parallel immersion.
+    3. **Secondary Only (Top)**: Translation-only focus with background primary sync.
+
+### 🥁 **Drum Window & Navigation Hardening**
+- **Surgical Line Resolution**: Modified `dw_resolve_null_activation_line` to prioritize explicit FSM state (`DW_ACTIVE_LINE` and `ACTIVE_IDX`) over lookahead context. This prevents the "lookahead override" bug where the viewport would jump to future lines during rapid state transitions.
+- **Atomic DW Toggling & Error Recovery**: Wrapped the Drum Window initialization in `xpcall` with automated state rollback. If a Lua error occurs during window creation, the system now safely reverts to "DOCKED" state instead of leaving the UI in a frozen, half-initialized state.
+- **State Machine Resilience**: Hardened the FSM to ensure that manual visibility overrides (like Secondary Only mode) are correctly reset when switching between immersion interfaces.
+
+### ⌨️ **Input Configuration & Ergonomics**
+- **Layout-Agnostic Bindings**: Updated `input.conf` to include native support for the new visibility cycling and secondary-only mode triggers.
+- **OSD Consistency**: Standardized the OSD feedback for the new display modes, ensuring clear visual confirmation when cycling through primary, dual, and secondary-only tracks.
+
+### 🧪 **Milestone: 756 Acceptance Tests**
+- **Expanded Verification Suite**: The acceptance suite has grown to **756 tests**, incorporating high-resolution verification for secondary-only mode logic and DW null-activation resolution.
+- **State Transition Integrity**: Successfully validated 100% of the FSM edge cases discovered during the v1.82 hardening phase.
+
+---
+
 # Release Notes - v1.82.2 (Automated Distribution & Deployment Infrastructure)
+
 
 **Date**: 2026-05-15
 **Version**: v1.82.2
