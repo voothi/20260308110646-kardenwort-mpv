@@ -2274,7 +2274,7 @@
 20260516113220 This needs to be done when the subtitles are on (c) and the upper subtitles are off (Shift+c), so that when you press Shift+x, in this case it will be shown instead of the long No secondary subtitle loaded, just X.
 20260516113550 Still, I would output this to the console or in certain cases when the subtitles are not really loaded.        show_osd("Secondary Sub Pos: No secondary subtitle loaded")
 20260516113756 Make it so that X is output in any case, but also written to the console if this is really a problem.
-
-
+20260516114055 Okay, now I have discovered an inconsistency with the states, with the logic and assignment of options, the fact is that when I turn off the subtitles completely (c), I can press Shift+c to turn on the upper subtitles when the lower, main ones are disabled (under the influence of c), but this is not consistent, because mode c should block the ability to turn on Shift+c separately second subtitles. Although, on the other hand, I would like to be able to enable the second subtitles separately, but more correctly, not through this hack.
+20260516114521 Fixed the inconsistency. I added a master-visibility guard to `cmd_cycle_sec_sid()` in [main.lua](U:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua), so when `c` has subtitles OFF, pressing `Shift+C` now returns `X` and cannot re-enable secondary subtitles. Your second point is valid: enabling secondary subtitles independently should be a dedicated mode/command, not a side effect of `Shift+C` track cycling. If you want, I can implement a clean separate toggle path next.
 
 

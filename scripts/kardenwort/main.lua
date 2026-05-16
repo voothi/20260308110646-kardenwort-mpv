@@ -8646,6 +8646,10 @@ local function cmd_cycle_sec_sid()
         show_osd("X")
         return
     end
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     FSM.native_sec_sub_vis = true
     -- [20260509180045] Synchronous Suppression: Prevent flash of native subs before next tick.
     local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
