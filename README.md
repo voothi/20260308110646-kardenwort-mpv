@@ -316,6 +316,7 @@ A high-performance rolling context engine that has evolved into a robust **Stati
 - **Active Line Visibility**: The current playback line is highlighted in a **high-contrast bright blue**, ensuring it remains perfectly legible against the window's dark theme.
 - **Ergonomic Keyboard Navigation**: Vertical movement (Arrows Up/Down) now preserves horizontal OSD position ("Sticky-X"). Supports **Shift + Arrows** for range selection and **Ctrl + Left/Right** for word-level jumps, mimicking VSCode carriage behavior.
 - **Performance Layout Cache**: A structure-aware caching engine that eliminates redundant OSD calculations during mouse movement, ensuring a smooth 60fps interaction experience.
+- **Configurable "Esc" Reset Matrix**: Precisely control the viewport behavior upon clearing selections. Cycle between `AUTO FOLLOW CURRENT`, `NEUTRAL LAST SELECTION`, and `NEUTRAL CURRENT SUBTITLE` using the `n` key.
 - **Toggle**: `z` (English) or `я` (Russian).
 
 ![High Density Tooltip](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dw.tooltip.png)
@@ -614,6 +615,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-dw_ctrl_select_color" | `FF88FF` | Color for split-word selection (Pink) in pending state. |
 | `kardenwort-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights (Purple). |
 | `kardenwort-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
+| `kardenwort-dw_esc_mode` | `auto_follow_current` | Behavior of Esc key (`auto_follow_current`, `neutral_last_selection`, `neutral_current_subtitle`). |
 
 #### **7. Translation Tooltips**
 | Parameter | Default | Description |
@@ -692,7 +694,8 @@ These parameters allow remapping internal script actions in `mpv.conf`. Values c
 | `kardenwort-key_sub_pos_up/down` | `r/t к/е` |
 | `kardenwort-key_sec_sub_pos_up/down`| `R/T К/Е` |
 | `kardenwort-dw_key_cycle_copy_mode` | `Q Й` |
-| `kardenwort-dw_key_toggle_copy_context`| `W Ц` |
+| `kardenwort-dw_key_toggle_copy_context`| `W Ц` | Toggle Context Copy (Drum Window). |
+| `kardenwort-dw_key_cycle_esc_mode` | `n т` | Cycle Drum Window Escape behavior mode. |
 
 #### **Mapping Keywords**
 When configuring `anki-mapping.ini`, use these keywords to pull dynamic data:
