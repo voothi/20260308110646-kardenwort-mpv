@@ -5,9 +5,19 @@ Feature: DW Esc Mode Cycling
 """
 
 import time
-import pytest
-from tests.ipc.mpv_session import MpvSession
-from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
+from tests.ipc.mpv_ipc import query_kardenwort_state
+
+
+def _wait_for_osd(ipc, expected, timeout=1.5):
+    """Wait until mpv OSD text contains expected substring."""
+    start = time.time()
+    while time.time() - start < timeout:
+        msg1 = ipc.get_property('osd-msg1') or ""
+        msg2 = ipc.get_property('osd-msg2') or ""
+        if expected in msg1 or expected in msg2:
+            return True
+        time.sleep(0.05)
+    return False
 
 def test_dw_esc_mode_cycling_loop(mpv_dual):
     """
@@ -43,6 +53,7 @@ def test_dw_esc_mode_cycling_loop(mpv_dual):
         
         state = query_kardenwort_state(ipc)
         assert state['options']['dw_esc_mode'] == mode_id
+        assert _wait_for_osd(ipc, expected_osd), f"OSD mismatch for mode {mode_id}: expected '{expected_osd}'"
         
 def test_dw_esc_mode_cyrillic_parity(mpv_dual):
     """
@@ -61,15 +72,8 @@ def test_dw_esc_mode_cyrillic_parity(mpv_dual):
     time.sleep(0.2)
     state = query_kardenwort_state(ipc)
     
-    # Check if changed (from auto_follow_current to neutral_last_selection)
-    if state['options']['dw_esc_mode'] == "neutral_last_selection":
-        pass # Success
-    else:
-        # Try sending via script-binding as fallback for test environment layout issues
-        ipc.command(['script-binding', 'kardenwort/dw-cycle-esc-mode'])
-        time.sleep(0.2)
-        state = query_kardenwort_state(ipc)
-        assert state['options']['dw_esc_mode'] == "neutral_last_selection"
+    # Strict parity check: Cyrillic key must cycle mode by itself.
+    assert state['options']['dw_esc_mode'] == "neutral_last_selection"
 
 def test_dw_esc_mode_persistence(mpv_dual):
     """
