@@ -2302,6 +2302,7 @@
 20260516181312 All relevant tests are present and passing. Verified test files: - [test_20260427003254_copy_sub_fallback.py](u:/voothi/20260308110646-kardenwort-mpv/tests/acceptance/test_20260427003254_copy_sub_fallback.py) - [test_20260516122540_secondary_only_mode.py](u:/voothi/20260308110646-kardenwort-mpv/tests/acceptance/test_20260516122540_secondary_only_mode.py) Regression run: - `pytest tests\acceptance\test_20260427003254_copy_sub_fallback.py tests\acceptance\test_20260516122540_secondary_only_mode.py -q` - Result: `19 passed in 34.85s` Added specs: - [context-copy/spec.md](u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/context-copy/spec.md) - Added `Live Playback Priority for No-Selection Copy` - Includes scenarios for free playback no-selection copy and Context Copy ON anchoring - [secondary-only-mode/spec.md](u:/voothi/20260308110646-kardenwort-mpv/openspec/specs/secondary-only-mode/spec.md) - Added `Secondary Sub Only Label Consistency` - Added `Secondary Track Cycle Guard While Secondary Sub Only Is Active` (`Shift+C` blocked with `X` and no SID change)
 20260516181911 python -m pytest tests/ -v
 20260516183200 ================================================================================== 758 passed in 894.58s (0:14:54) ===================================================================================
+20260516202900 Let's try to add a new key n, t for cyclic mode switching, which we have in the dw_esc_mode=auto_follow_current config.
 
 
 

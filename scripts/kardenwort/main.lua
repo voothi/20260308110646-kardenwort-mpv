@@ -430,6 +430,7 @@ Options = {
     dw_key_select_right = "Shift+RIGHT",
     dw_key_select_up = "Shift+UP",
     dw_key_select_down = "Shift+DOWN",
+    dw_key_cycle_esc_mode = "n",
     dw_key_cycle_copy_mode = "z я",
     dw_key_toggle_copy_context = "x ч",
     -- Search Mode (Drum Window)
@@ -1171,6 +1172,24 @@ function cmd_cycle_copy_mode()
     
     local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
     show_osd("Copy Subtitle Mode: " .. label)
+end
+
+function cmd_cycle_dw_esc_mode()
+    local order = {
+        "auto_follow_current",
+        "neutral_last_selection",
+        "neutral_current_subtitle",
+    }
+    local current = dw_get_esc_mode()
+    local next_idx = 1
+    for i, mode in ipairs(order) do
+        if mode == current then
+            next_idx = (i % #order) + 1
+            break
+        end
+    end
+    Options.dw_esc_mode = order[next_idx]
+    show_osd("DW Esc Mode: " .. Options.dw_esc_mode)
 end
 
 function cmd_cycle_immersion_mode()
@@ -7012,6 +7031,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     parse_and_collect(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
     parse_and_collect(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
     parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
+    parse_and_collect(Options.dw_key_cycle_esc_mode, "dw-cycle-esc-mode", nil, cmd_cycle_dw_esc_mode, false)
     parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
     parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
 
@@ -7708,6 +7728,7 @@ local HELP_SCHEMA = {
         { desc = "DW Select Left/Right", cmd = {"dw%-select%-left", "dw%-select%-right"} },
         { desc = "DW Select Up/Down", cmd = {"dw%-select%-up", "dw%-select%-down"} },
         { desc = "DW Open Record", cmd = "dw%-open%-record" },
+        { desc = "DW Cycle Esc Mode", cmd = "dw%-cycle%-esc%-mode" },
         { desc = "DW Cycle Copy Mode", cmd = "dw%-cycle%-copy%-mode" },
         { desc = "DW Toggle Copy Context", cmd = "dw%-toggle%-copy%-context" },
     }},
