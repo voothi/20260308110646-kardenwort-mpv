@@ -1,3 +1,27 @@
+# Release Notes - v1.82.12 (Live Playback Priority & Secondary Mode Guards)
+
+**Date**: 2026-05-16
+**Version**: v1.82.12
+**Implementation ZIDs**: 20260516181312, 20260516174857, 20260516170605
+
+## Highlights
+
+### 📋 **Live Playback Priority for No-Selection Copy**
+- **Surgical Fallback Logic**: Fixed a critical bug where `Ctrl+C`, `w`, or `q` would copy the last manually focused subtitle (via `a/d` navigation) instead of the one currently playing. 
+- **Deterministic Anchoring**: The copy engine now strictly prioritizes the live playback line (`time-pos` based) when no manual selection (Pink/Yellow) is active. This ensures that "blind" copies during free playback always capture the audible context.
+- **Context Copy Alignment**: In "Context Copy" mode (`COPY_CONTEXT=ON`), the extracted paragraph is now correctly anchored to the live subtitle when no selection exists.
+
+### 📺 **Secondary Sub Only Mode Refinement**
+- **Label Consistency**: Renamed the OSD mode label from `Secondary Only` to `Secondary Sub Only` to align with the project's canonical terminology.
+- **Track Cycle Guard**: Implemented a defensive block for `Shift+C` (`kardenwort/cycle-sec-sid`) when "Secondary Sub Only" mode is active. The system now returns `X` and prevents track cycling, eliminating the possibility of entering a contradictory display state.
+- **FSM Integrity**: Hardened the transition matrix to ensure that manual visibility overrides remain stable during rapid mode switching.
+
+### 🧪 **Milestone: 758 Acceptance Tests**
+- **Expanded Regression Suite**: Added high-resolution verification for no-selection fallback priority and secondary-only mode guards.
+- **Full Suite Pass**: Successfully validated the entire repository state (758 passed in 894.58s), ensuring zero regressions across all immersion interfaces.
+
+---
+
 # Release Notes - v1.82.8 (Secondary Only Mode & Drum Window Hardening)
 
 **Date**: 2026-05-16
