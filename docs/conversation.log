@@ -2314,5 +2314,6 @@
 20260516210946 python -m pytest tests/ -v
 20260516213336 ================================================================================== 761 passed in 914.22s (0:15:14) ===================================================================================
 20260516213452 create-release-2 v1.82.14 conversation.log#L2305-2315
+20260516214924 I have updated the documentation to include the new DW Esc Mode cycling shortcut. Changes README.md: Added n / т to the Immersion-Centric Keybindings table, explicitly documenting its role in cycling through the Drum Window Escape reset policies. Help HUD (main.lua): Updated the description in the HELP_SCHEMA to "Cycle DW Esc Mode". This ensures the shortcut is discoverable via the live F1 help overlay during playback. These updates complete the discoverability requirement for the latest navigation improvements.
 
 

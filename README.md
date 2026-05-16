@@ -429,6 +429,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `s` / `ы` | `s` / `ы` | **Subtitle Replay** (Loop / One-shot) |
 | `S` / `Ы` | `S` / `Ы` | Toggle **Autopause** (ON/OFF) |
 | `z` / `я` | `z` / `я` | Toggle **Static Reading Mode** (Drum Window) |
+| `n` / `т` | `n` / `т` | Cycle **DW Esc Mode** (Drum Window) |
 | `Z` / `Я` | `Z` / `Я` | Toggle **Book Mode** (Drum Window) |
 | `x` / `ч` | `x` / `ч` | Toggle **Drum Mode** (Dynamic Multi-line Context) |
 | `c` / `с` | `c` / `с` | Toggle **Subtitle Visibility** (Styled OSD) |
