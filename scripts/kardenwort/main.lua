@@ -8590,10 +8590,8 @@ local function cmd_cycle_sec_pos()
                 end
             end
         end
-        if has_available_secondary then
-            show_osd("X")
-        else
-            show_osd("Secondary Sub Pos: No secondary subtitle loaded")
+        show_osd("X")
+        if not has_available_secondary then
             Diagnostic.info("Secondary Sub Pos requested, but no secondary subtitle track is available")
         end
         return

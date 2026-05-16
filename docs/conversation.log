@@ -2273,6 +2273,8 @@
 20260516112513 There is no obvious signal whether the functions of the e, r, t keys will work when all subtitles are hidden.
 20260516113220 This needs to be done when the subtitles are on (c) and the upper subtitles are off (Shift+c), so that when you press Shift+x, in this case it will be shown instead of the long No secondary subtitle loaded, just X.
 20260516113550 Still, I would output this to the console or in certain cases when the subtitles are not really loaded.        show_osd("Secondary Sub Pos: No secondary subtitle loaded")
+20260516113756 Make it so that X is output in any case, but also written to the console if this is really a problem.
+
 
 
 
