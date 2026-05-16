@@ -1,3 +1,29 @@
+# Release Notes - v1.82.14 (DW Esc Mode Matrix & Omnidirectional Verification)
+
+**Date**: 2026-05-16
+**Version**: v1.82.14
+**Implementation ZIDs**: 20260516210228, 20260516205553, 20260516204609, 20260516203759, 20260516202900
+
+## Highlights
+
+### 🛡️ **Configurable "Esc" Reset Matrix**
+- **Deterministic Viewport Control**: Implemented a professional three-mode Escape key behavior cycling. Users can now choose how the viewport reacts when clearing selections in the Drum Window:
+    - `AUTO FOLLOW CURRENT`: Instantly restores player-follow and re-centers on the live subtitle.
+    - `NEUTRAL LAST SELECTION`: Freezes the viewport at the last worked line for stable context analysis.
+    - `NEUTRAL CURRENT SUBTITLE`: Centers on the current playback line but remains decoupled from advancement.
+- **Professional OSD Feedback**: Added high-resolution OSD labels for each mode transition, providing clear visual confirmation of the active reset policy.
+- **New Configuration Parameters**: Exposed `kardenwort-dw_esc_mode` and `kardenwort-dw_key_cycle_esc_mode` (default: `n` and `т`) to allow deep customization.
+
+### 🧪 **Omnidirectional Verification & Reliability**
+- **Hardened Acceptance Tests**: Developed a surgical verification suite covering circular cycling, OSD parity, and state persistence across Drum Window toggles.
+- **Cyrillic Layout Parity**: Explicitly validated that the `т` key (Russian layout) provides 100% functional parity with the `n` key for mode cycling.
+- **Interaction Resilience**: Improved the state machine to ensure manual viewport exploration remains stable and correctly restores follow-mode upon explicit Stage-3 resets.
+
+### 🧪 **Milestone: 761 Acceptance Tests**
+- **Full Suite Pass**: Successfully validated the entire repository state with **761 passed tests** in 914.22s, ensuring zero regressions across all immersion and navigation engines.
+
+---
+
 # Release Notes - v1.82.12 (Live Playback Priority & Secondary Mode Guards)
 
 **Date**: 2026-05-16
