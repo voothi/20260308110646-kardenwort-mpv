@@ -85,3 +85,20 @@ The system SHALL utilize the internal subtitle index as the primary source for s
 - **AND** the user presses `Ctrl+c`.
 - **THEN** the system SHALL extract the Russian translation line from the internal `Tracks.sec.subs` table if the primary track is English.
 - **AND** native properties SHALL NOT be used if valid internal data exists for the target language.
+
+### Requirement: Live Playback Priority for No-Selection Copy
+When no explicit selection exists (no pink set, no yellow range, no yellow pointer), the copy pipeline SHALL resolve the target line from live playback state instead of stale manual cursor history.
+
+#### Scenario: Free playback after manual cursor navigation
+- **GIVEN** the user previously moved cursor focus manually (for example with `a`/`d`)
+- **AND** no active selection remains
+- **WHEN** the user triggers copy (`Ctrl+c`, `q`, or `w`) during free playback
+- **THEN** the copied subtitle SHALL match the current white playback subtitle line at the current playback time
+- **AND** it SHALL NOT copy the stale line associated with the old cursor focus.
+
+#### Scenario: No-selection copy with Context Copy ON
+- **GIVEN** `COPY_CONTEXT` is enabled
+- **AND** no active selection remains
+- **WHEN** the user triggers copy
+- **THEN** context anchoring SHALL use the current playback subtitle index
+- **AND** context SHALL be collected around that live index rather than a stale cursor-derived line.
