@@ -8599,12 +8599,14 @@ local function cmd_toggle_secondary_only_mode()
 
     FSM.SEC_ONLY_MODE = not FSM.SEC_ONLY_MODE
     if FSM.SEC_ONLY_MODE then
-        FSM.native_sub_vis = false
+        -- Force master subtitles ON, but render only secondary via SEC_ONLY_MODE.
+        FSM.native_sub_vis = true
         FSM.native_sec_sub_vis = true
         show_osd("Secondary Only: ON")
     else
-        FSM.native_sub_vis = false
-        FSM.native_sec_sub_vis = false
+        -- Exit to normal master-on state.
+        FSM.native_sub_vis = true
+        FSM.native_sec_sub_vis = true
         show_osd("Secondary Only: OFF")
     end
     master_tick()
