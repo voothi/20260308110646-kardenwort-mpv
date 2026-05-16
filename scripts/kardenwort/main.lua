@@ -8561,6 +8561,10 @@ local function cmd_cycle_sec_pos()
         show_osd("X")
         return
     end
+    if not FSM.native_sub_vis then
+        show_osd("X")
+        return
+    end
     if Tracks.sec.id == 0 then
         show_osd("Secondary Sub Pos: No secondary subtitle loaded")
         return
