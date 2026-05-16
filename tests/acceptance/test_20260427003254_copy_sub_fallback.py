@@ -10,6 +10,11 @@ import pytest
 from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 from tests.ipc.mpv_session import MpvSession
 
+_FRAGMENT1_DE_SUB1 = "Nee."
+_FRAGMENT1_DE_SUB2 = "Manchmal hat man das Gefühl, die haben es extra auf einen abgesehen."
+_FRAGMENT1_DE_SUB3 = "Bedeutet in einer Gegend wie hier,"
+_FRAGMENT1_RU_SUB2 = "Иногда у вас возникает ощущение, что они хотят вас схватить."
+
 # Helper for polling state
 def wait_for_state(ipc, key, value, timeout=2.0):
     start = time.time()
@@ -240,6 +245,78 @@ class TestAprilArchivedRegressions:
         term = ipc.get_property('user-data/kardenwort/last_export')
         # Should have " ... " in the middle
         assert "Manchmal ... abgesehen" in term
+
+    def test_20260516171549_dw_copy_no_selection_prefers_live_active_line(self, mpv_fragment1):
+        """
+        Regression: when no selection exists, DW copy must follow current playback line,
+        not stale manual cursor line.
+        """
+        ipc = mpv_fragment1.ipc
+
+        ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "false"])
+        time.sleep(0.1)
+        ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "-1"])
+        time.sleep(0.1)
+
+        ipc.command(["seek", 7.0, "absolute+exact"])
+        time.sleep(0.35)
+        state = query_kardenwort_state(ipc)
+        assert int(state["active_sub_index"]) == 2
+        assert int(state["dw_cursor"]["line"]) == 1
+        assert int(state["dw_cursor"]["word"]) == -1
+
+        ipc.command(["script-message-to", "kardenwort", "test-dw-copy"])
+        time.sleep(0.15)
+        clip = ipc.get_property("user-data/kardenwort/last_clipboard")
+        assert clip == _FRAGMENT1_DE_SUB2
+        assert clip != _FRAGMENT1_DE_SUB1
+
+    def test_20260516171549_dw_copy_context_uses_live_active_line(self, mpv_fragment1):
+        """
+        Regression with Context Copy ON: context anchor must come from live playback,
+        not stale cursor line, when no selection exists.
+        """
+        ipc = mpv_fragment1.ipc
+
+        ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "false"])
+        time.sleep(0.1)
+        ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "-1"])
+        time.sleep(0.1)
+        ipc.command(["script-binding", "kardenwort/toggle-copy-context"])
+        time.sleep(0.1)
+
+        ipc.command(["seek", 7.0, "absolute+exact"])
+        time.sleep(0.35)
+        ipc.command(["script-message-to", "kardenwort", "test-dw-copy"])
+        time.sleep(0.15)
+        clip = ipc.get_property("user-data/kardenwort/last_clipboard")
+
+        assert _FRAGMENT1_DE_SUB2 in clip
+        assert _FRAGMENT1_DE_SUB1 in clip
+        assert _FRAGMENT1_DE_SUB3 in clip
+
+    def test_20260516171549_dw_copy_mode_b_uses_secondary_live_active_line(self, mpv_fragment1):
+        """
+        Regression with Copy Mode B: no-selection DW copy must still use the current
+        playback index while exporting from the secondary (translation) track.
+        """
+        ipc = mpv_fragment1.ipc
+
+        ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "false"])
+        time.sleep(0.1)
+        ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "-1"])
+        time.sleep(0.1)
+        ipc.command(["script-binding", "kardenwort/cycle-copy-mode"])
+        time.sleep(0.1)
+        state = query_kardenwort_state(ipc)
+        assert state["copy_mode"] == "B"
+
+        ipc.command(["seek", 7.0, "absolute+exact"])
+        time.sleep(0.35)
+        ipc.command(["script-message-to", "kardenwort", "test-dw-copy"])
+        time.sleep(0.15)
+        clip = ipc.get_property("user-data/kardenwort/last_clipboard")
+        assert clip == _FRAGMENT1_RU_SUB2
 
 
 
