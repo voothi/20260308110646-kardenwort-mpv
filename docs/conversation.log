@@ -2278,4 +2278,5 @@
 20260516114521 Fixed the inconsistency. I added a master-visibility guard to `cmd_cycle_sec_sid()` in [main.lua](U:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua), so when `c` has subtitles OFF, pressing `Shift+C` now returns `X` and cannot re-enable secondary subtitles. Your second point is valid: enabling secondary subtitles independently should be a dedicated mode/command, not a side effect of `Shift+C` track cycling. If you want, I can implement a clean separate toggle path next.
 20260516115141 Add a separate mod like this and make it under EN/RU Shift+v.
 20260516120126 This mod should forcefully turn on subtitles (c) and make only the second, top ones visible.
+20260516120326 It should force the second subtitles to turn on as well because they might not be turned on until you press Shift+v.
 

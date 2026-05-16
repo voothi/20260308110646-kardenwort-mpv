@@ -8586,6 +8586,31 @@ local function has_available_secondary_track()
     return false
 end
 
+local function ensure_secondary_track_selected()
+    local current_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
+    if current_sid ~= 0 then return true end
+
+    local tracks = mp.get_property_native("track-list") or {}
+    local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
+    local fallback_sid = nil
+    for _, t in ipairs(tracks) do
+        if t.type == "sub" and t.external then
+            local tid = tonumber(t.id)
+            if tid and tid ~= 0 and tid ~= primary_sid then
+                fallback_sid = tid
+                break
+            end
+        end
+    end
+
+    if fallback_sid then
+        mp.set_property_number("secondary-sid", fallback_sid)
+        FSM.__auto_track_selected_sec = true
+        return true
+    end
+    return false
+end
+
 local function cmd_toggle_secondary_only_mode()
     if FSM.DRUM_WINDOW ~= "OFF" then
         show_osd("X")
@@ -8599,6 +8624,7 @@ local function cmd_toggle_secondary_only_mode()
 
     FSM.SEC_ONLY_MODE = not FSM.SEC_ONLY_MODE
     if FSM.SEC_ONLY_MODE then
+        ensure_secondary_track_selected()
         -- Force master subtitles ON, but render only secondary via SEC_ONLY_MODE.
         FSM.native_sub_vis = true
         FSM.native_sec_sub_vis = true
