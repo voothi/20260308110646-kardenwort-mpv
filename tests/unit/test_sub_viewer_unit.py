@@ -110,3 +110,13 @@ def test_mpv_log_path_is_local_to_sub_viewer():
     log_path = Path(viewer.get_mpv_log_path())
     assert log_path.name == "mpv_sub_viewer.log"
     assert log_path.parent.name == "logs"
+
+
+def test_safe_remove_file_deletes_existing_file():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        temp_file = Path(td) / "temp.srt"
+        temp_file.write_text("1\n00:00:00,000 --> 00:00:01,000\nx\n", encoding="utf-8")
+        assert temp_file.exists()
+        viewer._safe_remove_file(str(temp_file))
+        assert not temp_file.exists()

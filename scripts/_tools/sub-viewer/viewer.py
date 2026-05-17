@@ -6,6 +6,7 @@ import re
 import shutil
 import traceback
 import tempfile
+import threading
 
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
@@ -296,7 +297,24 @@ def get_mpv_log_path():
     os.makedirs(logs_dir, exist_ok=True)
     return os.path.join(logs_dir, "mpv_sub_viewer.log")
 
+
+def _safe_remove_file(path):
+    if not path:
+        return
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def _cleanup_after_process_exit(proc, temp_path):
+    try:
+        proc.wait()
+    finally:
+        _safe_remove_file(temp_path)
+
 def main():
+    generated_temp_path = None
     try:
         if len(sys.argv) < 2:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
@@ -313,6 +331,8 @@ def main():
             raise FileNotFoundError(f"Input file not found: {input_path}")
 
         sub_path, generated_reader_sub = resolve_subtitle_input(input_path)
+        if generated_reader_sub:
+            generated_temp_path = sub_path
 
         # 1. Resolve base directory and file name
         sub_dir, sub_file = os.path.split(input_path)
@@ -395,14 +415,22 @@ def main():
         if os.name == 'nt':
             creationflags = 0x08000000  # CREATE_NO_WINDOW
             
-        subprocess.Popen(
+        proc = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             creationflags=creationflags
         )
+        if generated_temp_path:
+            cleanup_thread = threading.Thread(
+                target=_cleanup_after_process_exit,
+                args=(proc, generated_temp_path),
+                daemon=True
+            )
+            cleanup_thread.start()
 
     except Exception as e:
+        _safe_remove_file(generated_temp_path)
         error_msg = f"{e}\n\nTraceback:\n{traceback.format_exc()}"
         log_error_and_alert(error_msg)
         sys.exit(1)
