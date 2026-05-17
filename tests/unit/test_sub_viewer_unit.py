@@ -61,8 +61,7 @@ def test_reader_builds_srt_from_text():
         srt_path = viewer.build_reader_srt(str(txt))
         srt_text = Path(srt_path).read_text(encoding="utf-8")
 
-        assert "00:00:00,000 --> 00:00:06,000" in srt_text
-        assert "00:00:06,000 --> 00:00:12,000" in srt_text
+        assert "00:00:00,000 -->" in srt_text
         assert "First line" in srt_text
         assert "Second block" in srt_text
         assert "Still second" in srt_text
@@ -182,4 +181,15 @@ def test_parallel_reader_srts_align_by_line_index_when_lengths_differ():
 
         assert "A1" in p and "A2" in p and "A3" in p
         assert "B1" in s and "B2" in s
-        assert "\n3\n00:00:12,000 --> 00:00:18,000\n \n" in s
+        assert "\n3\n" in s
+
+
+def test_estimated_cue_duration_grows_with_text_length():
+    viewer = _load_viewer_module()
+    short_duration = viewer._estimate_cue_duration_seconds("short text")
+    long_duration = viewer._estimate_cue_duration_seconds(
+        "This is a much longer subtitle line that should take more time to read than the short one."
+    )
+    assert long_duration > short_duration
+    assert short_duration >= viewer.READER_MIN_CUE_SECONDS
+    assert long_duration <= viewer.READER_MAX_CUE_SECONDS

@@ -6,6 +6,7 @@ import re
 import shutil
 import traceback
 from datetime import datetime
+from typing import List, Tuple
 
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
@@ -28,6 +29,10 @@ READER_SECONDS_PER_BLOCK = 6.0
 READER_MAX_LINES_PER_BLOCK = 1
 READER_MAX_CHARS_PER_LINE = 90
 READER_MIN_BLOCKS = 2
+READER_OPTIMAL_CHARACTERS_PER_SECOND = 15.0
+READER_OPTIMAL_WORDS_PER_MINUTE = 180.0
+READER_MIN_CUE_SECONDS = 1.2
+READER_MAX_CUE_SECONDS = 7.0
 # ==============================================================================
 
 def log_error_and_alert(error_msg):
@@ -217,6 +222,51 @@ def _line_to_cue_text(line):
     return "\\N".join(wrapped)
 
 
+def _estimate_cue_duration_seconds(cue_text):
+    clean = cue_text.replace("\\N", " ").strip()
+    if not clean:
+        return READER_MIN_CUE_SECONDS
+
+    char_count = len(clean)
+    word_count = len(re.findall(r"\S+", clean))
+
+    cps = READER_OPTIMAL_CHARACTERS_PER_SECOND
+    if cps < 2.0 or cps > 100.0:
+        cps = 14.7
+
+    char_ms = (char_count / cps) * 1000.0
+    if char_ms < 1400.0:
+        char_ms *= 1.2
+    elif char_ms < 1680.0:
+        char_ms = 1680.0
+    elif char_ms > 2900.0:
+        char_ms = max(2900.0, char_ms * 0.96)
+
+    wpm = READER_OPTIMAL_WORDS_PER_MINUTE
+    if wpm < 30.0:
+        wpm = 30.0
+    words_per_second = wpm / 60.0
+    word_ms = (word_count / words_per_second) * 1000.0 if word_count > 0 else 0.0
+
+    duration_ms = max(char_ms, word_ms)
+    min_ms = READER_MIN_CUE_SECONDS * 1000.0
+    max_ms = READER_MAX_CUE_SECONDS * 1000.0
+    duration_ms = max(min_ms, min(max_ms, duration_ms))
+    return duration_ms / 1000.0
+
+
+def _build_timed_cues(cues: List[str]) -> List[Tuple[float, float, str]]:
+    timed_cues = []
+    current_start = 0.0
+    for cue_text in cues:
+        duration = _estimate_cue_duration_seconds(cue_text)
+        start = current_start
+        end = start + duration
+        timed_cues.append((start, end, cue_text))
+        current_start = end
+    return timed_cues
+
+
 def _text_to_blocks(text):
     """
     Convert free text into subtitle blocks suitable for reader navigation.
@@ -286,15 +336,12 @@ def build_reader_srt(text_path):
             blocks = [" ".join(parts[:mid]), " ".join(parts[mid:])]
 
     cue_lines = []
-    current_start = 0.0
-    for idx, block in enumerate(blocks, 1):
-        start = current_start
-        end = start + READER_SECONDS_PER_BLOCK
+    timed_cues = _build_timed_cues(blocks)
+    for idx, (start, end, block) in enumerate(timed_cues, 1):
         cue_lines.append(str(idx))
         cue_lines.append(f"{_seconds_to_srt_time(start)} --> {_seconds_to_srt_time(end)}")
         cue_lines.append(block)
         cue_lines.append("")
-        current_start = end
 
     output_path = _build_reader_output_path(text_path)
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
@@ -304,15 +351,12 @@ def build_reader_srt(text_path):
 
 def _write_reader_srt_from_cues(cues, source_text_path):
     cue_lines = []
-    current_start = 0.0
-    for idx, cue_text in enumerate(cues, 1):
-        start = current_start
-        end = start + READER_SECONDS_PER_BLOCK
+    timed_cues = _build_timed_cues(cues)
+    for idx, (start, end, cue_text) in enumerate(timed_cues, 1):
         cue_lines.append(str(idx))
         cue_lines.append(f"{_seconds_to_srt_time(start)} --> {_seconds_to_srt_time(end)}")
         cue_lines.append(cue_text)
         cue_lines.append("")
-        current_start = end
 
     output_path = _build_reader_output_path(source_text_path)
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
