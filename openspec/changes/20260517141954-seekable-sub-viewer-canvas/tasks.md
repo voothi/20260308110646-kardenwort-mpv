@@ -13,3 +13,23 @@
 
 - [x] 3.1 Verify `scripts/_tools/deploy/build_distribution.py` packages the `black.mp4` asset
 - [x] 3.2 Verify `scripts/_tools/deploy/deploy_distribution.py` copies the `black.mp4` asset
+
+## 4. Reader Workflow Hardening
+
+- [x] 4.1 Add plain text reader conversion for `.txt/.md/.rst/.log` inputs
+- [x] 4.2 Support paired text selection as dual subtitle tracks
+- [x] 4.3 Align paired cues by line index with mismatch-safe blank padding
+- [x] 4.4 Reuse primary cue timing for secondary paired output
+- [x] 4.5 Implement deterministic role ordering (`1,2,3`; `en,de,ru`)
+- [x] 4.6 Add Subtitle Edit-inspired duration estimation heuristics
+- [x] 4.7 Implement conflict output routing to ZID subdirectory for generated reader `.srt`
+
+## Discussion Anchors
+- `20260517144548`
+- `20260517155418`
+- `20260517155733`
+- `20260517160256`
+- `20260517162045`
+- `20260517162358`
+- `20260517163403`
+- `20260517164300`
