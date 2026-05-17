@@ -8,9 +8,11 @@ render independently without collision or de-duplication, particularly
 in bad auto-subtitle streams without punctuation or sentence boundaries.
 """
 
-import os
-import re
 import time
+import os
+import tempfile
+from pathlib import Path
+
 import pytest
 from tests.ipc.mpv_ipc import query_kardenwort_state
 
@@ -61,7 +63,7 @@ def test_static_code_verification_entry_key():
 
 
 @pytest.mark.acceptance
-def test_identical_adjacent_highlights_integration(mpv, tmp_path):
+def test_identical_adjacent_highlights_integration(mpv):
     """
     1.2 Integration Verification:
     Write a custom TSV containing two identical adjacent highlight terms
@@ -113,17 +115,42 @@ def test_identical_adjacent_highlights_integration(mpv, tmp_path):
         "0:1:2\t20260502165659-test-fixture.en\n"
     )
 
-    tsv_path = str(tmp_path / "test_identical_adjacent_records.tsv")
-    with open(tsv_path, "w", encoding="utf-8") as f:
-        f.write(tsv_content)
+    # Use OS temp directly to avoid repo-local .pytest_tmp lock contention on Windows.
+    fd, temp_name = tempfile.mkstemp(prefix="kardenwort-identical-adjacent-", suffix=".tsv")
+    try:
+        tsv_path = Path(temp_name)
+        with open(fd, "w", encoding="utf-8", closefd=True) as f:
+            f.write(tsv_content)
 
-    # Inject the temporary TSV path to trigger a reload in the player FSM
-    ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_record_file", tsv_path])
-    time.sleep(1.0)
+        expected_size = tsv_path.stat().st_size
+        expected_mtime = int(os.path.getmtime(tsv_path))
 
-    # Query the state to ensure the new database loaded cleanly
-    state = query_kardenwort_state(ipc)
-    assert state and "options" in state, "State query failed after loading TSV"
-    
-    # Assert that loading succeeds without raising FSM or parsing errors
-    assert state["anki_db_size"] > 0, "TSV database should have non-zero size"
+        # Speed up periodic TSV sync for deterministic test runtime.
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_sync_period", "0.2"])
+
+        # Inject the temporary TSV path; reload is handled by periodic sync.
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_record_file", str(tsv_path)])
+
+        # Poll until the sync loop picks up the injected DB fingerprint.
+        deadline = time.time() + 8.0
+        state = {}
+        while time.time() < deadline:
+            state = query_kardenwort_state(ipc)
+            if (
+                state
+                and state.get("anki_db_size", 0) == expected_size
+                and abs(int(state.get("anki_db_mtime", 0)) - expected_mtime) <= 2
+            ):
+                break
+            time.sleep(0.2)
+
+        assert state and "options" in state, "State query failed after loading TSV"
+        assert state.get("anki_db_size", 0) == expected_size, "FSM ANKI_DB_SIZE must match injected TSV size"
+        assert abs(int(state.get("anki_db_mtime", 0)) - expected_mtime) <= 2, (
+            "FSM ANKI_DB_MTIME must track the injected TSV mtime"
+        )
+    finally:
+        try:
+            tsv_path.unlink(missing_ok=True)
+        except Exception:
+            pass
