@@ -1563,6 +1563,17 @@ local function utf8_to_table(str)
     return t
 end
 
+local function utf8_truncate(str, max_chars)
+    if not str or str == "" then return "" end
+    local chars = utf8_to_table(str)
+    if #chars <= max_chars then return str end
+    local out = {}
+    for i = 1, max_chars do
+        out[#out + 1] = chars[i]
+    end
+    return table.concat(out, "") .. "..."
+end
+
 -- Module-scope Cyrillic case-mapping tables (created once at load time).
 -- Hoisted from utf8_to_lower() to eliminate per-call allocation overhead.
 local CYRILLIC_UPPER = utf8_to_table("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ")
@@ -8599,7 +8610,7 @@ function cmd_dw_copy(mode)
         local now = mp.get_time()
         if (now - (FSM.LAST_OSD_TIME or 0)) > Options.copy_osd_cooldown then
             local label = is_context and "Context" or "DW"
-            show_osd(label .. " Copied: " .. final_text:sub(1, 40) .. (#final_text > 40 and "..." or ""))
+            show_osd(label .. " Copied: " .. utf8_truncate(final_text, 40))
             FSM.LAST_OSD_TIME = now
         end
     end
