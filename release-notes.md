@@ -1,3 +1,30 @@
+# Release Notes - v1.82.16 (Independent Highlights & Spec-Driven Hardening)
+
+**Date**: 2026-05-17
+**Version**: v1.82.16
+**Implementation ZIDs**: 20260517120817, 20260517112505, 20260517112020, 20260517110722, 20260517110442, 20260517110307, 20260517110139, 20260517104700, 20260517103556, 20260517102656, 20260517102545
+
+## Highlights
+
+### 🎨 **Independent Adjacent Highlights (Collisions Solved)**
+- **Isolated Multi-Row Highlighting**: Resolved a critical rendering issue where multiple identical highlight terms in adjacent or nearby subtitle segments would collide, resulting in only one of the rows being highlighted. This was especially prevalent in poorly formatted auto-subtitle streams (e.g., YouTube auto-captions) that lack capitalization, punctuation, and clear sentence boundaries.
+- **Dynamic Identity Key Generation**: Replaced the fragile `term`-based de-duplication and cache lookup mechanisms with a per-row unique identity key (`__entry_key`). This unique key is generated dynamically in both `load_anki_tsv` (during DB load) and `save_anki_tsv_row` (during mining) by concatenating `term`, `context`, standard-formatted `time`, `index`, and sequential row counts.
+- **Isolated Split-Match Caches**: Shifted the FSM and rendering cache indexes (`subs[sub_idx].__split_valid_indices` and `matched_terms`) to use the new identity keys, ensuring adjacent identical phrase highlights remain 100% visually and logically decoupled.
+
+### 🛡️ **Spec-Driven Acceptance & Regression Testing**
+- **Robust Integration Test Suite**: Developed `test_20260517103917_independent_highlights.py` to prevent regressions.
+- **Static Semantic Safeguards**: Implemented strict static code validation to ensure the identity-key mapping exists and old, error-prone `term_key` caching methods remain strictly forbidden.
+- **Real-Time Parity Verification**: Orchestrated a dynamic, two-step in-player test using the `mpv` session fixture. The test inserts one identical term row, asserts a baseline highlight color, inserts a second identical row, and validates that the highlight depth updates dynamically (level-2 highlight color `005DAE`) without de-duplication collisions.
+
+### 📋 **OpenSpec Archive & Sync Synchronization**
+- **Archived Changes**: Completed and archived active development changes (`20260517103720-independent-adjacent-highlights` and `20260516204609-document-and-test-dw-esc-mode`).
+- **Main Specifications Updated**: Automatically merged the normative delta requirements for both `Non-Colliding Adjacent Identical Highlights` and `Configurable "Esc" Reset Matrix` into their respective main capability spec files, preserving spec integrity.
+
+### 🧪 **Milestone: 763 Acceptance Tests**
+- **Full Verification Suite**: Validated all changes against **763 passed tests**, ensuring zero regressions across all core features and FSM navigation matrices.
+
+---
+
 # Release Notes - v1.82.14 (DW Esc Mode Matrix & Omnidirectional Verification)
 
 **Date**: 2026-05-16
