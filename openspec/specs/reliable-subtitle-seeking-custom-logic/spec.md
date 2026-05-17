@@ -37,3 +37,14 @@ All internal subtitle tracks MUST be explicitly sorted by start time after parsi
 #### Scenario: Out-of-order SRT parsing
 - **WHEN** an SRT file contains segments that are slightly out of chronological order
 - **THEN** the system MUST sort the resulting table before use to prevent navigation deadlocks.
+
+## ADDED Requirements (from 20260517141954-seekable-sub-viewer-canvas)
+
+### Requirement: Primary-Driven Timing For Paired Reader Tracks
+When generating dual reader subtitles from two text files, the final track timing MUST be derived from the primary stream and reused for secondary cues.
+
+#### Scenario: Paired text synchronization
+- **WHEN** primary and secondary reader tracks are built from text files
+- **THEN** cue timecode boundaries in the secondary output SHALL match primary boundaries exactly
+- **AND** only cue text content SHALL differ between tracks
+

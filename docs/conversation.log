@@ -2399,4 +2399,7 @@
 20260517164602 Done. The naming logic is now folder-based on conflict. New behavior: - If `text1.srt` does not exist: create `text1.srt` in the same folder. - If it already exists: create folder `/` inside that same folder, then write: - `/text1.srt` - If same name already exists inside `/`: use `/text1.1.srt`, etc. For two selected text files: - If conflict requires ZID mode, both files are created in the **same** `/` subfolder (coordinated). Updated: - [viewer.py](u:\voothi\20260308110646-kardenwort-mpv\scripts\_tools\sub-viewer\viewer.py) - [test_sub_viewer_unit.py](u:\voothi\20260308110646-kardenwort-mpv\tests\unit\test_sub_viewer_unit.py) Validation: - `python -m pytest tests/unit/test_sub_viewer_unit.py -q` - `16 passed` No commit was made.
 20260517165147 Check the solution, polish it, correct it, add it, check the code review, regression, add tests if necessary. Don't run full tests. Commit git tags  v1.82.16..20260517165141
 20260517165843 Add the specifications, here are the discussion anchors
+20260517170112 [$openspec-archive-change](U:\\voothi\\20260308110646-kardenwort-mpv\\.codex\\skills\\openspec-archive-change\\SKILL.md) sync 20260517141954-seekable-sub-viewer-canvas
+
+
 
