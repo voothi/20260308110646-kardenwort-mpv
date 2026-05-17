@@ -112,11 +112,25 @@ def test_mpv_log_path_is_local_to_sub_viewer():
     assert log_path.parent.name == "logs"
 
 
-def test_safe_remove_file_deletes_existing_file():
+def test_reader_srt_written_next_to_input_with_zid_suffix():
     viewer = _load_viewer_module()
     with tempfile.TemporaryDirectory() as td:
-        temp_file = Path(td) / "temp.srt"
-        temp_file.write_text("1\n00:00:00,000 --> 00:00:01,000\nx\n", encoding="utf-8")
-        assert temp_file.exists()
-        viewer._safe_remove_file(str(temp_file))
-        assert not temp_file.exists()
+        txt = Path(td) / "notes.md"
+        txt.write_text("Line one\nLine two\n", encoding="utf-8")
+
+        srt_path = Path(viewer.build_reader_srt(str(txt)))
+        assert srt_path.parent == txt.parent
+        assert srt_path.name.startswith("notes.")
+        assert srt_path.name.endswith(".srt")
+        assert srt_path.exists()
+
+        # Ensure collision-safe behavior for same ZID.
+        original_current_zid = viewer.current_zid
+        viewer.current_zid = lambda: "20260517154232"
+        try:
+            first = Path(viewer.build_reader_srt(str(txt)))
+            second = Path(viewer.build_reader_srt(str(txt)))
+            assert first.name == "notes.20260517154232.srt"
+            assert second.name == "notes.20260517154232.1.srt"
+        finally:
+            viewer.current_zid = original_current_zid

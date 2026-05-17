@@ -2377,4 +2377,9 @@
 20260517152633 Okay, check the final solution, polish it, check the tests, documentation, specifications, check the code for unnecessary things and the architecture. Check for hardcode. openspec\changes\20260517141954-seekable-sub-viewer-canvas
 20260517153552 Check the solution, polish it, correct it, add it, check the code review, regression, add tests if necessary. Don't run full tests. Commit git tags  v1.82.16..20260517153736
 20260517154022 Reviewed and polished range `v1.82.16..20260517153736`, fixed a regression-risk cleanup gap, added a focused test, and committed. - Fixed: generated temporary reader subtitle files are now cleaned up after mpv exits (and on launch failure) in [viewer.py](u:\voothi\20260308110646-kardenwort-mpv\scripts\_tools\sub-viewer\viewer.py). - Added test coverage for that cleanup helper in [test_sub_viewer_unit.py](u:\voothi\20260308110646-kardenwort-mpv\tests\unit\test_sub_viewer_unit.py). - Regression check passed for targeted scope. Validation run (no full suite): - `python -m pytest tests/unit/test_sub_viewer_unit.py -q` - Result: `9 passed` Commit: - `c30e9fd6` - Message: `20260517153835 sub-viewer temp reader subtitle cleanup and test` Note: - I intentionally did not include `docs/conversation.log` in the commit.
+20260517154232 I don’t understand, maybe we still need to store the srt next to the file that we opened, and not in tmp, since our TSV file has SRT indexes specific to this? We can check if there is a file with the same name in the directory so that it is not accidentally deleted? Add ZID to the end, for example in this case.
+20260517154721 I forbid you to make commits. This was written down and I warned.
+
+
+
 

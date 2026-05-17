@@ -5,8 +5,7 @@ import subprocess
 import re
 import shutil
 import traceback
-import tempfile
-import threading
+from datetime import datetime
 
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
@@ -242,6 +241,26 @@ def _text_to_blocks(text):
     return blocks
 
 
+def current_zid():
+    return datetime.now().strftime("%Y%m%d%H%M%S")
+
+
+def _build_reader_output_path(text_path):
+    input_dir = os.path.dirname(text_path)
+    input_stem = os.path.splitext(os.path.basename(text_path))[0]
+    zid = current_zid()
+    candidate = os.path.join(input_dir, f"{input_stem}.{zid}.srt")
+    if not os.path.exists(candidate):
+        return candidate
+
+    index = 1
+    while True:
+        collision_candidate = os.path.join(input_dir, f"{input_stem}.{zid}.{index}.srt")
+        if not os.path.exists(collision_candidate):
+            return collision_candidate
+        index += 1
+
+
 def build_reader_srt(text_path):
     with open(text_path, "r", encoding="utf-8", errors="ignore") as f:
         text = f.read()
@@ -269,11 +288,10 @@ def build_reader_srt(text_path):
         cue_lines.append("")
         current_start = end
 
-    fd, temp_path = tempfile.mkstemp(prefix="kardenwort-reader-", suffix=".srt")
-    os.close(fd)
-    with open(temp_path, "w", encoding="utf-8", newline="\n") as out:
+    output_path = _build_reader_output_path(text_path)
+    with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write("\n".join(cue_lines))
-    return temp_path
+    return output_path
 
 
 def resolve_subtitle_input(input_path):
@@ -298,23 +316,7 @@ def get_mpv_log_path():
     return os.path.join(logs_dir, "mpv_sub_viewer.log")
 
 
-def _safe_remove_file(path):
-    if not path:
-        return
-    try:
-        os.remove(path)
-    except OSError:
-        pass
-
-
-def _cleanup_after_process_exit(proc, temp_path):
-    try:
-        proc.wait()
-    finally:
-        _safe_remove_file(temp_path)
-
 def main():
-    generated_temp_path = None
     try:
         if len(sys.argv) < 2:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
@@ -331,8 +333,6 @@ def main():
             raise FileNotFoundError(f"Input file not found: {input_path}")
 
         sub_path, generated_reader_sub = resolve_subtitle_input(input_path)
-        if generated_reader_sub:
-            generated_temp_path = sub_path
 
         # 1. Resolve base directory and file name
         sub_dir, sub_file = os.path.split(input_path)
@@ -415,22 +415,14 @@ def main():
         if os.name == 'nt':
             creationflags = 0x08000000  # CREATE_NO_WINDOW
             
-        proc = subprocess.Popen(
+        subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             creationflags=creationflags
         )
-        if generated_temp_path:
-            cleanup_thread = threading.Thread(
-                target=_cleanup_after_process_exit,
-                args=(proc, generated_temp_path),
-                daemon=True
-            )
-            cleanup_thread.start()
 
     except Exception as e:
-        _safe_remove_file(generated_temp_path)
         error_msg = f"{e}\n\nTraceback:\n{traceback.format_exc()}"
         log_error_and_alert(error_msg)
         sys.exit(1)
