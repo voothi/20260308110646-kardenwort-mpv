@@ -1,3 +1,10 @@
+"""
+Feature ZID: 20260517200951
+Test Creation ZID: 20260517200951
+Feature: UTF-8 Copy Preview
+Regression tests for UTF-8-safe truncation and preview formatting.
+"""
+
 import time
 from tests.ipc.mpv_ipc import query_kardenwort_state
 
