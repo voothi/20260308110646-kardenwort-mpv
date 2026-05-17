@@ -1,3 +1,34 @@
+# Release Notes - v1.82.18 (Standalone Subtitle Viewer & Portability Reorganization)
+
+**Date**: 2026-05-17
+**Version**: v1.82.18
+**Implementation ZIDs**: 20260517172209, 20260517170327, 20260517170110, 20260517165313, 20260517164557, 20260517163728, 20260517162656, 20260517162355, 20260517161610, 20260517161013, 20260517160908, 20260517160108, 20260517155649, 20260517154835, 20260517154130, 20260517153531, 20260517152359, 20260517152103, 20260517151659, 20260517151301, 20260517150134, 20260517145534, 20260517145328, 20260517144840, 20260517144522, 20260517142557, 20260517142526, 20260517142052, 20260517140535, 20260517134219, 20260517133326, 20260517132929, 20260517131756, 20260517131117, 20260517130815, 20260517130217, 20260517124839
+
+## Highlights
+
+### 📺 **Standalone Subtitle Viewer (Seekable Canvas)**
+- **Zero-Dependency Seekable Background**: Integrated a physical, highly optimized H.264 black canvas video (`black.mp4`, ~886 KB) directly into the repository under `scripts/_tools/sub-viewer/black.mp4`. This completely solves the `Seek failed` timeline lockout associated with virtual generator tracks (`av://lavfi`), enabling 100% perfect, native seekability for subtitle/text studying.
+- **Dynamic Timeline Bounding**: Implemented an automated parser at startup that scans the target subtitle file, extracts the exact timestamp of the last subtitle block, and restricts the player's timeline (`--length`) dynamically (with a comfortable 2-second buffer), tailoring the scrollbar to the exact duration of the study material.
+- **Windows Context Menu Integration**: Built `scripts/_tools/sub-viewer/install.py` to register a Windows Explorer context menu item (`Kardenwort Sub Viewer`). It maps python execution to `pythonw.exe` to suppress command-prompt window pop-ups (ensuring a clean GUI experience) and handles system PATH desyncs dynamically, searching standard `mpv` installation directories as fallback. Includes graphical alerts (`ctypes.MessageBox`) for startup error safety.
+
+### 📖 **Dual-Subtitle Text Reader Mode**
+- **Coordinated Dual-Text Splicing**: Upgraded the standalone launcher to support selecting two text files simultaneously (e.g. `text1.txt + text2.txt`). The launcher parses, synchronizes, and maps both text files into dual subtitle tracks (`--sid=1 --secondary-sid=2`) in a single interactive player window.
+- **Stable Index-Based Alignment**: The parser aligns dual text lines by index with high tolerance for mismatched line counts (padding shorter files with empty subtitle cues) to guarantee perfect parallel visual sync.
+- **Subtitle Edit-Inspired Duration Formula**: Implemented an intelligent reading duration heuristic modeled after Subtitle Edit's parsing algorithm. Calculates optimal display times based on characters per second (CPS) and words per minute (WPM), applying short-duration boosts, mid-range normalization, and long-duration compression with robust min/max limits.
+- **Coordinated ZID-Based Conflict Subdirectories**: Refined subtitle auto-generation to write temp files inside coordinated subdirectories named with the current ZID to keep files organized on conflict.
+
+### 📁 **Portability & Namespace Reorganization**
+- **Autoloader Safety Isolation**: Reorganized non-player Python utilities (distribution builders, installers, launchers) out of the magic auto-loading `scripts/` folder into a prefix-protected `scripts/_tools/` subdirectory (`scripts/_tools/deploy/` and `scripts/_tools/sub-viewer/`). This prevents `mpv` from attempting to auto-load Python files on startup, maintaining namespace hygiene and absolute compatibility.
+- **Workspace-Bound Logging**: Configured all sub-viewer background logging to write securely to `scripts/_tools/sub-viewer/logs/mpv_sub_viewer.log`, completely eliminating clutter/garbage files from study directories.
+
+### 🧪 **Robust Unit Testing**
+- **High-Fidelity Unit Suite**: Created `tests/unit/test_sub_viewer_unit.py` to comprehensively validate launcher argument parsing, Explorer `%1` placeholder normalization, explicit secondary path mapping, coordinate dual-text SRT generation, and parallel duration mapping.
+
+### 🧪 **Milestone: 779 Acceptance Tests**
+- **Total Verification**: Validated the entire project state against **779 passed tests** (an increase of 16 tests from v1.82.16), confirming zero regressions in state persistence, keyboard focus, and FSM navigation loops.
+
+---
+
 # Release Notes - v1.82.16 (Independent Highlights & Spec-Driven Hardening)
 
 **Date**: 2026-05-17
