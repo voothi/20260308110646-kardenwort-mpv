@@ -390,10 +390,16 @@ def main():
             cmd.append(f'--length={last_end + 2.0}')
 
         # 9. Launch mpv normally so it gains foreground focus and detaches cleanly
+        # Use CREATE_NO_WINDOW to prevent Windows Terminal or CMD from spawning a secondary black window
+        creationflags = 0
+        if os.name == 'nt':
+            creationflags = 0x08000000  # CREATE_NO_WINDOW
+            
         subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
+            creationflags=creationflags
         )
 
     except Exception as e:
