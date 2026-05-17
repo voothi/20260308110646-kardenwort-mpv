@@ -89,6 +89,46 @@ def get_first_sub_start(filepath, max_duration=7200):
                         return total_secs
     return None
 
+def get_last_sub_end(filepath, max_duration=36000):
+    """
+    Parses the subtitle file to find the end time of the very last subtitle entry.
+    Returns the time in seconds (float) or None.
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+    except Exception:
+        return None
+
+    time_pat = re.compile(r'(\d{2,})[:](\d{2})[:](\d{2})[.,](\d{3})')
+    last_end = 0.0
+    
+    for line in content.splitlines():
+        if '-->' in line:
+            matches = time_pat.findall(line)
+            if len(matches) >= 2:
+                parts = matches[1]
+                hh = int(parts[0])
+                mm = int(parts[1])
+                ss = int(parts[2])
+                ms = int(parts[3])
+                total_secs = hh * 3600 + mm * 60 + ss + ms / 1000.0
+                if total_secs > last_end and total_secs < max_duration:
+                    last_end = total_secs
+
+        elif line.startswith('Dialogue:'):
+            parts = line.split(',', 9)
+            if len(parts) > 2:
+                end_str = parts[2].strip()
+                match_ass = re.match(r'(\d+):(\d{2}):(\d{2})\.(\d{2})', end_str)
+                if match_ass:
+                    h, m, s, cs = match_ass.groups()
+                    total_secs = int(h) * 3600 + int(m) * 60 + int(s) + int(cs) / 100.0
+                    if total_secs > last_end and total_secs < max_duration:
+                        last_end = total_secs
+                        
+    return last_end if last_end > 0.0 else None
+
 def main():
     try:
         if len(sys.argv) < 2:
@@ -182,7 +222,13 @@ def main():
         if start_time is not None:
             cmd.append(f'--start={start_time}')
 
-        # 8. Launch mpv normally so it gains foreground focus and detaches cleanly
+        # 8. Dynamically clip the timeline to match the subtitle length exactly
+        last_end = get_last_sub_end(sub_path, VIRTUAL_VIDEO_DURATION)
+        if last_end is not None and last_end > 0:
+            # Add a 2.0s padding for comfortable OSD breathing room at the end
+            cmd.append(f'--length={last_end + 2.0}')
+
+        # 9. Launch mpv normally so it gains foreground focus and detaches cleanly
         subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
