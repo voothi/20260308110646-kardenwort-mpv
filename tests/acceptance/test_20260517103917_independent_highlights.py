@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from tests.ipc.mpv_ipc import query_kardenwort_state
+from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 
 LUA_SOURCE = "scripts/kardenwort/main.lua"
@@ -34,31 +34,22 @@ def test_static_code_verification_entry_key():
     """
     src = _read_lua_source()
 
-    # Verify that load_anki_tsv creates a unique identity key __entry_key
-    assert "data.__entry_key = table.concat({" in src, (
-        "load_anki_tsv must generate data.__entry_key dynamically using table.concat"
-    )
-    assert "tostring(row_id)" in src, (
-        "load_anki_tsv must append sequential row_id to the identity key"
-    )
-
-    # Verify that save_anki_tsv_row creates a unique identity key __entry_key
-    assert "new_data.__entry_key = table.concat({" in src, (
-        "save_anki_tsv_row must generate new_data.__entry_key dynamically using table.concat"
-    )
-    assert "tostring(next_row_id)" in src, (
-        "save_anki_tsv_row must append next_row_id to the identity key"
-    )
-
-    # Verify that calculate_highlight_stack maps candidate properties to entry_key
+    # Semantic checks: entry-key path must exist and old term-key collisions must be absent.
+    assert "__entry_key" in src, "entry-key field must exist for highlight identity isolation"
     assert "local entry_key = data.__entry_key or term_key" in src, (
-        "calculate_highlight_stack must determine entry_key"
+        "calculate_highlight_stack must derive entry_key"
     )
     assert "matched_terms[entry_key] = true" in src, (
-        "calculate_highlight_stack must mark matched_terms by entry_key"
+        "matched_terms must be keyed by entry_key"
     )
     assert "subs[sub_idx].__split_valid_indices[entry_key]" in src, (
-        "calculate_highlight_stack split-match valid indices must cache by entry_key"
+        "split valid-index cache must be keyed by entry_key"
+    )
+    assert "matched_terms[term_key] = true" not in src, (
+        "term_key-based dedupe must not be used (reintroduces identical-term collision)"
+    )
+    assert "subs[sub_idx].__split_valid_indices[term_key]" not in src, (
+        "term_key-based split cache must not be used (cache collision risk)"
     )
 
 
@@ -101,14 +92,13 @@ def test_identical_adjacent_highlights_integration(mpv):
         "am-highlighted\tam-score\tam-score-terms\tam-study-morphs\tSentenceSourceIndex\tDeck\t\n"
     )
 
-    # Add two adjacent identical highlights (term: "Hello") with slightly different contexts or index
-    tsv_content += (
+    row_1 = (
         "Hello\tHello\tHello\tHello\tHello\t\t\t"
         "Hello world\t\tHello world\t\t\t\t\t\t\t\t\t\t\t\t\t"
         "1.001\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
         "0:1:1\t20260502165659-test-fixture.en\n"
     )
-    tsv_content += (
+    row_2 = (
         "Hello\tHello\tHello\tHello\tHello\t\t\t"
         "Hello world\t\tHello world\t\t\t\t\t\t\t\t\t\t\t\t\t"
         "1.001\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -120,7 +110,8 @@ def test_identical_adjacent_highlights_integration(mpv):
     try:
         tsv_path = Path(temp_name)
         with open(fd, "w", encoding="utf-8", closefd=True) as f:
-            f.write(tsv_content)
+            # Baseline: one row only (depth-1 highlight expected).
+            f.write(tsv_content + row_1)
 
         expected_size = tsv_path.stat().st_size
         expected_mtime = int(os.path.getmtime(tsv_path))
@@ -149,6 +140,43 @@ def test_identical_adjacent_highlights_integration(mpv):
         assert abs(int(state.get("anki_db_mtime", 0)) - expected_mtime) <= 2, (
             "FSM ANKI_DB_MTIME must track the injected TSV mtime"
         )
+
+        # Move to subtitle with "Hello world", open Drum Window, and capture render baseline.
+        ipc.command(["seek", 1.2, "absolute+exact"])
+        time.sleep(0.2)
+        s0 = query_kardenwort_state(ipc)
+        if s0.get("drum_window") == "OFF":
+            ipc.command(["script-message-to", "kardenwort", "drum-window-toggle"])
+            time.sleep(0.3)
+        render_one = query_kardenwort_render(ipc, "dw")
+        assert "0075D1" in render_one or "005DAE" in render_one, (
+            "Expected anki highlight color in baseline render"
+        )
+
+        # Upgrade TSV to two identical rows; engine should stack depth to level 2 (no dedupe).
+        with open(tsv_path, "w", encoding="utf-8") as f:
+            f.write(tsv_content + row_1 + row_2)
+        expected_size_2 = tsv_path.stat().st_size
+        expected_mtime_2 = int(os.path.getmtime(tsv_path))
+
+        deadline2 = time.time() + 8.0
+        state2 = {}
+        while time.time() < deadline2:
+            state2 = query_kardenwort_state(ipc)
+            if (
+                state2
+                and state2.get("anki_db_size", 0) == expected_size_2
+                and abs(int(state2.get("anki_db_mtime", 0)) - expected_mtime_2) <= 2
+            ):
+                break
+            time.sleep(0.2)
+
+        assert state2.get("anki_db_size", 0) == expected_size_2, "FSM must reload two-row TSV size"
+        render_two = query_kardenwort_render(ipc, "dw")
+        assert "005DAE" in render_two, (
+            "Expected depth-2 orange highlight color after adding second identical row"
+        )
+        assert render_two != render_one, "Render should change when identical row is added (no dedupe)"
     finally:
         try:
             tsv_path.unlink(missing_ok=True)
