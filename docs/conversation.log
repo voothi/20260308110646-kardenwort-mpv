@@ -2342,7 +2342,7 @@
 20260517130533 Think about better naming. scripts\sendto\install_sendto.py scripts\sendto\kardenwort_sub_viewer.py scripts\sendto
 20260517130700 Should I add here? README.md? scripts\sub-viewer
 20260517131003 There is nothing hardcoded in the scripts, the parameters are placed in the script header for quick configuration? scripts\sub-viewer\install.py scripts\sub-viewer\viewer.py
-
+20260517131525 I'm trying to send Sent to from C:\Users\voothi\Documents\20260515233951-the-worst-hack-of\20260517131337 two subtitles, the window does not appear.
 
 
 

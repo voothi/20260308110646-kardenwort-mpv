@@ -38,7 +38,7 @@ def main():
 
     # 2. Support Kardenwort language suffix naming (e.g. file.de.srt -> base is file)
     parts = sub_base.split('.')
-    if len(parts) > 1 and len(parts[-1]).lower() in LANG_SUFFIXES:
+    if len(parts) > 1 and parts[-1].lower() in LANG_SUFFIXES:
         main_base = '.'.join(parts[:-1])
     else:
         main_base = sub_base
@@ -81,7 +81,7 @@ def main():
     try:
         subprocess.Popen(
             cmd,
-            creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS if os.name == 'nt' else 0,
+            creationflags=subprocess.DETACHED_PROCESS if os.name == 'nt' else 0,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
