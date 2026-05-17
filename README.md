@@ -40,6 +40,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Intelligent Range Selection & Copy](#intelligent-range-selection)
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling)
+  - [Standalone Subtitle Viewer (SendTo Menu)](#standalone-subtitle-viewer-sendto-menu)
 - [Example Data Structures](#example-data-structures)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
   - [Visual Keyboard Layout (English)](#visual-keyboard-layout-english)
@@ -385,6 +386,16 @@ A custom key handler that distinguishes between quick taps and long holds.
 Ensures that your immersion material remains perfectly readable regardless of window size, while protecting complex layouts.
 *   **For `.srt` Files**: Dynamically adjusts subtitle scaling so text doesn't become tiny on large monitors or giant in small windows. Includes a **Softer Scaling** formula to prevent aggressive wrapping.
 *   **For `.ass` Files**: Intelligently detects the Advanced SubStation format and bypasses scaling, allowing the file's internal positioning mathematics to render flawlessly.
+
+### Standalone Subtitle Viewer (SendTo Menu)
+A dedicated, distraction-free environment for reading, navigating, and highlighting subtitles/text files without a physical video file.
+*   **Windows Context Menu Integration**: Right-click any `.srt`, `.ass`, or `.vtt` file in Windows Explorer, select **Send to** -> **Kardenwort Sub Viewer**, and the viewer launches instantly.
+*   **Windowless Launcher**: Runs in windowless background mode (`pythonw.exe`) to ensure that only the player interface opens—no ugly command prompts.
+*   **Local TSV Highlight Databases**: Automatically creates and manages a `.tsv` highlight database file right next to your subtitles (e.g. `lesson1.tsv` for `lesson1.de.srt`), so your word highlighting and Anki exports save natively.
+*   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
+*   **Free Seeking & Infinite Timeline**: Generates a virtual FFmpeg black video stream (`av://lavfi`) on-the-fly, allowing you to seek and skip back and forth indefinitely.
+*   **Setup**: Run `python scripts/sub-viewer/install.py` once to register it in your Windows shell.
+
 [Return to Top](#table-of-contents)
 
 ## Example Data Structures

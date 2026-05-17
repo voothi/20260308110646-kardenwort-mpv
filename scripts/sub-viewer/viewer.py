@@ -6,7 +6,7 @@ import subprocess
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python kardenwort_sub_viewer.py <subtitle_file>")
+        print("Usage: python viewer.py <subtitle_file>")
         sys.exit(1)
 
     sub_path = os.path.abspath(sys.argv[1])
@@ -39,7 +39,7 @@ def main():
             break
 
     # 5. Build the mpv command
-    # We use av://lavfi to generate a virtual 1280x720 black video stream with a 2-hour timeline (7200s)
+    # av://lavfi generates a virtual 1280x720 black video stream with a 2-hour timeline (7200s)
     cmd = [
         'mpv',
         'av://lavfi:color=c=black:s=1280x720:d=7200',
@@ -53,15 +53,15 @@ def main():
         cmd.append(f'--sub-file={secondary_sub}')
         cmd.append('--sid=1')
         cmd.append('--secondary-sid=2')
-        print(f"[Kardenwort Launch] Found secondary subtitle: {os.path.basename(secondary_sub)}")
+        print(f"[Sub Viewer] Found secondary subtitle: {os.path.basename(secondary_sub)}")
     else:
-        print("[Kardenwort Launch] Single subtitle track mode")
+        print("[Sub Viewer] Single subtitle track mode")
 
-    print(f"[Kardenwort Launch] Primary subtitle:   {os.path.basename(sub_path)}")
-    print(f"[Kardenwort Launch] Highlight TSV:      {os.path.basename(tsv_path)}")
-    print(f"[Kardenwort Launch] Running command:    {' '.join(cmd)}")
+    print(f"[Sub Viewer] Primary subtitle:   {os.path.basename(sub_path)}")
+    print(f"[Sub Viewer] Highlight TSV:      {os.path.basename(tsv_path)}")
+    print(f"[Sub Viewer] Running command:    {' '.join(cmd)}")
 
-    # 6. Launch mpv detached so the caller command/terminal can exit safely
+    # 6. Launch mpv detached so the caller processes can exit immediately
     try:
         subprocess.Popen(
             cmd,
@@ -70,7 +70,7 @@ def main():
             stderr=subprocess.DEVNULL
         )
     except FileNotFoundError:
-        print("Error: 'mpv' executable not found on PATH. Please ensure mpv is installed and added to your system environment variables.")
+        print("Error: 'mpv' executable not found on PATH. Please ensure mpv is installed and added to system variables.")
         sys.exit(1)
 
 if __name__ == '__main__':
