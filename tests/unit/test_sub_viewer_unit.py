@@ -51,3 +51,39 @@ def test_secondary_subtitle_selection_is_deterministic():
         selected = viewer.find_secondary_subtitle(str(tmp_path), "lesson", str(primary))
         assert selected is not None
         assert Path(selected).name == "lesson.ru.srt"
+
+
+def test_reader_builds_srt_from_text():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        txt = Path(td) / "reader.txt"
+        txt.write_text("First line\n\nSecond block\nStill second\n", encoding="utf-8")
+        srt_path = viewer.build_reader_srt(str(txt))
+        srt_text = Path(srt_path).read_text(encoding="utf-8")
+
+        assert "00:00:00,000 --> 00:00:06,000" in srt_text
+        assert "00:00:06,000 --> 00:00:12,000" in srt_text
+        assert "First line" in srt_text
+        assert "Second block\\NStill second" in srt_text
+
+
+def test_resolve_subtitle_input_accepts_markdown():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        md = Path(td) / "notes.md"
+        md.write_text("# Header\n\nParagraph text\n", encoding="utf-8")
+        path, generated = viewer.resolve_subtitle_input(str(md))
+        assert generated is True
+        assert path.lower().endswith(".srt")
+
+
+def test_resolve_subtitle_input_rejects_unknown_type():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        dat = Path(td) / "file.xyz"
+        dat.write_text("content\n", encoding="utf-8")
+        try:
+            viewer.resolve_subtitle_input(str(dat))
+            assert False, "Expected ValueError for unsupported extension"
+        except ValueError as e:
+            assert "Unsupported file type" in str(e)

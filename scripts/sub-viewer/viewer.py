@@ -5,12 +5,14 @@ import subprocess
 import re
 import shutil
 import traceback
+import tempfile
 
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
 # ==============================================================================
 # Supported subtitle file extensions to search for primary & secondary tracks
 SUPPORTED_EXTENSIONS = ('.srt', '.ass', '.vtt')
+SUPPORTED_TEXT_EXTENSIONS = ('.txt', '.md', '.rst', '.log')
 
 # Language code suffixes to strip when determining base name (e.g., file.de.srt -> base file)
 LANG_SUFFIXES = ('de', 'ru', 'en', 'eng', 'ger', 'rus', 'uk', 'es', 'fr', 'it')
@@ -22,6 +24,7 @@ VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 
 
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
+READER_SECONDS_PER_BLOCK = 6.0
 # ==============================================================================
 
 def log_error_and_alert(error_msg):
@@ -174,24 +177,90 @@ def find_secondary_subtitle(sub_dir, main_base, primary_sub_path):
     candidates.sort(key=lambda item: (item[0], item[1], item[2]))
     return candidates[0][3]
 
+
+def _seconds_to_srt_time(total_seconds):
+    total_ms = int(round(total_seconds * 1000))
+    hh = total_ms // 3600000
+    rem = total_ms % 3600000
+    mm = rem // 60000
+    rem = rem % 60000
+    ss = rem // 1000
+    ms = rem % 1000
+    return f"{hh:02}:{mm:02}:{ss:02},{ms:03}"
+
+
+def _text_to_blocks(text):
+    blocks = []
+    current = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line:
+            current.append(line)
+        elif current:
+            blocks.append("\\N".join(current))
+            current = []
+    if current:
+        blocks.append("\\N".join(current))
+    return blocks
+
+
+def build_reader_srt(text_path):
+    with open(text_path, "r", encoding="utf-8", errors="ignore") as f:
+        text = f.read()
+
+    blocks = _text_to_blocks(text)
+    if not blocks:
+        raise ValueError(f"Text file is empty or has no readable lines: {text_path}")
+
+    cue_lines = []
+    current_start = 0.0
+    for idx, block in enumerate(blocks, 1):
+        start = current_start
+        end = start + READER_SECONDS_PER_BLOCK
+        cue_lines.append(str(idx))
+        cue_lines.append(f"{_seconds_to_srt_time(start)} --> {_seconds_to_srt_time(end)}")
+        cue_lines.append(block)
+        cue_lines.append("")
+        current_start = end
+
+    fd, temp_path = tempfile.mkstemp(prefix="kardenwort-reader-", suffix=".srt")
+    os.close(fd)
+    with open(temp_path, "w", encoding="utf-8", newline="\n") as out:
+        out.write("\n".join(cue_lines))
+    return temp_path
+
+
+def resolve_subtitle_input(input_path):
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext in SUPPORTED_EXTENSIONS:
+        return input_path, False
+    if ext in SUPPORTED_TEXT_EXTENSIONS:
+        return build_reader_srt(input_path), True
+    raise ValueError(
+        f"Unsupported file type '{ext}'. Supported subtitle formats: {', '.join(SUPPORTED_EXTENSIONS)}. "
+        f"Supported reader text formats: {', '.join(SUPPORTED_TEXT_EXTENSIONS)}."
+    )
+
 def main():
     try:
         if len(sys.argv) < 2:
-            raise ValueError("No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.")
+            raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
 
         # Detect and handle Windows Explorer passing "%1" literally as the first argument
         raw_arg = sys.argv[1]
         if raw_arg == "%1" and len(sys.argv) >= 3:
             raw_arg = sys.argv[2]
         elif raw_arg == "%1":
-            raise ValueError("No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.")
+            raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
 
-        sub_path = os.path.abspath(raw_arg)
-        if not os.path.isfile(sub_path):
-            raise FileNotFoundError(f"Subtitle file not found: {sub_path}")
+        input_path = os.path.abspath(raw_arg)
+        if not os.path.isfile(input_path):
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+
+        sub_path, generated_reader_sub = resolve_subtitle_input(input_path)
 
         # 1. Resolve base directory and file name
-        sub_dir, sub_file = os.path.split(sub_path)
+        sub_dir, sub_file = os.path.split(input_path)
         sub_base, sub_ext = os.path.splitext(sub_file)
 
         # 2. Support Kardenwort language suffix naming (e.g. file.de.srt -> base is file)
@@ -205,7 +274,7 @@ def main():
         tsv_path = os.path.join(sub_dir, f"{main_base}.tsv")
 
         # 4. Search for a matching secondary translation subtitle track (immune to square brackets)
-        secondary_sub = find_secondary_subtitle(sub_dir, main_base, sub_path)
+        secondary_sub = None if generated_reader_sub else find_secondary_subtitle(sub_dir, main_base, sub_path)
 
         # 5. Locate mpv executable robustly on the system
         mpv_exe = shutil.which('mpv')

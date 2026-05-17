@@ -389,8 +389,9 @@ Ensures that your immersion material remains perfectly readable regardless of wi
 
 ### Standalone Subtitle Viewer (SendTo Menu)
 A dedicated, distraction-free environment for reading, navigating, and highlighting subtitles/text files without a physical video file.
-*   **Windows Context Menu Integration**: Right-click any `.srt`, `.ass`, or `.vtt` file in Windows Explorer, select **Send to** -> **Kardenwort Sub Viewer**, and the viewer launches instantly.
+*   **Windows Context Menu Integration**: Right-click `.srt`, `.ass`, `.vtt`, `.txt`, `.md`, `.rst`, or `.log` files in Windows Explorer, select **Send to** -> **Kardenwort Sub Viewer**, and the viewer launches instantly.
 *   **Windowless Launcher**: Runs in windowless background mode (`pythonw.exe`) to ensure that only the player interface opens—no ugly command prompts.
+*   **Reader Mode for Text Files**: Plain text and Markdown-style files are converted on launch into timed subtitle cues, so you can use mpv + Kardenwort as a seekable text reader.
 *   **Local TSV Highlight Databases**: Automatically creates and manages a `.tsv` highlight database file right next to your subtitles (e.g. `lesson1.tsv` for `lesson1.de.srt`), so your word highlighting and Anki exports save natively.
 *   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
 *   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
