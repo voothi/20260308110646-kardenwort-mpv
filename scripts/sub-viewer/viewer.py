@@ -4,6 +4,8 @@ import sys
 import glob
 import subprocess
 
+import re
+
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
 # ==============================================================================
@@ -21,6 +23,44 @@ VIRTUAL_VIDEO_DURATION = 7200        # Timeline length in seconds (e.g. 7200 = 2
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
 # ==============================================================================
+
+def get_first_sub_start(filepath, max_duration=7200):
+    """
+    Parses the subtitle file to find the start time of the very first subtitle entry.
+    Returns the time in seconds (float) or None.
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+    except Exception:
+        return None
+
+    time_pat = re.compile(r'(\d{2,})[:](\d{2})[:](\d{2})[.,](\d{3})')
+    
+    for line in content.splitlines():
+        if '-->' in line:
+            matches = time_pat.findall(line)
+            if len(matches) >= 1:
+                parts = matches[0]
+                hh = int(parts[0])
+                mm = int(parts[1])
+                ss = int(parts[2])
+                ms = int(parts[3])
+                total_secs = hh * 3600 + mm * 60 + ss + ms / 1000.0
+                if 0.0 <= total_secs < max_duration:
+                    return total_secs
+
+        elif line.startswith('Dialogue:'):
+            parts = line.split(',', 9)
+            if len(parts) > 2:
+                start_str = parts[1].strip()
+                match_ass = re.match(r'(\d+):(\d{2}):(\d{2})\.(\d{2})', start_str)
+                if match_ass:
+                    h, m, s, cs = match_ass.groups()
+                    total_secs = int(h) * 3600 + int(m) * 60 + int(s) + int(cs) / 100.0
+                    if 0.0 <= total_secs < max_duration:
+                        return total_secs
+    return None
 
 def main():
     if len(sys.argv) < 2:
@@ -73,11 +113,19 @@ def main():
     else:
         print("[Sub Viewer] Single subtitle track mode")
 
+    # 6. Parse first subtitle start time to auto-seek to the first card on load
+    start_time = get_first_sub_start(sub_path, VIRTUAL_VIDEO_DURATION)
+    if start_time is not None:
+        cmd.append(f'--start={start_time}')
+        print(f"[Sub Viewer] Auto-seeking to first subtitle: {start_time:.3f}s")
+    else:
+        print("[Sub Viewer] No valid start time found; starting at 0.00s")
+
     print(f"[Sub Viewer] Primary subtitle:   {os.path.basename(sub_path)}")
     print(f"[Sub Viewer] Highlight TSV:      {os.path.basename(tsv_path)}")
     print(f"[Sub Viewer] Running command:    {' '.join(cmd)}")
 
-    # 6. Launch mpv detached so the caller processes can exit immediately
+    # 7. Launch mpv detached so the caller processes can exit immediately
     try:
         subprocess.Popen(
             cmd,
