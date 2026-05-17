@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import os
 import sys
-import glob
 import subprocess
-
 import re
+import shutil
+import traceback
 
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
@@ -23,6 +23,33 @@ VIRTUAL_VIDEO_DURATION = 7200        # Timeline length in seconds (e.g. 7200 = 2
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
 # ==============================================================================
+
+def log_error_and_alert(error_msg):
+    """
+    Logs the error to a local file and displays a Windows MessageBox popup.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    log_path = os.path.join(script_dir, "sub_viewer_launch.log")
+    
+    # Write to local log file
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"=== ERROR OCCURRED ===\n{error_msg}\n\n")
+    except Exception:
+        pass
+        
+    # Graphical popup for Windows users
+    if os.name == 'nt':
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(
+                0, 
+                f"Kardenwort Sub Viewer could not start:\n\n{error_msg}\n\nDetails have been logged to:\n{log_path}", 
+                "Kardenwort Sub Viewer Error", 
+                0x10  # MB_ICONERROR
+            )
+        except Exception:
+            pass
 
 def get_first_sub_start(filepath, max_duration=7200):
     """
@@ -63,78 +90,98 @@ def get_first_sub_start(filepath, max_duration=7200):
     return None
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python viewer.py <subtitle_file>")
-        sys.exit(1)
-
-    sub_path = os.path.abspath(sys.argv[1])
-    if not os.path.isfile(sub_path):
-        print(f"Error: Subtitle file not found: {sub_path}")
-        sys.exit(1)
-
-    # 1. Resolve base directory and file name
-    sub_dir, sub_file = os.path.split(sub_path)
-    sub_base, sub_ext = os.path.splitext(sub_file)
-
-    # 2. Support Kardenwort language suffix naming (e.g. file.de.srt -> base is file)
-    parts = sub_base.split('.')
-    if len(parts) > 1 and parts[-1].lower() in LANG_SUFFIXES:
-        main_base = '.'.join(parts[:-1])
-    else:
-        main_base = sub_base
-
-    # 3. Determine the highlight TSV path
-    tsv_path = os.path.join(sub_dir, f"{main_base}.tsv")
-
-    # 4. Search for a matching secondary translation subtitle track
-    secondary_sub = None
-    
-    for candidate in glob.glob(os.path.join(sub_dir, f"{main_base}.*")):
-        cand_ext = os.path.splitext(candidate)[1].lower()
-        if cand_ext in SUPPORTED_EXTENSIONS and os.path.abspath(candidate) != sub_path:
-            secondary_sub = candidate
-            break
-
-    # 5. Build the mpv command using configuration values
-    cmd = [
-        'mpv',
-        f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}',
-        f'--sub-file={sub_path}',
-        f'--script-opts=kardenwort-anki_record_file={tsv_path}',
-        f'--pause={PAUSE_ON_LAUNCH}'
-    ]
-
-    # If secondary subtitles were found, load them as the secondary track
-    if secondary_sub:
-        cmd.append(f'--sub-file={secondary_sub}')
-        cmd.append('--sid=1')
-        cmd.append('--secondary-sid=2')
-        print(f"[Sub Viewer] Found secondary subtitle: {os.path.basename(secondary_sub)}")
-    else:
-        print("[Sub Viewer] Single subtitle track mode")
-
-    # 6. Parse first subtitle start time to auto-seek to the first card on load
-    start_time = get_first_sub_start(sub_path, VIRTUAL_VIDEO_DURATION)
-    if start_time is not None:
-        cmd.append(f'--start={start_time}')
-        print(f"[Sub Viewer] Auto-seeking to first subtitle: {start_time:.3f}s")
-    else:
-        print("[Sub Viewer] No valid start time found; starting at 0.00s")
-
-    print(f"[Sub Viewer] Primary subtitle:   {os.path.basename(sub_path)}")
-    print(f"[Sub Viewer] Highlight TSV:      {os.path.basename(tsv_path)}")
-    print(f"[Sub Viewer] Running command:    {' '.join(cmd)}")
-
-    # 7. Launch mpv detached so the caller processes can exit immediately
     try:
+        if len(sys.argv) < 2:
+            raise ValueError("No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.")
+
+        # Detect and handle Windows Explorer passing "%1" literally as the first argument
+        raw_arg = sys.argv[1]
+        if raw_arg == "%1" and len(sys.argv) >= 3:
+            raw_arg = sys.argv[2]
+        elif raw_arg == "%1":
+            raise ValueError("No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.")
+
+        sub_path = os.path.abspath(raw_arg)
+        if not os.path.isfile(sub_path):
+            raise FileNotFoundError(f"Subtitle file not found: {sub_path}")
+
+        # 1. Resolve base directory and file name
+        sub_dir, sub_file = os.path.split(sub_path)
+        sub_base, sub_ext = os.path.splitext(sub_file)
+
+        # 2. Support Kardenwort language suffix naming (e.g. file.de.srt -> base is file)
+        parts = sub_base.split('.')
+        if len(parts) > 1 and parts[-1].lower() in LANG_SUFFIXES:
+            main_base = '.'.join(parts[:-1])
+        else:
+            main_base = sub_base
+
+        # 3. Determine the highlight TSV path
+        tsv_path = os.path.join(sub_dir, f"{main_base}.tsv")
+
+        # 4. Search for a matching secondary translation subtitle track (immune to square brackets)
+        secondary_sub = None
+        if os.path.exists(sub_dir):
+            for entry in os.listdir(sub_dir):
+                full_path = os.path.join(sub_dir, entry)
+                if os.path.isfile(full_path) and entry.lower().startswith(main_base.lower() + "."):
+                    cand_ext = os.path.splitext(entry)[1].lower()
+                    if cand_ext in SUPPORTED_EXTENSIONS and os.path.abspath(full_path) != sub_path:
+                        secondary_sub = full_path
+                        break
+
+        # 5. Locate mpv executable robustly on the system
+        mpv_exe = shutil.which('mpv')
+        if not mpv_exe:
+            # Check standard fallback installation locations
+            fallback_paths = [
+                r"C:\mpv\mpv.exe",
+                r"C:\mpv\mpv-0.39.0-x86_64\mpv.exe",
+                r"C:\Program Files\mpv\mpv.exe",
+            ]
+            for path in fallback_paths:
+                if os.path.exists(path):
+                    mpv_exe = path
+                    break
+
+        if not mpv_exe:
+            raise FileNotFoundError(
+                "Could not find the 'mpv' player. Please ensure it is installed\n"
+                "and either added to your system environment variables (PATH) or\n"
+                "installed at 'C:\\mpv\\mpv.exe'."
+            )
+
+        # 6. Build the mpv command using configuration values
+        cmd = [
+            mpv_exe,
+            f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}',
+            f'--sub-file={sub_path}',
+            f'--script-opts=kardenwort-anki_record_file={tsv_path}',
+            f'--pause={PAUSE_ON_LAUNCH}'
+        ]
+
+        # If secondary subtitles were found, load them as the secondary track
+        if secondary_sub:
+            cmd.append(f'--sub-file={secondary_sub}')
+            cmd.append('--sid=1')
+            cmd.append('--secondary-sid=2')
+
+        # 7. Parse first subtitle start time to auto-seek to the first card on load
+        start_time = get_first_sub_start(sub_path, VIRTUAL_VIDEO_DURATION)
+        if start_time is not None:
+            cmd.append(f'--start={start_time}')
+
+        # 8. Launch mpv detached so the caller processes can exit immediately
         subprocess.Popen(
             cmd,
             creationflags=subprocess.DETACHED_PROCESS if os.name == 'nt' else 0,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-    except FileNotFoundError:
-        print("Error: 'mpv' executable not found on PATH. Please ensure mpv is installed and added to system variables.")
+
+    except Exception as e:
+        error_msg = f"{e}\n\nTraceback:\n{traceback.format_exc()}"
+        log_error_and_alert(error_msg)
         sys.exit(1)
 
 if __name__ == '__main__':

@@ -56,7 +56,7 @@ def main():
         f"$WshShell = New-Object -ComObject WScript.Shell; "
         f"$Shortcut = $WshShell.CreateShortcut('{shortcut_path}'); "
         f"$Shortcut.TargetPath = '{pythonw_path}'; "
-        f"$Shortcut.Arguments = '\"{script_path}\" \"%1\"'; "
+        f"$Shortcut.Arguments = '\"{script_path}\"'; "
         f"$Shortcut.WindowStyle = 7; "  # Minimized window style
         f"$Shortcut.Save()"
     )

@@ -1,0 +1,30 @@
+=== ERROR OCCURRED ===
+No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.
+
+Traceback:
+Traceback (most recent call last):
+  File "U:\voothi\20260308110646-kardenwort-mpv\scripts\sub-viewer\viewer.py", line 95, in main
+    raise ValueError("No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.")
+ValueError: No subtitle file provided. Drag and drop a subtitle file onto the script or shortcut.
+
+
+=== ERROR OCCURRED ===
+Subtitle file not found: C:\Users\voothi\Documents\20260515233951-the-worst-hack-of\20260517131337\%1
+
+Traceback:
+Traceback (most recent call last):
+  File "u:\voothi\20260308110646-kardenwort-mpv\scripts\sub-viewer\viewer.py", line 99, in main
+    raise FileNotFoundError(f"Subtitle file not found: {sub_path}")
+FileNotFoundError: Subtitle file not found: C:\Users\voothi\Documents\20260515233951-the-worst-hack-of\20260517131337\%1
+
+
+=== ERROR OCCURRED ===
+Subtitle file not found: C:\Users\voothi\Documents\20260515233951-the-worst-hack-of\20260517131337\%1
+
+Traceback:
+Traceback (most recent call last):
+  File "u:\voothi\20260308110646-kardenwort-mpv\scripts\sub-viewer\viewer.py", line 99, in main
+    raise FileNotFoundError(f"Subtitle file not found: {sub_path}")
+FileNotFoundError: Subtitle file not found: C:\Users\voothi\Documents\20260515233951-the-worst-hack-of\20260517131337\%1
+
+
