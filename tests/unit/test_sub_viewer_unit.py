@@ -181,6 +181,9 @@ def test_parallel_reader_srts_align_by_line_index_when_lengths_differ():
         assert "A1" in p and "A2" in p and "A3" in p
         assert "B1" in s and "B2" in s
         assert "\n3\n" in s
+        p_times = [line for line in p.splitlines() if "-->" in line]
+        s_times = [line for line in s.splitlines() if "-->" in line]
+        assert p_times == s_times
 
 
 def test_estimated_cue_duration_grows_with_text_length():

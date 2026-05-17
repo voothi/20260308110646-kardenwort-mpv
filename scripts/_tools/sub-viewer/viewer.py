@@ -368,6 +368,20 @@ def _write_reader_srt_from_cues(cues, source_text_path):
     return output_path
 
 
+def _write_reader_srt_from_timed_cues(timed_cues, cue_texts, source_text_path):
+    cue_lines = []
+    for idx, ((start, end, _), cue_text) in enumerate(zip(timed_cues, cue_texts), 1):
+        cue_lines.append(str(idx))
+        cue_lines.append(f"{_seconds_to_srt_time(start)} --> {_seconds_to_srt_time(end)}")
+        cue_lines.append(cue_text)
+        cue_lines.append("")
+
+    output_path = _build_reader_output_path(source_text_path)
+    with open(output_path, "w", encoding="utf-8", newline="\n") as out:
+        out.write("\n".join(cue_lines))
+    return output_path
+
+
 def build_parallel_reader_srts(primary_text_path, secondary_text_path):
     with open(primary_text_path, "r", encoding="utf-8", errors="ignore") as f:
         primary_lines = [line.rstrip("\n") for line in f]
@@ -393,8 +407,9 @@ def build_parallel_reader_srts(primary_text_path, secondary_text_path):
             f"Both text files are empty or have no readable lines: {primary_text_path}, {secondary_text_path}"
         )
 
-    primary_srt_path = _write_reader_srt_from_cues(primary_cues, primary_text_path)
-    secondary_srt_path = _write_reader_srt_from_cues(secondary_cues, secondary_text_path)
+    primary_timed_cues = _build_timed_cues(primary_cues)
+    primary_srt_path = _write_reader_srt_from_timed_cues(primary_timed_cues, primary_cues, primary_text_path)
+    secondary_srt_path = _write_reader_srt_from_timed_cues(primary_timed_cues, secondary_cues, secondary_text_path)
     return primary_srt_path, secondary_srt_path
 
 
