@@ -9,11 +9,7 @@
 - [x] 2.1 Implement `get_last_sub_end` parser in `viewer.py` to find the last subtitle timestamp
 - [x] 2.2 Add `--length` argument dynamically when launching `mpv` to clip timeline to subtitle duration
 
-## 3. Keyboard Interactivity Fix
+## 3. Build System Verification
 
-- [x] 3.1 Update `scripts/kardenwort/main.lua` to restrict `need_kb` strictly to `dw_on` state
-
-## 4. Build System Verification
-
-- [x] 4.1 Verify `scripts/deploy/build_distribution.py` packages the `black.mp4` asset
-- [x] 4.2 Verify `scripts/deploy/deploy_distribution.py` copies the `black.mp4` asset
+- [x] 3.1 Verify `scripts/_tools/deploy/build_distribution.py` packages the `black.mp4` asset
+- [x] 3.2 Verify `scripts/_tools/deploy/deploy_distribution.py` copies the `black.mp4` asset
