@@ -393,7 +393,7 @@ A dedicated, distraction-free environment for reading, navigating, and highlight
 *   **Windowless Launcher**: Runs in windowless background mode (`pythonw.exe`) to ensure that only the player interface opens—no ugly command prompts.
 *   **Local TSV Highlight Databases**: Automatically creates and manages a `.tsv` highlight database file right next to your subtitles (e.g. `lesson1.tsv` for `lesson1.de.srt`), so your word highlighting and Anki exports save natively.
 *   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
-*   **Free Seeking & Infinite Timeline**: Generates a virtual FFmpeg black video stream (`av://lavfi`) on-the-fly, allowing you to seek and skip back and forth indefinitely.
+*   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
 *   **Setup**: Run `python scripts/sub-viewer/install.py` once to register it in your Windows shell.
 
 [Return to Top](#table-of-contents)

@@ -18,7 +18,7 @@ LANG_SUFFIXES = ('de', 'ru', 'en', 'eng', 'ger', 'rus', 'uk', 'es', 'fr', 'it')
 # Virtual Video Stream Parameters
 VIRTUAL_VIDEO_COLOR = 'black'        # Can be black, grey, white, blue, etc.
 VIRTUAL_VIDEO_SIZE = '1280x720'      # Dimensions of the player window
-VIRTUAL_VIDEO_DURATION = 7200        # Timeline length in seconds (e.g. 7200 = 2 hours)
+VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 10 hours)
 
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
@@ -51,7 +51,7 @@ def log_error_and_alert(error_msg):
         except Exception:
             pass
 
-def get_first_sub_start(filepath, max_duration=7200):
+def get_first_sub_start(filepath, max_duration=36000):
     """
     Parses the subtitle file to find the start time of the very first subtitle entry.
     Returns the time in seconds (float) or None.
@@ -129,6 +129,51 @@ def get_last_sub_end(filepath, max_duration=36000):
                         
     return last_end if last_end > 0.0 else None
 
+
+def _language_suffix_rank(filename_without_ext):
+    parts = filename_without_ext.split('.')
+    if len(parts) <= 1:
+        return len(LANG_SUFFIXES), ""
+    suffix = parts[-1].lower()
+    if suffix in LANG_SUFFIXES:
+        return LANG_SUFFIXES.index(suffix), suffix
+    return len(LANG_SUFFIXES), suffix
+
+
+def find_secondary_subtitle(sub_dir, main_base, primary_sub_path):
+    """
+    Deterministically selects a secondary subtitle track.
+    Priority:
+    1) Same basename + known language suffix rank (LANG_SUFFIXES order)
+    2) Lexicographic path order as deterministic fallback
+    """
+    if not os.path.isdir(sub_dir):
+        return None
+
+    candidates = []
+    primary_abs = os.path.abspath(primary_sub_path)
+    prefix = main_base.lower() + "."
+
+    for entry in os.listdir(sub_dir):
+        full_path = os.path.join(sub_dir, entry)
+        if not os.path.isfile(full_path):
+            continue
+        if os.path.abspath(full_path) == primary_abs:
+            continue
+        if not entry.lower().startswith(prefix):
+            continue
+        stem, ext = os.path.splitext(entry)
+        if ext.lower() not in SUPPORTED_EXTENSIONS:
+            continue
+        lang_rank, lang_suffix = _language_suffix_rank(stem)
+        candidates.append((lang_rank, lang_suffix, entry.lower(), full_path))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+    return candidates[0][3]
+
 def main():
     try:
         if len(sys.argv) < 2:
@@ -160,15 +205,7 @@ def main():
         tsv_path = os.path.join(sub_dir, f"{main_base}.tsv")
 
         # 4. Search for a matching secondary translation subtitle track (immune to square brackets)
-        secondary_sub = None
-        if os.path.exists(sub_dir):
-            for entry in os.listdir(sub_dir):
-                full_path = os.path.join(sub_dir, entry)
-                if os.path.isfile(full_path) and entry.lower().startswith(main_base.lower() + "."):
-                    cand_ext = os.path.splitext(entry)[1].lower()
-                    if cand_ext in SUPPORTED_EXTENSIONS and os.path.abspath(full_path) != sub_path:
-                        secondary_sub = full_path
-                        break
+        secondary_sub = find_secondary_subtitle(sub_dir, main_base, sub_path)
 
         # 5. Locate mpv executable robustly on the system
         mpv_exe = shutil.which('mpv')
@@ -242,4 +279,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
