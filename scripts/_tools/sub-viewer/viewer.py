@@ -209,6 +209,14 @@ def _split_long_line(line, max_chars=90):
     return out
 
 
+def _line_to_cue_text(line):
+    stripped = line.strip()
+    if not stripped:
+        return ""
+    wrapped = _split_long_line(stripped, READER_MAX_CHARS_PER_LINE)
+    return "\\N".join(wrapped)
+
+
 def _text_to_blocks(text):
     """
     Convert free text into subtitle blocks suitable for reader navigation.
@@ -294,6 +302,54 @@ def build_reader_srt(text_path):
     return output_path
 
 
+def _write_reader_srt_from_cues(cues, source_text_path):
+    cue_lines = []
+    current_start = 0.0
+    for idx, cue_text in enumerate(cues, 1):
+        start = current_start
+        end = start + READER_SECONDS_PER_BLOCK
+        cue_lines.append(str(idx))
+        cue_lines.append(f"{_seconds_to_srt_time(start)} --> {_seconds_to_srt_time(end)}")
+        cue_lines.append(cue_text)
+        cue_lines.append("")
+        current_start = end
+
+    output_path = _build_reader_output_path(source_text_path)
+    with open(output_path, "w", encoding="utf-8", newline="\n") as out:
+        out.write("\n".join(cue_lines))
+    return output_path
+
+
+def build_parallel_reader_srts(primary_text_path, secondary_text_path):
+    with open(primary_text_path, "r", encoding="utf-8", errors="ignore") as f:
+        primary_lines = [line.rstrip("\n") for line in f]
+    with open(secondary_text_path, "r", encoding="utf-8", errors="ignore") as f:
+        secondary_lines = [line.rstrip("\n") for line in f]
+
+    max_len = max(len(primary_lines), len(secondary_lines))
+    primary_cues = []
+    secondary_cues = []
+
+    for idx in range(max_len):
+        p_line = primary_lines[idx] if idx < len(primary_lines) else ""
+        s_line = secondary_lines[idx] if idx < len(secondary_lines) else ""
+        p_cue = _line_to_cue_text(p_line)
+        s_cue = _line_to_cue_text(s_line)
+        if not p_cue and not s_cue:
+            continue
+        primary_cues.append(p_cue or " ")
+        secondary_cues.append(s_cue or " ")
+
+    if not primary_cues:
+        raise ValueError(
+            f"Both text files are empty or have no readable lines: {primary_text_path}, {secondary_text_path}"
+        )
+
+    primary_srt_path = _write_reader_srt_from_cues(primary_cues, primary_text_path)
+    secondary_srt_path = _write_reader_srt_from_cues(secondary_cues, secondary_text_path)
+    return primary_srt_path, secondary_srt_path
+
+
 def resolve_subtitle_input(input_path):
     ext = os.path.splitext(input_path)[1].lower()
     if ext in SUPPORTED_EXTENSIONS:
@@ -363,7 +419,20 @@ def main():
         if secondary_input_path and not os.path.isfile(secondary_input_path):
             raise FileNotFoundError(f"Secondary input file not found: {secondary_input_path}")
 
-        sub_path, generated_reader_sub = resolve_subtitle_input(input_path)
+        primary_ext = os.path.splitext(input_path)[1].lower()
+        secondary_ext = os.path.splitext(secondary_input_path)[1].lower() if secondary_input_path else ""
+
+        if secondary_input_path and primary_ext in SUPPORTED_TEXT_EXTENSIONS and secondary_ext in SUPPORTED_TEXT_EXTENSIONS:
+            sub_path, secondary_sub = build_parallel_reader_srts(input_path, secondary_input_path)
+            generated_reader_sub = True
+        else:
+            sub_path, generated_reader_sub = resolve_subtitle_input(input_path)
+            secondary_sub = resolve_secondary_subtitle(
+                input_path,
+                sub_path,
+                generated_reader_sub,
+                secondary_input_path
+            )
 
         # 1. Resolve base directory and file name
         sub_dir, sub_file = os.path.split(input_path)
@@ -379,15 +448,7 @@ def main():
         # 3. Determine the highlight TSV path
         tsv_path = os.path.join(sub_dir, f"{main_base}.tsv")
 
-        # 4. Resolve secondary subtitle track:
-        #    - explicit second selected file takes priority (including text files),
-        #    - otherwise use sibling subtitle auto-detection.
-        secondary_sub = resolve_secondary_subtitle(
-            input_path,
-            sub_path,
-            generated_reader_sub,
-            secondary_input_path
-        )
+        # 4. Secondary track is already resolved above.
 
         # 5. Locate mpv executable robustly on the system
         mpv_exe = shutil.which('mpv')

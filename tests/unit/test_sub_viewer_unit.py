@@ -165,3 +165,21 @@ def test_explicit_secondary_text_is_converted_and_used():
         assert secondary_sub is not None
         assert secondary_sub.lower().endswith(".srt")
         assert Path(secondary_sub).exists()
+
+
+def test_parallel_reader_srts_align_by_line_index_when_lengths_differ():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        base = Path(td)
+        t1 = base / "text1.txt"
+        t2 = base / "text2.txt"
+        t1.write_text("A1\nA2\nA3\n", encoding="utf-8")
+        t2.write_text("B1\nB2\n", encoding="utf-8")
+
+        srt1, srt2 = viewer.build_parallel_reader_srts(str(t1), str(t2))
+        p = Path(srt1).read_text(encoding="utf-8")
+        s = Path(srt2).read_text(encoding="utf-8")
+
+        assert "A1" in p and "A2" in p and "A3" in p
+        assert "B1" in s and "B2" in s
+        assert "\n3\n00:00:12,000 --> 00:00:18,000\n \n" in s
