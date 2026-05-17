@@ -1788,13 +1788,17 @@ local function prepare_export_text(params, options)
     options = options or {}
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return "" end
+    local target_subs = subs
+    if options.copy_mode == "B" and Tracks.sec.subs and #Tracks.sec.subs > 0 then
+        target_subs = Tracks.sec.subs
+    end
     
     local parts = {}
     
     if params.type == "RANGE" then
         local p1_l, p1_w, p2_l, p2_w = params.p1_l, params.p1_w, params.p2_l, params.p2_w
         for i = p1_l, p2_l do
-            local sub = subs[i]
+            local sub = target_subs[i]
             if sub then
                 local raw_text = sub.text:gsub("\n", " ")
                 local tokens = build_word_list_internal(raw_text, true)
@@ -1822,7 +1826,7 @@ local function prepare_export_text(params, options)
         local members = params.members
         local last_m = nil
         for idx, m in ipairs(members) do
-            local sub = subs[m.line]
+            local sub = target_subs[m.line]
             if sub then
                 local raw_text = sub.text:gsub("\n", " ")
                 local tokens = build_word_list_internal(raw_text, true)
@@ -1866,7 +1870,7 @@ local function prepare_export_text(params, options)
                         else
                             -- Requirement 86: Use verbatim tokens between adjacent members
                             if m.line == last_m.line then
-                                local last_line_tokens = build_word_list_internal(subs[last_m.line].text:gsub("\n", " "), true)
+                                local last_line_tokens = build_word_list_internal(target_subs[last_m.line].text:gsub("\n", " "), true)
                                 for _, t in ipairs(last_line_tokens) do
                                     if t.logical_idx > last_m.word + L_EPSILON and t.logical_idx < m.word - L_EPSILON then
                                         table.insert(parts, t.text)
@@ -1884,7 +1888,6 @@ local function prepare_export_text(params, options)
             end
         end
     elseif params.type == "POINT" then
-        local target_subs = (options.copy_mode == "B" and Tracks.sec.subs and #Tracks.sec.subs >= params.line) and Tracks.sec.subs or subs
         local sub = target_subs[params.line]
         if sub then
             local raw_text = sub.text:gsub("\n", " ")
