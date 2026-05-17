@@ -2371,7 +2371,8 @@
 20260517150644 My repository is mapped to Junction on mpv.
 20260517150847 What if you create a directory at the scripts level and move it there?
 20260517151052 Let's try to do this.
-
+20260517151807 I don’t understand, if this was the only problem, is it true that we added _tools?
+20260517151940 ### 📁 Why We Added the `_tools` Directory Yes! It is true that we added the `_tools` directory, and it solves exactly the problems you were experiencing with the garbage log files and architectural organization. Here is exactly why the `sub-viewer` and `deploy` scripts were moved into `scripts/_tools/`: #### 1. Eliminating "Garbage" Log Files from Your Folders Previously, when you used "Send to" on a `.txt` or `.srt` file, the player would dump `mpv_sub_viewer.log` right next to your clean text files, cluttering your personal directories. By moving the python launcher into the dedicated `_tools/sub-viewer/` directory, the script is now configured to save all background logging safely inside its own hidden workspace (`scripts/_tools/sub-viewer/logs/mpv_sub_viewer.log`). Your personal text and video directories will now remain 100% pristine and untouched! #### 2. Protecting mpv's Auto-Loader The `scripts/` directory in mpv is a "magic" folder. When mpv boots up, it scans the `scripts/` folder and automatically tries to load code into the player. * **`scripts/kardenwort/`**: These are core Lua runtime scripts that *should* be loaded into the player. * **`sub-viewer` and `deploy`**: These are Python ecosystem utilities (installers, launchers, distribution builders) that run *outside* the player. By prefixing the folder with an underscore (`scripts/_tools/`), we explicitly tell `mpv` to ignore it. This perfectly separates your external ecosystem tools from the core player logic, preventing any auto-loader conflicts or clutter. It's a small architectural cleanup that keeps both your personal files and the mpv player completely clean!
 
 
 

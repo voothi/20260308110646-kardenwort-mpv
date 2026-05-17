@@ -1,2 +1,1 @@
--- Placeholder script to satisfy mpv's script folder scanner.
--- Tooling lives in this directory tree but is not an mpv runtime script.
+-- Placeholder script to satisfy mpv's script folder scanner. Tooling lives in this directory tree but is not an mpv runtime script.
