@@ -1574,6 +1574,10 @@ local function utf8_truncate(str, max_chars)
     return table.concat(out, "") .. "..."
 end
 
+local function build_copy_preview(label, text, max_chars)
+    return tostring(label or "DW") .. " Copied: " .. utf8_truncate(text or "", max_chars or 40)
+end
+
 -- Module-scope Cyrillic case-mapping tables (created once at load time).
 -- Hoisted from utf8_to_lower() to eliminate per-call allocation overhead.
 local CYRILLIC_UPPER = utf8_to_table("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ")
@@ -8610,7 +8614,7 @@ function cmd_dw_copy(mode)
         local now = mp.get_time()
         if (now - (FSM.LAST_OSD_TIME or 0)) > Options.copy_osd_cooldown then
             local label = is_context and "Context" or "DW"
-            show_osd(label .. " Copied: " .. utf8_truncate(final_text, 40))
+            show_osd(build_copy_preview(label, final_text, 40))
             FSM.LAST_OSD_TIME = now
         end
     end
@@ -9493,13 +9497,17 @@ mp.register_script_message("test-dw-double-click", function(line_str)
     if not ok then Diagnostic.error("kardenwort-test-dw-double-click error: " .. tostring(err)) end
 end)
 
-mp.register_script_message("test-truncate", function(text)
-    local truncated = text
-    if #text > 120 then
-        truncated = text:sub(1, 120) .. "..."
-    end
+mp.register_script_message("test-truncate", function(text, max_chars_str)
+    local max_chars = tonumber(max_chars_str) or 120
+    local truncated = utf8_truncate(text or "", max_chars)
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.test_truncated_str = truncated
+end)
+
+mp.register_script_message("test-build-copy-preview", function(label, text, max_chars_str)
+    local max_chars = tonumber(max_chars_str) or 40
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_copy_preview = build_copy_preview(label or "DW", text or "", max_chars)
 end)
 
 mp.register_script_message("test-validate-term", function(term)
