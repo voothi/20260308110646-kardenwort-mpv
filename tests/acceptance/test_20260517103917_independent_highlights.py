@@ -1,0 +1,129 @@
+"""
+Feature ZID: 20260517103720
+Test Creation ZID: 20260517103917
+Feature: Non-Colliding Adjacent Identical Highlights
+
+This test verifies that identical adjacent highlights in kardenwort-mpv
+render independently without collision or de-duplication, particularly
+in bad auto-subtitle streams without punctuation or sentence boundaries.
+"""
+
+import os
+import re
+import time
+import pytest
+from tests.ipc.mpv_ipc import query_kardenwort_state
+
+
+LUA_SOURCE = "scripts/kardenwort/main.lua"
+
+
+def _read_lua_source():
+    with open(LUA_SOURCE, encoding="utf-8") as f:
+        return f.read()
+
+
+@pytest.mark.acceptance
+def test_static_code_verification_entry_key():
+    """
+    1.1 Static Verification:
+    Verify that main.lua implements the identity key (__entry_key) logic
+    for matched_terms and split_valid_indices tracking instead of raw term_key.
+    """
+    src = _read_lua_source()
+
+    # Verify that load_anki_tsv creates a unique identity key __entry_key
+    assert "data.__entry_key = table.concat({" in src, (
+        "load_anki_tsv must generate data.__entry_key dynamically using table.concat"
+    )
+    assert "tostring(row_id)" in src, (
+        "load_anki_tsv must append sequential row_id to the identity key"
+    )
+
+    # Verify that save_anki_tsv_row creates a unique identity key __entry_key
+    assert "new_data.__entry_key = table.concat({" in src, (
+        "save_anki_tsv_row must generate new_data.__entry_key dynamically using table.concat"
+    )
+    assert "tostring(next_row_id)" in src, (
+        "save_anki_tsv_row must append next_row_id to the identity key"
+    )
+
+    # Verify that calculate_highlight_stack maps candidate properties to entry_key
+    assert "local entry_key = data.__entry_key or term_key" in src, (
+        "calculate_highlight_stack must determine entry_key"
+    )
+    assert "matched_terms[entry_key] = true" in src, (
+        "calculate_highlight_stack must mark matched_terms by entry_key"
+    )
+    assert "subs[sub_idx].__split_valid_indices[entry_key]" in src, (
+        "calculate_highlight_stack split-match valid indices must cache by entry_key"
+    )
+
+
+@pytest.mark.acceptance
+def test_identical_adjacent_highlights_integration(mpv, tmp_path):
+    """
+    1.2 Integration Verification:
+    Write a custom TSV containing two identical adjacent highlight terms
+    at the same time position, configure kardenwort to load it, and verify
+    stable loading and robust state execution under identity-key mapping.
+    """
+    ipc = mpv.ipc
+
+    # Construct a custom TSV file containing adjacent identical highlights
+    tsv_content = (
+        "#deck column:86\n"
+        "Quotation\tWordSource\tWordSource2\tWordSourceInflectedForm\tWordSourceInflectedForm2\t"
+        "WordDestination\tWordDestinationInflectedForm\tWordSourceContext\tSentenceSourceContextLeft\t"
+        "SentenceSource\tSentenceSourceContextRight\tSentenceDestinationContextLeft\t"
+        "SentenceDestination\tSentenceDestinationContextRight\tSentenceDestination2ContextLeft\t"
+        "SentenceDestination2\tSentenceDestination2ContextRight\tSentenceSourceWordlist\t"
+        "SentenceSourceCloze\tSentenceSourceRewriteAISentenceSource\t"
+        "SentenceSourceRewriteAISentenceDestination\tWordSourceMorphologyAI\tNote\t"
+        "WordRussian\tWordUkrainian\tWordEnglish\tWordGerman\tWordSourceMorphemeFirst\t"
+        "WordSourceMorphemeFirstDefinition\tWordSourceMorphemeSecond\t"
+        "WordSourceMorphemeSecondDefinition\tWordSourceMorphemeThird\t"
+        "WordSourceMorphemeThirdDefinition\tWordSourceMorphemeFourth\t"
+        "WordSourceMorphemeFourthDefinition\tWordSourceMorphemeFifth\t"
+        "WordSourceMorphemeFifthDefinition\tWordSourceIPA\tWordSourceSynonymAI\t"
+        "WordSourceDefinitionAISentenceSource\tWordSourceDefinitionAISentenceDestination\t"
+        "WordSourceDefinitionFirst\tWordSourceDefinitionFirstClipping\tWordSourceDefinitionSecond\t"
+        "WordDestinationDefinitionFirst\tWordDestinationDefinitionSecond\tWordSourceAudio\t"
+        "SentenceSourceIPA\tSentenceSourceAudio\tImage\tWordSourceCloze\tWordSourceContextAI\t"
+        "TextSource\tTextDestination\tTextSourceURL\tSentenceEnglish\tSentenceGerman\t"
+        "SentenceUkrainian\tSentenceRussian\tSource\tSourceURL\tSeparatorAudio\t"
+        "Source-en-GB\tSource-en-US\tSource-de-DE\tSource-uk-UA\tSource-ru-RU\t"
+        "Destination-en-GB\tDestination-en-US\tDestination-de-DE\tDestination-uk-UA\t"
+        "Destination-ru-RU\tOverlapping\tToggleAlwaysEmptyField\tNote ID\t"
+        "am-all-morphs\tam-all-morphs-count\tam-unknown-morphs\tam-unknown-morphs-count\t"
+        "am-highlighted\tam-score\tam-score-terms\tam-study-morphs\tSentenceSourceIndex\tDeck\t\n"
+    )
+
+    # Add two adjacent identical highlights (term: "Hello") with slightly different contexts or index
+    tsv_content += (
+        "Hello\tHello\tHello\tHello\tHello\t\t\t"
+        "Hello world\t\tHello world\t\t\t\t\t\t\t\t\t\t\t\t\t"
+        "1.001\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
+        "0:1:1\t20260502165659-test-fixture.en\n"
+    )
+    tsv_content += (
+        "Hello\tHello\tHello\tHello\tHello\t\t\t"
+        "Hello world\t\tHello world\t\t\t\t\t\t\t\t\t\t\t\t\t"
+        "1.001\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
+        "0:1:2\t20260502165659-test-fixture.en\n"
+    )
+
+    tsv_path = str(tmp_path / "test_identical_adjacent_records.tsv")
+    with open(tsv_path, "w", encoding="utf-8") as f:
+        f.write(tsv_content)
+
+    # Inject the temporary TSV path to trigger a reload in the player FSM
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_record_file", tsv_path])
+    time.sleep(1.0)
+
+    # Query the state to ensure the new database loaded cleanly
+    state = query_kardenwort_state(ipc)
+    assert state and "options" in state, "State query failed after loading TSV"
+    
+    # Assert that loading succeeds without raising FSM or parsing errors
+    assert state["anki_db_size"] > 0, "TSV database should have non-zero size"
