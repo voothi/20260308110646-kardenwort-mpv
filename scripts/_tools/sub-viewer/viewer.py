@@ -320,13 +320,16 @@ def _build_reader_output_path(text_path, force_zid=None):
         return base_candidate
 
     zid = force_zid or current_zid()
-    candidate = os.path.join(input_dir, f"{input_stem}.{zid}.srt")
+    zid_dir = os.path.join(input_dir, zid)
+    os.makedirs(zid_dir, exist_ok=True)
+
+    candidate = os.path.join(zid_dir, f"{input_stem}.srt")
     if not os.path.exists(candidate):
         return candidate
 
     index = 1
     while True:
-        collision_candidate = os.path.join(input_dir, f"{input_stem}.{zid}.{index}.srt")
+        collision_candidate = os.path.join(zid_dir, f"{input_stem}.{index}.srt")
         if not os.path.exists(collision_candidate):
             return collision_candidate
         index += 1

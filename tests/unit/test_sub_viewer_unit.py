@@ -111,7 +111,7 @@ def test_mpv_log_path_is_local_to_sub_viewer():
     assert log_path.parent.name == "logs"
 
 
-def test_reader_srt_written_next_to_input_prefers_plain_name_then_zid_on_conflict():
+def test_reader_srt_written_next_to_input_prefers_plain_name_then_zid_folder_on_conflict():
     viewer = _load_viewer_module()
     with tempfile.TemporaryDirectory() as td:
         txt = Path(td) / "notes.md"
@@ -128,8 +128,10 @@ def test_reader_srt_written_next_to_input_prefers_plain_name_then_zid_on_conflic
         try:
             first = Path(viewer.build_reader_srt(str(txt)))
             second = Path(viewer.build_reader_srt(str(txt)))
-            assert first.name == "notes.20260517154232.srt"
-            assert second.name == "notes.20260517154232.1.srt"
+            assert first.parent.name == "20260517154232"
+            assert first.name == "notes.srt"
+            assert second.parent.name == "20260517154232"
+            assert second.name == "notes.1.srt"
         finally:
             viewer.current_zid = original_current_zid
 
@@ -233,5 +235,7 @@ def test_parallel_reader_uses_shared_zid_when_one_base_srt_exists():
         finally:
             viewer.current_zid = original_current_zid
 
-        assert Path(srt1).name == "text1.20260517162358.srt"
-        assert Path(srt2).name == "text2.20260517162358.srt"
+        assert Path(srt1).parent.name == "20260517162358"
+        assert Path(srt2).parent.name == "20260517162358"
+        assert Path(srt1).name == "text1.srt"
+        assert Path(srt2).name == "text2.srt"
