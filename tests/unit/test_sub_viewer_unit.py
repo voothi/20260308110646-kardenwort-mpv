@@ -77,6 +77,21 @@ def test_resolve_subtitle_input_accepts_markdown():
         assert path.lower().endswith(".srt")
 
 
+def test_reader_splits_single_long_paragraph_into_multiple_cues():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        txt = Path(td) / "single.txt"
+        txt.write_text(
+            "This is a long single paragraph without blank lines that should still be split into several reader cues for navigation and seeking in the subtitle reader mode.",
+            encoding="utf-8",
+        )
+        srt_path = viewer.build_reader_srt(str(txt))
+        srt_text = Path(srt_path).read_text(encoding="utf-8")
+        # At least cue 1 and cue 2 must exist.
+        assert "\n1\n" in f"\n{srt_text}"
+        assert "\n2\n" in f"\n{srt_text}"
+
+
 def test_resolve_subtitle_input_rejects_unknown_type():
     viewer = _load_viewer_module()
     with tempfile.TemporaryDirectory() as td:

@@ -25,6 +25,9 @@ VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
 READER_SECONDS_PER_BLOCK = 6.0
+READER_MAX_LINES_PER_BLOCK = 2
+READER_MAX_CHARS_PER_LINE = 90
+READER_MIN_BLOCKS = 2
 # ==============================================================================
 
 def log_error_and_alert(error_msg):
@@ -189,18 +192,52 @@ def _seconds_to_srt_time(total_seconds):
     return f"{hh:02}:{mm:02}:{ss:02},{ms:03}"
 
 
+def _split_long_line(line, max_chars=90):
+    words = line.split()
+    if not words:
+        return []
+    out = []
+    cur = words[0]
+    for word in words[1:]:
+        candidate = f"{cur} {word}"
+        if len(candidate) <= max_chars:
+            cur = candidate
+        else:
+            out.append(cur)
+            cur = word
+    out.append(cur)
+    return out
+
+
 def _text_to_blocks(text):
+    """
+    Convert free text into subtitle blocks suitable for reader navigation.
+    Rules:
+    - Empty line flushes current block.
+    - Long prose lines are wrapped to READER_MAX_CHARS_PER_LINE.
+    - Each block is capped at READER_MAX_LINES_PER_BLOCK to guarantee multiple cues.
+    """
     blocks = []
-    current = []
+    current_lines = []
+
     for raw in text.splitlines():
-        line = raw.strip()
-        if line:
-            current.append(line)
-        elif current:
-            blocks.append("\\N".join(current))
-            current = []
-    if current:
-        blocks.append("\\N".join(current))
+        stripped = raw.strip()
+        if not stripped:
+            if current_lines:
+                blocks.append("\\N".join(current_lines))
+                current_lines = []
+            continue
+
+        wrapped = _split_long_line(stripped, READER_MAX_CHARS_PER_LINE)
+        for wrapped_line in wrapped:
+            current_lines.append(wrapped_line)
+            if len(current_lines) >= READER_MAX_LINES_PER_BLOCK:
+                blocks.append("\\N".join(current_lines))
+                current_lines = []
+
+    if current_lines:
+        blocks.append("\\N".join(current_lines))
+
     return blocks
 
 
@@ -211,6 +248,14 @@ def build_reader_srt(text_path):
     blocks = _text_to_blocks(text)
     if not blocks:
         raise ValueError(f"Text file is empty or has no readable lines: {text_path}")
+
+    if len(blocks) < READER_MIN_BLOCKS:
+        # Force at least 2 cues for meaningful seek/navigation UX.
+        only = blocks[0]
+        parts = _split_long_line(only.replace("\\N", " "), READER_MAX_CHARS_PER_LINE // 2)
+        if len(parts) >= 2:
+            mid = len(parts) // 2
+            blocks = [" ".join(parts[:mid]), " ".join(parts[mid:])]
 
     cue_lines = []
     current_start = 0.0
