@@ -1,5 +1,6 @@
-## ADDED Requirements
-
+## Purpose
+Define behavior for context-aware copy flows, language-aware sourcing, and selection-priority export semantics.
+## Requirements
 ### Requirement: Robust Karaoke Merging
 The system SHALL correctly merge identical subtitle text fragments (karaoke tokens) into a single dialogue block, even when they are separated by interleaved translation tracks, across all supported file formats (ASS and SRT).
 
@@ -102,3 +103,19 @@ When no explicit selection exists (no pink set, no yellow range, no yellow point
 - **WHEN** the user triggers copy
 - **THEN** context anchoring SHALL use the current playback subtitle index
 - **AND** context SHALL be collected around that live index rather than a stale cursor-derived line.
+
+### Requirement: Mode-B Selection Source Consistency
+In `Copy Subtitle Mode: B`, the export engine SHALL use the secondary subtitle track as the source for all supported selection types.
+
+#### Scenario: Point export in mode B
+- **WHEN** a single-point selection is exported while `COPY_MODE` is `B`
+- **THEN** exported text MUST be resolved from the secondary subtitle track at the same subtitle index
+
+#### Scenario: Range export in mode B
+- **WHEN** a contiguous range selection is exported while `COPY_MODE` is `B`
+- **THEN** each selected token MUST be resolved from secondary-track subtitle text for the corresponding lines
+
+#### Scenario: Set export in mode B
+- **WHEN** a non-contiguous set selection is exported while `COPY_MODE` is `B`
+- **THEN** selected members and gap interpolation MUST be computed from secondary-track subtitle text
+
