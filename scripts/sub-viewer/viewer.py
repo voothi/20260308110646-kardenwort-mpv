@@ -4,6 +4,24 @@ import sys
 import glob
 import subprocess
 
+# ==============================================================================
+# GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
+# ==============================================================================
+# Supported subtitle file extensions to search for primary & secondary tracks
+SUPPORTED_EXTENSIONS = ('.srt', '.ass', '.vtt')
+
+# Language code suffixes to strip when determining base name (e.g., file.de.srt -> base file)
+LANG_SUFFIXES = ('de', 'ru', 'en', 'eng', 'ger', 'rus', 'uk', 'es', 'fr', 'it')
+
+# Virtual Video Stream Parameters
+VIRTUAL_VIDEO_COLOR = 'black'        # Can be black, grey, white, blue, etc.
+VIRTUAL_VIDEO_SIZE = '1280x720'      # Dimensions of the player window
+VIRTUAL_VIDEO_DURATION = 7200        # Timeline length in seconds (e.g. 7200 = 2 hours)
+
+# Initial playback state (yes = start paused, no = play immediately)
+PAUSE_ON_LAUNCH = 'yes'
+# ==============================================================================
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python viewer.py <subtitle_file>")
@@ -20,7 +38,7 @@ def main():
 
     # 2. Support Kardenwort language suffix naming (e.g. file.de.srt -> base is file)
     parts = sub_base.split('.')
-    if len(parts) > 1 and len(parts[-1]).lower() in ('de', 'ru', 'en', 'eng', 'ger', 'rus', 'uk', 'es', 'fr', 'it'):
+    if len(parts) > 1 and len(parts[-1]).lower() in LANG_SUFFIXES:
         main_base = '.'.join(parts[:-1])
     else:
         main_base = sub_base
@@ -30,22 +48,20 @@ def main():
 
     # 4. Search for a matching secondary translation subtitle track
     secondary_sub = None
-    supported_extensions = ('.srt', '.ass', '.vtt')
     
     for candidate in glob.glob(os.path.join(sub_dir, f"{main_base}.*")):
         cand_ext = os.path.splitext(candidate)[1].lower()
-        if cand_ext in supported_extensions and os.path.abspath(candidate) != sub_path:
+        if cand_ext in SUPPORTED_EXTENSIONS and os.path.abspath(candidate) != sub_path:
             secondary_sub = candidate
             break
 
-    # 5. Build the mpv command
-    # av://lavfi generates a virtual 1280x720 black video stream with a 2-hour timeline (7200s)
+    # 5. Build the mpv command using configuration values
     cmd = [
         'mpv',
-        'av://lavfi:color=c=black:s=1280x720:d=7200',
+        f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}',
         f'--sub-file={sub_path}',
         f'--script-opts=kardenwort-anki_record_file={tsv_path}',
-        '--pause=yes'  # Start paused so the user can settle and navigate
+        f'--pause={PAUSE_ON_LAUNCH}'
     ]
 
     # If secondary subtitles were found, load them as the secondary track
@@ -75,3 +91,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

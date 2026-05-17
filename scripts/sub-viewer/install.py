@@ -3,8 +3,23 @@ import os
 import sys
 import subprocess
 
+# ==============================================================================
+# GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
+# ==============================================================================
+# The display name of the Windows context menu shortcut (excluding .lnk extension)
+SHORTCUT_DISPLAY_NAME = "Kardenwort Sub Viewer"
+
+# Legacy shortcut names to search for and automatically clean up during install
+LEGACY_SHORTCUT_NAMES = (
+    "Kardenwort Subtitle Only",
+)
+
+# Standard SendTo location (Windows %APPDATA% mapping)
+SENDTO_DIRECTORY = r'%APPDATA%\Microsoft\Windows\SendTo'
+# ==============================================================================
+
 def main():
-    print("=== Kardenwort Sub Viewer Shortcut Installer ===")
+    print(f"=== {SHORTCUT_DISPLAY_NAME} Shortcut Installer ===")
 
     # 1. Locate paths
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,17 +33,18 @@ def main():
     if not os.path.exists(pythonw_path):
         pythonw_path = sys.executable
 
-    sendto_dir = os.path.expandvars(r'%APPDATA%\Microsoft\Windows\SendTo')
-    shortcut_path = os.path.join(sendto_dir, 'Kardenwort Sub Viewer.lnk')
-    old_shortcut_path = os.path.join(sendto_dir, 'Kardenwort Subtitle Only.lnk')
+    sendto_dir = os.path.expandvars(SENDTO_DIRECTORY)
+    shortcut_path = os.path.join(sendto_dir, f"{SHORTCUT_DISPLAY_NAME}.lnk")
 
-    # 2. Clean up old obsolete shortcut if it exists
-    if os.path.exists(old_shortcut_path):
-        try:
-            os.remove(old_shortcut_path)
-            print(f"Cleaned up old obsolete shortcut: {os.path.basename(old_shortcut_path)}")
-        except Exception as e:
-            print(f"Warning: Could not remove old shortcut: {e}")
+    # 2. Clean up old obsolete shortcuts if they exist
+    for legacy_name in LEGACY_SHORTCUT_NAMES:
+        old_path = os.path.join(sendto_dir, f"{legacy_name}.lnk")
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+                print(f"Cleaned up obsolete legacy shortcut: {os.path.basename(old_path)}")
+            except Exception as e:
+                print(f"Warning: Could not remove old shortcut: {e}")
 
     print(f"Script Path:       {script_path}")
     print(f"Pythonw Path:      {pythonw_path}")
@@ -53,10 +69,10 @@ def main():
             text=True,
             check=True
         )
-        print("SUCCESS: 'Kardenwort Sub Viewer' shortcut created successfully!")
+        print(f"SUCCESS: '{SHORTCUT_DISPLAY_NAME}' shortcut created successfully!")
         print("\nHow to use:")
         print("1. Locate any subtitle file (.srt, .ass, .vtt) in Windows Explorer.")
-        print("2. Right-click the file -> Send to -> 'Kardenwort Sub Viewer'.")
+        print(f"2. Right-click the file -> Send to -> '{SHORTCUT_DISPLAY_NAME}'.")
         print("3. mpv will launch with a virtual black background and Kardenwort active!")
         print("4. A matching highlight TSV file will be automatically managed next to the subtitles.")
     except subprocess.CalledProcessError as e:
@@ -65,3 +81,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

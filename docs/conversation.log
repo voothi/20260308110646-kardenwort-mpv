@@ -2341,5 +2341,9 @@
 20260517130419 Pictures and tsv? black.tsv black.png
 20260517130533 Think about better naming. scripts\sendto\install_sendto.py scripts\sendto\kardenwort_sub_viewer.py scripts\sendto
 20260517130700 Should I add here? README.md? scripts\sub-viewer
+20260517131003 There is nothing hardcoded in the scripts, the parameters are placed in the script header for quick configuration? scripts\sub-viewer\install.py scripts\sub-viewer\viewer.py
+
+
+
 
 
