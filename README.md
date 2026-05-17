@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.82.18-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.18) 
+[![Version](https://img.shields.io/badge/version-v1.82.20-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.20) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -210,6 +210,8 @@ This suite solves problems that standard video players and generic scripts ignor
 51. **Neutral Mode Sentinel**: Introduced a specialized "Neutral" navigation state that allows for viewport exploration and context analysis while decoupled from playback-follow.
 52. **Automated Test Fixture Recovery**: Integrated a seamless `pytest` teardown bridge that automatically restores TSV database fixtures after test runs, ensuring a clean repository state for developers.
 53. **Secondary Sub Only Mode**: A dedicated focus state that displays only the translation track while maintaining full background synchronization with the primary target-language stream for mining and FSM logic. Features a **Track Cycle Guard** (`Shift+C`) to prevent contradictory state transitions.
+54. **UTF-8-Safe Copy Preview**: Guarantees character-safe truncation of Drum Window and context copies to prevent multibyte character slicing and OSD mojibake artifacts.
+55. **Consistent Dual-Track Copy Routing**: Resolves a routing discrepancy in `Copy Subtitle Mode: B` by consistently extracting from the secondary track for all selection types (Point, Range, Set), aligning manual selections with no-selection fallback.
 
 [Return to Top](#table-of-contents)
 
@@ -887,7 +889,7 @@ python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:AP
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2311 Commits (v1.82.18)
+- **Current Maturity**: ~2318 Commits (v1.82.20)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

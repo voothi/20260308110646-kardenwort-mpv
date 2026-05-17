@@ -1,3 +1,27 @@
+# Release Notes - v1.82.20 (Copy Mode B & UTF-8 Copy Preview Fixes)
+
+**Date**: 2026-05-17
+**Version**: v1.82.20
+**Implementation ZIDs**: 20260517202329, 20260517202100, 20260517201914, 20260517201432, 20260517200650, 20260517195939, 20260517173237
+
+## Highlights
+
+### 📋 **Consistent Dual-Track Copy Routing (Mode B)**
+- **Unified Source Selection**: Resolved an architectural discrepancy where manual selection exports (`SET` / `RANGE` / `POINT`) still pulled subtitle text from the primary track even when `Copy Subtitle Mode: B` (secondary track) was active.
+- **Single Point of Resolution**: Consolidated export track routing in `prepare_export_text` in `scripts/kardenwort/main.lua`. The system now resolves the target track once based on the active `COPY_MODE` and propagates it consistently across all export shapes (Point, Range, and Set).
+- **Parity with Fallback**: Ensures manual yellow/pink phrase selections and no-selection clipboard copying respect the user's selected translation track target under Copy Mode B.
+
+### 📺 **UTF-8-Safe OSD Copy Previews**
+- **Character-Boundary Safe Truncation**: Replaced unsafe byte-based slicing with character-aware truncation using Lua UTF-8 utilities (`utf8_to_table` and `utf8_truncate`). This eliminates boundary corruption and "mojibake" artifacts (such as `кладеÑ`) at the truncation edge for Cyrillic and other multibyte characters.
+- **Centralized Preview Construction**: Standardized the creation of copy confirmation previews by introducing `build_copy_preview(label, text, max_chars)`. This shared helper ensures deterministic preview formatting and lengths across all in-player copy feedbacks.
+- **Test Instrumentation Hooks**: Integrated a new test message hook `test-build-copy-preview` to allow deterministic validation of OSD feedback independent of runtime timing gates or playback clock behaviors.
+
+### 🧪 **Milestone: 784 Acceptance Tests**
+- **Surgical Acceptance Coverage**: Expanded the verification suite to **784 passed tests** (an increase of 5 tests from v1.82.18).
+- **Regression Suites Added**: Built `tests/acceptance/test_20260517200951_utf8_copy_preview.py` to assert UTF-8 boundary safety at truncation points and ensure no corrupt Cyrillic characters are rendered in copy OSD previews.
+
+---
+
 # Release Notes - v1.82.18 (Standalone Subtitle Viewer & Portability Reorganization)
 
 **Date**: 2026-05-17
