@@ -152,12 +152,15 @@ def main():
             )
 
         # 6. Build the mpv command using configuration values
+        log_path = os.path.join(sub_dir, "mpv_sub_viewer.log")
         cmd = [
             mpv_exe,
             f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}',
             f'--sub-file={sub_path}',
             f'--script-opts=kardenwort-anki_record_file={tsv_path}',
-            f'--pause={PAUSE_ON_LAUNCH}'
+            f'--pause={PAUSE_ON_LAUNCH}',
+            f'--log-file={log_path}',
+            '--force-window=yes'
         ]
 
         # If secondary subtitles were found, load them as the secondary track
@@ -171,10 +174,9 @@ def main():
         if start_time is not None:
             cmd.append(f'--start={start_time}')
 
-        # 8. Launch mpv detached so the caller processes can exit immediately
+        # 8. Launch mpv normally so it gains foreground focus and detaches cleanly
         subprocess.Popen(
             cmd,
-            creationflags=subprocess.DETACHED_PROCESS if os.name == 'nt' else 0,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
