@@ -306,6 +306,10 @@ def current_zid():
 def _build_reader_output_path(text_path):
     input_dir = os.path.dirname(text_path)
     input_stem = os.path.splitext(os.path.basename(text_path))[0]
+    base_candidate = os.path.join(input_dir, f"{input_stem}.srt")
+    if not os.path.exists(base_candidate):
+        return base_candidate
+
     zid = current_zid()
     candidate = os.path.join(input_dir, f"{input_stem}.{zid}.srt")
     if not os.path.exists(candidate):

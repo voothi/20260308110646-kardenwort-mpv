@@ -111,7 +111,7 @@ def test_mpv_log_path_is_local_to_sub_viewer():
     assert log_path.parent.name == "logs"
 
 
-def test_reader_srt_written_next_to_input_with_zid_suffix():
+def test_reader_srt_written_next_to_input_prefers_plain_name_then_zid_on_conflict():
     viewer = _load_viewer_module()
     with tempfile.TemporaryDirectory() as td:
         txt = Path(td) / "notes.md"
@@ -119,11 +119,10 @@ def test_reader_srt_written_next_to_input_with_zid_suffix():
 
         srt_path = Path(viewer.build_reader_srt(str(txt)))
         assert srt_path.parent == txt.parent
-        assert srt_path.name.startswith("notes.")
-        assert srt_path.name.endswith(".srt")
+        assert srt_path.name == "notes.srt"
         assert srt_path.exists()
 
-        # Ensure collision-safe behavior for same ZID.
+        # Ensure collision-safe behavior for same ZID once plain name is taken.
         original_current_zid = viewer.current_zid
         viewer.current_zid = lambda: "20260517154232"
         try:
