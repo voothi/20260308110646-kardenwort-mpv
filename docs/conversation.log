@@ -2367,4 +2367,11 @@
 20260517144548 Can we make this work with text files like.txt,.md and others so I can turn this into a reader?
 20260517145355 Delete from git cache scripts\sub-viewer\sub_viewer_launch.log
 20260517145730 Why did my calibration fail, I can’t hit the word of the text opened with the io Sent to, .txt with the mouse. Also why do I get a garbage mpv_sub_viewer.log file in the directory with this text file?
+20260517150523 Where to move them, give me a solution?
+20260517150644 My repository is mapped to Junction on mpv.
+20260517150847 What if you create a directory at the scripts level and move it there?
+20260517151052 Let's try to do this.
+
+
+
 

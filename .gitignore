@@ -35,6 +35,7 @@ tests/mpv_last_run.log
 pytest_out.log
 .pytest_tmp/
 dist/
+scripts/_tools/sub-viewer/logs/mpv_sub_viewer.log
 
 # --- Specific Legacy Exclusions ---
 # scripts/*_old*.lua
@@ -48,4 +49,4 @@ dist/
 # !anki-mapping.ini
 
 # --- Generated Sub Viewer Media ---
-# scripts/sub-viewer/black.mp4
+# scripts/_tools/sub-viewer/black.mp4

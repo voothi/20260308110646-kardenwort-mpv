@@ -394,8 +394,8 @@ A dedicated, distraction-free environment for reading, navigating, and highlight
 *   **Reader Mode for Text Files**: Plain text and Markdown-style files are converted on launch into timed subtitle cues, so you can use mpv + Kardenwort as a seekable text reader.
 *   **Local TSV Highlight Databases**: Automatically creates and manages a `.tsv` highlight database file right next to your subtitles (e.g. `lesson1.tsv` for `lesson1.de.srt`), so your word highlighting and Anki exports save natively.
 *   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
-*   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
-*   **Setup**: Run `python scripts/sub-viewer/install.py` once to register it in your Windows shell.
+*   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/_tools/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
+*   **Setup**: Run `python scripts/_tools/sub-viewer/install.py` once to register it in your Windows shell.
 
 [Return to Top](#table-of-contents)
 
@@ -808,7 +808,7 @@ Choose a permanent directory for the suite (e.g., `U:\voothi\20260308110646-kard
 ### 2. Automated Distribution Build (Python)
 Build shareable artifacts with an auto-ZID filename:
 ```powershell
-python scripts/deploy/build_distribution.py
+python scripts/_tools/deploy/build_distribution.py
 ```
 
 OS suitability: **Windows 11** is the primary validated target for these deployment scripts.
@@ -836,12 +836,12 @@ You can also verify the security of the files on VirusTotal:
 - **Direct Link**: [VirusTotal Analysis (v1.82.2)](https://www.virustotal.com/gui/file/2458615bbe3a9f7303cffcdcd75b79a7cfdec17960b23cdbc70ac3b5047e5dc7) (using the SHA256 hash from the checksum file).
 
 Optional: bundle an mpv distribution inside the archive.
-- Default config file: `scripts/deploy/build_distribution.config.json`
+- Default config file: `scripts/_tools/deploy/build_distribution.config.json`
 - Example path: `C:\mpv\mpv-0.39.0-x86_64`
 
 Force from CLI:
 ```powershell
-python scripts/deploy/build_distribution.py --with-mpv-dist --mpv-dist-path "C:\mpv\mpv-0.39.0-x86_64"
+python scripts/_tools/deploy/build_distribution.py --with-mpv-dist --mpv-dist-path "C:\mpv\mpv-0.39.0-x86_64"
 ```
 
 ### 3. Integration Strategies
@@ -854,12 +854,12 @@ Copy the contents (`mpv.conf`, `input.conf`, and `scripts/`) into:
 
 Automated copy deployment:
 ```powershell
-python scripts/deploy/deploy_distribution.py --source . --target "$env:APPDATA\mpv" --mode copy --force
+python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:APPDATA\mpv" --mode copy --force
 ```
 
 Deploy directly from built artifact:
 ```powershell
-python scripts/deploy/deploy_distribution.py --source .\dist\YYYYMMDDHHMMSS-kardenwort-mpv.zip --target "$env:APPDATA\mpv" --mode copy --force
+python scripts/_tools/deploy/deploy_distribution.py --source .\dist\YYYYMMDDHHMMSS-kardenwort-mpv.zip --target "$env:APPDATA\mpv" --mode copy --force
 ```
 
 #### **B. Symbolic Linking (Junctions)**
@@ -872,7 +872,7 @@ createjunction.exe "U:\voothi\20260308110646-kardenwort-mpv" "%APPDATA%\mpv"
 
 Python automation for junction mode:
 ```powershell
-python scripts/deploy/deploy_distribution.py --source . --target "$env:APPDATA\mpv" --mode junction --force
+python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:APPDATA\mpv" --mode junction --force
 ```
 
 ### 4. Verification

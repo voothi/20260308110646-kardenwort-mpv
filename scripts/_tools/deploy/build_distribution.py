@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
         "--config",
         type=Path,
         default=DEFAULT_CONFIG_PATH,
-        help="Optional JSON config path (default: scripts/deploy/build_distribution.config.json)",
+        help="Optional JSON config path (default: scripts/_tools/deploy/build_distribution.config.json)",
     )
     parser.add_argument(
         "--with-mpv-dist",

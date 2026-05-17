@@ -5,7 +5,7 @@ import tempfile
 
 def _load_viewer_module():
     repo_root = Path(__file__).resolve().parents[2]
-    viewer_path = repo_root / "scripts" / "sub-viewer" / "viewer.py"
+    viewer_path = repo_root / "scripts" / "_tools" / "sub-viewer" / "viewer.py"
     spec = importlib.util.spec_from_file_location("sub_viewer_module", viewer_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not load module spec from {viewer_path}")
