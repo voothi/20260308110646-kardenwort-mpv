@@ -25,7 +25,7 @@ VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
 READER_SECONDS_PER_BLOCK = 6.0
-READER_MAX_LINES_PER_BLOCK = 2
+READER_MAX_LINES_PER_BLOCK = 1
 READER_MAX_CHARS_PER_LINE = 90
 READER_MIN_BLOCKS = 2
 # ==============================================================================
@@ -286,6 +286,16 @@ def resolve_subtitle_input(input_path):
         f"Supported reader text formats: {', '.join(SUPPORTED_TEXT_EXTENSIONS)}."
     )
 
+
+def get_mpv_log_path():
+    """
+    Keep mpv runtime logs out of user content folders.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    logs_dir = os.path.join(script_dir, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    return os.path.join(logs_dir, "mpv_sub_viewer.log")
+
 def main():
     try:
         if len(sys.argv) < 2:
@@ -350,7 +360,7 @@ def main():
         else:
             video_input = f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}'
 
-        log_path = os.path.join(sub_dir, "mpv_sub_viewer.log")
+        log_path = get_mpv_log_path()
         cmd = [
             mpv_exe,
             video_input,

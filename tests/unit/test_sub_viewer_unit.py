@@ -64,7 +64,8 @@ def test_reader_builds_srt_from_text():
         assert "00:00:00,000 --> 00:00:06,000" in srt_text
         assert "00:00:06,000 --> 00:00:12,000" in srt_text
         assert "First line" in srt_text
-        assert "Second block\\NStill second" in srt_text
+        assert "Second block" in srt_text
+        assert "Still second" in srt_text
 
 
 def test_resolve_subtitle_input_accepts_markdown():
@@ -102,3 +103,10 @@ def test_resolve_subtitle_input_rejects_unknown_type():
             assert False, "Expected ValueError for unsupported extension"
         except ValueError as e:
             assert "Unsupported file type" in str(e)
+
+
+def test_mpv_log_path_is_local_to_sub_viewer():
+    viewer = _load_viewer_module()
+    log_path = Path(viewer.get_mpv_log_path())
+    assert log_path.name == "mpv_sub_viewer.log"
+    assert log_path.parent.name == "logs"
