@@ -17,6 +17,14 @@ SUPPORTED_TEXT_EXTENSIONS = ('.txt', '.md', '.rst', '.log')
 
 # Language code suffixes to strip when determining base name (e.g., file.de.srt -> base file)
 LANG_SUFFIXES = ('de', 'ru', 'en', 'eng', 'ger', 'rus', 'uk', 'es', 'fr', 'it')
+LANG_SELECTION_PRIORITY = {
+    "en": 0,
+    "eng": 0,
+    "de": 1,
+    "ger": 1,
+    "ru": 2,
+    "rus": 2,
+}
 
 # Virtual Video Stream Parameters
 VIRTUAL_VIDEO_COLOR = 'black'        # Can be black, grey, white, blue, etc.
@@ -451,6 +459,25 @@ def normalize_cli_input_paths(argv):
     return normalized
 
 
+def _selection_sort_key(path, original_index):
+    stem = os.path.splitext(os.path.basename(path))[0]
+    parts = stem.split(".")
+    lang_suffix = parts[-1].lower() if len(parts) > 1 else ""
+    base_without_lang = ".".join(parts[:-1]) if lang_suffix in LANG_SUFFIXES and len(parts) > 1 else stem
+
+    match_num = re.search(r"(\d+)$", base_without_lang)
+    number_rank = int(match_num.group(1)) if match_num else 10**9
+    lang_rank = LANG_SELECTION_PRIORITY.get(lang_suffix, 10**6)
+
+    return (number_rank, lang_rank, stem.lower(), original_index)
+
+
+def order_input_paths_for_roles(input_paths):
+    indexed = list(enumerate(input_paths))
+    indexed.sort(key=lambda item: _selection_sort_key(item[1], item[0]))
+    return [path for _, path in indexed]
+
+
 def resolve_secondary_subtitle(primary_input_path, primary_sub_path, primary_generated_reader_sub, explicit_secondary_input_path):
     if explicit_secondary_input_path:
         explicit_abs = os.path.abspath(explicit_secondary_input_path)
@@ -491,8 +518,9 @@ def main():
         if not input_paths:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
 
-        input_path = input_paths[0]
-        secondary_input_path = input_paths[1] if len(input_paths) >= 2 else None
+        ordered_input_paths = order_input_paths_for_roles(input_paths)
+        input_path = ordered_input_paths[0]
+        secondary_input_path = ordered_input_paths[1] if len(ordered_input_paths) >= 2 else None
         if not os.path.isfile(input_path):
             raise FileNotFoundError(f"Input file not found: {input_path}")
         if secondary_input_path and not os.path.isfile(secondary_input_path):

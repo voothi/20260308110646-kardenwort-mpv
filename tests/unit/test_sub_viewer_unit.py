@@ -142,6 +142,24 @@ def test_normalize_cli_input_paths_skips_literal_percent_one():
     assert paths[1].lower().endswith("b.txt")
 
 
+def test_order_input_paths_prefers_numeric_1_then_3():
+    viewer = _load_viewer_module()
+    ordered = viewer.order_input_paths_for_roles(
+        [r"C:\x\text3.txt", r"C:\x\text1.txt"]
+    )
+    assert ordered[0].lower().endswith("text1.txt")
+    assert ordered[1].lower().endswith("text3.txt")
+
+
+def test_order_input_paths_prefers_en_before_ru():
+    viewer = _load_viewer_module()
+    ordered = viewer.order_input_paths_for_roles(
+        [r"C:\x\movie.ru.txt", r"C:\x\movie.en.txt"]
+    )
+    assert ordered[0].lower().endswith("movie.en.txt")
+    assert ordered[1].lower().endswith("movie.ru.txt")
+
+
 def test_explicit_secondary_text_is_converted_and_used():
     viewer = _load_viewer_module()
     with tempfile.TemporaryDirectory() as td:
