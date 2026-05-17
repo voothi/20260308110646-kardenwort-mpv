@@ -306,6 +306,37 @@ def resolve_subtitle_input(input_path):
     )
 
 
+def normalize_cli_input_paths(argv):
+    raw_args = argv[1:]
+    normalized = []
+    for raw_arg in raw_args:
+        if raw_arg == "%1":
+            continue
+        normalized.append(os.path.abspath(raw_arg))
+    return normalized
+
+
+def resolve_secondary_subtitle(primary_input_path, primary_sub_path, primary_generated_reader_sub, explicit_secondary_input_path):
+    if explicit_secondary_input_path:
+        explicit_abs = os.path.abspath(explicit_secondary_input_path)
+        if explicit_abs != os.path.abspath(primary_input_path):
+            secondary_sub_path, _ = resolve_subtitle_input(explicit_abs)
+            return secondary_sub_path
+        return None
+
+    if primary_generated_reader_sub:
+        return None
+
+    sub_dir, sub_file = os.path.split(primary_input_path)
+    sub_base, _ = os.path.splitext(sub_file)
+    parts = sub_base.split('.')
+    if len(parts) > 1 and parts[-1].lower() in LANG_SUFFIXES:
+        main_base = '.'.join(parts[:-1])
+    else:
+        main_base = sub_base
+    return find_secondary_subtitle(sub_dir, main_base, primary_sub_path)
+
+
 def get_mpv_log_path():
     """
     Keep mpv runtime logs out of user content folders.
@@ -321,16 +352,16 @@ def main():
         if len(sys.argv) < 2:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
 
-        # Detect and handle Windows Explorer passing "%1" literally as the first argument
-        raw_arg = sys.argv[1]
-        if raw_arg == "%1" and len(sys.argv) >= 3:
-            raw_arg = sys.argv[2]
-        elif raw_arg == "%1":
+        input_paths = normalize_cli_input_paths(sys.argv)
+        if not input_paths:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
 
-        input_path = os.path.abspath(raw_arg)
+        input_path = input_paths[0]
+        secondary_input_path = input_paths[1] if len(input_paths) >= 2 else None
         if not os.path.isfile(input_path):
             raise FileNotFoundError(f"Input file not found: {input_path}")
+        if secondary_input_path and not os.path.isfile(secondary_input_path):
+            raise FileNotFoundError(f"Secondary input file not found: {secondary_input_path}")
 
         sub_path, generated_reader_sub = resolve_subtitle_input(input_path)
 
@@ -348,8 +379,15 @@ def main():
         # 3. Determine the highlight TSV path
         tsv_path = os.path.join(sub_dir, f"{main_base}.tsv")
 
-        # 4. Search for a matching secondary translation subtitle track (immune to square brackets)
-        secondary_sub = None if generated_reader_sub else find_secondary_subtitle(sub_dir, main_base, sub_path)
+        # 4. Resolve secondary subtitle track:
+        #    - explicit second selected file takes priority (including text files),
+        #    - otherwise use sibling subtitle auto-detection.
+        secondary_sub = resolve_secondary_subtitle(
+            input_path,
+            sub_path,
+            generated_reader_sub,
+            secondary_input_path
+        )
 
         # 5. Locate mpv executable robustly on the system
         mpv_exe = shutil.which('mpv')

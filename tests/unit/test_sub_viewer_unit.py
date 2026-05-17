@@ -134,3 +134,34 @@ def test_reader_srt_written_next_to_input_with_zid_suffix():
             assert second.name == "notes.20260517154232.1.srt"
         finally:
             viewer.current_zid = original_current_zid
+
+
+def test_normalize_cli_input_paths_skips_literal_percent_one():
+    viewer = _load_viewer_module()
+    paths = viewer.normalize_cli_input_paths(["viewer.py", "%1", "a.txt", "b.txt"])
+    assert len(paths) == 2
+    assert paths[0].lower().endswith("a.txt")
+    assert paths[1].lower().endswith("b.txt")
+
+
+def test_explicit_secondary_text_is_converted_and_used():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        base = Path(td)
+        primary_txt = base / "text1.txt"
+        secondary_txt = base / "text2.txt"
+        primary_txt.write_text("Primary line\n", encoding="utf-8")
+        secondary_txt.write_text("Secondary line\n", encoding="utf-8")
+
+        primary_srt, primary_generated = viewer.resolve_subtitle_input(str(primary_txt))
+        assert primary_generated is True
+
+        secondary_sub = viewer.resolve_secondary_subtitle(
+            str(primary_txt),
+            primary_srt,
+            primary_generated,
+            str(secondary_txt),
+        )
+        assert secondary_sub is not None
+        assert secondary_sub.lower().endswith(".srt")
+        assert Path(secondary_sub).exists()
