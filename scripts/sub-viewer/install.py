@@ -2,6 +2,7 @@
 import os
 import sys
 import subprocess
+import shutil
 
 # ==============================================================================
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
@@ -51,7 +52,27 @@ def main():
     print(f"SendTo Directory:  {sendto_dir}")
     print(f"Shortcut Path:     {shortcut_path}")
 
-    # 3. Create shortcut using PowerShell and WScript
+    # 3. Check if black.mp4 exists, and generate it using ffmpeg if missing
+    black_video = os.path.join(current_dir, 'black.mp4')
+    if not os.path.exists(black_video):
+        print("\nOptimized seekable canvas 'black.mp4' is missing. Checking for ffmpeg...")
+        ffmpeg_exe = shutil.which('ffmpeg')
+        if ffmpeg_exe:
+            print("ffmpeg found! Generating optimized seekable 10-hour black.mp4 canvas...")
+            cmd = [
+                'ffmpeg', '-y', '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:d=36000',
+                '-r', '1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '51',
+                '-preset', 'ultrafast', '-g', '300', '-an', black_video
+            ]
+            try:
+                subprocess.run(cmd, capture_output=True, check=True)
+                print("SUCCESS: Optimized black.mp4 canvas generated successfully!")
+            except Exception as e:
+                print(f"Warning: Failed to generate black.mp4 dynamically: {e}")
+        else:
+            print("Warning: ffmpeg not found. Sub Viewer will fall back to virtual av://lavfi (which is unseekable).")
+
+    # 4. Create shortcut using PowerShell and WScript
     ps_script = (
         f"$WshShell = New-Object -ComObject WScript.Shell; "
         f"$Shortcut = $WshShell.CreateShortcut('{shortcut_path}'); "

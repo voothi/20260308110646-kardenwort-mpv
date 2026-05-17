@@ -5750,7 +5750,7 @@ update_interactive_bindings = function()
     local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
     
     local need_mouse = dw_on or osd_on
-    local need_kb = dw_on or osd_on
+    local need_kb = dw_on
     
     manage_dw_bindings(need_mouse, need_kb)
 end

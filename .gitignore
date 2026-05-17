@@ -46,3 +46,6 @@ dist/
 # --- User Settings (Optional) ---
 # anki-mapping.ini is versioned, but users can untrack it if needed.
 # !anki-mapping.ini
+
+# --- Generated Sub Viewer Media ---
+scripts/sub-viewer/black.mp4

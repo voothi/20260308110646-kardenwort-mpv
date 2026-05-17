@@ -152,15 +152,23 @@ def main():
             )
 
         # 6. Build the mpv command using configuration values
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        black_video = os.path.join(script_dir, "black.mp4")
+        if os.path.exists(black_video):
+            video_input = black_video
+        else:
+            video_input = f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}'
+
         log_path = os.path.join(sub_dir, "mpv_sub_viewer.log")
         cmd = [
             mpv_exe,
-            f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}',
+            video_input,
             f'--sub-file={sub_path}',
-            f'--script-opts=kardenwort-anki_record_file={tsv_path}',
+            f'--script-opts-append=kardenwort-anki_record_file={tsv_path}',
             f'--pause={PAUSE_ON_LAUNCH}',
             f'--log-file={log_path}',
-            '--force-window=yes'
+            '--force-window=yes',
+            '--no-resume-playback'
         ]
 
         # If secondary subtitles were found, load them as the secondary track
