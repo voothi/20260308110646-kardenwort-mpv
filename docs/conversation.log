@@ -2393,6 +2393,7 @@
 20260517160958 Yes, correct. - It does **not** modify your original source text files (`.txt/.md/...`) or their structure. - It only changes how cue duration is calculated in the **generated** `.srt`. - Existing subtitle files (`.srt/.ass/.vtt`) are not rewritten either; they are only read and passed to mpv.
 20260517161516 I created srt files with the ZID postfix, but I didn’t have srt files in this folder, so files without ZID should have been created, since there are no conflicts.
 20260517162045 There is one logical error, when we create srt files with timecodes, we must first make the file the main one, and then use these timecodes in the second file, secondary subtitles, so that it is precisely synchronized. 
+20260517162358 Also, if I select two text files, and in this directory there is srt only for the main one, then for the second file an srt must be created taking into account this already existing file.
 
 
 

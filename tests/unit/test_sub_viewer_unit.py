@@ -195,3 +195,25 @@ def test_estimated_cue_duration_grows_with_text_length():
     assert long_duration > short_duration
     assert short_duration >= viewer.READER_MIN_CUE_SECONDS
     assert long_duration <= viewer.READER_MAX_CUE_SECONDS
+
+
+def test_parallel_reader_uses_shared_zid_when_one_base_srt_exists():
+    viewer = _load_viewer_module()
+    with tempfile.TemporaryDirectory() as td:
+        base = Path(td)
+        t1 = base / "text1.txt"
+        t2 = base / "text2.txt"
+        t1.write_text("A1\n", encoding="utf-8")
+        t2.write_text("B1\n", encoding="utf-8")
+        # Existing base SRT only for primary input.
+        (base / "text1.srt").write_text("1\n00:00:00,000 --> 00:00:01,000\nold\n", encoding="utf-8")
+
+        original_current_zid = viewer.current_zid
+        viewer.current_zid = lambda: "20260517162358"
+        try:
+            srt1, srt2 = viewer.build_parallel_reader_srts(str(t1), str(t2))
+        finally:
+            viewer.current_zid = original_current_zid
+
+        assert Path(srt1).name == "text1.20260517162358.srt"
+        assert Path(srt2).name == "text2.20260517162358.srt"

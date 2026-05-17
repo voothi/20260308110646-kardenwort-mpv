@@ -303,14 +303,15 @@ def current_zid():
     return datetime.now().strftime("%Y%m%d%H%M%S")
 
 
-def _build_reader_output_path(text_path):
+def _build_reader_output_path(text_path, force_zid=None):
     input_dir = os.path.dirname(text_path)
     input_stem = os.path.splitext(os.path.basename(text_path))[0]
+
     base_candidate = os.path.join(input_dir, f"{input_stem}.srt")
-    if not os.path.exists(base_candidate):
+    if force_zid is None and not os.path.exists(base_candidate):
         return base_candidate
 
-    zid = current_zid()
+    zid = force_zid or current_zid()
     candidate = os.path.join(input_dir, f"{input_stem}.{zid}.srt")
     if not os.path.exists(candidate):
         return candidate
@@ -353,7 +354,7 @@ def build_reader_srt(text_path):
     return output_path
 
 
-def _write_reader_srt_from_cues(cues, source_text_path):
+def _write_reader_srt_from_cues(cues, source_text_path, force_zid=None):
     cue_lines = []
     timed_cues = _build_timed_cues(cues)
     for idx, (start, end, cue_text) in enumerate(timed_cues, 1):
@@ -362,13 +363,13 @@ def _write_reader_srt_from_cues(cues, source_text_path):
         cue_lines.append(cue_text)
         cue_lines.append("")
 
-    output_path = _build_reader_output_path(source_text_path)
+    output_path = _build_reader_output_path(source_text_path, force_zid=force_zid)
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write("\n".join(cue_lines))
     return output_path
 
 
-def _write_reader_srt_from_timed_cues(timed_cues, cue_texts, source_text_path):
+def _write_reader_srt_from_timed_cues(timed_cues, cue_texts, source_text_path, force_zid=None):
     cue_lines = []
     for idx, ((start, end, _), cue_text) in enumerate(zip(timed_cues, cue_texts), 1):
         cue_lines.append(str(idx))
@@ -376,7 +377,7 @@ def _write_reader_srt_from_timed_cues(timed_cues, cue_texts, source_text_path):
         cue_lines.append(cue_text)
         cue_lines.append("")
 
-    output_path = _build_reader_output_path(source_text_path)
+    output_path = _build_reader_output_path(source_text_path, force_zid=force_zid)
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write("\n".join(cue_lines))
     return output_path
@@ -407,9 +408,24 @@ def build_parallel_reader_srts(primary_text_path, secondary_text_path):
             f"Both text files are empty or have no readable lines: {primary_text_path}, {secondary_text_path}"
         )
 
+    primary_base_srt = os.path.splitext(primary_text_path)[0] + ".srt"
+    secondary_base_srt = os.path.splitext(secondary_text_path)[0] + ".srt"
+    use_shared_zid = os.path.exists(primary_base_srt) or os.path.exists(secondary_base_srt)
+    shared_zid = current_zid() if use_shared_zid else None
+
     primary_timed_cues = _build_timed_cues(primary_cues)
-    primary_srt_path = _write_reader_srt_from_timed_cues(primary_timed_cues, primary_cues, primary_text_path)
-    secondary_srt_path = _write_reader_srt_from_timed_cues(primary_timed_cues, secondary_cues, secondary_text_path)
+    primary_srt_path = _write_reader_srt_from_timed_cues(
+        primary_timed_cues,
+        primary_cues,
+        primary_text_path,
+        force_zid=shared_zid,
+    )
+    secondary_srt_path = _write_reader_srt_from_timed_cues(
+        primary_timed_cues,
+        secondary_cues,
+        secondary_text_path,
+        force_zid=shared_zid,
+    )
     return primary_srt_path, secondary_srt_path
 
 
