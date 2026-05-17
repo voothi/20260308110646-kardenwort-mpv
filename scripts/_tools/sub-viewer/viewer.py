@@ -33,7 +33,6 @@ VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 
 
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
-READER_SECONDS_PER_BLOCK = 6.0
 READER_MAX_LINES_PER_BLOCK = 1
 READER_MAX_CHARS_PER_LINE = 90
 READER_MIN_BLOCKS = 2
@@ -360,21 +359,6 @@ def build_reader_srt(text_path):
         cue_lines.append("")
 
     output_path = _build_reader_output_path(text_path)
-    with open(output_path, "w", encoding="utf-8", newline="\n") as out:
-        out.write("\n".join(cue_lines))
-    return output_path
-
-
-def _write_reader_srt_from_cues(cues, source_text_path, force_zid=None):
-    cue_lines = []
-    timed_cues = _build_timed_cues(cues)
-    for idx, (start, end, cue_text) in enumerate(timed_cues, 1):
-        cue_lines.append(str(idx))
-        cue_lines.append(f"{_seconds_to_srt_time(start)} --> {_seconds_to_srt_time(end)}")
-        cue_lines.append(cue_text)
-        cue_lines.append("")
-
-    output_path = _build_reader_output_path(source_text_path, force_zid=force_zid)
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write("\n".join(cue_lines))
     return output_path
