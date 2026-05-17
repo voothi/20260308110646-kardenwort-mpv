@@ -2167,7 +2167,8 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
     for _, data in ipairs(candidates) do
         local term_key = data.term
-        if not matched_terms[term_key] then
+        local entry_key = data.__entry_key or term_key
+        if not matched_terms[entry_key] then
             local match_found = false
             local term_is_split = false
             local term_is_local_split = false
@@ -2363,7 +2364,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         if not subs[sub_idx].__split_valid_indices then
                             subs[sub_idx].__split_valid_indices = {}
                         end
-                        local valid_set = subs[sub_idx].__split_valid_indices[term_key]
+                        local valid_set = subs[sub_idx].__split_valid_indices[entry_key]
                         
                         if valid_set == nil then
                             valid_set = false
@@ -2498,7 +2499,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     valid_set.is_contiguous = is_contiguous
                                 end
                             end
-                            subs[sub_idx].__split_valid_indices[term_key] = valid_set
+                            subs[sub_idx].__split_valid_indices[entry_key] = valid_set
                         end
                         
                         if valid_set then
@@ -2530,7 +2531,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         purple_depth = purple_depth + 1
                     end
                 end
-                matched_terms[term_key] = true
+                matched_terms[entry_key] = true
                 has_phrase = has_phrase or (#term_clean > 1)
                 table.insert(matching_source_terms, {text = data.term, is_split = term_is_split})
             end
@@ -2996,6 +2997,7 @@ local function load_anki_tsv(force, quiet)
 
     local new_highlights = {}
 
+    local row_id = 0
     for line in (content .. "\n"):gmatch("(.-)\r?\n") do
         pcall(function()
             if not line:match("^#") then
@@ -3048,7 +3050,15 @@ local function load_anki_tsv(force, quiet)
                     
                     local is_header = (term_header_name and t == term_header_name)
                     if t and t ~= "" and not is_header then
+                        row_id = row_id + 1
                         local data = { term = t, context = c, time = time_val, index = idx_val }
+                        data.__entry_key = table.concat({
+                            tostring(t),
+                            tostring(c),
+                            string.format("%.6f", tonumber(time_val) or 0),
+                            tostring(idx_val or ""),
+                            tostring(row_id)
+                        }, "|")
                         -- Pre-parse Advanced Pivot Grounding coordinates (Multi-Anchor support)
                         if idx_val then
                             data.__pivots = {}
@@ -3217,7 +3227,16 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     f:write(table.concat(row_data, "\t") .. "\n")
     f:close()
 
-    table.insert(FSM.ANKI_HIGHLIGHTS, { term = term, context = context, time = time_pos, index = item_index })
+    local new_data = { term = term, context = context, time = time_pos, index = item_index }
+    local next_row_id = #FSM.ANKI_HIGHLIGHTS + 1
+    new_data.__entry_key = table.concat({
+        tostring(term),
+        tostring(context),
+        string.format("%.6f", tonumber(time_pos) or 0),
+        tostring(item_index or ""),
+        tostring(next_row_id)
+    }, "|")
+    table.insert(FSM.ANKI_HIGHLIGHTS, new_data)
     local new_h_idx = #FSM.ANKI_HIGHLIGHTS
 
     -- Maintain the time-sorted index for binary-search window lookups.
