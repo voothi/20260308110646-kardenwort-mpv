@@ -2365,5 +2365,6 @@
 20260517142623 You, being a big model and the main boss of architects and programmers, a product manager, conduct an architectural and code review of the solution, add, correct, improve, detail, check the specifications and tests for release. Check for regression between versions. Commits git tags v1.82.16..20260517142759
 20260517143613 Fix it all. And. Main functional behavior changed in core script: keyboard capture now only when Drum Window is open (need_kb = dw_on), which aligns with the stated fix and reduces key hijacking risk. - This needs to be returned, it seems, because scrolling with the mouse wheel has stopped working.
 20260517144548 Can we make this work with text files like.txt,.md and others so I can turn this into a reader?
+20260517145355 Delete from git cache scripts\sub-viewer\sub_viewer_launch.log
 
 
