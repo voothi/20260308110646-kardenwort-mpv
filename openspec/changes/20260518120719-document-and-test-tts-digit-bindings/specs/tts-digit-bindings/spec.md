@@ -25,8 +25,8 @@ To permit the script-level bindings to capture the digit key presses, any digit 
 - **AND** inactive digits like `1` or `6` MUST be explicitly ignored (e.g., `1 ignore`, `6 ignore`).
 
 ### Requirement: TTS Help HUD Integration
-All active TTS digit bindings MUST be documented in `input.conf` using `@help` comments so that they are dynamically parsed and displayed in the F1 Help HUD interface.
+TTS digit bindings used in the active profile MUST be documented in `input.conf` using `@help` comments so that they are dynamically parsed and displayed in the F1 Help HUD interface.
 
 #### Scenario: Help HUD Display for TTS Bindings
 - **WHEN** the Help HUD is displayed by pressing `F1`
-- **THEN** it MUST display the active TTS digit bindings (e.g., `copy-subtitle-tts-2 | TTS EN (copy + trigger) | 2`) under the correct HUD section.
+- **THEN** it MUST display documented TTS digit bindings used by the profile (e.g., `copy-subtitle-tts-2 | TTS EN (copy + trigger) | 2`) under the correct HUD section.

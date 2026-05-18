@@ -6,9 +6,9 @@ Users who utilize external Text-to-Speech (TTS) applications to listen to subtit
 
 - **Added Configurable TTS bindings**: Implemented `tts_trigger_enabled`, `tts_hotkey_1` through `tts_hotkey_8`, and `key_tts_1` through `key_tts_8` configuration options in `main.lua` and `mpv.conf`.
 - **Layout-independent video adjustments**: Remapped video adjustments from `1`/`2`/`3`/`4` to layout-independent letters `o`/`p`/`k`/`l` and their Cyrillic counterparts `щ`/`з`/`л`/`д`.
-- **Unignored digits in input.conf**: Commented out the standard ignores for `2`, `3`, `4`, `5` in `input.conf` so they can be handled dynamic-style by the script bindings, while `1`, `6`, `7`, `8` are explicitly ignored.
+- **Unignored digits in input.conf**: Removed hard `ignore` bindings for active TTS digits `2`, `3`, `4`, `5` in `input.conf` so they can be handled by script bindings, while `1`, `6`, `7`, `8` remain explicitly ignored in the current profile.
 - **Dynamic Help HUD integration**: Added `@help` documentation comments for the TTS bindings `copy-subtitle-tts-2` through `copy-subtitle-tts-5` in `input.conf`.
-- **Regression guards**: Created a comprehensive test suite `tests/acceptance/test_20260518115930_tts_digit_bindings.py` to assert correct presence of script-opts, hotkeys, input.conf overrides, and layout compatibility.
+- **Regression guards**: Created a targeted regression suite `tests/acceptance/test_20260518115930_tts_digit_bindings.py` to assert correct presence of script-opts, hotkeys, input.conf ignore-override safety, and layout compatibility.
 
 ## Capabilities
 
