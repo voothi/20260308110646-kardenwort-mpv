@@ -1002,6 +1002,8 @@ local function dw_reset_selection()
 end
 
 local function dw_apply_post_transition_selection(target_line, target_word)
+    -- Transition should always start a fresh Esc cycle state.
+    FSM.DW_ESC_NEUTRAL_ARMED = false
     if Options.dw_clear_selection_after_transition then
         FSM.DW_CTRL_PENDING_SET = {}
         FSM.DW_CTRL_PENDING_LIST = {}
@@ -5505,14 +5507,8 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
 end
 
 
-local function cmd_dw_double_click()
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
-
-    local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
-    if not line_idx then return end
-
+local function dw_handle_double_click_target(subs, line_idx, word_idx)
+    if not subs or #subs == 0 then return false end
     local sub = subs[line_idx]
     if sub and sub.start_time then
         -- [v1.58.51] Intentional Focus Handover
@@ -5557,7 +5553,20 @@ local function cmd_dw_double_click()
         elseif FSM.DRUM_WINDOW ~= "OFF" then
             dw_osd:update()
         end
+        return true
     end
+    return false
+end
+
+local function cmd_dw_double_click()
+    local subs = Tracks.pri.subs
+    if not subs or #subs == 0 then return end
+
+    local osd_x, osd_y = dw_get_mouse_osd()
+    local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
+    if not line_idx then return end
+
+    dw_handle_double_click_target(subs, line_idx, word_idx)
 end
 
 local function tick_dw(time_pos, active_idx)
@@ -6803,7 +6812,6 @@ local function cmd_dw_seek_selected()
             mp.commandv("seek", s, "absolute+exact")
             FSM.last_paused_sub_end = nil
             dw_capture_neutral_marker()
-            FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
             dw_apply_post_transition_selection(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
             FSM.DW_CURSOR_X = nil
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -9544,18 +9552,7 @@ mp.register_script_message("test-dw-double-click", function(line_str)
     local ok, err = xpcall(function()
         local line = tonumber(line_str)
         if line and Tracks and Tracks.pri and Tracks.pri.subs then
-            local sub = Tracks.pri.subs[line]
-            if sub then
-                mp.set_property_number("time-pos", sub.start_time)
-                if FSM.BOOK_MODE then
-                    FSM.DW_FOLLOW_PLAYER = false
-                else
-                    FSM.DW_FOLLOW_PLAYER = true
-                    FSM.DW_CURSOR_LINE = line
-                    FSM.DW_CURSOR_WORD = -1
-                    FSM.DW_VIEW_CENTER = line
-                end
-                FSM.ACTIVE_IDX = line
+            if dw_handle_double_click_target(Tracks.pri.subs, line, FSM.DW_CURSOR_WORD) then
                 master_tick()
                 flush_rendering_caches()
             end
