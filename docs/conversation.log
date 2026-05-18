@@ -2411,4 +2411,7 @@
 20260517201907 Openspec Apply Change 20260517201554-document-copy-mode-b-and-utf8-copy-preview-fixes
 20260517202103 Openspec Archive Change --sync 20260517201554-document-copy-mode-b-and-utf8-copy-preview-fixes
 20260517210904 ================================================================================== 781 passed in 931.70s (0:15:31) ===================================================================================
+20260518112816 Move the following standard global buttons for this mpv application 1, 2, 3, 4, 5, 6, 7, 8 to the following keys in this order of correspondence, you need to do it in the RU/EN layout (add combinations) 1, 2 (Contrast +/-) -> o, Shift+o; 3, 4 (Brightness +/-) -> p, Shift+p; 5, 6 (Gamma +/-) -> k, Shift+k; 7, 8 (Saturation +/-) -> l, Shift+l; then write ignore for 1, 2, 3, 4, 5, 6, 7, 8 in input.conf.
+20260518113542 Done. I remapped the global adjustment keys in EN/RU layouts and disabled `1..8` in [`input.conf`](/u:/voothi/20260308110646-kardenwort-mpv/input.conf). New mappings: - Contrast `/ +`: `o`, `Shift+o` and `щ`, `Щ` - Brightness `/ +`: `p`, `Shift+p` and `з`, `З` - Gamma `/ +`: `k`, `Shift+k` and `л`, `Л` - Saturation `/ +`: `l`, `Shift+l` and `д`, `Д` Also added: - `1 ignore` - `2 ignore` - `3 ignore` - `4 ignore` - `5 ignore` - `6 ignore` - `7 ignore` - `8 ignore`
+
 
