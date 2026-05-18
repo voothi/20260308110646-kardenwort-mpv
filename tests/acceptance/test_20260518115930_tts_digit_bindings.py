@@ -47,11 +47,16 @@ class TestTtsDigitBindings:
         missing = [item for item in required if item not in conf]
         assert not missing, f"TTS config markers missing in mpv.conf: {missing}"
 
-    def test_input_conf_does_not_hard_ignore_tts_digits_2_to_5(self):
+    def test_input_conf_does_not_hard_ignore_active_tts_digits(self):
         conf = _read("input.conf")
-        for digit in ("2", "3", "4", "5"):
+        mpv_conf = _read("mpv.conf")
+        active_tts_digits = re.findall(
+            r"^\s*script-opts-append=kardenwort-key_tts_([1-8])=([1-8])\s*$",
+            mpv_conf,
+            re.MULTILINE,
+        )
+        for _, digit in active_tts_digits:
             pattern = re.compile(rf"^\s*{digit}\s+ignore\b", re.MULTILINE)
             assert not pattern.search(conf), (
                 f"input.conf still hard-ignores '{digit}', which blocks kardenwort-key_tts_{digit}"
             )
-
