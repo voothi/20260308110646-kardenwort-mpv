@@ -1003,13 +1003,24 @@ end
 
 local function dw_apply_post_transition_selection(target_line, target_word)
     if Options.dw_clear_selection_after_transition then
+        FSM.DW_CTRL_PENDING_SET = {}
+        FSM.DW_CTRL_PENDING_LIST = {}
+        FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         FSM.DW_CURSOR_WORD = -1
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
+        -- Mirror Esc policy expectations after hard transition:
+        -- auto_follow_current => resume follow, neutral_* => stay manual.
+        if dw_is_neutral_policy_enabled() then
+            FSM.DW_FOLLOW_PLAYER = false
+        else
+            FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        end
     else
         FSM.DW_CURSOR_WORD = (target_word and target_word > 0) and target_word or FSM.DW_CURSOR_WORD
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
+        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
     end
 end
 
@@ -5539,8 +5550,6 @@ local function cmd_dw_double_click()
             FSM.DW_VIEW_CENTER = line_idx
         end
         
-        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
-        
         -- Explicitly ensure we don't open the full Drum Window (Mode W) 
         -- when interacting in OSD mode (Mode C).
         if FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF" then
@@ -6797,7 +6806,6 @@ local function cmd_dw_seek_selected()
             FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
             dw_apply_post_transition_selection(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
             FSM.DW_CURSOR_X = nil
-            FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
             if not FSM.BOOK_MODE then
