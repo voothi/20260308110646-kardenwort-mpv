@@ -1004,6 +1004,7 @@ end
 local function dw_apply_post_transition_selection(target_word)
     -- Transition should always start a fresh Esc cycle state.
     FSM.DW_ESC_NEUTRAL_ARMED = false
+    local follow_after_transition = not dw_is_neutral_policy_enabled()
     if Options.dw_clear_selection_after_transition then
         FSM.DW_CTRL_PENDING_SET = {}
         FSM.DW_CTRL_PENDING_LIST = {}
@@ -1013,16 +1014,12 @@ local function dw_apply_post_transition_selection(target_word)
         FSM.DW_ANCHOR_WORD = -1
         -- Mirror Esc policy expectations after hard transition:
         -- auto_follow_current => resume follow, neutral_* => stay manual.
-        if dw_is_neutral_policy_enabled() then
-            FSM.DW_FOLLOW_PLAYER = false
-        else
-            FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
-        end
+        FSM.DW_FOLLOW_PLAYER = follow_after_transition
     else
         FSM.DW_CURSOR_WORD = (target_word and target_word > 0) and target_word or FSM.DW_CURSOR_WORD
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
-        FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
+        FSM.DW_FOLLOW_PLAYER = follow_after_transition
     end
 end
 
