@@ -425,6 +425,9 @@ Options = {
     dw_key_seek = "ENTER KP_ENTER",
     dw_key_replay = "s",
     dw_key_esc = "ESC",
+    -- When true, Enter/double-click transition clears active word/range selection.
+    -- When false, the selection is preserved.
+    dw_clear_selection_after_transition = true,
     dw_key_select_extend = "Shift+MBTN_LEFT",
     dw_key_mouse_seek = "MBTN_LEFT_DBL",
     dw_key_jump_left = "Ctrl+LEFT",
@@ -995,6 +998,18 @@ local function dw_reset_selection()
         if dw_osd then dw_osd:update() end
     elseif FSM.DRUM == "ON" then 
         if drum_osd then drum_osd:update() end 
+    end
+end
+
+local function dw_apply_post_transition_selection(target_line, target_word)
+    if Options.dw_clear_selection_after_transition then
+        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+    else
+        FSM.DW_CURSOR_WORD = (target_word and target_word > 0) and target_word or FSM.DW_CURSOR_WORD
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
     end
 end
 
@@ -5516,10 +5531,8 @@ local function cmd_dw_double_click()
         dw_capture_neutral_marker()
         FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
         FSM.DW_CURSOR_LINE = line_idx
-        FSM.DW_CURSOR_WORD = -1
         FSM.DW_CURSOR_X = nil
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
+        dw_apply_post_transition_selection(line_idx, word_idx)
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if not FSM.BOOK_MODE then
@@ -6780,6 +6793,10 @@ local function cmd_dw_seek_selected()
             local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
             FSM.last_paused_sub_end = nil
+            dw_capture_neutral_marker()
+            FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
+            dw_apply_post_transition_selection(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
+            FSM.DW_CURSOR_X = nil
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
