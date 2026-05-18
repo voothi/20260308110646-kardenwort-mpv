@@ -5488,47 +5488,56 @@ local function cmd_dw_double_click()
     if not line_idx then return end
 
     local sub = subs[line_idx]
-    if sub and sub.start_time then
+    if not sub or not sub.start_time then return end
+
+    local function dw_seek_to_selection(target_line, target_word, lock_mouse)
+        local target_sub = subs[target_line]
+        if not target_sub or not target_sub.start_time then return false end
+
         -- [v1.58.51] Intentional Focus Handover
         FSM.IGNORE_NEXT_JUMP = true
-        FSM.ACTIVE_IDX = line_idx
-        if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(line_idx, #Tracks.sec.subs) end
+        FSM.ACTIVE_IDX = target_line
+        if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(target_line, #Tracks.sec.subs) end
         FSM.JUST_JERKED_TO = -1
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
+        FSM.REWIND_TRANSIT_CROSS_CARD = false
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
 
-        local s, _ = get_effective_boundaries(subs, sub, line_idx)
+        local s, _ = get_effective_boundaries(subs, target_sub, target_line)
         mp.commandv("seek", s, "absolute+exact")
         FSM.last_paused_sub_end = nil
-        -- which would otherwise be caught by MBTN_LEFT and trigger a new selection
-        -- at the post-seek mouse position.
-        FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
 
-        -- Explicitly terminate any dragging/scrolling state initiated by the first click
-        FSM.DW_MOUSE_DRAGGING = false
-        mp.remove_key_binding("dw-mouse-drag")
-        if FSM.DW_MOUSE_SCROLL_TIMER then
-            FSM.DW_MOUSE_SCROLL_TIMER:kill()
-            FSM.DW_MOUSE_SCROLL_TIMER = nil
+        if lock_mouse then
+            -- Prevent post-seek MBTN_LEFT release from reselecting under cursor.
+            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
+            FSM.DW_MOUSE_DRAGGING = false
+            mp.remove_key_binding("dw-mouse-drag")
+            if FSM.DW_MOUSE_SCROLL_TIMER then
+                FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                FSM.DW_MOUSE_SCROLL_TIMER = nil
+            end
         end
 
-        mp.commandv("seek", sub.start_time, "absolute+exact")
+        -- Align active card to exact subtitle start for consistent focus state.
+        mp.commandv("seek", target_sub.start_time, "absolute+exact")
         dw_capture_neutral_marker()
         FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
-        FSM.DW_CURSOR_LINE = line_idx
-        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_CURSOR_LINE = target_line
+        FSM.DW_CURSOR_WORD = (target_word and target_word > 0 and target_sub.words and target_sub.words[target_word]) and target_word or -1
         FSM.DW_CURSOR_X = nil
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
+        FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+        FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
-        
-        if not FSM.BOOK_MODE then
-            FSM.DW_VIEW_CENTER = line_idx
-        end
-        
         FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
-        
-        -- Explicitly ensure we don't open the full Drum Window (Mode W) 
+
+        if not FSM.BOOK_MODE then
+            FSM.DW_VIEW_CENTER = target_line
+        end
+        return true
+    end
+
+    if dw_seek_to_selection(line_idx, word_idx, true) then
+        -- Explicitly ensure we don't open the full Drum Window (Mode W)
         -- when interacting in OSD mode (Mode C).
         if FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF" then
             drum_osd:update()
@@ -6766,28 +6775,35 @@ local function cmd_dw_seek_selected()
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
-        local sub = subs[FSM.DW_CURSOR_LINE]
+        local target_line = FSM.DW_CURSOR_LINE
+        local target_word = FSM.DW_CURSOR_WORD
+        local sub = subs[target_line]
         if sub and sub.start_time then
-            -- [v1.58.51] Intentional Focus Handover
+            -- Match double-click transition and preserve selected word focus.
+            local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, target_line)
             FSM.IGNORE_NEXT_JUMP = true
-            FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
-            if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(FSM.DW_CURSOR_LINE, #Tracks.sec.subs) end
+            FSM.ACTIVE_IDX = target_line
+            if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(target_line, #Tracks.sec.subs) end
             FSM.JUST_JERKED_TO = -1
             FSM.TIMESEEK_INHIBIT_UNTIL = nil
             FSM.REWIND_TRANSIT_CROSS_CARD = false
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-
-            local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, FSM.DW_CURSOR_LINE)
             mp.commandv("seek", s, "absolute+exact")
             FSM.last_paused_sub_end = nil
+            mp.commandv("seek", sub.start_time, "absolute+exact")
+            dw_capture_neutral_marker()
+            FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
+            FSM.DW_CURSOR_LINE = target_line
+            FSM.DW_CURSOR_WORD = (target_word and target_word > 0 and sub.words and sub.words[target_word]) and target_word or -1
+            FSM.DW_CURSOR_X = nil
+            FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
+            FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
             FSM.DW_FOLLOW_PLAYER = not FSM.BOOK_MODE
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
-            
             if not FSM.BOOK_MODE then
-                FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+                FSM.DW_VIEW_CENTER = target_line
             end
-            
-            show_osd("Seeking to line: " .. FSM.DW_CURSOR_LINE)
+            show_osd("Seeking to line: " .. target_line)
         end
     end
 end
