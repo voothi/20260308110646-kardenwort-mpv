@@ -1001,7 +1001,7 @@ local function dw_reset_selection()
     end
 end
 
-local function dw_apply_post_transition_selection(target_line, target_word)
+local function dw_apply_post_transition_selection(target_word)
     -- Transition should always start a fresh Esc cycle state.
     FSM.DW_ESC_NEUTRAL_ARMED = false
     if Options.dw_clear_selection_after_transition then
@@ -5536,10 +5536,9 @@ local function dw_handle_double_click_target(subs, line_idx, word_idx)
 
         mp.commandv("seek", sub.start_time, "absolute+exact")
         dw_capture_neutral_marker()
-        FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
         FSM.DW_CURSOR_LINE = line_idx
         FSM.DW_CURSOR_X = nil
-        dw_apply_post_transition_selection(line_idx, word_idx)
+        dw_apply_post_transition_selection(word_idx)
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
         
         if not FSM.BOOK_MODE then
@@ -6812,7 +6811,7 @@ local function cmd_dw_seek_selected()
             mp.commandv("seek", s, "absolute+exact")
             FSM.last_paused_sub_end = nil
             dw_capture_neutral_marker()
-            dw_apply_post_transition_selection(FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD)
+            dw_apply_post_transition_selection(FSM.DW_CURSOR_WORD)
             FSM.DW_CURSOR_X = nil
             FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
             
