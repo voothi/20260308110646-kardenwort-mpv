@@ -63,72 +63,113 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
 
 The Kardenwort MPV suite provides three primary interfaces for language acquisition: **Drum Mode** for immersive playback, **Regular Mode (SRT)** for minimalist viewing, and **Static Reading Mode** for in-depth analysis and mining.
 
-### 🥁 Advanced Layouts
+#### 🥁 Advanced Layouts
 
-| Drum Mode (Dynamic Flow) | Static Reading Mode (Drum Window) |
-| :--- | :--- |
-| ![Drum Mode 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dm.png) | ![Drum Window 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dw.png) |
-| *High-speed playback with synchronized historical and future subtitle context.* | *Stationary "Book Mode" for precise word selection, dictionary lookups, and mining.* |
-| ![Drum Mode 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dm.png) | ![Drum Window 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.png) |
-| *Optimized for "Shadowing" and "Listening" intensive immersion phases.* | *Surgical highlighting (Gold/Pink) synchronized with your Anki/TSV database.* |
-| | ![Context Tooltips](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.tooltip.png) |
-| | *Contextual Translation Tooltips (Gold/Pink) for instant vocabulary verification.* |
+#### **Drum Mode (Dynamic Flow)**
+![Drum Mode 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dm.png)
+*High-speed playback with synchronized historical and future subtitle context.*
+
+![Drum Mode 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dm.png)
+*Optimized for "Shadowing" and "Listening" intensive immersion phases.*
+
+#### **Static Reading Mode (Drum Window)**
+![Drum Window 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.dw.png)
+*Stationary "Book Mode" for precise word selection, dictionary lookups, and mining.*
+
+![Drum Window 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.png)
+*Surgical highlighting (Gold/Pink) synchronized with your Anki/TSV database.*
+
+#### **Contextual Translation Tooltips**
+![Context Tooltips](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.tooltip.png)
+*Contextual Translation Tooltips (Gold/Pink) for instant vocabulary verification.*
+
+---
 
 ### 📺 Regular Mode (Minimalist View)
 
-| Bottom Alignment (Target) | Top Alignment (Translation) |
-| :--- | :--- |
-| ![Regular Mode Bottom](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.bottom.png) | ![Regular Mode Top](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.top.png) |
-| *Standard one-line immersion with Premium Dark background box for maximum legibility.* | *Secondary track positioned at the top to resolve visual overlaps during DualSub playback.* |
+#### **Bottom Alignment (Target)**
+![Regular Mode Bottom](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.bottom.png)
+*Standard one-line immersion with Premium Dark background box for maximum legibility.*
+
+#### **Top Alignment (Translation)**
+![Regular Mode Top](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.srt.top.png)
+*Secondary track positioned at the top to resolve visual overlaps during DualSub playback.*
+
+---
 
 ### 🔍 Search & Dictionary Integration
 
-| Universal Subtitle Search | GoldenDict Integration |
-| :--- | :--- |
-| ![Search HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.search.png) | ![GoldenDict Main](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-main.png) |
-| *High-performance navigation overlay (Ctrl+F) with dynamic multi-line wrapping.* | *Seamless synchronization with external dictionaries for deep word analysis via [gd-main.ahk](https://github.com/voothi/20240411110510-autohotkey#gd-mainahk).* |
-| | ![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png) |
-| | *Zero-latency "Popup" mode for rapid translation peeks without leaving the player.* |
+#### **Universal Subtitle Search**
+![Search HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.search.png)
+*High-performance navigation overlay (Ctrl+F) with dynamic multi-line wrapping.*
+
+#### **GoldenDict Integration**
+![GoldenDict Main](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-main.png)
+*Seamless synchronization with external dictionaries for deep word analysis via [gd-main.ahk](https://github.com/voothi/20240411110510-autohotkey#gd-mainahk).*
+
+#### **GoldenDict Popup Mode**
+![GoldenDict Popup](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.dw.gd-popup.png)
+*Zero-latency "Popup" mode for rapid translation peeks without leaving the player.*
+
+---
 
 ### 🛡️ Dynamic Help HUD
 
-| Dynamic Help HUD (F1) |
-| :--- |
-| ![Help HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.help-f1.png) |
-| *Live shortcut reference (F1) with automatic key normalization and dual-layout support.* |
+#### **Dynamic Help HUD (F1)**
+![Help HUD](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.help-f1.png)
+*Live shortcut reference (F1) with automatic key normalization and dual-layout support.*
+
+---
 
 ### 🎤 Karaoke & High-Density Immersion
 
 The suite is optimized for high-density information streams, supporting advanced `.ass` karaoke formatting and long, multi-line paragraph subtitles.
 
-| Word-by-Word Karaoke | Character-by-Character Karaoke |
-| :--- | :--- |
-| ![Karaoke Word](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.2.karaoke.w.ass.png) | ![Karaoke Char](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.3.karaoke.ch.ass.png) |
-| *Synchronized word-level highlights for precise timing and "Shadowing" practice.* | *Ultra-precise character-level timing for complex phonetic or musical immersion.* |
+#### **Word-by-Word Karaoke**
+![Karaoke Word](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.karaoke.w.ass.png)
+*Synchronized word-level highlights for precise timing and "Shadowing" practice.*
 
-| High-Density Paragraphs | Advanced Viewport Navigation |
-| :--- | :--- |
-| ![High Density DM](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dm.png) | ![High Density Tooltip](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dw.tooltip.png) |
-| *Handles massive subtitle blocks with ease, maintaining high contrast and readability.* | *The origin of "Book Mode"—smoothly navigating through dense, text-heavy chapters.* |
+#### **Character-by-Character Karaoke**
+![Karaoke Char](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.3.karaoke.ch.ass.png)
+*Ultra-precise character-level timing for complex phonetic or musical immersion.*
+
+#### **High-Density Paragraphs**
+![High Density DM](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dm.png)
+*Handles massive subtitle blocks with ease, maintaining high contrast and readability.*
+
+#### **Advanced Viewport Navigation**
+![High Density Tooltip](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.1.dw.tooltip.png)
+*The origin of "Book Mode"—smoothly navigating through dense, text-heavy chapters.*
+
+---
 
 ### 🗃️ Anki Mining & Workflow
 
 From media selection to flashcard creation, the suite provides a seamless TSV-based pipeline for permanent vocabulary retention.
 
-| TSV Database (VSCode) | Anki Import Synchronization |
-| :--- | :--- |
-| ![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png) | ![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png) |
-| *TSV file opened in [VSCode](https://code.visualstudio.com/) with [Rainbow CSV](https://github.com/mechatroner/vscode_rainbow_csv) and [Edit CSV](https://github.com/janisdd/vscode-edit-csv) extensions for high-density editing.* | *Native Anki Import window (Ctrl+Shift+I) for synchronizing media coordinates with your collection.* |
+#### **TSV Database (VSCode)**
+![TSV VSCode](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.1.vscode.png)
+*TSV file opened in [VSCode](https://code.visualstudio.com/) with [Rainbow CSV](https://github.com/mechatroner/vscode_rainbow_csv) and [Edit CSV](https://github.com/janisdd/vscode-edit-csv) extensions for high-density editing.*
 
-| Intellifiller AI Integration (F1) | Intellifiller AI Integration (F2) |
-| :--- | :--- |
-| ![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.1.png) | ![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.2.png) |
-| *[Intellifiller AI](https://github.com/voothi/20251206123938-intellifiller-ai-addon-for-anki) automatically populating fields from mined data.* | *Intellifiller filling advanced fields for deep grammatical analysis.* |
+#### **Anki Import Synchronization**
+![Anki Import](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.2.anki.import.png)
+*Native Anki Import window (Ctrl+Shift+I) for synchronizing media coordinates with your collection.*
 
-| Vocabulary Card Preview | Phrase Card Preview |
-| :--- | :--- |
-| ![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png) | ![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png) |
-| *The resulting vocabulary card using the [Kardenwort Anki Templates](https://github.com/voothi/20241106211123-kardenwort-anki-templates).* | *A phrase-based card focusing on the complete sentence context.* |
+#### **Intellifiller AI Integration (F1)**
+![Anki Interface 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.3.anki.b.w.if.1.png)
+*[Intellifiller AI](https://github.com/voothi/20251206123938-intellifiller-ai-addon-for-anki) automatically populating fields from mined data.*
+
+#### **Intellifiller AI Integration (F2)**
+![Anki Interface 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.4.anki.b.w.if.2.png)
+*Intellifiller filling advanced fields for deep grammatical analysis.*
+
+#### **Vocabulary Card Preview**
+![Anki Preview 1](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.5.anki.b.w.preview.png)
+*The resulting vocabulary card using the [Kardenwort Anki Templates](https://github.com/voothi/20241106211123-kardenwort-anki-templates).*
+
+#### **Phrase Card Preview**
+![Anki Preview 2](tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.tsv.6.anki.b.s.preview.png)
+*A phrase-based card focusing on the complete sentence context.*
 
 [Return to Top](#table-of-contents)
 
