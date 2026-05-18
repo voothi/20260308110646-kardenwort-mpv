@@ -306,6 +306,23 @@ Options = {
     gd_trigger_enabled = "no",
     gd_hotkey_popup = "Ctrl+Alt+Shift+Q",
     gd_hotkey_main = "Ctrl+Alt+Shift+1",
+    tts_trigger_enabled = "no",
+    tts_hotkey_1 = "Ctrl+Alt+Shift+1",
+    tts_hotkey_2 = "Ctrl+Alt+Shift+2",
+    tts_hotkey_3 = "Ctrl+Alt+Shift+3",
+    tts_hotkey_4 = "Ctrl+Alt+Shift+4",
+    tts_hotkey_5 = "Ctrl+Alt+Shift+5",
+    tts_hotkey_6 = "Ctrl+Alt+Shift+6",
+    tts_hotkey_7 = "Ctrl+Alt+Shift+7",
+    tts_hotkey_8 = "Ctrl+Alt+Shift+8",
+    key_tts_1 = "",
+    key_tts_2 = "",
+    key_tts_3 = "",
+    key_tts_4 = "",
+    key_tts_5 = "",
+    key_tts_6 = "",
+    key_tts_7 = "",
+    key_tts_8 = "",
     gd_trigger_method = "powershell", -- "powershell" or "python"
     python_path = "python",
     python_trigger_delay_popup = 0.1,
@@ -7211,8 +7228,13 @@ local function set_clipboard(text, mode)
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
     -- [v1.58.36] Robust GoldenDict trigger (Improved layout/modifier stability)
     -- [v1.58.38] Professional Layout-Independent Trigger (VK-based)
+    local user_hotkey = nil
     if Options.gd_trigger_enabled == "yes" and platform == "\\" and (mode == "side" or mode == "main") then
-        local user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
+        user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
+    elseif Options.tts_trigger_enabled == "yes" and platform == "\\" and mode and mode:match("^tts_[1-8]$") then
+        user_hotkey = Options["tts_hotkey_" .. mode:match("([1-8])$")]
+    end
+    if user_hotkey and user_hotkey ~= "" then
         -- [v1.58.40] Expanded VK mapping for layout-independent triggers
         local vk_codes = {
             ctrl = 0x11, alt = 0x12, shift = 0x10, win = 0x5B,
@@ -9023,6 +9045,14 @@ mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
 mp.add_key_binding(nil, "copy-subtitle", function() cmd_copy_sub("none") end)
 mp.add_key_binding(nil, "copy-subtitle-popup", function() cmd_copy_sub("side") end)
 mp.add_key_binding(nil, "copy-subtitle-main", function() cmd_copy_sub("main") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-1", function() cmd_copy_sub("tts_1") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-2", function() cmd_copy_sub("tts_2") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-3", function() cmd_copy_sub("tts_3") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-4", function() cmd_copy_sub("tts_4") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-5", function() cmd_copy_sub("tts_5") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-6", function() cmd_copy_sub("tts_6") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-7", function() cmd_copy_sub("tts_7") end)
+mp.add_key_binding(nil, "copy-subtitle-tts-8", function() cmd_copy_sub("tts_8") end)
 
 -- [v1.58.40] Global Ctrl+Alt+C binding for main GoldenDict window
 local function register_global_copy_keys()
@@ -9041,6 +9071,14 @@ local function register_global_copy_keys()
     end
     bind(Options.key_copy_popup, "kardenwort-global-copy-side", function() cmd_copy_sub("side") end)
     bind(Options.key_copy_main, "kardenwort-global-copy-main", function() cmd_copy_sub("main") end)
+    bind(Options.key_tts_1, "kardenwort-global-copy-tts-1", function() cmd_copy_sub("tts_1") end)
+    bind(Options.key_tts_2, "kardenwort-global-copy-tts-2", function() cmd_copy_sub("tts_2") end)
+    bind(Options.key_tts_3, "kardenwort-global-copy-tts-3", function() cmd_copy_sub("tts_3") end)
+    bind(Options.key_tts_4, "kardenwort-global-copy-tts-4", function() cmd_copy_sub("tts_4") end)
+    bind(Options.key_tts_5, "kardenwort-global-copy-tts-5", function() cmd_copy_sub("tts_5") end)
+    bind(Options.key_tts_6, "kardenwort-global-copy-tts-6", function() cmd_copy_sub("tts_6") end)
+    bind(Options.key_tts_7, "kardenwort-global-copy-tts-7", function() cmd_copy_sub("tts_7") end)
+    bind(Options.key_tts_8, "kardenwort-global-copy-tts-8", function() cmd_copy_sub("tts_8") end)
 end
 register_global_copy_keys()
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
