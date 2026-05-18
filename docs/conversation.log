@@ -2430,4 +2430,6 @@
 20260518123925 You found a real bug. `@help` lines were present, but F1 did not show them because Help HUD only overrides entries that already exist in `HELP_SCHEMA`; it does not create new actions from `@help`. I fixed it by adding explicit TTS actions to Help HUD schema in [main.lua](u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua) under **Mining & Tools**: - `kardenwort/copy-subtitle-tts-2` (fallback `Options.key_tts_2`) - `kardenwort/copy-subtitle-tts-3` (fallback `Options.key_tts_3`) - `kardenwort/copy-subtitle-tts-4` (fallback `Options.key_tts_4`) - `kardenwort/copy-subtitle-tts-5` (fallback `Options.key_tts_5`) Also updated regression test [test_20260518115930_tts_digit_bindings.py](u:/voothi/20260308110646-kardenwort-mpv/tests/acceptance/test_20260518115930_tts_digit_bindings.py) so these F1 schema entries are guarded. Validation: - `luac -p scripts/kardenwort/main.lua` passed - `python -m pytest tests/acceptance/test_20260518115930_tts_digit_bindings.py -q` → `3 passed` After reload/restart, F1 should now display the TTS lines.
 20260518124252 Do I need to update the specs? openspec\specs
 20260518124401 Okay, do it.
+20260518130336 Where should the spec be updated so that in the future he is more likely to remember to add this?
+20260518130526 Add this specification. openspec\specs
 

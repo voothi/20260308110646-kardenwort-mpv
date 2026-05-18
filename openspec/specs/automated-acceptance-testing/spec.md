@@ -97,11 +97,12 @@ The system SHALL support verification of visual elements by exposing the raw `.d
 ---
 
 ### Requirement: Spec Citation in Tests
-Acceptance test files SHALL begin with a comment header citing the spec capability and scenario they verify.
+Acceptance test files (`tests/acceptance/test_*.py`) SHALL begin with a module-level docstring header containing both `Feature ZID:` and `Feature:` fields, citing the spec capability and scenario they verify.
 
 #### Scenario: Tracing a test back to its spec
 - **WHEN** a developer reads any acceptance test file
-- **THEN** the first non-empty comment SHALL identify the source spec path and the scenario name.
+- **THEN** the first non-empty module-level block SHALL include `Feature ZID:` and `Feature:`
+- **AND** the header SHALL identify the source spec path/capability and scenario intent.
 
 ---
 
