@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.82.20-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.20) 
+[![Version](https://img.shields.io/badge/version-v1.82.22-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.22) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -432,7 +432,11 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `F1` | `F1` | **Toggle Dynamic Help HUD** (Live reference) |
 | `a` / `d` | `ф` / `в` | **Seek** to prev/next subtitle (with cyclic wrap-around) |
 | `A` / `D` | `Ф` / `В` | Exact **2-second** seek **backward / forward** |
-| `1` / `2` | `1` / `2` | Decrease / Increase **Contrast** |
+| `o` / `O` | `щ` / `Щ` | Decrease / Increase **Contrast** |
+| `p` / `P` | `з` / `З` | Decrease / Increase **Brightness** |
+| `k` / `K` | `л` / `Л` | Decrease / Increase **Gamma** |
+| `l` / `L` | `д` / `Д` | Decrease / Increase **Saturation** |
+| `2` / `3` / `4` / `5` | `2` / `3` / `4` / `5` | Alphanumeric **TTS triggers** (EN / DE / RU / UK) |
 | `` ` `` / `~` | `ё` / `Ё` | **Debug Console** / **Quit** |
 | `Q` / `Й` | `Q` / `Й` | Cycle **Copy Mode** (Drum Window) |
 | `W` / `Ц` | `W` / `Ц` | Toggle **Context Copy** (Drum Window) |
@@ -466,11 +470,11 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `H` / `Р` | `H` / `Р` | **Toggle Karaoke Mode** (Autopause granularity) |
  
 ### Visual Keyboard Layout (English)
-
+ 
 ```text
 +-----------------------------------------------------------+
 |  ` ~  | 1 ! | 2 @ | 3 # | 4 $ | 5 % | 6 ^ | 7 & |
-|Console|  Contrast |     |     |     |     |     |
+|Console|     | TTS | TTS | TTS | TTS |     |     |
 +-----------------------------------------------------------+
 |  TAB  |  Q   |  W  |  E  |  R  |  T  |
 |  OSC  | Cycle| Ctxt| Tltp| Sub | Sub |
@@ -488,18 +492,18 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | (Copy) |       |       |       SMART SPACE (HOLD=PLAY)    |
 | (Search)       |       |        TAP = PLAY/PAUSE TOGGLE   |
 +-----------------------------------------------------------+
-
+ 
 +-----------------------------------------------------------+
 | 8 * | 9 ( | 0 ) | - _ | = + | BACKSPACE |
 |     |   Volume  |     |     | RESET Spd |
 +-----------------------------------------------------------+
 |  Y  |  U  |  I  |  O  |  P  |  [  |  ]  |    \    |
-|     |     |     |     |     | Spd | Spd |         |
-|     |     |     |     |     | Down| Up  |         |
+|     |     |     |Contr|Brigh| Spd | Spd |         |
+|     |     |     | -/+ | -/+ | Down| Up  |         |
 +-----------------------------------------------------------+
 |  H  |  J  |  K  |  L  |  ;  |  '  |    ENTER    |
-| Kara|     |     |     |     |     |     Seek    |
-| Tgl |     |     |     |     |     |    (Drum)   |
+| Kara|     |Gamma|Satur|     |     |     Seek    |
+| Tgl |     | -/+ | -/+ |     |     |    (Drum)   |
 +-----------------------------------------------------------+
 |  N  |  M  |  ,  |  .  |  /  |      SHIFT      |
 |     | Mute| Frm | Frm |     |      Select     |
@@ -575,7 +579,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-drum_block_gap_mul` | `-0.27` | Extra spacing between distinct subtitle blocks. |
 | `kardenwort-drum_gap_adj` | `6` | Fine-tuning for vertical alignment (all tracks). |
 | `kardenwort-drum_vsp` | `0` | Vertical shift pixels (manual offset). |
-| `kardenwort-drum_track_gap" | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
+| `kardenwort-drum_track_gap` | `5.0` | Vertical spacing (%) between primary and secondary dual tracks. |
 | `kardenwort-osd_interactivity` | `yes` | Enable mouse word-selection for standard OSD subtitles. |
 
 #### **4. SRT Style (Regular Mode)**
@@ -619,7 +623,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-dw_char_width` | `0.5` | Character width calibration (0.5 is exact for Consolas). |
 | `kardenwort-dw_line_height_mul` | `0.87` | Vertical line spacing multiplier. |
 | `kardenwort-dw_block_gap_mul` | `-0.27` | Spacing between distinct subtitle blocks. |
-| `kardenwort-dw_double_gap" | `yes` | Enable expanded dual-track spacing in the window. |
+| `kardenwort-dw_double_gap` | `yes` | Enable expanded dual-track spacing in the window. |
 | `kardenwort-dw_vsp` | `0` | Vertical shift pixels for hit-zone calibration. |
 | `kardenwort-dw_lines_visible` | `15` | Maximum number of subtitle lines visible in the viewport. |
 | `kardenwort-dw_scrolloff` | `3` | Margin lines maintained at top/bottom before the viewport scrolls. |
@@ -627,7 +631,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-dw_jump_words` | `5` | Words jumped during `Ctrl+Left/Right`. |
 | `kardenwort-dw_jump_lines` | `5` | Lines jumped during `Ctrl+Shift+Up/Down`. |
 | `kardenwort-dw_highlight_color` | `00CCFF` | Color for active word selection (Gold BGR). |
-| `kardenwort-dw_ctrl_select_color" | `FF88FF` | Color for split-word selection (Pink) in pending state. |
+| `kardenwort-dw_ctrl_select_color` | `FF88FF` | Color for split-word selection (Pink) in pending state. |
 | `kardenwort-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights (Purple). |
 | `kardenwort-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
 | `kardenwort-dw_esc_mode` | `auto_follow_current` | Behavior of Esc key (`auto_follow_current`, `neutral_last_selection`, `neutral_current_subtitle`). |
@@ -671,7 +675,6 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-anki_split_depth_1/2/3` | - | Colors for split-phrase matches (Light -> Deep Purple). |
 | `kardenwort-anki_mix_depth_1/2/3` | - | Colors for mixed/overlapping matches (Light -> Deep Blue). |
 | `kardenwort-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
-| `kardenwort-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
 | `kardenwort-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
 | `kardenwort-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
 | `kardenwort-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
@@ -691,24 +694,24 @@ The project uses a centralized configuration model. All core script behaviors ar
 #### **12. Detailed Key Mapping (Internal)**
 These parameters allow remapping internal script actions in `mpv.conf`. Values can be space, comma, or semicolon separated lists.
 
-| Parameter | Default Keys |
-|---|---|
-| `kardenwort-dw_key_seek_prev` | `a ф` |
-| `kardenwort-dw_key_seek_next` | `d в` |
-| `kardenwort-dw_key_copy` | `Ctrl+c Ctrl+с` |
-| `kardenwort-dw_key_search` | `Ctrl+f Ctrl+а` |
-| `kardenwort-dw_key_add` | `g п MBTN_MID` |
-| `kardenwort-dw_key_pair` | `f а Ctrl+MBTN_LEFT` |
-| `kardenwort-dw_key_open_record` | `b и` |
-| `kardenwort-dw_key_select` | `MBTN_LEFT` |
-| `kardenwort-dw_key_tooltip_pin` | `MBTN_RIGHT` |
-| `kardenwort-dw_key_tooltip_hover` | `E У` |
-| `kardenwort-dw_key_tooltip_toggle` | `e у` |
-| `kardenwort-dw_key_mouse_seek` | `MBTN_LEFT_DBL` |
-| `kardenwort-dw_key_scroll_up/down` | `Ctrl+UP/DOWN` |
-| `kardenwort-key_sub_pos_up/down` | `r/t к/е` |
-| `kardenwort-key_sec_sub_pos_up/down`| `R/T К/Е` |
-| `kardenwort-dw_key_cycle_copy_mode` | `Q Й` |
+| Parameter | Default Keys | Description |
+|---|---|---|
+| `kardenwort-dw_key_seek_prev` | `a ф` | Seek to the previous subtitle segment in Drum Window. |
+| `kardenwort-dw_key_seek_next` | `d в` | Seek to the next subtitle segment in Drum Window. |
+| `kardenwort-dw_key_copy` | `Ctrl+c Ctrl+с` | Copy selected words to clipboard in Drum Window. |
+| `kardenwort-dw_key_search` | `Ctrl+f Ctrl+а` | Toggle search overlay in Drum Window. |
+| `kardenwort-dw_key_add` | `g п MBTN_MID` | Add word highlight/card to Anki. |
+| `kardenwort-dw_key_pair` | `f а Ctrl+MBTN_LEFT` | Pair non-contiguous words for split-highlight. |
+| `kardenwort-dw_key_open_record` | `b и` | Open active TSV record file. |
+| `kardenwort-dw_key_select` | `MBTN_LEFT` | Contiguous word selection (mouse). |
+| `kardenwort-dw_key_tooltip_pin` | `MBTN_RIGHT` | Pin/unpin active translation tooltip. |
+| `kardenwort-dw_key_tooltip_hover` | `E У` | Toggle translation tooltip hover mode. |
+| `kardenwort-dw_key_tooltip_toggle` | `e у` | Toggle translation tooltip visibility. |
+| `kardenwort-dw_key_mouse_seek` | `MBTN_LEFT_DBL` | Double-click to seek to a word's subtitle. |
+| `kardenwort-dw_key_scroll_up/down` | `Ctrl+UP/DOWN` | Scroll viewport up/down (no cursor movement). |
+| `kardenwort-key_sub_pos_up/down` | `r/t к/е` | Adjust primary subtitle position up/down. |
+| `kardenwort-key_sec_sub_pos_up/down`| `R/T К/Е` | Adjust secondary subtitle position up/down. |
+| `kardenwort-dw_key_cycle_copy_mode` | `Q Й` | Cycle copy target mode (Primary ↔ Secondary). |
 | `kardenwort-dw_key_toggle_copy_context`| `W Ц` | Toggle Context Copy (Drum Window). |
 | `kardenwort-dw_key_cycle_esc_mode` | `n т` | Cycle Drum Window Escape behavior mode. |
 
@@ -889,7 +892,7 @@ python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:AP
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2318 Commits (v1.82.20)
+- **Current Maturity**: ~2332 Commits (v1.82.22)
 - **Intensity Profile**: 5.4 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:

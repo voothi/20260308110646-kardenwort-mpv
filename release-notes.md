@@ -1,3 +1,24 @@
+# Release Notes - v1.82.22 (Layout-Independent Video Adjustments & TTS Digit Bindings)
+
+**Date**: 2026-05-18
+**Version**: v1.82.22
+**Implementation ZIDs**: 20260518120719, 20260518120653, 20260518120318, 20260518120118, 20260518120042, 20260518115453, 20260518115357, 20260518113704
+
+## Highlights
+
+### ⌨️ **Layout-Independent Video Adjustments**
+- **Surgical Key Remapping**: Remapped contrast, brightness, gamma, and saturation adjustments in `input.conf` to physical layout-independent keys (`o`/`p`/`k`/`l` and their Cyrillic counterparts `щ`/`з`/`л`/`д`), preventing keybinding conflicts in various locales.
+- **Digit Whitelisting**: Commented out and unignored digits `2`..`5` in `input.conf` to clear paths for script-level config options, while explicitly ignoring unused digits `1`, `6`..`8` to preserve system safety.
+
+### 🔊 **Dynamic TTS Digit Binding System**
+- **Automated Alphanumeric Triggers**: Implemented dynamic TTS options and key bindings in `main.lua` to enable immediate copy-and-pronounce actions via digits `2`..`5` for English, German, Russian, and Ukrainian.
+- **Layout-Independent Virtual Key Injection**: Crafted a layout-independent Virtual Key injection engine in the clipboard trigger system, guaranteeing fast dictionary and TTS lookups across multilingual keyboard contexts.
+
+### 🧪 **Milestone: 787 Acceptance Tests**
+- **Digit Binding Compatibility Guard**: Expanded the acceptance suite with `tests/acceptance/test_20260518115930_tts_digit_bindings.py` to mathematically verify character mapping, OSD copy events, and TTS triggers under dual-subtitle immersion.
+
+---
+
 # Release Notes - v1.82.20 (Copy Mode B & UTF-8 Copy Preview Fixes)
 
 **Date**: 2026-05-17
