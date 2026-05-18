@@ -1,5 +1,6 @@
-## ADDED Requirements
-
+## Purpose
+Defines Drum Window follow/manual reading behavior and seek-driven synchronization between viewport focus and playback state.
+## Requirements
 ### Requirement: Viewport Decoupling
 The system SHALL support a **Manual Mode** for the Drum Window where the viewport remains static despite changes in video playback position.
 
@@ -21,3 +22,19 @@ The system SHALL re-enable **Follow Mode** and synchronize the viewport upon a s
 #### Scenario: Manual Seek to Selected Line
 - **WHEN** the user jumps to a specific line via cursor selection (`ENTER`)
 - **THEN** the system SHALL re-enable Follow Mode if in Normal Mode, but SHALL REMAIN in Manual Mode if in Book Mode to maintain reading focus.
+
+### Requirement: Transition Policy Resolution
+The system SHALL resolve follow/manual state after line transition seeks (`Enter` and double-click) using the transition policy matrix, without hard-coded Book Mode overrides.
+
+#### Scenario: Transition in Normal Mode (Book Mode OFF)
+- **WHEN** a line transition seek is executed
+- **THEN** the resulting follow/manual state SHALL be determined by `dw_esc_mode` and `dw_clear_selection_after_transition`.
+
+#### Scenario: Transition in Book Mode (ON)
+- **WHEN** a line transition seek is executed
+- **THEN** the resulting follow/manual state SHALL be determined by `dw_esc_mode` and `dw_clear_selection_after_transition`.
+
+#### Scenario: Retained pointer in auto mode
+- **WHEN** `dw_esc_mode=auto_follow_current` and `dw_clear_selection_after_transition=no` preserves an active pointer
+- **THEN** the system SHALL keep manual mode until pointer clear via Esc.
+
