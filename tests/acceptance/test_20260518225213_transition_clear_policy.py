@@ -16,6 +16,7 @@ def _press_enter_seek(ipc):
     # Default dw_key_seek is "ENTER KP_ENTER", resulting in numbered bindings.
     ipc.command(["script-binding", "kardenwort/dw-seek-1"])
 
+
 def _double_click_line(ipc, line):
     ipc.command(["script-message-to", "kardenwort", "test-dw-double-click", str(line)])
 
@@ -53,6 +54,28 @@ def test_20260518225213_enter_clears_selection_but_stays_manual_in_neutral_mode(
     time.sleep(0.3)
 
     ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_esc_mode", "neutral_last_selection"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_clear_selection_after_transition", "yes"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "true"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "1"])
+    ipc.command(["script-message-to", "kardenwort", "test-ctrl-toggle-word", "1", "1"])
+    time.sleep(0.2)
+
+    _press_enter_seek(ipc)
+    time.sleep(0.3)
+
+    after = query_kardenwort_state(ipc)
+    assert after["dw_cursor"]["word"] == -1
+    assert after["dw_selection_count"] == 0
+    assert after["dw_follow_player"] is False
+    assert after["dw_esc_neutral_armed"] is False
+
+
+def test_20260518225213_enter_clears_selection_but_stays_manual_in_neutral_current_mode(mpv):
+    ipc = mpv.ipc
+    ipc.command(["script-message-to", "kardenwort", "drum-window-toggle"])
+    time.sleep(0.3)
+
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_esc_mode", "neutral_current_subtitle"])
     ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_clear_selection_after_transition", "yes"])
     ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "true"])
     ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "1"])
