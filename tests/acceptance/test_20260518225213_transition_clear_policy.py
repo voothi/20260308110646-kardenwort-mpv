@@ -78,7 +78,6 @@ def test_20260518225213_enter_preserves_selection_when_option_disabled(mpv):
     ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_clear_selection_after_transition", "no"])
     ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "false"])
     ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "1"])
-    ipc.command(["script-message-to", "kardenwort", "test-ctrl-toggle-word", "1", "1"])
     time.sleep(0.2)
 
     _press_enter_seek(ipc)
@@ -86,9 +85,16 @@ def test_20260518225213_enter_preserves_selection_when_option_disabled(mpv):
 
     after = query_kardenwort_state(ipc)
     assert after["dw_cursor"]["word"] == 1
-    assert after["dw_selection_count"] >= 1
-    assert after["dw_follow_player"] is True
+    assert after["dw_selection_count"] == 0
+    assert after["dw_follow_player"] is False
     assert after["dw_esc_neutral_armed"] is False
+
+    # Esc clears pointer and should restore follow in auto mode.
+    ipc.command(["script-message-to", "kardenwort", "test-dw-esc"])
+    time.sleep(0.2)
+    after_esc = query_kardenwort_state(ipc)
+    assert after_esc["dw_cursor"]["word"] == -1
+    assert after_esc["dw_follow_player"] is True
 
 
 def test_20260518225213_double_click_clears_selection_and_restores_follow_in_auto_mode(mpv):
@@ -160,3 +166,28 @@ def test_20260518225213_double_click_clear_yes_restores_follow_in_book_mode_auto
     assert after["dw_selection_count"] == 0
     assert after["dw_follow_player"] is True
     assert after["dw_esc_neutral_armed"] is False
+
+
+def test_20260518225213_double_click_preserves_pointer_keeps_manual_until_esc(mpv):
+    ipc = mpv.ipc
+    ipc.command(["script-message-to", "kardenwort", "drum-window-toggle"])
+    time.sleep(0.3)
+
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_esc_mode", "auto_follow_current"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_clear_selection_after_transition", "no"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-follow-player", "true"])
+    ipc.command(["script-message-to", "kardenwort", "test-set-cursor", "1", "1"])
+    time.sleep(0.2)
+
+    _double_click_line(ipc, 2)
+    time.sleep(0.3)
+    after = query_kardenwort_state(ipc)
+    assert after["active_sub_index"] == 2
+    assert after["dw_cursor"]["word"] == 1
+    assert after["dw_follow_player"] is False
+
+    ipc.command(["script-message-to", "kardenwort", "test-dw-esc"])
+    time.sleep(0.2)
+    after_esc = query_kardenwort_state(ipc)
+    assert after_esc["dw_cursor"]["word"] == -1
+    assert after_esc["dw_follow_player"] is True

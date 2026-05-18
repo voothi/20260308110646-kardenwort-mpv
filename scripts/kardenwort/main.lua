@@ -1019,7 +1019,9 @@ local function dw_apply_post_transition_selection(target_word)
         FSM.DW_CURSOR_WORD = (target_word and target_word > 0) and target_word or FSM.DW_CURSOR_WORD
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         FSM.DW_ANCHOR_WORD = FSM.DW_CURSOR_WORD
-        FSM.DW_FOLLOW_PLAYER = follow_after_transition
+        -- When pointer remains after transition, keep manual mode until Esc clears selection.
+        local pointer_active = (FSM.DW_CURSOR_WORD and FSM.DW_CURSOR_WORD ~= -1)
+        FSM.DW_FOLLOW_PLAYER = follow_after_transition and not pointer_active
     end
 end
 
