@@ -1,0 +1,16 @@
+## 1. Core Configuration & Script Bindings
+
+- [ ] 1.1 Implement TTS options and key bindings inside `main.lua`
+- [ ] 1.2 Implement layout-independent Virtual Key injection for TTS modes in clipboard trigger system
+
+## 2. Configuration & Hotkeys Integration
+
+- [ ] 2.1 Remap video adjustments in `input.conf` to layout-independent keys (`o`/`p`/`k`/`l` and Cyrillic equivalents)
+- [ ] 2.2 Comment out or unignore active digits `2`..`5` in `input.conf` and explicitly ignore unused digits
+- [ ] 2.3 Add `@help` documentation comments for TTS digit bindings in `input.conf`
+- [ ] 2.4 Set active TTS key and hotkey configurations in `mpv.conf`
+
+## 3. Regression Tests & Verification
+
+- [ ] 3.1 Create regression test suite `tests/acceptance/test_20260518115930_tts_digit_bindings.py` to guard digit binding compatibility
+- [ ] 3.2 Run acceptance tests to verify all regression guards pass successfully
