@@ -27,6 +27,15 @@ Users must be able to override descriptions and whitelists directly in `input.co
 - **WHEN** the HUD is rendered
 - **THEN** it must use "Master Volume" as the description instead of the script default
 
+### Requirement: Schema Presence For @help Overrides
+Metadata lines in `input.conf` (`@help`) MUST correspond to actions present in the Help HUD schema so the entries can be rendered in F1 output.
+
+#### Scenario: TTS Help entry visibility
+- **GIVEN** `input.conf` contains `# @help: kardenwort/copy-subtitle-tts-2 | TTS EN (copy + trigger) | 2`
+- **AND** the Help HUD schema includes an action with command `kardenwort/copy-subtitle-tts-2`
+- **WHEN** the HUD is rendered
+- **THEN** the TTS entry must be visible in the F1 shortcut list with the configured description and key.
+
 ### Requirement: Externalized Visual Styling
 All visual parameters (colors, font, opacity) must be exposed via `mp.options` to allow global customization without script modification.
 

@@ -27,6 +27,10 @@ class TestTtsDigitBindings:
             'cmd_copy_sub("tts_5")',
             'mode:match("^tts_[1-8]$")',
             'Options["tts_hotkey_" .. mode:match("([1-8])$")]',
+            'cmd = "kardenwort/copy-subtitle-tts-2", fallback_keys = function() return Options.key_tts_2 end',
+            'cmd = "kardenwort/copy-subtitle-tts-3", fallback_keys = function() return Options.key_tts_3 end',
+            'cmd = "kardenwort/copy-subtitle-tts-4", fallback_keys = function() return Options.key_tts_4 end',
+            'cmd = "kardenwort/copy-subtitle-tts-5", fallback_keys = function() return Options.key_tts_5 end',
         ]
         missing = [item for item in required if item not in src]
         assert not missing, f"TTS integration markers missing in main.lua: {missing}"
