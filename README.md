@@ -126,7 +126,7 @@ The Kardenwort MPV suite provides three primary interfaces for language acquisit
 The suite is optimized for high-density information streams, supporting advanced `.ass` karaoke formatting and long, multi-line paragraph subtitles.
 
 #### **Word-by-Word Karaoke**
-![Karaoke Word](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.karaoke.w.ass.png)
+![Karaoke Word](tests/fixtures/20260304233334-you-dont-need-saas/20260304233334-chapter2.2.2.karaoke.w.ass.png)
 *Synchronized word-level highlights for precise timing and "Shadowing" practice.*
 
 #### **Character-by-Character Karaoke**
