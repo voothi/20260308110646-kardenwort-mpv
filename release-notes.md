@@ -1,3 +1,22 @@
+# Release Notes - v1.82.24 (Canonical Post-Transition Selection Matrix)
+
+**Date**: 2026-05-19
+**Version**: v1.82.24
+**Implementation ZIDs**: 20260519110728, 20260518235937, 20260518235547, 20260518235304, 20260518234754, 20260518233720, 20260518231812, 20260518231251, 20260518230408, 20260518225034, 20260518224609
+
+## Highlights
+
+### 📋 **Canonical Post-Transition Selection Policy Matrix**
+- **Shared Interaction Contract**: Formalized one uniform transition path for both `Enter` (keyboard) and double-click (mouse). Seek transitions route through a shared post-transition helper `dw_apply_post_transition_selection`, ensuring both inputs resolve identical pointer retention and follow/manual states.
+- **Configurable Selection Policy**: Introduced `kardenwort-dw_clear_selection_after_transition` option (default: `yes`). When enabled (`yes`), seeking from the Drum Window clears any active point/range/set selection. When disabled (`no`), the pointer and anchor remain active at the target word.
+- **Follow Mode Resolution**: Defines exact interaction between selection clearing and `dw_esc_mode`. In `auto_follow_current` mode: if the selection is cleared, playback follow is automatically resumed; if the selection is preserved (`clear=no`), the player remains in manual mode until the selection is explicitly cleared by Esc. In neutral modes (`neutral_last_selection` and `neutral_current_subtitle`), the player consistently stays in manual mode.
+- **Stale Neutral Arm Reset**: Transitions now proactively clear any prior neutral arming state (`DW_ESC_NEUTRAL_ARMED = false`), ensuring the Esc key behaves predictably immediately after seek.
+
+### 🧪 **Milestone: 795 Tests**
+- **Robust Acceptance Suite**: Added `tests/acceptance/test_20260518225213_transition_clear_policy.py` containing 8 acceptance tests validating all combinations of transition clear policies, Esc modes, Book Mode ON/OFF, and post-transition Esc staged recovery.
+
+---
+
 # Release Notes - v1.82.22 (Layout-Independent Video Adjustments & TTS Digit Bindings)
 
 **Date**: 2026-05-18

@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.82.22-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.22) 
+[![Version](https://img.shields.io/badge/version-v1.82.24-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.82.24) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -676,6 +676,7 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-dw_split_select_color` | `FF88B0` | Color for saved split-word highlights (Purple). |
 | `kardenwort-book_mode` | `no` | Lock viewport during navigation (True) or allow auto-scrolling (False). |
 | `kardenwort-dw_esc_mode` | `auto_follow_current` | Behavior of Esc key (`auto_follow_current`, `neutral_last_selection`, `neutral_current_subtitle`). |
+| `kardenwort-dw_clear_selection_after_transition` | `yes` | Clear active word/range selection after Enter or double-click transition seek (`yes`/`no`). |
 
 #### **7. Translation Tooltips**
 | Parameter | Default | Description |
