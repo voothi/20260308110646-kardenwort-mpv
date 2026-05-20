@@ -3635,8 +3635,9 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
 
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
-        -- Enforce "Premium" regular weight for manual selections
-        return string.format("{\\b0}%s%s%s{\\b%s}", h_tags, word, r_tags, bold_state or "0")
+        -- Enforce "Premium" regular weight for manual selections, but respect bold setting for added database phrases
+        local p_b_on = is_manual and "{\\b0}" or b_on
+        return string.format("%s%s%s%s{\\b%s}", p_b_on, h_tags, word, r_tags, bold_state or "0")
     else
         -- Surgical highlighting for automated database matches (Surgical Punctuation)
         local pre = word:match("^[%p%s]*")
