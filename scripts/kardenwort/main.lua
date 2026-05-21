@@ -1208,7 +1208,9 @@ function cmd_cycle_copy_mode()
         show_osd("Copy Mode: No subtitles loaded")
         return
     end
-    if FSM.MEDIA_STATE == "SINGLE_SRT" then
+    local has_sec = (Tracks.sec.id ~= 0 and Tracks.sec.subs and #Tracks.sec.subs > 0) or
+                    (FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0)
+    if not has_sec then
         show_osd("Copy Mode: Fixed to Primary (Single Track)")
         return
     end
@@ -1848,8 +1850,12 @@ local function prepare_export_text(params, options)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return "" end
     local target_subs = subs
-    if options.copy_mode == "B" and Tracks.sec.subs and #Tracks.sec.subs > 0 then
-        target_subs = Tracks.sec.subs
+    if options.copy_mode == "B" then
+        if Tracks.sec.subs and #Tracks.sec.subs > 0 then
+            target_subs = Tracks.sec.subs
+        elseif FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0 then
+            target_subs = FSM.DW_TOOLTIP_SEC_SUBS
+        end
     end
     
     local parts = {}
@@ -4753,7 +4759,7 @@ local function dw_mouse_auto_scroll()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -4794,7 +4800,7 @@ local function cmd_dw_tooltip_pin(tbl)
 end
 
 local function cmd_toggle_dw_tooltip_hover()
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -4807,7 +4813,7 @@ local function cmd_toggle_dw_tooltip_hover()
 end
 
 local function cmd_dw_tooltip_toggle()
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -5428,7 +5434,7 @@ end
 local cmd_dw_export_anki = make_mouse_handler(false, dw_anki_export_smart_callback)
 
 local function cmd_dw_add_smart()
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -5436,7 +5442,7 @@ local function cmd_dw_add_smart()
 end
 
 local function cmd_dw_toggle_pink(tbl, was_mouse)
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -6086,7 +6092,7 @@ local function cmd_smart_space(table)
 end
 
 local function cmd_toggle_anki_global()
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -6102,7 +6108,7 @@ local function cmd_toggle_drum()
         show_osd("X")
         return
     end
-    if not FSM.native_sub_vis then
+    if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
         return
     end
@@ -8467,7 +8473,7 @@ end
 
 function cmd_toggle_search()
     if not FSM.SEARCH_MODE then
-        if not FSM.native_sub_vis then
+        if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
             show_osd("X")
             return
         end
