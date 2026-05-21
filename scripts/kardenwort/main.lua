@@ -4145,7 +4145,7 @@ local function dw_build_layout(subs, view_center)
     return layout, total_height
 end
 
-local function dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
+local function dw_calculate_block_top(view_center, active_idx, layout, total_height)
     local lh_mul = Options.dw_line_height_mul
     local offset_y = 0
     local found_center = false
@@ -4225,7 +4225,7 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local block_top = dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
+    local block_top = dw_calculate_block_top(view_center, active_idx, layout, total_height)
     local current_y = block_top
     FSM.DW_LINE_Y_MAP = {}
     FSM.DW_HIT_ZONES = {}
