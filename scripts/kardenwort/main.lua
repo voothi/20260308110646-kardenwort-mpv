@@ -630,6 +630,7 @@ local FSM = {
     -- Transient UI State
     saved_osd_border_style = nil,
     DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
+    DW_HIT_ZONES = nil,        -- Hit-zone metadata for active Drum Window OSD
 
     -- Tooltip State
     DW_TOOLTIP_LINE = -1,
@@ -4209,6 +4210,14 @@ local function draw_dw(subs, view_center, active_idx)
        DW_DRAW_CACHE.aw             == FSM.DW_ANCHOR_WORD and
        DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
         
+        if DW_DRAW_CACHE.hit_zones then
+            FSM.DW_HIT_ZONES = {}
+            for k, v in ipairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
+        end
+        if DW_DRAW_CACHE.line_y_map then
+            FSM.DW_LINE_Y_MAP = {}
+            for k, v in pairs(DW_DRAW_CACHE.line_y_map) do FSM.DW_LINE_Y_MAP[k] = v end
+        end
         return DW_DRAW_CACHE.result
     end
 
@@ -4219,6 +4228,7 @@ local function draw_dw(subs, view_center, active_idx)
     local block_top = dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
     local current_y = block_top
     FSM.DW_LINE_Y_MAP = {}
+    FSM.DW_HIT_ZONES = {}
     
     -- Selection range
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
@@ -4238,6 +4248,8 @@ local function draw_dw(subs, view_center, active_idx)
     local lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
+        local entry_y_top = current_y
+        
         FSM.DW_LINE_Y_MAP[i] = math.floor(current_y + (entry.height / 2) + 0.5)
         current_y = current_y + entry.height
         if layout_i < #layout then
@@ -4256,9 +4268,29 @@ local function draw_dw(subs, view_center, active_idx)
         
         local token_meta = entry.token_meta
         local entry_ass_vlines = {}
-        for _, vl_indices in ipairs(entry.vlines) do
+        local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+        
+        for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
-            for _, j in ipairs(vl_indices) do
+            local space_w = dw_get_str_width(" ", f_size, font_name)
+            local line_words = {}
+            local line_w = 0
+            
+            for pos, j in ipairs(vl_indices) do
+                local t = entry.words[j]
+                local ww = dw_get_str_width(t.text, f_size, font_name)
+                local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
+                
+                if t.logical_idx then
+                    table.insert(line_words, {
+                        logical_idx = t.logical_idx,
+                        x_offset = line_w + space,
+                        width = ww,
+                        text = t.text
+                    })
+                end
+                line_w = line_w + space + ww
+                
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
@@ -4268,6 +4300,19 @@ local function draw_dw(subs, view_center, active_idx)
                     table.insert(formatted_words, meta_item.text)
                 end
             end
+            
+            local vl_y_top = entry_y_top + (vl_index - 1) * vline_h
+            local vl_y_bottom = vl_y_top + vline_h
+            
+            table.insert(FSM.DW_HIT_ZONES, {
+                sub_idx = entry.sub_idx,
+                y_top = vl_y_top,
+                y_bottom = vl_y_bottom,
+                x_start = 960 - line_w / 2,
+                total_width = line_w,
+                words = line_words,
+                vlines_entry_ref = entry
+            })
             
             local line_text = ""
             if Options.dw_original_spacing then
@@ -4317,6 +4362,16 @@ local function draw_dw(subs, view_center, active_idx)
     DW_DRAW_CACHE.aw             = FSM.DW_ANCHOR_WORD
     DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
     DW_DRAW_CACHE.result          = final_ass
+    
+    DW_DRAW_CACHE.hit_zones = {}
+    for k, v in ipairs(FSM.DW_HIT_ZONES) do
+        DW_DRAW_CACHE.hit_zones[k] = v
+    end
+    
+    DW_DRAW_CACHE.line_y_map = {}
+    for k, v in pairs(FSM.DW_LINE_Y_MAP) do
+        DW_DRAW_CACHE.line_y_map[k] = v
+    end
     
     return final_ass
 end
@@ -4525,101 +4580,120 @@ local function dw_hit_test(osd_x, osd_y)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return nil, nil end
 
-    local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
-
-    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
-    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
-    if Options.dw_double_gap then
-        sub_gap = sub_gap + vline_h
+    -- Ensure hit zones are populated. If not, invoke draw_dw to build them.
+    if not FSM.DW_HIT_ZONES or #FSM.DW_HIT_ZONES == 0 then
+        draw_dw(subs, FSM.DW_VIEW_CENTER, FSM.ACTIVE_IDX)
     end
-    local space_w = dw_get_str_width(" ")
+    if not FSM.DW_HIT_ZONES or #FSM.DW_HIT_ZONES == 0 then
+        return nil, nil
+    end
 
-    local block_top = dw_calculate_block_top(subs, FSM.DW_VIEW_CENTER, FSM.ACTIVE_IDX, layout, total_height)
+    local first_zone = FSM.DW_HIT_ZONES[1]
+    local last_zone = FSM.DW_HIT_ZONES[#FSM.DW_HIT_ZONES]
 
     -- Clamp vertically to the first/last word if outside the entire block
-    if osd_y <= block_top then
-        local first = layout[1]
-        local v_idx = first.vlines[1][1]
-        return first.sub_idx, first.visual_to_logical[v_idx] or 1
+    if osd_y <= first_zone.y_top then
+        local word_idx = 1
+        if #first_zone.words > 0 then
+            word_idx = first_zone.words[1].logical_idx
+        end
+        return first_zone.sub_idx, word_idx
     end
-    if osd_y >= block_top + total_height then
-        local last = layout[#layout]
-        local last_vl = last.vlines[#last.vlines]
-        local v_idx = last_vl[#last_vl]
-        return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+    if osd_y >= last_zone.y_bottom then
+        local word_idx = 1
+        if #last_zone.words > 0 then
+            word_idx = last_zone.words[#last_zone.words].logical_idx
+        else
+            local last_sub = subs[last_zone.sub_idx]
+            if last_sub then
+                local tokens = get_sub_tokens(last_sub)
+                local cnt = 0
+                for _, t in ipairs(tokens) do
+                    if is_word_token(t) then cnt = cnt + 1 end
+                end
+                word_idx = math.max(1, cnt)
+            end
+        end
+        return last_zone.sub_idx, word_idx
     end
 
-    local y_pos = block_top
-    for _, entry in ipairs(layout) do
-        local entry_bottom = y_pos + entry.height
-        -- If osd_y is within the entry OR in the gap immediately below it, snap it to this entry
-        if osd_y < entry_bottom + sub_gap then
-            local rel_y = math.max(0, math.min(osd_y - y_pos, entry.height - 0.001))
-            local vl_num = math.floor(rel_y / vline_h) + 1
-            vl_num = math.max(1, math.min(#entry.vlines, vl_num))
+    -- Find the visual line containing osd_y (including inter-subtitle gaps)
+    local best_zone = nil
+    for idx, zone in ipairs(FSM.DW_HIT_ZONES) do
+        if osd_y >= zone.y_top and osd_y <= zone.y_bottom then
+            best_zone = zone
+            break
+        end
+        local next_zone = FSM.DW_HIT_ZONES[idx + 1]
+        if next_zone and osd_y > zone.y_bottom and osd_y < next_zone.y_top then
+            best_zone = zone
+            break
+        end
+    end
 
-            local vl_indices = entry.vlines[vl_num]
+    if not best_zone then
+        local mid_y = (first_zone.y_top + last_zone.y_bottom) / 2
+        best_zone = osd_y < mid_y and first_zone or last_zone
+    end
 
-            local vl_width = 0
-            for k, wi in ipairs(vl_indices) do
-                vl_width = vl_width + dw_get_str_width(entry.words[wi])
-                if k < #vl_indices and not Options.dw_original_spacing then 
-                    vl_width = vl_width + space_w 
+    -- Clamp horizontally if outside the line bounds
+    local rel_x = osd_x - best_zone.x_start
+    if rel_x <= 0 then
+        local word_idx = 1
+        if #best_zone.words > 0 then
+            word_idx = best_zone.words[1].logical_idx
+        end
+        return best_zone.sub_idx, word_idx
+    end
+    if rel_x >= best_zone.total_width then
+        local word_idx = 1
+        if #best_zone.words > 0 then
+            word_idx = best_zone.words[#best_zone.words].logical_idx
+        else
+            local sub = subs[best_zone.sub_idx]
+            if sub then
+                local tokens = get_sub_tokens(sub)
+                local cnt = 0
+                for _, t in ipairs(tokens) do
+                    if is_word_token(t) then cnt = cnt + 1 end
                 end
+                word_idx = math.max(1, cnt)
             end
-            
-            local vl_left = 960 - vl_width / 2
+        end
+        return best_zone.sub_idx, word_idx
+    end
 
-            local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or math.max(1, #entry.logical_words) end
+    -- Find the word whose center is closest to the cursor
+    local best_word = nil
+    local min_dist = math.huge
+    for _, word in ipairs(best_zone.words) do
+        local center = word.x_offset + word.width / 2
+        local dist = math.abs(rel_x - center)
+        if dist < min_dist then
+            min_dist = dist
+            best_word = word
+        end
+    end
 
-            -- Build word center positions for snap-to-nearest logic
-            local centers = {}
-            local pos = 0
-            for k, wi in ipairs(vl_indices) do
-                local ww = dw_get_str_width(entry.words[wi])
-                centers[k] = { idx = wi, center = pos + ww / 2 }
-                pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
-            end
-            -- Find the word whose center is closest to the cursor
-            local best_k = 1
-            local min_dist = math.abs(cx - centers[1].center)
-            for k = 2, #centers do
-                local dist = math.abs(cx - centers[k].center)
-                if dist < min_dist then
-                    min_dist = dist
-                    best_k = k
-                end
-            end
-            
-            local visual_wi = centers[best_k].idx
-            local logical_wi = entry.visual_to_logical[visual_wi]
-            
-            -- If user clicked on a spacer/filler token, find the nearest selectable word
-            if not logical_wi then
-                local best_logical = nil
-                local best_logic_dist = 999
-                for l_idx, v_idx in pairs(entry.logical_to_visual) do
-                    local dist = math.abs(v_idx - visual_wi)
-                    if dist < best_logic_dist then
-                        best_logic_dist = dist
-                        best_logical = l_idx
+    if best_word then
+        return best_zone.sub_idx, best_word.logical_idx
+    else
+        -- Visual fallback: if visual line has no selectable words, snap to the nearest in the same subtitle
+        local best_logical = nil
+        local best_logical_dist = math.huge
+        for _, z in ipairs(FSM.DW_HIT_ZONES) do
+            if z.sub_idx == best_zone.sub_idx then
+                for _, word in ipairs(z.words) do
+                    local dist = math.abs(z.y_top - best_zone.y_top)
+                    if dist < best_logical_dist then
+                        best_logical_dist = dist
+                        best_logical = word.logical_idx
                     end
                 end
-                logical_wi = best_logical or 1
             end
-
-            return entry.sub_idx, logical_wi
         end
-        y_pos = entry_bottom + sub_gap
+        return best_zone.sub_idx, best_logical or 1
     end
-
-    -- Fallback safety, should never be reached due to the >= check at the top
-    local last = layout[#layout]
-    local last_vl = last.vlines[#last.vlines]
-    local v_idx = last_vl[#last_vl]
-    return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
