@@ -4252,8 +4252,7 @@ local function draw_dw(subs, view_center, active_idx)
 
 
     -- Text Block mapping
-    -- Text Block mapping
-    local visual_lines = {}
+    local lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
         local entry_y_top = current_y
@@ -4277,6 +4276,7 @@ local function draw_dw(subs, view_center, active_idx)
         local token_meta = entry.token_meta
         local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
         local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
+        local entry_ass_vlines = {}
         
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
@@ -4327,25 +4327,31 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            
-            table.insert(visual_lines, {
-                y_top = vl_y_top,
-                f_size = f_size,
-                prefix = line_prefix,
-                text = line_text
-            })
+
+            table.insert(entry_ass_vlines, line_text)
         end
+
+        -- Join wrapped visual lines for this subtitle as a single subtitle block.
+        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
+    local d_gap = Options.dw_double_gap
+    local vsp_base = Options.dw_vsp
+    local b_gap_mul = Options.dw_block_gap_mul or 0
+
+    local function get_separator(prev_is_active)
+        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
+        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+    end
+
     local block_text = ""
-    for k, vl in ipairs(visual_lines) do
-        if k == 1 then
-            block_text = vl.prefix .. vl.text
+    for idx, entry in ipairs(layout) do
+        local line_text = lines_ass[idx]
+        if idx == 1 then
+            block_text = line_text
         else
-            local prev = visual_lines[k-1]
-            local advance = vl.y_top - prev.y_top
-            local vsp_val = advance - prev.f_size
-            block_text = block_text .. string.format("{\\vsp%g}\\N", vsp_val) .. vl.prefix .. vl.text
+            block_text = block_text .. get_separator(layout[idx - 1].sub_idx == active_idx) .. line_text
         end
     end
     
