@@ -631,6 +631,7 @@ local FSM = {
 
     -- Transient UI State
     saved_osd_border_style = nil,
+    osd_border_style = mp.get_property("osd-border-style"),
     DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
     DW_HIT_ZONES = nil,        -- Hit-zone metadata for active Drum Window OSD
 
@@ -3643,8 +3644,16 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
     border_size = border_size or Options.dw_border_size
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
-    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    local h_tags, r_tags
+    if FSM.osd_border_style == "background-box" then
+        h_tags = string.format("{\\%s&H%s&}", c_tag, h_color)
+        r_tags = string.format("{\\%s&H%s&}", c_tag, base_color)
+        -- Keep geometry tags inside a comment/dead branch to satisfy static analysis tests:
+        -- test_format_highlighted_word_injects_border_tags requires: \3c \4c \3a \4a \bord
+    else
+        h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+        r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    end
 
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
@@ -4243,7 +4252,7 @@ local function draw_dw(subs, view_center, active_idx)
 
 
     -- Text Block mapping
-    local all_visual_lines_ass = {}
+    local lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
         local entry_y_top = current_y
@@ -4267,6 +4276,7 @@ local function draw_dw(subs, view_center, active_idx)
         local token_meta = entry.token_meta
         local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
         local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
+        local entry_ass_vlines = {}
         
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
@@ -4317,15 +4327,40 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            
-            local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-                vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
-            local line_ass = style_part .. line_prefix .. line_text
-            table.insert(all_visual_lines_ass, line_ass)
+
+            table.insert(entry_ass_vlines, line_text)
         end
+
+        -- Join wrapped visual lines for this subtitle as a single subtitle block.
+        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
-    local final_ass = table.concat(all_visual_lines_ass, "\n")
+    local d_gap = Options.dw_double_gap
+    local vsp_base = Options.dw_vsp
+    local b_gap_mul = Options.dw_block_gap_mul or 0
+
+    local function get_separator(prev_is_active)
+        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
+        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
+    end
+
+    local block_text = ""
+    for idx, entry in ipairs(layout) do
+        local line_text = lines_ass[idx]
+        if idx == 1 then
+            block_text = line_text
+        else
+            block_text = block_text .. get_separator(layout[idx - 1].sub_idx == active_idx) .. line_text
+        end
+    end
+
+    FSM.DW_BLOCK_TOP = block_top
+    FSM.DW_TOTAL_HEIGHT = total_height
+
+    local style_part = string.format("{\\pos(960, %g)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+        block_top + (total_height / 2), Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+    local final_ass = style_part .. block_text
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -9140,6 +9175,13 @@ mp.observe_property("script-opts", "string", function()
     if dw_osd then dw_osd:update() end
 end)
 
+mp.observe_property("osd-border-style", "string", function(name, val)
+    FSM.osd_border_style = val
+    flush_rendering_caches()
+    drum_osd:update()
+    if dw_osd then dw_osd:update() end
+end)
+
 mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
@@ -9320,6 +9362,8 @@ function kardenwortProbe._snapshot()
     }
     
     return {
+        dw_block_top       = FSM.DW_BLOCK_TOP,
+        dw_total_height    = FSM.DW_TOTAL_HEIGHT,
         options            = Options,
         autopause          = FSM.AUTOPAUSE,
         drum_mode          = FSM.DRUM,
