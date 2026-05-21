@@ -4349,8 +4349,11 @@ local function draw_dw(subs, view_center, active_idx)
         end
     end
     
-    local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-        block_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+    FSM.DW_BLOCK_TOP = block_top
+    FSM.DW_TOTAL_HEIGHT = total_height
+
+    local style_part = string.format("{\\pos(960, %g)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+        block_top + (total_height / 2), Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
     local final_ass = style_part .. block_text
     
     -- Update Cache
@@ -9353,6 +9356,8 @@ function kardenwortProbe._snapshot()
     }
     
     return {
+        dw_block_top       = FSM.DW_BLOCK_TOP,
+        dw_total_height    = FSM.DW_TOTAL_HEIGHT,
         options            = Options,
         autopause          = FSM.AUTOPAUSE,
         drum_mode          = FSM.DRUM,
