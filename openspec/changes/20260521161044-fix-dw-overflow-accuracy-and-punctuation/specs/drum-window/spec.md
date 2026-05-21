@@ -43,3 +43,11 @@ The system SHALL cache visual OSD coordinate bounding boxes in `FSM.DW_HIT_ZONES
 - **WHEN** a mouse click or hover event occurs within the Drum Window
 - **THEN** the system SHALL retrieve coordinates directly from `FSM.DW_HIT_ZONES` to determine the targeted word and line
 - **AND** the interaction target SHALL align perfectly with the visually printed text coordinates.
+
+### Requirement: Unified Drum Window Card Composition
+The system SHALL render Drum Window text as one cohesive ASS dialogue block anchored with `\an5`, while still using dynamic block-top positioning logic for overflow clamping.
+
+#### Scenario: Single Positioned Render Block
+- **WHEN** Drum Window content is rendered under normal or overflow conditions
+- **THEN** the final ASS payload SHALL contain a single primary `\pos(960, y)` anchor for the DW body
+- **AND** the visible background/frame SHALL remain a unified card rather than fragmented per-line positioned blocks.

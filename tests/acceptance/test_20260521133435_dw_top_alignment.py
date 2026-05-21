@@ -153,3 +153,23 @@ def test_dw_normal_centered_layout(mpv):
     y_val = _parse_block_top(ipc, render)
     # With a small total_height the block should be centred: block_top = (1080 - total_height) / 2 > 0
     assert y_val > 0, f"Expected positive block_top (centred) for non-overflow layout, got {y_val}"
+
+
+def test_dw_renders_single_positioned_block(mpv):
+    """
+    Verify DW remains a single positioned ASS dialogue block (legacy cohesive card behavior),
+    not split into multiple independently-positioned events.
+    """
+    ipc = mpv.ipc
+
+    _enable_dw(ipc)
+    _set_overflow_font(ipc)
+
+    render = query_kardenwort_render(ipc, "dw")
+
+    # Single block contract: exactly one DW anchor position tag in the final render.
+    pos_tags = re.findall(r"\\pos\(960,\s*-?[\d.]+\)", render)
+    assert len(pos_tags) == 1, f"Expected exactly one DW pos tag, got {len(pos_tags)} in: {render}"
+
+    # Historical cohesive card contract is anchored via an5.
+    assert "{\\an5}" in render, f"Expected an5 anchor for unified DW block, got: {render}"

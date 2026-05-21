@@ -10,6 +10,7 @@ However, extreme layout heights (e.g., low OSD resolution, massive fonts, or hea
 - Support a configurable safe margin (`dw_edge_margin`) to prevent text from rendering flush against the screen edges.
 - Decouple the intra-subtitle wrap line height (`dw_wrap_line_height_mul`) to eliminate text overlap for descenders (e.g. `g`, `j`, `y`).
 - Unify hit testing and rendering coordinate maps through a single cached hit-zone geometry table to achieve 100% click-targeting accuracy.
+- Preserve the historical cohesive Drum Window card look by rendering DW as one positioned ASS block instead of fragmented per-line positioned events.
 - Fix translation tooltip formatting crash and unify punctuation selection rules between Drum Mode (DM) and Drum Window (DW).
 
 **Non-Goals:**
@@ -28,6 +29,10 @@ However, extreme layout heights (e.g., low OSD resolution, massive fonts, or hea
 
 ### Decision 3: Custom Safe-Area Margin Clamping
 - **Rationale**: Clamping block offsets directly to `0` or `1080` forced text to touch the screen boundaries under overflow conditions. Adding a configurable `dw_edge_margin` (default 24px) guarantees safe padding on both ends of the screen, enhancing readability.
+
+### Decision 4: Unified Single-Block ASS Composition
+- **Rationale**: Per-line positioned ASS events can visually fragment DW background framing under some `osd-border-style` combinations. Keeping DW as one `\an5`-anchored ASS block preserves the expected single-card appearance while still using dynamic `block_top` clamping and cached hit-zone geometry.
+- **Alternatives Considered**: Fully per-line positioned rendering. Rejected due to visual regressions reported by users ("separate frames" look) despite correct geometry.
 
 ## Risks / Trade-offs
 

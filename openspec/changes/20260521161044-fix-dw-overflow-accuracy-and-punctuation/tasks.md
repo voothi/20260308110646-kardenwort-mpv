@@ -16,4 +16,5 @@
 - [x] 3.1 Implement targeted acceptance tests covering dynamic top alignment, scrolling, bottom clamping, and edge margins
 - [x] 3.2 Add regression tests for zero margin conditions
 - [x] 3.3 Run regression suites to ensure 100% success on tooltip stability, copy sub fallback, and general unit tests
+- [x] 3.4 Add a regression guard ensuring DW is rendered as a single anchored ASS block (`\an5`) to preserve cohesive one-card appearance
 
