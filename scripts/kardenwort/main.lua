@@ -4144,6 +4144,46 @@ local function dw_build_layout(subs, view_center)
     return layout, total_height
 end
 
+local function dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
+    local lh_mul = Options.dw_line_height_mul
+    local offset_y = 0
+    local found_center = false
+    
+    for layout_i, entry in ipairs(layout) do
+        if entry.sub_idx == view_center then
+            offset_y = offset_y + (entry.height / 2)
+            found_center = true
+            break
+        else
+            offset_y = offset_y + entry.height
+            if layout_i < #layout then
+                local is_active = (entry.sub_idx == active_idx)
+                local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+                offset_y = offset_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+            end
+        end
+    end
+
+    local base_h = Options.font_base_height or 1080
+    local center_y = base_h / 2
+    local block_top
+    if found_center then
+        block_top = center_y - offset_y
+    else
+        block_top = center_y - (total_height / 2)
+    end
+
+    if total_height > base_h then
+        if block_top > 0 then
+            block_top = 0
+        elseif block_top + total_height < base_h then
+            block_top = base_h - total_height
+        end
+    end
+
+    return block_top
+end
+
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 DW_DRAW_CACHE = {
@@ -4176,7 +4216,7 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local current_y = 540 - (total_height / 2)
+    local current_y = dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
     FSM.DW_LINE_Y_MAP = {}
     
     -- Selection range
@@ -4493,7 +4533,7 @@ local function dw_hit_test(osd_x, osd_y)
     end
     local space_w = dw_get_str_width(" ")
 
-    local block_top = 540 - total_height / 2
+    local block_top = dw_calculate_block_top(subs, FSM.DW_VIEW_CENTER, FSM.ACTIVE_IDX, layout, total_height)
 
     -- Clamp vertically to the first/last word if outside the entire block
     if osd_y <= block_top then
