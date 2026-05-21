@@ -4210,14 +4210,8 @@ local function draw_dw(subs, view_center, active_idx)
        DW_DRAW_CACHE.aw             == FSM.DW_ANCHOR_WORD and
        DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
         
-        if DW_DRAW_CACHE.hit_zones then
-            FSM.DW_HIT_ZONES = {}
-            for k, v in ipairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
-        end
-        if DW_DRAW_CACHE.line_y_map then
-            FSM.DW_LINE_Y_MAP = {}
-            for k, v in pairs(DW_DRAW_CACHE.line_y_map) do FSM.DW_LINE_Y_MAP[k] = v end
-        end
+        if DW_DRAW_CACHE.hit_zones then FSM.DW_HIT_ZONES = DW_DRAW_CACHE.hit_zones end
+        if DW_DRAW_CACHE.line_y_map then FSM.DW_LINE_Y_MAP = DW_DRAW_CACHE.line_y_map end
         return DW_DRAW_CACHE.result
     end
 
@@ -4310,7 +4304,6 @@ local function draw_dw(subs, view_center, active_idx)
                 x_start = 960 - line_w / 2,
                 total_width = line_w,
                 words = line_words,
-                vlines_entry_ref = entry
             })
             
             local line_text = ""
@@ -4342,16 +4335,9 @@ local function draw_dw(subs, view_center, active_idx)
     DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
     DW_DRAW_CACHE.result          = final_ass
     
-    DW_DRAW_CACHE.hit_zones = {}
-    for k, v in ipairs(FSM.DW_HIT_ZONES) do
-        DW_DRAW_CACHE.hit_zones[k] = v
-    end
-    
-    DW_DRAW_CACHE.line_y_map = {}
-    for k, v in pairs(FSM.DW_LINE_Y_MAP) do
-        DW_DRAW_CACHE.line_y_map[k] = v
-    end
-    
+    DW_DRAW_CACHE.hit_zones = FSM.DW_HIT_ZONES
+    DW_DRAW_CACHE.line_y_map = FSM.DW_LINE_Y_MAP
+
     return final_ass
 end
 
