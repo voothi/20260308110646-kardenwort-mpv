@@ -353,6 +353,7 @@ Options = {
     dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
     dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
+    dw_edge_margin = 24,          -- Top/bottom safe padding (px) when scroll is clamped at file ends
     dw_border_size = 1.5,
     dw_shadow_offset = 1.0,
     dw_original_spacing = true,
@@ -4174,11 +4175,12 @@ local function dw_calculate_block_top(view_center, active_idx, layout, total_hei
         block_top = center_y - (total_height / 2)
     end
 
-    if total_height > base_h then
-        if block_top > 0 then
-            block_top = 0
-        elseif block_top + total_height < base_h then
-            block_top = base_h - total_height
+    local edge_margin = Options.dw_edge_margin or 0
+    if total_height > base_h - 2 * edge_margin then
+        if block_top > edge_margin then
+            block_top = edge_margin
+        elseif block_top + total_height < base_h - edge_margin then
+            block_top = base_h - edge_margin - total_height
         end
     end
 

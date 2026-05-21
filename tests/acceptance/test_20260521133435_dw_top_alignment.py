@@ -5,9 +5,9 @@ Feature: Drum Window Top-Alignment & Cutoff Prevention
 
 This test verifies:
 1. When the total visual height of subtitles in Drum Window (DW) mode exceeds the screen height (1080p),
-   the layout successfully clamps `block_top` and utilizes dynamic top-centered alignment (`{\pos(960, block_top)}{\an8}`).
-2. Specifically, at the start of the file, `block_top` clamps to `0`, placing the top of the subtitle block
-   exactly at the top of the screen (`{\pos(960, 0.000000)}{\an8}` or similar).
+   the layout clamps `block_top` and uses dynamic top-centered alignment (`{\pos(960, block_top)}{\an8}`).
+2. At the start of the file under overflow, `block_top` clamps to `Options.dw_edge_margin`
+   (configurable safe-area padding so the top line doesn't touch the screen bezel).
 3. Under playback or follow-player seeking, the viewport `view_center` updates, shifting `block_top`
    dynamically to reflect the new active subtitle context.
 4. Under normal (non-overflow) conditions, `{\an8}` is still used and `block_top` is positive (centred).
@@ -43,21 +43,45 @@ def _set_overflow_font(ipc):
     time.sleep(0.3)
 
 
+def _set_edge_margin(ipc, px):
+    ipc.command(["script-message-to", "kardenwort", "test-set-option", "dw_edge_margin", str(px)])
+    time.sleep(0.2)
+
+
 def test_dw_top_alignment_when_overflows(mpv):
     """
-    Verify that DW renders with top-centered alignment an8 and clamps to y=0 when layout overflows.
+    Verify that DW renders with top-centered alignment an8 and clamps to the configured
+    edge margin (not flush against y=0) at the start of the file under overflow.
     """
     ipc = mpv.ipc
 
     _enable_dw(ipc)
+    _set_edge_margin(ipc, 24)
     _set_overflow_font(ipc)
 
     render = query_kardenwort_render(ipc, "dw")
 
-    # Under overflow at the start of the file, block_top must clamp to 0
+    # Under overflow at the start of the file, block_top must clamp to edge_margin
     y_val = _parse_block_top(render)
-    assert y_val == 0.0, f"Expected block_top clamped to 0 under layout overflow, got: {y_val}"
+    assert y_val == 24.0, f"Expected block_top clamped to edge_margin=24, got: {y_val}"
     assert "{\\an8}" in render, f"Expected top-centered alignment an8, got: {render}"
+
+
+def test_dw_top_clamp_with_zero_margin(mpv):
+    """
+    Verify that setting dw_edge_margin to 0 restores the original flush-to-edge behavior
+    (regression guard for the historical clamp).
+    """
+    ipc = mpv.ipc
+
+    _enable_dw(ipc)
+    _set_edge_margin(ipc, 0)
+    _set_overflow_font(ipc)
+
+    render = query_kardenwort_render(ipc, "dw")
+
+    y_val = _parse_block_top(render)
+    assert y_val == 0.0, f"Expected block_top clamped to 0 when edge_margin=0, got: {y_val}"
 
 
 def test_dw_scrolling_shifts_block_top(mpv):
