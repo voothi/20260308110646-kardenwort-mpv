@@ -1,12 +1,12 @@
 """
 Feature ZID: 20260521111616
-Test Creation ZID: 20260521111649
+Test Creation ZID: 20260521112312
 Feature: Visibility Resilience & High Fidelity Highlighting Parity
 
 This test verifies:
 1. Interactive Drum Window (DW) keybindings (e.g., tooltip toggle, hover mode, search toggle,
-   anki global highlight toggle) successfully bypass the native_sub_vis visibility check
-   (i.e., functioning perfectly inside the DW mode even when subtitles are toggled OFF).
+   anki global highlight toggle, smart add, pink pairing) successfully bypass the native_sub_vis visibility check
+   (i.e., functioning perfectly inside the DW mode even when subtitles are toggled OFF without showing OSD "X").
 2. Bold state of database-highlighted phrases respecting `anki_highlight_bold` while
    manual interactive selections strictly enforce regular font weight (\\b0).
 """
@@ -40,6 +40,9 @@ def test_interactive_dw_keys_bypass_native_sub_vis(mpv):
     state = query_kardenwort_state(ipc)
     assert state.get("native_sub_vis") is False
 
+    # Clear OSD log property before triggers
+    ipc.command(["set_property", "user-data/kardenwort/last_osd", ""])
+
     # 3. Test dw-tooltip-toggle (default 'e')
     initial_forced = state.get("tooltip_forced")
     # Trigger binding directly
@@ -47,27 +50,50 @@ def test_interactive_dw_keys_bypass_native_sub_vis(mpv):
     time.sleep(0.2)
     state = query_kardenwort_state(ipc)
     assert state.get("tooltip_forced") != initial_forced, "Tooltip forced toggle must work when sub visibility is OFF"
+    assert ipc.get_property("user-data/kardenwort/last_osd") != "X", "dw-tooltip-toggle-1 must not show X"
 
     # 4. Test dw-tooltip-hover (toggles translation click/hover)
+    ipc.command(["set_property", "user-data/kardenwort/last_osd", ""])
     initial_hover = state.get("dw_tooltip_mode")
     ipc.command(["script-binding", "kardenwort/dw-tooltip-hover-1"])
     time.sleep(0.2)
     state = query_kardenwort_state(ipc)
     assert state.get("dw_tooltip_mode") != initial_hover, "Tooltip hover toggle must work when sub visibility is OFF"
+    assert ipc.get_property("user-data/kardenwort/last_osd") != "X", "dw-tooltip-hover-1 must not show X"
 
     # 5. Test toggle-drum-search (default 'Ctrl+f')
+    ipc.command(["set_property", "user-data/kardenwort/last_osd", ""])
     assert state.get("search_mode") is False
     ipc.command(["script-binding", "kardenwort/toggle-drum-search"])
     time.sleep(0.2)
     state = query_kardenwort_state(ipc)
     assert state.get("search_mode") is True, "Search mode toggle must work when sub visibility is OFF"
+    assert ipc.get_property("user-data/kardenwort/last_osd") != "X", "toggle-drum-search must not show X"
+
+    # Close search mode to return to regular DW state
+    ipc.command(["script-binding", "kardenwort/toggle-drum-search"])
+    time.sleep(0.1)
 
     # 6. Test toggle-anki-global (global highlight toggle)
+    ipc.command(["set_property", "user-data/kardenwort/last_osd", ""])
     initial_anki_global = state.get("options", {}).get("anki_global_highlight")
     ipc.command(["script-binding", "kardenwort/toggle-anki-global"])
     time.sleep(0.2)
     state = query_kardenwort_state(ipc)
     assert state.get("options", {}).get("anki_global_highlight") != initial_anki_global, "Anki global highlight toggle must work when sub visibility is OFF"
+    assert ipc.get_property("user-data/kardenwort/last_osd") != "X", "toggle-anki-global must not show X"
+
+    # 7. Test dw-add-1 (smart add/commit)
+    ipc.command(["set_property", "user-data/kardenwort/last_osd", ""])
+    ipc.command(["script-binding", "kardenwort/dw-add-1"])
+    time.sleep(0.2)
+    assert ipc.get_property("user-data/kardenwort/last_osd") != "X", "dw-add-1 must not be blocked or show X"
+
+    # 8. Test dw-pair-1 (pink pairing)
+    ipc.command(["set_property", "user-data/kardenwort/last_osd", ""])
+    ipc.command(["script-binding", "kardenwort/dw-pair-1"])
+    time.sleep(0.2)
+    assert ipc.get_property("user-data/kardenwort/last_osd") != "X", "dw-pair-1 must not be blocked or show X"
 
 
 def test_anki_highlight_bold_vs_manual_selection(mpv):
@@ -149,7 +175,6 @@ def test_anki_highlight_bold_vs_manual_selection(mpv):
         time.sleep(0.2)
         render_bold = query_kardenwort_render(ipc, "dw")
         # Should contain bold tag {\b1} or configured highlight bold before/after "Hello"
-        # Let's inspect that the word "Hello" has been rendered with a bold tag {\b1}
         assert "{\\b1}" in render_bold or "b1" in render_bold, "Expected bold tag when anki_highlight_bold is active"
 
         # Case B: configured anki_highlight_bold = no
