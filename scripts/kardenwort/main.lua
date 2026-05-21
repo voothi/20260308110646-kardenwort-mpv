@@ -4252,7 +4252,7 @@ local function draw_dw(subs, view_center, active_idx)
 
 
     -- Text Block mapping
-    local all_visual_lines_ass = {}
+    local visual_lines = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
         local entry_y_top = current_y
@@ -4326,14 +4326,30 @@ local function draw_dw(subs, view_center, active_idx)
                 line_text = compose_term_smart(formatted_words)
             end
             
-            local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-                vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
-            local line_ass = style_part .. line_prefix .. line_text
-            table.insert(all_visual_lines_ass, line_ass)
+            table.insert(visual_lines, {
+                y_top = vl_y_top,
+                f_size = f_size,
+                prefix = line_prefix,
+                text = line_text,
+            })
         end
     end
 
-    local final_ass = table.concat(all_visual_lines_ass, "\n")
+    local block_text = ""
+    for k, vl in ipairs(visual_lines) do
+        if k == 1 then
+            block_text = vl.prefix .. vl.text
+        else
+            local prev = visual_lines[k - 1]
+            local advance = vl.y_top - prev.y_top
+            local vsp_val = advance - prev.f_size
+            block_text = block_text .. string.format("{\\vsp%g}\\N", vsp_val) .. vl.prefix .. vl.text
+        end
+    end
+
+    local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+        block_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+    local final_ass = style_part .. block_text
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
