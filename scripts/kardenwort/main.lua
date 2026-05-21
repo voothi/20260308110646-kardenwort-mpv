@@ -4238,10 +4238,6 @@ local function draw_dw(subs, view_center, active_idx)
     FSM.DW_LINE_Y_MAP = {}
     FSM.DW_HIT_ZONES = {}
     
-    -- Selection range
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-
     -- Pass 1: Global Highlight Pre-Pass
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
@@ -4252,7 +4248,9 @@ local function draw_dw(subs, view_center, active_idx)
 
 
 
-    -- Text Block mapping
+    -- Hybrid render strategy:
+    -- 1) One shared background window (vector rectangle) for cohesive framing.
+    -- 2) Per-visual-line positioned text to preserve hit-test precision.
     local all_visual_lines_ass = {}
     local min_x = math.huge
     local max_x = -math.huge
