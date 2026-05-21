@@ -350,6 +350,7 @@ Options = {
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
+    dw_wrap_line_height_mul = 1.05, -- intra-subtitle wrapped line spacing = dw_font_size * this (keeps descenders clear of next line)
     dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
     dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
@@ -4043,7 +4044,8 @@ local function dw_build_layout(subs, view_center)
     end_idx = math.min(#subs, end_idx)
 
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
+    local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
     local sub_gap = calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
@@ -4263,7 +4265,8 @@ local function draw_dw(subs, view_center, active_idx)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
-        local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+        local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
+        local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
         
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
@@ -6299,8 +6302,8 @@ local function ensure_sub_layout(sub)
     if #cur_indices > 0 then table.insert(vlines, cur_indices) end
     if #vlines == 0 then vlines = {{1}} end
 
-    local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
+    local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
     local entry_h = #vlines * vline_h
 
     sub.layout_cache = {
