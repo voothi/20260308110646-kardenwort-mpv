@@ -4245,7 +4245,7 @@ local function draw_dw(subs, view_center, active_idx)
 
 
     -- Text Block mapping
-    local lines_ass = {}
+    local all_visual_lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
         local entry_y_top = current_y
@@ -4267,7 +4267,6 @@ local function draw_dw(subs, view_center, active_idx)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
-        local entry_ass_vlines = {}
         local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
         
         for vl_index, vl_indices in ipairs(entry.vlines) do
@@ -4320,35 +4319,15 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            table.insert(entry_ass_vlines, line_text)
+            
+            local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+                vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+            local line_ass = style_part .. line_prefix .. line_text
+            table.insert(all_visual_lines_ass, line_ass)
         end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
-        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
     
-    local d_gap = Options.dw_double_gap
-    local vsp_base = Options.dw_vsp
-    local b_gap_mul = Options.dw_block_gap_mul or 0
-
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-
-    local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
-        end
-    end
-    local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        block_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+    local final_ass = table.concat(all_visual_lines_ass, "\n")
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -4399,6 +4378,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local primary_sub = subs[target_line_idx]
     if not primary_sub then return "" end
     
+    local fs = Options.tooltip_font_size
+    local line_height = fs * Options.tooltip_line_height_mul
+    
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
@@ -4408,12 +4390,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local end_idx = math.min(#tooltip_sec_subs, center_idx + Options.tooltip_context_lines)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
-    local fs = Options.tooltip_font_size
-    local line_height = fs * Options.tooltip_line_height_mul
-    -- local bold = Options.tooltip_font_bold and "1" or "0" -- Moved per-line (Task 2.1)
-    
     local max_text_w = 1400 -- Task 2.2 / Design Decision 3
-    local lines_ass = {}
     local total_visual_lines = 0 -- Task 3.1
     local subtitle_metas = {} -- Storage for hit-zone calculation
     
@@ -4439,7 +4416,6 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local force_plain = not Options.dw_sec_highlighting
         local token_meta = populate_token_meta(tooltip_sec_subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
         
-        local sub_visual_lines = {}
         local visual_lines_meta = {}
         for _, indices in ipairs(vline_indices) do
             local line_text = ""
@@ -4464,24 +4440,16 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
-            table.insert(sub_visual_lines, line_prefix .. alpha_tag .. line_text)
-            table.insert(visual_lines_meta, {width = line_w, words = line_words})
+            table.insert(visual_lines_meta, {
+                width = line_w, 
+                words = line_words, 
+                line_text = line_prefix .. alpha_tag .. line_text
+            })
             total_visual_lines = total_visual_lines + 1
         end
         
         table.insert(subtitle_metas, {sub_idx = i, visual_lines = visual_lines_meta})
-        
-        -- Task 2.3: Join visual lines within a subtitle with \N
-        table.insert(lines_ass, table.concat(sub_visual_lines, "\\N"))
     end
-    
-    local d_gap = Options.tooltip_double_gap
-    local vsp_base = Options.tooltip_vsp
-    local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    local vsp_extra = d_gap and (fs * b_gap_mul / 2) or 0
-    local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-
-    local text_block = table.concat(lines_ass, separator)
     
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
@@ -4511,9 +4479,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     elseif final_y + half_h > screen_h - margin then
         final_y = screen_h - margin - half_h
     end
-
+    
     -- POPULATE HIT ZONES (Task 2.1 / 2.2 / 2.3)
     FSM.DW_TOOLTIP_HIT_ZONES = {}
+    local all_tooltip_lines_ass = {}
     local cur_y = final_y - half_h
     for _, sm in ipairs(subtitle_metas) do
         for _, vl in ipairs(sm.visual_lines) do
@@ -4521,19 +4490,22 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 sub_idx = sm.sub_idx,
                 y_top = cur_y,
                 y_bottom = cur_y + layout_line_h,
-                x_start = 1800 - vl.width, -- Right-aligned an6 logic
+                x_start = 1800 - vl.width, -- Right-aligned an9 logic
                 total_width = vl.width,
                 words = vl.words
             })
+            
+            local style_part = string.format("{\\pos(1800, %g)}{\\an9}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+                cur_y, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha)
+            local line_ass = style_part .. vl.line_text
+            table.insert(all_tooltip_lines_ass, line_ass)
+            
             cur_y = cur_y + layout_line_h
         end
         cur_y = cur_y + total_gap
     end
-
-    local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local base_bold = Options.tooltip_context_bold and "1" or "0"
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
+    
+    local ass = table.concat(all_tooltip_lines_ass, "\n")
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
