@@ -318,6 +318,50 @@ class TestAprilArchivedRegressions:
         clip = ipc.get_property("user-data/kardenwort/last_clipboard")
         assert clip == _FRAGMENT1_RU_SUB2
 
+    def test_20260521104712_dw_copy_context_mode_b_fallback(self, mpv_fragment1):
+        """
+        Verify that when secondary subtitle track is OFF (id=0),
+        but translation subs are cached (in FSM.DW_TOOLTIP_SEC_SUBS),
+        Shift+C in DW mode with Subtitle Mode B and Context Copy ON
+        properly exports the translation (Russian) context.
+        """
+        ipc = mpv_fragment1.ipc
+
+        # 1. Turn Secondary subtitle OFF
+        ipc.command(["set_property", "secondary-sid", "0"])
+        time.sleep(0.2)
+
+        # 2. Cycle Copy Mode to B
+        state = query_kardenwort_state(ipc)
+        if state["copy_mode"] != "B":
+            ipc.command(["script-binding", "kardenwort/cycle-copy-mode"])
+            time.sleep(0.15)
+
+        # Verify it is in Mode B
+        state = query_kardenwort_state(ipc)
+        assert state["copy_mode"] == "B"
+        assert int(ipc.get_property("secondary-sid") or 0) == 0
+
+        # 3. Enable Context Copy
+        ipc.command(["script-message-to", "kardenwort", "copy-context-set", "ON"])
+        time.sleep(0.1)
+
+        # 4. Open Drum Window (z)
+        ipc.command(["script-message-to", "kardenwort", "drum-window-toggle"])
+        time.sleep(0.25)
+
+        # 5. Seek to sub 2 (~7.0s)
+        ipc.command(["seek", 7.0, "absolute+exact"])
+        time.sleep(0.35)
+
+        # 6. Trigger DW Copy
+        ipc.command(["script-message-to", "kardenwort", "test-dw-copy"])
+        time.sleep(0.2)
+
+        # 7. Check Clipboard content
+        clip = ipc.get_property("user-data/kardenwort/last_clipboard")
+        assert _FRAGMENT1_RU_SUB2 in clip
+
 
 
 

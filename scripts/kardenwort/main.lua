@@ -1290,12 +1290,14 @@ function get_copy_context_text(time_pos, line_idx)
         end
     end
     
-    local function append(path, is_ass, explicit_idx)
-        if not path then return end
-        local subs = nil
-        if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
-        elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.sec.subs
-        else subs = load_sub(path, is_ass) end
+    local function append(path, is_ass, explicit_idx, provided_subs)
+        if not path and not provided_subs then return end
+        local subs = provided_subs
+        if not subs then
+            if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
+            elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.sec.subs
+            else subs = load_sub(path, is_ass) end
+        end
 
         if subs and #subs > 0 then
             local idx = explicit_idx or get_center_index(subs, time_pos)
@@ -1333,6 +1335,8 @@ function get_copy_context_text(time_pos, line_idx)
     append(Tracks.pri.path, Tracks.pri.is_ass, line_idx)
     if Tracks.sec.path and Tracks.sec.path ~= Tracks.pri.path then
         append(Tracks.sec.path, Tracks.sec.is_ass)
+    elseif FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0 then
+        append(nil, false, nil, FSM.DW_TOOLTIP_SEC_SUBS)
     end
     
     return #combined > 0 and table.concat(combined, "\n") or nil
