@@ -3772,7 +3772,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
             local ww = dw_get_str_width(t.text, font_size, font_name)
             local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
             
-            if t.is_word and t.logical_idx then
+            if t.logical_idx then
                 table.insert(words, {
                     logical_idx = t.logical_idx,
                     x_offset = line_w + space, -- Relative to start of visual line
@@ -3782,7 +3782,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
             end
             line_w = line_w + space + ww
         end
-        
+
         local h = (font_size * line_height_mul) + vsp
         table.insert(lines, {
             words = words,
