@@ -2471,4 +2471,7 @@
 20260521112312 I have completed a thorough pass over the recent codebase changes and successfully expanded the high-fidelity acceptance test suite to include exhaustive runtime coverage. Key Verification Upgrades Completed: Direct OSD Block Validation (test_interactive_dw_keys_bypass_native_sub_vis in test_20260521111616_visibility_resilience.py ): Expanded the suite to verify that executing interactive keybindings—specifically Smart-Add (dw-add-1) and Pink Pairing (dw-pair-1)—properly bypass the master visibility blocks inside the Drum Window when subtitles are visually OFF. Instrumented direct OSD validation using the diagnostic property user-data/kardenwort/last_osd to strictly guarantee that no "X" OSD alert is triggered by the system during any of these triggers. Integration Test Suite Status: Executed the updated visibility resilience and bold parity tests. All tests successfully passed on the target local environment in 10.07 seconds.
 20260521112715 opsx-propose conversation.log#L2458-2470 50e3ae30a12203ba7b15f4da75bac68d17864eb7..e0b52d3c94a8aee25822610993d731726629f9a9
 20260521113247 opsx-apply 20260521112715-visibility-resilience
+20260521113446 opsx-archive --sync 20260521112715-visibility-resilience
+
+
 

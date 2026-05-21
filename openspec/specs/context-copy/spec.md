@@ -60,7 +60,7 @@ The system SHALL preserve all textual formatting markers, including brackets and
 - **THEN** the resulting clipboard text SHALL include those markers intact.
 
 ### Requirement: Language-Aware Fallback
-The single-item fallback (word/line) in the system (Drum Window and Global) must respect the selected language target.
+The single-item fallback (word/line) in the system (Drum Window and Global) SHALL respect the selected language target.
 
 #### Scenario: Copying Translation from Drum Window
 - **WHEN** the cursor is on a line in the Drum Window, `COPY_MODE` is "B" (Russian), and `Ctrl+C` is pressed.
@@ -118,4 +118,19 @@ In `Copy Subtitle Mode: B`, the export engine SHALL use the secondary subtitle t
 #### Scenario: Set export in mode B
 - **WHEN** a non-contiguous set selection is exported while `COPY_MODE` is `B`
 - **THEN** selected members and gap interpolation MUST be computed from secondary-track subtitle text
+
+### Requirement: Cache-Backed Translation Context Fallback
+When copying secondary subtitle contexts (for example, under Subtitle Mode B) and the secondary translation subtitle track is visually disabled (`Tracks.sec.path` is nil or empty), the copying and context harvesting engine SHALL leverage the preloaded in-memory translation cache (`FSM.DW_TOOLTIP_SEC_SUBS`) if available.
+
+#### Scenario: Subtitle Mode B lookup context with disabled secondary track
+- **WHEN** the secondary subtitle track is visually disabled (`Tracks.sec.path` is nil or empty)
+- **AND** translation cache (`FSM.DW_TOOLTIP_SEC_SUBS`) is populated and has elements
+- **AND** the user triggers copy context lookup (`Shift+c`) under Subtitle Mode B
+- **THEN** the system SHALL parse the translation context from `FSM.DW_TOOLTIP_SEC_SUBS` and successfully copy the translation context to the clipboard
+
+#### Scenario: Subtitle Mode B copy mode cycling with disabled secondary track
+- **WHEN** the secondary subtitle track is visually disabled (`Tracks.sec.path` is nil or empty)
+- **AND** translation cache (`FSM.DW_TOOLTIP_SEC_SUBS`) is populated
+- **AND** the user triggers copy mode cycle (`Shift+q`)
+- **THEN** the system SHALL allow cycling through copy modes (including Mode B) rather than displaying "Copy Mode: Fixed to Primary"
 

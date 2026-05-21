@@ -134,7 +134,6 @@ The system SHALL ensure that navigation is available immediately upon script ini
 - **THEN** the system SHALL ignore that repeat event for activation
 - **AND** only the initial non-repeat event SHALL establish the first activated cursor target.
 
-
 ### Requirement: Architectural Integrity
 - **Unified Engine**: ALL rendering and navigation components MUST utilize the unified `ensure_sub_layout` engine to ensure visual line boundaries are calculated consistently across all modes.
 - **Defensive Design**: Core navigation functions SHALL implement safety fallbacks for missing layout data to ensure crash-free performance during transient states.
@@ -149,6 +148,21 @@ The system SHALL calculate the next seek target based on a virtual `DW_SEEK_TARG
 #### Scenario: Virtual Seek Target
 - **WHEN** the user holds `d` for rapid seeking
 - **THEN** the system SHALL calculate the next seek target based on a virtual `DW_SEEK_TARGET` to bypass engine latency.
+
+### Requirement: Interactive Visibility Resilience
+The system's FSM visibility checks for interactive keybindings inside the Drum Window (such as tooltip toggle, pairing, adding to database, search, and copy) SHALL bypass master subtitle visibility restrictions. They MUST execute normally even when master subtitle visibility is toggled OFF (`FSM.native_sub_vis` is false).
+
+#### Scenario: Tooltip toggle with subtitles OFF inside Drum Window
+- **WHEN** the user is inside the Drum Window (`FSM.DRUM_WINDOW ~= "OFF"`)
+- **AND** master subtitle visibility is toggled OFF (`FSM.native_sub_vis` is false)
+- **AND** the user triggers the tooltip toggle command (key `e`)
+- **THEN** the system SHALL successfully display the dictionary tooltip instead of aborting and showing "X"
+
+#### Scenario: Interactive action outside Drum Window with subtitles OFF
+- **WHEN** the user is outside the Drum Window (`FSM.DRUM_WINDOW == "OFF"`)
+- **AND** master subtitle visibility is toggled OFF (`FSM.native_sub_vis` is false)
+- **AND** the user triggers an interactive command (such as key `e`)
+- **THEN** the system SHALL show "X" and abort the command
 
 ## Context
 
