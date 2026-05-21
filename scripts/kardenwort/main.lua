@@ -4216,7 +4216,8 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local current_y = dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
+    local block_top = dw_calculate_block_top(subs, view_center, active_idx, layout, total_height)
+    local current_y = block_top
     FSM.DW_LINE_Y_MAP = {}
     
     -- Selection range
@@ -4301,8 +4302,8 @@ local function draw_dw(subs, view_center, active_idx)
     end
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+    local final_ass = ass .. string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
+        block_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
