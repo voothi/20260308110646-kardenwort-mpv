@@ -1,3 +1,28 @@
+# Release Notes - v1.82.26 (DW Visibility Guard Hardening & Bold Highlight Parity)
+
+**Date**: 2026-05-21
+**Version**: v1.82.26
+**Implementation ZIDs**: 20260521105908, 20260521104408, 20260521092225, 20260520213832
+
+## Highlights
+
+### 🎨 **Database Phrase Bold Highlight Parity**
+- **Configured Bold Settings for Phrases**: Resolved a highlight rendering discrepancy where multi-word phrases from the Anki database ("what's added") were forced to regular weight (`\b0`) even when the `anki_highlight_bold` option was set to `yes`. Now, both single words and database phrases consistently honor the configured `anki_highlight_bold` setting.
+- **Manual Selection Isolation**: Interactive manual phrase selections (yellow/pink) continue to strictly enforce the premium regular weight (`\b0`) to preserve their distinct visual design in the reader.
+
+### 🛡️ **Drum Window Navigation Resilience**
+- **Sub-Visibility Agnostic Operations**: Fixed an FSM visibility guard issue where interactive Drum Window (DW) keys (such as tooltip toggling `e`/`У`, pink pairing `f`/`А`, smart Anki add `g`/`П`, and global Anki toggle `h`/`Р` under English/Russian layouts) were blocked (printing `X`) if player subtitles were toggled OFF (`c`).
+- **Resilient DW Scope**: Since the Drum Window is a static scrollable canvas, these interactive navigation keys are now allowed to function seamlessly inside DW mode regardless of master subtitle display state.
+
+### 📋 **Cache-Backed Translation Copy & Context Harvesting (Secondary Sub OFF)**
+- **Copy Mode B and Shift+Q Cycling Support**: Fixed a guard constraint in `cmd_cycle_copy_mode()` that prevented cycling copy modes and copying translation text (`Shift+q`) when the secondary subtitle track was visually turned off (`secondary-sid = 0`). The system now checks if translation subtitle data is cached in `FSM.DW_TOOLTIP_SEC_SUBS`.
+- **Cached Context Appending**: Refactored the context-gathering logic (`get_copy_context_text`) to retrieve paragraphs directly from the cached subtitle array `FSM.DW_TOOLTIP_SEC_SUBS` if `Tracks.sec.path` is empty or missing, enabling robust Copy Mode B dictionary context harvesting even when secondary subtitles are disabled visually.
+
+### 🧪 **Milestone: 798 passed tests**
+- **Comprehensive Regression Protection**: Added structural unit tests under `tests/acceptance/test_20260521091631_manual_phrase_bold_parity.py` and a fallback integration test `test_20260521104712_dw_copy_context_mode_b_fallback` in `tests/acceptance/test_20260427003254_copy_sub_fallback.py` to assert the integrity of bold phrase rendering and fallback context copies. All 798 tests pass successfully.
+
+---
+
 # Release Notes - v1.82.24 (Canonical Post-Transition Selection Matrix)
 
 **Date**: 2026-05-19
