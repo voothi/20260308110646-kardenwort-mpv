@@ -4252,7 +4252,7 @@ local function draw_dw(subs, view_center, active_idx)
 
 
     -- Text Block mapping
-    local lines_ass = {}
+    local all_visual_lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
         local entry_y_top = current_y
@@ -4276,8 +4276,6 @@ local function draw_dw(subs, view_center, active_idx)
         local token_meta = entry.token_meta
         local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
         local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
-        local entry_ass_vlines = {}
-        
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
             local space_w = dw_get_str_width(" ", f_size, font_name)
@@ -4327,40 +4325,15 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-
-            table.insert(entry_ass_vlines, line_text)
-        end
-
-        -- Join wrapped visual lines for this subtitle as a single subtitle block.
-        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
-    end
-    
-    local d_gap = Options.dw_double_gap
-    local vsp_base = Options.dw_vsp
-    local b_gap_mul = Options.dw_block_gap_mul or 0
-
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-
-    local block_text = ""
-    for idx, entry in ipairs(layout) do
-        local line_text = lines_ass[idx]
-        if idx == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[idx - 1].sub_idx == active_idx) .. line_text
+            
+            local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+                vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+            local line_ass = style_part .. line_prefix .. line_text
+            table.insert(all_visual_lines_ass, line_ass)
         end
     end
 
-    FSM.DW_BLOCK_TOP = block_top
-    FSM.DW_TOTAL_HEIGHT = total_height
-
-    local style_part = string.format("{\\pos(960, %g)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-        block_top + (total_height / 2), Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
-    local final_ass = style_part .. block_text
+    local final_ass = table.concat(all_visual_lines_ass, "\n")
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -9362,8 +9335,6 @@ function kardenwortProbe._snapshot()
     }
     
     return {
-        dw_block_top       = FSM.DW_BLOCK_TOP,
-        dw_total_height    = FSM.DW_TOTAL_HEIGHT,
         options            = Options,
         autopause          = FSM.AUTOPAUSE,
         drum_mode          = FSM.DRUM,

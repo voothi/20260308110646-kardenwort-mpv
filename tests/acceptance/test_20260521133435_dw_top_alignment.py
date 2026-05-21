@@ -5,12 +5,12 @@ Feature: Drum Window Top-Alignment & Cutoff Prevention
 
 This test verifies:
 1. When the total visual height of subtitles in Drum Window (DW) mode exceeds the screen height (1080p),
-   the layout clamps `block_top` and uses dynamic top-centered alignment (`{\pos(960, block_top + total_height/2)}{\an5}`).
+   the layout clamps `block_top` and uses dynamic top-centered alignment (`{\pos(960, block_top)}{\an8}`).
 2. At the start of the file under overflow, `block_top` clamps to `Options.dw_edge_margin`
    (configurable safe-area padding so the top line doesn't touch the screen bezel).
 3. Under playback or follow-player seeking, the viewport `view_center` updates, shifting `block_top`
    dynamically to reflect the new active subtitle context.
-4. Under normal (non-overflow) conditions, `{\an5}` is still used and `block_top` is positive (centred).
+4. Under normal (non-overflow) conditions, `{\an8}` is still used and `block_top` is positive (centred).
 """
 
 import re
@@ -19,14 +19,11 @@ import pytest
 from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 
-def _parse_block_top(ipc, render):
-    """Extract the numeric y-coordinate and convert it to block_top using state total_height."""
+def _parse_block_top(render):
+    """Extract the numeric y-coordinate from {\\pos(960, <y>)} in the rendered ASS string."""
     match = re.search(r"\\pos\(960,\s*(-?[\d.]+)\)", render)
     assert match is not None, f"Could not find pos(960, y) in render: {render}"
-    y_center = float(match.group(1))
-    state = query_kardenwort_state(ipc)
-    total_h = state.get("dw_total_height", 0)
-    return y_center - total_h / 2
+    return float(match.group(1))
 
 
 def _enable_dw(ipc):
@@ -53,7 +50,7 @@ def _set_edge_margin(ipc, px):
 
 def test_dw_top_alignment_when_overflows(mpv):
     """
-    Verify that DW renders with middle-centered alignment an5 and clamps to the configured
+    Verify that DW renders with top-centered alignment an8 and clamps to the configured
     edge margin (not flush against y=0) at the start of the file under overflow.
     """
     ipc = mpv.ipc
@@ -65,9 +62,9 @@ def test_dw_top_alignment_when_overflows(mpv):
     render = query_kardenwort_render(ipc, "dw")
 
     # Under overflow at the start of the file, block_top must clamp to edge_margin
-    y_val = _parse_block_top(ipc, render)
+    y_val = _parse_block_top(render)
     assert y_val == 24.0, f"Expected block_top clamped to edge_margin=24, got: {y_val}"
-    assert "{\\an5}" in render, f"Expected middle-centered alignment an5, got: {render}"
+    assert "{\\an8}" in render, f"Expected top-centered alignment an8, got: {render}"
 
 
 def test_dw_top_clamp_with_zero_margin(mpv):
@@ -83,7 +80,7 @@ def test_dw_top_clamp_with_zero_margin(mpv):
 
     render = query_kardenwort_render(ipc, "dw")
 
-    y_val = _parse_block_top(ipc, render)
+    y_val = _parse_block_top(render)
     assert y_val == 0.0, f"Expected block_top clamped to 0 when edge_margin=0, got: {y_val}"
 
 
@@ -108,9 +105,9 @@ def test_dw_scrolling_shifts_block_top(mpv):
     time.sleep(0.5)
 
     render = query_kardenwort_render(ipc, "dw")
-    assert "{\\an5}" in render
+    assert "{\\an8}" in render
 
-    y_val = _parse_block_top(ipc, render)
+    y_val = _parse_block_top(render)
     # block_top should be negative (scrolled up) but above the bottom clamp (1080 - total_height)
     assert y_val < 0, f"Expected negative block_top when scrolled to middle subtitle, got {y_val}"
 
@@ -130,9 +127,9 @@ def test_dw_bottom_clamping(mpv):
     time.sleep(0.5)
 
     render = query_kardenwort_render(ipc, "dw")
-    assert "{\\an5}" in render
+    assert "{\\an8}" in render
 
-    y_val = _parse_block_top(ipc, render)
+    y_val = _parse_block_top(render)
     # The layout should clamp at the bottom of the screen, meaning block_top must be negative (shifted up)
     assert y_val < 0, f"Expected a negative block_top when focused at the end under overflow, got {y_val}"
 
@@ -140,7 +137,7 @@ def test_dw_bottom_clamping(mpv):
 def test_dw_normal_centered_layout(mpv):
     """
     Verify that under normal (non-overflow) conditions — default font size —
-    the \\an5 alignment is used and block_top is positive (centred on screen).
+    the \\an8 alignment is used and block_top is positive (centred on screen).
     """
     ipc = mpv.ipc
 
@@ -148,28 +145,8 @@ def test_dw_normal_centered_layout(mpv):
 
     # Use default font size (no override), which should keep total_height well below 1080
     render = query_kardenwort_render(ipc, "dw")
-    assert "{\\an5}" in render, f"Expected middle-centered alignment an5 even for normal layout, got: {render}"
+    assert "{\\an8}" in render, f"Expected top-centered alignment an8 even for normal layout, got: {render}"
 
-    y_val = _parse_block_top(ipc, render)
+    y_val = _parse_block_top(render)
     # With a small total_height the block should be centred: block_top = (1080 - total_height) / 2 > 0
     assert y_val > 0, f"Expected positive block_top (centred) for non-overflow layout, got {y_val}"
-
-
-def test_dw_renders_single_positioned_block(mpv):
-    """
-    Verify DW remains a single positioned ASS dialogue block (legacy cohesive card behavior),
-    not split into multiple independently-positioned events.
-    """
-    ipc = mpv.ipc
-
-    _enable_dw(ipc)
-    _set_overflow_font(ipc)
-
-    render = query_kardenwort_render(ipc, "dw")
-
-    # Single block contract: exactly one DW anchor position tag in the final render.
-    pos_tags = re.findall(r"\\pos\(960,\s*-?[\d.]+\)", render)
-    assert len(pos_tags) == 1, f"Expected exactly one DW pos tag, got {len(pos_tags)} in: {render}"
-
-    # Historical cohesive card contract is anchored via an5.
-    assert "{\\an5}" in render, f"Expected an5 anchor for unified DW block, got: {render}"
