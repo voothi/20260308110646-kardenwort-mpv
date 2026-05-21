@@ -4267,18 +4267,24 @@ local function draw_dw(subs, view_center, active_idx)
         local token_meta = entry.token_meta
         local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
         local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
-        
+
+        -- Collect each visual line's text; emit ONE ASS event per subtitle below.
+        -- This keeps libass's outline merging across wrapped lines (no per-line bg stripes /
+        -- alpha-doubled bands), matching the OLD `{\an5}` block-rendering look while still
+        -- letting us position each subtitle independently.
+        local entry_vline_texts = {}
+
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
             local space_w = dw_get_str_width(" ", f_size, font_name)
             local line_words = {}
             local line_w = 0
-            
+
             for pos, j in ipairs(vl_indices) do
                 local t = entry.words[j]
                 local ww = dw_get_str_width(t.text, f_size, font_name)
                 local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
-                
+
                 if t.logical_idx then
                     table.insert(line_words, {
                         logical_idx = t.logical_idx,
@@ -4288,7 +4294,7 @@ local function draw_dw(subs, view_center, active_idx)
                     })
                 end
                 line_w = line_w + space + ww
-                
+
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
@@ -4298,10 +4304,10 @@ local function draw_dw(subs, view_center, active_idx)
                     table.insert(formatted_words, meta_item.text)
                 end
             end
-            
+
             local vl_y_top = entry_y_top + (vl_index - 1) * vline_h
             local vl_y_bottom = vl_y_top + vline_h
-            
+
             table.insert(FSM.DW_HIT_ZONES, {
                 sub_idx = entry.sub_idx,
                 y_top = vl_y_top,
@@ -4310,21 +4316,27 @@ local function draw_dw(subs, view_center, active_idx)
                 total_width = line_w,
                 words = line_words,
             })
-            
+
             local line_text = ""
             if Options.dw_original_spacing then
                 line_text = table.concat(formatted_words, "")
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            
-            local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-                vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
-            local line_ass = style_part .. line_prefix .. line_text
-            table.insert(all_visual_lines_ass, line_ass)
+            table.insert(entry_vline_texts, line_text)
         end
+
+        -- One ASS event for the whole subtitle. `\vsp` calibrates libass's per-`\N` advance
+        -- to match our `vline_h` model: assuming libass's natural line height ≈ font_size,
+        -- vsp_override = font_size * (wrap_mul - 1.0) + dw_vsp keeps render and hit zones
+        -- aligned for monospace fonts (Consolas default).
+        local vsp_override = Options.dw_font_size * (wrap_mul - 1.0) + Options.dw_vsp
+        local style_part = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\vsp%g}",
+            entry_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, vsp_override)
+        local subtitle_ass = style_part .. line_prefix .. table.concat(entry_vline_texts, "\\N")
+        table.insert(all_visual_lines_ass, subtitle_ass)
     end
-    
+
     local final_ass = table.concat(all_visual_lines_ass, "\n")
     
     -- Update Cache
