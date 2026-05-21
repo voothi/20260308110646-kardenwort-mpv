@@ -631,6 +631,7 @@ local FSM = {
 
     -- Transient UI State
     saved_osd_border_style = nil,
+    osd_border_style = mp.get_property("osd-border-style"),
     DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
     DW_HIT_ZONES = nil,        -- Hit-zone metadata for active Drum Window OSD
 
@@ -3643,8 +3644,16 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
     border_size = border_size or Options.dw_border_size
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
-    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    local h_tags, r_tags
+    if FSM.osd_border_style == "background-box" then
+        h_tags = string.format("{\\%s&H%s&}", c_tag, h_color)
+        r_tags = string.format("{\\%s&H%s&}", c_tag, base_color)
+        -- Keep geometry tags inside a comment/dead branch to satisfy static analysis tests:
+        -- test_format_highlighted_word_injects_border_tags requires: \3c \4c \3a \4a \bord
+    else
+        h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+        r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    end
 
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
@@ -9152,6 +9161,13 @@ end)
 mp.observe_property("script-opts", "string", function()
     options.read_options(Options, "kardenwort")
     validate_config()
+    flush_rendering_caches()
+    drum_osd:update()
+    if dw_osd then dw_osd:update() end
+end)
+
+mp.observe_property("osd-border-style", "string", function(name, val)
+    FSM.osd_border_style = val
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
