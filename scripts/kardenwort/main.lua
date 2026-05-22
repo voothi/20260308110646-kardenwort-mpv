@@ -4468,7 +4468,6 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
-    local shad = Options.tooltip_shadow_offset
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
@@ -4495,23 +4494,30 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         final_y = screen_h - margin - half_h
     end
     
+    -- Hybrid tooltip render strategy:
+    -- 1) One shared background window for the whole tooltip block.
+    -- 2) Per-visual-line positioned text to preserve precise hit-zones.
     -- POPULATE HIT ZONES (Task 2.1 / 2.2 / 2.3)
     FSM.DW_TOOLTIP_HIT_ZONES = {}
     local all_tooltip_lines_ass = {}
+    local min_x = math.huge
+    local max_x = -math.huge
     local cur_y = final_y - half_h
     for _, sm in ipairs(subtitle_metas) do
         for _, vl in ipairs(sm.visual_lines) do
+            local line_x_start = 1800 - vl.width -- Right-aligned an6 logic
             table.insert(FSM.DW_TOOLTIP_HIT_ZONES, {
                 sub_idx = sm.sub_idx,
                 y_top = cur_y,
                 y_bottom = cur_y + layout_line_h,
-                x_start = 1800 - vl.width, -- Right-aligned an9 logic
+                x_start = line_x_start,
                 total_width = vl.width,
                 words = vl.words
             })
+            min_x = math.min(min_x, line_x_start)
+            max_x = math.max(max_x, line_x_start + vl.width)
             
-            local style_part = string.format("{\\pos(1800, %g)}{\\an6}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-                cur_y, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha)
+            local style_part = string.format("{\\pos(1800, %g)}{\\an6}{\\bord0}{\\shad0}{\\q2}", cur_y)
             local line_ass = style_part .. vl.line_text
             table.insert(all_tooltip_lines_ass, line_ass)
             
@@ -4520,7 +4526,24 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         cur_y = cur_y + total_gap
     end
     
-    local ass = table.concat(all_tooltip_lines_ass, "\n")
+    if min_x == math.huge then
+        min_x = 1800
+        max_x = 1800
+    end
+    local pad_x = math.max(8, (bord or 0) * 4)
+    local pad_y = math.max(4, (bord or 0) * 2)
+    local block_top = final_y - half_h
+    local rect_left = min_x - pad_x
+    local rect_top = block_top - pad_y
+    local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
+    local rect_h = math.max(1, block_height + (2 * pad_y))
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+
+    local ass = bg_rect
+    if #all_tooltip_lines_ass > 0 then
+        ass = ass .. "\n" .. table.concat(all_tooltip_lines_ass, "\n")
+    end
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
