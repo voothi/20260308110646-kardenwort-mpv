@@ -4344,8 +4344,8 @@ local function draw_dw(subs, view_center, active_idx)
     local rect_top = block_top - pad_y
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, total_height + (2 * pad_y))
-    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-        rect_left, rect_top, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, Options.dw_bg_color, bg_alpha, bg_alpha, bg_alpha, rect_w, rect_w, rect_h, rect_h)
     local final_ass = bg_rect
     if #all_visual_lines_ass > 0 then
         final_ass = final_ass .. "\n" .. table.concat(all_visual_lines_ass, "\n")
@@ -4397,6 +4397,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local line_height = fs * Options.tooltip_line_height_mul
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        bg_alpha = "FF"
+    end
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end
@@ -4537,8 +4540,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local rect_top = block_top - pad_y
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + (2 * pad_y))
-    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-        rect_left, rect_top, bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, bg_color, bg_alpha, bg_alpha, bg_alpha, rect_w, rect_w, rect_h, rect_h)
 
     local ass = bg_rect
     if #all_tooltip_lines_ass > 0 then
@@ -8066,8 +8069,9 @@ render_help = function()
     local ass_bg = ""
     local box_left = math.floor((rx - box_w) / 2)
     local box_top = math.floor((ry - box_h) / 2)
-    ass_bg = ass_bg .. string.format("{\\an7}{\\pos(%d,%d)}", box_left, box_top)
-    ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
+    local help_bg_alpha = calculate_ass_alpha(Options.help_bg_opacity)
+    ass_bg = ass_bg .. string.format("{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
+        box_left, box_top, Options.help_bg_color, help_bg_alpha, help_bg_alpha, help_bg_alpha)
     ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
     help_osd_bg.data = ass_bg
     help_osd_bg:update()
