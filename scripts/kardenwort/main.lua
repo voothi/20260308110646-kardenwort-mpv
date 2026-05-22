@@ -4158,35 +4158,35 @@ end
 
 local function dw_calculate_block_top(view_center, active_idx, layout, total_height)
     local lh_mul = Options.dw_line_height_mul
-    local offset_y = 0
-    local found_center = false
-    
-    for layout_i, entry in ipairs(layout) do
-        if entry.sub_idx == view_center then
-            offset_y = offset_y + (entry.height / 2)
-            found_center = true
-            break
-        else
-            offset_y = offset_y + entry.height
-            if layout_i < #layout then
-                local is_active = (entry.sub_idx == active_idx)
-                local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-                offset_y = offset_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
-            end
-        end
-    end
-
     local base_h = Options.font_base_height or 1080
     local center_y = base_h / 2
-    local block_top
-    if found_center then
-        block_top = center_y - offset_y
-    else
-        block_top = center_y - (total_height / 2)
-    end
-
     local edge_margin = Options.dw_edge_margin or 0
+
+    -- Keep the frame stable in normal layouts (historical DW behavior):
+    -- center the whole block, and only apply focused-line anchoring when overflowing.
+    local block_top = center_y - (total_height / 2)
+
     if total_height > base_h - 2 * edge_margin then
+        local offset_y = 0
+        local found_center = false
+        for layout_i, entry in ipairs(layout) do
+            if entry.sub_idx == view_center then
+                offset_y = offset_y + (entry.height / 2)
+                found_center = true
+                break
+            else
+                offset_y = offset_y + entry.height
+                if layout_i < #layout then
+                    local is_active = (entry.sub_idx == active_idx)
+                    local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+                    offset_y = offset_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+                end
+            end
+        end
+        if found_center then
+            block_top = center_y - offset_y
+        end
+
         if block_top > edge_margin then
             block_top = edge_margin
         elseif block_top + total_height < base_h - edge_margin then

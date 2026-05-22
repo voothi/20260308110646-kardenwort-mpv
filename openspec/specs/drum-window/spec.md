@@ -30,6 +30,11 @@ The system SHALL dynamically position the Drum Window layout block around the fo
 - **THEN** the system SHALL align the focused line with the viewport center
 - **AND** clamp the block offset to remain within safe padding boundaries.
 
+#### Scenario: Stable Frame in Non-Overflow Layouts
+- **WHEN** the visual subtitle layout height fits within the available viewport
+- **THEN** the Drum Window frame SHALL remain vertically stable by centering the full block
+- **AND** wheel/keyboard scrolling SHALL move content within that frame without re-anchoring the whole frame to the active line.
+
 ### Requirement: Follow Mode Viewport Stability
 When `DW_FOLLOW_PLAYER` is enabled, the Drum Window viewport SHALL stay synchronized with the active playback subtitle so the active line does not drift downward or leave the visible window during normal playback.
 

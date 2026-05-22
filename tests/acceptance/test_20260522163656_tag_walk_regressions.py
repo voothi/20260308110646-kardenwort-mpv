@@ -102,3 +102,12 @@ def test_dw_open_without_pointer_anchors_to_active_playback_line():
     assert "if has_pointer or has_range or has_pending then" in body
     assert "FSM.DW_CURSOR_LINE = active_idx" in body
     assert "FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx" in body
+
+
+def test_dw_block_top_uses_stable_frame_when_not_overflowing():
+    src = _lua_source()
+    body = _function_window(src, "local function dw_calculate_block_top(view_center, active_idx, layout, total_height)", "-- draw_dw")
+
+    assert "local block_top = center_y - (total_height / 2)" in body
+    assert "if total_height > base_h - 2 * edge_margin then" in body
+    assert "block_top = center_y - offset_y" in body
