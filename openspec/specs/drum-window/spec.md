@@ -82,6 +82,13 @@ The system SHALL prioritize the preservation of the active word pointer (Yellow 
 - **AND** the word SHALL remain highlighted at the same index in the window.
 - **AND** the window viewport (`FSM.DW_VIEW_CENTER`) SHALL immediately jump to the line containing the pointer.
 
+#### Scenario: Opening Drum Window without active Pointer
+- **GIVEN** no yellow pointer, no yellow range, and no pink pending-set selection is active
+- **WHEN** the user opens the Drum Window (Mode W)
+- **THEN** the opening cursor line (`DW_CURSOR_LINE`) SHALL anchor to the active playback subtitle index
+- **AND** `DW_VIEW_CENTER` SHALL initialize from that resolved active index
+- **AND** stale historical cursor lines from earlier interactions SHALL NOT shift the opening viewport.
+
 ### Requirement: Exclusive UI Visibility
 The Drum Window SHALL maintain exclusive visibility over the active subtitle information, ensuring that native mpv subtitles do not overlap or leak through the UI regardless of media state changes or external property resets.
 

@@ -8687,13 +8687,30 @@ function cmd_toggle_drum_window()
         drum_osd.data = ""
         drum_osd:update()
 
-        local time_pos = mp.get_property_number("time-pos")
-        if FSM.DW_CURSOR_LINE == -1 then
-            FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
+        local time_pos = mp.get_property_number("time-pos") or 0
+        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if not active_idx or active_idx == -1 then active_idx = 1 end
+
+        local has_pointer = (FSM.DW_CURSOR_WORD and FSM.DW_CURSOR_WORD ~= -1)
+        local has_range = (FSM.DW_ANCHOR_LINE and FSM.DW_ANCHOR_LINE ~= -1 and FSM.DW_ANCHOR_WORD and FSM.DW_ANCHOR_WORD ~= -1)
+        local has_pending = (FSM.DW_CTRL_PENDING_LIST and #FSM.DW_CTRL_PENDING_LIST > 0)
+
+        if has_pointer or has_range or has_pending then
+            if FSM.DW_CURSOR_LINE == -1 then
+                FSM.DW_CURSOR_LINE = active_idx
+            end
+        else
+            -- Opening without an explicit pointer/selection should anchor to playback,
+            -- not a stale historical cursor line.
+            FSM.DW_CURSOR_LINE = active_idx
+            FSM.DW_CURSOR_WORD = -1
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
         end
-        
-        -- Always sync view center to cursor line on opening
-        FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+
+        -- Always sync view center to the resolved opening cursor line
+        FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx
         
         FSM.DW_SEEKING_MANUALLY = false
         FSM.DW_SEEK_TARGET = -1
@@ -8707,8 +8724,7 @@ function cmd_toggle_drum_window()
 
         -- Explicitly trigger first render for instant appearance
         if FSM.DRUM_WINDOW == "DOCKED" then
-            local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
-            tick_dw(time_pos or 0, active_idx)
+            tick_dw(time_pos, active_idx)
             show_osd("Drum Window: ON")
         end
     else

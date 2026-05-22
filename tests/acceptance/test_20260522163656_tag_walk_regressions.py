@@ -90,3 +90,15 @@ def test_tick_dw_follow_mode_keeps_viewport_centered_outside_book_mode():
     assert "if FSM.DW_FOLLOW_PLAYER then" in body
     assert "elseif not FSM.BOOK_MODE then" in body
     assert "FSM.DW_VIEW_CENTER = active_idx" in body
+
+
+def test_dw_open_without_pointer_anchors_to_active_playback_line():
+    src = _lua_source()
+    body = _function_window(src, "function cmd_toggle_drum_window()", "function toggle_book_mode()", span=9000)
+
+    assert "local has_pointer =" in body
+    assert "local has_range =" in body
+    assert "local has_pending =" in body
+    assert "if has_pointer or has_range or has_pending then" in body
+    assert "FSM.DW_CURSOR_LINE = active_idx" in body
+    assert "FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx" in body
