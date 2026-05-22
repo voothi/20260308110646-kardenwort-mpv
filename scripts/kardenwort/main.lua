@@ -7245,12 +7245,26 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
-                    local m_fn = (mouse_fn and MOUSE_HANDLERS[mouse_fn]) and mouse_fn or make_mouse_handler(false, 
-                        function(t) mouse_fn(t, true) end, 
-                        function(t) mouse_fn(t, true) end, 
-                        updates_selection
-                    )
-                    table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true, is_mouse = true })
+                    local m_fn = nil
+                    if mouse_fn and MOUSE_HANDLERS[mouse_fn] then
+                        m_fn = mouse_fn
+                    elseif mouse_fn then
+                        m_fn = make_mouse_handler(false,
+                            function(t) mouse_fn(t, true) end,
+                            function(t) mouse_fn(t, true) end,
+                            updates_selection
+                        )
+                    elseif key_fn then
+                        -- Fallback for mouse-bound actions that only define keyboard handlers.
+                        -- Trigger on release to mimic click semantics and avoid nil callbacks.
+                        m_fn = function(t)
+                            if t and t.event == "up" then key_fn(t, true) end
+                        end
+                    end
+
+                    if m_fn then
+                        table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true, is_mouse = true })
+                    end
                 else
                     table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = function(t) 
                         local k = (t and t.key) or ""
@@ -7300,7 +7314,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
-        if active and k.key and is_valid_mpv_key(k.key) then 
+        if active and k.key and is_valid_mpv_key(k.key) and type(k.fn) == "function" then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
                     if t and t.event == "down" then

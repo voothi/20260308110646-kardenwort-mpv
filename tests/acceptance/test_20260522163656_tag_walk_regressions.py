@@ -126,3 +126,12 @@ def test_dw_mouse_drag_starts_only_after_movement_threshold():
 
     assert "FSM.DW_MOUSE_PENDING_DRAG = true" in handler_body
     assert "FSM.DW_MOUSE_DRAGGING = false" in handler_body
+
+
+def test_dw_binding_builder_never_registers_nil_mouse_callback():
+    src = _lua_source()
+    body = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
+
+    assert "elseif key_fn then" in body
+    assert "if t and t.event == \"up\" then key_fn(t, true) end" in body
+    assert "and type(k.fn) == \"function\"" in body
