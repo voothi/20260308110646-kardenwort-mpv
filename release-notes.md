@@ -1,3 +1,37 @@
+# Release Notes - v1.84.0 (Unified Click-Accuracy & Drum Punctuation Interactivity)
+
+**Date**: 2026-05-22
+**Version**: v1.84.0
+**Implementation ZIDs**: 20260522171947, 20260522171707, 20260522170611, 20260522164806, 20260522163604, 20260522161313, 20260522152120, 20260522001745, 20260521234000, 20260521233110, 20260521220611, 20260521213450, 20260521161919, 20260521161438, 20260521160920, 20260521155248, 20260521154459, 20260521153315, 20260521152111, 20260521150511, 20260521150254, 20260521145716, 20260521144348, 20260521140624, 20260521134554, 20260521134524, 20260521133324, 20260521132628
+
+## Highlights
+
+### 🎯 **Pixel-Perfect Click-Accuracy & Visual Hit-Testing**
+- **Unified Hit-Zone Caching**: Populates and caches precise visual word/line coordinates in `FSM.DW_HIT_ZONES` during the drawing phase (`draw_dw`).
+- **Calibration-Drift Solution**: Aligns the hit-testing dispatcher (`dw_hit_test`) to evaluate mouse clicks directly against these visual coordinate buffers, achieving 100% click-accuracy and completely solving click calibration drift under large font scaling or low resolution.
+
+### 🎨 **Dynamic Viewport Clamping & Decoupled Line Spacing**
+- **Dynamic Layout Clamping**: Centers the focused visual subtitle line and clamps the rendering blocks within a configurable safe-area padding (`dw_edge_margin` defaulting to 24px) when the total vertical height of wrapped or multi-line paragraphs overflows the 1080p canvas.
+- **Decoupled Intra-Line Text Height**: Decouples intra-subtitle line height from inter-subtitle block spacing by introducing `dw_wrap_line_height_mul` (defaulting to 1.05), providing professional layout adjustments and perfect clearance for descender characters (e.g., `g`, `j`, `y`) in wrapped lines.
+
+### 🥁 **Punctuation Interactivity in Drum Mode**
+- **Sentence-Ending Interactivity**: Removed the restrictive `is_word` filter guard in Drum Mode (`draw_drum`), allowing sentence-ending punctuation marks (e.g., `.`, `?`, `!`) to be fully hoverable, selectable, and highlightable, matching Static Reading Mode (DW) capabilities.
+
+### 🛡️ **Robust Tooltip Variable Restoration**
+- **OSD Crash Protection**: Restored missing local variables `fs` and `line_height` in the translation tooltip renderer (`draw_dw_tooltip`), resolving OSD formatting exceptions and nil-string compilation crashes.
+
+### 📋 **Formal OpenSpec Requirements & Specification Integration**
+- **Canonical Spec Updates**: Formally updated all new requirements inside `openspec/specs/drum-window/spec.md`, `openspec/specs/drum-window-tooltip/spec.md`, and `openspec/specs/drum-context/spec.md`.
+- **Experimental Workflow Archival**: Created and archived the OpenSpec change proposal `20260521161044-fix-dw-overflow-accuracy-and-punctuation`, ensuring 100% traceability of requirements to commits.
+
+### 🧪 **Milestone: 810 Passed Tests**
+- **New Acceptance Coverage**:
+  - `tests/acceptance/test_20260521133435_dw_top_alignment.py`: Validates the vertical center and clamp boundaries, safe margins, and decoupled wrap height math under overflow conditions.
+  - `tests/acceptance/test_20260522162418_tooltip_window_degradation.py`: Validates tooltip renderer anti-degradation, shared background/vector blocks, and tooltip positioning for both DW and SRT tracks.
+  - `tests/acceptance/test_20260522163656_tag_walk_regressions.py`: Verifies secondary-availability fallback copy modes, context-harvesting path mappings, and visibility guard overrides under complex FSM cycles.
+
+---
+
 # Release Notes - v1.82.26 (DW Visibility Guard Hardening & Bold Highlight Parity)
 
 **Date**: 2026-05-21
