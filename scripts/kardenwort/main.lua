@@ -4396,7 +4396,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local fs = Options.tooltip_font_size
     local line_height = fs * Options.tooltip_line_height_mul
     
-    local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
+    local is_dw = (FSM.DRUM_WINDOW ~= "OFF")
+    local bg_alpha = is_dw and "FF" or calculate_ass_alpha(Options.tooltip_bg_opacity)
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end
