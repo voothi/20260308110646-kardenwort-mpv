@@ -111,3 +111,18 @@ def test_dw_block_top_uses_stable_frame_when_not_overflowing():
     assert "local block_top = center_y - (total_height / 2)" in body
     assert "if total_height > base_h - 2 * edge_margin then" in body
     assert "block_top = center_y - offset_y" in body
+
+
+def test_dw_mouse_drag_starts_only_after_movement_threshold():
+    src = _lua_source()
+    update_body = _function_window(src, "local function dw_mouse_update_selection()", "local function dw_mouse_auto_scroll")
+    handler_body = _function_window(src, "local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)", "local cmd_dw_mouse_select")
+
+    assert "if not FSM.DW_MOUSE_PENDING_DRAG then return end" in update_body
+    assert "local drag_threshold_px = 5" in update_body
+    assert "FSM.DW_MOUSE_PENDING_DRAG = false" in update_body
+    assert "FSM.DW_MOUSE_DRAGGING = true" in update_body
+    assert "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)" in update_body
+
+    assert "FSM.DW_MOUSE_PENDING_DRAG = true" in handler_body
+    assert "FSM.DW_MOUSE_DRAGGING = false" in handler_body

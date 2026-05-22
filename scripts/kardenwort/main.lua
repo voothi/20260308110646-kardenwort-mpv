@@ -612,6 +612,9 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_MOUSE_PENDING_DRAG = false, -- True while LMB is down and waiting for drag threshold
+    DW_MOUSE_DOWN_X = nil,     -- OSD X at mouse-down (for drag threshold / release sync)
+    DW_MOUSE_DOWN_Y = nil,     -- OSD Y at mouse-down (for drag threshold / release sync)
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection map {line -> {word -> {line, word}}}
     DW_CTRL_PENDING_LIST = {}, -- Sorted list of members for sequential export
@@ -4851,7 +4854,22 @@ local function dw_sync_cursor_to_mouse()
 end
 
 local function dw_mouse_update_selection()
-    if not FSM.DW_MOUSE_DRAGGING then return end
+    if not FSM.DW_MOUSE_DRAGGING then
+        if not FSM.DW_MOUSE_PENDING_DRAG then return end
+
+        local osd_x, osd_y = dw_get_mouse_osd()
+        local dx = math.abs(osd_x - (FSM.DW_MOUSE_DOWN_X or osd_x))
+        local dy = math.abs(osd_y - (FSM.DW_MOUSE_DOWN_Y or osd_y))
+        local drag_threshold_px = 5
+
+        if dx <= drag_threshold_px and dy <= drag_threshold_px then return end
+
+        FSM.DW_MOUSE_PENDING_DRAG = false
+        FSM.DW_MOUSE_DRAGGING = true
+        if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
+        FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+    end
+
     dw_sync_cursor_to_mouse()
 end
 
@@ -5450,6 +5468,12 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
+            FSM.DW_MOUSE_DRAGGING = false
+            FSM.DW_MOUSE_PENDING_DRAG = false
+            if FSM.DW_MOUSE_SCROLL_TIMER then
+                FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                FSM.DW_MOUSE_SCROLL_TIMER = nil
+            end
 
             -- Store initial coordinates to detect movement/dragging
             local osd_x, osd_y = dw_get_mouse_osd()
@@ -5495,11 +5519,15 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     end
                     
-                    -- Always start dragging on valid word-click to allow resizing/pulling
-                    FSM.DW_MOUSE_DRAGGING = true
+                    -- Start in pending state: plain click should not auto-scroll.
+                    -- Drag/edge auto-scroll activates only after real mouse movement.
+                    FSM.DW_MOUSE_PENDING_DRAG = true
+                    FSM.DW_MOUSE_DRAGGING = false
                     mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-                    if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
-                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+                    if FSM.DW_MOUSE_SCROLL_TIMER then
+                        FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                        FSM.DW_MOUSE_SCROLL_TIMER = nil
+                    end
                     
                     drum_osd:update()
                     if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
@@ -5507,6 +5535,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
+            FSM.DW_MOUSE_PENDING_DRAG = false
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release ONLY if the mouse 
             -- has moved significantly (dragging). This prevents stationary clicks 
@@ -5666,6 +5695,7 @@ local function dw_handle_double_click_target(subs, line_idx, word_idx)
 
         -- Explicitly terminate any dragging/scrolling state initiated by the first click
         FSM.DW_MOUSE_DRAGGING = false
+        FSM.DW_MOUSE_PENDING_DRAG = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
@@ -7297,6 +7327,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     -- Cleanup Dragging & Window state
     if not enable_mouse then
         FSM.DW_MOUSE_DRAGGING = false
+        FSM.DW_MOUSE_PENDING_DRAG = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
