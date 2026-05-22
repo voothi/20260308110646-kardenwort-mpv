@@ -3,7 +3,7 @@
 Provides supplemental translation, dictionary, or context information for the currently active or selected subtitle within the Drum Window ('w').
 ## Requirements
 ### Requirement: Tooltip Styling Unification
-The Tooltip system SHALL support the standard suite of visual parameters (font name, font size, bg opacity, text color, boldness, etc.) following the project's unified schema to ensure stylistic parity with the parent display.
+The Tooltip system SHALL support the standard suite of visual parameters (font name, font size, bg opacity, text color, boldness, line height, etc.) following the project's unified schema to ensure stylistic parity with the parent display.
 
 #### Scenario: Stylistic Parity
 - **WHEN** the user modifies `tooltip_bg_opacity`, `tooltip_font_size`, or `tooltip_font_name`
@@ -12,6 +12,11 @@ The Tooltip system SHALL support the standard suite of visual parameters (font n
 #### Scenario: Unified Boldness
 - **WHEN** the `tooltip_font_bold` option is toggled
 - **THEN** the tooltip text SHALL render with the corresponding boldness state, synchronized with the user's preference for the active display mode.
+
+#### Scenario: Variable Resolution and Formatting Stability
+- **WHEN** the translation tooltip is formatted and rendered (`draw_dw_tooltip`)
+- **THEN** the system SHALL resolve and apply local font variables (including `fs` and line height tracking)
+- **AND** rendering SHALL complete without Lua formatting exceptions caused by nil font variables.
 
 ### Requirement: Keyboard Tooltip Toggling
 The system SHALL provide configurable keyboard shortcuts (defined in `mpv.conf`) to toggle the visibility of the tooltip for the currently active subtitle. This functionality SHALL be available in Drum Window mode, Drum Mode, and SRT mode (when using custom OSD rendering).

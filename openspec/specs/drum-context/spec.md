@@ -17,3 +17,11 @@ The system SHALL automatically disable Drum Context Mode when encountering compl
 - **WHEN** a subtitle track contains complex ASS formatting
 - **THEN** Drum Context Mode SHALL be bypassed.
 
+### Requirement: Drum Mode Punctuation Selection
+The system SHALL support interactive targeting and selection of sentence-ending punctuation (such as `.`, `?`, `!`) in Drum Mode, matching Drum Window punctuation selectability.
+
+#### Scenario: Clicking punctuation in Drum Mode
+- **WHEN** the user clicks a punctuation token in Drum Mode
+- **THEN** the system SHALL target and select that punctuation token
+- **AND** the token SHALL be eligible for standard highlight and export flows.
+

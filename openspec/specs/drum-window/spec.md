@@ -4,7 +4,7 @@
 Provide a high-precision, index-based interface for subtitle reading, selection, and mining with persistent highlight feedback.
 ## Requirements
 ### Requirement: Drum Window Unified Styling
-The Drum Window SHALL allow explicit control over its appearance (font name, size, weight/boldness, and background transparency) via script options.
+The Drum Window SHALL allow explicit control over its appearance (font name, size, weight/boldness, background transparency, safe margins, and decoupled wrap spacing) via script options.
 
 #### Scenario: Background Opacity Alignment
 - **WHEN** the `dw_bg_opacity` and `dw_text_opacity` configurations are adjusted
@@ -17,6 +17,26 @@ The Drum Window SHALL allow explicit control over its appearance (font name, siz
 #### Scenario: Unified Font and Weight
 - **WHEN** the user configures `dw_font_name` or `dw_font_bold`
 - **THEN** the Drum Window SHALL apply these font and weight settings to the text rendering, ensuring a consistent aesthetic across all mpv UI layers.
+
+#### Scenario: Configurable Margins and Wrap Spacing
+- **WHEN** the user configures `dw_edge_margin` or `dw_wrap_line_height_mul`
+- **THEN** the system SHALL apply these options to adjust safe-area padding and spacing between wrapped visual lines.
+
+### Requirement: Drum Window Dynamic Positioning and Clamping
+The system SHALL dynamically position the Drum Window layout block around the focused line and clamp the block within screen boundaries to prevent text cutoff, leaving configurable `dw_edge_margin` padding at top and bottom.
+
+#### Scenario: Layout Block Centering and Boundary Clamping
+- **WHEN** the visual subtitle layout height exceeds the available viewport
+- **THEN** the system SHALL align the focused line with the viewport center
+- **AND** clamp the block offset to remain within safe padding boundaries.
+
+### Requirement: Render-Cached Mouse Interaction
+The system SHALL cache visual hit-zone bounding boxes in `FSM.DW_HIT_ZONES` during drawing and mouse hit-testing SHALL dispatch against these cached zones.
+
+#### Scenario: Interaction Aligns with Visual Render
+- **WHEN** a mouse click or hover occurs in Drum Window mode
+- **THEN** the system SHALL resolve targets from `FSM.DW_HIT_ZONES`
+- **AND** the selected logical token SHALL align with the rendered token position.
 
 ### Requirement: Scroll-Aware Selection Continuity
 The Drum Window SHALL ensure that any active text selection, word-highlight, or the focus cursor position is preserved and correctly synchronized when the viewport is scrolled or when interacting with different input layouts.
