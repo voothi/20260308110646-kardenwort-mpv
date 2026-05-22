@@ -631,6 +631,7 @@ local FSM = {
 
     -- Transient UI State
     saved_osd_border_style = nil,
+    ui_border_override_depth = 0,
     osd_border_style = mp.get_property("osd-border-style"),
     DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
     DW_HIT_ZONES = nil,        -- Hit-zone metadata for active Drum Window OSD
@@ -8219,8 +8220,30 @@ local function move_search_cursor(direction, ctrl, shift)
 end
 
 local function manage_ui_border_override(enable)
-    -- Deprecated: We now rely on \4a&HFF& in ASS to hide background box.
-    -- Kept to avoid breaking existing bindings/calls.
+    if enable then
+        FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
+        if FSM.ui_border_override_depth > 1 then return end
+
+        FSM.saved_osd_border_style = mp.get_property("osd-border-style")
+        if FSM.saved_osd_border_style == "background-box" then
+            mp.set_property("osd-border-style", "outline-and-shadow")
+            FSM.osd_border_style = "outline-and-shadow"
+        end
+        return
+    end
+
+    FSM.ui_border_override_depth = math.max(0, (FSM.ui_border_override_depth or 0) - 1)
+    if FSM.ui_border_override_depth > 0 then return end
+
+    local saved = FSM.saved_osd_border_style
+    if saved and saved ~= "" then
+        local cur = mp.get_property("osd-border-style")
+        if cur ~= saved then
+            mp.set_property("osd-border-style", saved)
+            FSM.osd_border_style = saved
+        end
+    end
+    FSM.saved_osd_border_style = nil
 end
 
 local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
@@ -9202,6 +9225,9 @@ mp.register_event("shutdown", function()
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         manage_dw_bindings(false)
+    end
+    while (FSM.ui_border_override_depth or 0) > 0 do
+        manage_ui_border_override(false)
     end
 end)
 
