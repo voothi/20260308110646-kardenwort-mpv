@@ -30,6 +30,17 @@ The system SHALL dynamically position the Drum Window layout block around the fo
 - **THEN** the system SHALL align the focused line with the viewport center
 - **AND** clamp the block offset to remain within safe padding boundaries.
 
+### Requirement: Follow Mode Viewport Stability
+When `DW_FOLLOW_PLAYER` is enabled, the Drum Window viewport SHALL stay synchronized with the active playback subtitle so the active line does not drift downward or leave the visible window during normal playback.
+
+#### Scenario: Non-Book Follow Centering
+- **GIVEN** Drum Window mode is active
+- **AND** `DW_FOLLOW_PLAYER = true`
+- **AND** Book Mode is OFF
+- **WHEN** playback advances to the next subtitle
+- **THEN** `DW_VIEW_CENTER` SHALL update to the active subtitle index
+- **AND** the active line SHALL remain visually centered (subject to boundary clamping).
+
 ### Requirement: Render-Cached Mouse Interaction
 The system SHALL cache visual hit-zone bounding boxes in `FSM.DW_HIT_ZONES` during drawing and mouse hit-testing SHALL dispatch against these cached zones.
 

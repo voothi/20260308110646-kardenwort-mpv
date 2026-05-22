@@ -5715,6 +5715,9 @@ local function tick_dw(time_pos, active_idx)
         if FSM.BOOK_MODE and not FSM.DW_SEEKING_MANUALLY then
             -- Book Mode: Line-by-line scrolling during playback
             dw_ensure_visible(active_idx, true)
+        elseif not FSM.BOOK_MODE then
+            -- In standard DW follow mode keep active subtitle centered.
+            FSM.DW_VIEW_CENTER = active_idx
         end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,

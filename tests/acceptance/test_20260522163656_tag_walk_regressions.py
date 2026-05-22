@@ -81,3 +81,12 @@ def test_visibility_guards_allow_dw_interaction_when_dw_window_on():
         assert 'if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then' in body, (
             f"Expected DW visibility bypass guard in {fn}"
         )
+
+
+def test_tick_dw_follow_mode_keeps_viewport_centered_outside_book_mode():
+    src = _lua_source()
+    body = _function_window(src, "local function tick_dw(time_pos, active_idx)", "local function tick_drum")
+
+    assert "if FSM.DW_FOLLOW_PLAYER then" in body
+    assert "elseif not FSM.BOOK_MODE then" in body
+    assert "FSM.DW_VIEW_CENTER = active_idx" in body
