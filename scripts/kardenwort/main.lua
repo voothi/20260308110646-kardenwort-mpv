@@ -3641,8 +3641,6 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     
     if (h_color == base_color) then return word end
 
-    -- Keep highlight geometry identical to baseline text geometry to avoid
-    -- frame expansion when selection colors are active.
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
     border_size = border_size or Options.dw_border_size
@@ -3658,8 +3656,6 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     end
 
     if is_phrase or is_manual then
-        -- Full highlighting for phrases or manual user focus (Gold/Pink)
-        -- Enforce "Premium" regular weight for manual selections, but respect bold setting for added database phrases
         local p_b_on = is_manual and "{\\b0}" or b_on
         return string.format("%s%s%s%s{\\b%s}", p_b_on, h_tags, word, r_tags, bold_state or "0")
     else
@@ -4514,7 +4510,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 words = vl.words
             })
             
-            local style_part = string.format("{\\pos(1800, %g)}{\\an9}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
+            local style_part = string.format("{\\pos(1800, %g)}{\\an6}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
                 cur_y, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha)
             local line_ass = style_part .. vl.line_text
             table.insert(all_tooltip_lines_ass, line_ass)
@@ -5347,6 +5343,8 @@ local function ctrl_toggle_word(line_idx, word_idx, no_sync)
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         if FSM.DRUM_WINDOW ~= "OFF" then 
             dw_osd:update() 
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
         end
     end
 end
@@ -9801,23 +9799,23 @@ end)
 
 mp.register_script_message("test-help-toggle", function()
     local ok, err = pcall(cmd_toggle_help)
-    mp.set_property("user-data/kardenwort/test_help_toggle_ok", ok and "1" or "0")
-    mp.set_property("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
-    mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+    mp.set_property_native("user-data/kardenwort/test_help_toggle_ok", ok and "1" or "0")
+    mp.set_property_native("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
+    mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
 end)
 
 mp.register_script_message("test-help-close-esc", function()
     if not FSM.HELP_MODE then
         local ok_open = pcall(cmd_toggle_help)
         if not ok_open then
-            mp.set_property("user-data/kardenwort/test_help_esc_ok", "0")
-            mp.set_property("user-data/kardenwort/test_help_esc_error", "failed to open help before ESC test")
-            mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+            mp.set_property_native("user-data/kardenwort/test_help_esc_ok", "0")
+            mp.set_property_native("user-data/kardenwort/test_help_esc_error", "failed to open help before ESC test")
+            mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
             return
         end
     end
     local ok, err = pcall(cmd_dw_esc)
-    mp.set_property("user-data/kardenwort/test_help_esc_ok", ok and "1" or "0")
-    mp.set_property("user-data/kardenwort/test_help_esc_error", ok and "" or tostring(err))
-    mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+    mp.set_property_native("user-data/kardenwort/test_help_esc_ok", ok and "1" or "0")
+    mp.set_property_native("user-data/kardenwort/test_help_esc_error", ok and "" or tostring(err))
+    mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
 end)
