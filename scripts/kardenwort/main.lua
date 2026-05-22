@@ -4325,7 +4325,7 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            local line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\q2}", vl_y_top)
+            local line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\q2}{\\3a&HFF&}{\\4a&HFF&}", vl_y_top)
             local line_ass = line_style .. line_prefix .. line_text
             table.insert(all_visual_lines_ass, line_ass)
         end
@@ -4520,7 +4520,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
             min_x = math.min(min_x, line_x_start)
             max_x = math.max(max_x, line_x_start + vl.width)
             
-            local style_part = string.format("{\\pos(1800, %g)}{\\an6}{\\bord0}{\\shad0}{\\q2}", cur_y)
+            local style_part = string.format("{\\pos(1800, %g)}{\\an6}{\\bord0}{\\shad0}{\\q2}{\\3a&HFF&}{\\4a&HFF&}", cur_y)
             local line_ass = style_part .. vl.line_text
             table.insert(all_tooltip_lines_ass, line_ass)
             
