@@ -14,10 +14,69 @@ end
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
+
+-- Callback registration hardening (must run before loading auxiliary modules).
+do
+    local raw_add_key_binding = mp.add_key_binding
+    local raw_add_forced_key_binding = mp.add_forced_key_binding
+    local raw_add_timeout = mp.add_timeout
+    local raw_add_periodic_timer = mp.add_periodic_timer
+    local raw_register_event = mp.register_event
+    local raw_observe_property = mp.observe_property
+    local raw_register_script_message = mp.register_script_message
+
+    local function validate_callback(kind, name, fn)
+        if type(fn) == "function" then return true end
+        msg.error(string.format("[kardenwort] Skipping invalid %s '%s': callback is %s",
+            tostring(kind), tostring(name), type(fn)))
+        return false
+    end
+
+    mp.add_key_binding = function(key, name, fn, flags)
+        if not validate_callback("binding", name or key, fn) then return false end
+        raw_add_key_binding(key, name, fn, flags)
+        return true
+    end
+
+    mp.add_forced_key_binding = function(key, name, fn, flags)
+        if not validate_callback("forced binding", name or key, fn) then return false end
+        raw_add_forced_key_binding(key, name, fn, flags)
+        return true
+    end
+
+    mp.add_timeout = function(seconds, fn)
+        if not validate_callback("timeout", seconds, fn) then return nil end
+        return raw_add_timeout(seconds, fn)
+    end
+
+    mp.add_periodic_timer = function(seconds, fn)
+        if not validate_callback("periodic timer", seconds, fn) then return nil end
+        return raw_add_periodic_timer(seconds, fn)
+    end
+
+    mp.register_event = function(name, fn)
+        if not validate_callback("event handler", name, fn) then return false end
+        raw_register_event(name, fn)
+        return true
+    end
+
+    mp.observe_property = function(name, ty, fn)
+        if not validate_callback("property observer", name, fn) then return false end
+        raw_observe_property(name, ty, fn)
+        return true
+    end
+
+    mp.register_script_message = function(name, fn)
+        if not validate_callback("script message", name, fn) then return false end
+        raw_register_script_message(name, fn)
+        return true
+    end
+end
+
 require 'resume'
 
 -- Fallback for older mpv versions missing utils.read_file
-local function safe_read_file(path)
+function safe_read_file(path)
     if not path or path == "" then return nil end
     if utils and utils.read_file then
         return utils.read_file(path)
@@ -40,6 +99,7 @@ end
 local manage_dw_bindings
 local update_interactive_bindings
 local render_help, render_search, cmd_toggle_help
+local manage_ui_border_override
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -93,7 +153,7 @@ mp.set_property("user-data/kardenwort/last_osd", "")
 mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
 
-local function is_valid_mpv_key(k_str)
+function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
     local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
     local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
@@ -109,7 +169,7 @@ local EN_RU_MAP = {
     ["y"]="н", ["z"]="я", ["["]="х", ["]"]="ъ", [";"]="ж", ["'"]="э", [","]="б", ["."]="ю", ["`"]="ё"
 }
 
-local function expand_ru_keys(key_string, opt_name)
+function expand_ru_keys(key_string, opt_name)
     if not key_string or key_string == "" then return {} end
     local results = {}
     local seen = {}
@@ -169,7 +229,7 @@ local function expand_ru_keys(key_string, opt_name)
     return results
 end
 
-local function validate_config()
+function validate_config()
     local errors = {}
     local function check_keys(opt_val, opt_name)
         if not opt_val or opt_val == "" then return end
@@ -350,9 +410,11 @@ Options = {
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
+    dw_wrap_line_height_mul = 1.05, -- intra-subtitle wrapped line spacing = dw_font_size * this (keeps descenders clear of next line)
     dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
     dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
+    dw_edge_margin = 24,          -- Top/bottom safe padding (px) when scroll is clamped at file ends
     dw_border_size = 1.5,
     dw_shadow_offset = 1.0,
     dw_original_spacing = true,
@@ -395,6 +457,7 @@ Options = {
     tooltip_bg_opacity = "60",         -- Background transparency
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
+    tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
     tooltip_line_height_mul = 0.87,     -- Vertical spacing multiplier
     tooltip_block_gap_mul = -0.27,
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
@@ -507,6 +570,9 @@ Options = {
     -- Colors
     dw_split_select_color = "FF88B0",
     dw_mouse_shield_ms = 50,       -- Interaction Shield window (ms)
+    dw_mouse_drag_threshold_px = 5, -- Min pointer movement (px) before click becomes drag
+    dw_mouse_auto_scroll_interval = 0.05, -- Timer interval for drag edge auto-scroll (sec)
+    dw_mouse_edge_scroll_ratio = 0.15, -- Screen-height ratio used as top/bottom edge scroll zones
     sentence_word_threshold = 3,
     replay_ms = 2000,              -- Fixed window for adaptive replay (ms)
     replay_count = 2,              -- Number of iterations for the replay command
@@ -610,6 +676,9 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_MOUSE_PENDING_DRAG = false, -- True while LMB is down and waiting for drag threshold
+    DW_MOUSE_DOWN_X = nil,     -- OSD X at mouse-down (for drag threshold / release sync)
+    DW_MOUSE_DOWN_Y = nil,     -- OSD Y at mouse-down (for drag threshold / release sync)
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection map {line -> {word -> {line, word}}}
     DW_CTRL_PENDING_LIST = {}, -- Sorted list of members for sequential export
@@ -629,7 +698,10 @@ local FSM = {
 
     -- Transient UI State
     saved_osd_border_style = nil,
+    ui_border_override_depth = 0,
+    osd_border_style = mp.get_property("osd-border-style"),
     DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
+    DW_HIT_ZONES = nil,        -- Hit-zone metadata for active Drum Window OSD
 
     -- Tooltip State
     DW_TOOLTIP_LINE = -1,
@@ -641,8 +713,11 @@ local FSM = {
     DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
+    DW_TOOLTIP_BORDER_OVERRIDE = false, -- True only when tooltip itself owns a global border-style override
     DW_TOOLTIP_SEC_SUBS = {},   -- Cached secondary subtitles for tooltip fallback when secondary track is hidden
     DW_TOOLTIP_SEC_PATH = nil,  -- Source path for DW_TOOLTIP_SEC_SUBS
+    DW_BLOCK_TOP = 0,           -- Current Drum Window top offset (for diagnostics/tests)
+    DW_TOTAL_HEIGHT = 0,        -- Current Drum Window total visual block height
     DW_SEEKING_MANUALLY = false,
     DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
@@ -2903,6 +2978,7 @@ end
 -- INVARIANT: DRUM_DRAW_CACHE and DW_DRAW_CACHE are captured by upvalue.
 -- They MUST be defined at module scope before this function is called at runtime,
 -- otherwise the cache flushing will silently fail.
+local apply_tooltip_ass
 local function flush_rendering_caches()
     FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
     FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
@@ -2930,7 +3006,10 @@ local function flush_rendering_caches()
         DW_TOOLTIP_DRAW_CACHE.result = ""
         DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
     end
-    dw_tooltip_osd.data = ""
+    -- Keep forced tooltip visible across cache flushes; next tick re-renders.
+    if not FSM.DW_TOOLTIP_FORCE then
+        apply_tooltip_ass("")
+    end
 end
 
 local function invalidate_dw_tooltip_cache()
@@ -2945,6 +3024,26 @@ local function invalidate_dw_tooltip_cache()
     DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
 end
 
+apply_tooltip_ass = function(ass)
+    if not dw_tooltip_osd then return end
+    ass = ass or ""
+    local will_visible = (ass ~= "")
+    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
+    local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
+    if wants_override and not has_override then
+        manage_ui_border_override(true)
+        has_override = true
+    elseif not wants_override and has_override then
+        manage_ui_border_override(false)
+        has_override = false
+    end
+    FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override
+    if ass ~= dw_tooltip_osd.data then
+        dw_tooltip_osd.data = ass
+        dw_tooltip_osd:update()
+    end
+end
+
 local function clear_tooltip_overlay(reason)
     if reason then
         Diagnostic.debug("TOOLTIP CLEAR: " .. reason)
@@ -2953,10 +3052,7 @@ local function clear_tooltip_overlay(reason)
     FSM.DW_TOOLTIP_HIT_ZONES = nil
     FSM.DW_TOOLTIP_LOCKED_LINE = -1
     invalidate_dw_tooltip_cache()
-    if dw_tooltip_osd and dw_tooltip_osd.data ~= "" then
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
-    end
+    apply_tooltip_ass("")
 end
 
 local function is_osd_tooltip_mode_eligible()
@@ -2975,12 +3071,19 @@ local function get_tooltip_line_y(line_idx, fallback_y)
     if FSM.DRUM_WINDOW ~= "OFF" then
         return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
     end
+    local fallback_zone_y = nil
     for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
-        if zone.sub_idx == line_idx and zone.is_pri then
-            return zone.y_top
+        if zone.sub_idx == line_idx then
+            local zone_center_y = (zone.y_top + zone.y_bottom) / 2
+            if zone.is_pri then
+                return zone_center_y
+            end
+            if fallback_zone_y == nil then
+                fallback_zone_y = zone_center_y
+            end
         end
     end
-    return fallback_y
+    return fallback_zone_y or fallback_y
 end
 
 
@@ -3635,17 +3738,21 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     
     if (h_color == base_color) then return word end
 
-    -- Keep highlight geometry identical to baseline text geometry to avoid
-    -- frame expansion when selection colors are active.
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
     border_size = border_size or Options.dw_border_size
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
-    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    local h_tags, r_tags
+    if FSM.osd_border_style == "background-box" then
+        -- mpv already paints a solid background box; geometry tags would
+        -- double-paint and shift highlight boundaries.
+        h_tags = string.format("{\\%s&H%s&}", c_tag, h_color)
+        r_tags = string.format("{\\%s&H%s&}", c_tag, base_color)
+    else
+        h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+        r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    end
 
     if is_phrase or is_manual then
-        -- Full highlighting for phrases or manual user focus (Gold/Pink)
-        -- Enforce "Premium" regular weight for manual selections, but respect bold setting for added database phrases
         local p_b_on = is_manual and "{\\b0}" or b_on
         return string.format("%s%s%s%s{\\b%s}", p_b_on, h_tags, word, r_tags, bold_state or "0")
     else
@@ -3670,6 +3777,25 @@ end
 -- =========================================================================
 
 -- Helper to estimate the width of a proportional string
+local function dw_get_str_width_proportional(str, fs)
+    if type(str) == "table" then str = str.text end
+    if not str then return 0 end
+    fs = fs or Options.dw_font_size
+
+    str = str:gsub("{[^}]+}", "")
+
+    local w = 0
+    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        if c == " " then w = w + (fs * 0.30)
+        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
+        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
+        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
+        elseif #c > 1 then w = w + (fs * 0.52) -- Cyrillic/Wide (calibrated for tooltip rectangle fit)
+        else w = w + (fs * 0.42) end
+    end
+    return w
+end
+
 local function dw_get_str_width(str, fs, font_name)
     if type(str) == "table" then str = str.text end
     if not str then return 0 end
@@ -3687,16 +3813,7 @@ local function dw_get_str_width(str, fs, font_name)
     end
     
     -- Proportional heuristic (standard for OSD)
-    local w = 0
-    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if c == " " then w = w + (fs * 0.30)
-        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
-        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
-        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
-        elseif #c > 1 then w = w + (fs * 0.45) -- Cyrillic/Wide
-        else w = w + (fs * 0.42) end
-    end
-    return w
+    return dw_get_str_width_proportional(str, fs)
 end
 
 
@@ -3769,7 +3886,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
             local ww = dw_get_str_width(t.text, font_size, font_name)
             local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
             
-            if t.is_word and t.logical_idx then
+            if t.logical_idx then
                 table.insert(words, {
                     logical_idx = t.logical_idx,
                     x_offset = line_w + space, -- Relative to start of visual line
@@ -3779,7 +3896,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
             end
             line_w = line_w + space + ww
         end
-        
+
         local h = (font_size * line_height_mul) + vsp
         table.insert(lines, {
             words = words,
@@ -4041,7 +4158,7 @@ local function dw_build_layout(subs, view_center)
     end_idx = math.min(#subs, end_idx)
 
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local vline_h = dw_vline_height()
     local sub_gap = calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
@@ -4144,6 +4261,47 @@ local function dw_build_layout(subs, view_center)
     return layout, total_height
 end
 
+local function dw_calculate_block_top(view_center, active_idx, layout, total_height)
+    local lh_mul = Options.dw_line_height_mul
+    local base_h = Options.font_base_height or 1080
+    local center_y = base_h / 2
+    local edge_margin = Options.dw_edge_margin or 0
+
+    -- Keep the frame stable in normal layouts (historical DW behavior):
+    -- center the whole block, and only apply focused-line anchoring when overflowing.
+    local block_top = center_y - (total_height / 2)
+
+    if total_height > base_h - 2 * edge_margin then
+        local offset_y = 0
+        local found_center = false
+        for layout_i, entry in ipairs(layout) do
+            if entry.sub_idx == view_center then
+                offset_y = offset_y + (entry.height / 2)
+                found_center = true
+                break
+            else
+                offset_y = offset_y + entry.height
+                if layout_i < #layout then
+                    local is_active = (entry.sub_idx == active_idx)
+                    local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+                    offset_y = offset_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+                end
+            end
+        end
+        if found_center then
+            block_top = center_y - offset_y
+        end
+
+        if block_top > edge_margin then
+            block_top = edge_margin
+        elseif block_top + total_height < base_h - edge_margin then
+            block_top = base_h - edge_margin - total_height
+        end
+    end
+
+    return block_top
+end
+
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 DW_DRAW_CACHE = {
@@ -4169,20 +4327,19 @@ local function draw_dw(subs, view_center, active_idx)
        DW_DRAW_CACHE.aw             == FSM.DW_ANCHOR_WORD and
        DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
         
+        if DW_DRAW_CACHE.hit_zones then FSM.DW_HIT_ZONES = DW_DRAW_CACHE.hit_zones end
+        if DW_DRAW_CACHE.line_y_map then FSM.DW_LINE_Y_MAP = DW_DRAW_CACHE.line_y_map end
         return DW_DRAW_CACHE.result
     end
 
-    local ass = ""
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local current_y = 540 - (total_height / 2)
+    local block_top = dw_calculate_block_top(view_center, active_idx, layout, total_height)
+    local current_y = block_top
     FSM.DW_LINE_Y_MAP = {}
+    FSM.DW_HIT_ZONES = {}
     
-    -- Selection range
-    local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
-    local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-
     -- Pass 1: Global Highlight Pre-Pass
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
@@ -4193,10 +4350,16 @@ local function draw_dw(subs, view_center, active_idx)
 
 
 
-    -- Text Block mapping
-    local lines_ass = {}
+    -- Hybrid render strategy:
+    -- 1) One shared background window (vector rectangle) for cohesive framing.
+    -- 2) Per-visual-line positioned text to preserve hit-test precision.
+    local all_visual_lines_ass = {}
+    local min_x = math.huge
+    local max_x = -math.huge
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
+        local entry_y_top = current_y
+        
         FSM.DW_LINE_Y_MAP[i] = math.floor(current_y + (entry.height / 2) + 0.5)
         current_y = current_y + entry.height
         if layout_i < #layout then
@@ -4214,10 +4377,28 @@ local function draw_dw(subs, view_center, active_idx)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
-        local entry_ass_vlines = {}
-        for _, vl_indices in ipairs(entry.vlines) do
+        local vline_h = dw_vline_height()
+        for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
-            for _, j in ipairs(vl_indices) do
+            local space_w = dw_get_str_width(" ", f_size, font_name)
+            local line_words = {}
+            local line_w = 0
+            
+            for pos, j in ipairs(vl_indices) do
+                local t = entry.words[j]
+                local ww = dw_get_str_width(t.text, f_size, font_name)
+                local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
+                
+                if t.logical_idx then
+                    table.insert(line_words, {
+                        logical_idx = t.logical_idx,
+                        x_offset = line_w + space,
+                        width = ww,
+                        text = t.text
+                    })
+                end
+                line_w = line_w + space + ww
+                
                 local meta_item = token_meta[j]
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
@@ -4228,41 +4409,52 @@ local function draw_dw(subs, view_center, active_idx)
                 end
             end
             
+            local vl_y_top = entry_y_top + (vl_index - 1) * vline_h
+            local vl_y_bottom = vl_y_top + vline_h
+            local line_x_start = 960 - line_w / 2
+            
+            table.insert(FSM.DW_HIT_ZONES, {
+                sub_idx = entry.sub_idx,
+                y_top = vl_y_top,
+                y_bottom = vl_y_bottom,
+                x_start = line_x_start,
+                total_width = line_w,
+                words = line_words,
+            })
+            min_x = math.min(min_x, line_x_start)
+            max_x = math.max(max_x, line_x_start + line_w)
+            
             local line_text = ""
             if Options.dw_original_spacing then
                 line_text = table.concat(formatted_words, "")
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            table.insert(entry_ass_vlines, line_text)
-        end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
-        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
-    end
-    
-    local d_gap = Options.dw_double_gap
-    local vsp_base = Options.dw_vsp
-    local b_gap_mul = Options.dw_block_gap_mul or 0
-
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-
-    local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
+            local line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\q2}", vl_y_top)
+            local line_ass = line_style .. line_prefix .. line_text
+            table.insert(all_visual_lines_ass, line_ass)
         end
     end
-    local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+
+    FSM.DW_BLOCK_TOP = block_top
+    FSM.DW_TOTAL_HEIGHT = total_height
+
+    if min_x == math.huge then
+        min_x = 960
+        max_x = 960
+    end
+    local pad_x = math.max(8, (Options.dw_border_size or 0) * 4)
+    local pad_y = math.max(4, (Options.dw_border_size or 0) * 2)
+    local rect_left = min_x - pad_x
+    local rect_top = block_top - pad_y
+    local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
+    local rect_h = math.max(1, total_height + (2 * pad_y))
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    local final_ass = bg_rect
+    if #all_visual_lines_ass > 0 then
+        final_ass = final_ass .. "\n" .. table.concat(all_visual_lines_ass, "\n")
+    end
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -4277,6 +4469,9 @@ local function draw_dw(subs, view_center, active_idx)
     DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
     DW_DRAW_CACHE.result          = final_ass
     
+    DW_DRAW_CACHE.hit_zones = FSM.DW_HIT_ZONES
+    DW_DRAW_CACHE.line_y_map = FSM.DW_LINE_Y_MAP
+
     return final_ass
 end
 
@@ -4303,6 +4498,12 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local primary_sub = subs[target_line_idx]
     if not primary_sub then return "" end
     
+    local fs = Options.tooltip_font_size
+    local line_height = fs * Options.tooltip_line_height_mul
+    local base_h = Options.font_base_height or 1080
+    local base_w = math.floor(base_h * 16 / 9)
+    local anchor_x = base_w - math.floor((120 * base_h / 1080) + 0.5)
+    
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
@@ -4312,12 +4513,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local end_idx = math.min(#tooltip_sec_subs, center_idx + Options.tooltip_context_lines)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
-    local fs = Options.tooltip_font_size
-    local line_height = fs * Options.tooltip_line_height_mul
-    -- local bold = Options.tooltip_font_bold and "1" or "0" -- Moved per-line (Task 2.1)
-    
-    local max_text_w = 1400 -- Task 2.2 / Design Decision 3
-    local lines_ass = {}
+    local mono_hint = font_name:lower():match("consolas") or font_name:lower():match("mono")
+    local max_text_w = math.floor(base_w * 0.73)
     local total_visual_lines = 0 -- Task 3.1
     local subtitle_metas = {} -- Storage for hit-zone calculation
     
@@ -4343,7 +4540,6 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         local force_plain = not Options.dw_sec_highlighting
         local token_meta = populate_token_meta(tooltip_sec_subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
         
-        local sub_visual_lines = {}
         local visual_lines_meta = {}
         for _, indices in ipairs(vline_indices) do
             local line_text = ""
@@ -4353,6 +4549,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 local t = tokens[idx]
                 local tm = token_meta[idx]
                 local ww = dw_get_str_width(t.text, fs, font_name)
+                if mono_hint then
+                    -- If the configured monospace font falls back to a proportional
+                    -- face, avoid underestimating width and clipping the shared rect.
+                    ww = math.max(ww, dw_get_str_width_proportional(t.text, fs))
+                end
                 
                 if t.is_word and t.logical_idx then
                     table.insert(line_words, {
@@ -4368,28 +4569,21 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
-            table.insert(sub_visual_lines, line_prefix .. alpha_tag .. line_text)
-            table.insert(visual_lines_meta, {width = line_w, words = line_words})
+            table.insert(visual_lines_meta, {
+                width = line_w, 
+                words = line_words, 
+                line_text = line_prefix .. alpha_tag .. line_text
+            })
             total_visual_lines = total_visual_lines + 1
         end
         
         table.insert(subtitle_metas, {sub_idx = i, visual_lines = visual_lines_meta})
-        
-        -- Task 2.3: Join visual lines within a subtitle with \N
-        table.insert(lines_ass, table.concat(sub_visual_lines, "\\N"))
     end
-    
-    local d_gap = Options.tooltip_double_gap
-    local vsp_base = Options.tooltip_vsp
-    local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    local vsp_extra = d_gap and (fs * b_gap_mul / 2) or 0
-    local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-
-    local text_block = table.concat(lines_ass, separator)
     
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
-    local shad = Options.tooltip_shadow_offset
+    local dm_mode = (FSM.DRUM_WINDOW == "OFF")
+    local line_bgbox_neutral = ""
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
@@ -4404,40 +4598,80 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local half_h = block_height / 2
     local margin = 20
-    local screen_h = 1080
+    local screen_h = base_h
+    local pad_x = math.max(16, (bord or 0) * 6)
+    local pad_y = math.max(4, (bord or 0) * 2)
+    local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)
     
     -- Task 3.3: final_y positioning
     local logical_interval = layout_line_h + total_gap
     local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
+    local half_h_with_pad = half_h + pad_y
     
-    if final_y - half_h < margin then
-        final_y = margin + half_h
-    elseif final_y + half_h > screen_h - margin then
-        final_y = screen_h - margin - half_h
+    if final_y - half_h_with_pad < margin then
+        final_y = margin + half_h_with_pad
+    elseif final_y + half_h_with_pad > screen_h - margin then
+        final_y = screen_h - margin - half_h_with_pad
     end
-
+    
+    -- Hybrid tooltip render strategy:
+    -- 1) One shared background window for the whole tooltip block.
+    -- 2) Per-visual-line positioned text to preserve precise hit-zones.
     -- POPULATE HIT ZONES (Task 2.1 / 2.2 / 2.3)
     FSM.DW_TOOLTIP_HIT_ZONES = {}
+    local all_tooltip_lines_ass = {}
+    local min_x = math.huge
+    local max_x = -math.huge
     local cur_y = final_y - half_h
     for _, sm in ipairs(subtitle_metas) do
         for _, vl in ipairs(sm.visual_lines) do
+            local line_x_start = anchor_x - vl.width -- Right-aligned an6 logic
             table.insert(FSM.DW_TOOLTIP_HIT_ZONES, {
                 sub_idx = sm.sub_idx,
                 y_top = cur_y,
                 y_bottom = cur_y + layout_line_h,
-                x_start = 1800 - vl.width, -- Right-aligned an6 logic
+                x_start = line_x_start,
                 total_width = vl.width,
                 words = vl.words
             })
+            min_x = math.min(min_x, line_x_start)
+            max_x = math.max(max_x, line_x_start + vl.width)
+            
+            local style_part = string.format("{\\pos(%g, %g)}{\\an6}{\\bord0}{\\shad0}{\\q2}%s", anchor_x, cur_y, line_bgbox_neutral)
+            local line_ass = style_part .. vl.line_text
+            table.insert(all_tooltip_lines_ass, line_ass)
+            
             cur_y = cur_y + layout_line_h
         end
         cur_y = cur_y + total_gap
     end
+    
+    if min_x == math.huge then
+        min_x = anchor_x
+        max_x = anchor_x
+    end
+    local block_top = final_y - half_h
+    local rect_left = min_x - pad_x
+    local rect_top = block_top - pad_top
+    local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
+    local rect_h = math.max(1, block_height + pad_top + pad_y)
+    local rect_bg_alpha = bg_alpha
+    -- In DM with global background-box style enabled, mpv already paints a backdrop.
+    -- Keep the shared vector card for geometry consistency, but make it transparent
+    -- to avoid the perceived "double-dark" tooltip window.
+    if dm_mode and FSM.osd_border_style == "background-box" then
+        rect_bg_alpha = "FF"
+        -- Keep only the global background-box contribution in DM:
+        -- tooltip lines must not add another dark layer.
+        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
+    end
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
 
-    local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local base_bold = Options.tooltip_context_bold and "1" or "0"
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
+    local ass = bg_rect
+    if #all_tooltip_lines_ass > 0 then
+        ass = ass .. "\n" .. table.concat(all_tooltip_lines_ass, "\n")
+    end
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
@@ -4484,101 +4718,110 @@ local function dw_hit_test(osd_x, osd_y)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return nil, nil end
 
-    local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
-
-    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
-    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
-    if Options.dw_double_gap then
-        sub_gap = sub_gap + vline_h
+    -- Ensure hit zones are populated. If not, invoke draw_dw to build them.
+    if not FSM.DW_HIT_ZONES or #FSM.DW_HIT_ZONES == 0 then
+        draw_dw(subs, FSM.DW_VIEW_CENTER, FSM.ACTIVE_IDX)
     end
-    local space_w = dw_get_str_width(" ")
+    if not FSM.DW_HIT_ZONES or #FSM.DW_HIT_ZONES == 0 then
+        return nil, nil
+    end
 
-    local block_top = 540 - total_height / 2
+    local first_zone = FSM.DW_HIT_ZONES[1]
+    local last_zone = FSM.DW_HIT_ZONES[#FSM.DW_HIT_ZONES]
 
     -- Clamp vertically to the first/last word if outside the entire block
-    if osd_y <= block_top then
-        local first = layout[1]
-        local v_idx = first.vlines[1][1]
-        return first.sub_idx, first.visual_to_logical[v_idx] or 1
-    end
-    if osd_y >= block_top + total_height then
-        local last = layout[#layout]
-        local last_vl = last.vlines[#last.vlines]
-        local v_idx = last_vl[#last_vl]
-        return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
-    end
-
-    local y_pos = block_top
-    for _, entry in ipairs(layout) do
-        local entry_bottom = y_pos + entry.height
-        -- If osd_y is within the entry OR in the gap immediately below it, snap it to this entry
-        if osd_y < entry_bottom + sub_gap then
-            local rel_y = math.max(0, math.min(osd_y - y_pos, entry.height - 0.001))
-            local vl_num = math.floor(rel_y / vline_h) + 1
-            vl_num = math.max(1, math.min(#entry.vlines, vl_num))
-
-            local vl_indices = entry.vlines[vl_num]
-
-            local vl_width = 0
-            for k, wi in ipairs(vl_indices) do
-                vl_width = vl_width + dw_get_str_width(entry.words[wi])
-                if k < #vl_indices and not Options.dw_original_spacing then 
-                    vl_width = vl_width + space_w 
-                end
-            end
-            
-            local vl_left = 960 - vl_width / 2
-
-            local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or math.max(1, #entry.logical_words) end
-
-            -- Build word center positions for snap-to-nearest logic
-            local centers = {}
-            local pos = 0
-            for k, wi in ipairs(vl_indices) do
-                local ww = dw_get_str_width(entry.words[wi])
-                centers[k] = { idx = wi, center = pos + ww / 2 }
-                pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
-            end
-            -- Find the word whose center is closest to the cursor
-            local best_k = 1
-            local min_dist = math.abs(cx - centers[1].center)
-            for k = 2, #centers do
-                local dist = math.abs(cx - centers[k].center)
-                if dist < min_dist then
-                    min_dist = dist
-                    best_k = k
-                end
-            end
-            
-            local visual_wi = centers[best_k].idx
-            local logical_wi = entry.visual_to_logical[visual_wi]
-            
-            -- If user clicked on a spacer/filler token, find the nearest selectable word
-            if not logical_wi then
-                local best_logical = nil
-                local best_logic_dist = 999
-                for l_idx, v_idx in pairs(entry.logical_to_visual) do
-                    local dist = math.abs(v_idx - visual_wi)
-                    if dist < best_logic_dist then
-                        best_logic_dist = dist
-                        best_logical = l_idx
-                    end
-                end
-                logical_wi = best_logical or 1
-            end
-
-            return entry.sub_idx, logical_wi
+    if osd_y <= first_zone.y_top then
+        local word_idx = 1
+        if #first_zone.words > 0 then
+            word_idx = first_zone.words[1].logical_idx
         end
-        y_pos = entry_bottom + sub_gap
+        return first_zone.sub_idx, word_idx
+    end
+    if osd_y >= last_zone.y_bottom then
+        local word_idx = 1
+        if #last_zone.words > 0 then
+            word_idx = last_zone.words[#last_zone.words].logical_idx
+        else
+            local last_sub = subs[last_zone.sub_idx]
+            if last_sub then
+                local tokens = get_sub_tokens(last_sub)
+                local cnt = 0
+                for _, t in ipairs(tokens) do
+                    if is_word_token(t) then cnt = cnt + 1 end
+                end
+                word_idx = math.max(1, cnt)
+            end
+        end
+        return last_zone.sub_idx, word_idx
     end
 
-    -- Fallback safety, should never be reached due to the >= check at the top
-    local last = layout[#layout]
-    local last_vl = last.vlines[#last.vlines]
-    local v_idx = last_vl[#last_vl]
-    return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+    -- Find the visual line containing osd_y (including inter-subtitle gaps)
+    local best_zone = nil
+    for idx, zone in ipairs(FSM.DW_HIT_ZONES) do
+        if osd_y >= zone.y_top and osd_y <= zone.y_bottom then
+            best_zone = zone
+            break
+        end
+        local next_zone = FSM.DW_HIT_ZONES[idx + 1]
+        if next_zone and osd_y > zone.y_bottom and osd_y < next_zone.y_top then
+            best_zone = zone
+            break
+        end
+    end
+
+    if not best_zone then
+        local mid_y = (first_zone.y_top + last_zone.y_bottom) / 2
+        best_zone = osd_y < mid_y and first_zone or last_zone
+    end
+
+    -- Clamp horizontally if outside the line bounds
+    local rel_x = osd_x - best_zone.x_start
+    if rel_x <= 0 then
+        local word_idx = 1
+        if #best_zone.words > 0 then
+            word_idx = best_zone.words[1].logical_idx
+        end
+        return best_zone.sub_idx, word_idx
+    end
+    if rel_x >= best_zone.total_width then
+        local word_idx = 1
+        if #best_zone.words > 0 then
+            word_idx = best_zone.words[#best_zone.words].logical_idx
+        else
+            local sub = subs[best_zone.sub_idx]
+            if sub then
+                local tokens = get_sub_tokens(sub)
+                local cnt = 0
+                for _, t in ipairs(tokens) do
+                    if is_word_token(t) then cnt = cnt + 1 end
+                end
+                word_idx = math.max(1, cnt)
+            end
+        end
+        return best_zone.sub_idx, word_idx
+    end
+
+    -- Find the word whose center is closest to the cursor
+    local best_word = nil
+    local min_dist = math.huge
+    for _, word in ipairs(best_zone.words) do
+        local center = word.x_offset + word.width / 2
+        local dist = math.abs(rel_x - center)
+        if dist < min_dist then
+            min_dist = dist
+            best_word = word
+        end
+    end
+
+    if best_word then
+        return best_zone.sub_idx, best_word.logical_idx
+    end
+
+    -- Fallback: best_zone has no selectable words (e.g. line of only spacers).
+    -- Pick the closest word in the same subtitle by (vertical dist, horizontal dist).
+    local neighbor = dw_resolve_neighbor_word(
+        FSM.DW_HIT_ZONES, best_zone.sub_idx, best_zone.y_top, osd_x)
+    return best_zone.sub_idx, neighbor or 1
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
@@ -4658,6 +4901,28 @@ local function drum_osd_hit_test(osd_x, osd_y)
     return nil, nil, nil
 end
 
+local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
+    if dw_mode then
+        return select(1, dw_hit_test(osd_x, osd_y))
+    end
+
+    local line_idx, _, hit_pri = drum_osd_hit_test(osd_x, osd_y)
+    if not line_idx then return nil end
+    if hit_pri then return line_idx end
+
+    local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
+    local sec_sub = sec_subs and sec_subs[line_idx]
+    if sec_sub then
+        local midpoint = (sec_sub.start_time + sec_sub.end_time) / 2
+        local pri_idx = get_center_index(subs, midpoint)
+        if pri_idx and pri_idx ~= -1 then
+            return pri_idx
+        end
+    end
+
+    return line_idx
+end
+
 local function kardenwort_hit_test_all(osd_x, osd_y)
     if not Options.osd_interactivity then return nil, nil end
     
@@ -4724,20 +4989,106 @@ local function dw_sync_cursor_to_mouse()
 
 end
 
+-- Wrapped-line visual height inside a single subtitle entry.
+-- Centralized so changes to wrapped-line spacing stay in one place.
+function dw_vline_height()
+    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
+    return (Options.dw_font_size * wrap_mul) + (Options.dw_vsp or 0)
+end
+
+function get_dw_drag_threshold_px()
+    local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
+    if threshold < 0 then return 0 end
+    return threshold
+end
+
+function get_dw_mouse_auto_scroll_interval()
+    local interval = tonumber(Options.dw_mouse_auto_scroll_interval) or 0.05
+    if interval <= 0 then return 0.05 end
+    return interval
+end
+
+function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
+    local down_x = FSM.DW_MOUSE_DOWN_X or osd_x
+    local down_y = FSM.DW_MOUSE_DOWN_Y or osd_y
+    local dx = math.abs(osd_x - down_x)
+    local dy = math.abs(osd_y - down_y)
+    local threshold = get_dw_drag_threshold_px()
+    return (dx > threshold or dy > threshold)
+end
+
+-- Fallback word resolution for dw_hit_test: when the visual line under the
+-- cursor has no selectable words, pick the closest word in the same subtitle.
+--   1) Among zones in target_sub_idx that have selectable words, pick the
+--      one whose y_top is vertically closest to ref_y_top.
+--   2) Within that zone, pick the word whose horizontal center is closest
+--      to osd_x.
+-- Returns the logical_idx of the chosen word, or nil if no candidate exists.
+function dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x)
+    local best_zone = nil
+    local best_dy = math.huge
+    for _, z in ipairs(zones) do
+        if z.sub_idx == target_sub_idx and z.words and #z.words > 0 then
+            local dy = math.abs((z.y_top or 0) - ref_y_top)
+            if dy < best_dy then
+                best_dy = dy
+                best_zone = z
+            end
+        end
+    end
+    if not best_zone then return nil end
+
+    local rel_x = osd_x - (best_zone.x_start or 0)
+    local best_word = nil
+    local best_dx = math.huge
+    for _, word in ipairs(best_zone.words) do
+        local center = (word.x_offset or 0) + (word.width or 0) / 2
+        local dx = math.abs(rel_x - center)
+        if dx < best_dx then
+            best_dx = dx
+            best_word = word
+        end
+    end
+
+    return best_word and best_word.logical_idx or nil
+end
+
 local function dw_mouse_update_selection()
-    if not FSM.DW_MOUSE_DRAGGING then return end
+    if not FSM.DW_MOUSE_DRAGGING then
+        if not FSM.DW_MOUSE_PENDING_DRAG then return end
+
+        local osd_x, osd_y = dw_get_mouse_osd()
+        if not dw_pointer_exceeded_drag_threshold(osd_x, osd_y) then return end
+
+        FSM.DW_MOUSE_PENDING_DRAG = false
+        FSM.DW_MOUSE_DRAGGING = true
+    end
+
     dw_sync_cursor_to_mouse()
 end
 
 
 local function dw_mouse_auto_scroll()
-    if not FSM.DW_MOUSE_DRAGGING or FSM.DRUM_WINDOW == "OFF" then return end
+    if FSM.DRUM_WINDOW == "OFF" then return end
+
+    -- Keep selection following the pointer even if OS/driver drops mouse_move events.
+    -- This restores continuous drag behavior while preserving click-vs-drag thresholding.
+    dw_mouse_update_selection()
+
+    if not FSM.DW_MOUSE_DRAGGING then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
     local _, osd_y = dw_get_mouse_osd()
 
-    local edge_zone = 1080 * 0.15
+    -- Top + bottom edge zones must leave a usable scroll-neutral band in the
+    -- middle of the screen, so cap the per-side ratio just under 0.5.
+    local DW_EDGE_SCROLL_RATIO_MAX = 0.49
+    local base_h = Options.font_base_height or 1080
+    local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15
+    if edge_ratio < 0 then edge_ratio = 0 end
+    if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then edge_ratio = DW_EDGE_SCROLL_RATIO_MAX end
+    local edge_zone = base_h * edge_ratio
     local scrolled = false
     if osd_y < edge_zone then
         if FSM.DW_VIEW_CENTER > 1 then
@@ -4745,7 +5096,7 @@ local function dw_mouse_auto_scroll()
             if FSM.DW_CURSOR_LINE > 1 then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1 end
             scrolled = true
         end
-    elseif osd_y > 1080 - edge_zone then
+    elseif osd_y > base_h - edge_zone then
         if FSM.DW_VIEW_CENTER < #subs then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
             if FSM.DW_CURSOR_LINE < #subs then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1 end
@@ -4754,12 +5105,9 @@ local function dw_mouse_auto_scroll()
     end
     
     if scrolled then
-        -- Force re-evaluate mouse position on new scroll anchor
+        -- Force re-evaluate mouse position on new scroll anchor.
         dw_mouse_update_selection()
     end
-    
-    -- ALWAYS update selection to guarantee smooth dragging even if OS drops mouse_move events
-    dw_mouse_update_selection()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
@@ -4779,12 +5127,7 @@ local function cmd_dw_tooltip_pin(tbl)
         if not subs or #subs == 0 then return end
         
         local osd_x, osd_y = dw_get_mouse_osd()
-        local line_idx, _
-        if dw_mode then
-            line_idx, _ = dw_hit_test(osd_x, osd_y)
-        else
-            line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
-        end
+        local line_idx = resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
         
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
@@ -4792,9 +5135,8 @@ local function cmd_dw_tooltip_pin(tbl)
             local y = get_tooltip_line_y(line_idx, osd_y)
             if y then y = math.floor(y + 0.5) end
             local ass = draw_dw_tooltip(subs, line_idx, y)
-            if ass ~= dw_tooltip_osd.data then
-                dw_tooltip_osd.data = ass
-                dw_tooltip_osd:update()
+            if ass ~= "" then
+                apply_tooltip_ass(ass)
             end
             Diagnostic.debug("TOOLTIP ROUTE: PIN->" .. (dw_mode and "DW" or "DRUM") .. " line=" .. tostring(line_idx))
         end
@@ -4859,9 +5201,8 @@ local function cmd_dw_tooltip_toggle()
             y = math.floor(y + 0.5)
         end
         local ass = draw_dw_tooltip(subs, line_idx, y)
-        if ass ~= dw_tooltip_osd.data then
-            dw_tooltip_osd.data = ass
-            dw_tooltip_osd:update()
+        if ass ~= "" then
+            apply_tooltip_ass(ass)
         end
     end
 end
@@ -4878,17 +5219,9 @@ local function dw_tooltip_mouse_update()
     if not subs or #subs == 0 then return end
     
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _
-    if dw_mode then
-        -- In DW, always target via primary DW hit-test for tooltip routing.
-        -- This avoids hover flicker on borders caused by mixed tooltip-vs-primary hit-zones.
-        line_idx, _ = dw_hit_test(osd_x, osd_y)
-    elseif FSM.DW_TOOLTIP_HOLDING then
-        -- During RMB hold in non-DW modes, keep stable routing through shared hit-test.
-        line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
-    else
-        line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
-    end
+    -- Use primary-track resolution in both DW and DM paths.
+    -- In DM, secondary hit-zones are time-mapped back to primary indices.
+    local line_idx = resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
     
     -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
     if FSM.DW_TOOLTIP_FORCE then
@@ -4906,12 +5239,16 @@ local function dw_tooltip_mouse_update()
             if y then
                 y = math.floor(y + 0.5)
                 local new_ass = draw_dw_tooltip(subs, target_l, y)
-                if new_ass ~= dw_tooltip_osd.data then
-                    dw_tooltip_osd.data = new_ass
-                    dw_tooltip_osd:update()
+                if new_ass ~= "" then
+                    apply_tooltip_ass(new_ass)
+                elseif dw_mode then
+                    clear_tooltip_overlay("forced-render-empty")
                 end
             else
-                clear_tooltip_overlay("forced-target-missing")
+                -- DM sticky behavior: transient target misses should not hide a forced tooltip.
+                if dw_mode then
+                    clear_tooltip_overlay("forced-target-missing")
+                end
             end
         end
         return
@@ -4949,26 +5286,36 @@ local function dw_tooltip_mouse_update()
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 local new_ass = draw_dw_tooltip(subs, target_l, target_y)
                 FSM.DW_TOOLTIP_LINE = target_l
-                if new_ass ~= dw_tooltip_osd.data then
-                    dw_tooltip_osd.data = new_ass
-                    dw_tooltip_osd:update()
+                if new_ass ~= "" then
+                    apply_tooltip_ass(new_ass)
+                elseif dw_mode then
+                    clear_tooltip_overlay("hover-render-empty")
                 end
             else
                 -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
                 if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
-                    clear_tooltip_overlay("target-y-missing")
+                    -- DM sticky behavior: keep last tooltip on transient y-map misses.
+                    if dw_mode then
+                        clear_tooltip_overlay("target-y-missing")
+                    end
                 end
             end
         elseif not FSM.DW_TOOLTIP_HOLDING then
             -- Sticky Hover: Only dismiss on gaps if we are NOT holding RMB
             if FSM.DW_TOOLTIP_LINE ~= -1 then
-                clear_tooltip_overlay("hover-gap")
+                -- DM sticky behavior: keep last tooltip across short hover gaps.
+                if dw_mode then
+                    clear_tooltip_overlay("hover-gap")
+                end
             end
         end
     else
         -- CLICK mode or Selection Protected: check if we left the pinned line focus
         if FSM.DW_TOOLTIP_LINE ~= -1 then
-            if line_idx ~= FSM.DW_TOOLTIP_LINE then
+            -- Keep pinned tooltip stable through transient "no hit" ticks.
+            -- Dismiss only when the cursor clearly focuses a different line.
+            -- In DM mode keep pinned tooltip sticky to avoid playback-time blink.
+            if dw_mode and line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then
                 clear_tooltip_overlay("click-focus-left")
             end
         end
@@ -5241,6 +5588,8 @@ local function ctrl_toggle_word(line_idx, word_idx, no_sync)
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
         if FSM.DRUM_WINDOW ~= "OFF" then 
             dw_osd:update() 
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
         end
     end
 end
@@ -5322,6 +5671,12 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
+            FSM.DW_MOUSE_DRAGGING = false
+            FSM.DW_MOUSE_PENDING_DRAG = false
+            if FSM.DW_MOUSE_SCROLL_TIMER then
+                FSM.DW_MOUSE_SCROLL_TIMER:kill()
+                FSM.DW_MOUSE_SCROLL_TIMER = nil
+            end
 
             -- Store initial coordinates to detect movement/dragging
             local osd_x, osd_y = dw_get_mouse_osd()
@@ -5336,8 +5691,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
                 if FSM.DW_TOOLTIP_LINE ~= -1 and not is_tooltip_hit then
                     FSM.DW_TOOLTIP_LINE = -1
-                    dw_tooltip_osd.data = ""
-                    dw_tooltip_osd:update()
+                    apply_tooltip_ass("")
                 end
 
                 -- Phase 1: Custom Actions (Tooltips, Pins, etc.)
@@ -5367,11 +5721,12 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                         FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
                     end
                     
-                    -- Always start dragging on valid word-click to allow resizing/pulling
-                    FSM.DW_MOUSE_DRAGGING = true
+                    -- Start in pending state: plain click should not auto-scroll.
+                    -- Drag/edge auto-scroll activates only after real mouse movement.
+                    FSM.DW_MOUSE_PENDING_DRAG = true
+                    FSM.DW_MOUSE_DRAGGING = false
                     mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-                    if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
-                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(get_dw_mouse_auto_scroll_interval(), dw_mouse_auto_scroll)
                     
                     drum_osd:update()
                     if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
@@ -5379,16 +5734,14 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
+            FSM.DW_MOUSE_PENDING_DRAG = false
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release ONLY if the mouse 
             -- has moved significantly (dragging). This prevents stationary clicks 
             -- from re-highlighting wrong words when the text shifts vertically 
             -- (e.g. during re-centering or seeking).
             local osd_x, osd_y = dw_get_mouse_osd()
-            local dx = math.abs(osd_x - (FSM.DW_MOUSE_DOWN_X or 0))
-            local dy = math.abs(osd_y - (FSM.DW_MOUSE_DOWN_Y or 0))
-            
-            if (dx > 5 or dy > 5) and updates_selection then
+            if dw_pointer_exceeded_drag_threshold(osd_x, osd_y) and updates_selection then
                 local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
                 
                 if line_idx and word_idx then
@@ -5538,6 +5891,7 @@ local function dw_handle_double_click_target(subs, line_idx, word_idx)
 
         -- Explicitly terminate any dragging/scrolling state initiated by the first click
         FSM.DW_MOUSE_DRAGGING = false
+        FSM.DW_MOUSE_PENDING_DRAG = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
@@ -5587,6 +5941,9 @@ local function tick_dw(time_pos, active_idx)
         if FSM.BOOK_MODE and not FSM.DW_SEEKING_MANUALLY then
             -- Book Mode: Line-by-line scrolling during playback
             dw_ensure_visible(active_idx, true)
+        elseif not FSM.BOOK_MODE then
+            -- In standard DW follow mode keep active subtitle centered.
+            FSM.DW_VIEW_CENTER = active_idx
         end
     end
     -- In manual mode: DW_VIEW_CENTER and DW_CURSOR_LINE are frozen,
@@ -6224,9 +6581,7 @@ local function ensure_sub_layout(sub)
     if #cur_indices > 0 then table.insert(vlines, cur_indices) end
     if #vlines == 0 then vlines = {{1}} end
 
-    local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
-    local entry_h = #vlines * vline_h
+    local entry_h = #vlines * dw_vline_height()
 
     sub.layout_cache = {
         version = FSM.LAYOUT_VERSION,
@@ -7084,12 +7439,28 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
-                    local m_fn = (mouse_fn and MOUSE_HANDLERS[mouse_fn]) and mouse_fn or make_mouse_handler(false, 
-                        function(t) mouse_fn(t, true) end, 
-                        function(t) mouse_fn(t, true) end, 
-                        updates_selection
-                    )
-                    table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true, is_mouse = true })
+                    local m_fn = nil
+                    if type(mouse_fn) == "function" and MOUSE_HANDLERS[mouse_fn] then
+                        -- Reuse prebuilt mouse handlers directly (legacy behavior).
+                        -- Wrapping them again changes drag/follow semantics.
+                        m_fn = mouse_fn
+                    elseif mouse_fn then
+                        m_fn = make_mouse_handler(false,
+                            function(t) mouse_fn(t, true) end,
+                            function(t) mouse_fn(t, true) end,
+                            updates_selection
+                        )
+                    elseif key_fn then
+                        -- Fallback for mouse-bound actions that only define keyboard handlers.
+                        -- Trigger on release to mimic click semantics and avoid nil callbacks.
+                        m_fn = function(t)
+                            if t and t.event == "up" then key_fn(t, true) end
+                        end
+                    end
+
+                    if m_fn then
+                        table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true, is_mouse = true })
+                    end
                 else
                     table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = function(t) 
                         local k = (t and t.key) or ""
@@ -7104,47 +7475,58 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         end
     end
 
-    parse_and_collect(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
-    parse_and_collect(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
-    parse_and_collect(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
-    parse_and_collect(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
-    parse_and_collect(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
-    parse_and_collect(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
-    parse_and_collect(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
-    parse_and_collect(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
-    parse_and_collect(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy("none") end, false)
-    parse_and_collect(Options.key_copy_popup, "dw-copy-popup", nil, function() cmd_dw_copy("side") end, false)
-    parse_and_collect(Options.key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
-    parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
-    -- Note: replay handled via global named 'replay-subtitle' binding (no DW-local duplicate)
-    parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
-    parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
-    parse_and_collect(Options.dw_key_jump_right, "dw-jump-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, false) end, false)
-    parse_and_collect(Options.dw_key_jump_select_left, "dw-jump-select-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, true) end, false)
-    parse_and_collect(Options.dw_key_jump_select_right, "dw-jump-select-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, true) end, false)
-    parse_and_collect(Options.dw_key_scroll_up, "dw-scroll-up-ctrl", nil, function() cmd_dw_scroll(-1) end, false)
-    parse_and_collect(Options.dw_key_scroll_down, "dw-scroll-down-ctrl", nil, function() cmd_dw_scroll(1) end, false)
-    parse_and_collect(Options.dw_key_jump_select_up, "dw-jump-select-up", nil, function() cmd_dw_line_move(-Options.dw_jump_lines, true) end, false)
-    parse_and_collect(Options.dw_key_jump_select_down, "dw-jump-select-down", nil, function() cmd_dw_line_move(Options.dw_jump_lines, true) end, false)
-    parse_and_collect(Options.dw_key_select_left, "dw-select-left", nil, function() cmd_dw_word_move(-1, true) end, false)
-    parse_and_collect(Options.dw_key_select_right, "dw-select-right", nil, function() cmd_dw_word_move(1, true) end, false)
-    parse_and_collect(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
-    parse_and_collect(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
-    parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
-    parse_and_collect(Options.dw_key_cycle_esc_mode, "dw-cycle-esc-mode", nil, cmd_cycle_dw_esc_mode, false)
-    parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
-    parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
+    -- DW dynamic binding schema. Each row maps one option-string to a binding:
+    --   opt              : Options[opt] is the user-configurable key spec (e.g. "MBTN_LEFT")
+    --   name             : base binding name (suffixed with "-<i>" for multi-key specs)
+    --   mouse_fn/key_fn  : callbacks for mouse vs keyboard variants of the key spec
+    --   updates_selection: only meaningful for mouse handlers; controls anchor/drag wiring
+    --   complex          : forces the binding into mpv's complex (event-table) mode
+    -- Note: replay is handled via the global "replay-subtitle" binding (no DW-local duplicate).
+    local dw_jump_words = Options.dw_jump_words
+    local dw_jump_lines = Options.dw_jump_lines
+    local binding_defs = {
+        {opt = "dw_key_add",                  name = "dw-add",                  mouse_fn = cmd_dw_export_anki,           key_fn = cmd_dw_add_smart,                                    updates_selection = true},
+        {opt = "dw_key_pair",                 name = "dw-pair",                 mouse_fn = cmd_dw_toggle_pink,           key_fn = cmd_dw_toggle_pink,                                  updates_selection = true},
+        {opt = "dw_key_select",               name = "dw-select",               mouse_fn = cmd_dw_mouse_select,          key_fn = function() end,                                      updates_selection = true},
+        {opt = "dw_key_tooltip_pin",          name = "dw-tooltip-pin",          mouse_fn = cmd_dw_tooltip_pin,           key_fn = cmd_dw_tooltip_pin},
+        {opt = "dw_key_tooltip_hover",        name = "dw-tooltip-hover",        mouse_fn = cmd_toggle_dw_tooltip_hover,  key_fn = cmd_toggle_dw_tooltip_hover},
+        {opt = "dw_key_tooltip_toggle",       name = "dw-tooltip-toggle",       mouse_fn = cmd_dw_tooltip_toggle,        key_fn = cmd_dw_tooltip_toggle},
+        {opt = "dw_key_seek_prev",            name = "dw-seek-prev",            key_fn = function(t) cmd_seek_with_repeat(-1, t) end,                                                  complex = true},
+        {opt = "dw_key_seek_next",            name = "dw-seek-next",            key_fn = function(t) cmd_seek_with_repeat(1, t) end,                                                   complex = true},
+        {opt = "dw_key_search",               name = "dw-search",               key_fn = function() cmd_toggle_search() end},
+        {opt = "dw_key_copy",                 name = "dw-copy",                 key_fn = function() cmd_dw_copy("none") end},
+        {opt = "key_copy_popup",              name = "dw-copy-popup",           key_fn = function() cmd_dw_copy("side") end},
+        {opt = "key_copy_main",               name = "dw-copy-main",            key_fn = function() cmd_dw_copy("main") end},
+        {opt = "dw_key_seek",                 name = "dw-seek",                 key_fn = function() cmd_dw_seek_selected() end},
+        {opt = "dw_key_esc",                  name = "dw-esc",                  key_fn = function() cmd_dw_esc() end},
+        {opt = "dw_key_jump_left",            name = "dw-jump-left",            key_fn = function() cmd_dw_word_move(-dw_jump_words, false) end},
+        {opt = "dw_key_jump_right",           name = "dw-jump-right",           key_fn = function() cmd_dw_word_move( dw_jump_words, false) end},
+        {opt = "dw_key_jump_select_left",     name = "dw-jump-select-left",     key_fn = function() cmd_dw_word_move(-dw_jump_words, true)  end},
+        {opt = "dw_key_jump_select_right",    name = "dw-jump-select-right",    key_fn = function() cmd_dw_word_move( dw_jump_words, true)  end},
+        {opt = "dw_key_scroll_up",            name = "dw-scroll-up-ctrl",       key_fn = function() cmd_dw_scroll(-1) end},
+        {opt = "dw_key_scroll_down",          name = "dw-scroll-down-ctrl",     key_fn = function() cmd_dw_scroll( 1) end},
+        {opt = "dw_key_jump_select_up",       name = "dw-jump-select-up",       key_fn = function() cmd_dw_line_move(-dw_jump_lines, true) end},
+        {opt = "dw_key_jump_select_down",     name = "dw-jump-select-down",     key_fn = function() cmd_dw_line_move( dw_jump_lines, true) end},
+        {opt = "dw_key_select_left",          name = "dw-select-left",          key_fn = function() cmd_dw_word_move(-1, true) end},
+        {opt = "dw_key_select_right",         name = "dw-select-right",         key_fn = function() cmd_dw_word_move( 1, true) end},
+        {opt = "dw_key_select_up",            name = "dw-select-up",            key_fn = function() cmd_dw_line_move(-1, true) end},
+        {opt = "dw_key_select_down",          name = "dw-select-down",          key_fn = function() cmd_dw_line_move( 1, true) end},
+        {opt = "dw_key_open_record",          name = "dw-open-record",          key_fn = cmd_open_record_file},
+        {opt = "dw_key_cycle_esc_mode",       name = "dw-cycle-esc-mode",       key_fn = cmd_cycle_dw_esc_mode},
+        {opt = "dw_key_cycle_copy_mode",      name = "dw-cycle-copy-mode",      key_fn = cmd_cycle_copy_mode},
+        {opt = "dw_key_toggle_copy_context",  name = "dw-toggle-copy-context",  key_fn = cmd_toggle_copy_ctx},
+    }
+
+    for _, d in ipairs(binding_defs) do
+        parse_and_collect(Options[d.opt], d.name, d.mouse_fn, d.key_fn, d.updates_selection, d.complex)
+    end
 
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
-        if active and k.key and is_valid_mpv_key(k.key) then 
+        if active and k.key and is_valid_mpv_key(k.key) and type(k.fn) == "function" then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
-                    if t and t.event == "down" then
-
-                    end
                     return k.fn(t)
                 end
 
@@ -7166,6 +7548,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     -- Cleanup Dragging & Window state
     if not enable_mouse then
         FSM.DW_MOUSE_DRAGGING = false
+        FSM.DW_MOUSE_PENDING_DRAG = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
@@ -8091,9 +8474,31 @@ local function move_search_cursor(direction, ctrl, shift)
     render_search()
 end
 
-local function manage_ui_border_override(enable)
-    -- Deprecated: We now rely on \4a&HFF& in ASS to hide background box.
-    -- Kept to avoid breaking existing bindings/calls.
+function manage_ui_border_override(enable)
+    if enable then
+        FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
+        if FSM.ui_border_override_depth > 1 then return end
+
+        FSM.saved_osd_border_style = mp.get_property("osd-border-style")
+        if FSM.saved_osd_border_style == "background-box" then
+            mp.set_property("osd-border-style", "outline-and-shadow")
+            FSM.osd_border_style = "outline-and-shadow"
+        end
+        return
+    end
+
+    FSM.ui_border_override_depth = math.max(0, (FSM.ui_border_override_depth or 0) - 1)
+    if FSM.ui_border_override_depth > 0 then return end
+
+    local saved = FSM.saved_osd_border_style
+    if saved and saved ~= "" then
+        local cur = mp.get_property("osd-border-style")
+        if cur ~= saved then
+            mp.set_property("osd-border-style", saved)
+            FSM.osd_border_style = saved
+        end
+    end
+    FSM.saved_osd_border_style = nil
 end
 
 local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
@@ -8534,13 +8939,30 @@ function cmd_toggle_drum_window()
         drum_osd.data = ""
         drum_osd:update()
 
-        local time_pos = mp.get_property_number("time-pos")
-        if FSM.DW_CURSOR_LINE == -1 then
-            FSM.DW_CURSOR_LINE = get_center_index(Tracks.pri.subs, time_pos)
+        local time_pos = mp.get_property_number("time-pos") or 0
+        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if not active_idx or active_idx == -1 then active_idx = 1 end
+
+        local has_pointer = (FSM.DW_CURSOR_WORD and FSM.DW_CURSOR_WORD ~= -1)
+        local has_range = (FSM.DW_ANCHOR_LINE and FSM.DW_ANCHOR_LINE ~= -1 and FSM.DW_ANCHOR_WORD and FSM.DW_ANCHOR_WORD ~= -1)
+        local has_pending = (FSM.DW_CTRL_PENDING_LIST and #FSM.DW_CTRL_PENDING_LIST > 0)
+
+        if has_pointer or has_range or has_pending then
+            if FSM.DW_CURSOR_LINE == -1 then
+                FSM.DW_CURSOR_LINE = active_idx
+            end
+        else
+            -- Opening without an explicit pointer/selection should anchor to playback,
+            -- not a stale historical cursor line.
+            FSM.DW_CURSOR_LINE = active_idx
+            FSM.DW_CURSOR_WORD = -1
+            FSM.DW_ANCHOR_LINE = -1
+            FSM.DW_ANCHOR_WORD = -1
+            FSM.DW_CURSOR_X = nil
         end
-        
-        -- Always sync view center to cursor line on opening
-        FSM.DW_VIEW_CENTER = FSM.DW_CURSOR_LINE
+
+        -- Always sync view center to the resolved opening cursor line
+        FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx
         
         FSM.DW_SEEKING_MANUALLY = false
         FSM.DW_SEEK_TARGET = -1
@@ -8554,8 +8976,7 @@ function cmd_toggle_drum_window()
 
         -- Explicitly trigger first render for instant appearance
         if FSM.DRUM_WINDOW == "DOCKED" then
-            local active_idx = get_center_index(Tracks.pri.subs, time_pos or 0)
-            tick_dw(time_pos or 0, active_idx)
+            tick_dw(time_pos, active_idx)
             show_osd("Drum Window: ON")
         end
     else
@@ -9062,12 +9483,22 @@ mp.observe_property("script-opts", "string", function()
     if dw_osd then dw_osd:update() end
 end)
 
+mp.observe_property("osd-border-style", "string", function(name, val)
+    FSM.osd_border_style = val
+    flush_rendering_caches()
+    drum_osd:update()
+    if dw_osd then dw_osd:update() end
+end)
+
 mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         manage_dw_bindings(false)
+    end
+    while (FSM.ui_border_override_depth or 0) > 0 do
+        manage_ui_border_override(false)
     end
 end)
 
@@ -9257,6 +9688,8 @@ function kardenwortProbe._snapshot()
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
         dw_view_center     = FSM.DW_VIEW_CENTER,
         dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
+        dw_block_top       = FSM.DW_BLOCK_TOP or 0,
+        dw_total_height    = FSM.DW_TOTAL_HEIGHT or 0,
         dw_esc_neutral_armed = FSM.DW_ESC_NEUTRAL_ARMED,
         dw_neutral_cursor  = { line = FSM.DW_NEUTRAL_LINE, word = FSM.DW_NEUTRAL_WORD },
         dw_seeking_manually = FSM.DW_SEEKING_MANUALLY,
@@ -9516,22 +9949,14 @@ mp.register_script_message("test-dw-tooltip-pin-at", function(x_str, y_str, arg3
         FSM.DW_TOOLTIP_HOLDING = true
         local subs = Tracks.pri.subs
         if not subs or #subs == 0 then return end
-        local line_idx
-        if dw_mode then
-            line_idx = select(1, dw_hit_test(x, y))
-        else
-            line_idx = select(1, kardenwort_hit_test_all(x, y))
-        end
+        local line_idx = resolve_tooltip_target_line(subs, x, y, dw_mode)
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
             local py = get_tooltip_line_y(line_idx, y)
             if py then py = math.floor(py + 0.5) end
             local ass = draw_dw_tooltip(subs, line_idx, py)
-            if ass ~= dw_tooltip_osd.data then
-                dw_tooltip_osd.data = ass
-                dw_tooltip_osd:update()
-            end
+            apply_tooltip_ass(ass)
         end
     elseif tbl.event == "up" then
         FSM.DW_TOOLTIP_HOLDING = false
@@ -9686,23 +10111,23 @@ end)
 
 mp.register_script_message("test-help-toggle", function()
     local ok, err = pcall(cmd_toggle_help)
-    mp.set_property("user-data/kardenwort/test_help_toggle_ok", ok and "1" or "0")
-    mp.set_property("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
-    mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+    mp.set_property_native("user-data/kardenwort/test_help_toggle_ok", ok and "1" or "0")
+    mp.set_property_native("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
+    mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
 end)
 
 mp.register_script_message("test-help-close-esc", function()
     if not FSM.HELP_MODE then
         local ok_open = pcall(cmd_toggle_help)
         if not ok_open then
-            mp.set_property("user-data/kardenwort/test_help_esc_ok", "0")
-            mp.set_property("user-data/kardenwort/test_help_esc_error", "failed to open help before ESC test")
-            mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+            mp.set_property_native("user-data/kardenwort/test_help_esc_ok", "0")
+            mp.set_property_native("user-data/kardenwort/test_help_esc_error", "failed to open help before ESC test")
+            mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
             return
         end
     end
     local ok, err = pcall(cmd_dw_esc)
-    mp.set_property("user-data/kardenwort/test_help_esc_ok", ok and "1" or "0")
-    mp.set_property("user-data/kardenwort/test_help_esc_error", ok and "" or tostring(err))
-    mp.set_property("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+    mp.set_property_native("user-data/kardenwort/test_help_esc_ok", ok and "1" or "0")
+    mp.set_property_native("user-data/kardenwort/test_help_esc_error", ok and "" or tostring(err))
+    mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
 end)

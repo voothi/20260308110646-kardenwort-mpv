@@ -186,15 +186,32 @@ class TestDrumWindowHighPrecisionRendering:
         )
 
     def test_format_highlighted_word_injects_border_tags(self):
-        """format_highlighted_word must inject ASS border/shadow tags for precision rendering (drum-window-high-precision-rendering)."""
+        """format_highlighted_word must inject ASS border/shadow tags for the
+        precision-rendering path (drum-window-high-precision-rendering).
+
+        The function has two branches: when osd-border-style == background-box
+        mpv draws the background itself so we emit a minimal color tag, but
+        for the standard outline-and-shadow path we must inject the geometry
+        tags (\\3c \\4c \\3a \\4a \\bord) to keep highlight boundaries stable.
+        This test pins the standard branch explicitly.
+        """
         src = _lua_source()
         idx = src.find("local function format_highlighted_word")
         assert idx != -1
-        body = src[idx:idx+1500]
-        assert "\\3c" in body, "drum-window-high-precision-rendering: \\3c tag not in format_highlighted_word"
-        assert "\\4c" in body, "drum-window-high-precision-rendering: \\4c tag not in format_highlighted_word"
-        assert "\\3a" in body, "drum-window-high-precision-rendering: \\3a tag not in format_highlighted_word"
-        assert "\\4a" in body, "drum-window-high-precision-rendering: \\4a tag not in format_highlighted_word"
+        body = src[idx:idx + 2000]
+
+        # Locate the else branch (the standard path).
+        else_idx = body.find('else\n', body.find('background-box'))
+        assert else_idx != -1, (
+            "drum-window-high-precision-rendering: expected else branch for non-background-box path"
+        )
+        standard_branch = body[else_idx: body.find('\n    end', else_idx)]
+
+        for tag in ("\\3c", "\\4c", "\\3a", "\\4a", "\\bord"):
+            assert tag in standard_branch, (
+                f"drum-window-high-precision-rendering: {tag} tag missing from standard "
+                f"(non-background-box) format_highlighted_word branch"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -610,7 +627,6 @@ class TestKeybindingConsolidation:
         assert "script-binding kardenwort/toggle-autopause" in ic, (
             "keybinding-consolidation: toggle-autopause not found in input.conf"
         )
-
 
 
 
