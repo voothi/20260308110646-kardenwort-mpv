@@ -14,6 +14,65 @@ end
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
+
+-- Callback registration hardening (must run before loading auxiliary modules).
+do
+    local raw_add_key_binding = mp.add_key_binding
+    local raw_add_forced_key_binding = mp.add_forced_key_binding
+    local raw_add_timeout = mp.add_timeout
+    local raw_add_periodic_timer = mp.add_periodic_timer
+    local raw_register_event = mp.register_event
+    local raw_observe_property = mp.observe_property
+    local raw_register_script_message = mp.register_script_message
+
+    local function validate_callback(kind, name, fn)
+        if type(fn) == "function" then return true end
+        msg.error(string.format("[kardenwort] Skipping invalid %s '%s': callback is %s",
+            tostring(kind), tostring(name), type(fn)))
+        return false
+    end
+
+    mp.add_key_binding = function(key, name, fn, flags)
+        if not validate_callback("binding", name or key, fn) then return false end
+        raw_add_key_binding(key, name, fn, flags)
+        return true
+    end
+
+    mp.add_forced_key_binding = function(key, name, fn, flags)
+        if not validate_callback("forced binding", name or key, fn) then return false end
+        raw_add_forced_key_binding(key, name, fn, flags)
+        return true
+    end
+
+    mp.add_timeout = function(seconds, fn)
+        if not validate_callback("timeout", seconds, fn) then return nil end
+        return raw_add_timeout(seconds, fn)
+    end
+
+    mp.add_periodic_timer = function(seconds, fn)
+        if not validate_callback("periodic timer", seconds, fn) then return nil end
+        return raw_add_periodic_timer(seconds, fn)
+    end
+
+    mp.register_event = function(name, fn)
+        if not validate_callback("event handler", name, fn) then return false end
+        raw_register_event(name, fn)
+        return true
+    end
+
+    mp.observe_property = function(name, ty, fn)
+        if not validate_callback("property observer", name, fn) then return false end
+        raw_observe_property(name, ty, fn)
+        return true
+    end
+
+    mp.register_script_message = function(name, fn)
+        if not validate_callback("script message", name, fn) then return false end
+        raw_register_script_message(name, fn)
+        return true
+    end
+end
+
 require 'resume'
 
 -- Fallback for older mpv versions missing utils.read_file
@@ -92,39 +151,6 @@ mp.set_property("user-data/kardenwort/last_export", "")
 mp.set_property("user-data/kardenwort/last_osd", "")
 mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
-
--- Safety hardening for key binding registration: never allow nil callbacks.
-do
-    local raw_add_key_binding = mp.add_key_binding
-    local raw_add_forced_key_binding = mp.add_forced_key_binding
-
-    local function validate_binding_callback(kind, key, name, fn)
-        if type(fn) == "function" then
-            return true
-        end
-        Diagnostic.error(string.format(
-            "Skipping invalid %s '%s' for key '%s': callback is %s",
-            tostring(kind), tostring(name), tostring(key), type(fn)
-        ))
-        return false
-    end
-
-    mp.add_key_binding = function(key, name, fn, flags)
-        if not validate_binding_callback("binding", key, name, fn) then
-            return false
-        end
-        raw_add_key_binding(key, name, fn, flags)
-        return true
-    end
-
-    mp.add_forced_key_binding = function(key, name, fn, flags)
-        if not validate_binding_callback("forced binding", key, name, fn) then
-            return false
-        end
-        raw_add_forced_key_binding(key, name, fn, flags)
-        return true
-    end
-end
 
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
