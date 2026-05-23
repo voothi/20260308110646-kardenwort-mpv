@@ -99,6 +99,7 @@ end
 local manage_dw_bindings
 local update_interactive_bindings
 local render_help, render_search, cmd_toggle_help
+local manage_ui_border_override
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -2975,6 +2976,7 @@ end
 -- INVARIANT: DRUM_DRAW_CACHE and DW_DRAW_CACHE are captured by upvalue.
 -- They MUST be defined at module scope before this function is called at runtime,
 -- otherwise the cache flushing will silently fail.
+local apply_tooltip_ass
 local function flush_rendering_caches()
     FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
     FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
@@ -3002,7 +3004,7 @@ local function flush_rendering_caches()
         DW_TOOLTIP_DRAW_CACHE.result = ""
         DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
     end
-    dw_tooltip_osd.data = ""
+    apply_tooltip_ass("")
 end
 
 local function invalidate_dw_tooltip_cache()
@@ -3017,6 +3019,22 @@ local function invalidate_dw_tooltip_cache()
     DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
 end
 
+apply_tooltip_ass = function(ass)
+    if not dw_tooltip_osd then return end
+    ass = ass or ""
+    local had_visible = (dw_tooltip_osd.data ~= nil and dw_tooltip_osd.data ~= "")
+    local will_visible = (ass ~= "")
+    if will_visible and not had_visible then
+        manage_ui_border_override(true)
+    elseif not will_visible and had_visible then
+        manage_ui_border_override(false)
+    end
+    if ass ~= dw_tooltip_osd.data then
+        dw_tooltip_osd.data = ass
+        dw_tooltip_osd:update()
+    end
+end
+
 local function clear_tooltip_overlay(reason)
     if reason then
         Diagnostic.debug("TOOLTIP CLEAR: " .. reason)
@@ -3025,10 +3043,7 @@ local function clear_tooltip_overlay(reason)
     FSM.DW_TOOLTIP_HIT_ZONES = nil
     FSM.DW_TOOLTIP_LOCKED_LINE = -1
     invalidate_dw_tooltip_cache()
-    if dw_tooltip_osd and dw_tooltip_osd.data ~= "" then
-        dw_tooltip_osd.data = ""
-        dw_tooltip_osd:update()
-    end
+    apply_tooltip_ass("")
 end
 
 local function is_osd_tooltip_mode_eligible()
@@ -3769,7 +3784,7 @@ local function dw_get_str_width(str, fs, font_name)
         elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
         elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
         elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
-        elseif #c > 1 then w = w + (fs * 0.45) -- Cyrillic/Wide
+        elseif #c > 1 then w = w + (fs * 0.52) -- Cyrillic/Wide (calibrated for tooltip rectangle fit)
         else w = w + (fs * 0.42) end
     end
     return w
@@ -5054,10 +5069,7 @@ local function cmd_dw_tooltip_pin(tbl)
             local y = get_tooltip_line_y(line_idx, osd_y)
             if y then y = math.floor(y + 0.5) end
             local ass = draw_dw_tooltip(subs, line_idx, y)
-            if ass ~= dw_tooltip_osd.data then
-                dw_tooltip_osd.data = ass
-                dw_tooltip_osd:update()
-            end
+            apply_tooltip_ass(ass)
             Diagnostic.debug("TOOLTIP ROUTE: PIN->" .. (dw_mode and "DW" or "DRUM") .. " line=" .. tostring(line_idx))
         end
     elseif tbl.event == "up" then
@@ -5121,10 +5133,7 @@ local function cmd_dw_tooltip_toggle()
             y = math.floor(y + 0.5)
         end
         local ass = draw_dw_tooltip(subs, line_idx, y)
-        if ass ~= dw_tooltip_osd.data then
-            dw_tooltip_osd.data = ass
-            dw_tooltip_osd:update()
-        end
+        apply_tooltip_ass(ass)
     end
 end
 
@@ -5168,10 +5177,7 @@ local function dw_tooltip_mouse_update()
             if y then
                 y = math.floor(y + 0.5)
                 local new_ass = draw_dw_tooltip(subs, target_l, y)
-                if new_ass ~= dw_tooltip_osd.data then
-                    dw_tooltip_osd.data = new_ass
-                    dw_tooltip_osd:update()
-                end
+                apply_tooltip_ass(new_ass)
             else
                 clear_tooltip_overlay("forced-target-missing")
             end
@@ -5211,10 +5217,7 @@ local function dw_tooltip_mouse_update()
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 local new_ass = draw_dw_tooltip(subs, target_l, target_y)
                 FSM.DW_TOOLTIP_LINE = target_l
-                if new_ass ~= dw_tooltip_osd.data then
-                    dw_tooltip_osd.data = new_ass
-                    dw_tooltip_osd:update()
-                end
+                apply_tooltip_ass(new_ass)
             else
                 -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
                 if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
@@ -5606,8 +5609,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
                 if FSM.DW_TOOLTIP_LINE ~= -1 and not is_tooltip_hit then
                     FSM.DW_TOOLTIP_LINE = -1
-                    dw_tooltip_osd.data = ""
-                    dw_tooltip_osd:update()
+                    apply_tooltip_ass("")
                 end
 
                 -- Phase 1: Custom Actions (Tooltips, Pins, etc.)
@@ -8390,7 +8392,7 @@ local function move_search_cursor(direction, ctrl, shift)
     render_search()
 end
 
-local function manage_ui_border_override(enable)
+function manage_ui_border_override(enable)
     if enable then
         FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
         if FSM.ui_border_override_depth > 1 then return end
@@ -9877,10 +9879,7 @@ mp.register_script_message("test-dw-tooltip-pin-at", function(x_str, y_str, arg3
             local py = get_tooltip_line_y(line_idx, y)
             if py then py = math.floor(py + 0.5) end
             local ass = draw_dw_tooltip(subs, line_idx, py)
-            if ass ~= dw_tooltip_osd.data then
-                dw_tooltip_osd.data = ass
-                dw_tooltip_osd:update()
-            end
+            apply_tooltip_ass(ass)
         end
     elseif tbl.event == "up" then
         FSM.DW_TOOLTIP_HOLDING = false

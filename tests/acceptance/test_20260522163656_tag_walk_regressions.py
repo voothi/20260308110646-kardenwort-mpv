@@ -360,3 +360,32 @@ def test_manage_dw_bindings_is_table_driven():
     assert "parse_and_collect(Options.dw_key_select" not in body
 
 
+def test_tooltip_visibility_engages_ui_border_override():
+    src = _lua_source()
+    helper = _function_window(src, "local apply_tooltip_ass", "local function clear_tooltip_overlay", span=2200)
+
+    assert "apply_tooltip_ass = function(ass)" in helper
+    assert "local had_visible =" in helper
+    assert "local will_visible =" in helper
+    assert "manage_ui_border_override(true)" in helper
+    assert "manage_ui_border_override(false)" in helper
+    assert "dw_tooltip_osd.data = ass" in helper
+
+    # All tooltip writes should be routed through the helper.
+    assert src.count("dw_tooltip_osd.data =") == 1
+
+
+def test_manage_ui_border_override_is_forward_declared():
+    src = _lua_source()
+    head = src[: src.find("local Diagnostic")]
+    assert "local manage_ui_border_override" in head
+    assert src.find("local apply_tooltip_ass") < src.find("function manage_ui_border_override(enable)")
+
+
+def test_dw_get_str_width_cyrillic_estimate_at_least_052():
+    src = _lua_source()
+    body = _function_window(src, "local function dw_get_str_width(str, fs, font_name)", "local function calculate_sub_gap")
+    assert "elseif #c > 1 then w = w + (fs * 0.52)" in body
+    assert "elseif #c > 1 then w = w + (fs * 0.45)" not in body
+
+

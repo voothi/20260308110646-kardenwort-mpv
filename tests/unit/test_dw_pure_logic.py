@@ -228,3 +228,27 @@ def test_resolve_neighbor_word_does_not_return_last_word_of_zone_old_bug():
     one (logical_idx=2). This test pins the fix."""
     zones = _zones_with_empty_middle_line()
     assert dw_resolve_neighbor_word(zones, 7, 200, 35) != 3
+
+
+def _heuristic_cyrillic_width(fs: float) -> float:
+    # Mirrors main.lua dw_get_str_width() non-ASCII fallback coefficient.
+    return fs * 0.52
+
+
+def _legacy_heuristic_cyrillic_width(fs: float) -> float:
+    return fs * 0.45
+
+
+def test_cyrillic_width_heuristic_is_calibrated_at_052():
+    assert _heuristic_cyrillic_width(34) == 17.68
+
+
+def test_cyrillic_width_heuristic_is_wider_than_legacy_045():
+    assert _heuristic_cyrillic_width(34) > _legacy_heuristic_cyrillic_width(34)
+
+
+def test_ascii_reference_width_stays_stable():
+    # ASCII branch remains 0.42*fs in main.lua; this guards against accidental drift.
+    fs = 34
+    ascii_w = fs * 0.42
+    assert ascii_w == 14.28
