@@ -7246,8 +7246,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
                     local m_fn = nil
-                    if mouse_fn and MOUSE_HANDLERS[mouse_fn] then
-                        m_fn = mouse_fn
+                    if type(mouse_fn) == "string" and type(MOUSE_HANDLERS[mouse_fn]) == "function" then
+                        m_fn = MOUSE_HANDLERS[mouse_fn]
                     elseif mouse_fn then
                         m_fn = make_mouse_handler(false,
                             function(t) mouse_fn(t, true) end,
@@ -7324,7 +7324,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 end
 
                 if k.complex then
-                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
+                    safe_add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
                 else
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
@@ -7332,7 +7332,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                        or k.key == "ENTER" or k.key == "KP_ENTER" then
                         settings = "repeatable"
                     end
-                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, settings)
+                    safe_add_forced_key_binding(k.key, k.name, wrapped_fn, settings)
                 end
             end
         else mp.remove_key_binding(k.name) end
@@ -8318,7 +8318,7 @@ local function manage_search_bindings(enable)
         if not key_string then return end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
-            mp.add_forced_key_binding(key, "search-" .. name .. "-" .. i, fn, settings)
+            safe_add_forced_key_binding(key, "search-" .. name .. "-" .. i, fn, settings)
             i = i + 1
         end
     end
@@ -9402,6 +9402,16 @@ local function register_global_playback_keys()
     -- No direct key binding needed here to avoid double-fire collision.
 end
 register_global_playback_keys()
+
+local function safe_add_forced_key_binding(key, name, fn, settings)
+    if type(fn) ~= "function" then
+        Diagnostic.error(string.format("Skipping invalid forced binding '%s' for key '%s': callback is %s",
+            tostring(name), tostring(key), type(fn)))
+        return false
+    end
+    mp.add_forced_key_binding(key, name, fn, settings)
+    return true
+end
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
