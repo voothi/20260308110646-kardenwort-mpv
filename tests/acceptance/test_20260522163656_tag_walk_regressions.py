@@ -384,8 +384,27 @@ def test_manage_ui_border_override_is_forward_declared():
 
 def test_dw_get_str_width_cyrillic_estimate_at_least_052():
     src = _lua_source()
-    body = _function_window(src, "local function dw_get_str_width(str, fs, font_name)", "local function calculate_sub_gap")
+    body = _function_window(src, "local function dw_get_str_width_proportional(str, fs)", "local function calculate_sub_gap")
     assert "elseif #c > 1 then w = w + (fs * 0.52)" in body
     assert "elseif #c > 1 then w = w + (fs * 0.45)" not in body
 
 
+def test_tooltip_target_line_resolves_secondary_dm_hits_to_primary_timeline():
+    src = _lua_source()
+    body = _function_window(src, "local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)", "local function kardenwort_hit_test_all")
+
+    assert "local line_idx, _, hit_pri = drum_osd_hit_test(osd_x, osd_y)" in body
+    assert "if hit_pri then return line_idx end" in body
+    assert "local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS" in body
+    assert "local midpoint = (sec_sub.start_time + sec_sub.end_time) / 2" in body
+    assert "local pri_idx = get_center_index(subs, midpoint)" in body
+
+
+def test_get_tooltip_line_y_falls_back_to_non_primary_zone_when_needed():
+    src = _lua_source()
+    body = _function_window(src, "local function get_tooltip_line_y(line_idx, fallback_y)", "local function load_anki_tsv")
+
+    assert "local fallback_zone_y = nil" in body
+    assert "if zone.is_pri then" in body
+    assert "fallback_zone_y = zone.y_top" in body
+    assert "return fallback_zone_y or fallback_y" in body

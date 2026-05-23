@@ -3062,12 +3062,18 @@ local function get_tooltip_line_y(line_idx, fallback_y)
     if FSM.DRUM_WINDOW ~= "OFF" then
         return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
     end
+    local fallback_zone_y = nil
     for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
-        if zone.sub_idx == line_idx and zone.is_pri then
-            return zone.y_top
+        if zone.sub_idx == line_idx then
+            if zone.is_pri then
+                return zone.y_top
+            end
+            if fallback_zone_y == nil then
+                fallback_zone_y = zone.y_top
+            end
         end
     end
-    return fallback_y
+    return fallback_zone_y or fallback_y
 end
 
 
@@ -3761,6 +3767,25 @@ end
 -- =========================================================================
 
 -- Helper to estimate the width of a proportional string
+local function dw_get_str_width_proportional(str, fs)
+    if type(str) == "table" then str = str.text end
+    if not str then return 0 end
+    fs = fs or Options.dw_font_size
+
+    str = str:gsub("{[^}]+}", "")
+
+    local w = 0
+    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        if c == " " then w = w + (fs * 0.30)
+        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
+        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
+        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
+        elseif #c > 1 then w = w + (fs * 0.52) -- Cyrillic/Wide (calibrated for tooltip rectangle fit)
+        else w = w + (fs * 0.42) end
+    end
+    return w
+end
+
 local function dw_get_str_width(str, fs, font_name)
     if type(str) == "table" then str = str.text end
     if not str then return 0 end
@@ -3778,16 +3803,7 @@ local function dw_get_str_width(str, fs, font_name)
     end
     
     -- Proportional heuristic (standard for OSD)
-    local w = 0
-    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if c == " " then w = w + (fs * 0.30)
-        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
-        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
-        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
-        elseif #c > 1 then w = w + (fs * 0.52) -- Cyrillic/Wide (calibrated for tooltip rectangle fit)
-        else w = w + (fs * 0.42) end
-    end
-    return w
+    return dw_get_str_width_proportional(str, fs)
 end
 
 
@@ -4484,6 +4500,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local end_idx = math.min(#tooltip_sec_subs, center_idx + Options.tooltip_context_lines)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
+    local mono_hint = font_name:lower():match("consolas") or font_name:lower():match("mono")
     local max_text_w = 1400 -- Task 2.2 / Design Decision 3
     local total_visual_lines = 0 -- Task 3.1
     local subtitle_metas = {} -- Storage for hit-zone calculation
@@ -4519,6 +4536,11 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 local t = tokens[idx]
                 local tm = token_meta[idx]
                 local ww = dw_get_str_width(t.text, fs, font_name)
+                if mono_hint then
+                    -- If the configured monospace font falls back to a proportional
+                    -- face, avoid underestimating width and clipping the shared rect.
+                    ww = math.max(ww, dw_get_str_width_proportional(t.text, fs))
+                end
                 
                 if t.is_word and t.logical_idx then
                     table.insert(line_words, {
@@ -4609,7 +4631,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         min_x = 1800
         max_x = 1800
     end
-    local pad_x = math.max(8, (bord or 0) * 4)
+    local pad_x = math.max(16, (bord or 0) * 6)
     local pad_y = math.max(4, (bord or 0) * 2)
     local block_top = final_y - half_h
     local rect_left = min_x - pad_x
@@ -4852,6 +4874,28 @@ local function drum_osd_hit_test(osd_x, osd_y)
     return nil, nil, nil
 end
 
+local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
+    if dw_mode then
+        return select(1, dw_hit_test(osd_x, osd_y))
+    end
+
+    local line_idx, _, hit_pri = drum_osd_hit_test(osd_x, osd_y)
+    if not line_idx then return nil end
+    if hit_pri then return line_idx end
+
+    local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
+    local sec_sub = sec_subs and sec_subs[line_idx]
+    if sec_sub then
+        local midpoint = (sec_sub.start_time + sec_sub.end_time) / 2
+        local pri_idx = get_center_index(subs, midpoint)
+        if pri_idx and pri_idx ~= -1 then
+            return pri_idx
+        end
+    end
+
+    return line_idx
+end
+
 local function kardenwort_hit_test_all(osd_x, osd_y)
     if not Options.osd_interactivity then return nil, nil end
     
@@ -5056,12 +5100,7 @@ local function cmd_dw_tooltip_pin(tbl)
         if not subs or #subs == 0 then return end
         
         local osd_x, osd_y = dw_get_mouse_osd()
-        local line_idx, _
-        if dw_mode then
-            line_idx, _ = dw_hit_test(osd_x, osd_y)
-        else
-            line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
-        end
+        local line_idx = resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
         
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
@@ -5149,17 +5188,9 @@ local function dw_tooltip_mouse_update()
     if not subs or #subs == 0 then return end
     
     local osd_x, osd_y = dw_get_mouse_osd()
-    local line_idx, _
-    if dw_mode then
-        -- In DW, always target via primary DW hit-test for tooltip routing.
-        -- This avoids hover flicker on borders caused by mixed tooltip-vs-primary hit-zones.
-        line_idx, _ = dw_hit_test(osd_x, osd_y)
-    elseif FSM.DW_TOOLTIP_HOLDING then
-        -- During RMB hold in non-DW modes, keep stable routing through shared hit-test.
-        line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
-    else
-        line_idx, _ = kardenwort_hit_test_all(osd_x, osd_y)
-    end
+    -- Use primary-track resolution in both DW and DM paths.
+    -- In DM, secondary hit-zones are time-mapped back to primary indices.
+    local line_idx = resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
     
     -- Keyboard Force takes priority and dynamically targets either the active subtitle or selection cursor based on interaction
     if FSM.DW_TOOLTIP_FORCE then
@@ -9867,12 +9898,7 @@ mp.register_script_message("test-dw-tooltip-pin-at", function(x_str, y_str, arg3
         FSM.DW_TOOLTIP_HOLDING = true
         local subs = Tracks.pri.subs
         if not subs or #subs == 0 then return end
-        local line_idx
-        if dw_mode then
-            line_idx = select(1, dw_hit_test(x, y))
-        else
-            line_idx = select(1, kardenwort_hit_test_all(x, y))
-        end
+        local line_idx = resolve_tooltip_target_line(subs, x, y, dw_mode)
         if line_idx then
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
