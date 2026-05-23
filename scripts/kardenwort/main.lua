@@ -713,6 +713,7 @@ local FSM = {
     DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
     DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
+    DW_TOOLTIP_BORDER_OVERRIDE = false, -- True only when tooltip itself owns a global border-style override
     DW_TOOLTIP_SEC_SUBS = {},   -- Cached secondary subtitles for tooltip fallback when secondary track is hidden
     DW_TOOLTIP_SEC_PATH = nil,  -- Source path for DW_TOOLTIP_SEC_SUBS
     DW_BLOCK_TOP = 0,           -- Current Drum Window top offset (for diagnostics/tests)
@@ -3026,13 +3027,17 @@ end
 apply_tooltip_ass = function(ass)
     if not dw_tooltip_osd then return end
     ass = ass or ""
-    local had_visible = (dw_tooltip_osd.data ~= nil and dw_tooltip_osd.data ~= "")
     local will_visible = (ass ~= "")
-    if will_visible and not had_visible then
+    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
+    local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
+    if wants_override and not has_override then
         manage_ui_border_override(true)
-    elseif not will_visible and had_visible then
+        has_override = true
+    elseif not wants_override and has_override then
         manage_ui_border_override(false)
+        has_override = false
     end
+    FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override
     if ass ~= dw_tooltip_osd.data then
         dw_tooltip_osd.data = ass
         dw_tooltip_osd:update()

@@ -365,10 +365,12 @@ def test_tooltip_visibility_engages_ui_border_override():
     helper = _function_window(src, "local apply_tooltip_ass", "local function clear_tooltip_overlay", span=2200)
 
     assert "apply_tooltip_ass = function(ass)" in helper
-    assert "local had_visible =" in helper
     assert "local will_visible =" in helper
+    assert "local wants_override = will_visible and (FSM.DRUM_WINDOW ~= \"OFF\")" in helper
+    assert "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)" in helper
     assert "manage_ui_border_override(true)" in helper
     assert "manage_ui_border_override(false)" in helper
+    assert "FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override" in helper
     assert "dw_tooltip_osd.data = ass" in helper
 
     # All tooltip writes should be routed through the helper.
