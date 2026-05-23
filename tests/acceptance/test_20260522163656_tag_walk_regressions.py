@@ -435,3 +435,29 @@ def test_dm_tooltip_sticky_guards_avoid_transient_clear():
     assert "clear_tooltip_overlay(\"forced-target-missing\")" in body
     assert "clear_tooltip_overlay(\"target-y-missing\")" in body
     assert "clear_tooltip_overlay(\"hover-gap\")" in body
+
+
+def test_flush_rendering_caches_does_not_blank_forced_tooltip():
+    src = _lua_source()
+    body = _function_window(src, "local function flush_rendering_caches()", "local function invalidate_dw_tooltip_cache")
+
+    assert "if not FSM.DW_TOOLTIP_FORCE then" in body
+    assert "apply_tooltip_ass(\"\")" in body
+
+
+def test_tooltip_update_ignores_transient_empty_render_in_dm_mode():
+    src = _lua_source()
+    body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
+
+    assert "if new_ass ~= \"\" then" in body
+    assert "clear_tooltip_overlay(\"forced-render-empty\")" in body
+    assert "clear_tooltip_overlay(\"hover-render-empty\")" in body
+
+
+def test_tooltip_activation_paths_only_publish_non_empty_ass():
+    src = _lua_source()
+    pin_body = _function_window(src, "local function cmd_dw_tooltip_pin(tbl)", "local function cmd_toggle_dw_tooltip_hover")
+    toggle_body = _function_window(src, "local function cmd_dw_tooltip_toggle()", "local function dw_tooltip_mouse_update")
+
+    assert "if ass ~= \"\" then" in pin_body
+    assert "if ass ~= \"\" then" in toggle_body

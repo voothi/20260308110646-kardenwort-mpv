@@ -3004,7 +3004,10 @@ local function flush_rendering_caches()
         DW_TOOLTIP_DRAW_CACHE.result = ""
         DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
     end
-    apply_tooltip_ass("")
+    -- Keep forced tooltip visible across cache flushes; next tick re-renders.
+    if not FSM.DW_TOOLTIP_FORCE then
+        apply_tooltip_ass("")
+    end
 end
 
 local function invalidate_dw_tooltip_cache()
@@ -5109,7 +5112,9 @@ local function cmd_dw_tooltip_pin(tbl)
             local y = get_tooltip_line_y(line_idx, osd_y)
             if y then y = math.floor(y + 0.5) end
             local ass = draw_dw_tooltip(subs, line_idx, y)
-            apply_tooltip_ass(ass)
+            if ass ~= "" then
+                apply_tooltip_ass(ass)
+            end
             Diagnostic.debug("TOOLTIP ROUTE: PIN->" .. (dw_mode and "DW" or "DRUM") .. " line=" .. tostring(line_idx))
         end
     elseif tbl.event == "up" then
@@ -5173,7 +5178,9 @@ local function cmd_dw_tooltip_toggle()
             y = math.floor(y + 0.5)
         end
         local ass = draw_dw_tooltip(subs, line_idx, y)
-        apply_tooltip_ass(ass)
+        if ass ~= "" then
+            apply_tooltip_ass(ass)
+        end
     end
 end
 
@@ -5209,7 +5216,11 @@ local function dw_tooltip_mouse_update()
             if y then
                 y = math.floor(y + 0.5)
                 local new_ass = draw_dw_tooltip(subs, target_l, y)
-                apply_tooltip_ass(new_ass)
+                if new_ass ~= "" then
+                    apply_tooltip_ass(new_ass)
+                elseif dw_mode then
+                    clear_tooltip_overlay("forced-render-empty")
+                end
             else
                 -- DM sticky behavior: transient target misses should not hide a forced tooltip.
                 if dw_mode then
@@ -5252,7 +5263,11 @@ local function dw_tooltip_mouse_update()
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
                 local new_ass = draw_dw_tooltip(subs, target_l, target_y)
                 FSM.DW_TOOLTIP_LINE = target_l
-                apply_tooltip_ass(new_ass)
+                if new_ass ~= "" then
+                    apply_tooltip_ass(new_ass)
+                elseif dw_mode then
+                    clear_tooltip_overlay("hover-render-empty")
+                end
             else
                 -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
                 if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
