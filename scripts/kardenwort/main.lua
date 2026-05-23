@@ -74,7 +74,6 @@ do
 end
 
 require 'resume'
-DW_PURE = require 'dw_pure'
 
 -- Fallback for older mpv versions missing utils.read_file
 function safe_read_file(path)
@@ -4756,7 +4755,7 @@ local function dw_hit_test(osd_x, osd_y)
 
     -- Fallback: best_zone has no selectable words (e.g. line of only spacers).
     -- Pick the closest word in the same subtitle by (vertical dist, horizontal dist).
-    local neighbor = DW_PURE.resolve_neighbor_word(
+    local neighbor = dw_resolve_neighbor_word(
         FSM.DW_HIT_ZONES, best_zone.sub_idx, best_zone.y_top, osd_x)
     return best_zone.sub_idx, neighbor or 1
 end
@@ -4904,23 +4903,68 @@ local function dw_sync_cursor_to_mouse()
 
 end
 
--- Thin wrappers delegating to scripts/kardenwort/dw_pure.lua.
--- The module owns all DW geometry math so it can be unit-tested without mpv.
+-- Wrapped-line visual height inside a single subtitle entry.
+-- Centralized so changes to wrapped-line spacing stay in one place.
 function dw_vline_height()
-    return DW_PURE.vline_height(Options)
+    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
+    return (Options.dw_font_size * wrap_mul) + (Options.dw_vsp or 0)
 end
 
 function get_dw_drag_threshold_px()
-    return DW_PURE.drag_threshold_px(Options)
+    local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
+    if threshold < 0 then return 0 end
+    return threshold
 end
 
 function get_dw_mouse_auto_scroll_interval()
-    return DW_PURE.auto_scroll_interval(Options)
+    local interval = tonumber(Options.dw_mouse_auto_scroll_interval) or 0.05
+    if interval <= 0 then return 0.05 end
+    return interval
 end
 
 function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
-    return DW_PURE.pointer_exceeded_drag_threshold(
-        Options, FSM.DW_MOUSE_DOWN_X, FSM.DW_MOUSE_DOWN_Y, osd_x, osd_y)
+    local down_x = FSM.DW_MOUSE_DOWN_X or osd_x
+    local down_y = FSM.DW_MOUSE_DOWN_Y or osd_y
+    local dx = math.abs(osd_x - down_x)
+    local dy = math.abs(osd_y - down_y)
+    local threshold = get_dw_drag_threshold_px()
+    return (dx > threshold or dy > threshold)
+end
+
+-- Fallback word resolution for dw_hit_test: when the visual line under the
+-- cursor has no selectable words, pick the closest word in the same subtitle.
+--   1) Among zones in target_sub_idx that have selectable words, pick the
+--      one whose y_top is vertically closest to ref_y_top.
+--   2) Within that zone, pick the word whose horizontal center is closest
+--      to osd_x.
+-- Returns the logical_idx of the chosen word, or nil if no candidate exists.
+function dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x)
+    local best_zone = nil
+    local best_dy = math.huge
+    for _, z in ipairs(zones) do
+        if z.sub_idx == target_sub_idx and z.words and #z.words > 0 then
+            local dy = math.abs((z.y_top or 0) - ref_y_top)
+            if dy < best_dy then
+                best_dy = dy
+                best_zone = z
+            end
+        end
+    end
+    if not best_zone then return nil end
+
+    local rel_x = osd_x - (best_zone.x_start or 0)
+    local best_word = nil
+    local best_dx = math.huge
+    for _, word in ipairs(best_zone.words) do
+        local center = (word.x_offset or 0) + (word.width or 0) / 2
+        local dx = math.abs(rel_x - center)
+        if dx < best_dx then
+            best_dx = dx
+            best_word = word
+        end
+    end
+
+    return best_word and best_word.logical_idx or nil
 end
 
 local function dw_mouse_update_selection()
