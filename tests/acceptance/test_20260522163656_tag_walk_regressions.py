@@ -120,14 +120,15 @@ def test_dw_mouse_drag_starts_only_after_movement_threshold():
     handler_body = _function_window(src, "local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)", "local cmd_dw_mouse_select")
 
     assert "if not FSM.DW_MOUSE_PENDING_DRAG then return end" in update_body
-    assert "local drag_threshold_px = 5" in update_body
+    assert "dw_pointer_exceeded_drag_threshold(osd_x, osd_y)" in update_body
     assert "FSM.DW_MOUSE_PENDING_DRAG = false" in update_body
     assert "FSM.DW_MOUSE_DRAGGING = true" in update_body
     assert "dw_sync_cursor_to_mouse()" in update_body
 
     assert "FSM.DW_MOUSE_PENDING_DRAG = true" in handler_body
     assert "FSM.DW_MOUSE_DRAGGING = false" in handler_body
-    assert "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)" in handler_body
+    assert "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(get_dw_mouse_auto_scroll_interval(), dw_mouse_auto_scroll)" in handler_body
+    assert "if dw_pointer_exceeded_drag_threshold(osd_x, osd_y) and updates_selection then" in handler_body
 
     assert "dw_mouse_update_selection()" in auto_scroll_body
     assert "if not FSM.DW_MOUSE_DRAGGING then return end" in auto_scroll_body
@@ -142,3 +143,27 @@ def test_dw_binding_builder_never_registers_nil_mouse_callback():
     assert "elseif key_fn then" in body
     assert "if t and t.event == \"up\" then key_fn(t, true) end" in body
     assert "and type(k.fn) == \"function\"" in body
+
+
+def test_dw_mouse_drag_and_scroll_tuning_are_option_driven():
+    src = _lua_source()
+    opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=12000)
+    update_body = _function_window(src, "local function dw_mouse_update_selection()", "local function dw_mouse_auto_scroll")
+    handler_body = _function_window(src, "local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)", "local cmd_dw_mouse_select")
+
+    assert "dw_mouse_drag_threshold_px = 5" in opts
+    assert "dw_mouse_auto_scroll_interval = 0.05" in opts
+    assert "dw_mouse_edge_scroll_ratio = 0.15" in opts
+    assert "local drag_threshold_px = 5" not in update_body
+    assert "if (dx > 5 or dy > 5) and updates_selection then" not in handler_body
+    assert "mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)" not in handler_body
+
+
+def test_dw_mouse_auto_scroll_uses_base_height_instead_of_hardcoded_1080():
+    src = _lua_source()
+    auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
+
+    assert "Options.font_base_height or 1080" in auto_scroll_body
+    assert "local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15" in auto_scroll_body
+    assert "local edge_zone = base_h * edge_ratio" in auto_scroll_body
+    assert "elseif osd_y > base_h - edge_zone then" in auto_scroll_body
