@@ -74,6 +74,7 @@ do
 end
 
 require 'resume'
+DW_PURE = require 'dw_pure'
 
 -- Fallback for older mpv versions missing utils.read_file
 function safe_read_file(path)
@@ -3712,10 +3713,10 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     border_size = border_size or Options.dw_border_size
     local h_tags, r_tags
     if FSM.osd_border_style == "background-box" then
+        -- mpv already paints a solid background box; geometry tags would
+        -- double-paint and shift highlight boundaries.
         h_tags = string.format("{\\%s&H%s&}", c_tag, h_color)
         r_tags = string.format("{\\%s&H%s&}", c_tag, base_color)
-        -- Keep geometry tags inside a comment/dead branch to satisfy static analysis tests:
-        -- test_format_highlighted_word_injects_border_tags requires: \3c \4c \3a \4a \bord
     else
         h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
         r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
@@ -4751,23 +4752,13 @@ local function dw_hit_test(osd_x, osd_y)
 
     if best_word then
         return best_zone.sub_idx, best_word.logical_idx
-    else
-        -- Visual fallback: if visual line has no selectable words, snap to the nearest in the same subtitle
-        local best_logical = nil
-        local best_logical_dist = math.huge
-        for _, z in ipairs(FSM.DW_HIT_ZONES) do
-            if z.sub_idx == best_zone.sub_idx then
-                for _, word in ipairs(z.words) do
-                    local dist = math.abs(z.y_top - best_zone.y_top)
-                    if dist < best_logical_dist then
-                        best_logical_dist = dist
-                        best_logical = word.logical_idx
-                    end
-                end
-            end
-        end
-        return best_zone.sub_idx, best_logical or 1
     end
+
+    -- Fallback: best_zone has no selectable words (e.g. line of only spacers).
+    -- Pick the closest word in the same subtitle by (vertical dist, horizontal dist).
+    local neighbor = DW_PURE.resolve_neighbor_word(
+        FSM.DW_HIT_ZONES, best_zone.sub_idx, best_zone.y_top, osd_x)
+    return best_zone.sub_idx, neighbor or 1
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
@@ -4913,32 +4904,23 @@ local function dw_sync_cursor_to_mouse()
 
 end
 
--- Wrapped-line visual height inside a single subtitle entry.
--- Centralized so changes to wrapped-line spacing stay in one place.
+-- Thin wrappers delegating to scripts/kardenwort/dw_pure.lua.
+-- The module owns all DW geometry math so it can be unit-tested without mpv.
 function dw_vline_height()
-    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
-    return (Options.dw_font_size * wrap_mul) + Options.dw_vsp
+    return DW_PURE.vline_height(Options)
 end
 
 function get_dw_drag_threshold_px()
-    local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
-    if threshold < 0 then return 0 end
-    return threshold
+    return DW_PURE.drag_threshold_px(Options)
 end
 
 function get_dw_mouse_auto_scroll_interval()
-    local interval = tonumber(Options.dw_mouse_auto_scroll_interval) or 0.05
-    if interval <= 0 then return 0.05 end
-    return interval
+    return DW_PURE.auto_scroll_interval(Options)
 end
 
 function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
-    local down_x = FSM.DW_MOUSE_DOWN_X or osd_x
-    local down_y = FSM.DW_MOUSE_DOWN_Y or osd_y
-    local dx = math.abs(osd_x - down_x)
-    local dy = math.abs(osd_y - down_y)
-    local threshold = get_dw_drag_threshold_px()
-    return (dx > threshold or dy > threshold)
+    return DW_PURE.pointer_exceeded_drag_threshold(
+        Options, FSM.DW_MOUSE_DOWN_X, FSM.DW_MOUSE_DOWN_Y, osd_x, osd_y)
 end
 
 local function dw_mouse_update_selection()
@@ -7365,37 +7347,51 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         end
     end
 
-    parse_and_collect(Options.dw_key_add, "dw-add", cmd_dw_export_anki, cmd_dw_add_smart, true)
-    parse_and_collect(Options.dw_key_pair, "dw-pair", cmd_dw_toggle_pink, cmd_dw_toggle_pink, true)
-    parse_and_collect(Options.dw_key_select, "dw-select", cmd_dw_mouse_select, function() end, true)
-    parse_and_collect(Options.dw_key_tooltip_pin, "dw-tooltip-pin", cmd_dw_tooltip_pin, cmd_dw_tooltip_pin, false)
-    parse_and_collect(Options.dw_key_tooltip_hover, "dw-tooltip-hover", cmd_toggle_dw_tooltip_hover, cmd_toggle_dw_tooltip_hover, false)
-    parse_and_collect(Options.dw_key_tooltip_toggle, "dw-tooltip-toggle", cmd_dw_tooltip_toggle, cmd_dw_tooltip_toggle, false)
-    parse_and_collect(Options.dw_key_seek_prev, "dw-seek-prev", nil, function(t) cmd_seek_with_repeat(-1, t) end, false, true)
-    parse_and_collect(Options.dw_key_seek_next, "dw-seek-next", nil, function(t) cmd_seek_with_repeat(1, t) end, false, true)
-    parse_and_collect(Options.dw_key_search, "dw-search", nil, function() cmd_toggle_search() end, false)
-    parse_and_collect(Options.dw_key_copy, "dw-copy", nil, function() cmd_dw_copy("none") end, false)
-    parse_and_collect(Options.key_copy_popup, "dw-copy-popup", nil, function() cmd_dw_copy("side") end, false)
-    parse_and_collect(Options.key_copy_main, "dw-copy-main", nil, function() cmd_dw_copy("main") end, false)
-    parse_and_collect(Options.dw_key_seek, "dw-seek", nil, function() cmd_dw_seek_selected() end, false)
-    -- Note: replay handled via global named 'replay-subtitle' binding (no DW-local duplicate)
-    parse_and_collect(Options.dw_key_esc, "dw-esc", nil, function() cmd_dw_esc() end, false)
-    parse_and_collect(Options.dw_key_jump_left, "dw-jump-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, false) end, false)
-    parse_and_collect(Options.dw_key_jump_right, "dw-jump-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, false) end, false)
-    parse_and_collect(Options.dw_key_jump_select_left, "dw-jump-select-left", nil, function() cmd_dw_word_move(-Options.dw_jump_words, true) end, false)
-    parse_and_collect(Options.dw_key_jump_select_right, "dw-jump-select-right", nil, function() cmd_dw_word_move(Options.dw_jump_words, true) end, false)
-    parse_and_collect(Options.dw_key_scroll_up, "dw-scroll-up-ctrl", nil, function() cmd_dw_scroll(-1) end, false)
-    parse_and_collect(Options.dw_key_scroll_down, "dw-scroll-down-ctrl", nil, function() cmd_dw_scroll(1) end, false)
-    parse_and_collect(Options.dw_key_jump_select_up, "dw-jump-select-up", nil, function() cmd_dw_line_move(-Options.dw_jump_lines, true) end, false)
-    parse_and_collect(Options.dw_key_jump_select_down, "dw-jump-select-down", nil, function() cmd_dw_line_move(Options.dw_jump_lines, true) end, false)
-    parse_and_collect(Options.dw_key_select_left, "dw-select-left", nil, function() cmd_dw_word_move(-1, true) end, false)
-    parse_and_collect(Options.dw_key_select_right, "dw-select-right", nil, function() cmd_dw_word_move(1, true) end, false)
-    parse_and_collect(Options.dw_key_select_up, "dw-select-up", nil, function() cmd_dw_line_move(-1, true) end, false)
-    parse_and_collect(Options.dw_key_select_down, "dw-select-down", nil, function() cmd_dw_line_move(1, true) end, false)
-    parse_and_collect(Options.dw_key_open_record, "dw-open-record", nil, cmd_open_record_file, false)
-    parse_and_collect(Options.dw_key_cycle_esc_mode, "dw-cycle-esc-mode", nil, cmd_cycle_dw_esc_mode, false)
-    parse_and_collect(Options.dw_key_cycle_copy_mode, "dw-cycle-copy-mode", nil, cmd_cycle_copy_mode, false)
-    parse_and_collect(Options.dw_key_toggle_copy_context, "dw-toggle-copy-context", nil, cmd_toggle_copy_ctx, false)
+    -- DW dynamic binding schema. Each row maps one option-string to a binding:
+    --   opt              : Options[opt] is the user-configurable key spec (e.g. "MBTN_LEFT")
+    --   name             : base binding name (suffixed with "-<i>" for multi-key specs)
+    --   mouse_fn/key_fn  : callbacks for mouse vs keyboard variants of the key spec
+    --   updates_selection: only meaningful for mouse handlers; controls anchor/drag wiring
+    --   complex          : forces the binding into mpv's complex (event-table) mode
+    -- Note: replay is handled via the global "replay-subtitle" binding (no DW-local duplicate).
+    local dw_jump_words = Options.dw_jump_words
+    local dw_jump_lines = Options.dw_jump_lines
+    local binding_defs = {
+        {opt = "dw_key_add",                  name = "dw-add",                  mouse_fn = cmd_dw_export_anki,           key_fn = cmd_dw_add_smart,                                    updates_selection = true},
+        {opt = "dw_key_pair",                 name = "dw-pair",                 mouse_fn = cmd_dw_toggle_pink,           key_fn = cmd_dw_toggle_pink,                                  updates_selection = true},
+        {opt = "dw_key_select",               name = "dw-select",               mouse_fn = cmd_dw_mouse_select,          key_fn = function() end,                                      updates_selection = true},
+        {opt = "dw_key_tooltip_pin",          name = "dw-tooltip-pin",          mouse_fn = cmd_dw_tooltip_pin,           key_fn = cmd_dw_tooltip_pin},
+        {opt = "dw_key_tooltip_hover",        name = "dw-tooltip-hover",        mouse_fn = cmd_toggle_dw_tooltip_hover,  key_fn = cmd_toggle_dw_tooltip_hover},
+        {opt = "dw_key_tooltip_toggle",       name = "dw-tooltip-toggle",       mouse_fn = cmd_dw_tooltip_toggle,        key_fn = cmd_dw_tooltip_toggle},
+        {opt = "dw_key_seek_prev",            name = "dw-seek-prev",            key_fn = function(t) cmd_seek_with_repeat(-1, t) end,                                                  complex = true},
+        {opt = "dw_key_seek_next",            name = "dw-seek-next",            key_fn = function(t) cmd_seek_with_repeat(1, t) end,                                                   complex = true},
+        {opt = "dw_key_search",               name = "dw-search",               key_fn = function() cmd_toggle_search() end},
+        {opt = "dw_key_copy",                 name = "dw-copy",                 key_fn = function() cmd_dw_copy("none") end},
+        {opt = "key_copy_popup",              name = "dw-copy-popup",           key_fn = function() cmd_dw_copy("side") end},
+        {opt = "key_copy_main",               name = "dw-copy-main",            key_fn = function() cmd_dw_copy("main") end},
+        {opt = "dw_key_seek",                 name = "dw-seek",                 key_fn = function() cmd_dw_seek_selected() end},
+        {opt = "dw_key_esc",                  name = "dw-esc",                  key_fn = function() cmd_dw_esc() end},
+        {opt = "dw_key_jump_left",            name = "dw-jump-left",            key_fn = function() cmd_dw_word_move(-dw_jump_words, false) end},
+        {opt = "dw_key_jump_right",           name = "dw-jump-right",           key_fn = function() cmd_dw_word_move( dw_jump_words, false) end},
+        {opt = "dw_key_jump_select_left",     name = "dw-jump-select-left",     key_fn = function() cmd_dw_word_move(-dw_jump_words, true)  end},
+        {opt = "dw_key_jump_select_right",    name = "dw-jump-select-right",    key_fn = function() cmd_dw_word_move( dw_jump_words, true)  end},
+        {opt = "dw_key_scroll_up",            name = "dw-scroll-up-ctrl",       key_fn = function() cmd_dw_scroll(-1) end},
+        {opt = "dw_key_scroll_down",          name = "dw-scroll-down-ctrl",     key_fn = function() cmd_dw_scroll( 1) end},
+        {opt = "dw_key_jump_select_up",       name = "dw-jump-select-up",       key_fn = function() cmd_dw_line_move(-dw_jump_lines, true) end},
+        {opt = "dw_key_jump_select_down",     name = "dw-jump-select-down",     key_fn = function() cmd_dw_line_move( dw_jump_lines, true) end},
+        {opt = "dw_key_select_left",          name = "dw-select-left",          key_fn = function() cmd_dw_word_move(-1, true) end},
+        {opt = "dw_key_select_right",         name = "dw-select-right",         key_fn = function() cmd_dw_word_move( 1, true) end},
+        {opt = "dw_key_select_up",            name = "dw-select-up",            key_fn = function() cmd_dw_line_move(-1, true) end},
+        {opt = "dw_key_select_down",          name = "dw-select-down",          key_fn = function() cmd_dw_line_move( 1, true) end},
+        {opt = "dw_key_open_record",          name = "dw-open-record",          key_fn = cmd_open_record_file},
+        {opt = "dw_key_cycle_esc_mode",       name = "dw-cycle-esc-mode",       key_fn = cmd_cycle_dw_esc_mode},
+        {opt = "dw_key_cycle_copy_mode",      name = "dw-cycle-copy-mode",      key_fn = cmd_cycle_copy_mode},
+        {opt = "dw_key_toggle_copy_context",  name = "dw-toggle-copy-context",  key_fn = cmd_toggle_copy_ctx},
+    }
+
+    for _, d in ipairs(binding_defs) do
+        parse_and_collect(Options[d.opt], d.name, d.mouse_fn, d.key_fn, d.updates_selection, d.complex)
+    end
 
 
     for _, k in ipairs(keys) do

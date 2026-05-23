@@ -287,11 +287,10 @@ def test_dw_vline_height_helper_replaces_duplicate_formula():
     behind a helper so a future change to wrapped-line spacing is local."""
     src = _lua_source()
 
-    # The helper must exist and use the wrap_line_height_mul fallback chain.
+    # The helper must exist and delegate to the dw_pure module.
     assert "function dw_vline_height()" in src
     helper = _function_window(src, "function dw_vline_height()", "\nfunction ", span=400)
-    assert "Options.dw_wrap_line_height_mul or Options.dw_line_height_mul" in helper
-    assert "Options.dw_vsp" in helper
+    assert "DW_PURE.vline_height(Options)" in helper
 
     # Call sites must use the helper instead of repeating the formula.
     build_layout = _function_window(src, "local function dw_build_layout(subs, view_center)", "local function dw_calculate_block_top")
@@ -300,3 +299,62 @@ def test_dw_vline_height_helper_replaces_duplicate_formula():
     for body in (build_layout, ensure):
         assert "dw_vline_height()" in body
         assert "(Options.dw_font_size * wrap_mul) + Options.dw_vsp" not in body
+
+
+def test_dw_hit_test_fallback_delegates_to_pure_module():
+    """The previous fallback in dw_hit_test had a copy-paste bug:
+    `dist = math.abs(z.y_top - best_zone.y_top)` was invariant across all
+    words inside a single zone, so the loop returned the LAST word of the
+    vertically-closest zone instead of the horizontally-closest one.
+
+    Why: when a visual line has only spacer/punctuation tokens (rare but
+    possible with custom token sets) the click should snap to the nearest
+    selectable word in the same subtitle - by vertical proximity first,
+    then by horizontal cursor distance.
+
+    The fix lives in dw_pure.resolve_neighbor_word and is unit-tested in
+    tests/lua/test_dw_pure.lua. This test pins the delegation."""
+    src = _lua_source()
+    hit_test = _function_window(src, "local function dw_hit_test(osd_x, osd_y)", "local function dw_tooltip_hit_test")
+
+    # The buggy line must be gone.
+    assert "math.abs(z.y_top - best_zone.y_top)" not in hit_test
+
+    # The fallback must delegate to the pure module.
+    assert "DW_PURE.resolve_neighbor_word(" in hit_test
+    assert "FSM.DW_HIT_ZONES" in hit_test
+    assert "best_zone.sub_idx" in hit_test
+    assert "best_zone.y_top" in hit_test
+    assert "osd_x" in hit_test
+
+
+def test_manage_dw_bindings_is_table_driven():
+    """The 30+ repetitive `parse_and_collect(...)` lines have been replaced
+    by a single binding schema iterated once. New keys should be added to
+    the schema, not as ad-hoc procedure calls."""
+    src = _lua_source()
+    body = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
+
+    # Single schema table with named fields.
+    assert "local binding_defs = {" in body
+    for required_field in ("opt =", "name =", "key_fn ="):
+        assert required_field in body, f"binding schema must use field {required_field}"
+
+    # Single iteration replaces the repetitive calls.
+    assert "for _, d in ipairs(binding_defs) do" in body
+    assert "parse_and_collect(Options[d.opt], d.name, d.mouse_fn, d.key_fn, d.updates_selection, d.complex)" in body
+
+    # No more than one direct parse_and_collect call in the function body
+    # (the canonical one inside the for-loop). Counting from the body slice:
+    assert body.count("parse_and_collect(Options[") == 1
+    # And no remaining lines of the old `parse_and_collect(Options.dw_key_..., ` form.
+    assert "parse_and_collect(Options.dw_key_add" not in body
+    assert "parse_and_collect(Options.dw_key_select" not in body
+
+
+def test_main_lua_requires_dw_pure_module():
+    """dw_pure.lua must be loaded near the top (before any helper definitions)
+    so the global wrappers can delegate to it."""
+    src = _lua_source()
+    header = src[: src.find("function safe_read_file")]
+    assert "DW_PURE = require 'dw_pure'" in header
