@@ -405,8 +405,9 @@ def test_get_tooltip_line_y_falls_back_to_non_primary_zone_when_needed():
     body = _function_window(src, "local function get_tooltip_line_y(line_idx, fallback_y)", "local function load_anki_tsv")
 
     assert "local fallback_zone_y = nil" in body
+    assert "local zone_center_y = (zone.y_top + zone.y_bottom) / 2" in body
     assert "if zone.is_pri then" in body
-    assert "fallback_zone_y = zone.y_top" in body
+    assert "fallback_zone_y = zone_center_y" in body
     assert "return fallback_zone_y or fallback_y" in body
 
 
@@ -423,7 +424,8 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
     assert "local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)" in body
-    assert "local half_h_with_pad = half_h + math.max(pad_y, pad_top)" in body
+    assert "local half_h_with_pad = half_h + pad_y" in body
+    assert "local rect_h = math.max(1, block_height + pad_top + pad_y)" in body
     assert "if final_y - half_h_with_pad < margin then" in body
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
