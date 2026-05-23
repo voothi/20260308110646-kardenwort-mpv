@@ -457,6 +457,7 @@ Options = {
     tooltip_bg_opacity = "60",         -- Background transparency
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
+    tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
     tooltip_line_height_mul = 0.87,     -- Vertical spacing multiplier
     tooltip_block_gap_mul = -0.27,
     tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
@@ -4592,11 +4593,12 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local screen_h = base_h
     local pad_x = math.max(16, (bord or 0) * 6)
     local pad_y = math.max(4, (bord or 0) * 2)
+    local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)
     
     -- Task 3.3: final_y positioning
     local logical_interval = layout_line_h + total_gap
     local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
-    local half_h_with_pad = half_h + pad_y
+    local half_h_with_pad = half_h + math.max(pad_y, pad_top)
     
     if final_y - half_h_with_pad < margin then
         final_y = margin + half_h_with_pad
@@ -4642,7 +4644,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     local block_top = final_y - half_h
     local rect_left = min_x - pad_x
-    local rect_top = block_top - pad_y
+    local rect_top = block_top - pad_top
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + (2 * pad_y))
     local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",

@@ -422,7 +422,8 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     src = _lua_source()
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
-    assert "local half_h_with_pad = half_h + pad_y" in body
+    assert "local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)" in body
+    assert "local half_h_with_pad = half_h + math.max(pad_y, pad_top)" in body
     assert "if final_y - half_h_with_pad < margin then" in body
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
