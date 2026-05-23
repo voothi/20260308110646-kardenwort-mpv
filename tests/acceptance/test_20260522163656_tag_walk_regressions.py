@@ -408,3 +408,20 @@ def test_get_tooltip_line_y_falls_back_to_non_primary_zone_when_needed():
     assert "if zone.is_pri then" in body
     assert "fallback_zone_y = zone.y_top" in body
     assert "return fallback_zone_y or fallback_y" in body
+
+
+def test_tooltip_click_mode_dismisses_only_on_explicit_different_line():
+    src = _lua_source()
+    body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
+
+    assert "if line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then" in body
+    assert "if line_idx ~= FSM.DW_TOOLTIP_LINE then" not in body
+
+
+def test_tooltip_vertical_clamp_accounts_for_padding():
+    src = _lua_source()
+    body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
+
+    assert "local half_h_with_pad = half_h + pad_y" in body
+    assert "if final_y - half_h_with_pad < margin then" in body
+    assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body

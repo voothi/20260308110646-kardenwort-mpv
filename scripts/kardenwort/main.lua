@@ -4584,15 +4584,18 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local half_h = block_height / 2
     local margin = 20
     local screen_h = 1080
+    local pad_x = math.max(16, (bord or 0) * 6)
+    local pad_y = math.max(4, (bord or 0) * 2)
     
     -- Task 3.3: final_y positioning
     local logical_interval = layout_line_h + total_gap
     local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
+    local half_h_with_pad = half_h + pad_y
     
-    if final_y - half_h < margin then
-        final_y = margin + half_h
-    elseif final_y + half_h > screen_h - margin then
-        final_y = screen_h - margin - half_h
+    if final_y - half_h_with_pad < margin then
+        final_y = margin + half_h_with_pad
+    elseif final_y + half_h_with_pad > screen_h - margin then
+        final_y = screen_h - margin - half_h_with_pad
     end
     
     -- Hybrid tooltip render strategy:
@@ -4631,8 +4634,6 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         min_x = 1800
         max_x = 1800
     end
-    local pad_x = math.max(16, (bord or 0) * 6)
-    local pad_y = math.max(4, (bord or 0) * 2)
     local block_top = final_y - half_h
     local rect_left = min_x - pad_x
     local rect_top = block_top - pad_y
@@ -5264,7 +5265,9 @@ local function dw_tooltip_mouse_update()
     else
         -- CLICK mode or Selection Protected: check if we left the pinned line focus
         if FSM.DW_TOOLTIP_LINE ~= -1 then
-            if line_idx ~= FSM.DW_TOOLTIP_LINE then
+            -- Keep pinned tooltip stable through transient "no hit" ticks.
+            -- Dismiss only when the cursor clearly focuses a different line.
+            if line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then
                 clear_tooltip_overlay("click-focus-left")
             end
         end
