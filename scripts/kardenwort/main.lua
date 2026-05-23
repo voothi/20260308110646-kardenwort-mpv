@@ -93,6 +93,39 @@ mp.set_property("user-data/kardenwort/last_osd", "")
 mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
 
+-- Safety hardening for key binding registration: never allow nil callbacks.
+do
+    local raw_add_key_binding = mp.add_key_binding
+    local raw_add_forced_key_binding = mp.add_forced_key_binding
+
+    local function validate_binding_callback(kind, key, name, fn)
+        if type(fn) == "function" then
+            return true
+        end
+        Diagnostic.error(string.format(
+            "Skipping invalid %s '%s' for key '%s': callback is %s",
+            tostring(kind), tostring(name), tostring(key), type(fn)
+        ))
+        return false
+    end
+
+    mp.add_key_binding = function(key, name, fn, flags)
+        if not validate_binding_callback("binding", key, name, fn) then
+            return false
+        end
+        raw_add_key_binding(key, name, fn, flags)
+        return true
+    end
+
+    mp.add_forced_key_binding = function(key, name, fn, flags)
+        if not validate_binding_callback("forced binding", key, name, fn) then
+            return false
+        end
+        raw_add_forced_key_binding(key, name, fn, flags)
+        return true
+    end
+end
+
 local function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
     local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
@@ -7324,7 +7357,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 end
 
                 if k.complex then
-                    safe_add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
                 else
                     local settings = nil
                     if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN") 
@@ -7332,7 +7365,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                        or k.key == "ENTER" or k.key == "KP_ENTER" then
                         settings = "repeatable"
                     end
-                    safe_add_forced_key_binding(k.key, k.name, wrapped_fn, settings)
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, settings)
                 end
             end
         else mp.remove_key_binding(k.name) end
@@ -8318,7 +8351,7 @@ local function manage_search_bindings(enable)
         if not key_string then return end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
-            safe_add_forced_key_binding(key, "search-" .. name .. "-" .. i, fn, settings)
+            mp.add_forced_key_binding(key, "search-" .. name .. "-" .. i, fn, settings)
             i = i + 1
         end
     end
@@ -9402,16 +9435,6 @@ local function register_global_playback_keys()
     -- No direct key binding needed here to avoid double-fire collision.
 end
 register_global_playback_keys()
-
-local function safe_add_forced_key_binding(key, name, fn, settings)
-    if type(fn) ~= "function" then
-        Diagnostic.error(string.format("Skipping invalid forced binding '%s' for key '%s': callback is %s",
-            tostring(name), tostring(key), type(fn)))
-        return false
-    end
-    mp.add_forced_key_binding(key, name, fn, settings)
-    return true
-end
 
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
