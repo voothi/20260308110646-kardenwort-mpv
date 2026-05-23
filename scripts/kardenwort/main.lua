@@ -4493,6 +4493,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local fs = Options.tooltip_font_size
     local line_height = fs * Options.tooltip_line_height_mul
+    local base_h = Options.font_base_height or 1080
+    local base_w = math.floor(base_h * 16 / 9)
+    local anchor_x = base_w - math.floor((120 * base_h / 1080) + 0.5)
     
     local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
@@ -4504,7 +4507,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local mono_hint = font_name:lower():match("consolas") or font_name:lower():match("mono")
-    local max_text_w = 1400 -- Task 2.2 / Design Decision 3
+    local max_text_w = math.floor(base_w * 0.73)
     local total_visual_lines = 0 -- Task 3.1
     local subtitle_metas = {} -- Storage for hit-zone calculation
     
@@ -4586,7 +4589,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local half_h = block_height / 2
     local margin = 20
-    local screen_h = 1080
+    local screen_h = base_h
     local pad_x = math.max(16, (bord or 0) * 6)
     local pad_y = math.max(4, (bord or 0) * 2)
     
@@ -4612,7 +4615,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local cur_y = final_y - half_h
     for _, sm in ipairs(subtitle_metas) do
         for _, vl in ipairs(sm.visual_lines) do
-            local line_x_start = 1800 - vl.width -- Right-aligned an6 logic
+            local line_x_start = anchor_x - vl.width -- Right-aligned an6 logic
             table.insert(FSM.DW_TOOLTIP_HIT_ZONES, {
                 sub_idx = sm.sub_idx,
                 y_top = cur_y,
@@ -4624,7 +4627,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
             min_x = math.min(min_x, line_x_start)
             max_x = math.max(max_x, line_x_start + vl.width)
             
-            local style_part = string.format("{\\pos(1800, %g)}{\\an6}{\\bord0}{\\shad0}{\\q2}", cur_y)
+            local style_part = string.format("{\\pos(%g, %g)}{\\an6}{\\bord0}{\\shad0}{\\q2}", anchor_x, cur_y)
             local line_ass = style_part .. vl.line_text
             table.insert(all_tooltip_lines_ass, line_ass)
             
@@ -4634,8 +4637,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     
     if min_x == math.huge then
-        min_x = 1800
-        max_x = 1800
+        min_x = anchor_x
+        max_x = anchor_x
     end
     local block_top = final_y - half_h
     local rect_left = min_x - pad_x
