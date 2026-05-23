@@ -4925,8 +4925,6 @@ local function dw_mouse_update_selection()
 
         FSM.DW_MOUSE_PENDING_DRAG = false
         FSM.DW_MOUSE_DRAGGING = true
-        if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
-        FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
     end
 
     dw_sync_cursor_to_mouse()
@@ -4934,7 +4932,13 @@ end
 
 
 local function dw_mouse_auto_scroll()
-    if not FSM.DW_MOUSE_DRAGGING or FSM.DRUM_WINDOW == "OFF" then return end
+    if FSM.DRUM_WINDOW == "OFF" then return end
+
+    -- Keep selection following the pointer even if OS/driver drops mouse_move events.
+    -- This restores continuous drag behavior while preserving click-vs-drag thresholding.
+    dw_mouse_update_selection()
+
+    if not FSM.DW_MOUSE_DRAGGING then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
     
@@ -4957,12 +4961,9 @@ local function dw_mouse_auto_scroll()
     end
     
     if scrolled then
-        -- Force re-evaluate mouse position on new scroll anchor
+        -- Force re-evaluate mouse position on new scroll anchor.
         dw_mouse_update_selection()
     end
-    
-    -- ALWAYS update selection to guarantee smooth dragging even if OS drops mouse_move events
-    dw_mouse_update_selection()
 end
 
 local function cmd_dw_tooltip_pin(tbl)
@@ -5583,10 +5584,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     FSM.DW_MOUSE_PENDING_DRAG = true
                     FSM.DW_MOUSE_DRAGGING = false
                     mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-                    if FSM.DW_MOUSE_SCROLL_TIMER then
-                        FSM.DW_MOUSE_SCROLL_TIMER:kill()
-                        FSM.DW_MOUSE_SCROLL_TIMER = nil
-                    end
+                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
                     
                     drum_osd:update()
                     if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end

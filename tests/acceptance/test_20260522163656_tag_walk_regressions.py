@@ -116,16 +116,21 @@ def test_dw_block_top_uses_stable_frame_when_not_overflowing():
 def test_dw_mouse_drag_starts_only_after_movement_threshold():
     src = _lua_source()
     update_body = _function_window(src, "local function dw_mouse_update_selection()", "local function dw_mouse_auto_scroll")
+    auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
     handler_body = _function_window(src, "local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)", "local cmd_dw_mouse_select")
 
     assert "if not FSM.DW_MOUSE_PENDING_DRAG then return end" in update_body
     assert "local drag_threshold_px = 5" in update_body
     assert "FSM.DW_MOUSE_PENDING_DRAG = false" in update_body
     assert "FSM.DW_MOUSE_DRAGGING = true" in update_body
-    assert "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)" in update_body
+    assert "dw_sync_cursor_to_mouse()" in update_body
 
     assert "FSM.DW_MOUSE_PENDING_DRAG = true" in handler_body
     assert "FSM.DW_MOUSE_DRAGGING = false" in handler_body
+    assert "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)" in handler_body
+
+    assert "dw_mouse_update_selection()" in auto_scroll_body
+    assert "if not FSM.DW_MOUSE_DRAGGING then return end" in auto_scroll_body
 
 
 def test_dw_binding_builder_never_registers_nil_mouse_callback():
