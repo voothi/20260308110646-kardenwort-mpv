@@ -405,8 +405,9 @@ def test_get_tooltip_line_y_falls_back_to_non_primary_zone_when_needed():
     body = _function_window(src, "local function get_tooltip_line_y(line_idx, fallback_y)", "local function load_anki_tsv")
 
     assert "local fallback_zone_y = nil" in body
+    assert "local zone_center_y = (zone.y_top + zone.y_bottom) / 2" in body
     assert "if zone.is_pri then" in body
-    assert "fallback_zone_y = zone.y_top" in body
+    assert "fallback_zone_y = zone_center_y" in body
     assert "return fallback_zone_y or fallback_y" in body
 
 
@@ -461,3 +462,26 @@ def test_tooltip_activation_paths_only_publish_non_empty_ass():
 
     assert "if ass ~= \"\" then" in pin_body
     assert "if ass ~= \"\" then" in toggle_body
+
+
+def test_tooltip_uses_separate_wrap_line_height_option():
+    src = _lua_source()
+    opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=12000)
+    body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
+
+    assert "tooltip_wrap_line_height_mul" in opts
+    assert "local wrap_lh_mul = Options.tooltip_wrap_line_height_mul or Options.tooltip_line_height_mul" in body
+    assert "local line_height = fs * wrap_lh_mul" in body
+    assert "calculate_sub_gap(\"tooltip\", fs, Options.tooltip_line_height_mul, Options.tooltip_vsp)" in body
+
+
+def test_tooltip_horizontal_layout_uses_safe_anchor_and_dynamic_wrap_width():
+    src = _lua_source()
+    body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
+
+    assert "local screen_w = 1920" in body
+    assert "local anchor_x = screen_w - margin - pad_x - right_inset" in body
+    assert "local max_text_w = math.max(480, math.floor(anchor_x - margin - pad_x))" in body
+    assert "local line_x_start = anchor_x - vl.width" in body
+    assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}\", anchor_x, cur_y)" in body
+    assert "local max_text_w = 1400" not in body
