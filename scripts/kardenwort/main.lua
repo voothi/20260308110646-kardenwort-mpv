@@ -76,7 +76,7 @@ end
 require 'resume'
 
 -- Fallback for older mpv versions missing utils.read_file
-local function safe_read_file(path)
+function safe_read_file(path)
     if not path or path == "" then return nil end
     if utils and utils.read_file then
         return utils.read_file(path)
@@ -152,7 +152,7 @@ mp.set_property("user-data/kardenwort/last_osd", "")
 mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
 
-local function is_valid_mpv_key(k_str)
+function is_valid_mpv_key(k_str)
     if not k_str or k_str == "" then return false end
     local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
     local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
@@ -168,7 +168,7 @@ local EN_RU_MAP = {
     ["y"]="н", ["z"]="я", ["["]="х", ["]"]="ъ", [";"]="ж", ["'"]="э", [","]="б", ["."]="ю", ["`"]="ё"
 }
 
-local function expand_ru_keys(key_string, opt_name)
+function expand_ru_keys(key_string, opt_name)
     if not key_string or key_string == "" then return {} end
     local results = {}
     local seen = {}
@@ -228,7 +228,7 @@ local function expand_ru_keys(key_string, opt_name)
     return results
 end
 
-local function validate_config()
+function validate_config()
     local errors = {}
     local function check_keys(opt_val, opt_name)
         if not opt_val or opt_val == "" then return end
@@ -4915,19 +4915,19 @@ local function dw_sync_cursor_to_mouse()
 
 end
 
-local function get_dw_drag_threshold_px()
+function get_dw_drag_threshold_px()
     local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
     if threshold < 0 then return 0 end
     return threshold
 end
 
-local function get_dw_mouse_auto_scroll_interval()
+function get_dw_mouse_auto_scroll_interval()
     local interval = tonumber(Options.dw_mouse_auto_scroll_interval) or 0.05
     if interval <= 0 then return 0.05 end
     return interval
 end
 
-local function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
+function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
     local down_x = FSM.DW_MOUSE_DOWN_X or osd_x
     local down_y = FSM.DW_MOUSE_DOWN_Y or osd_y
     local dx = math.abs(osd_x - down_x)
