@@ -7303,8 +7303,10 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
                 if is_mouse then
                     local m_fn = nil
-                    if type(mouse_fn) == "string" and type(MOUSE_HANDLERS[mouse_fn]) == "function" then
-                        m_fn = MOUSE_HANDLERS[mouse_fn]
+                    if type(mouse_fn) == "function" and MOUSE_HANDLERS[mouse_fn] then
+                        -- Reuse prebuilt mouse handlers directly (legacy behavior).
+                        -- Wrapping them again changes drag/follow semantics.
+                        m_fn = mouse_fn
                     elseif mouse_fn then
                         m_fn = make_mouse_handler(false,
                             function(t) mouse_fn(t, true) end,
