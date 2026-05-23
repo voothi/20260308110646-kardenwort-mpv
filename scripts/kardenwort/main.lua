@@ -4582,6 +4582,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
+    local dm_mode = (FSM.DRUM_WINDOW == "OFF")
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
@@ -4653,8 +4654,15 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local rect_top = block_top - pad_top
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + pad_top + pad_y)
+    local rect_bg_alpha = bg_alpha
+    -- In DM with global background-box style enabled, mpv already paints a backdrop.
+    -- Keep the shared vector card for geometry consistency, but make it transparent
+    -- to avoid the perceived "double-dark" tooltip window.
+    if dm_mode and FSM.osd_border_style == "background-box" then
+        rect_bg_alpha = "FF"
+    end
     local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-        rect_left, rect_top, bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+        rect_left, rect_top, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
 
     local ass = bg_rect
     if #all_tooltip_lines_ass > 0 then

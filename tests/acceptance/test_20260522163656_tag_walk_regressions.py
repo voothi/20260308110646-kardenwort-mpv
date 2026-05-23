@@ -432,6 +432,16 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
 
+def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dark():
+    src = _lua_source()
+    body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
+
+    assert "local dm_mode = (FSM.DRUM_WINDOW == \"OFF\")" in body
+    assert "local rect_bg_alpha = bg_alpha" in body
+    assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
+    assert "rect_bg_alpha = \"FF\"" in body
+
+
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():
     src = _lua_source()
     body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
