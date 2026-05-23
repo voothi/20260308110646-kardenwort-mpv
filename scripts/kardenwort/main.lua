@@ -3028,7 +3028,9 @@ apply_tooltip_ass = function(ass)
     if not dw_tooltip_osd then return end
     ass = ass or ""
     local will_visible = (ass ~= "")
-    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
+    local custom_srt_osd = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local tooltip_on_custom_osd = (FSM.DRUM_WINDOW ~= "OFF") or (FSM.DRUM == "ON") or custom_srt_osd
+    local wants_override = will_visible and tooltip_on_custom_osd
     local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
     if wants_override and not has_override then
         manage_ui_border_override(true)

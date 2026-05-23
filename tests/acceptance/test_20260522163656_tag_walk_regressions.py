@@ -366,7 +366,10 @@ def test_tooltip_visibility_engages_ui_border_override():
 
     assert "apply_tooltip_ass = function(ass)" in helper
     assert "local will_visible =" in helper
-    assert "local wants_override = will_visible and (FSM.DRUM_WINDOW ~= \"OFF\")" in helper
+    assert "local custom_srt_osd =" in helper
+    assert "local tooltip_on_custom_osd =" in helper
+    assert "(FSM.DRUM == \"ON\")" in helper
+    assert "local wants_override = will_visible and tooltip_on_custom_osd" in helper
     assert "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)" in helper
     assert "manage_ui_border_override(true)" in helper
     assert "manage_ui_border_override(false)" in helper
