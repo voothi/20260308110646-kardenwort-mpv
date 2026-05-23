@@ -5211,7 +5211,10 @@ local function dw_tooltip_mouse_update()
                 local new_ass = draw_dw_tooltip(subs, target_l, y)
                 apply_tooltip_ass(new_ass)
             else
-                clear_tooltip_overlay("forced-target-missing")
+                -- DM sticky behavior: transient target misses should not hide a forced tooltip.
+                if dw_mode then
+                    clear_tooltip_overlay("forced-target-missing")
+                end
             end
         end
         return
@@ -5253,13 +5256,19 @@ local function dw_tooltip_mouse_update()
             else
                 -- Only dismiss if we are NOT holding RMB (prevents jitter in gaps)
                 if not FSM.DW_TOOLTIP_HOLDING and FSM.DW_TOOLTIP_LINE ~= -1 then
-                    clear_tooltip_overlay("target-y-missing")
+                    -- DM sticky behavior: keep last tooltip on transient y-map misses.
+                    if dw_mode then
+                        clear_tooltip_overlay("target-y-missing")
+                    end
                 end
             end
         elseif not FSM.DW_TOOLTIP_HOLDING then
             -- Sticky Hover: Only dismiss on gaps if we are NOT holding RMB
             if FSM.DW_TOOLTIP_LINE ~= -1 then
-                clear_tooltip_overlay("hover-gap")
+                -- DM sticky behavior: keep last tooltip across short hover gaps.
+                if dw_mode then
+                    clear_tooltip_overlay("hover-gap")
+                end
             end
         end
     else
@@ -5267,7 +5276,8 @@ local function dw_tooltip_mouse_update()
         if FSM.DW_TOOLTIP_LINE ~= -1 then
             -- Keep pinned tooltip stable through transient "no hit" ticks.
             -- Dismiss only when the cursor clearly focuses a different line.
-            if line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then
+            -- In DM mode keep pinned tooltip sticky to avoid playback-time blink.
+            if dw_mode and line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then
                 clear_tooltip_overlay("click-focus-left")
             end
         end

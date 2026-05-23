@@ -414,7 +414,7 @@ def test_tooltip_click_mode_dismisses_only_on_explicit_different_line():
     src = _lua_source()
     body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
 
-    assert "if line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then" in body
+    assert "if dw_mode and line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then" in body
     assert "if line_idx ~= FSM.DW_TOOLTIP_LINE then" not in body
 
 
@@ -425,3 +425,13 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     assert "local half_h_with_pad = half_h + pad_y" in body
     assert "if final_y - half_h_with_pad < margin then" in body
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
+
+
+def test_dm_tooltip_sticky_guards_avoid_transient_clear():
+    src = _lua_source()
+    body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
+
+    assert "if dw_mode then" in body
+    assert "clear_tooltip_overlay(\"forced-target-missing\")" in body
+    assert "clear_tooltip_overlay(\"target-y-missing\")" in body
+    assert "clear_tooltip_overlay(\"hover-gap\")" in body
