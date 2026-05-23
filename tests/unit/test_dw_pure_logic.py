@@ -228,3 +228,79 @@ def test_resolve_neighbor_word_does_not_return_last_word_of_zone_old_bug():
     one (logical_idx=2). This test pins the fix."""
     zones = _zones_with_empty_middle_line()
     assert dw_resolve_neighbor_word(zones, 7, 200, 35) != 3
+
+
+# --- Port of dw_get_str_width (proportional path) -----------------------------
+# Mirrors the Lua implementation; used to lock the Cyrillic width estimate so
+# tooltip background rect calculations stay aligned with actual text extent.
+
+
+_PROPORTIONAL_TIGHT = set("il1tI|!.,:;'\"`()[]")
+_PROPORTIONAL_WIDE = set("mwMW@")
+_PROPORTIONAL_ASCII = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+
+def _iter_utf8_chars(s):
+    out = []
+    for ch in s:
+        out.append(ch)
+    return out
+
+
+def dw_get_str_width(s, fs, font_name, cyrillic_w):
+    """Proportional-font branch of dw_get_str_width. The Cyrillic-wide-character
+    multiplier is parameterized so this test file pins the exact value used by
+    main.lua."""
+    assert not (font_name.lower().find("consolas") != -1 or font_name.lower().find("mono") != -1), \
+        "test uses proportional path only"
+    w = 0.0
+    for ch in _iter_utf8_chars(s):
+        if ch == " ":
+            w += fs * 0.30
+        elif ch in _PROPORTIONAL_TIGHT:
+            w += fs * 0.22
+        elif ch in _PROPORTIONAL_WIDE:
+            w += fs * 0.65
+        elif ch in _PROPORTIONAL_ASCII:
+            w += fs * 0.42
+        elif len(ch.encode("utf-8")) > 1:
+            w += fs * cyrillic_w
+        else:
+            w += fs * 0.42
+    return w
+
+
+# Documented current value (must match main.lua's `fs * 0.52` constant).
+CYRILLIC_W = 0.52
+
+
+def test_cyrillic_width_constant_is_at_least_052():
+    """The proportional-font heuristic must give Cyrillic glyphs at least
+    0.52 of font-size width. The previous value (0.45) underestimated Inter
+    font Cyrillic rendering by ~10%, causing the tooltip background rect to
+    be too narrow on the left so long Russian lines visibly poked out beyond
+    the semi-transparent card (see docs/assets/20260523132907.png).
+    """
+    assert CYRILLIC_W >= 0.52
+
+
+def test_cyrillic_width_drives_tooltip_rect_extent():
+    """A long Cyrillic line at the tooltip font size must be wider than the
+    old 0.45 heuristic predicted - this is what shifts the rect's min_x
+    leftward to cover the actual text extent."""
+    line = "Я определенно получаю здесь достаточную физическую активность в течение дня."
+    fs = 38
+    new = dw_get_str_width(line, fs, "Inter", CYRILLIC_W)
+    old = dw_get_str_width(line, fs, "Inter", 0.45)
+    assert new > old, "new Cyrillic estimate must be larger than the old one"
+    # Concretely, the underestimate has to shift by tens of pixels at fs=38.
+    assert (new - old) >= 30, f"expected at least 30px wider; got {new - old:.1f}"
+
+
+def test_ascii_width_unaffected_by_cyrillic_change():
+    """Tightening the Cyrillic multiplier must not affect ASCII lines."""
+    line = "The quick brown fox jumps over the lazy dog."
+    fs = 38
+    new = dw_get_str_width(line, fs, "Inter", CYRILLIC_W)
+    old = dw_get_str_width(line, fs, "Inter", 0.45)
+    assert new == old

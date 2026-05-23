@@ -336,6 +336,91 @@ def test_dw_hit_test_fallback_uses_horizontal_and_vertical_distance():
     assert "word.x_offset" in helper and "word.width" in helper, "must use word geometry for in-zone pick"
 
 
+def test_tooltip_visibility_engages_ui_border_override():
+    """When the DW tooltip becomes visible while DW is OFF (drum/SRT mode),
+    the OSD osd-border-style must be overridden the same way DW opening does
+    it. Otherwise mpv's per-line background-box doubles up with the tooltip's
+    own \\p1 shared background rect and the tooltip looks much darker than
+    the DW tooltip (see docs/assets/20260523132926.png).
+
+    Implementation: all tooltip-show/hide paths route through the
+    apply_tooltip_ass helper, which calls manage_ui_border_override
+    on visibility transitions."""
+    src = _lua_source()
+
+    # Helper exists and toggles the override on transitions.
+    assert "function apply_tooltip_ass(ass)" in src or "local function apply_tooltip_ass(ass)" in src, (
+        "tooltip visibility helper must exist"
+    )
+    helper = _function_window(src, "function apply_tooltip_ass(ass)", "\nlocal function ", span=1200)
+    assert "manage_ui_border_override(true)" in helper
+    assert "manage_ui_border_override(false)" in helper
+    assert "dw_tooltip_osd.data = ass" in helper
+    assert "dw_tooltip_osd:update()" in helper
+
+    # The hide path inside clear_tooltip_overlay must route through the helper.
+    clear_body = _function_window(src, "local function clear_tooltip_overlay(reason)", "local function is_osd_tooltip_mode_eligible")
+    assert "apply_tooltip_ass(\"\")" in clear_body
+
+    # Every "set non-empty data and update" pattern must go through the helper now.
+    # We assert no direct `dw_tooltip_osd.data = ass` (or similar) survives outside
+    # the helper definition itself and the clear-overlay path.
+    helper_idx = src.find("function apply_tooltip_ass(ass)")
+    helper_end = src.find("\nlocal function ", helper_idx)
+    src_outside_helper = src[:helper_idx] + src[helper_end:]
+
+    for pattern in (
+        "dw_tooltip_osd.data = ass\n",
+        "dw_tooltip_osd.data = new_ass\n",
+    ):
+        assert pattern not in src_outside_helper, (
+            f"all `{pattern.strip()}` writes must route through apply_tooltip_ass"
+        )
+
+
+def test_manage_ui_border_override_is_forward_declared():
+    """manage_ui_border_override is used from tooltip code (which appears
+    earlier in the file). It must be forward-declared so the assignment
+    pattern works regardless of physical placement."""
+    src = _lua_source()
+    # Forward declarations sit near the other interactive forward decls,
+    # well before the OSD/tooltip code (~line 4000+) that calls it.
+    fwd_section_end = src.find("Options = {")
+    assert fwd_section_end != -1
+    header = src[:fwd_section_end]
+    assert "local manage_ui_border_override" in header, (
+        "manage_ui_border_override must be forward-declared in the interactive-logic section"
+    )
+
+    # And the actual definition must be an assignment (no `local` keyword).
+    assert "manage_ui_border_override = function(enable)" in src, (
+        "definition must use assignment to the forward-declared local"
+    )
+    assert "local function manage_ui_border_override(enable)" not in src, (
+        "definition must not shadow the forward declaration with a new local"
+    )
+
+
+def test_dw_get_str_width_cyrillic_estimate_at_least_052():
+    """The proportional-font Cyrillic width heuristic must give at least
+    0.52 of font-size per glyph. The previous 0.45 underestimated Inter's
+    Cyrillic rendering by ~10%, causing tooltip background rects to fail
+    to cover the leftmost extent of long Russian lines."""
+    src = _lua_source()
+    body = _function_window(src, "local function dw_get_str_width(str, fs, font_name)", "local function calculate_sub_gap")
+
+    # The Cyrillic-wide branch must use at least 0.52.
+    # Look for the branch comment + multiplier.
+    import re
+    m = re.search(r"#c\s*>\s*1\s+then\s+w\s*=\s*w\s*\+\s*\(fs\s*\*\s*([0-9.]+)\)", body)
+    assert m is not None, "Cyrillic-wide branch not found in dw_get_str_width"
+    val = float(m.group(1))
+    assert val >= 0.52, (
+        f"Cyrillic glyph width multiplier is {val}; must be >=0.52 so tooltip "
+        f"rect covers long Russian lines (see docs/assets/20260523132907.png)"
+    )
+
+
 def test_manage_dw_bindings_is_table_driven():
     """The 30+ repetitive `parse_and_collect(...)` lines have been replaced
     by a single binding schema iterated once. New keys should be added to
