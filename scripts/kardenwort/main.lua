@@ -3030,8 +3030,14 @@ apply_tooltip_ass = function(ass)
     local will_visible = (ass ~= "")
     local custom_srt_osd = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
     local tooltip_on_custom_osd = (FSM.DRUM_WINDOW ~= "OFF") or (FSM.DRUM == "ON") or custom_srt_osd
-    local wants_override = will_visible and tooltip_on_custom_osd
     local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
+    local effective_border_style = nil
+    if has_override and FSM.saved_osd_border_style and FSM.saved_osd_border_style ~= "" then
+        effective_border_style = FSM.saved_osd_border_style
+    else
+        effective_border_style = mp.get_property("osd-border-style") or FSM.osd_border_style
+    end
+    local wants_override = will_visible and tooltip_on_custom_osd and (effective_border_style == "background-box")
     if wants_override and not has_override then
         manage_ui_border_override(true)
         has_override = true
@@ -4585,7 +4591,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
     local dm_mode = (FSM.DRUM_WINDOW == "OFF")
-    local line_bgbox_neutral = ""
+    local active_border_style = mp.get_property("osd-border-style") or FSM.osd_border_style
+    local dm_bgbox_mode = dm_mode and (active_border_style == "background-box")
+    local line_bgbox_neutral = dm_bgbox_mode and "{\\3a&HFF&\\4a&HFF&}" or ""
+    local rect_bg_alpha = dm_bgbox_mode and "FF" or bg_alpha
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
@@ -4657,16 +4666,6 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local rect_top = block_top - pad_top
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + pad_top + pad_y)
-    local rect_bg_alpha = bg_alpha
-    -- In DM with global background-box style enabled, mpv already paints a backdrop.
-    -- Keep the shared vector card for geometry consistency, but make it transparent
-    -- to avoid the perceived "double-dark" tooltip window.
-    if dm_mode and FSM.osd_border_style == "background-box" then
-        rect_bg_alpha = "FF"
-        -- Keep only the global background-box contribution in DM:
-        -- tooltip lines must not add another dark layer.
-        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
-    end
     local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
         rect_left, rect_top, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
 
@@ -5286,8 +5285,8 @@ local function dw_tooltip_mouse_update()
             if target_y then
                 target_y = math.floor(target_y + 0.5)
                 -- Update OSD data on every tick when line is visible to ensure smooth following during scroll
-                local new_ass = draw_dw_tooltip(subs, target_l, target_y)
                 FSM.DW_TOOLTIP_LINE = target_l
+                local new_ass = draw_dw_tooltip(subs, target_l, target_y)
                 if new_ass ~= "" then
                     apply_tooltip_ass(new_ass)
                 elseif dw_mode then

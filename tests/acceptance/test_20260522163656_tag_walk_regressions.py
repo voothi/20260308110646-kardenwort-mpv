@@ -368,9 +368,11 @@ def test_tooltip_visibility_engages_ui_border_override():
     assert "local will_visible =" in helper
     assert "local custom_srt_osd =" in helper
     assert "local tooltip_on_custom_osd =" in helper
-    assert "(FSM.DRUM == \"ON\")" in helper
-    assert "local wants_override = will_visible and tooltip_on_custom_osd" in helper
     assert "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)" in helper
+    assert "local effective_border_style = nil" in helper
+    assert "effective_border_style = FSM.saved_osd_border_style" in helper
+    assert "effective_border_style = mp.get_property(\"osd-border-style\") or FSM.osd_border_style" in helper
+    assert "local wants_override = will_visible and tooltip_on_custom_osd and (effective_border_style == \"background-box\")" in helper
     assert "manage_ui_border_override(true)" in helper
     assert "manage_ui_border_override(false)" in helper
     assert "FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override" in helper
@@ -440,12 +442,12 @@ def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dar
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
     assert "local dm_mode = (FSM.DRUM_WINDOW == \"OFF\")" in body
-    assert "local line_bgbox_neutral = \"\"" in body
-    assert "local rect_bg_alpha = bg_alpha" in body
-    assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
-    assert "rect_bg_alpha = \"FF\"" in body
-    assert "line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
+    assert "local active_border_style = mp.get_property(\"osd-border-style\") or FSM.osd_border_style" in body
+    assert "local dm_bgbox_mode = dm_mode and (active_border_style == \"background-box\")" in body
+    assert "local line_bgbox_neutral = dm_bgbox_mode and \"{\\\\3a&HFF&\\\\4a&HFF&}\" or \"\"" in body
+    assert "local rect_bg_alpha = dm_bgbox_mode and \"FF\" or bg_alpha" in body
     assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, cur_y, line_bgbox_neutral)" in body
+    assert body.find("local line_bgbox_neutral") < body.find("string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, cur_y, line_bgbox_neutral)")
 
 
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():
