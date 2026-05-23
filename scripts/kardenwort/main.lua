@@ -4117,8 +4117,7 @@ local function dw_build_layout(subs, view_center)
     end_idx = math.min(#subs, end_idx)
 
     local lh_mul = Options.dw_line_height_mul
-    local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
-    local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
+    local vline_h = dw_vline_height()
     local sub_gap = calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
@@ -4337,8 +4336,7 @@ local function draw_dw(subs, view_center, active_idx)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
-        local wrap_mul = Options.dw_wrap_line_height_mul or lh_mul
-        local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
+        local vline_h = dw_vline_height()
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
             local space_w = dw_get_str_width(" ", f_size, font_name)
@@ -4915,6 +4913,13 @@ local function dw_sync_cursor_to_mouse()
 
 end
 
+-- Wrapped-line visual height inside a single subtitle entry.
+-- Centralized so changes to wrapped-line spacing stay in one place.
+function dw_vline_height()
+    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
+    return (Options.dw_font_size * wrap_mul) + Options.dw_vsp
+end
+
 function get_dw_drag_threshold_px()
     local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
     if threshold < 0 then return 0 end
@@ -4964,10 +4969,13 @@ local function dw_mouse_auto_scroll()
     
     local _, osd_y = dw_get_mouse_osd()
 
+    -- Top + bottom edge zones must leave a usable scroll-neutral band in the
+    -- middle of the screen, so cap the per-side ratio just under 0.5.
+    local DW_EDGE_SCROLL_RATIO_MAX = 0.49
     local base_h = Options.font_base_height or 1080
     local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15
     if edge_ratio < 0 then edge_ratio = 0 end
-    if edge_ratio > 0.49 then edge_ratio = 0.49 end
+    if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then edge_ratio = DW_EDGE_SCROLL_RATIO_MAX end
     local edge_zone = base_h * edge_ratio
     local scrolled = false
     if osd_y < edge_zone then
@@ -6463,9 +6471,7 @@ local function ensure_sub_layout(sub)
     if #cur_indices > 0 then table.insert(vlines, cur_indices) end
     if #vlines == 0 then vlines = {{1}} end
 
-    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * wrap_mul) + Options.dw_vsp
-    local entry_h = #vlines * vline_h
+    local entry_h = #vlines * dw_vline_height()
 
     sub.layout_cache = {
         version = FSM.LAYOUT_VERSION,
@@ -7397,9 +7403,6 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         if active and k.key and is_valid_mpv_key(k.key) and type(k.fn) == "function" then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
-                    if t and t.event == "down" then
-
-                    end
                     return k.fn(t)
                 end
 

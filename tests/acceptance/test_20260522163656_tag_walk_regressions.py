@@ -167,3 +167,136 @@ def test_dw_mouse_auto_scroll_uses_base_height_instead_of_hardcoded_1080():
     assert "local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15" in auto_scroll_body
     assert "local edge_zone = base_h * edge_ratio" in auto_scroll_body
     assert "elseif osd_y > base_h - edge_zone then" in auto_scroll_body
+
+
+# ---------------------------------------------------------------------------
+# v1.82.26..v1.84.0 review (ZID 20260523121327): add semantic guardrails
+# beyond the existing structural string-matching tests so a future regression
+# in geometry/binding logic cannot silently slip through.
+# ---------------------------------------------------------------------------
+
+
+def test_dw_calculate_block_top_overflow_branch_uses_edge_margin_not_hardcoded_y():
+    """The block-top math must derive screen geometry from Options
+    (no hardcoded 540, no hardcoded 1080) so users can re-target the
+    safe-area, and the function must clamp using dw_edge_margin."""
+    src = _lua_source()
+    body = _function_window(
+        src,
+        "local function dw_calculate_block_top(view_center, active_idx, layout, total_height)",
+        "-- draw_dw",
+    )
+
+    # Geometry must come from Options.
+    assert "Options.font_base_height or 1080" in body
+    assert "Options.dw_edge_margin or 0" in body
+
+    # The non-overflow branch must keep a stable, centered frame (no
+    # focused-line anchoring) - this is the legacy DW behavior restored
+    # at ZID 20260522230925.
+    assert "local block_top = center_y - (total_height / 2)" in body
+
+    # Overflow branch must clamp against dw_edge_margin (top and bottom),
+    # not against zero - this is the v1.84.0 safe-area behavior.
+    assert "if total_height > base_h - 2 * edge_margin then" in body
+    assert "block_top = edge_margin" in body
+    assert "block_top = base_h - edge_margin - total_height" in body
+
+
+def test_dw_block_top_and_total_height_are_exposed_for_diagnostics():
+    """Test harness needs to read the post-render DW geometry; the FSM
+    must publish it after every successful draw_dw call so
+    test_20260521133435_dw_top_alignment.py acceptance asserts work."""
+    src = _lua_source()
+    draw_body = _function_window(src, "local function draw_dw(subs, view_center, active_idx)", "local function draw_dw_tooltip")
+
+    assert "FSM.DW_BLOCK_TOP = block_top" in draw_body
+    assert "FSM.DW_TOTAL_HEIGHT = total_height" in draw_body
+
+    probe_body = _function_window(src, "function kardenwortProbe._snapshot()", "kardenwortProbe.tests = {}", span=4000)
+    assert "dw_block_top" in probe_body
+    assert "dw_total_height" in probe_body
+
+
+def test_mp_callback_safety_shim_logs_invalid_callbacks_via_msg_error():
+    """The global mp.* shim must surface programming errors via msg.error
+    (not silently swallow them); otherwise nil-callback regressions get
+    hidden and recur. Coupling note: shim wraps mp APIs before any
+    auxiliary module is required."""
+    src = _lua_source()
+    shim = src[: src.find("require 'resume'")]
+
+    assert "local function validate_callback(kind, name, fn)" in shim
+    assert "if type(fn) == \"function\" then return true end" in shim
+    assert "msg.error(string.format(\"[kardenwort] Skipping invalid %s '%s': callback is %s\"," in shim
+
+    for api in (
+        "mp.add_key_binding",
+        "mp.add_forced_key_binding",
+        "mp.add_timeout",
+        "mp.add_periodic_timer",
+        "mp.register_event",
+        "mp.observe_property",
+        "mp.register_script_message",
+    ):
+        assert f"{api} = function" in shim, f"shim must wrap {api}"
+        # Each wrapper must call validate_callback before delegating.
+        wrap = shim[shim.find(f"{api} = function"):]
+        wrap = wrap[: wrap.find("end\n")]
+        assert "validate_callback(" in wrap, f"{api} wrapper must validate first"
+
+
+def test_dw_binding_loop_has_no_empty_event_down_block():
+    """The wrapped_fn at the binding-registration loop must not contain
+    an empty `if t.event == \"down\" then end` placeholder.
+
+    Why: the empty block was leftover after removing inline shield logic,
+    and it now masks intent (no-op branch reads like a TODO). A future
+    contributor might add code here without realizing nav() already
+    sets the shield timestamp for the keys that need it."""
+    src = _lua_source()
+    body = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
+
+    # Normalize whitespace inside the wrapped_fn block.
+    wrapped_fn_idx = body.find("local wrapped_fn = function(t)")
+    assert wrapped_fn_idx != -1
+    wrapped_fn_block = body[wrapped_fn_idx: wrapped_fn_idx + 400]
+
+    # Empty branch should not be present.
+    assert "if t and t.event == \"down\" then\n\n                    end" not in wrapped_fn_block
+    # Functional contract must still hold: the inner call delegates to k.fn(t).
+    assert "return k.fn(t)" in wrapped_fn_block
+
+
+def test_dw_mouse_edge_scroll_ratio_clamp_uses_named_constant():
+    """The 0.49 upper bound on dw_mouse_edge_scroll_ratio is a magic
+    number - it should be a named constant so the intent (\"never let
+    top+bottom edge zones cover the entire screen\") is documented."""
+    src = _lua_source()
+    auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
+
+    # After refactor the literal must be replaced with a named local.
+    assert "DW_EDGE_SCROLL_RATIO_MAX" in auto_scroll_body
+    assert "if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then" in auto_scroll_body
+    assert "edge_ratio = DW_EDGE_SCROLL_RATIO_MAX" in auto_scroll_body
+
+
+def test_dw_vline_height_helper_replaces_duplicate_formula():
+    """`(Options.dw_font_size * wrap_mul) + Options.dw_vsp` was duplicated
+    in 3 places (dw_build_layout, draw_dw, ensure_sub_layout). Consolidate
+    behind a helper so a future change to wrapped-line spacing is local."""
+    src = _lua_source()
+
+    # The helper must exist and use the wrap_line_height_mul fallback chain.
+    assert "function dw_vline_height()" in src
+    helper = _function_window(src, "function dw_vline_height()", "\nfunction ", span=400)
+    assert "Options.dw_wrap_line_height_mul or Options.dw_line_height_mul" in helper
+    assert "Options.dw_vsp" in helper
+
+    # Call sites must use the helper instead of repeating the formula.
+    build_layout = _function_window(src, "local function dw_build_layout(subs, view_center)", "local function dw_calculate_block_top")
+    ensure = _function_window(src, "local function ensure_sub_layout(sub)", "local function get_word_boundary", span=4000)
+
+    for body in (build_layout, ensure):
+        assert "dw_vline_height()" in body
+        assert "(Options.dw_font_size * wrap_mul) + Options.dw_vsp" not in body
