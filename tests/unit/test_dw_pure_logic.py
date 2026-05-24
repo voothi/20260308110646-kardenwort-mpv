@@ -53,6 +53,51 @@ def dw_pointer_exceeded_drag_threshold(opts, down_x, down_y, x, y):
     return (dx > threshold) or (dy > threshold)
 
 
+def dw_get_auto_scroll_block_zones(hit_zones, dm_mode):
+    if not hit_zones:
+        return None, None
+    if not dm_mode:
+        return hit_zones[0], hit_zones[-1]
+
+    first_zone = None
+    last_zone = None
+    for zone in hit_zones:
+        if zone.get("is_pri") is False or "y_top" not in zone or "y_bottom" not in zone:
+            continue
+        if first_zone is None or zone["y_top"] < first_zone["y_top"]:
+            first_zone = zone
+        if last_zone is None or zone["y_bottom"] > last_zone["y_bottom"]:
+            last_zone = zone
+    return first_zone, last_zone
+
+
+def dw_auto_scroll_direction(opts, hit_zones, dm_mode, osd_y):
+    edge_ratio = opts.get("dw_mouse_edge_scroll_ratio", 0.15)
+    edge_ratio = max(0, min(edge_ratio, DW_EDGE_SCROLL_RATIO_MAX))
+    base_h = opts.get("font_base_height", 1080)
+    edge_zone = base_h * edge_ratio
+    top_scroll_trigger = edge_zone
+    bottom_scroll_trigger = base_h - edge_zone
+
+    first_zone, last_zone = dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
+    if first_zone is None or last_zone is None:
+        return 0
+
+    if dm_mode:
+        top_scroll_trigger = first_zone["y_top"]
+        bottom_scroll_trigger = last_zone["y_bottom"]
+    else:
+        top_scroll_trigger = min(top_scroll_trigger, first_zone["y_top"])
+        bottom_scroll_trigger = max(bottom_scroll_trigger, last_zone["y_bottom"])
+
+    edge_activation_pad = max(2, math.floor(get_dw_drag_threshold_px(opts) / 2))
+    if osd_y < (top_scroll_trigger - edge_activation_pad):
+        return -1
+    if osd_y > (bottom_scroll_trigger + edge_activation_pad):
+        return 1
+    return 0
+
+
 def dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x):
     best_zone = None
     best_dy = math.inf
@@ -169,6 +214,50 @@ def test_drag_nil_down_falls_back_to_current_position():
 
 def test_drag_zero_threshold_catches_one_px_motion():
     assert dw_pointer_exceeded_drag_threshold({"dw_mouse_drag_threshold_px": 0}, 100, 100, 101, 100) is True
+
+
+# --- auto scroll block bounds -------------------------------------------------
+
+
+def _mixed_dm_zones():
+    return [
+        {"sub_idx": 10, "is_pri": True, "y_top": 780, "y_bottom": 830},
+        {"sub_idx": 11, "is_pri": True, "y_top": 880, "y_bottom": 930},
+        {"sub_idx": 10, "is_pri": False, "y_top": 120, "y_bottom": 170},
+        {"sub_idx": 11, "is_pri": False, "y_top": 220, "y_bottom": 270},
+    ]
+
+
+def test_dm_auto_scroll_uses_primary_block_even_when_secondary_is_last():
+    first_zone, last_zone = dw_get_auto_scroll_block_zones(_mixed_dm_zones(), dm_mode=True)
+    assert first_zone["y_top"] == 780
+    assert last_zone["y_bottom"] == 930
+
+
+def test_dm_auto_scroll_does_not_run_away_inside_primary_bottom_line():
+    opts = {"dw_mouse_drag_threshold_px": 5, "dw_mouse_edge_scroll_ratio": 0.15, "font_base_height": 1080}
+    assert dw_auto_scroll_direction(opts, _mixed_dm_zones(), dm_mode=True, osd_y=925) == 0
+
+
+def test_dm_auto_scroll_scrolls_down_below_primary_block():
+    opts = {"dw_mouse_drag_threshold_px": 5, "dw_mouse_edge_scroll_ratio": 0.15, "font_base_height": 1080}
+    assert dw_auto_scroll_direction(opts, _mixed_dm_zones(), dm_mode=True, osd_y=935) == 1
+
+
+def test_dm_auto_scroll_scrolls_up_above_primary_block():
+    opts = {"dw_mouse_drag_threshold_px": 5, "dw_mouse_edge_scroll_ratio": 0.15, "font_base_height": 1080}
+    assert dw_auto_scroll_direction(opts, _mixed_dm_zones(), dm_mode=True, osd_y=775) == -1
+
+
+def test_dw_auto_scroll_keeps_legacy_screen_edge_bounds():
+    opts = {"dw_mouse_drag_threshold_px": 5, "dw_mouse_edge_scroll_ratio": 0.15, "font_base_height": 1080}
+    zones = [
+        {"sub_idx": 1, "y_top": 320, "y_bottom": 370},
+        {"sub_idx": 2, "y_top": 720, "y_bottom": 760},
+    ]
+    assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=200) == 0
+    assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=159) == -1
+    assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=921) == 1
 
 
 # --- resolve_neighbor_word (the bug-fix regression set) -----------------------

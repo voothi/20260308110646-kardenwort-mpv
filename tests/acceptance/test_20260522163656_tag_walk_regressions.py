@@ -166,7 +166,8 @@ def test_dw_mouse_auto_scroll_uses_base_height_instead_of_hardcoded_1080():
     assert "Options.font_base_height or 1080" in auto_scroll_body
     assert "local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15" in auto_scroll_body
     assert "local edge_zone = base_h * edge_ratio" in auto_scroll_body
-    assert "elseif osd_y > base_h - edge_zone then" in auto_scroll_body
+    assert "local bottom_scroll_trigger = base_h - edge_zone" in auto_scroll_body
+    assert "elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then" in auto_scroll_body
 
 
 # ---------------------------------------------------------------------------

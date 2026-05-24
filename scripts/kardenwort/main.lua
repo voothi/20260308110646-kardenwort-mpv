@@ -5140,6 +5140,21 @@ local function dw_mouse_update_selection()
     dw_sync_cursor_to_mouse()
 end
 
+local function dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
+    if not hit_zones or #hit_zones == 0 then return nil, nil end
+    if not dm_mode then return hit_zones[1], hit_zones[#hit_zones] end
+
+    local first_zone = nil
+    local last_zone = nil
+    for _, zone in ipairs(hit_zones) do
+        if zone.is_pri ~= false and zone.y_top and zone.y_bottom then
+            if not first_zone or zone.y_top < first_zone.y_top then first_zone = zone end
+            if not last_zone or zone.y_bottom > last_zone.y_bottom then last_zone = zone end
+        end
+    end
+    return first_zone, last_zone
+end
+
 
 local function dw_mouse_auto_scroll()
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
@@ -5167,19 +5182,8 @@ local function dw_mouse_auto_scroll()
     local top_scroll_trigger = edge_zone
     local bottom_scroll_trigger = base_h - edge_zone
     local hit_zones = dw_mode and FSM.DW_HIT_ZONES or FSM.DRUM_HIT_ZONES
-    if not hit_zones or #hit_zones == 0 then return end
-    local first_zone = hit_zones[1]
-    local last_zone = hit_zones[#hit_zones]
-    if dm_mode then
-        first_zone = nil
-        last_zone = nil
-        for _, zone in ipairs(hit_zones) do
-            if zone.is_pri ~= false and zone.y_top and zone.y_bottom then
-                if not first_zone or zone.y_top < first_zone.y_top then first_zone = zone end
-                if not last_zone or zone.y_bottom > last_zone.y_bottom then last_zone = zone end
-            end
-        end
-    end
+    local first_zone, last_zone = dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
+    if not first_zone or not last_zone then return end
     if dm_mode then
         if first_zone and first_zone.y_top then
             top_scroll_trigger = first_zone.y_top
