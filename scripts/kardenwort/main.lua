@@ -4617,6 +4617,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local logical_interval = layout_line_h + total_gap
     local final_y = osd_y + (Options.tooltip_y_offset_lines * logical_interval)
     local half_h_with_pad = half_h + pad_y
+    half_h_with_pad = half_h + pad_top
     
     if final_y - half_h_with_pad < margin then
         final_y = margin + half_h_with_pad
@@ -4665,6 +4666,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local rect_top = block_top - pad_top
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + pad_top + pad_y)
+    rect_h = math.max(1, block_height + (2 * pad_top))
 
     local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
         rect_left, rect_top, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
