@@ -4558,12 +4558,10 @@ local function dw_hit_test(osd_x, osd_y)
     if not subs or #subs == 0 then return nil, nil end
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
+    if not layout or #layout == 0 then return nil, nil end
 
     local vline_h = vline_height(Options.dw_font_size)
-    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
-    if Options.dw_double_gap then
-        sub_gap = sub_gap + vline_h
-    end
+    local lh_mul = Options.dw_line_height_mul
     local space_w = dw_get_str_width(" ")
 
     local active_idx = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
@@ -4583,15 +4581,28 @@ local function dw_hit_test(osd_x, osd_y)
     end
 
     local y_pos = block_top
-    for _, entry in ipairs(layout) do
+    for layout_i, entry in ipairs(layout) do
         local entry_bottom = y_pos + entry.height
+        local gap_after = 0
+        if layout_i < #layout then
+            local is_active = (entry.sub_idx == active_idx)
+            local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+            gap_after = calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+        end
         -- If osd_y is within the entry OR in the gap immediately below it, snap it to this entry
-        if osd_y < entry_bottom + sub_gap then
+        if osd_y < entry_bottom + gap_after then
+            local entry_vline_h = vline_h
+            if #entry.vlines > 0 and entry.height > 0 then
+                entry_vline_h = entry.height / #entry.vlines
+            end
             local rel_y = math.max(0, math.min(osd_y - y_pos, entry.height - 0.001))
-            local vl_num = math.floor(rel_y / vline_h) + 1
+            local vl_num = math.floor(rel_y / entry_vline_h) + 1
             vl_num = math.max(1, math.min(#entry.vlines, vl_num))
 
             local vl_indices = entry.vlines[vl_num]
+            if not vl_indices or #vl_indices == 0 then
+                return entry.sub_idx, 1
+            end
 
             local vl_width = 0
             for k, wi in ipairs(vl_indices) do
@@ -4645,7 +4656,7 @@ local function dw_hit_test(osd_x, osd_y)
 
             return entry.sub_idx, logical_wi
         end
-        y_pos = entry_bottom + sub_gap
+        y_pos = entry_bottom + gap_after
     end
 
     -- Fallback safety, should never be reached due to the >= check at the top
@@ -4664,26 +4675,66 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
     if dw_mode and not Options.dw_sec_interactivity then return nil, nil end
     if not dw_mode and not Options.drum_sec_interactivity then return nil, nil end
     
-    for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
+    local zones = FSM.DW_TOOLTIP_HIT_ZONES
+    if not zones or #zones == 0 then return nil, nil end
+
+    local best_line = nil
+    for i, line in ipairs(zones) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
-            local rel_x = osd_x - line.x_start
-            if rel_x >= 0 and rel_x <= line.total_width then
-                -- Find closest word in this line
-                local best_logical_idx = nil
-                local min_dist = math.huge
-                for _, word in ipairs(line.words) do
-                    local center = word.x_offset + word.width / 2
-                    local dist = math.abs(rel_x - center)
-                    if dist < min_dist then
-                        min_dist = dist
-                        best_logical_idx = word.logical_idx
-                    end
+            best_line = line
+            break
+        end
+        local next_line = zones[i + 1]
+        if next_line and osd_y > line.y_bottom and osd_y < next_line.y_top then
+            best_line = line
+            break
+        end
+    end
+
+    if not best_line then
+        local first_line = zones[1]
+        local last_line = zones[#zones]
+        if osd_y <= first_line.y_top then
+            best_line = first_line
+        elseif osd_y >= last_line.y_bottom then
+            best_line = last_line
+        else
+            local best_dist = math.huge
+            for _, line in ipairs(zones) do
+                local mid = (line.y_top + line.y_bottom) / 2
+                local dist = math.abs(osd_y - mid)
+                if dist < best_dist then
+                    best_dist = dist
+                    best_line = line
                 end
-                return line.sub_idx, best_logical_idx
             end
         end
     end
-    return nil, nil
+
+    if not best_line then return nil, nil end
+
+    local words = best_line.words or {}
+    if #words == 0 then return best_line.sub_idx, 1 end
+
+    local rel_x = osd_x - best_line.x_start
+    if rel_x <= 0 then
+        return best_line.sub_idx, words[1].logical_idx
+    end
+    if rel_x >= best_line.total_width then
+        return best_line.sub_idx, words[#words].logical_idx
+    end
+
+    local best_logical_idx = words[1].logical_idx
+    local min_dist = math.huge
+    for _, word in ipairs(words) do
+        local center = word.x_offset + word.width / 2
+        local dist = math.abs(rel_x - center)
+        if dist < min_dist then
+            min_dist = dist
+            best_logical_idx = word.logical_idx
+        end
+    end
+    return best_line.sub_idx, best_logical_idx
 end
 
 local function drum_osd_hit_test(osd_x, osd_y)
