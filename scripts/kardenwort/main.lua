@@ -5167,24 +5167,24 @@ local function dw_mouse_auto_scroll()
     local top_scroll_trigger = edge_zone
     local bottom_scroll_trigger = base_h - edge_zone
     local hit_zones = dw_mode and FSM.DW_HIT_ZONES or FSM.DRUM_HIT_ZONES
-    if hit_zones and #hit_zones > 0 then
-        local first_zone = hit_zones[1]
-        local last_zone = hit_zones[#hit_zones]
-        if first_zone and first_zone.y_top then
-            top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
-        end
-        if last_zone and last_zone.y_bottom then
-            bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
-        end
+    if not hit_zones or #hit_zones == 0 then return end
+    local first_zone = hit_zones[1]
+    local last_zone = hit_zones[#hit_zones]
+    if first_zone and first_zone.y_top then
+        top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
     end
+    if last_zone and last_zone.y_bottom then
+        bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
+    end
+    local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
     local scrolled = false
-    if osd_y < top_scroll_trigger then
+    if osd_y < (top_scroll_trigger - edge_activation_pad) then
         if FSM.DW_VIEW_CENTER > 1 then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER - 1
             if FSM.DW_CURSOR_LINE > 1 then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1 end
             scrolled = true
         end
-    elseif osd_y > bottom_scroll_trigger then
+    elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then
         if FSM.DW_VIEW_CENTER < #subs then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
             if FSM.DW_CURSOR_LINE < #subs then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1 end
