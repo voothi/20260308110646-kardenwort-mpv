@@ -14,7 +14,7 @@
 
 ## 2. Phase 2: Spacing and Safe-Area Decoupling for DW (Moved Earlier)
 
-- [ ] 2.1 Implement `vline_height(fs)` helper in a scoped helper block/table.
+- [x] 2.1 Implement `vline_height(fs)` helper in a scoped helper block/table.
 - [x] 2.2 Implement `calculate_block_top(raw_top, total_h)` with `dw_edge_margin` clamping.
 - [x] 2.3 Use the same spacing model in rendering and hit-testing paths.
 - [ ] 2.4 Visual gate: verify wrap spacing, inter-subtitle gap consistency, and safe margins at viewport extremes.

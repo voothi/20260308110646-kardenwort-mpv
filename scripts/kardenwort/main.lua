@@ -4261,8 +4261,12 @@ local function draw_dw(subs, view_center, active_idx)
 
 
 
-    -- Text Block mapping
-    local lines_ass = {}
+    -- Hybrid render strategy:
+    -- 1) One shared background window (vector rectangle) for cohesive framing.
+    -- 2) Per-visual-line positioned text to preserve hit-test precision.
+    local all_visual_lines_ass = {}
+    local min_x = math.huge
+    local max_x = -math.huge
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
         local entry_y_top = current_y
@@ -4283,7 +4287,6 @@ local function draw_dw(subs, view_center, active_idx)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
-        local entry_ass_vlines = {}
         local entry_vline_h = (#entry.vlines > 0 and entry.height > 0) and (entry.height / #entry.vlines) or vline_height(f_size)
         for vl_index, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
@@ -4323,6 +4326,8 @@ local function draw_dw(subs, view_center, active_idx)
                 total_width = line_w,
                 words = line_words
             })
+            min_x = math.min(min_x, line_x_start)
+            max_x = math.max(max_x, line_x_start + line_w)
             
             local line_text = ""
             if Options.dw_original_spacing then
@@ -4330,35 +4335,27 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            table.insert(entry_ass_vlines, line_text)
-        end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
-        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
-    end
-    
-    local d_gap = Options.dw_double_gap
-    local vsp_base = Options.dw_vsp
-    local b_gap_mul = Options.dw_block_gap_mul or 0
-
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-
-    local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
+            local line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\q2}", vl_y_top)
+            local line_ass = line_style .. line_prefix .. line_text
+            table.insert(all_visual_lines_ass, line_ass)
         end
     end
-    local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s",
-        block_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+
+    if min_x == math.huge then
+        min_x = 960
+        max_x = 960
+    end
+    local pad_x = math.max(8, (Options.dw_border_size or 0) * 4)
+    local pad_y = math.max(4, (Options.dw_border_size or 0) * 2)
+    local rect_left = min_x - pad_x
+    local rect_top = block_top - pad_y
+    local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
+    local rect_h = math.max(1, total_height + (2 * pad_y))
+    local final_ass = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    if #all_visual_lines_ass > 0 then
+        final_ass = final_ass .. "\n" .. table.concat(all_visual_lines_ass, "\n")
+    end
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
