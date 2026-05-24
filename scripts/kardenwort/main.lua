@@ -3064,12 +3064,9 @@ local function get_tooltip_line_y(line_idx, fallback_y)
     if FSM.DRUM_WINDOW ~= "OFF" then
         return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
     end
-    for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
-        if zone.sub_idx == line_idx and zone.is_pri then
-            return zone.y_top
-        end
-    end
-    return fallback_y
+    -- In Drum Mode, position the tooltip at the secondary subtitle position to avoid vertical overlap with primary subtitles
+    local sec_pos_percent = mp.get_property_number("secondary-sub-pos", 10)
+    return sec_pos_percent * 1080 / 100
 end
 
 
@@ -5884,7 +5881,7 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
         ass_text = ass_text .. draw_drum(Tracks.pri.subs, view_center, active_idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
     end
 
-    if sec_use_osd and #Tracks.sec.subs > 0 then
+    if sec_use_osd and #Tracks.sec.subs > 0 and FSM.DW_TOOLTIP_LINE == -1 then
         local active_idx = get_center_index(Tracks.sec.subs, time_pos)
         -- [v1.58.52] Secondary track mirrors primary viewport offset in all follow modes.
         local view_center = active_idx
