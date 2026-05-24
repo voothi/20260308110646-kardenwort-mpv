@@ -3721,6 +3721,15 @@ local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     end
 end
 
+-- Wrapped-line visual height inside a single DW subtitle entry.
+-- Uses dedicated wrap multiplier so intra-subtitle spacing can be tuned
+-- independently from inter-subtitle gap spacing.
+function vline_height(fs)
+    local font_size = fs or Options.dw_font_size
+    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
+    return (font_size * wrap_mul) + (Options.dw_vsp or 0)
+end
+
 local function calculate_block_top(raw_top, total_h)
     local margin = math.max(0, tonumber(Options.dw_edge_margin) or 0)
     local screen_h = 1080
@@ -4099,7 +4108,7 @@ local function dw_build_layout(subs, view_center)
     end_idx = math.min(#subs, end_idx)
 
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local vline_h = vline_height(Options.dw_font_size)
     local sub_gap = calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
@@ -4550,7 +4559,7 @@ local function dw_hit_test(osd_x, osd_y)
 
     local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
 
-    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
+    local vline_h = vline_height(Options.dw_font_size)
     local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
     if Options.dw_double_gap then
         sub_gap = sub_gap + vline_h
