@@ -4633,7 +4633,15 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 line_w = line_w + ww
             end
             
-            local vl_pos_tag = string.format("{\\pos(1800, %d)}{\\an9}", math.floor(cur_y + 0.5))
+            local is_drum_mode = (FSM.DRUM_WINDOW == "OFF")
+            local vl_pos_tag, x_start
+            if is_drum_mode then
+                vl_pos_tag = string.format("{\\pos(960, %d)}{\\an8}", math.floor(cur_y + 0.5))
+                x_start = 960 - line_w / 2
+            else
+                vl_pos_tag = string.format("{\\pos(1800, %d)}{\\an9}", math.floor(cur_y + 0.5))
+                x_start = 1800 - line_w
+            end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
             local vl_event = vl_pos_tag .. line_bgbox_neutral .. line_prefix .. alpha_tag .. line_text
             table.insert(all_events, vl_event)
@@ -4642,7 +4650,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 sub_idx = i,
                 y_top = cur_y,
                 y_bottom = cur_y + layout_line_h,
-                x_start = 1800 - line_w,
+                x_start = x_start,
                 total_width = line_w,
                 words = line_words
             })
@@ -4662,8 +4670,15 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local padding_x = 24
     local padding_y = 16
-    local x1 = 1800 - max_line_w - padding_x
-    local x2 = 1800 + padding_x
+    local is_drum_mode = (FSM.DRUM_WINDOW == "OFF")
+    local x1, x2
+    if is_drum_mode then
+        x1 = 960 - max_line_w / 2 - padding_x
+        x2 = 960 + max_line_w / 2 + padding_x
+    else
+        x1 = 1800 - max_line_w - padding_x
+        x2 = 1800 + padding_x
+    end
     local y1 = final_y - half_h - padding_y
     local y2 = final_y + half_h + padding_y
     
