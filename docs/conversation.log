@@ -2725,7 +2725,6 @@
 20260524223748 Fix it all.
 20260524224106 The problem is something else, check, solve the problem, why darker, layering? We had this problem with tooltip.
 20260524224400 Root cause confirmed: this was the same class as the tooltip issue, not just z-layer. In DM, global `osd-border-style=background-box` remains active, so notice/seek text got an extra implicit dark box on top of the custom card. In DW, border override often switches to outline, so it looked lighter. Fixed in [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua): - `show_osd` text event now neutralizes implicit bg box with `{\3a&HFF&}{\4a&HFF&}`. - `show_seek_osd` text event now does the same. This matches the tooltip strategy (`line_bgbox_neutral`) and removes DM-only over-darkening while keeping layering behavior intact. Validation: - `luac -p scripts\kardenwort\main.lua` passes.
-
-
-
+20260524224652 Look at the Replay OSD message for an example, compare how much difference there is in hue DM docs/assets/20260524224607.png DW docs/assets/20260524224640.png. But why?
+20260524225241 You were right. It was the same “double-dark” family as tooltip. Why it looked darker in DM: - In DM, `osd-border-style=background-box` is active. - Replay card was drawing its own semi-transparent vector background. - So DM effectively stacked two dark layers (native background-box + custom card), shifting tone darker. - DW often avoids this because border override behavior differs there. I applied the same solution pattern used in tooltip to Replay/seek cards: - In DM + `background-box`, custom card fill is neutralized (`rect_bg_alpha = "FF"`). - Text line also gets background-box neutralization tags (`{\3a&HFF&}{\4a&HFF&}`). - In DW, normal custom card fill remains. Updated file: - [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua) Validation: - `luac -p scripts\kardenwort\main.lua` passes.
 

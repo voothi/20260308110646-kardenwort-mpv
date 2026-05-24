@@ -784,15 +784,25 @@ function show_osd(msg, dur)
         local top_y = center_y - math.floor(box_h / 2)
         local text_x = left_x + pad_x
 
-        local bg_rect = string.format(
-            "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
-            left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
-        )
-        local text_event = string.format(
-            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}%s",
+    local dm_mode = (FSM and FSM.DRUM_WINDOW == "OFF")
+    local rect_bg_alpha = Options.seek_bg_opacity
+    local line_bgbox_neutral = ""
+    if dm_mode and FSM.osd_border_style == "background-box" then
+        -- Same anti "double-dark" strategy as tooltip in DM.
+        -- Keep geometry from this overlay, but let native background-box provide fill.
+        rect_bg_alpha = "FF"
+        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
+    end
+
+    local bg_rect = string.format(
+        "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
+        left_x, top_y, Options.seek_bg_color, rect_bg_alpha, box_w, box_w, box_h, box_h
+    )
+    local text_event = string.format(
+            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}%s{\\bord0}{\\shad0}%s",
             text_x, center_y,
             Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
-            Options.seek_color, text
+            Options.seek_color, line_bgbox_neutral, text
         )
         FSM.notice_osd.data = bg_rect .. "\n" .. text_event
         FSM.notice_osd:update()
@@ -843,15 +853,25 @@ function show_seek_osd(msg, alignment)
             text_align = 6
         end
 
+        local dm_mode = (FSM and FSM.DRUM_WINDOW == "OFF")
+        local rect_bg_alpha = Options.seek_bg_opacity
+        local line_bgbox_neutral = ""
+        if dm_mode and FSM.osd_border_style == "background-box" then
+            -- Same anti "double-dark" strategy as tooltip in DM.
+            -- Keep geometry from this overlay, but let native background-box provide fill.
+            rect_bg_alpha = "FF"
+            line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
+        end
+
         local bg_rect = string.format(
             "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
-            left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
+            left_x, top_y, Options.seek_bg_color, rect_bg_alpha, box_w, box_w, box_h, box_h
         )
         local text_event = string.format(
-            "{\\an%d}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}%s",
+            "{\\an%d}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}%s{\\bord0}{\\shad0}%s",
             text_align, text_x, center_y,
             Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
-            Options.seek_color, msg
+            Options.seek_color, line_bgbox_neutral, msg
         )
         seek_osd.data = bg_rect .. "\n" .. text_event
         seek_osd:update()
