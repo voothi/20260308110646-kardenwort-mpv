@@ -682,6 +682,8 @@ local FSM = {
     DW_MOUSE_PENDING_DRAG = false, -- True while LMB is down and waiting for drag threshold
     DW_MOUSE_DOWN_X = nil,     -- OSD X at mouse-down (for drag threshold / release sync)
     DW_MOUSE_DOWN_Y = nil,     -- OSD Y at mouse-down (for drag threshold / release sync)
+    DW_MOUSE_LAST_Y = nil,     -- OSD Y from previous auto-scroll tick (for drag direction)
+    DW_MOUSE_EDGE_SCROLL_DIR = 0, -- -1 up, +1 down, 0 neutral
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection map {line -> {word -> {line, word}}}
     DW_CTRL_PENDING_LIST = {}, -- Sorted list of members for sequential export
@@ -5171,20 +5173,42 @@ local function dw_mouse_auto_scroll()
     local first_zone = hit_zones[1]
     local last_zone = hit_zones[#hit_zones]
     if first_zone and first_zone.y_top then
-        top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
+        top_scroll_trigger = math.max(top_scroll_trigger, first_zone.y_top)
     end
     if last_zone and last_zone.y_bottom then
-        bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
+        bottom_scroll_trigger = math.min(bottom_scroll_trigger, last_zone.y_bottom)
     end
     local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
+    local drag_start_y = FSM.DW_MOUSE_DOWN_Y or osd_y
+    local last_y = FSM.DW_MOUSE_LAST_Y or drag_start_y
+    local movement_dy = osd_y - last_y
+    FSM.DW_MOUSE_LAST_Y = osd_y
+
+    local direction_update_threshold = math.max(1, math.floor(get_dw_drag_threshold_px() / 2))
+    if movement_dy <= -direction_update_threshold then
+        FSM.DW_MOUSE_EDGE_SCROLL_DIR = -1
+    elseif movement_dy >= direction_update_threshold then
+        FSM.DW_MOUSE_EDGE_SCROLL_DIR = 1
+    elseif FSM.DW_MOUSE_EDGE_SCROLL_DIR == 0 then
+        local total_dy = osd_y - drag_start_y
+        local initial_intent_threshold = math.max(4, get_dw_drag_threshold_px())
+        if total_dy <= -initial_intent_threshold then
+            FSM.DW_MOUSE_EDGE_SCROLL_DIR = -1
+        elseif total_dy >= initial_intent_threshold then
+            FSM.DW_MOUSE_EDGE_SCROLL_DIR = 1
+        end
+    end
+
+    local wants_scroll_up = (FSM.DW_MOUSE_EDGE_SCROLL_DIR == -1)
+    local wants_scroll_down = (FSM.DW_MOUSE_EDGE_SCROLL_DIR == 1)
     local scrolled = false
-    if osd_y < (top_scroll_trigger - edge_activation_pad) then
+    if wants_scroll_up and osd_y < (top_scroll_trigger - edge_activation_pad) then
         if FSM.DW_VIEW_CENTER > 1 then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER - 1
             if FSM.DW_CURSOR_LINE > 1 then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1 end
             scrolled = true
         end
-    elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then
+    elseif wants_scroll_down and osd_y > (bottom_scroll_trigger + edge_activation_pad) then
         if FSM.DW_VIEW_CENTER < #subs then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
             if FSM.DW_CURSOR_LINE < #subs then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1 end
@@ -5769,6 +5793,8 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             -- Store initial coordinates to detect movement/dragging
             local osd_x, osd_y = dw_get_mouse_osd()
             FSM.DW_MOUSE_DOWN_X, FSM.DW_MOUSE_DOWN_Y = osd_x, osd_y
+            FSM.DW_MOUSE_LAST_Y = osd_y
+            FSM.DW_MOUSE_EDGE_SCROLL_DIR = 0
 
             -- Dismiss tooltip on click and lock suppression for the current focus
             local is_tooltip_hit = dw_tooltip_hit_test(osd_x, osd_y)
@@ -5823,6 +5849,8 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
             FSM.DW_MOUSE_PENDING_DRAG = false
+            FSM.DW_MOUSE_LAST_Y = nil
+            FSM.DW_MOUSE_EDGE_SCROLL_DIR = 0
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release ONLY if the mouse 
             -- has moved significantly (dragging). This prevents stationary clicks 
@@ -5980,6 +6008,8 @@ local function dw_handle_double_click_target(subs, line_idx, word_idx)
         -- Explicitly terminate any dragging/scrolling state initiated by the first click
         FSM.DW_MOUSE_DRAGGING = false
         FSM.DW_MOUSE_PENDING_DRAG = false
+        FSM.DW_MOUSE_LAST_Y = nil
+        FSM.DW_MOUSE_EDGE_SCROLL_DIR = 0
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
@@ -7650,6 +7680,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     if not enable_mouse then
         FSM.DW_MOUSE_DRAGGING = false
         FSM.DW_MOUSE_PENDING_DRAG = false
+        FSM.DW_MOUSE_LAST_Y = nil
+        FSM.DW_MOUSE_EDGE_SCROLL_DIR = 0
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
