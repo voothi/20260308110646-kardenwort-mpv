@@ -3721,6 +3721,22 @@ local function calculate_sub_gap(prefix, font_size, lh_mul, vsp)
     end
 end
 
+local function calculate_block_top(raw_top, total_h)
+    local margin = math.max(0, tonumber(Options.dw_edge_margin) or 0)
+    local screen_h = 1080
+    local max_top = screen_h - total_h - margin
+
+    -- Overflow case: impossible to preserve both top and bottom margins.
+    -- Prioritize showing the beginning of content (top anchor).
+    if max_top < margin then
+        return margin
+    end
+
+    if raw_top < margin then return margin end
+    if raw_top > max_top then return max_top end
+    return raw_top
+end
+
 local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
     local vlines = {}
     local cur_indices = {}
@@ -4186,7 +4202,7 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local block_top = 540 - (total_height / 2)
+    local block_top = calculate_block_top(540 - (total_height / 2), total_height)
     local current_y = block_top
     FSM.DW_BLOCK_TOP = block_top
     FSM.DW_TOTAL_HEIGHT = total_height
@@ -4509,7 +4525,7 @@ local function dw_hit_test(osd_x, osd_y)
     end
     local space_w = dw_get_str_width(" ")
 
-    local block_top = 540 - total_height / 2
+    local block_top = calculate_block_top(540 - total_height / 2, total_height)
 
     -- Clamp vertically to the first/last word if outside the entire block
     if osd_y <= block_top then
