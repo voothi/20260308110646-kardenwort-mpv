@@ -384,27 +384,65 @@ def test_manage_ui_border_override_is_forward_declared():
     assert src.find("local apply_tooltip_ass") < src.find("function manage_ui_border_override(enable)")
 
 
-def test_show_osd_applies_consistent_frame_without_timer_suspension():
+def test_show_osd_uses_single_neutralized_card_renderer():
     src = _lua_source()
     body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
 
-    assert 'frame_tags = string.format(' in body
-    assert 'Options.seek_border_size' in body
-    assert 'Options.seek_shadow_offset' in body
     assert 'Options.seek_bg_color' in body
     assert 'Options.seek_bg_opacity' in body
-    # DM path keeps native osd_message rendering (background-box scaling).
-    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. text, duration)' in body
-    # DW path paints a real card via a dedicated ass-events overlay.
-    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
+    assert 'mp.osd_message(' not in body
+    assert 'FSM.DRUM_WINDOW' not in body
     assert 'local bg_rect = string.format(' in body
     assert 'local text_event = string.format(' in body
+    assert body.count("{\\\\3a&HFF&}{\\\\4a&HFF&}") >= 2
     assert 'FSM.notice_osd.data = bg_rect .. "\\n" .. text_event' in body
     assert 'FSM.notice_osd:update()' in body
     assert 'FSM.notice_timer = mp.add_timeout(duration, function()' in body
-    # The card must never be wedged back into mp.osd_message (the broken pattern).
-    assert 'mp.osd_message(style .. bg_rect' not in body
     assert "volume_suspension" not in body
+
+
+def test_notice_and_seek_cards_neutralize_background_box_on_shape_and_text():
+    src = _lua_source()
+    show_body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+    seek_body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
+
+    for name, body in {
+        "show_osd": show_body,
+        "show_seek_osd": seek_body,
+    }.items():
+        bg_start = body.find("local bg_rect = string.format(")
+        text_start = body.find("local text_event = string.format(")
+        assert bg_start != -1, f"{name}: missing vector card background"
+        assert text_start != -1, f"{name}: missing text event"
+
+        data_start = body.find("data = bg_rect", text_start)
+        assert data_start != -1, f"{name}: missing combined card/text overlay assignment"
+
+        bg_event = body[bg_start:text_start]
+        text_event = body[text_start:data_start]
+        neutral = "{\\\\3a&HFF&}{\\\\4a&HFF&}"
+
+        assert neutral in bg_event, f"{name}: vector card must neutralize native background-box"
+        assert neutral in text_event, f"{name}: text line must neutralize native background-box"
+        assert "{\\\\p1}" in bg_event, f"{name}: card background must remain a vector ASS shape"
+        assert "mp.osd_message(" not in body, f"{name}: native OSD fallback would reintroduce DM/DW hue drift"
+        assert "FSM.DRUM_WINDOW" not in body, f"{name}: renderer must not branch between DM and DW"
+
+
+def test_show_seek_osd_uses_single_compact_card_renderer():
+    src = _lua_source()
+    body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
+
+    assert 'Options.seek_bg_color' in body
+    assert 'Options.seek_bg_opacity' in body
+    assert 'mp.osd_message(' not in body
+    assert 'FSM.DRUM_WINDOW' not in body
+    assert 'local bg_rect = string.format(' in body
+    assert 'local text_event = string.format(' in body
+    assert body.count("{\\\\3a&HFF&}{\\\\4a&HFF&}") >= 2
+    assert 'seek_osd.data = bg_rect .. "\\n" .. text_event' in body
+    assert 'seek_osd:update()' in body
+    assert 'seek_timer = mp.add_timeout(Options.seek_osd_duration, function()' in body
 
 
 def test_dw_get_str_width_cyrillic_estimate_at_least_052():
