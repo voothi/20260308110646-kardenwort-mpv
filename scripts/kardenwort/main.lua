@@ -350,7 +350,9 @@ Options = {
     dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
     dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
     dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
+    dw_wrap_line_height_mul = 1.05, -- wrap-line height scaling (separate from inter-subtitle spacing)
     dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
+    dw_edge_margin = 24,          -- safe-area edge clamp for centered DW block
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
     dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     dw_border_size = 1.5,
@@ -402,6 +404,7 @@ Options = {
     tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
     tooltip_highlight_color = "00CCFF",-- Gold (BGR: 00CCFF | RGB: #FFCC00)
     tooltip_ctrl_select_color = "FF88FF",-- Pink (BGR: FF88FF | RGB: #FF88FF)
+    dw_cyrillic_coef = 0.52,      -- calibrated width coefficient for Cyrillic glyph envelopes
     tooltip_active_bold = false,
     tooltip_context_bold = false,
     tooltip_highlight_bold = false,
@@ -643,6 +646,8 @@ local FSM = {
     DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
     DW_TOOLTIP_SEC_SUBS = {},   -- Cached secondary subtitles for tooltip fallback when secondary track is hidden
     DW_TOOLTIP_SEC_PATH = nil,  -- Source path for DW_TOOLTIP_SEC_SUBS
+    DW_BLOCK_TOP = nil,         -- Last computed DW block top (OSD Y) for diagnostics
+    DW_TOTAL_HEIGHT = nil,      -- Last computed DW block height (OSD units) for diagnostics
     DW_SEEKING_MANUALLY = false,
     DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
@@ -2970,6 +2975,11 @@ local function is_osd_tooltip_mode_eligible()
         and Options.osd_interactivity
 end
 
+-- Guardrail: centered tooltip geometry is DM-only and must not leak into SRT mode.
+local function is_dm_tooltip_center_mode()
+    return FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF"
+end
+
 local function get_tooltip_line_y(line_idx, fallback_y)
     if not line_idx or line_idx == -1 then return nil end
     if FSM.DRUM_WINDOW ~= "OFF" then
@@ -4176,7 +4186,10 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local current_y = 540 - (total_height / 2)
+    local block_top = 540 - (total_height / 2)
+    local current_y = block_top
+    FSM.DW_BLOCK_TOP = block_top
+    FSM.DW_TOTAL_HEIGHT = total_height
     FSM.DW_LINE_Y_MAP = {}
     
     -- Selection range
@@ -4283,6 +4296,7 @@ end
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local tooltip_sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
     if target_line_idx == -1 or not tooltip_sec_subs or #tooltip_sec_subs == 0 then return "" end
+    local dm_center_mode = is_dm_tooltip_center_mode()
     
     -- Cache check (Task 1.3)
     if DW_TOOLTIP_DRAW_CACHE.target_idx == target_line_idx and 
@@ -4436,8 +4450,10 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
 
     local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
     local base_bold = Options.tooltip_context_bold and "1" or "0"
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
+    local anchor = dm_center_mode and "\\an6" or "\\an6"
+    local x_pos = dm_center_mode and 1800 or 1800
+    local ass = string.format("{\\fn%s}%s{\\pos(%d, %d)}{%s}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
+        font_name, vsp_tag, x_pos, final_y, anchor, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
@@ -9257,6 +9273,8 @@ function kardenwortProbe._snapshot()
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
         dw_view_center     = FSM.DW_VIEW_CENTER,
         dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
+        dw_block_top       = FSM.DW_BLOCK_TOP,
+        dw_total_height    = FSM.DW_TOTAL_HEIGHT,
         dw_esc_neutral_armed = FSM.DW_ESC_NEUTRAL_ARMED,
         dw_neutral_cursor  = { line = FSM.DW_NEUTRAL_LINE, word = FSM.DW_NEUTRAL_WORD },
         dw_seeking_manually = FSM.DW_SEEKING_MANUALLY,

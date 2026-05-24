@@ -7,9 +7,9 @@
 
 ## 1. Phase 1: Baseline Options and Diagnostics (Smallest, Highest Signal)
 
-- [ ] 1.1 Expose new options: `dw_wrap_line_height_mul = 1.05`, `dw_edge_margin = 24`, `dw_cyrillic_coef = 0.52`.
-- [ ] 1.2 Expose `dw_block_top` and `dw_total_height` in the OSD state snapshot query.
-- [ ] 1.3 Add DM-only tooltip centering guardrails: apply centered logic only when `FSM.DRUM == "ON"` and `FSM.DRUM_WINDOW == "OFF"`.
+- [x] 1.1 Expose new options: `dw_wrap_line_height_mul = 1.05`, `dw_edge_margin = 24`, `dw_cyrillic_coef = 0.52`.
+- [x] 1.2 Expose `dw_block_top` and `dw_total_height` in the OSD state snapshot query.
+- [x] 1.3 Add DM-only tooltip centering guardrails: apply centered logic only when `FSM.DRUM == "ON"` and `FSM.DRUM_WINDOW == "OFF"`.
 - [ ] 1.4 Visual gate: verify no SRT tooltip behavior change after guard introduction.
 
 ## 2. Phase 2: Border-Style Lifecycle Hardening (Foundational)
