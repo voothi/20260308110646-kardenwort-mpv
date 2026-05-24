@@ -61,3 +61,5 @@ The user is restoring and migrating visual improvements to `main.lua` on branch 
   - **[Mitigation]** Apply DM-only guards and keep SRT path unchanged.
 - **[Risk]** Large hit-test rewrites can create unrelated regressions.
   - **[Mitigation]** Defer full hit-test architecture changes unless residual drift is confirmed after visual phases.
+- **[Risk]** Broad ASS tag/color edits can cause unintended visual regressions.
+  - **[Mitigation]** Apply a tag-safety policy: preserve baseline text coloring and typography tags, and limit changes to local wrappers needed for `background-box` compatibility and geometry correctness.

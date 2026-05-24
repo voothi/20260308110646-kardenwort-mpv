@@ -30,6 +30,8 @@ This change restores the visual improvements with a clean, minimally invasive, p
 - No global startup callback shim layer.
 - No broad `manage_dw_bindings()` refactor.
 - No mandatory `dw_hit_test()` architecture rewrite before visual acceptance.
+- No global retheme/recolor pass; preserve existing color palette unless a specific defect requires a local fix.
+- No broad ASS tag reshaping; keep existing text tags stable and add only narrowly scoped compatibility tags where required.
 
 ## Capabilities
 

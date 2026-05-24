@@ -3,6 +3,7 @@
 - [ ] 0.1 Execute one phase at a time, with user visual acceptance before moving forward.
 - [ ] 0.2 Keep changes minimally invasive; no broad architectural refactors.
 - [ ] 0.3 Defer broad/expensive test runs until the final phase.
+- [ ] 0.4 Enforce tag-safety: preserve existing text color/typography tags by default; only add minimal local compatibility tags for defects.
 
 ## 1. Phase 1: Baseline Options and Diagnostics (Smallest, Highest Signal)
 
@@ -38,7 +39,8 @@
 - [ ] 5.1 Implement unified tooltip vector card (`\p1`) first, preserving current interaction flow.
 - [ ] 5.2 Implement unified DW vector card (`\p1`) second, replacing line-by-line frame visuals.
 - [ ] 5.3 Add local compatibility tags (`\3a&HFF&`, `\4a&HFF&`, `\bord0`, `\shad0`) for `background-box` mode stability.
-- [ ] 5.4 Visual gate: verify premium single-card look with no frame leakage and preserved click behavior.
+- [ ] 5.4 Keep existing color constants and text-style tags unchanged unless a specific bug forces a local override.
+- [ ] 5.5 Visual gate: verify premium single-card look with no frame leakage and preserved click behavior.
 
 ## 6. Phase 6: Interaction Parity Follow-Ups (Conditional)
 
