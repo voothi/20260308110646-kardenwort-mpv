@@ -765,16 +765,16 @@ function show_osd(msg, dur)
         -- mp.osd_message is a single OSD-bar event and can't host \p1 shapes
         -- + dual \pos blocks, so the card has to live on its own overlay.
         -- Stored on FSM to stay inside Lua's 200-local cap for this chunk.
+        local style = mp.get_property("osd-ass-cc/0") or ""
         local ry = Options.font_base_height
-        local fs = Options.seek_font_size
-        local pad_x = math.max(16, math.floor(fs * 0.4))
-        local pad_y = math.max(8, math.floor(fs * 0.2))
+        local fs = 20
+        local pad_x = 16
+        local pad_y = 8
 
         local char_count = 0
         for _ in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
             char_count = char_count + 1
         end
-        local box_w = math.max(160, math.floor(char_count * fs * 0.55 + 2 * pad_x))
         local box_w = math.max(160, math.floor(char_count * fs * 0.55 + 2 * pad_x))
         local box_h = fs + 2 * pad_y
 
@@ -788,12 +788,12 @@ function show_osd(msg, dur)
             left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
         )
         local text_event = string.format(
-            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\bord0}{\\shad0}%s",
+            "{\\an4}{\\pos(%d,%d)}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\bord0}{\\shad0}%s",
             text_x, center_y,
-            Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
+            fs, (Options.seek_font_bold and 1 or 0),
             Options.seek_color, text
         )
-        FSM.notice_osd.data = bg_rect .. "\n" .. text_event
+        FSM.notice_osd.data = style .. bg_rect .. "\n" .. text_event
         FSM.notice_osd:update()
 
         if FSM.notice_timer then FSM.notice_timer:kill() end

@@ -399,7 +399,7 @@ def test_show_osd_applies_consistent_frame_without_timer_suspension():
     assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
     assert 'local bg_rect = string.format(' in body
     assert 'local text_event = string.format(' in body
-    assert 'FSM.notice_osd.data = bg_rect .. "\\n" .. text_event' in body
+    assert 'FSM.notice_osd.data = style .. bg_rect .. "\\n" .. text_event' in body
     assert 'FSM.notice_osd:update()' in body
     assert 'FSM.notice_timer = mp.add_timeout(duration, function()' in body
     # The card must never be wedged back into mp.osd_message (the broken pattern).
