@@ -445,6 +445,25 @@ def test_show_seek_osd_uses_single_compact_card_renderer():
     assert 'seek_timer = mp.add_timeout(Options.seek_osd_duration, function()' in body
 
 
+def test_notice_and_seek_overlay_layers_are_configurable_and_reloadable():
+    src = _lua_source()
+    conf = Path("mpv.conf").read_text(encoding="utf-8")
+
+    assert "seek_osd_layer = 5" in src
+    assert "notice_osd_layer = 5" in src
+    assert "FSM.notice_osd.z = Options.notice_osd_layer" in src
+    assert "seek_osd.z = Options.seek_osd_layer" in src
+    assert "script-opts" in src
+
+    reload_body = _slice_from(src, 'mp.observe_property("script-opts", "string", function()', span=700)
+    assert "options.read_options(Options, \"kardenwort\")" in reload_body
+    assert "FSM.notice_osd.z = Options.notice_osd_layer" in reload_body
+    assert "seek_osd.z = Options.seek_osd_layer" in reload_body
+
+    assert "script-opts-append=kardenwort-seek_osd_layer=5" in conf
+    assert "script-opts-append=kardenwort-notice_osd_layer=5" in conf
+
+
 def test_dw_get_str_width_cyrillic_estimate_at_least_052():
     src = _lua_source()
     body = _function_window(src, "local function dw_get_str_width_proportional(str, fs)", "local function calculate_sub_gap")
