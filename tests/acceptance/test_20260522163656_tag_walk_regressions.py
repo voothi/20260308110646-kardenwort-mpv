@@ -393,10 +393,17 @@ def test_show_osd_applies_consistent_frame_without_timer_suspension():
     assert 'Options.seek_shadow_offset' in body
     assert 'Options.seek_bg_color' in body
     assert 'Options.seek_bg_opacity' in body
-    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)' in body
-    # Regression guard: the broken DW \p1 card via mp.osd_message must not return.
-    assert 'local bg_rect = string.format(' not in body
-    assert '\\\\p1' not in body
+    # DM path keeps native osd_message rendering (background-box scaling).
+    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. text, duration)' in body
+    # DW path paints a real card via a dedicated ass-events overlay.
+    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
+    assert 'local bg_rect = string.format(' in body
+    assert 'local text_event = string.format(' in body
+    assert 'FSM.notice_osd.data = bg_rect .. "\\n" .. text_event' in body
+    assert 'FSM.notice_osd:update()' in body
+    assert 'FSM.notice_timer = mp.add_timeout(duration, function()' in body
+    # The card must never be wedged back into mp.osd_message (the broken pattern).
+    assert 'mp.osd_message(style .. bg_rect' not in body
     assert "volume_suspension" not in body
 
 
