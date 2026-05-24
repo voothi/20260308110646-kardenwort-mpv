@@ -2732,4 +2732,7 @@
 20260524234927 Done. The strict single-renderer path is now in place: - `show_osd` and `show_seek_osd` both always render via the same custom ASS overlay card path in [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua:759). - There is no DM/DW branch in these functions anymore. - Syntax check passes: `luac -p scripts\kardenwort\main.lua`. If you still see a difference in OFF vs ON after this, it will be from other active overlays (DW/drum block behind), not from the Replay/seek message renderer itself.
 20260524235141 You did not save the file.
 20260524235303 If you want, I’ll now do a strict fix: force show_osd/show_seek_osd to one single renderer path in both states (OFF/ON), so this mismatch disappears completely. - Yes.
+20260524235713 Solve the problem with black OSDs.
+20260524235851 Fixed and saved in [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua). Root cause: the text event was neutralized, but the vector background card itself was still an ASS event under global `osd-border-style=background-box`, so DM could add an implicit black native box behind the custom card. Change made: - Added `{\3a&HFF&}{\4a&HFF&}` to the vector `bg_rect` events in both `show_osd` and `show_seek_osd`. - This neutralizes mpv’s implicit background-box contribution for the card event itself, not only for the text. Validation: - `luac -p scripts\kardenwort\main.lua` passes. Working tree: - Modified: [main.lua](/u:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua)
+
 
