@@ -4374,7 +4374,7 @@ local function draw_dw(subs, view_center, active_idx)
         local font_name = (Options.dw_font_name ~= "") and Options.dw_font_name or mp.get_property("sub-font", "Inter")
         local bold_state = (is_active and Options.dw_active_bold or Options.dw_context_bold) and "1" or "0"
         local f_size = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
+        local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
         local vline_h = dw_vline_height()
@@ -4430,7 +4430,15 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            local line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\q2}", vl_y_top)
+            local line_style
+            if FSM.osd_border_style == "background-box" then
+                -- Neutralize background box for this line to prevent overlapping boxes under background-box mode
+                line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\q2}", vl_y_top)
+            else
+                -- Apply standard outline and shadow for a voluminous look under outline-and-shadow mode
+                line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}", 
+                    vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+            end
             local line_ass = line_style .. line_prefix .. line_text
             table.insert(all_visual_lines_ass, line_ass)
         end
@@ -4449,8 +4457,14 @@ local function draw_dw(subs, view_center, active_idx)
     local rect_top = block_top - pad_y
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, total_height + (2 * pad_y))
-    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-        rect_left, rect_top, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    local bg_rect
+    if FSM.osd_border_style == "background-box" then
+        bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+            rect_left, rect_top, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    else
+        bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+            rect_left, rect_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    end
     local final_ass = bg_rect
     if #all_visual_lines_ass > 0 then
         final_ass = final_ass .. "\n" .. table.concat(all_visual_lines_ass, "\n")
@@ -8478,30 +8492,7 @@ local function move_search_cursor(direction, ctrl, shift)
 end
 
 function manage_ui_border_override(enable)
-    if enable then
-        FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
-        if FSM.ui_border_override_depth > 1 then return end
-
-        FSM.saved_osd_border_style = mp.get_property("osd-border-style")
-        if FSM.saved_osd_border_style == "background-box" then
-            mp.set_property("osd-border-style", "outline-and-shadow")
-            FSM.osd_border_style = "outline-and-shadow"
-        end
-        return
-    end
-
-    FSM.ui_border_override_depth = math.max(0, (FSM.ui_border_override_depth or 0) - 1)
-    if FSM.ui_border_override_depth > 0 then return end
-
-    local saved = FSM.saved_osd_border_style
-    if saved and saved ~= "" then
-        local cur = mp.get_property("osd-border-style")
-        if cur ~= saved then
-            mp.set_property("osd-border-style", saved)
-            FSM.osd_border_style = saved
-        end
-    end
-    FSM.saved_osd_border_style = nil
+    -- Deprecated: We now rely on \4a&HFF& in ASS to hide background box
 end
 
 local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
