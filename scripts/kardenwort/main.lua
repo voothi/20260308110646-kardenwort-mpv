@@ -5180,11 +5180,20 @@ local function dw_mouse_auto_scroll()
             end
         end
     end
-    if first_zone and first_zone.y_top then
-        top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
-    end
-    if last_zone and last_zone.y_bottom then
-        bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
+    if dm_mode then
+        if first_zone and first_zone.y_top then
+            top_scroll_trigger = first_zone.y_top
+        end
+        if last_zone and last_zone.y_bottom then
+            bottom_scroll_trigger = last_zone.y_bottom
+        end
+    else
+        if first_zone and first_zone.y_top then
+            top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
+        end
+        if last_zone and last_zone.y_bottom then
+            bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
+        end
     end
     local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
     local scrolled = false
