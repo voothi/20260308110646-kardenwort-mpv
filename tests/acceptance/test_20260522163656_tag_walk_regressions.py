@@ -384,6 +384,31 @@ def test_manage_ui_border_override_is_forward_declared():
     assert src.find("local apply_tooltip_ass") < src.find("function manage_ui_border_override(enable)")
 
 
+def test_show_osd_temporarily_suspends_dw_border_override():
+    src = _lua_source()
+    body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+
+    assert "local actual_dur = dur or Options.osd_duration" in body
+    assert "if FSM and FSM.trigger_ui_border_suspension then" in body
+    assert "FSM.trigger_ui_border_suspension(actual_dur + 0.15)" in body
+    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. tostring(msg or ""), actual_dur)' in body
+
+
+def test_ui_border_suspension_helper_supports_duration_override():
+    src = _lua_source()
+    body = _function_window(src, "FSM.trigger_ui_border_suspension = function(duration_sec)", "local function trigger_volume_suspension")
+
+    assert "if not FSM.saved_osd_border_style then return end" in body
+    assert "FSM.volume_suspension_active = true" in body
+    assert "if FSM.volume_suspension_timer then FSM.volume_suspension_timer:kill() end" in body
+    assert "local suspend_for = tonumber(duration_sec) or 2.0" in body
+    assert "FSM.volume_suspension_timer = mp.add_timeout(suspend_for, function()" in body
+    assert "FSM.volume_suspension_active = false" in body
+
+    wrapper = _slice_from(src, "local function trigger_volume_suspension()", span=200)
+    assert "FSM.trigger_ui_border_suspension(2.0)" in wrapper
+
+
 def test_dw_get_str_width_cyrillic_estimate_at_least_052():
     src = _lua_source()
     body = _function_window(src, "local function dw_get_str_width_proportional(str, fs)", "local function calculate_sub_gap")

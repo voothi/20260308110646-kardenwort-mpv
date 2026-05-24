@@ -211,6 +211,27 @@ class TestHistoricalRegressionsV2:
         ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
         time.sleep(0.5)
 
+    def test_dw_replay_notice_temporarily_restores_native_osd_box(self, mpv):
+        """DW notices should render with native framed style, then restore override."""
+        ipc = mpv.ipc
+
+        ipc.command(['set_property', 'osd-border-style', 'background-box'])
+        time.sleep(0.2)
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
+        time.sleep(0.8)
+        assert ipc.get_property('osd-border-style') == 'outline-and-shadow'
+
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'osd_duration', '0.2'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-replay'])
+        time.sleep(0.1)
+        assert ipc.get_property('osd-border-style') == 'background-box'
+
+        time.sleep(0.5)
+        assert ipc.get_property('osd-border-style') == 'outline-and-shadow'
+
+        ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
+        time.sleep(0.5)
+
     def test_export_engine_hardening_brackets(self, mpv):
         """Verify bracket-only selection is valid (export-engine-hardening)."""
         ipc = mpv.ipc

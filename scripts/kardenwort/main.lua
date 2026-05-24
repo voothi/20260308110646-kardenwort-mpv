@@ -752,10 +752,16 @@ local Tracks = {
 -- =========================================================================
 
 function show_osd(msg, dur)
+    local actual_dur = dur or Options.osd_duration
+    -- Keep user-facing notices visually consistent with DM by briefly restoring
+    -- the native border style while the message is visible.
+    if FSM and FSM.trigger_ui_border_suspension then
+        FSM.trigger_ui_border_suspension(actual_dur + 0.15)
+    end
     local style = mp.get_property("osd-ass-cc/0") or ""
     -- IPC diagnostics contract used by acceptance tests
     mp.set_property("user-data/kardenwort/last_osd", tostring(msg or ""))
-    mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
+    mp.osd_message(style .. "{\\an4}{\\fs20}" .. tostring(msg or ""), actual_dur)
 end
 
 local seek_osd = mp.create_osd_overlay("ass-events")
@@ -8527,16 +8533,22 @@ function manage_ui_border_override(enable)
     end
 end
 
-local function trigger_volume_suspension()
+FSM.trigger_ui_border_suspension = function(duration_sec)
     if not FSM.saved_osd_border_style then return end
     FSM.volume_suspension_active = true
     apply_border_override_state()
     
     if FSM.volume_suspension_timer then FSM.volume_suspension_timer:kill() end
-    FSM.volume_suspension_timer = mp.add_timeout(2.0, function()
+    local suspend_for = tonumber(duration_sec) or 2.0
+    if suspend_for < 0.1 then suspend_for = 0.1 end
+    FSM.volume_suspension_timer = mp.add_timeout(suspend_for, function()
         FSM.volume_suspension_active = false
         apply_border_override_state()
     end)
+end
+
+local function trigger_volume_suspension()
+    FSM.trigger_ui_border_suspension(2.0)
 end
 
 local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
