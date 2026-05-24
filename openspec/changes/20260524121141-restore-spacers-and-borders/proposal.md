@@ -1,29 +1,44 @@
 ## Why
 
-The user has rolled back to v1.82.26 due to visual regressions and complexity accumulated from previous attempts to transfer features (spacing, margins, borders, and tooltip positioning). The main issue resides in incorrect visual display of shading, borders, and frames (specifically under `osd-border-style=background-box` mode), text wrapping alignment issues, and off-center tooltips in fullscreen Drum Mode (DM).
+The branch was rolled back to v1.82.26 because prior transfer attempts introduced visual regressions and unstable recovery patches. The pain is concentrated in:
+- shading/frame behavior under `osd-border-style=background-box`,
+- text-to-background envelope mismatch (especially long Cyrillic tooltip lines),
+- tooltip geometry/alignment in fullscreen Drum Mode (DM),
+- sequencing drift where large changes were attempted before foundational lifecycle fixes.
 
-This proposal establishes a plan to carefully and step-by-step transfer the visual improvements (spacing, padding, absolute centering, and border-box transparency overrides) into the current branch using a minimally invasive, phase-based approach.
+This change restores the visual improvements with a clean, minimally invasive, phase-gated transfer.
+
+## Main Findings (Ordered by Risk)
+
+1. Broad startup safety shims and broad binding rewrites are high-risk for this transfer and can reintroduce instability.
+2. Tooltip centering must be DM-only, otherwise SRT tooltip parity can regress.
+3. Border-style lifecycle must be stabilized before renderer rewrites.
+4. Large hit-test rewrites are not required for first-pass visual recovery and should be conditional.
 
 ## What Changes
 
-1. **Decouple Line Height and Block Gaps**: Support separate visual line spacing inside wrapped subtitles and custom inter-subtitle gaps.
-2. **Dynamic Safe-Area Edge Margins**: Prevent subtitle frames from touching screen edges under overflow conditions.
-3. **Cyrillic Width Calibration**: Prevent long Russian tooltip translations from overflowing their background panels by adjusting proportional font calculations.
-4. **Absolute Single Background Card**: Replace independent line-level background cards with a single premium semi-transparent vector box for both the Drum Window and interactive Tooltips.
-5. **Localized Transparency Override**: Temporarily bypass global `background-box` style conflicts during active UI overlays (DW, Search, and Tooltips) without disrupting upper subtitles or console displays.
-6. **Centering for Fullscreen Drum Mode Tooltips**: Ensure that in fullscreen Drum Mode (DM) the translation tooltip is horizontally centered at X = 960 and vertically positioned at the secondary subtitle area to prevent collisions.
+1. Establish baseline options and state diagnostics for geometry verification.
+2. Implement robust UI border-style lifecycle handling for DW/Search/Tooltip overlays.
+3. Fix DM tooltip geometry: Cyrillic width envelope, horizontal centering, DM vertical placement, hit-zone parity.
+4. Decouple wrap-line spacing from inter-subtitle gaps and add safe-edge clamping.
+5. Migrate to cohesive vector-card backgrounds (tooltip first, DW second) with compatibility alpha tags.
+6. Add punctuation selection parity and only then evaluate deeper hit-test/drag changes if still needed.
+7. Run targeted tests last, after user-approved visual checkpoints.
+
+## Clean-Transfer Exclusions (Deferred Unless Proven Necessary)
+
+- No global startup callback shim layer.
+- No broad `manage_dw_bindings()` refactor.
+- No mandatory `dw_hit_test()` architecture rewrite before visual acceptance.
 
 ## Capabilities
 
-### New Capabilities
-<!-- None needed, we are modifying existing ones -->
-
 ### Modified Capabilities
-- `drum-window`: Decoupling visual line height from block gap multipliers, and adding edge margin safe-area constraints.
-- `drum-window-tooltip`: Decoupling and centering the OSD tooltip overlay vertically and horizontally in fullscreen Drum Mode (DM).
-- `drum-context`: Ensuring word-selection parity for trailing punctuation (e.g., periods, question marks) across both DM and DW.
+- `drum-window`: spacing decoupling, safe-area clamping, unified visual card rendering.
+- `drum-window-tooltip`: DM-only centering/placement, calibrated width envelopes, unified visual card rendering.
+- `drum-context`: trailing punctuation selection parity.
 
 ## Impact
 
-- `scripts/kardenwort/main.lua`: The rendering engine, mouse-move/hover checks, and OSD display blocks will be modified with minimally invasive insertions.
-- `tests/`: Automated tests will be introduced or migrated in the final phase to prevent regressions without blocking prototyping.
+- `scripts/kardenwort/main.lua`: targeted, minimally invasive changes in rendering, tooltip geometry, and UI lifecycle paths.
+- `tests/`: targeted acceptance coverage added/updated in the final phase only.

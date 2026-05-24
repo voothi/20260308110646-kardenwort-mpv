@@ -1,46 +1,60 @@
+## 0. Execution Contract
+
+- [ ] 0.1 Execute one phase at a time, with user visual acceptance before moving forward.
+- [ ] 0.2 Keep changes minimally invasive; no broad architectural refactors.
+- [ ] 0.3 Defer broad/expensive test runs until the final phase.
+
 ## 1. Phase 1: Baseline Options and Diagnostics (Smallest, Highest Signal)
 
-- [ ] 1.1 Expose new options: `dw_wrap_line_height_mul = 1.05`, `dw_edge_margin = 24`, and `dw_cyrillic_coef = 0.52`.
-- [ ] 1.2 Expose `dw_block_top` and `dw_total_height` in the OSD state snapshot query for verification.
-- [ ] 1.3 Define and enforce DM-only centering guardrails for tooltip work (`FSM.DRUM == "ON"` and `FSM.DRUM_WINDOW == "OFF"`), keeping SRT tooltip behavior unchanged.
+- [ ] 1.1 Expose new options: `dw_wrap_line_height_mul = 1.05`, `dw_edge_margin = 24`, `dw_cyrillic_coef = 0.52`.
+- [ ] 1.2 Expose `dw_block_top` and `dw_total_height` in the OSD state snapshot query.
+- [ ] 1.3 Add DM-only tooltip centering guardrails: apply centered logic only when `FSM.DRUM == "ON"` and `FSM.DRUM_WINDOW == "OFF"`.
+- [ ] 1.4 Visual gate: verify no SRT tooltip behavior change after guard introduction.
 
 ## 2. Phase 2: Border-Style Lifecycle Hardening (Foundational)
 
-- [ ] 2.1 Implement the `manage_ui_border_override(enable)` callback flow to selectively switch global `osd-border-style` to `outline-and-shadow` only while custom OSD overlays are active.
-- [ ] 2.2 Harden nested UI overrides using `ui_border_override_depth` to prevent premature restoration when multiple menus overlap.
-- [ ] 2.3 Confirm override lifecycle across DW/Search/Tooltip open-close transitions before visual renderer rewrites.
+- [ ] 2.1 Implement `manage_ui_border_override(enable)` to switch `osd-border-style` only while custom overlays are active.
+- [ ] 2.2 Add nested depth safety (`ui_border_override_depth`) to prevent premature restoration under overlapping menus.
+- [ ] 2.3 Validate open-close lifecycle across DW/Search/Tooltip transitions.
+- [ ] 2.4 Visual gate: confirm no dark/double background stacking in DM tooltip.
 
 ## 3. Phase 3: Tooltip Geometry and Width Safety in DM
 
-- [ ] 3.1 Calibrate Cyrillic width calculations in `dw_get_str_width()` using `dw_cyrillic_coef` to prevent long Russian tooltip overflow.
-- [ ] 3.2 Center tooltip text and background card horizontally at `X = 960` with top-center alignment (`\an8`) in DM only.
-- [ ] 3.3 Align mouse hit-zones horizontally in `dw_tooltip_hit_test` using centered `960 - line_w / 2` bounds.
-- [ ] 3.4 Position tooltip vertically at the secondary subtitle OSD region in DM to prevent overlap with primary subtitles.
+- [ ] 3.1 Calibrate Cyrillic width in `dw_get_str_width()` using `dw_cyrillic_coef`.
+- [ ] 3.2 Center DM tooltip text/card at `X = 960` with `\an8`.
+- [ ] 3.3 Re-align `dw_tooltip_hit_test` bounds to centered geometry (`960 - line_w / 2`).
+- [ ] 3.4 Place DM tooltip vertically in the secondary subtitle region to avoid collisions.
+- [ ] 3.5 Visual gate: verify centered DM tooltip, stable hover/click hit-zones, and no clipping on long Russian lines.
 
 ## 4. Phase 4: Spacing and Safe-Area Decoupling for DW
 
-- [ ] 4.1 Implement visual helper `vline_height(fs)` inside a scoped helper table/block to decouple intra-subtitle wrap heights from block gaps.
-- [ ] 4.2 Implement viewport helper `calculate_block_top(raw_top, total_h)` to respect `dw_edge_margin` clamps under overflow.
-- [ ] 4.3 Wire the same spacing model into both rendering and hit-testing paths to avoid geometry drift.
+- [ ] 4.1 Implement `vline_height(fs)` helper in a scoped helper block/table.
+- [ ] 4.2 Implement `calculate_block_top(raw_top, total_h)` with `dw_edge_margin` clamping.
+- [ ] 4.3 Use the same spacing model in rendering and hit-testing paths.
+- [ ] 4.4 Visual gate: verify wrap spacing, inter-subtitle gap consistency, and safe margins at viewport extremes.
 
 ## 5. Phase 5: Cohesive Vector Card Rendering (Largest Visual Rewrite)
 
-- [ ] 5.1 Render a single cohesive vector background card (`bg_rect` via `\p1`) in `draw_dw_tooltip`, preserving existing interaction behavior.
-- [ ] 5.2 Render the same cohesive vector background card pattern in `draw_dw`, replacing line-by-line frame visuals.
-- [ ] 5.3 Prepend local opacity overrides (`\3a&HFF&` and `\4a&HFF&` with `\bord0` and `\shad0`) to text lines as a compatibility layer for `background-box` mode.
+- [ ] 5.1 Implement unified tooltip vector card (`\p1`) first, preserving current interaction flow.
+- [ ] 5.2 Implement unified DW vector card (`\p1`) second, replacing line-by-line frame visuals.
+- [ ] 5.3 Add local compatibility tags (`\3a&HFF&`, `\4a&HFF&`, `\bord0`, `\shad0`) for `background-box` mode stability.
+- [ ] 5.4 Visual gate: verify premium single-card look with no frame leakage and preserved click behavior.
 
-## 6. Phase 6: Interaction Parity Follow-Ups (Only After Visual Acceptance)
+## 6. Phase 6: Interaction Parity Follow-Ups (Conditional)
 
-- [ ] 6.1 Allow trailing punctuation (`.`, `?`, `!`) selection parity in DM by removing the `t.is_word` filter in `calculate_osd_line_meta()`.
-- [ ] 6.2 Evaluate need for `FSM.DW_HIT_ZONES` caching and `dw_hit_test()` rewrite; implement only if residual hit drift remains after Phases 1-5.
-- [ ] 6.3 Evaluate drag-threshold changes (`5px` gating for timer/drag activation) only if reproducible in current branch after visual fixes.
+- [ ] 6.1 Add trailing punctuation selection parity (`.`, `?`, `!`) by relaxing the `t.is_word` filter in `calculate_osd_line_meta()`.
+- [ ] 6.2 Reassess residual drift; only then consider `FSM.DW_HIT_ZONES` cache + `dw_hit_test()` rewrite.
+- [ ] 6.3 Reassess drag behavior; only then consider `5px` timer/drag gating.
+- [ ] 6.4 Visual gate: verify no regressions in selection, drag, and tooltip stability.
 
-## 7. Phase 7: Safety Scope and Non-Goals Enforcement
+## 7. Phase 7: Safety Scope Enforcement
 
-- [ ] 7.1 Do not introduce global startup callback shims; if needed, add narrow local guards only at the registration call sites that are proven unstable.
-- [ ] 7.2 Keep `manage_dw_bindings()` architecture unchanged unless a concrete regression requires targeted edits.
+- [ ] 7.1 Explicitly avoid global startup callback shims.
+- [ ] 7.2 If runtime safety issues remain, add narrow local guards at proven unstable call sites only.
+- [ ] 7.3 Keep `manage_dw_bindings()` architecture unchanged unless a concrete regression demands a targeted fix.
 
-## 8. Phase 8: Automated Test Verification (Last Phase)
+## 8. Phase 8: Targeted Test Verification (Last Phase)
 
-- [ ] 8.1 Add/adjust only targeted visual regression tests for borders, margins, tooltip centering, and hit-zone alignment.
-- [ ] 8.2 Run the focused automated suite to verify visual alignment and click accuracy after user-approved visual checks.
+- [ ] 8.1 Add/adjust targeted tests for border lifecycle, DM centering, Cyrillic envelope, and hit-zone alignment.
+- [ ] 8.2 Run focused suites after user-approved visual checkpoints.
+- [ ] 8.3 Confirm final pass criteria: visual parity restored, no known false-path patches reintroduced.
