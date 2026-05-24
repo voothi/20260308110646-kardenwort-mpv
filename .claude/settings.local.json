@@ -19,7 +19,9 @@
       "Bash(Select-Object Name, Mode)",
       "Bash(Format-Table -AutoSize)",
       "Bash(Get-ChildItem -Path \"U:\\\\voothi\\\\20260308110646-kardenwort-mpv\" -Recurse -Filter \"*.lua\")",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(luac -p scripts/kardenwort/main.lua)",
+      "Bash(pytest tests/acceptance/test_20260521133435_dw_top_alignment.py tests/acceptance/test_20260522162418_tooltip_window_degradation.py tests/acceptance/test_20260522163656_tag_walk_regressions.py tests/acceptance/test_20260509180427_tooltip_bootstrapping.py tests/acceptance/test_20260509181204_srt_tooltip_parity.py -q)"
     ]
   }
 }
