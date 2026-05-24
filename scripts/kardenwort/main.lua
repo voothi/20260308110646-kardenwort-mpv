@@ -632,8 +632,6 @@ local FSM = {
 
     -- Transient UI State
     saved_osd_border_style = nil,
-    ui_border_override_depth = 0,
-    osd_border_style = mp.get_property("osd-border-style"),
     DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
 
     -- Tooltip State
@@ -8211,30 +8209,8 @@ local function move_search_cursor(direction, ctrl, shift)
 end
 
 local function manage_ui_border_override(enable)
-    if enable then
-        FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
-        if FSM.ui_border_override_depth > 1 then return end
-
-        FSM.saved_osd_border_style = mp.get_property("osd-border-style")
-        if FSM.saved_osd_border_style == "background-box" then
-            mp.set_property("osd-border-style", "outline-and-shadow")
-            FSM.osd_border_style = "outline-and-shadow"
-        end
-        return
-    end
-
-    FSM.ui_border_override_depth = math.max(0, (FSM.ui_border_override_depth or 0) - 1)
-    if FSM.ui_border_override_depth > 0 then return end
-
-    local saved = FSM.saved_osd_border_style
-    if saved and saved ~= "" then
-        local cur = mp.get_property("osd-border-style")
-        if cur ~= saved then
-            mp.set_property("osd-border-style", saved)
-            FSM.osd_border_style = saved
-        end
-    end
-    FSM.saved_osd_border_style = nil
+    -- Deprecated: We now rely on \4a&HFF& in ASS to hide background box.
+    -- Kept to avoid breaking existing bindings/calls.
 end
 
 -- Wrapped-line visual height inside a single DW subtitle entry.
@@ -9212,22 +9188,12 @@ mp.observe_property("script-opts", "string", function()
     if dw_osd then dw_osd:update() end
 end)
 
-mp.observe_property("osd-border-style", "string", function(name, val)
-    FSM.osd_border_style = val
-    flush_rendering_caches()
-    drum_osd:update()
-    if dw_osd then dw_osd:update() end
-end)
-
 mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
         mp.set_property_bool("sub-visibility", FSM.native_sub_vis)
         mp.set_property_bool("secondary-sub-visibility", FSM.native_sec_sub_vis)
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         manage_dw_bindings(false)
-    end
-    while (FSM.ui_border_override_depth or 0) > 0 do
-        manage_ui_border_override(false)
     end
 end)
 
