@@ -5142,7 +5142,9 @@ end
 
 
 local function dw_mouse_auto_scroll()
-    if FSM.DRUM_WINDOW == "OFF" then return end
+    local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
+    local dm_mode = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
+    if not dw_mode and not dm_mode then return end
 
     -- Keep selection following the pointer even if OS/driver drops mouse_move events.
     -- This restores continuous drag behavior while preserving click-vs-drag thresholding.
@@ -5164,9 +5166,10 @@ local function dw_mouse_auto_scroll()
     local edge_zone = base_h * edge_ratio
     local top_scroll_trigger = edge_zone
     local bottom_scroll_trigger = base_h - edge_zone
-    if FSM.DW_HIT_ZONES and #FSM.DW_HIT_ZONES > 0 then
-        local first_zone = FSM.DW_HIT_ZONES[1]
-        local last_zone = FSM.DW_HIT_ZONES[#FSM.DW_HIT_ZONES]
+    local hit_zones = dw_mode and FSM.DW_HIT_ZONES or FSM.DRUM_HIT_ZONES
+    if hit_zones and #hit_zones > 0 then
+        local first_zone = hit_zones[1]
+        local last_zone = hit_zones[#hit_zones]
         if first_zone and first_zone.y_top then
             top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
         end
