@@ -6003,6 +6003,13 @@ local function cmd_dw_double_click()
 end
 
 local function tick_dw(time_pos, active_idx)
+    if FSM.DRUM_WINDOW == "OFF" then
+        if dw_osd.data ~= "" then
+            dw_osd.data = ""
+            dw_osd:update()
+        end
+        return
+    end
     local subs = Tracks.pri.subs
     if #subs == 0 or not active_idx or active_idx == -1 then return end
     
@@ -6027,7 +6034,13 @@ end
 
 local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- Don't render Drum Mode OSD while Drum Window is open (they overlap)
-    if FSM.DRUM_WINDOW ~= "OFF" then return end
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        if drum_osd.data ~= "" then
+            drum_osd.data = ""
+            drum_osd:update()
+        end
+        return
+    end
     
     local is_drum = (FSM.DRUM == "ON")
     
@@ -9022,6 +9035,7 @@ function cmd_toggle_drum_window()
 
         -- Update state immediately for responsiveness
         FSM.DRUM_WINDOW = "DOCKED"
+        flush_rendering_caches()
         clear_tooltip_overlay("drum-window-open-transition")
         manage_ui_border_override(true)
 
@@ -9085,6 +9099,7 @@ function cmd_toggle_drum_window()
         -- Update state immediately
         FSM.DRUM_WINDOW = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
+        flush_rendering_caches()
         clear_tooltip_overlay("drum-window-close-transition")
         manage_ui_border_override(false)
 
@@ -9093,6 +9108,21 @@ function cmd_toggle_drum_window()
         end
         dw_osd.data = ""
         dw_osd:update()
+
+        -- Force synchronization of all cursor and viewport states to the current playhead
+        local time_pos = mp.get_property_number("time-pos") or 0
+        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+        if active_idx and active_idx ~= -1 then
+            FSM.DW_CURSOR_LINE = active_idx
+            FSM.DW_VIEW_CENTER = active_idx
+            FSM.ACTIVE_IDX = active_idx
+            FSM.DW_ACTIVE_LINE = active_idx
+        end
+        FSM.DW_CURSOR_WORD = -1
+        FSM.DW_ANCHOR_LINE = -1
+        FSM.DW_ANCHOR_WORD = -1
+        FSM.DW_CURSOR_X = nil
+        FSM.DW_FOLLOW_PLAYER = true
 
         -- Restore subtitle visibility
         FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
