@@ -3064,9 +3064,10 @@ apply_tooltip_ass = function(ass)
     if not dw_tooltip_osd then return end
     ass = ass or ""
     local will_visible = (ass ~= "")
-    -- Apply the same border-style override while tooltip is visible in both
-    -- DW and DM, to avoid DM-only native background-box darkening.
-    local wants_override = will_visible and ((FSM.DRUM_WINDOW ~= "OFF") or (FSM.DRUM == "ON"))
+    -- DW only: DM relies on the in-ASS neutralization (rect_bg_alpha = "FF",
+    -- line_bgbox_neutral) inside draw_dw_tooltip so flipping the global
+    -- osd-border-style here would strip frames from DM drum/native OSD.
+    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
     local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
     if wants_override and not has_override then
         manage_ui_border_override(true)
