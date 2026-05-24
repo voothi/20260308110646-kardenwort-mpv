@@ -777,7 +777,6 @@ function show_osd(msg, dur)
             char_count = char_count + 1
         end
         local box_w = math.max(160, math.floor(char_count * fs * 0.55 + 2 * pad_x))
-        local box_w = math.max(160, math.floor(char_count * fs * 0.55 + 2 * pad_x))
         local box_h = fs + 2 * pad_y
 
         local center_y = math.floor(ry / 2)
