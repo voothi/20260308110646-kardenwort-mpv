@@ -767,25 +767,11 @@ function show_osd(msg, dur)
     -- IPC diagnostics contract used by acceptance tests
     mp.set_property("user-data/kardenwort/last_osd", text)
     
-    if FSM then
-        FSM.notice_osd_active = true
-        apply_border_override_state()
-    end
-
     -- Unified path for DW and DM: mp.osd_message renders a single OSD-bar event,
     -- so embedded \p1 shapes + dual \pos blocks don't compose like an ass-events
     -- overlay. Outline+shadow tags keep the notice visible in both modes; an
     -- explicit DW card belongs on a dedicated overlay, not here.
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)
-
-    if FSM then
-        local actual_dur = dur or Options.osd_duration
-        if FSM.notice_osd_timer then FSM.notice_osd_timer:kill() end
-        FSM.notice_osd_timer = mp.add_timeout(actual_dur + 0.1, function()
-            FSM.notice_osd_active = false
-            apply_border_override_state()
-        end)
-    end
 end
 
 local seek_osd = mp.create_osd_overlay("ass-events")
@@ -821,11 +807,6 @@ function show_seek_osd(msg, alignment)
     ass = ass .. string.format("{\\bord%g}", Options.seek_border_size)
     ass = ass .. string.format("{\\shad%g}", Options.seek_shadow_offset)
     
-    if FSM then
-        FSM.seek_osd_active = true
-        apply_border_override_state()
-    end
-
     seek_osd.data = ass .. msg
     seek_osd:update()
     
@@ -833,10 +814,6 @@ function show_seek_osd(msg, alignment)
     seek_timer = mp.add_timeout(Options.seek_osd_duration, function()
         seek_osd.data = ""
         seek_osd:update()
-        if FSM then
-            FSM.seek_osd_active = false
-            apply_border_override_state()
-        end
     end)
 end
 
@@ -8524,7 +8501,7 @@ end
 
 function apply_border_override_state()
     local saved = FSM.saved_osd_border_style or mp.get_property("options/osd-border-style") or "background-box"
-    if FSM.volume_suspension_active or FSM.console_active or FSM.seek_osd_active or FSM.notice_osd_active then
+    if FSM.volume_suspension_active or FSM.console_active then
         -- Temporarily restore native style
         if saved and saved ~= "" then
             local cur = mp.get_property("osd-border-style")

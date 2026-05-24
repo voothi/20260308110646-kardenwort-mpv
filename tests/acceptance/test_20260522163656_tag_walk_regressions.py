@@ -504,19 +504,20 @@ def test_console_and_osd_frame_suspension_in_dw_mode():
     assert 'mp.observe_property("user-data/mpv/console/open", "bool"' in src
     assert 'FSM.console_active = val' in src
     
-    # 2. Assert apply_border_override_state supports suspension flags
+    # 2. Assert apply_border_override_state supports console active flag
     apply_body = _function_window(src, "function apply_border_override_state()", "function manage_ui_border_override")
     assert "FSM.console_active" in apply_body
-    assert "FSM.seek_osd_active" in apply_body
-    assert "FSM.notice_osd_active" in apply_body
+    assert "FSM.seek_osd_active" not in apply_body
+    assert "FSM.notice_osd_active" not in apply_body
 
-    # 3. Assert show_osd suspends override
+    # 3. Assert show_osd has no notice_osd_active dynamic suspension flags (to protect DW card frame rendering stability)
     show_osd_body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
-    assert "FSM.notice_osd_active = true" in show_osd_body
-    assert "FSM.notice_osd_active = false" in show_osd_body
+    assert "FSM.notice_osd_active = true" not in show_osd_body
+    assert "FSM.notice_osd_active = false" not in show_osd_body
 
-    # 4. Assert show_seek_osd suspends override
+    # 4. Assert show_seek_osd has no seek_osd_active dynamic suspension flags
     seek_osd_body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
-    assert "FSM.seek_osd_active = true" in seek_osd_body
-    assert "FSM.seek_osd_active = false" in seek_osd_body
+    assert "FSM.seek_osd_active = true" not in seek_osd_body
+    assert "FSM.seek_osd_active = false" not in seek_osd_body
+
 
