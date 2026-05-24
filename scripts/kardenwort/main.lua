@@ -4430,15 +4430,9 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            local line_style
-            if FSM.osd_border_style == "background-box" then
-                -- Neutralize background box for this line to prevent overlapping boxes under background-box mode
-                line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\q2}", vl_y_top)
-            else
-                -- Apply standard outline and shadow for a voluminous look under outline-and-shadow mode
-                line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}", 
-                    vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
-            end
+            -- Apply standard outline and shadow for a voluminous look under outline-and-shadow mode
+            local line_style = string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}", 
+                vl_y_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
             local line_ass = line_style .. line_prefix .. line_text
             table.insert(all_visual_lines_ass, line_ass)
         end
@@ -4457,14 +4451,9 @@ local function draw_dw(subs, view_center, active_idx)
     local rect_top = block_top - pad_y
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, total_height + (2 * pad_y))
-    local bg_rect
-    if FSM.osd_border_style == "background-box" then
-        bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-            rect_left, rect_top, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
-    else
-        bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-            rect_left, rect_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
-    end
+    -- Style the vector background card with a beautifully voluminous and premium border frame
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
     local final_ass = bg_rect
     if #all_visual_lines_ass > 0 then
         final_ass = final_ass .. "\n" .. table.concat(all_visual_lines_ass, "\n")
@@ -8491,8 +8480,63 @@ local function move_search_cursor(direction, ctrl, shift)
     render_search()
 end
 
+local function apply_border_override_state()
+    if FSM.volume_suspension_active then
+        -- Temporarily restore native style
+        local saved = FSM.saved_osd_border_style
+        if saved and saved ~= "" then
+            local cur = mp.get_property("osd-border-style")
+            if cur ~= saved then
+                mp.set_property("osd-border-style", saved)
+                FSM.osd_border_style = saved
+            end
+        end
+    else
+        -- Apply the override to outline-and-shadow
+        if (FSM.ui_border_override_depth or 0) > 0 then
+            local cur = mp.get_property("osd-border-style")
+            if cur == "background-box" then
+                FSM.saved_osd_border_style = "background-box"
+                mp.set_property("osd-border-style", "outline-and-shadow")
+                FSM.osd_border_style = "outline-and-shadow"
+            end
+        else
+            -- Restore saved
+            local saved = FSM.saved_osd_border_style
+            if saved and saved ~= "" then
+                local cur = mp.get_property("osd-border-style")
+                if cur ~= saved then
+                    mp.set_property("osd-border-style", saved)
+                    FSM.osd_border_style = saved
+                end
+            end
+            FSM.saved_osd_border_style = nil
+        end
+    end
+end
+
 function manage_ui_border_override(enable)
-    -- Deprecated: We now rely on \4a&HFF& in ASS to hide background box
+    if enable then
+        FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
+        if FSM.ui_border_override_depth > 1 then return end
+        apply_border_override_state()
+    else
+        FSM.ui_border_override_depth = math.max(0, (FSM.ui_border_override_depth or 0) - 1)
+        if FSM.ui_border_override_depth > 0 then return end
+        apply_border_override_state()
+    end
+end
+
+local function trigger_volume_suspension()
+    if not FSM.saved_osd_border_style then return end
+    FSM.volume_suspension_active = true
+    apply_border_override_state()
+    
+    if FSM.volume_suspension_timer then FSM.volume_suspension_timer:kill() end
+    FSM.volume_suspension_timer = mp.add_timeout(2.0, function()
+        FSM.volume_suspension_active = false
+        apply_border_override_state()
+    end)
 end
 
 local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
@@ -9483,6 +9527,9 @@ mp.observe_property("osd-border-style", "string", function(name, val)
     drum_osd:update()
     if dw_osd then dw_osd:update() end
 end)
+
+mp.observe_property("volume", "number", trigger_volume_suspension)
+mp.observe_property("mute", "bool", trigger_volume_suspension)
 
 mp.register_event("shutdown", function()
     if FSM.DRUM == "ON" or FSM.DRUM_WINDOW == "DOCKED" then
