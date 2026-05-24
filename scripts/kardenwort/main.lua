@@ -100,6 +100,7 @@ local manage_dw_bindings
 local update_interactive_bindings
 local render_help, render_search, cmd_toggle_help
 local manage_ui_border_override
+local apply_border_override_state
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
@@ -8521,7 +8522,7 @@ local function move_search_cursor(direction, ctrl, shift)
     render_search()
 end
 
-local function apply_border_override_state()
+function apply_border_override_state()
     local saved = FSM.saved_osd_border_style or mp.get_property("options/osd-border-style") or "background-box"
     if FSM.volume_suspension_active or FSM.console_active or FSM.seek_osd_active or FSM.notice_osd_active then
         -- Temporarily restore native style

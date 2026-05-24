@@ -505,7 +505,7 @@ def test_console_and_osd_frame_suspension_in_dw_mode():
     assert 'FSM.console_active = val' in src
     
     # 2. Assert apply_border_override_state supports suspension flags
-    apply_body = _function_window(src, "local function apply_border_override_state()", "function manage_ui_border_override")
+    apply_body = _function_window(src, "function apply_border_override_state()", "function manage_ui_border_override")
     assert "FSM.console_active" in apply_body
     assert "FSM.seek_osd_active" in apply_body
     assert "FSM.notice_osd_active" in apply_body
