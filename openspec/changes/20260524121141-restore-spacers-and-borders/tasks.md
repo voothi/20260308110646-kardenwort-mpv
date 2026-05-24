@@ -31,7 +31,7 @@
 
 - [ ] 4.1 Implement `vline_height(fs)` helper in a scoped helper block/table.
 - [x] 4.2 Implement `calculate_block_top(raw_top, total_h)` with `dw_edge_margin` clamping.
-- [ ] 4.3 Use the same spacing model in rendering and hit-testing paths.
+- [x] 4.3 Use the same spacing model in rendering and hit-testing paths.
 - [ ] 4.4 Visual gate: verify wrap spacing, inter-subtitle gap consistency, and safe margins at viewport extremes.
 
 ## 5. Phase 5: Cohesive Vector Card Rendering (Largest Visual Rewrite)

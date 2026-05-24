@@ -3725,16 +3725,42 @@ local function calculate_block_top(raw_top, total_h)
     local margin = math.max(0, tonumber(Options.dw_edge_margin) or 0)
     local screen_h = 1080
     local max_top = screen_h - total_h - margin
+    local min_top = math.min(margin, max_top)
+    local max_top_clamped = math.max(margin, max_top)
+    if raw_top < min_top then return min_top end
+    if raw_top > max_top_clamped then return max_top_clamped end
+    return raw_top
+end
 
-    -- Overflow case: impossible to preserve both top and bottom margins.
-    -- Prioritize showing the beginning of content (top anchor).
-    if max_top < margin then
-        return margin
+function dw_calculate_block_top(layout, total_h, view_center, active_idx)
+    if not layout or #layout == 0 then
+        return calculate_block_top(540 - (total_h / 2), total_h)
     end
 
-    if raw_top < margin then return margin end
-    if raw_top > max_top then return max_top end
-    return raw_top
+    local lh_mul = Options.dw_line_height_mul
+    local offset_y = 0
+    local found = false
+
+    for layout_i, entry in ipairs(layout) do
+        if entry.sub_idx == view_center then
+            offset_y = offset_y + (entry.height / 2)
+            found = true
+            break
+        end
+
+        offset_y = offset_y + entry.height
+        if layout_i < #layout then
+            local is_active = (entry.sub_idx == active_idx)
+            local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+            offset_y = offset_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+        end
+    end
+
+    if not found then
+        offset_y = total_h / 2
+    end
+
+    return calculate_block_top(540 - offset_y, total_h)
 end
 
 local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
@@ -4202,7 +4228,7 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local block_top = calculate_block_top(540 - (total_height / 2), total_height)
+    local block_top = dw_calculate_block_top(layout, total_height, view_center, active_idx)
     local current_y = block_top
     FSM.DW_BLOCK_TOP = block_top
     FSM.DW_TOTAL_HEIGHT = total_height
@@ -4290,8 +4316,8 @@ local function draw_dw(subs, view_center, active_idx)
     end
     local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
     -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+    local final_ass = ass .. string.format("{\\pos(960, %g)}{\\an8}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s",
+        block_top, Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -4525,7 +4551,8 @@ local function dw_hit_test(osd_x, osd_y)
     end
     local space_w = dw_get_str_width(" ")
 
-    local block_top = calculate_block_top(540 - total_height / 2, total_height)
+    local active_idx = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX
+    local block_top = dw_calculate_block_top(layout, total_height, FSM.DW_VIEW_CENTER, active_idx)
 
     -- Clamp vertically to the first/last word if outside the entire block
     if osd_y <= block_top then
