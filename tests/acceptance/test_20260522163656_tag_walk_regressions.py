@@ -384,6 +384,20 @@ def test_manage_ui_border_override_is_forward_declared():
     assert src.find("local apply_tooltip_ass") < src.find("function manage_ui_border_override(enable)")
 
 
+def test_show_osd_applies_dw_only_frame_without_timer_suspension():
+    src = _lua_source()
+    body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+
+    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
+    assert 'frame_tags = string.format(' in body
+    assert 'Options.seek_border_size' in body
+    assert 'Options.seek_shadow_offset' in body
+    assert 'Options.seek_bg_color' in body
+    assert 'Options.seek_bg_opacity' in body
+    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. tostring(msg or ""), dur or Options.osd_duration)' in body
+    assert "volume_suspension" not in body
+
+
 def test_dw_get_str_width_cyrillic_estimate_at_least_052():
     src = _lua_source()
     body = _function_window(src, "local function dw_get_str_width_proportional(str, fs)", "local function calculate_sub_gap")

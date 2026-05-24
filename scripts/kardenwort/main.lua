@@ -753,9 +753,21 @@ local Tracks = {
 
 function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
+    local frame_tags = ""
+    if FSM and FSM.DRUM_WINDOW ~= "OFF" then
+        frame_tags = string.format(
+            "{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
+            Options.seek_border_size,
+            Options.seek_shadow_offset,
+            Options.seek_bg_color,
+            Options.seek_bg_color,
+            Options.seek_bg_opacity,
+            Options.seek_bg_opacity
+        )
+    end
     -- IPC diagnostics contract used by acceptance tests
     mp.set_property("user-data/kardenwort/last_osd", tostring(msg or ""))
-    mp.osd_message(style .. "{\\an4}{\\fs20}" .. msg, dur or Options.osd_duration)
+    mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. tostring(msg or ""), dur or Options.osd_duration)
 end
 
 local seek_osd = mp.create_osd_overlay("ass-events")
