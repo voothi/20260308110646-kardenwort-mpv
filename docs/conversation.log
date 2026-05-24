@@ -2622,7 +2622,7 @@
 20260524130734 The last subtitle does not fit docs/assets/20260524130748.png
 20260524131109 Wouldn't it make sense to move this into Phase 1 or right after it?
 20260524131322 Is there an item on working with hit accuracy after these changes of ours? I want to do this now, maybe after running phase 2.
-
-
+20260524132217 Are the mechanics themselves written down in the documents, in design.md?
+20260524132512 If you want, I can now add a dedicated “Mechanics” section to design.md with exact geometry rules and acceptance checks for hit accuracy. - Yes, will you take this from branch 20260523152149 as from the original source, the standard?
 
 
