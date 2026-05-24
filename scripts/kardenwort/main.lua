@@ -588,6 +588,8 @@ Options = {
     immersion_mode_default = "PHRASE", -- Default mode at startup ("PHRASE" or "MOVIE")
     seek_time_delta = 2,           -- Amount to seek in seconds for relative time navigation
     seek_osd_duration = 2.0,       -- Duration of the centered seek OSD message (sec)
+    seek_osd_layer = 5,            -- Layer for directional seek OSD cards (lower renders behind subtitle overlays)
+    notice_osd_layer = 5,          -- Layer for generic notice OSD cards (lower renders behind subtitle overlays)
     seek_font_size = 60,
     seek_font_name = "Consolas",
     seek_font_bold = false,
@@ -751,7 +753,7 @@ local Tracks = {
 FSM.notice_osd = mp.create_osd_overlay("ass-events")
 FSM.notice_osd.res_y = Options.font_base_height
 FSM.notice_osd.res_x = math.floor(FSM.notice_osd.res_y * 16 / 9)
-FSM.notice_osd.z = 5
+FSM.notice_osd.z = Options.notice_osd_layer
 FSM.notice_timer = nil
 
 function show_osd(msg, dur)
@@ -822,7 +824,7 @@ end
 local seek_osd = mp.create_osd_overlay("ass-events")
 seek_osd.res_y = Options.font_base_height
 seek_osd.res_x = math.floor(seek_osd.res_y * 16 / 9)
-seek_osd.z = 5
+seek_osd.z = Options.seek_osd_layer
 local seek_timer = nil
 
 function show_seek_osd(msg, alignment)
@@ -9659,6 +9661,8 @@ end)
 mp.observe_property("script-opts", "string", function()
     options.read_options(Options, "kardenwort")
     validate_config()
+    FSM.notice_osd.z = Options.notice_osd_layer
+    seek_osd.z = Options.seek_osd_layer
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then dw_osd:update() end
