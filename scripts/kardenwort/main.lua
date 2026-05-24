@@ -14,6 +14,88 @@ end
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
+
+-- =========================================================================
+-- GLOBAL CALLBACK SAFETY SHIM
+-- Prevents mpv from crashing inside mp.defaults when nil callbacks are registered.
+-- =========================================================================
+do
+local raw_add_key_binding = mp.add_key_binding
+mp.add_key_binding = function(key, name, fn, flags)
+    local actual_fn = fn
+    if type(name) ~= "string" and name ~= nil then
+        actual_fn = name
+    end
+    if type(actual_fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored add_key_binding for key='" .. tostring(key) .. "' name='" .. tostring(name) .. "' due to non-function callback.")
+        return
+    end
+    return raw_add_key_binding(key, name, fn, flags)
+end
+
+local raw_add_forced_key_binding = mp.add_forced_key_binding
+mp.add_forced_key_binding = function(key, name, fn, flags)
+    local actual_fn = fn
+    if type(name) ~= "string" and name ~= nil then
+        actual_fn = name
+    end
+    if type(actual_fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored add_forced_key_binding for key='" .. tostring(key) .. "' name='" .. tostring(name) .. "' due to non-function callback.")
+        return
+    end
+    return raw_add_forced_key_binding(key, name, fn, flags)
+end
+
+local raw_add_timeout = mp.add_timeout
+mp.add_timeout = function(sec, fn)
+    if type(fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored add_timeout due to non-function callback.")
+        return
+    end
+    return raw_add_timeout(sec, fn)
+end
+
+local raw_add_periodic_timer = mp.add_periodic_timer
+mp.add_periodic_timer = function(sec, fn)
+    if type(fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored add_periodic_timer due to non-function callback.")
+        return
+    end
+    return raw_add_periodic_timer(sec, fn)
+end
+
+local raw_register_event = mp.register_event
+mp.register_event = function(name, fn)
+    if type(fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored register_event for name='" .. tostring(name) .. "' due to non-function callback.")
+        return
+    end
+    return raw_register_event(name, fn)
+end
+
+local raw_observe_property = mp.observe_property
+mp.observe_property = function(name, t, fn)
+    local actual_fn = fn
+    if type(t) == "function" then
+        actual_fn = t
+    end
+    if type(actual_fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored observe_property for name='" .. tostring(name) .. "' due to non-function callback.")
+        return
+    end
+    return raw_observe_property(name, t, fn)
+end
+
+local raw_register_script_message = mp.register_script_message
+mp.register_script_message = function(name, fn)
+    if type(fn) ~= "function" then
+        msg.warn("[kardenwort] Ignored register_script_message for name='" .. tostring(name) .. "' due to non-function callback.")
+        return
+    end
+    return raw_register_script_message(name, fn)
+end
+end
+
 require 'resume'
 
 -- Fallback for older mpv versions missing utils.read_file
@@ -4868,7 +4950,7 @@ local function dw_mouse_update_selection()
 end
 
 
-local function dw_mouse_auto_scroll()
+dw_mouse_auto_scroll = function()
     if not FSM.DW_MOUSE_DRAGGING or FSM.DRUM_WINDOW == "OFF" then return end
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
