@@ -18,6 +18,7 @@
 - [x] 2.2 Implement `calculate_block_top(raw_top, total_h)` with `dw_edge_margin` clamping.
 - [x] 2.3 Use the same spacing model in rendering and hit-testing paths.
 - [ ] 2.4 Visual gate: verify wrap spacing, inter-subtitle gap consistency, and safe margins at viewport extremes.
+- [ ] 2.5 Hit-accuracy calibration pass (do immediately after 2.4): verify DW and tooltip pointer-to-word mapping at top/middle/bottom lines and tune geometric offsets only if drift is reproducible.
 
 ## 3. Phase 3: Border-Style Lifecycle Hardening (Foundational)
 
@@ -45,7 +46,7 @@
 ## 6. Phase 6: Interaction Parity Follow-Ups (Conditional)
 
 - [ ] 6.1 Add trailing punctuation selection parity (`.`, `?`, `!`) by relaxing the `t.is_word` filter in `calculate_osd_line_meta()`.
-- [ ] 6.2 Reassess residual drift; only then consider `FSM.DW_HIT_ZONES` cache + `dw_hit_test()` rewrite.
+- [ ] 6.2 Reassess residual drift after Phase 2.5 and Phase 4.5; only then consider `FSM.DW_HIT_ZONES` cache + `dw_hit_test()` rewrite.
 - [ ] 6.3 Reassess drag behavior; only then consider `5px` timer/drag gating.
 - [ ] 6.4 Visual gate: verify no regressions in selection, drag, and tooltip stability.
 
