@@ -43,6 +43,7 @@ local render_help, render_search, cmd_toggle_help
 local Options
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
+local DW_HELPERS = {}
 
 
 -- =========================================================================
@@ -354,6 +355,8 @@ Options = {
     dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
     dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
     dw_border_size = 1.5,
+    dw_edge_margin = 24,
+    dw_wrap_line_height_mul = 1.05,
     dw_shadow_offset = 1.0,
     dw_original_spacing = true,
     dw_jump_words = 5,            -- Words to jump on Ctrl+Left/Right
@@ -405,6 +408,7 @@ Options = {
     tooltip_active_bold = false,
     tooltip_context_bold = false,
     tooltip_highlight_bold = false,
+    tooltip_top_pad_extra = 0,
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -610,6 +614,7 @@ local FSM = {
     DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
     DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
     DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
+    DW_MOUSE_PENDING_DRAG = false,
     DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
     DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection map {line -> {word -> {line, word}}}
     DW_CTRL_PENDING_LIST = {}, -- Sorted list of members for sequential export
@@ -977,6 +982,8 @@ local function dw_reset_selection()
 
     FSM.DW_CTRL_PENDING_SET = {}
     FSM.DW_CTRL_PENDING_LIST = {}
+    FSM.DW_MOUSE_PENDING_DRAG = false
+    FSM.DW_MOUSE_DRAGGING = false
     FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
     FSM.DW_ANCHOR_LINE = -1
     FSM.DW_ANCHOR_WORD = -1
@@ -3640,8 +3647,15 @@ local function format_highlighted_word(word, h_color, base_color, is_phrase, bol
     bg_color = bg_color or "000000"
     bg_alpha = bg_alpha or "00"
     border_size = border_size or Options.dw_border_size
-    local h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
-    local r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    local is_bgbox = (FSM.osd_border_style == "background-box")
+    local h_tags, r_tags
+    if is_bgbox then
+        h_tags = string.format("{\\%s&H%s&\\3a&HFF&\\4a&HFF&\\bord0\\shad0}", c_tag, h_color)
+        r_tags = string.format("{\\%s&H%s&\\3a&HFF&\\4a&HFF&\\bord0\\shad0}", c_tag, base_color)
+    else
+        h_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, h_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+        r_tags = string.format("{\\%s&H%s&\\3c&H%s&\\4c&H%s&\\3a&H%s&\\4a&H%s&\\bord%g}", c_tag, base_color, bg_color, bg_color, bg_alpha, bg_alpha, border_size)
+    end
 
     if is_phrase or is_manual then
         -- Full highlighting for phrases or manual user focus (Gold/Pink)
@@ -3687,16 +3701,7 @@ local function dw_get_str_width(str, fs, font_name)
     end
     
     -- Proportional heuristic (standard for OSD)
-    local w = 0
-    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        if c == " " then w = w + (fs * 0.30)
-        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
-        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
-        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
-        elseif #c > 1 then w = w + (fs * 0.45) -- Cyrillic/Wide
-        else w = w + (fs * 0.42) end
-    end
-    return w
+    return DW_HELPERS.dw_get_str_width_proportional(str, fs)
 end
 
 
@@ -3769,7 +3774,7 @@ local function calculate_osd_line_meta(text, sub_idx, font_size, font_name, line
             local ww = dw_get_str_width(t.text, font_size, font_name)
             local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
             
-            if t.is_word and t.logical_idx then
+            if t.logical_idx then
                 table.insert(words, {
                     logical_idx = t.logical_idx,
                     x_offset = line_w + space, -- Relative to start of visual line
@@ -4011,6 +4016,96 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
     return ass
 end
 
+DW_HELPERS.vline_height = function(fs)
+    fs = fs or Options.dw_font_size
+    local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul or 0.87
+    return (fs * wrap_mul) + Options.dw_vsp
+end
+
+DW_HELPERS.dw_get_str_width_proportional = function(str, fs)
+    if type(str) == "table" then str = str.text end
+    if not str then return 0 end
+    fs = fs or Options.dw_font_size
+
+    str = str:gsub("{[^}]+}", "")
+
+    local w = 0
+    for c in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        if c == " " then w = w + (fs * 0.30)
+        elseif c:match("[il1tI|!.,:;'\"`%(%)%[%]]") then w = w + (fs * 0.22)
+        elseif c:match("[mwMW%@]") then w = w + (fs * 0.65)
+        elseif c:match("[a-zA-Z0-9]") then w = w + (fs * 0.42)
+        elseif #c > 1 then w = w + (fs * 0.52) -- Cyrillic/Wide
+        else w = w + (fs * 0.42) end
+    end
+    return w
+end
+
+DW_HELPERS.calculate_block_top = function(view_center, active_idx, layout, total_height)
+    local lh_mul = Options.dw_line_height_mul
+    local base_h = Options.font_base_height or 1080
+    local center_y = base_h / 2
+    local edge_margin = Options.dw_edge_margin or 0
+
+    -- Keep the frame stable in normal layouts (historical DW behavior):
+    -- center the whole block, and only apply focused-line anchoring when overflowing.
+    local block_top = center_y - (total_height / 2)
+
+    if total_height > base_h - 2 * edge_margin then
+        local offset_y = 0
+        local found_center = false
+        for layout_i, entry in ipairs(layout) do
+            if entry.sub_idx == view_center then
+                offset_y = offset_y + (entry.height / 2)
+                found_center = true
+                break
+            else
+                offset_y = offset_y + entry.height
+                if layout_i < #layout then
+                    local is_active = (entry.sub_idx == active_idx)
+                    local line_fs = Options.dw_font_size * (is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
+                    offset_y = offset_y + calculate_sub_gap("dw", line_fs, lh_mul, Options.dw_vsp)
+                end
+            end
+        end
+        if found_center then
+            block_top = center_y - offset_y
+        end
+
+        if block_top > edge_margin then
+            block_top = edge_margin
+        elseif block_top + total_height < base_h - edge_margin then
+            block_top = base_h - edge_margin - total_height
+        end
+    end
+
+    return block_top
+end
+
+DW_HELPERS.resolve_neighbor_word = function(hit_zones, best_sub_idx, best_y_top, osd_x)
+    local fallback_zone_y = nil
+    local best_word_logical = nil
+    local min_dist = math.huge
+    for _, z in ipairs(hit_zones) do
+        if z.sub_idx == best_sub_idx then
+            local dist = math.abs(z.y_top - best_y_top)
+            if dist < 0.1 then -- Same visual line
+                for _, word in ipairs(z.words) do
+                    local center = z.x_start + word.x_offset + word.width / 2
+                    local d = math.abs(osd_x - center)
+                    if d < min_dist then
+                        min_dist = d
+                        best_word_logical = word.logical_idx
+                    end
+                end
+            else
+                fallback_zone_y = z.y_top
+            end
+        end
+    end
+    return best_word_logical, fallback_zone_y
+end
+
 
 -- Unified layout engine: wraps subtitle words into visual lines
 local function dw_build_layout(subs, view_center)
@@ -4041,7 +4136,7 @@ local function dw_build_layout(subs, view_center)
     end_idx = math.min(#subs, end_idx)
 
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local vline_h = DW_HELPERS.vline_height(Options.dw_font_size)
     local sub_gap = calculate_sub_gap("dw", Options.dw_font_size, lh_mul, Options.dw_vsp)
     local max_text_w = 1860
     local space_w = dw_get_str_width(" ")
@@ -4169,6 +4264,10 @@ local function draw_dw(subs, view_center, active_idx)
        DW_DRAW_CACHE.aw             == FSM.DW_ANCHOR_WORD and
        DW_DRAW_CACHE.pending_version == (FSM.DW_CTRL_PENDING_VERSION or 0) then
         
+        if DW_DRAW_CACHE.hit_zones then
+            FSM.DW_HIT_ZONES = {}
+            for k, v in ipairs(DW_DRAW_CACHE.hit_zones) do FSM.DW_HIT_ZONES[k] = v end
+        end
         return DW_DRAW_CACHE.result
     end
 
@@ -4176,7 +4275,10 @@ local function draw_dw(subs, view_center, active_idx)
     local bg_alpha = calculate_ass_alpha(Options.dw_bg_opacity)
     local layout, total_height = dw_build_layout(subs, view_center)
     local lh_mul = Options.dw_line_height_mul
-    local current_y = 540 - (total_height / 2)
+    local block_top = DW_HELPERS.calculate_block_top(view_center, active_idx, layout, total_height)
+    FSM.DW_BLOCK_TOP = block_top
+    FSM.DW_TOTAL_HEIGHT = total_height
+    local current_y = block_top
     FSM.DW_LINE_Y_MAP = {}
     
     -- Selection range
@@ -4193,10 +4295,24 @@ local function draw_dw(subs, view_center, active_idx)
 
 
 
+    FSM.osd_border_style = mp.get_property("osd-border-style") or "outline-and-shadow"
+    
+    local line_bgbox_neutral = ""
+    if FSM.osd_border_style == "background-box" then
+        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&\\bord0\\shad0}"
+    else
+        line_bgbox_neutral = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
+            Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha)
+    end
+
+    local vline_h = DW_HELPERS.vline_height(Options.dw_font_size)
+    FSM.DW_HIT_ZONES = {}
+    local all_events = {}
+
     -- Text Block mapping
-    local lines_ass = {}
     for layout_i, entry in ipairs(layout) do
         local i = entry.sub_idx
+        local entry_y_start = current_y
         FSM.DW_LINE_Y_MAP[i] = math.floor(current_y + (entry.height / 2) + 0.5)
         current_y = current_y + entry.height
         if layout_i < #layout then
@@ -4214,11 +4330,28 @@ local function draw_dw(subs, view_center, active_idx)
         local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\c&H%s&}{\\1a&H%s&}", font_name, f_size, bold_state, color, opacity)
         
         local token_meta = entry.token_meta
-        local entry_ass_vlines = {}
-        for _, vl_indices in ipairs(entry.vlines) do
+        local space_w = dw_get_str_width(" ", Options.dw_font_size, font_name)
+        
+        for vl_idx, vl_indices in ipairs(entry.vlines) do
             local formatted_words = {}
-            for _, j in ipairs(vl_indices) do
+            local line_w = 0
+            local line_words = {}
+            
+            for pos, j in ipairs(vl_indices) do
+                local t = entry.words[j]
+                local ww = dw_get_str_width(t, Options.dw_font_size, font_name)
+                local space = (pos > 1 and not Options.dw_original_spacing) and space_w or 0
                 local meta_item = token_meta[j]
+                
+                if t.logical_idx then
+                    table.insert(line_words, {
+                        logical_idx = t.logical_idx,
+                        x_offset = line_w + space,
+                        width = ww,
+                        text = t.text
+                    })
+                end
+                
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or Options.dw_highlight_bold
                     local is_manual = (meta_item.priority == 1 or meta_item.priority == 2)
@@ -4226,7 +4359,20 @@ local function draw_dw(subs, view_center, active_idx)
                 else
                     table.insert(formatted_words, meta_item.text)
                 end
+                
+                line_w = line_w + space + ww
             end
+            
+            -- Add this visual line's absolute geometry to hit zones
+            local vl_y_top = entry_y_start + (vl_idx - 1) * vline_h
+            table.insert(FSM.DW_HIT_ZONES, {
+                sub_idx = i,
+                y_top = vl_y_top,
+                y_bottom = vl_y_top + vline_h,
+                x_start = 960 - line_w / 2,
+                total_width = line_w,
+                words = line_words
+            })
             
             local line_text = ""
             if Options.dw_original_spacing then
@@ -4234,35 +4380,33 @@ local function draw_dw(subs, view_center, active_idx)
             else
                 line_text = compose_term_smart(formatted_words)
             end
-            table.insert(entry_ass_vlines, line_text)
+            
+            local vl_pos_tag = string.format("{\\pos(960, %d)}{\\an8}", math.floor(vl_y_top + 0.5))
+            local vl_event = vl_pos_tag .. line_bgbox_neutral .. line_prefix .. line_text
+            table.insert(all_events, vl_event)
         end
-        -- Join visual lines for this subtitle with ONE \N (soft wrap within the same subtitle)
-        table.insert(lines_ass, line_prefix .. table.concat(entry_ass_vlines, "\\N"))
     end
+
+    local max_line_w = 0
+    for _, hz in ipairs(FSM.DW_HIT_ZONES) do
+        if hz.total_width > max_line_w then
+            max_line_w = hz.total_width
+        end
+    end
+    if max_line_w == 0 then max_line_w = 600 end
     
-    local d_gap = Options.dw_double_gap
-    local vsp_base = Options.dw_vsp
-    local b_gap_mul = Options.dw_block_gap_mul or 0
-
-    local function get_separator(prev_is_active)
-        local line_fs = Options.dw_font_size * (prev_is_active and Options.dw_active_size_mul or Options.dw_context_size_mul)
-        local vsp_extra = d_gap and (line_fs * b_gap_mul / 2) or 0
-        return string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-    end
-
-    local block_text = ""
-    for i, entry in ipairs(layout) do
-        local line_text = lines_ass[i]
-        if i == 1 then
-            block_text = line_text
-        else
-            block_text = block_text .. get_separator(layout[i-1].sub_idx == active_idx) .. line_text
-        end
-    end
-    local vsp_tag = Options.dw_vsp ~= 0 and string.format("{\\vsp%g}", Options.dw_vsp) or ""
-    -- \q2 disables smart wrapping: forces screen layout to exactly match our dw_build_layout
-    local final_ass = ass .. string.format("{\\pos(960, 540)}{\\an5}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}{\\fs%d}%s%s", 
-        Options.dw_border_size, Options.dw_shadow_offset, Options.dw_bg_color, Options.dw_bg_color, bg_alpha, bg_alpha, Options.dw_font_size, vsp_tag, block_text)
+    local padding_x = 24
+    local padding_y = 16
+    local x1 = 960 - (max_line_w / 2) - padding_x
+    local x2 = 960 + (max_line_w / 2) + padding_x
+    local y1 = block_top - padding_y
+    local y2 = block_top + total_height + padding_y
+    
+    local bg_rect = string.format("{\\pos(0,0)}{\\an7}{\\1c&H%s&}{\\1a&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}{\\p1}m %d %d l %d %d %d %d %d %d{\\p0}",
+        Options.dw_bg_color, bg_alpha, x1, y1, x2, y1, x2, y2, x1, y2)
+        
+    table.insert(all_events, 1, bg_rect)
+    local final_ass = table.concat(all_events, "\n")
     
     -- Update Cache
     DW_DRAW_CACHE.view_center    = view_center
@@ -4276,6 +4420,9 @@ local function draw_dw(subs, view_center, active_idx)
     DW_DRAW_CACHE.aw             = FSM.DW_ANCHOR_WORD
     DW_DRAW_CACHE.pending_version = (FSM.DW_CTRL_PENDING_VERSION or 0)
     DW_DRAW_CACHE.result          = final_ass
+    
+    DW_DRAW_CACHE.hit_zones = {}
+    for k, v in ipairs(FSM.DW_HIT_ZONES) do DW_DRAW_CACHE.hit_zones[k] = v end
     
     return final_ass
 end
@@ -4314,86 +4461,22 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local font_name = (Options.tooltip_font_name ~= "") and Options.tooltip_font_name or mp.get_property("sub-font", "Inter")
     local fs = Options.tooltip_font_size
     local line_height = fs * Options.tooltip_line_height_mul
-    -- local bold = Options.tooltip_font_bold and "1" or "0" -- Moved per-line (Task 2.1)
     
     local max_text_w = 1400 -- Task 2.2 / Design Decision 3
-    local lines_ass = {}
     local total_visual_lines = 0 -- Task 3.1
-    local subtitle_metas = {} -- Storage for hit-zone calculation
-    
-    for i = start_idx, end_idx do
-        local sub = tooltip_sec_subs[i]
-        local tokens = get_sub_tokens(sub, true) -- Task 2.1
-        
-        -- Task 2.2 / 2.4: Wrap tokens
-        local vline_indices = wrap_tokens(tokens, max_text_w, fs, font_name, true)
-        
-        -- Task 3.4: Preserve empty slots
-        if #vline_indices == 0 then
-            vline_indices = {{}} -- One empty visual line
-        end
-        
-        local is_active = (i == center_idx)
-        local base_color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
-        local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
-        local bold_state = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
-        local alpha_tag = string.format("{\\1a&H%s&}", calculate_ass_alpha(opacity))
-        
-        -- Inject highlights (respecting secondary track toggle)
-        local force_plain = not Options.dw_sec_highlighting
-        local token_meta = populate_token_meta(tooltip_sec_subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
-        
-        local sub_visual_lines = {}
-        local visual_lines_meta = {}
-        for _, indices in ipairs(vline_indices) do
-            local line_text = ""
-            local line_w = 0
-            local line_words = {}
-            for _, idx in ipairs(indices) do
-                local t = tokens[idx]
-                local tm = token_meta[idx]
-                local ww = dw_get_str_width(t.text, fs, font_name)
-                
-                if t.is_word and t.logical_idx then
-                    table.insert(line_words, {
-                        logical_idx = t.logical_idx,
-                        x_offset = line_w,
-                        width = ww
-                    })
-                end
-                
-                local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
-                local is_man = (tm.priority == 1 or tm.priority == 2)
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, Options.tooltip_bg_color, bg_alpha, Options.tooltip_border_size)
-                line_w = line_w + ww
-            end
-            local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
-            table.insert(sub_visual_lines, line_prefix .. alpha_tag .. line_text)
-            table.insert(visual_lines_meta, {width = line_w, words = line_words})
-            total_visual_lines = total_visual_lines + 1
-        end
-        
-        table.insert(subtitle_metas, {sub_idx = i, visual_lines = visual_lines_meta})
-        
-        -- Task 2.3: Join visual lines within a subtitle with \N
-        table.insert(lines_ass, table.concat(sub_visual_lines, "\\N"))
-    end
-    
-    local d_gap = Options.tooltip_double_gap
-    local vsp_base = Options.tooltip_vsp
-    local b_gap_mul = Options.tooltip_block_gap_mul or 0
-    local vsp_extra = d_gap and (fs * b_gap_mul / 2) or 0
-    local separator = string.format("{\\vsp%g}%s{\\vsp%g}", vsp_base + vsp_extra, d_gap and "\\N\\N" or "\\N", vsp_base)
-
-    local text_block = table.concat(lines_ass, separator)
-    
-    local bg_color = Options.tooltip_bg_color
-    local bord = Options.tooltip_border_size
-    local shad = Options.tooltip_shadow_offset
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
     local total_gap = calculate_sub_gap("tooltip", fs, Options.tooltip_line_height_mul, Options.tooltip_vsp)
+    
+    -- Estimate visual lines first to determine total block_height
+    for i = start_idx, end_idx do
+        local sub = tooltip_sec_subs[i]
+        local tokens = get_sub_tokens(sub, true)
+        local vline_indices = wrap_tokens(tokens, max_text_w, fs, font_name, true)
+        if #vline_indices == 0 then vline_indices = {{}} end
+        total_visual_lines = total_visual_lines + #vline_indices
+    end
     
     -- block_height = (total visual lines * height) + (logical gaps)
     local num_logical_blocks = end_idx - start_idx + 1
@@ -4416,28 +4499,100 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         final_y = screen_h - margin - half_h
     end
 
-    -- POPULATE HIT ZONES (Task 2.1 / 2.2 / 2.3)
+    FSM.osd_border_style = mp.get_property("osd-border-style") or "outline-and-shadow"
+    
+    local line_bgbox_neutral = ""
+    if FSM.osd_border_style == "background-box" then
+        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&\\bord0\\shad0}"
+    else
+        line_bgbox_neutral = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
+            Options.tooltip_border_size, Options.tooltip_shadow_offset, Options.tooltip_bg_color, Options.tooltip_bg_color, bg_alpha, bg_alpha)
+    end
+
+    local all_events = {}
     FSM.DW_TOOLTIP_HIT_ZONES = {}
     local cur_y = final_y - half_h
-    for _, sm in ipairs(subtitle_metas) do
-        for _, vl in ipairs(sm.visual_lines) do
+    
+    for i = start_idx, end_idx do
+        local sub = tooltip_sec_subs[i]
+        local tokens = get_sub_tokens(sub, true)
+        local vline_indices = wrap_tokens(tokens, max_text_w, fs, font_name, true)
+        
+        if #vline_indices == 0 then
+            vline_indices = {{}}
+        end
+        
+        local is_active = (i == center_idx)
+        local base_color = is_active and Options.tooltip_active_color or Options.tooltip_context_color
+        local opacity = is_active and Options.tooltip_active_opacity or Options.tooltip_context_opacity
+        local bold_state = (is_active and Options.tooltip_active_bold or Options.tooltip_context_bold) and "1" or "0"
+        local alpha_tag = string.format("{\\1a&H%s&}", calculate_ass_alpha(opacity))
+        
+        local force_plain = not Options.dw_sec_highlighting
+        local token_meta = populate_token_meta(tooltip_sec_subs, i, tokens, base_color, sub.start_time, nil, force_plain, Options.tooltip_highlight_color, Options.tooltip_ctrl_select_color)
+        
+        for _, indices in ipairs(vline_indices) do
+            local line_text = ""
+            local line_w = 0
+            local line_words = {}
+            for _, idx in ipairs(indices) do
+                local t = tokens[idx]
+                local tm = token_meta[idx]
+                local ww = dw_get_str_width(t.text, fs, font_name)
+                
+                if t.is_word and t.logical_idx then
+                    table.insert(line_words, {
+                        logical_idx = t.logical_idx,
+                        x_offset = line_w,
+                        width = ww
+                    })
+                end
+                
+                local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
+                local is_man = (tm.priority == 1 or tm.priority == 2)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, Options.tooltip_bg_color, bg_alpha, Options.tooltip_border_size)
+                line_w = line_w + ww
+            end
+            
+            local vl_pos_tag = string.format("{\\pos(1800, %d)}{\\an9}", math.floor(cur_y + 0.5))
+            local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
+            local vl_event = vl_pos_tag .. line_bgbox_neutral .. line_prefix .. alpha_tag .. line_text
+            table.insert(all_events, vl_event)
+            
             table.insert(FSM.DW_TOOLTIP_HIT_ZONES, {
-                sub_idx = sm.sub_idx,
+                sub_idx = i,
                 y_top = cur_y,
                 y_bottom = cur_y + layout_line_h,
-                x_start = 1800 - vl.width, -- Right-aligned an6 logic
-                total_width = vl.width,
-                words = vl.words
+                x_start = 1800 - line_w,
+                total_width = line_w,
+                words = line_words
             })
+            
             cur_y = cur_y + layout_line_h
         end
         cur_y = cur_y + total_gap
     end
-
-    local vsp_tag = Options.tooltip_vsp ~= 0 and string.format("{\\vsp%g}", Options.tooltip_vsp) or ""
-    local base_bold = Options.tooltip_context_bold and "1" or "0"
-    local ass = string.format("{\\fn%s}%s{\\pos(1800, %d)}{\\an6}{\\fs%d}{\\b%s}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s",
-        font_name, vsp_tag, final_y, fs, base_bold, bord, shad, bg_color, bg_color, bg_alpha, bg_alpha, text_block)
+    
+    local max_line_w = 0
+    for _, hz in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
+        if hz.total_width > max_line_w then
+            max_line_w = hz.total_width
+        end
+    end
+    if max_line_w == 0 then max_line_w = 400 end
+    
+    local padding_x = 24
+    local padding_y = 16
+    local x1 = 1800 - max_line_w - padding_x
+    local x2 = 1800 + padding_x
+    local y1 = final_y - half_h - padding_y
+    local y2 = final_y + half_h + padding_y
+    
+    local bg_rect = string.format("{\\pos(0,0)}{\\an7}{\\1c&H%s&}{\\1a&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}{\\p1}m %d %d l %d %d %d %d %d %d{\\p0}",
+        Options.tooltip_bg_color, bg_alpha, x1, y1, x2, y1, x2, y2, x1, y2)
+        
+    table.insert(all_events, 1, bg_rect)
+    local ass = table.concat(all_events, "\n")
         
     -- Update cache
     DW_TOOLTIP_DRAW_CACHE.target_idx = target_line_idx
@@ -4481,104 +4636,73 @@ local function dw_get_mouse_osd()
 end
 
 local function dw_hit_test(osd_x, osd_y)
-    local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return nil, nil end
-
-    local layout, total_height = dw_build_layout(subs, FSM.DW_VIEW_CENTER)
-
-    local vline_h = (Options.dw_font_size * Options.dw_line_height_mul) + Options.dw_vsp
-    local sub_gap = (Options.dw_font_size * Options.dw_block_gap_mul)
-    if Options.dw_double_gap then
-        sub_gap = sub_gap + vline_h
-    end
-    local space_w = dw_get_str_width(" ")
-
-    local block_top = 540 - total_height / 2
-
-    -- Clamp vertically to the first/last word if outside the entire block
-    if osd_y <= block_top then
-        local first = layout[1]
-        local v_idx = first.vlines[1][1]
-        return first.sub_idx, first.visual_to_logical[v_idx] or 1
-    end
-    if osd_y >= block_top + total_height then
-        local last = layout[#layout]
-        local last_vl = last.vlines[#last.vlines]
-        local v_idx = last_vl[#last_vl]
-        return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+    if not FSM.DW_HIT_ZONES or #FSM.DW_HIT_ZONES == 0 then
+        return nil, nil
     end
 
-    local y_pos = block_top
-    for _, entry in ipairs(layout) do
-        local entry_bottom = y_pos + entry.height
-        -- If osd_y is within the entry OR in the gap immediately below it, snap it to this entry
-        if osd_y < entry_bottom + sub_gap then
-            local rel_y = math.max(0, math.min(osd_y - y_pos, entry.height - 0.001))
-            local vl_num = math.floor(rel_y / vline_h) + 1
-            vl_num = math.max(1, math.min(#entry.vlines, vl_num))
+    local first_line = FSM.DW_HIT_ZONES[1]
+    local last_line = FSM.DW_HIT_ZONES[#FSM.DW_HIT_ZONES]
 
-            local vl_indices = entry.vlines[vl_num]
+    if osd_y <= first_line.y_top then
+        local w_idx = (first_line.words[1] and first_line.words[1].logical_idx) or 1
+        return first_line.sub_idx, w_idx
+    end
+    if osd_y >= last_line.y_bottom then
+        local w_idx = (last_line.words[#last_line.words] and last_line.words[#last_line.words].logical_idx) or 1
+        return last_line.sub_idx, w_idx
+    end
 
-            local vl_width = 0
-            for k, wi in ipairs(vl_indices) do
-                vl_width = vl_width + dw_get_str_width(entry.words[wi])
-                if k < #vl_indices and not Options.dw_original_spacing then 
-                    vl_width = vl_width + space_w 
-                end
-            end
-            
-            local vl_left = 960 - vl_width / 2
-
-            local cx = osd_x - vl_left
-            if cx < 0 then return entry.sub_idx, entry.visual_to_logical[vl_indices[1]] or 1 end
-            if cx >= vl_width then return entry.sub_idx, entry.visual_to_logical[vl_indices[#vl_indices]] or math.max(1, #entry.logical_words) end
-
-            -- Build word center positions for snap-to-nearest logic
-            local centers = {}
-            local pos = 0
-            for k, wi in ipairs(vl_indices) do
-                local ww = dw_get_str_width(entry.words[wi])
-                centers[k] = { idx = wi, center = pos + ww / 2 }
-                pos = pos + ww + (Options.dw_original_spacing and 0 or space_w)
-            end
-            -- Find the word whose center is closest to the cursor
-            local best_k = 1
-            local min_dist = math.abs(cx - centers[1].center)
-            for k = 2, #centers do
-                local dist = math.abs(cx - centers[k].center)
-                if dist < min_dist then
-                    min_dist = dist
-                    best_k = k
-                end
-            end
-            
-            local visual_wi = centers[best_k].idx
-            local logical_wi = entry.visual_to_logical[visual_wi]
-            
-            -- If user clicked on a spacer/filler token, find the nearest selectable word
-            if not logical_wi then
-                local best_logical = nil
-                local best_logic_dist = 999
-                for l_idx, v_idx in pairs(entry.logical_to_visual) do
-                    local dist = math.abs(v_idx - visual_wi)
-                    if dist < best_logic_dist then
-                        best_logic_dist = dist
-                        best_logical = l_idx
-                    end
-                end
-                logical_wi = best_logical or 1
-            end
-
-            return entry.sub_idx, logical_wi
+    local best_line = nil
+    for _, line in ipairs(FSM.DW_HIT_ZONES) do
+        if osd_y >= line.y_top and osd_y <= line.y_bottom then
+            best_line = line
+            break
         end
-        y_pos = entry_bottom + sub_gap
     end
 
-    -- Fallback safety, should never be reached due to the >= check at the top
-    local last = layout[#layout]
-    local last_vl = last.vlines[#last.vlines]
-    local v_idx = last_vl[#last_vl]
-    return last.sub_idx, last.visual_to_logical[v_idx] or math.max(1, #last.logical_words)
+    if not best_line then
+        local min_dist = math.huge
+        for _, line in ipairs(FSM.DW_HIT_ZONES) do
+            local dist = math.min(math.abs(osd_y - line.y_top), math.abs(osd_y - line.y_bottom))
+            if dist < min_dist then
+                min_dist = dist
+                best_line = line
+            end
+        end
+    end
+
+    if not best_line then
+        return first_line.sub_idx, 1
+    end
+
+    local sub_idx = best_line.sub_idx
+    
+    local cx = osd_x - best_line.x_start
+    if cx < 0 then
+        local w_idx = (best_line.words[1] and best_line.words[1].logical_idx) or 1
+        return sub_idx, w_idx
+    end
+    if cx >= best_line.total_width then
+        local w_idx = (best_line.words[#best_line.words] and best_line.words[#best_line.words].logical_idx) or 1
+        return sub_idx, w_idx
+    end
+
+    local best_logical = nil
+    local min_d = math.huge
+    for _, word in ipairs(best_line.words) do
+        local center = word.x_offset + word.width / 2
+        local d = math.abs(cx - center)
+        if d < min_d then
+            min_d = d
+            best_logical = word.logical_idx
+        end
+    end
+
+    if not best_logical then
+        best_logical = DW_HELPERS.resolve_neighbor_word(FSM.DW_HIT_ZONES, sub_idx, best_line.y_top, osd_x)
+    end
+
+    return sub_idx, best_logical or 1
 end
 
 local function dw_tooltip_hit_test(osd_x, osd_y)
@@ -4725,6 +4849,20 @@ local function dw_sync_cursor_to_mouse()
 end
 
 local function dw_mouse_update_selection()
+    if FSM.DW_MOUSE_PENDING_DRAG then
+        local osd_x, osd_y = dw_get_mouse_osd()
+        local dx = math.abs(osd_x - (FSM.DW_MOUSE_DOWN_X or 0))
+        local dy = math.abs(osd_y - (FSM.DW_MOUSE_DOWN_Y or 0))
+        if dx > 5 or dy > 5 then
+            FSM.DW_MOUSE_PENDING_DRAG = false
+            FSM.DW_MOUSE_DRAGGING = true
+            
+            -- Setup periodic scroll timer only after exceeding threshold
+            if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
+            FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
+        end
+    end
+    
     if not FSM.DW_MOUSE_DRAGGING then return end
     dw_sync_cursor_to_mouse()
 end
@@ -5368,10 +5506,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     end
                     
                     -- Always start dragging on valid word-click to allow resizing/pulling
-                    FSM.DW_MOUSE_DRAGGING = true
+                    FSM.DW_MOUSE_PENDING_DRAG = true
+                    FSM.DW_MOUSE_DRAGGING = false
                     mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-                    if FSM.DW_MOUSE_SCROLL_TIMER then FSM.DW_MOUSE_SCROLL_TIMER:kill() end
-                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)
                     
                     drum_osd:update()
                     if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
@@ -5379,6 +5516,7 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
             end
         elseif tbl.event == "up" then
             FSM.DW_MOUSE_DRAGGING = false
+            FSM.DW_MOUSE_PENDING_DRAG = false
             
             -- POINTER JUMP SYNC: Perform a final hit-test on release ONLY if the mouse 
             -- has moved significantly (dragging). This prevents stationary clicks 
@@ -6225,7 +6363,7 @@ local function ensure_sub_layout(sub)
     if #vlines == 0 then vlines = {{1}} end
 
     local lh_mul = Options.dw_line_height_mul
-    local vline_h = (Options.dw_font_size * lh_mul) + Options.dw_vsp
+    local vline_h = DW_HELPERS.vline_height(Options.dw_font_size)
     local entry_h = #vlines * vline_h
 
     sub.layout_cache = {
@@ -7139,12 +7277,9 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
-        if active and k.key and is_valid_mpv_key(k.key) then 
+        if active and k.key and is_valid_mpv_key(k.key) and type(k.fn) == "function" then 
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
-                    if t and t.event == "down" then
-
-                    end
                     return k.fn(t)
                 end
 
@@ -9252,6 +9387,8 @@ function kardenwortProbe._snapshot()
         pri_sub_count      = #(Tracks.pri.subs or {}),
         sec_sub_count      = #(Tracks.sec.subs or {}),
         dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
+        dw_block_top       = FSM.DW_BLOCK_TOP or -1,
+        dw_total_height    = FSM.DW_TOTAL_HEIGHT or 0,
         dw_active_line     = FSM.DW_ACTIVE_LINE,
         dw_anchor          = { line = FSM.DW_ANCHOR_LINE, word = FSM.DW_ANCHOR_WORD },
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
