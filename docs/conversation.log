@@ -2624,5 +2624,5 @@
 20260524131322 Is there an item on working with hit accuracy after these changes of ours? I want to do this now, maybe after running phase 2.
 20260524132217 Are the mechanics themselves written down in the documents, in design.md?
 20260524132512 If you want, I can now add a dedicated “Mechanics” section to design.md with exact geometry rules and acceptance checks for hit accuracy. - Yes, will you take this from branch 20260523152149 as from the original source, the standard?
-
+20260524133302 Yes. I took branch `20260523152149` as the canonical baseline and updated the mechanics contract accordingly in [design.md](U:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260524121141-restore-spacers-and-borders/design.md). It now encodes the exact overflow geometry and hit-accuracy behavior from baseline (`dw_calculate_block_top`, `draw_dw`, `dw_hit_test`) with precise acceptance checks.
 

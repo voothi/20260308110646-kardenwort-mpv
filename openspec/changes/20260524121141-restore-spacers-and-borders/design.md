@@ -51,6 +51,50 @@ The user is restoring and migrating visual improvements to `main.lua` on branch 
 - **Option B (Selected)**: Add narrow, local guards only at proven unstable registration points.
 - *Rationale*: Avoids local-variable pressure and broad side effects from previous failed patterns.
 
+## Mechanics (Baseline Standard: `20260523152149`)
+
+The behavioral baseline standard for DW overflow geometry and pointer accuracy is branch `20260523152149`. This section is the canonical mechanics contract for this change.
+
+### Geometry Contract (from `dw_calculate_block_top`)
+
+1. Use `base_h = Options.font_base_height or 1080`, `center_y = base_h / 2`, and `edge_margin = Options.dw_edge_margin or 0`.
+2. Start from centered placement: `block_top = center_y - (total_height / 2)`.
+3. Trigger overflow anchoring only when `total_height > base_h - 2 * edge_margin`.
+4. In overflow mode, accumulate `offset_y` from layout top to `view_center` midpoint:
+   - Add each preceding `entry.height`.
+   - Add inter-subtitle gaps with the same render/hit-test function: `calculate_sub_gap("dw", line_fs, Options.dw_line_height_mul, Options.dw_vsp)`.
+   - On `entry.sub_idx == view_center`, add `entry.height / 2` and stop.
+5. If `view_center` was found, set `block_top = center_y - offset_y`.
+6. Apply baseline overflow clamping exactly:
+   - If `block_top > edge_margin`, set `block_top = edge_margin`.
+   - Else if `block_top + total_height < base_h - edge_margin`, set `block_top = base_h - edge_margin - total_height`.
+7. Use this same `block_top` result in both rendering and hit-testing; no independent y-origin math is allowed.
+8. DW text block anchoring must be top-centered (`\an8`) at dynamic `\pos(960, block_top)`, not fixed center (`\an5` at `y=540`).
+
+### Hit-Accuracy Contract (from `draw_dw` + `dw_hit_test`)
+
+1. Build `DW_HIT_ZONES` and `DW_LINE_Y_MAP` from the exact same `current_y` progression used to render lines.
+2. Preserve wrapped-line spacing with `dw_vline_height()` and inter-subtitle spacing with `calculate_sub_gap(...)` in both visual and interactive paths.
+3. Vertical clamping must follow baseline semantics:
+   - `osd_y <= first_zone.y_top` maps to the first selectable word of the first zone.
+   - `osd_y >= last_zone.y_bottom` maps to the last selectable word of the last zone.
+4. If cursor y is between adjacent zones (`zone.y_bottom < y < next_zone.y_top`), map to the preceding zone (stable no-flicker behavior).
+5. Horizontal clamping must be strict to line bounds:
+   - Left of line (`rel_x <= 0`) maps to first selectable word.
+   - Right of line (`rel_x >= total_width`) maps to last selectable word.
+6. In-line word resolution must use nearest horizontal center (`x_offset + width / 2`).
+7. If the selected visual zone has no selectable words, fallback through `dw_resolve_neighbor_word(...)` within the same subtitle.
+8. Keep mode scope strict: DM-only tooltip centering guard remains enabled; SRT behavior remains unchanged.
+
+### Acceptance Checks (Hit Accuracy + Geometry)
+
+1. Start-of-file overflow: first subtitle is reachable by scroll; top pin behavior can settle at `block_top = edge_margin`; top-region hover/click selects expected first words.
+2. End-of-file overflow: last subtitle is reachable by scroll; bottom pin behavior can settle at `block_top = base_h - edge_margin - total_height`; bottom-region hover/click selects expected last words.
+3. Top/middle/bottom pointer checks: each region maps to expected line/word without vertical drift.
+4. Between-line gap checks: hovering the gap consistently selects the preceding visual line (no jitter/flicker).
+5. Scroll continuity checks: repeated wheel/UP/DOWN does not desynchronize pointer-to-word mapping.
+6. Cross-mode safety: SRT tooltip geometry and hit behavior remain unchanged after DM updates.
+
 ## Risks / Trade-offs
 
 - **[Risk]** The Lua 200 local variable limit might be exceeded by adding new helpers.
