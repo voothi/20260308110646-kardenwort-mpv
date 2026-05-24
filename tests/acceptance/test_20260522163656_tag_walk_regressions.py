@@ -386,17 +386,21 @@ def test_manage_ui_border_override_is_forward_declared():
 
 def test_show_osd_applies_consistent_frame_without_timer_suspension():
     src = _lua_source()
-    body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+    body = _function_window(src, "function show_osd(msg, dur)", "function show_seek_osd")
 
+    # DW branch: real boxed card on the seek_osd ass-events overlay.
+    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
+    assert 'seek_osd.data = string.format(' in body
+    assert '{\\\\p1}' in body
+    assert 'seek_osd:update()' in body
+    assert 'seek_timer = mp.add_timeout(dur or Options.osd_duration' in body
+    # DM branch: native osd_message keeps background-box scaling.
     assert 'frame_tags = string.format(' in body
     assert 'Options.seek_border_size' in body
-    assert 'Options.seek_shadow_offset' in body
     assert 'Options.seek_bg_color' in body
-    assert 'Options.seek_bg_opacity' in body
     assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)' in body
-    # Regression guard: the broken DW \p1 card via mp.osd_message must not return.
-    assert 'local bg_rect = string.format(' not in body
-    assert '\\\\p1' not in body
+    # Guard: the card must never be routed through mp.osd_message (the broken pattern).
+    assert 'mp.osd_message(style .. bg_rect' not in body
     assert "volume_suspension" not in body
 
 

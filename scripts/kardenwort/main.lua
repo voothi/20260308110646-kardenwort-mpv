@@ -751,32 +751,48 @@ local Tracks = {
 -- CORE UTILITIES (Moved up for visibility)
 -- =========================================================================
 
-function show_osd(msg, dur)
-    local style = mp.get_property("osd-ass-cc/0") or ""
-    local frame_tags = string.format(
-        "{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
-        Options.seek_border_size,
-        Options.seek_shadow_offset,
-        Options.seek_bg_color,
-        Options.seek_bg_color,
-        Options.seek_bg_opacity,
-        Options.seek_bg_opacity
-    )
-    local text = tostring(msg or "")
-    -- IPC diagnostics contract used by acceptance tests
-    mp.set_property("user-data/kardenwort/last_osd", text)
-    -- Unified path for DW and DM: mp.osd_message renders a single OSD-bar event,
-    -- so embedded \p1 shapes + dual \pos blocks don't compose like an ass-events
-    -- overlay. Outline+shadow tags keep the notice visible in both modes; an
-    -- explicit DW card belongs on a dedicated overlay, not here.
-    mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)
-end
-
 local seek_osd = mp.create_osd_overlay("ass-events")
 seek_osd.res_y = Options.font_base_height
 seek_osd.res_x = math.floor(seek_osd.res_y * 16 / 9)
 seek_osd.z = 40
 local seek_timer = nil
+
+function show_osd(msg, dur)
+    local text = tostring(msg or "")
+    -- IPC diagnostics contract used by acceptance tests
+    mp.set_property("user-data/kardenwort/last_osd", text)
+    if FSM and FSM.DRUM_WINDOW ~= "OFF" then
+        -- DW: draw a real boxed card on the ass-events overlay.
+        -- mp.osd_message is a single OSD-bar event; \p1 shape + dual \pos
+        -- don't compose there, so the card lives here on seek_osd instead.
+        local ry = Options.font_base_height
+        local fs = Options.seek_font_size
+        local pad = math.max(12, math.floor(fs / 3))
+        local nc = 0
+        for _ in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do nc = nc + 1 end
+        local bw = math.max(120, math.floor(nc * fs * 0.55 + 2 * pad))
+        local bh = fs + 2 * pad
+        local cy = math.floor(ry / 2)
+        seek_osd.data = string.format(
+            "{\\an7}{\\pos(40,%d)}{\\1c&H%s&}{\\1a&H%s&}{\\bord0}{\\shad0}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}\n"..
+            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\bord0}{\\shad0}%s",
+            cy - math.floor(bh/2), Options.seek_bg_color, Options.seek_bg_opacity, bw, bw, bh, bh,
+            40 + pad, cy, Options.seek_font_name, fs, Options.seek_font_bold and 1 or 0, Options.seek_color, text)
+        seek_osd:update()
+        if seek_timer then seek_timer:kill() end
+        seek_timer = mp.add_timeout(dur or Options.osd_duration, function()
+            seek_osd.data = ""
+            seek_osd:update()
+        end)
+        return
+    end
+    local style = mp.get_property("osd-ass-cc/0") or ""
+    local frame_tags = string.format(
+        "{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
+        Options.seek_border_size, Options.seek_shadow_offset,
+        Options.seek_bg_color, Options.seek_bg_color, Options.seek_bg_opacity, Options.seek_bg_opacity)
+    mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)
+end
 
 function show_seek_osd(msg, alignment)
     local ass = ""
