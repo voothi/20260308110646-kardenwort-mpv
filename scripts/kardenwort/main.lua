@@ -5140,7 +5140,7 @@ local function dw_mouse_update_selection()
     dw_sync_cursor_to_mouse()
 end
 
-local function dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
+function dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
     if not hit_zones or #hit_zones == 0 then return nil, nil end
     if not dm_mode then return hit_zones[1], hit_zones[#hit_zones] end
 

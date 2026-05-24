@@ -170,6 +170,12 @@ def test_dw_mouse_auto_scroll_uses_base_height_instead_of_hardcoded_1080():
     assert "elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then" in auto_scroll_body
 
 
+def test_dw_mouse_auto_scroll_helper_stays_non_local_for_lua_limit():
+    src = _lua_source()
+    assert "function dw_get_auto_scroll_block_zones(" in src
+    assert "local function dw_get_auto_scroll_block_zones(" not in src
+
+
 # ---------------------------------------------------------------------------
 # v1.82.26..v1.84.0 review (ZID 20260523121327): add semantic guardrails
 # beyond the existing structural string-matching tests so a future regression
