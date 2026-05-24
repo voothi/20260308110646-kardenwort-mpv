@@ -384,17 +384,17 @@ def test_manage_ui_border_override_is_forward_declared():
     assert src.find("local apply_tooltip_ass") < src.find("function manage_ui_border_override(enable)")
 
 
-def test_show_osd_applies_dw_only_frame_without_timer_suspension():
+def test_show_osd_applies_consistent_frame_without_timer_suspension():
     src = _lua_source()
     body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
 
-    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
     assert 'frame_tags = string.format(' in body
     assert 'Options.seek_border_size' in body
     assert 'Options.seek_shadow_offset' in body
     assert 'Options.seek_bg_color' in body
     assert 'Options.seek_bg_opacity' in body
     assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. tostring(msg or ""), dur or Options.osd_duration)' in body
+    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' not in body
     assert "volume_suspension" not in body
 
 
@@ -446,17 +446,17 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
 
-def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dark():
+def test_tooltip_uses_shared_transparent_card_consistently_in_dw_and_dm():
     src = _lua_source()
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
-    assert "local dm_mode = (FSM.DRUM_WINDOW == \"OFF\")" in body
-    assert "local line_bgbox_neutral = \"\"" in body
-    assert "local rect_bg_alpha = bg_alpha" in body
-    assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
-    assert "rect_bg_alpha = \"FF\"" in body
+    assert "local line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
     assert "line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
+    assert "local dm_mode = (FSM.DRUM_WINDOW == \"OFF\")" not in body
+    assert "rect_bg_alpha = \"FF\"" not in body
+    assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" not in body
     assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, cur_y, line_bgbox_neutral)" in body
+    assert "rect_left, rect_top, bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h" in body
 
 
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():

@@ -753,18 +753,15 @@ local Tracks = {
 
 function show_osd(msg, dur)
     local style = mp.get_property("osd-ass-cc/0") or ""
-    local frame_tags = ""
-    if FSM and FSM.DRUM_WINDOW ~= "OFF" then
-        frame_tags = string.format(
-            "{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
-            Options.seek_border_size,
-            Options.seek_shadow_offset,
-            Options.seek_bg_color,
-            Options.seek_bg_color,
-            Options.seek_bg_opacity,
-            Options.seek_bg_opacity
-        )
-    end
+    local frame_tags = string.format(
+        "{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
+        Options.seek_border_size,
+        Options.seek_shadow_offset,
+        Options.seek_bg_color,
+        Options.seek_bg_color,
+        Options.seek_bg_opacity,
+        Options.seek_bg_opacity
+    )
     -- IPC diagnostics contract used by acceptance tests
     mp.set_property("user-data/kardenwort/last_osd", tostring(msg or ""))
     mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. tostring(msg or ""), dur or Options.osd_duration)
@@ -4597,18 +4594,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     local bg_color = Options.tooltip_bg_color
     local bord = Options.tooltip_border_size
-    local dm_mode = (FSM.DRUM_WINDOW == "OFF")
-    local line_bgbox_neutral = ""
-    local rect_bg_alpha = bg_alpha
-    -- In DM with global background-box style enabled, mpv already paints a backdrop.
-    -- Keep the shared vector card for geometry consistency, but make it transparent
-    -- to avoid the perceived "double-dark" tooltip window.
-    if dm_mode and FSM.osd_border_style == "background-box" then
-        rect_bg_alpha = "FF"
-        -- Keep only the global background-box contribution in DM:
-        -- tooltip lines must not add another dark layer.
-        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
-    end
+    local line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
@@ -4684,7 +4670,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     rect_h = math.max(1, block_height + (2 * pad_top))
 
     local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-        rect_left, rect_top, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
+        rect_left, rect_top, bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
 
     local ass = bg_rect
     if #all_tooltip_lines_ass > 0 then
