@@ -12,27 +12,27 @@
 - [x] 1.3 Add DM-only tooltip centering guardrails: apply centered logic only when `FSM.DRUM == "ON"` and `FSM.DRUM_WINDOW == "OFF"`.
 - [ ] 1.4 Visual gate: verify no SRT tooltip behavior change after guard introduction.
 
-## 2. Phase 2: Border-Style Lifecycle Hardening (Foundational)
+## 2. Phase 2: Spacing and Safe-Area Decoupling for DW (Moved Earlier)
 
-- [ ] 2.1 Implement `manage_ui_border_override(enable)` to switch `osd-border-style` only while custom overlays are active.
-- [ ] 2.2 Add nested depth safety (`ui_border_override_depth`) to prevent premature restoration under overlapping menus.
-- [ ] 2.3 Validate open-close lifecycle across DW/Search/Tooltip transitions.
-- [ ] 2.4 Visual gate: confirm no dark/double background stacking in DM tooltip.
+- [ ] 2.1 Implement `vline_height(fs)` helper in a scoped helper block/table.
+- [x] 2.2 Implement `calculate_block_top(raw_top, total_h)` with `dw_edge_margin` clamping.
+- [x] 2.3 Use the same spacing model in rendering and hit-testing paths.
+- [ ] 2.4 Visual gate: verify wrap spacing, inter-subtitle gap consistency, and safe margins at viewport extremes.
 
-## 3. Phase 3: Tooltip Geometry and Width Safety in DM
+## 3. Phase 3: Border-Style Lifecycle Hardening (Foundational)
 
-- [ ] 3.1 Calibrate Cyrillic width in `dw_get_str_width()` using `dw_cyrillic_coef`.
-- [ ] 3.2 Center DM tooltip text/card at `X = 960` with `\an8`.
-- [ ] 3.3 Re-align `dw_tooltip_hit_test` bounds to centered geometry (`960 - line_w / 2`).
-- [ ] 3.4 Place DM tooltip vertically in the secondary subtitle region to avoid collisions.
-- [ ] 3.5 Visual gate: verify centered DM tooltip, stable hover/click hit-zones, and no clipping on long Russian lines.
+- [ ] 3.1 Implement `manage_ui_border_override(enable)` to switch `osd-border-style` only while custom overlays are active.
+- [ ] 3.2 Add nested depth safety (`ui_border_override_depth`) to prevent premature restoration under overlapping menus.
+- [ ] 3.3 Validate open-close lifecycle across DW/Search/Tooltip transitions.
+- [ ] 3.4 Visual gate: confirm no dark/double background stacking in DM tooltip.
 
-## 4. Phase 4: Spacing and Safe-Area Decoupling for DW
+## 4. Phase 4: Tooltip Geometry and Width Safety in DM
 
-- [ ] 4.1 Implement `vline_height(fs)` helper in a scoped helper block/table.
-- [x] 4.2 Implement `calculate_block_top(raw_top, total_h)` with `dw_edge_margin` clamping.
-- [x] 4.3 Use the same spacing model in rendering and hit-testing paths.
-- [ ] 4.4 Visual gate: verify wrap spacing, inter-subtitle gap consistency, and safe margins at viewport extremes.
+- [ ] 4.1 Calibrate Cyrillic width in `dw_get_str_width()` using `dw_cyrillic_coef`.
+- [ ] 4.2 Center DM tooltip text/card at `X = 960` with `\an8`.
+- [ ] 4.3 Re-align `dw_tooltip_hit_test` bounds to centered geometry (`960 - line_w / 2`).
+- [ ] 4.4 Place DM tooltip vertically in the secondary subtitle region to avoid collisions.
+- [ ] 4.5 Visual gate: verify centered DM tooltip, stable hover/click hit-zones, and no clipping on long Russian lines.
 
 ## 5. Phase 5: Cohesive Vector Card Rendering (Largest Visual Rewrite)
 

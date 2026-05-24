@@ -3724,7 +3724,13 @@ end
 local function calculate_block_top(raw_top, total_h)
     local margin = math.max(0, tonumber(Options.dw_edge_margin) or 0)
     local screen_h = 1080
-    local max_top = screen_h - total_h - margin
+    -- ASS multiline rendering tends to be slightly taller than the pure
+    -- layout estimate (font descent + border/shadow envelope). Reserve a
+    -- small safety pad so the last visual line can fully enter the viewport.
+    local render_pad = math.max(0, (Options.dw_font_size or 0) * 0.35)
+        + math.max(0, ((Options.dw_border_size or 0) + (Options.dw_shadow_offset or 0)) * 2)
+    local effective_h = total_h + render_pad
+    local max_top = screen_h - effective_h - margin
     local min_top = math.min(margin, max_top)
     local max_top_clamped = math.max(margin, max_top)
     if raw_top < min_top then return min_top end
