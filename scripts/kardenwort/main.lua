@@ -762,9 +762,36 @@ function show_osd(msg, dur)
         Options.seek_bg_opacity,
         Options.seek_bg_opacity
     )
+    local text = tostring(msg or "")
+    if FSM and FSM.DRUM_WINDOW ~= "OFF" then
+        -- DW uses outline-and-shadow globally, so draw an explicit card for
+        -- short notices (Replay/Autopause) to preserve a visible frame.
+        local fs = 20
+        local char_count = 0
+        for _ in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+            char_count = char_count + 1
+        end
+        local pad_x = 14
+        local pad_y = 8
+        local box_w = math.max(120, math.floor((char_count * fs * 0.58) + (2 * pad_x)))
+        local box_h = fs + (2 * pad_y)
+        local base_h = Options.font_base_height or 1080
+        local center_y = math.floor(base_h / 2)
+        local left_x = 42
+        local top_y = center_y - math.floor(box_h / 2)
+        local bg_rect = string.format(
+            "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
+            left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
+        )
+        local text_pos = string.format("{\\an4}{\\pos(%d,%d)}{\\fs20}", left_x + pad_x, center_y)
+        -- IPC diagnostics contract used by acceptance tests
+        mp.set_property("user-data/kardenwort/last_osd", text)
+        mp.osd_message(style .. bg_rect .. "\n" .. text_pos .. frame_tags .. text, dur or Options.osd_duration)
+        return
+    end
     -- IPC diagnostics contract used by acceptance tests
-    mp.set_property("user-data/kardenwort/last_osd", tostring(msg or ""))
-    mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. tostring(msg or ""), dur or Options.osd_duration)
+    mp.set_property("user-data/kardenwort/last_osd", text)
+    mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)
 end
 
 local seek_osd = mp.create_osd_overlay("ass-events")

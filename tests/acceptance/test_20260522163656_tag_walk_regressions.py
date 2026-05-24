@@ -389,12 +389,14 @@ def test_show_osd_applies_consistent_frame_without_timer_suspension():
     body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
 
     assert 'frame_tags = string.format(' in body
+    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' in body
+    assert 'local bg_rect = string.format(' in body
+    assert 'mp.osd_message(style .. bg_rect .. "\\n" .. text_pos .. frame_tags .. text, dur or Options.osd_duration)' in body
     assert 'Options.seek_border_size' in body
     assert 'Options.seek_shadow_offset' in body
     assert 'Options.seek_bg_color' in body
     assert 'Options.seek_bg_opacity' in body
-    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. tostring(msg or ""), dur or Options.osd_duration)' in body
-    assert 'if FSM and FSM.DRUM_WINDOW ~= "OFF" then' not in body
+    assert 'mp.osd_message(style .. "{\\\\an4}{\\\\fs20}" .. frame_tags .. text, dur or Options.osd_duration)' in body
     assert "volume_suspension" not in body
 
 
