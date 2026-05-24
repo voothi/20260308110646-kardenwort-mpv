@@ -789,7 +789,7 @@ function show_osd(msg, dur)
             left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
         )
         local text_event = string.format(
-            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\bord0}{\\shad0}%s",
+            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}%s",
             text_x, center_y,
             Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
             Options.seek_color, text
@@ -848,7 +848,7 @@ function show_seek_osd(msg, alignment)
             left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
         )
         local text_event = string.format(
-            "{\\an%d}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\bord0}{\\shad0}%s",
+            "{\\an%d}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}%s",
             text_align, text_x, center_y,
             Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
             Options.seek_color, msg
