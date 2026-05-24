@@ -762,8 +762,8 @@ function show_osd(msg, dur)
     mp.set_property("user-data/kardenwort/last_osd", text)
     local duration = dur or Options.osd_duration
 
-    if FSM and FSM.DRUM_WINDOW ~= "OFF" then
-        -- DW: paint a real boxed card on a dedicated ass-events overlay.
+    do
+        -- Unified renderer for DW/DM/SRT: compact boxed card on a dedicated ass-events overlay.
         -- mp.osd_message is a single OSD-bar event and can't host \p1 shapes
         -- + dual \pos blocks, so the card has to live on its own overlay.
         -- Stored on FSM to stay inside Lua's 200-local cap for this chunk.
@@ -805,19 +805,6 @@ function show_osd(msg, dur)
         end)
         return
     end
-
-    -- DM (or DW=OFF): native osd_message keeps mpv's background-box scaling.
-    local style = mp.get_property("osd-ass-cc/0") or ""
-    local frame_tags = string.format(
-        "{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}",
-        Options.seek_border_size,
-        Options.seek_shadow_offset,
-        Options.seek_bg_color,
-        Options.seek_bg_color,
-        Options.seek_bg_opacity,
-        Options.seek_bg_opacity
-    )
-    mp.osd_message(style .. "{\\an4}{\\fs20}" .. frame_tags .. text, duration)
 end
 
 
@@ -828,8 +815,8 @@ seek_osd.z = Options.seek_osd_layer
 local seek_timer = nil
 
 function show_seek_osd(msg, alignment)
-    if FSM and FSM.DRUM_WINDOW ~= "OFF" then
-        -- DW: paint a real boxed card on a dedicated seek_osd overlay.
+    do
+        -- Unified renderer for DW/DM/SRT: compact seek card on dedicated seek_osd overlay.
         local ry = Options.font_base_height
         local rx = math.floor(ry * 16 / 9)
         local fs = Options.seek_font_size
@@ -877,41 +864,6 @@ function show_seek_osd(msg, alignment)
         end)
         return
     end
-
-    local ass = ""
-    ass = ass .. string.format("{\\an%d}", alignment)
-    
-    -- Derived positioning based on global resolution settings.
-    local ry = Options.font_base_height
-    local rx = math.floor(ry * 16 / 9)
-    local cy = ry / 2
-    local cx_padding = 40
-    
-    if alignment == 4 then
-        ass = ass .. string.format("{\\pos(%d, %d)}", cx_padding, cy)
-    elseif alignment == 6 then
-        ass = ass .. string.format("{\\pos(%d, %d)}", rx - cx_padding, cy)
-    end
-    
-    ass = ass .. string.format("{\\fn%s}", Options.seek_font_name)
-    ass = ass .. string.format("{\\fs%d}", Options.seek_font_size)
-    ass = ass .. string.format("{\\b%d}", Options.seek_font_bold and 1 or 0)
-    ass = ass .. string.format("{\\1c&H%s&}", Options.seek_color)
-    ass = ass .. string.format("{\\3c&H%s&}", Options.seek_bg_color)
-    ass = ass .. string.format("{\\4c&H%s&}", Options.seek_bg_color)
-    ass = ass .. string.format("{\\3a&H%s&}", Options.seek_bg_opacity)
-    ass = ass .. string.format("{\\4a&H%s&}", Options.seek_bg_opacity)
-    ass = ass .. string.format("{\\bord%g}", Options.seek_border_size)
-    ass = ass .. string.format("{\\shad%g}", Options.seek_shadow_offset)
-    
-    seek_osd.data = ass .. msg
-    seek_osd:update()
-    
-    if seek_timer then seek_timer:kill() end
-    seek_timer = mp.add_timeout(Options.seek_osd_duration, function()
-        seek_osd.data = ""
-        seek_osd:update()
-    end)
 end
 
 function has_cyrillic(str)
