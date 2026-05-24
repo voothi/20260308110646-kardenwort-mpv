@@ -5170,6 +5170,16 @@ local function dw_mouse_auto_scroll()
     if not hit_zones or #hit_zones == 0 then return end
     local first_zone = hit_zones[1]
     local last_zone = hit_zones[#hit_zones]
+    if dm_mode then
+        first_zone = nil
+        last_zone = nil
+        for _, zone in ipairs(hit_zones) do
+            if zone.is_pri ~= false and zone.y_top and zone.y_bottom then
+                if not first_zone or zone.y_top < first_zone.y_top then first_zone = zone end
+                if not last_zone or zone.y_bottom > last_zone.y_bottom then last_zone = zone end
+            end
+        end
+    end
     if first_zone and first_zone.y_top then
         top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
     end
