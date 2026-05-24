@@ -5162,14 +5162,26 @@ local function dw_mouse_auto_scroll()
     if edge_ratio < 0 then edge_ratio = 0 end
     if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then edge_ratio = DW_EDGE_SCROLL_RATIO_MAX end
     local edge_zone = base_h * edge_ratio
+    local top_scroll_trigger = edge_zone
+    local bottom_scroll_trigger = base_h - edge_zone
+    if FSM.DW_HIT_ZONES and #FSM.DW_HIT_ZONES > 0 then
+        local first_zone = FSM.DW_HIT_ZONES[1]
+        local last_zone = FSM.DW_HIT_ZONES[#FSM.DW_HIT_ZONES]
+        if first_zone and first_zone.y_top then
+            top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
+        end
+        if last_zone and last_zone.y_bottom then
+            bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
+        end
+    end
     local scrolled = false
-    if osd_y < edge_zone then
+    if osd_y < top_scroll_trigger then
         if FSM.DW_VIEW_CENTER > 1 then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER - 1
             if FSM.DW_CURSOR_LINE > 1 then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1 end
             scrolled = true
         end
-    elseif osd_y > base_h - edge_zone then
+    elseif osd_y > bottom_scroll_trigger then
         if FSM.DW_VIEW_CENTER < #subs then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
             if FSM.DW_CURSOR_LINE < #subs then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1 end
