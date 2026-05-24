@@ -495,3 +495,28 @@ def test_tooltip_activation_paths_only_publish_non_empty_ass():
 
     assert "if ass ~= \"\" then" in pin_body
     assert "if ass ~= \"\" then" in toggle_body
+
+
+def test_console_and_osd_frame_suspension_in_dw_mode():
+    src = _lua_source()
+    
+    # 1. Assert console visibility observer exists
+    assert 'mp.observe_property("user-data/mpv/console/open", "bool"' in src
+    assert 'FSM.console_active = val' in src
+    
+    # 2. Assert apply_border_override_state supports suspension flags
+    apply_body = _function_window(src, "function apply_border_override_state()", "function manage_ui_border_override")
+    assert "FSM.console_active" in apply_body
+    assert "FSM.seek_osd_active" in apply_body
+    assert "FSM.notice_osd_active" in apply_body
+
+    # 3. Assert show_osd suspends override
+    show_osd_body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+    assert "FSM.notice_osd_active = true" in show_osd_body
+    assert "FSM.notice_osd_active = false" in show_osd_body
+
+    # 4. Assert show_seek_osd suspends override
+    seek_osd_body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
+    assert "FSM.seek_osd_active = true" in seek_osd_body
+    assert "FSM.seek_osd_active = false" in seek_osd_body
+
