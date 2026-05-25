@@ -32,6 +32,12 @@ Implementation decision: `tooltip_dw_bg_opacity` was added as a DW-only card alp
 
 Implementation decision: keep the DW parameter for symmetry and manual tuning, but leave it empty in defaults/config so DW falls back to `tooltip_bg_opacity`.
 
+## Trace 20260525125430: Replace User-Facing `opacity=100` With ASS Alpha
+
+The mode-specific card override approach is mechanically sound, but exposing the calibrated value as `tooltip_*_bg_opacity=100` is misleading because this renderer converts numeric `0..100` values as transparency percentages. In other words, `100` means fully transparent, not fully opaque.
+
+Implementation decision: add preferred `tooltip_bg_alpha`, `tooltip_dw_bg_alpha`, `tooltip_dm_bg_alpha`, and `tooltip_srt_bg_alpha` options. These use explicit ASS alpha semantics: `00` is opaque and `FF` is fully transparent. The legacy `tooltip_*_bg_opacity` options remain accepted as fallbacks for existing configs.
+
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
 - Keep layout and hit-zone logic separate at first.

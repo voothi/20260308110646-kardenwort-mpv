@@ -455,10 +455,14 @@ Options = {
     tooltip_active_opacity = "00",     -- Transparency for active line
     tooltip_context_opacity = "30",    -- Transparency for context lines
     tooltip_bg_color = "000000",       -- Background color (BGR hex)
-    tooltip_bg_opacity = "60",         -- Default tooltip card transparency; used when DW/DM/SRT overrides are empty
-    tooltip_dw_bg_opacity = "",        -- DW card transparency override; empty uses tooltip_bg_opacity
-    tooltip_dm_bg_opacity = "100",      -- Drum Mode card transparency; prevents a second dark panel over DM subtitles
-    tooltip_srt_bg_opacity = "100",       -- SRT card transparency override; empty uses tooltip_bg_opacity
+    tooltip_bg_alpha = "",             -- Preferred tooltip card ASS alpha; empty uses legacy tooltip_bg_opacity
+    tooltip_bg_opacity = "60",         -- Legacy card transparency alias; 00/0 opaque, FF/100 transparent
+    tooltip_dw_bg_alpha = "",          -- Preferred DW card ASS alpha; empty uses legacy/fallback value
+    tooltip_dw_bg_opacity = "",        -- Legacy DW card transparency alias; empty uses tooltip_bg_alpha/opacity
+    tooltip_dm_bg_alpha = "",          -- Preferred Drum Mode card ASS alpha; empty uses legacy/fallback value
+    tooltip_dm_bg_opacity = "100",     -- Legacy Drum Mode transparency alias; hides the extra DM card by default
+    tooltip_srt_bg_alpha = "",         -- Preferred SRT card ASS alpha; empty uses legacy/fallback value
+    tooltip_srt_bg_opacity = "100",    -- Legacy SRT card transparency alias; hides the extra SRT card by default
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
     tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
@@ -1733,6 +1737,8 @@ local function calculate_ass_alpha(val)
     end
     local num = tonumber(val)
     if not num then return "00" end
+    -- Legacy numeric values are transparency percentages, not CSS-style opacity.
+    -- Prefer explicit ASS alpha values: 00 is opaque, FF is fully transparent.
     -- If value is 0-1 (decimal opacity), convert to transparency percentage
     if num >= 0 and num <= 1 then
         num = (1.0 - num) * 100
@@ -3129,13 +3135,24 @@ function build_tooltip_style_context(parent_mode)
         neutralize_inband = false
     end
 
-    local card_opacity = Options.tooltip_bg_opacity
-    if parent_mode == "dw" and Options.tooltip_dw_bg_opacity and Options.tooltip_dw_bg_opacity ~= "" then
-        card_opacity = Options.tooltip_dw_bg_opacity
-    elseif parent_mode == "dm" and Options.tooltip_dm_bg_opacity and Options.tooltip_dm_bg_opacity ~= "" then
-        card_opacity = Options.tooltip_dm_bg_opacity
-    elseif parent_mode == "srt" and Options.tooltip_srt_bg_opacity and Options.tooltip_srt_bg_opacity ~= "" then
-        card_opacity = Options.tooltip_srt_bg_opacity
+    local base_alpha = Options.tooltip_bg_alpha
+    if not base_alpha or base_alpha == "" then
+        base_alpha = Options.tooltip_bg_opacity
+    end
+
+    local card_alpha = base_alpha
+    if parent_mode == "dw" then
+        card_alpha = (Options.tooltip_dw_bg_alpha and Options.tooltip_dw_bg_alpha ~= "" and Options.tooltip_dw_bg_alpha)
+            or (Options.tooltip_dw_bg_opacity and Options.tooltip_dw_bg_opacity ~= "" and Options.tooltip_dw_bg_opacity)
+            or card_alpha
+    elseif parent_mode == "dm" then
+        card_alpha = (Options.tooltip_dm_bg_alpha and Options.tooltip_dm_bg_alpha ~= "" and Options.tooltip_dm_bg_alpha)
+            or (Options.tooltip_dm_bg_opacity and Options.tooltip_dm_bg_opacity ~= "" and Options.tooltip_dm_bg_opacity)
+            or card_alpha
+    elseif parent_mode == "srt" then
+        card_alpha = (Options.tooltip_srt_bg_alpha and Options.tooltip_srt_bg_alpha ~= "" and Options.tooltip_srt_bg_alpha)
+            or (Options.tooltip_srt_bg_opacity and Options.tooltip_srt_bg_opacity ~= "" and Options.tooltip_srt_bg_opacity)
+            or card_alpha
     end
 
     return {
@@ -3145,8 +3162,8 @@ function build_tooltip_style_context(parent_mode)
         needs_override = needs_override,
         neutralize_inband = neutralize_inband,
         bg_color = Options.tooltip_bg_color,
-        bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity),
-        card_alpha = calculate_ass_alpha(card_opacity),
+        bg_alpha = calculate_ass_alpha(base_alpha),
+        card_alpha = calculate_ass_alpha(card_alpha),
         bord = Options.tooltip_border_size,
         shad = Options.tooltip_shadow_offset,
     }

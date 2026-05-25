@@ -582,9 +582,13 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     src = _lua_source()
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=14000)
     assert 'tooltip_native_box_policy = "auto"' in opts
+    assert 'tooltip_bg_alpha = ""' in opts
     assert 'tooltip_dw_bg_opacity = ""' in opts
+    assert 'tooltip_dw_bg_alpha = ""' in opts
     assert 'tooltip_dm_bg_opacity = "100"' in opts
+    assert 'tooltip_dm_bg_alpha = ""' in opts
     assert 'tooltip_srt_bg_opacity = "100"' in opts
+    assert 'tooltip_srt_bg_alpha = ""' in opts
 
 
 def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
@@ -600,11 +604,18 @@ def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     assert "neutralize_inband = true" in body
     assert 'if needs_override then' in body
     assert "neutralize_inband = false" in body
-    assert "local card_opacity = Options.tooltip_bg_opacity" in body
-    assert 'if parent_mode == "dw" and Options.tooltip_dw_bg_opacity' in body
-    assert 'elseif parent_mode == "dm" and Options.tooltip_dm_bg_opacity' in body
-    assert 'elseif parent_mode == "srt" and Options.tooltip_srt_bg_opacity' in body
-    assert "card_alpha = calculate_ass_alpha(card_opacity)" in body
+    assert "local base_alpha = Options.tooltip_bg_alpha" in body
+    assert "base_alpha = Options.tooltip_bg_opacity" in body
+    assert 'if parent_mode == "dw" then' in body
+    assert "Options.tooltip_dw_bg_alpha" in body
+    assert "Options.tooltip_dw_bg_opacity" in body
+    assert 'elseif parent_mode == "dm" then' in body
+    assert "Options.tooltip_dm_bg_alpha" in body
+    assert "Options.tooltip_dm_bg_opacity" in body
+    assert 'elseif parent_mode == "srt" then' in body
+    assert "Options.tooltip_srt_bg_alpha" in body
+    assert "Options.tooltip_srt_bg_opacity" in body
+    assert "card_alpha = calculate_ass_alpha(card_alpha)" in body
 
 
 def test_dm_tooltip_auto_policy_preserves_parent_background_box_frame():

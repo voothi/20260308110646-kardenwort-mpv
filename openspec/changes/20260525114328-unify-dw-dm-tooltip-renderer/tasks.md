@@ -36,3 +36,4 @@
 - [x] 5.6 Trace `20260525123946` and add a SRT tooltip card opacity override so SRT can be calibrated independently while preserving the shared renderer.
 - [x] 5.7 Trace `20260525124408` and add a DW tooltip card opacity override so DW/DM/SRT expose the same card calibration surface.
 - [x] 5.8 Trace `20260525125206` and keep the DW override empty by default because `tooltip_dw_bg_opacity=100` breaks the DW tooltip card composition.
+- [x] 5.9 Trace `20260525125430` and add preferred ASS alpha options so calibrated transparent cards use `FF` instead of misleading `opacity=100`.
