@@ -156,6 +156,21 @@ def test_rmb_tooltip_pin_uses_direct_handler_for_hold_drag_through():
     assert "m_fn = mouse_fn" in bindings
 
 
+def test_rmb_tooltip_pin_enters_holding_before_line_hit_resolution():
+    src = _lua_source()
+    body = _function_window(src, "local function cmd_dw_tooltip_pin(tbl)", "local function cmd_toggle_dw_tooltip_hover")
+
+    down_idx = body.find('if tbl.event == "down" then')
+    hold_idx = body.find("FSM.DW_TOOLTIP_HOLDING = true")
+    resolve_idx = body.find("resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)")
+    up_idx = body.find('elseif tbl.event == "up" then')
+    release_idx = body.find("FSM.DW_TOOLTIP_HOLDING = false")
+
+    assert -1 not in (down_idx, hold_idx, resolve_idx, up_idx, release_idx)
+    assert down_idx < hold_idx < resolve_idx
+    assert up_idx < release_idx
+
+
 def test_dw_mouse_drag_and_scroll_tuning_are_option_driven():
     src = _lua_source()
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=12000)
