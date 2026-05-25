@@ -145,6 +145,17 @@ def test_dw_binding_builder_never_registers_nil_mouse_callback():
     assert "and type(k.fn) == \"function\"" in body
 
 
+def test_rmb_tooltip_pin_uses_direct_handler_for_hold_drag_through():
+    src = _lua_source()
+    body = _function_window(src, "local MOUSE_HANDLERS = {}", "local function dw_anki_export_smart_callback")
+    bindings = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
+
+    assert "MOUSE_HANDLERS[cmd_dw_tooltip_pin] = true" in body
+    assert "{opt = \"dw_key_tooltip_pin\",          name = \"dw-tooltip-pin\",          mouse_fn = cmd_dw_tooltip_pin" in bindings
+    assert "if type(mouse_fn) == \"function\" and MOUSE_HANDLERS[mouse_fn] then" in bindings
+    assert "m_fn = mouse_fn" in bindings
+
+
 def test_dw_mouse_drag_and_scroll_tuning_are_option_driven():
     src = _lua_source()
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=12000)

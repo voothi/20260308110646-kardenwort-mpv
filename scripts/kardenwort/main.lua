@@ -5875,6 +5875,7 @@ end
 
 local cmd_dw_mouse_select = make_mouse_handler(false)
 local cmd_dw_mouse_select_shift = make_mouse_handler(true)
+MOUSE_HANDLERS[cmd_dw_tooltip_pin] = true
 
 local function dw_anki_export_smart_callback(tbl)
     -- Only trigger on release (Standard export behavior)
