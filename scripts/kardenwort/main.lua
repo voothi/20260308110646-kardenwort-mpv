@@ -5178,6 +5178,7 @@ local function dw_mouse_auto_scroll()
     local hit_zones = dw_mode and FSM.DW_HIT_ZONES or FSM.DRUM_HIT_ZONES
     local first_zone, last_zone = dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
     if not first_zone or not last_zone then return end
+    local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
     if dm_mode then
         if first_zone and first_zone.y_top then
             top_scroll_trigger = first_zone.y_top
@@ -5199,7 +5200,6 @@ local function dw_mouse_auto_scroll()
             bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
         end
     end
-    local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
     local scrolled = false
     if osd_y < (top_scroll_trigger - edge_activation_pad) then
         if FSM.DW_VIEW_CENTER > 1 then

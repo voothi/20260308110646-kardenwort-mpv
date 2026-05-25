@@ -200,6 +200,10 @@ def test_dw_mouse_auto_scroll_keeps_edge_triggers_reachable_when_block_overflows
     src = _lua_source()
     auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
 
+    pad_idx = auto_scroll_body.find("local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))")
+    overflow_idx = auto_scroll_body.find("local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad")
+    assert -1 not in (pad_idx, overflow_idx)
+    assert pad_idx < overflow_idx
     assert "local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad" in auto_scroll_body
     assert "local dw_overflows_bottom = last_zone.y_bottom and last_zone.y_bottom >= (base_h - edge_activation_pad)" in auto_scroll_body
     assert "if dw_overflows_top then" in auto_scroll_body
