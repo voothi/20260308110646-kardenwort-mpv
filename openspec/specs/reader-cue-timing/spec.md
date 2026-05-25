@@ -47,6 +47,7 @@ Supported keys:
 |-------------------------------------------|---------------------------------|-------|---------|
 | `kardenwort-reader_max_cue_seconds`       | Per-line duration ceiling       | float | 7.0     |
 | `kardenwort-reader_min_cue_seconds`       | Minimum cue duration floor      | float | 1.2     |
+| `kardenwort-reader_min_date_seconds`      | Minimum duration for date cues  | float | 2.5     |
 | `kardenwort-reader_cps`                   | Characters per second           | float | 15.0    |
 | `kardenwort-reader_wpm`                   | Words per minute                | float | 180.0   |
 | `kardenwort-reader_max_chars_per_line`    | Line-wrap threshold (chars)     | int   | 90      |
@@ -61,6 +62,17 @@ Supported keys:
 
 - **WHEN** `mpv.conf` contains `script-opts=kardenwort-reader_wpm=200.0,...`
 - **THEN** the word-based duration estimate uses 200 wpm
+
+#### Scenario: Date cue receives a dedicated minimum floor
+
+- **WHEN** a cue's text contains a recognizable date (e.g. "May 24, 2026", "2026-05-24", "24 May 2026")
+- **THEN** the cue duration must be at least `min_date_seconds` (default 2.5s)
+- **AND** if the natural estimate already exceeds the floor, it is not reduced
+
+#### Scenario: Month name alone is not a date
+
+- **WHEN** a cue contains only a month name without a day and year (e.g. "May flowers bloom")
+- **THEN** the date floor is not applied
 
 #### Scenario: Invalid value is silently ignored
 

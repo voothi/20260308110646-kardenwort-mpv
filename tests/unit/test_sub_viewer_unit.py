@@ -486,6 +486,58 @@ def test_find_mpv_conf_locates_project_root_conf():
     assert Path(result).exists()
 
 
+def test_date_cue_gets_min_date_floor():
+    """A cue containing a recognizable date gets at least READER_MIN_DATE_SECONDS."""
+    viewer = _load_viewer_module()
+    original = viewer.READER_MIN_DATE_SECONDS
+    viewer.READER_MIN_DATE_SECONDS = 2.5
+    try:
+        for date_str in ["May 24, 2026", "24 May 2026", "2026-05-24", "05/24/2026", "January 1, 2024"]:
+            dur = viewer._estimate_cue_duration_seconds(date_str)
+            assert dur >= 2.5, f"Date cue {repr(date_str)} should be ≥2.5s, got {dur:.2f}s"
+    finally:
+        viewer.READER_MIN_DATE_SECONDS = original
+
+
+def test_non_date_cue_unaffected_by_date_floor():
+    """Short non-date cues are not pulled up to the date minimum."""
+    viewer = _load_viewer_module()
+    original = viewer.READER_MIN_DATE_SECONDS
+    viewer.READER_MIN_DATE_SECONDS = 2.5
+    try:
+        for text in ["Nate", "∙ Paid", "May flowers bloom"]:
+            dur = viewer._estimate_cue_duration_seconds(text)
+            assert dur < 2.5, f"Non-date cue {repr(text)} should be <2.5s, got {dur:.2f}s"
+    finally:
+        viewer.READER_MIN_DATE_SECONDS = original
+
+
+def test_date_floor_respects_longer_natural_duration():
+    """If the natural estimate already exceeds the date floor, it is not reduced."""
+    viewer = _load_viewer_module()
+    original = viewer.READER_MIN_DATE_SECONDS
+    viewer.READER_MIN_DATE_SECONDS = 2.5
+    try:
+        long_date_sentence = (
+            "The fiscal third-quarter results released on January 15, 2026 surprised analysts."
+        )
+        dur = viewer._estimate_cue_duration_seconds(long_date_sentence)
+        assert dur > 2.5, "Long sentence containing a date should exceed the date floor"
+    finally:
+        viewer.READER_MIN_DATE_SECONDS = original
+
+
+def test_apply_reader_opts_overrides_min_date_seconds():
+    """_apply_reader_opts updates READER_MIN_DATE_SECONDS when present."""
+    viewer = _load_viewer_module()
+    original = viewer.READER_MIN_DATE_SECONDS
+    try:
+        viewer._apply_reader_opts({'min_date_seconds': '3.0'})
+        assert viewer.READER_MIN_DATE_SECONDS == 3.0
+    finally:
+        viewer.READER_MIN_DATE_SECONDS = original
+
+
 def test_apply_reader_opts_roundtrip_via_temp_conf():
     """Full roundtrip: write a temp mpv.conf, parse it, apply it, check globals."""
     viewer = _load_viewer_module()

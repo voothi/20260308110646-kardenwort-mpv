@@ -40,10 +40,23 @@ READER_OPTIMAL_CHARACTERS_PER_SECOND = 15.0
 READER_OPTIMAL_WORDS_PER_MINUTE = 180.0
 READER_MIN_CUE_SECONDS = 1.2
 READER_MAX_CUE_SECONDS = 7.0
+READER_MIN_DATE_SECONDS = 2.5
 # ==============================================================================
 # All READER_* values above can be overridden in mpv.conf without editing this
 # file — see the "Sub-Viewer Reader Settings" section in mpv.conf.
 # ==============================================================================
+
+_DATE_RE = re.compile(
+    r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+    r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+    r'\s+\d{1,2},?\s+\d{4}\b'
+    r'|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+    r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+    r'\s+\d{4}\b'
+    r'|\b\d{4}[-./]\d{1,2}[-./]\d{1,2}\b'
+    r'|\b\d{1,2}[-./]\d{1,2}[-./]\d{4}\b',
+    re.IGNORECASE
+)
 
 
 def _find_mpv_conf():
@@ -88,12 +101,13 @@ def _parse_kardenwort_reader_opts(mpv_conf_path):
 
 
 def _apply_reader_opts(opts):
-    global READER_MAX_CUE_SECONDS, READER_MIN_CUE_SECONDS
+    global READER_MAX_CUE_SECONDS, READER_MIN_CUE_SECONDS, READER_MIN_DATE_SECONDS
     global READER_OPTIMAL_CHARACTERS_PER_SECOND, READER_OPTIMAL_WORDS_PER_MINUTE
     global READER_MAX_CHARS_PER_LINE
     float_keys = {
         'max_cue_seconds': 'READER_MAX_CUE_SECONDS',
         'min_cue_seconds': 'READER_MIN_CUE_SECONDS',
+        'min_date_seconds': 'READER_MIN_DATE_SECONDS',
         'cps': 'READER_OPTIMAL_CHARACTERS_PER_SECOND',
         'wpm': 'READER_OPTIMAL_WORDS_PER_MINUTE',
     }
@@ -329,6 +343,8 @@ def _estimate_cue_duration_seconds(cue_text):
     word_ms = (word_count / words_per_second) * 1000.0 if word_count > 0 else 0.0
 
     duration_ms = max(char_ms, word_ms)
+    if _DATE_RE.search(clean):
+        duration_ms = max(duration_ms, READER_MIN_DATE_SECONDS * 1000.0)
     min_ms = READER_MIN_CUE_SECONDS * 1000.0
     display_lines = cue_text.count('\n') + 1
     max_ms = READER_MAX_CUE_SECONDS * display_lines * 1000.0
