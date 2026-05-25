@@ -1,3 +1,27 @@
+# Release Notes - v1.84.26 (Sentence Scoping Regression Fix)
+
+**Date**: 2026-05-25
+**ZID**: 20260525193414
+
+## Bug Fix
+
+### Anki `SentenceSource` — Full-Sentence Capture Restored
+
+`extract_anki_context` now exports the **complete grammatical sentence** around the selected word or phrase, instead of truncating to a single subtitle line.
+
+**Root cause**: Change `20260429012045-subtitle-line-sentence-boundaries` replaced period-based boundary detection with NUL-sentinel (`\0`) subtitle-line scoping to fix false splits on German abbreviations (`ca.`, `z.B.`). This broke properly-punctuated SRTs where one sentence spans 2–3 subtitle lines.
+
+**Fix**: Sentence boundaries are now derived from real terminators (`.`, `!`, `?`) by scanning across `\0` sentinels. Abbreviations are skipped via the existing heuristic plus the configurable `anki_abbrev_list`. When no terminator is found (e.g. unpunctuated YouTube auto-subs), the full ±N joined context block is returned.
+
+### New Options
+
+| Option | Default | Description |
+|---|---|---|
+| `kardenwort-anki_sentence_terminators` | `.!?` | Characters that mark a sentence end. Each character is an independent terminator. |
+| `kardenwort-anki_abbrev_list` | `ca. z.B. usw. ...` | Space-separated abbreviation tokens the scanner must skip. Augments the built-in heuristic. |
+
+---
+
 # Release Notes - v1.84.24 (OSD Frame Unification & Tooltip Rendering)
 
 **Date**: 2026-05-25

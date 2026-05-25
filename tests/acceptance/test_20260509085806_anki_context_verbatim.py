@@ -59,9 +59,12 @@ def test_anki_context_pivot_selection():
     assert "best_dist" in content, (
         "best_dist variable not found; pivot-closest occurrence selection is missing"
     )
-    # Sentence boundary uses NUL sentinel (\0) to split context lines
+    # NUL sentinels (\0) are still embedded in the joined context block
+    # and used in the no-terminator fallback path and look-ahead checks.
+    # (Sentence boundary detection now uses period-anchored scanning; \0 is
+    # treated as whitespace during the scan, not as the primary boundary.)
     assert r"\0" in content or '"\0"' in content or "\\0" in content, (
-        "NUL sentinel (\\0) not found; sentence boundary detection is missing"
+        "NUL sentinel (\\0) not found; context block joining or look-ahead logic is missing"
     )
 
 

@@ -719,6 +719,9 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
 | `kardenwort-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
 | `kardenwort-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
+| `kardenwort-anki_sentence_terminators` | `.!?` | Characters that mark a sentence end (no separator; each char is a terminator). Controls the punctuation-anchored sentence boundary scan in `extract_anki_context`. |
+| `kardenwort-anki_abbrev_list` | `ca. z.B. usw. ...` | Space-separated list of abbreviation tokens (including trailing period) that the sentence scanner must not treat as sentence ends. Augments the built-in smart heuristic. |
+| `kardenwort-anki_abbrev_smart` | `yes` | Enable built-in heuristic for abbreviation detection (short lowercase+period, uppercase+period patterns). |
 | `kardenwort-anki_highlight_bold` | `no` | Apply bold styling to database-matched highlights. |
 | `kardenwort-anki_context_strict` | `yes` | Strictly enforce context boundaries. |
 

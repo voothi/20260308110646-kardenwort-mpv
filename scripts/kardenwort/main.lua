@@ -566,8 +566,9 @@ Options = {
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
-    anki_abbrev_list = "ca. z.B. usw. bzw. etc. t.con",
+    anki_abbrev_list = "ca. z.B. usw. bzw. etc. t.con d.h. u.a. vgl. ggf. bspw. u.U. i.d.R. bzgl. evtl.",
     anki_abbrev_smart = true,
+    anki_sentence_terminators = ".!?",
     book_mode = false,
 
     -- Record File
@@ -1834,8 +1835,29 @@ local function is_abbrev(w)
         if w:match("^%l+%.$") and #w <= 5 then return true end
         if w:match("^%u%.$") then return true end
         if w:match("^%u%.%u%.$") then return true end
+        -- multi-segment like d.h., i.d.R. — each individual segment already matched above;
+        -- full token caught via list. No additional pattern needed.
     end
     return false
+end
+
+-- Returns the token (including any trailing period) that ends at byte position i in s.
+-- Walks backward past the period character at i to find the token start.
+local function token_ending_at(s, i)
+    local j = i
+    while j >= 1 do
+        local c = s:sub(j, j)
+        if c == " " or c == "\0" or c == "\t" or c == "\n" then break end
+        j = j - 1
+    end
+    return s:sub(j + 1, i)
+end
+
+-- Returns true if character c is a configured sentence terminator.
+local function is_terminator_char(c)
+    local t = Options.anki_sentence_terminators
+    if not t or t == "" then t = ".!?" end
+    return t:find(c, 1, true) ~= nil
 end
 
 local function clean_anki_term(term)
@@ -2895,26 +2917,65 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local sentence_abs_start = 1   -- tracks where the cleaned sentence starts in full_line
     
     if start_pos then
-        -- Search backwards for subtitle boundary (NUL sentinel)
-        local pre = full_line:sub(1, start_pos - 1)
-        local b_idx = pre:reverse():find("\0", 1, true)
-        if b_idx then
-            sent_start = start_pos - b_idx + 1
+        -- === Backward scan: find nearest real sentence terminator before start_pos ===
+        -- Scans across \0 sentinels; skips abbreviations via is_abbrev.
+        -- If no real terminator found, sent_start stays at 1 (full-block fallback).
+        local b_term_pos = nil
+        local i = start_pos - 1
+        while i >= 1 do
+            local c = full_line:sub(i, i)
+            if is_terminator_char(c) then
+                -- Look-ahead: char immediately after the terminator must be whitespace/NUL/end
+                local after = full_line:sub(i + 1, i + 1)
+                if after == "" or after == " " or after == "\t" or after == "\0" or i == #full_line then
+                    -- For "!" and "?" there is no abbreviation concern; always a real boundary.
+                    -- For "." check whether the preceding token is an abbreviation.
+                    if c ~= "." or not is_abbrev(token_ending_at(full_line, i)) then
+                        b_term_pos = i
+                        break
+                    end
+                end
+            end
+            i = i - 1
+        end
+        if b_term_pos then
+            sent_start = b_term_pos + 1   -- sentence begins right after the terminator
+            print(string.format("[kardenwort] Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
+                full_line:sub(b_term_pos, b_term_pos), b_term_pos, sent_start))
         else
             sent_start = 1
+            print("[kardenwort] Sent boundary (backward): no terminator found, fallback to block start")
         end
-        
-        -- Search forwards for subtitle boundary
-        local post = full_line:sub(end_pos + 1)
-        local f_idx = post:find("\0", 1, true)
-        if f_idx then
-            sent_end = end_pos + f_idx
+
+        -- === Forward scan: find nearest real sentence terminator after end_pos ===
+        local f_term_pos = nil
+        local k = end_pos + 1
+        while k <= #full_line do
+            local c = full_line:sub(k, k)
+            if is_terminator_char(c) then
+                local after = full_line:sub(k + 1, k + 1)
+                if after == "" or after == " " or after == "\t" or after == "\0" or k == #full_line then
+                    if c ~= "." or not is_abbrev(token_ending_at(full_line, k)) then
+                        f_term_pos = k
+                        break
+                    end
+                end
+            end
+            k = k + 1
         end
-        
+        if f_term_pos then
+            sent_end = f_term_pos   -- include the terminator character
+            print(string.format("[kardenwort] Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
+                full_line:sub(f_term_pos, f_term_pos), f_term_pos, sent_end))
+        else
+            sent_end = #full_line
+            print("[kardenwort] Sent boundary (forward): no terminator found, fallback to block end")
+        end
+
         local raw_sub = full_line:sub(sent_start, sent_end)
         -- Replace sentinels with spaces and trim
         sentence = raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
-        
+
         -- Track where the cleaned sentence actually begins in full_line (for truncation offset math)
         local lead = raw_sub:match("^([%s%z]*)") or ""
         sentence_abs_start = sent_start + #lead
