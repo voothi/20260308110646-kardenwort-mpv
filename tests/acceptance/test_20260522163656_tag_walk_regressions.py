@@ -592,10 +592,22 @@ def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     assert 'if policy == "override" then' in body
     assert 'elseif policy == "neutralize" then' in body
     assert "neutralize_inband = style_is_bgbox" in body
-    assert 'needs_override = true' in body
+    assert 'if parent_mode == "dw" then' in body
+    assert 'elseif style_is_bgbox then' in body
+    assert "neutralize_inband = true" in body
     assert 'if needs_override then' in body
     assert "neutralize_inband = false" in body
-    assert 'elseif style_is_bgbox then' not in body
+
+
+def test_dm_tooltip_auto_policy_preserves_parent_background_box_frame():
+    src = _lua_source()
+    body = _function_window(src, "function build_tooltip_style_context(parent_mode)", "apply_tooltip_ass = function(ass)", span=3500)
+
+    dw_override = body.find('if parent_mode == "dw" then')
+    dm_neutralize = body.find('elseif style_is_bgbox then', dw_override)
+    assert dw_override != -1
+    assert dm_neutralize != -1
+    assert "neutralize_inband = true" in body[dm_neutralize:]
 
 
 def test_tooltip_text_event_neutralization_is_emitted_after_shadow_tags():
