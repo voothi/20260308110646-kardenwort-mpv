@@ -82,14 +82,24 @@ class TestDrumWindowTooltip:
             "drum-window-tooltip: dw_tooltip_osd.z != 25"
         )
 
-    def test_draw_dw_tooltip_uses_bg_opacity(self):
-        """draw_dw_tooltip must reference tooltip_bg_opacity for ASS rendering (drum-window-tooltip)."""
+    def test_draw_dw_tooltip_uses_shared_style_context_with_bg_opacity_fallback(self):
+        """draw_dw_tooltip must route tooltip card alpha through the shared style context."""
         src = _src()
         idx = src.find("local function draw_dw_tooltip")
         assert idx != -1
         body = src[idx:idx + 2000]
-        assert "tooltip_bg_opacity" in body, (
-            "drum-window-tooltip: draw_dw_tooltip does not use tooltip_bg_opacity"
+        assert "build_tooltip_style_context(get_tooltip_parent_mode())" in body, (
+            "drum-window-tooltip: draw_dw_tooltip does not use shared tooltip style context"
+        )
+
+        style_idx = src.find("function build_tooltip_style_context")
+        assert style_idx != -1
+        style_body = src[style_idx:style_idx + 3000]
+        assert "Options.tooltip_bg_alpha" in style_body, (
+            "drum-window-tooltip: tooltip style context does not use tooltip_bg_alpha"
+        )
+        assert "Options.tooltip_bg_opacity" in style_body, (
+            "drum-window-tooltip: tooltip style context does not keep tooltip_bg_opacity fallback"
         )
 
 
