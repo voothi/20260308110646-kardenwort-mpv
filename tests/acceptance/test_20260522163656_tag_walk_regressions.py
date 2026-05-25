@@ -583,12 +583,12 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=18000)
     assert 'tooltip_native_box_policy = "auto"' in opts
     assert 'tooltip_bg_alpha = ""' in opts
-    assert 'tooltip_dw_bg_opacity = ""' in opts
     assert 'tooltip_dw_bg_alpha = ""' in opts
-    assert 'tooltip_dm_bg_opacity = "100"' in opts
-    assert 'tooltip_dm_bg_alpha = ""' in opts
-    assert 'tooltip_srt_bg_opacity = "100"' in opts
-    assert 'tooltip_srt_bg_alpha = ""' in opts
+    assert 'tooltip_dm_bg_alpha = "FF"' in opts
+    assert 'tooltip_srt_bg_alpha = "FF"' in opts
+    assert "tooltip_dw_bg_opacity" not in opts
+    assert "tooltip_dm_bg_opacity" not in opts
+    assert "tooltip_srt_bg_opacity" not in opts
 
 
 def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
@@ -608,13 +608,13 @@ def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     assert "base_alpha = Options.tooltip_bg_opacity" in body
     assert 'if parent_mode == "dw" then' in body
     assert "Options.tooltip_dw_bg_alpha" in body
-    assert "Options.tooltip_dw_bg_opacity" in body
     assert 'elseif parent_mode == "dm" then' in body
     assert "Options.tooltip_dm_bg_alpha" in body
-    assert "Options.tooltip_dm_bg_opacity" in body
     assert 'elseif parent_mode == "srt" then' in body
     assert "Options.tooltip_srt_bg_alpha" in body
-    assert "Options.tooltip_srt_bg_opacity" in body
+    assert "Options.tooltip_dw_bg_opacity" not in body
+    assert "Options.tooltip_dm_bg_opacity" not in body
+    assert "Options.tooltip_srt_bg_opacity" not in body
     assert "card_alpha = calculate_ass_alpha(card_alpha)" in body
 
 

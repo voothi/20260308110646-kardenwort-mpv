@@ -457,12 +457,9 @@ Options = {
     tooltip_bg_color = "000000",       -- Background color (BGR hex)
     tooltip_bg_alpha = "",             -- Preferred tooltip card ASS alpha; empty uses legacy tooltip_bg_opacity
     tooltip_bg_opacity = "60",         -- Legacy card transparency alias; 00/0 opaque, FF/100 transparent
-    tooltip_dw_bg_alpha = "",          -- Preferred DW card ASS alpha; empty uses legacy/fallback value
-    tooltip_dw_bg_opacity = "",        -- Legacy DW card transparency alias; empty uses tooltip_bg_alpha/opacity
-    tooltip_dm_bg_alpha = "",          -- Preferred Drum Mode card ASS alpha; empty uses legacy/fallback value
-    tooltip_dm_bg_opacity = "100",     -- Legacy Drum Mode transparency alias; hides the extra DM card by default
-    tooltip_srt_bg_alpha = "",         -- Preferred SRT card ASS alpha; empty uses legacy/fallback value
-    tooltip_srt_bg_opacity = "100",    -- Legacy SRT card transparency alias; hides the extra SRT card by default
+    tooltip_dw_bg_alpha = "",          -- DW card ASS alpha; empty uses tooltip_bg_alpha/opacity
+    tooltip_dm_bg_alpha = "FF",        -- Drum Mode card ASS alpha; FF hides the extra card by default
+    tooltip_srt_bg_alpha = "FF",       -- SRT card ASS alpha; FF hides the extra card by default
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
     tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
@@ -3143,15 +3140,12 @@ function build_tooltip_style_context(parent_mode)
     local card_alpha = base_alpha
     if parent_mode == "dw" then
         card_alpha = (Options.tooltip_dw_bg_alpha and Options.tooltip_dw_bg_alpha ~= "" and Options.tooltip_dw_bg_alpha)
-            or (Options.tooltip_dw_bg_opacity and Options.tooltip_dw_bg_opacity ~= "" and Options.tooltip_dw_bg_opacity)
             or card_alpha
     elseif parent_mode == "dm" then
         card_alpha = (Options.tooltip_dm_bg_alpha and Options.tooltip_dm_bg_alpha ~= "" and Options.tooltip_dm_bg_alpha)
-            or (Options.tooltip_dm_bg_opacity and Options.tooltip_dm_bg_opacity ~= "" and Options.tooltip_dm_bg_opacity)
             or card_alpha
     elseif parent_mode == "srt" then
         card_alpha = (Options.tooltip_srt_bg_alpha and Options.tooltip_srt_bg_alpha ~= "" and Options.tooltip_srt_bg_alpha)
-            or (Options.tooltip_srt_bg_opacity and Options.tooltip_srt_bg_opacity ~= "" and Options.tooltip_srt_bg_opacity)
             or card_alpha
     end
 

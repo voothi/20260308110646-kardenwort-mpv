@@ -12,37 +12,43 @@ Considered options:
 - Pure in-band native-box neutralization. Rejected as insufficient because it preserves DM frames but still leaves the measured tooltip vector card at the same opacity as DW/SRT, causing DM double-dark stacking.
 - Keep the shared tooltip renderer, but make tooltip card alpha mode-aware while keeping text/native-box policy shared. Chosen because it removes the extra dark DM panel without changing DW/SRT behavior or touching the parent DM subtitle frames.
 
-Implementation decision: `tooltip_dm_bg_opacity` defaults to `100` after visual calibration; empty value falls back to `tooltip_bg_opacity`. This is intentionally narrower than a full DW/DM renderer merge and gives the recurring visual problem a stable configuration point.
+Implementation decision: `tooltip_dm_bg_alpha` defaults to `FF` after visual calibration; empty value falls back to `tooltip_bg_alpha` and then the legacy base `tooltip_bg_opacity`. This is intentionally narrower than a full DW/DM renderer merge and gives the recurring visual problem a stable configuration point.
 
 ## Trace 20260525123946: SRT Tooltip Card Calibration
 
 SRT differs from DW because `tooltip_native_box_policy=auto` intentionally gives the scoped global override only to DW. SRT, like DM, keeps the parent `background-box` style stable and neutralizes native tooltip text boxes in-band. Therefore the remaining visible dark surface is the measured vector tooltip card, not a DW-style global window.
 
-Implementation decision: `tooltip_srt_bg_opacity` was added as a SRT-only card alpha override. It defaults to `100` after visual calibration; empty value falls back to `tooltip_bg_opacity`.
+Implementation decision: `tooltip_srt_bg_alpha` was added as a SRT-only card alpha override. It defaults to `FF` after visual calibration; empty value falls back to `tooltip_bg_alpha` and then the legacy base `tooltip_bg_opacity`.
 
 ## Trace 20260525124408: DW Tooltip Card Calibration
 
 DW originally used `tooltip_bg_opacity` as the baseline card alpha because it was the mode used to define the tooltip renderer. After adding DM and SRT card alpha overrides, leaving DW implicit would keep one evolutionary special case in the shared style context.
 
-Implementation decision: `tooltip_dw_bg_opacity` was added as a DW-only card alpha override. It defaults to empty so the code fallback remains backward-compatible. Visual testing rejected `tooltip_dw_bg_opacity=100`, so DW should normally inherit `tooltip_bg_opacity`.
+Implementation decision: `tooltip_dw_bg_alpha` was added as a DW-only card alpha override. It defaults to empty so DW normally inherits `tooltip_bg_alpha` and then the legacy base `tooltip_bg_opacity`. Visual testing rejected fully transparent DW card alpha, so DW should normally inherit the default card alpha.
 
 ## Trace 20260525125206: DW Transparent Card Rejected
 
-`tooltip_dw_bg_opacity=100` was tested visually in `docs/assets/20260525125200.png` and rejected. DW is different from DM/SRT because its `auto` policy still uses the scoped global border-style override, so making the measured tooltip card fully transparent leaves an outline/text composition that does not match the intended DW tooltip window.
+Fully transparent DW card alpha was tested visually in `docs/assets/20260525125200.png` and rejected. DW is different from DM/SRT because its `auto` policy still uses the scoped global border-style override, so making the measured tooltip card fully transparent leaves an outline/text composition that does not match the intended DW tooltip window.
 
-Implementation decision: keep the DW parameter for symmetry and manual tuning, but leave it empty in defaults/config so DW falls back to `tooltip_bg_opacity`.
+Implementation decision: keep `tooltip_dw_bg_alpha` for symmetry and manual tuning, but leave it empty in defaults/config so DW falls back to the default card alpha.
 
 ## Trace 20260525125430: Replace User-Facing `opacity=100` With ASS Alpha
 
 The mode-specific card override approach is mechanically sound, but exposing the calibrated value as `tooltip_*_bg_opacity=100` is misleading because this renderer converts numeric `0..100` values as transparency percentages. In other words, `100` means fully transparent, not fully opaque.
 
-Implementation decision: add preferred `tooltip_bg_alpha`, `tooltip_dw_bg_alpha`, `tooltip_dm_bg_alpha`, and `tooltip_srt_bg_alpha` options. These use explicit ASS alpha semantics: `00` is opaque and `FF` is fully transparent. The legacy `tooltip_*_bg_opacity` options remain accepted as fallbacks for existing configs.
+Implementation decision: add preferred `tooltip_bg_alpha`, `tooltip_dw_bg_alpha`, `tooltip_dm_bg_alpha`, and `tooltip_srt_bg_alpha` options. These use explicit ASS alpha semantics: `00` is opaque and `FF` is fully transparent. The legacy base `tooltip_bg_opacity` option remains accepted as a fallback for existing configs.
 
 ## Trace 20260525135736: Screenshot Drift Versus ASS Drift
 
 The screenshots `docs/assets/20260525140307.png`, `docs/assets/20260525140324.png`, and `docs/assets/20260525140557.png` can look different even when the tooltip ASS contract is stable, because DM/SRT now use transparent extra tooltip cards and the underlying video/slides strongly affect perceived contrast.
 
 Implementation decision: add a deterministic `test-query-tooltip-style-contract` probe that reports DW/DM/SRT style contexts plus sample card/text ASS. Regression coverage now checks that `render-query` exposes `drum`, `dw`, and `tooltip` overlays, and that the mode contract under `background-box` remains: DW uses scoped override/fallback card alpha; DM/SRT neutralize native boxes and use transparent card alpha.
+
+## Trace 20260525141529: Remove Mode-Specific Legacy Opacity Aliases
+
+After switching mode-specific card calibration to explicit ASS alpha, keeping `tooltip_dw_bg_opacity`, `tooltip_dm_bg_opacity`, and `tooltip_srt_bg_opacity` creates a second confusing configuration path.
+
+Implementation decision: delete the three mode-specific legacy opacity aliases. Keep only the older base `tooltip_bg_opacity` fallback because it predates this change and may exist in user configs.
 
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
