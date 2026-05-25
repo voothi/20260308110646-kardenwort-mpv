@@ -415,7 +415,9 @@ def test_tooltip_visibility_engages_ui_border_override():
 
     assert "apply_tooltip_ass = function(ass)" in helper
     assert "local will_visible =" in helper
-    assert "local wants_override = will_visible and (FSM.DRUM_WINDOW ~= \"OFF\")" in helper
+    assert "local wants_override = false" in helper
+    assert "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())" in helper
+    assert "wants_override = style_ctx.needs_override" in helper
     assert "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)" in helper
     assert "manage_ui_border_override(true)" in helper
     assert "manage_ui_border_override(false)" in helper
@@ -559,7 +561,7 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     assert "local rect_top = block_top - pad_top" in body
     assert "local rect_h = math.max(1, block_height + (2 * pad_top))" in body
     assert "local line_center_y = cur_y + (layout_line_h / 2)" in body
-    assert "anchor_x, line_center_y, line_bgbox_neutral" in body
+    assert "format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)" in body
     assert "if final_y - half_h_with_pad < margin then" in body
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
@@ -568,15 +570,39 @@ def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
     src = _lua_source()
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
-    assert "local dm_mode = (FSM.DRUM_WINDOW == \"OFF\")" in body
-    assert "local line_bgbox_neutral = \"\"" in body
+    assert "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())" in body
     assert "local rect_bg_alpha = bg_alpha" in body
-    assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
-    assert "line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
-    assert "{\\\\bord%g}{\\\\shad%g}{\\\\3c&H%s&}{\\\\4c&H%s&}{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\1c&H%s&}{\\\\1a&H%s&}{\\\\p1}" in body
-    assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}%s{\\\\bord%g}{\\\\shad%g}{\\\\3c&H%s&}{\\\\4c&H%s&}{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\q2}\"," in body
-    assert "Options.tooltip_shadow_offset" in body
+    assert "local bg_rect = format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)" in body
+    assert "local line_ass = format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)" in body
+    assert "line_bgbox_neutral" not in body
     assert "{\\\\bord0}{\\\\shad0}" not in body
+
+
+def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
+    src = _lua_source()
+    opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=14000)
+    assert 'tooltip_native_box_policy = "auto"' in opts
+
+
+def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
+    src = _lua_source()
+    body = _function_window(src, "local function normalize_tooltip_native_box_policy()", "apply_tooltip_ass = function(ass)", span=5000)
+    assert 'policy ~= "auto" and policy ~= "neutralize" and policy ~= "override"' in body
+    assert 'return "srt"' in body
+    assert 'if policy == "override" then' in body
+    assert 'elseif policy == "neutralize" then' in body
+    assert 'elseif style_is_bgbox then' in body
+    assert "neutralize_inband = true" in body
+    assert 'if needs_override then' in body
+    assert "neutralize_inband = false" in body
+
+
+def test_tooltip_text_event_neutralization_is_emitted_after_shadow_tags():
+    src = _lua_source()
+    body = _function_window(src, "local function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)", "local function draw_dw_tooltip", span=2000)
+    assert 'local neutralize_bgbox = style_ctx.neutralize_inband and "{\\\\3a&HFF&}{\\\\4a&HFF&}" or ""' in body
+    # Regression guard: neutralization token is concatenated after the line-level 3a/4a style tags.
+    assert '{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\q2}%s%s' in body
 
 
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():

@@ -469,6 +469,7 @@ Options = {
     tooltip_active_bold = false,
     tooltip_context_bold = false,
     tooltip_highlight_bold = false,
+    tooltip_native_box_policy = "auto", -- auto | neutralize | override
 
     -- Navigation Repeat
     seek_hold_delay = 0.5,
@@ -3088,13 +3089,65 @@ local function invalidate_dw_tooltip_cache()
     DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
 end
 
+local function normalize_tooltip_native_box_policy()
+    local policy = tostring(Options.tooltip_native_box_policy or "auto"):lower()
+    if policy ~= "auto" and policy ~= "neutralize" and policy ~= "override" then
+        return "auto"
+    end
+    return policy
+end
+
+local function get_tooltip_parent_mode()
+    if FSM.DRUM_WINDOW ~= "OFF" then return "dw" end
+    if FSM.DRUM == "ON" then return "dm" end
+    return "srt"
+end
+
+local function build_tooltip_style_context(parent_mode)
+    parent_mode = parent_mode or get_tooltip_parent_mode()
+    local policy = normalize_tooltip_native_box_policy()
+    local style_is_bgbox = (FSM.osd_border_style == "background-box")
+    local needs_override = false
+    local neutralize_inband = false
+
+    if policy == "override" then
+        needs_override = true
+    elseif policy == "neutralize" then
+        neutralize_inband = style_is_bgbox
+    else
+        if parent_mode == "dw" then
+            needs_override = true
+        elseif style_is_bgbox then
+            neutralize_inband = true
+        end
+    end
+
+    if needs_override then
+        neutralize_inband = false
+    end
+
+    return {
+        parent_mode = parent_mode,
+        policy = policy,
+        is_bgbox = style_is_bgbox,
+        needs_override = needs_override,
+        neutralize_inband = neutralize_inband,
+        bg_color = Options.tooltip_bg_color,
+        bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity),
+        bord = Options.tooltip_border_size,
+        shad = Options.tooltip_shadow_offset,
+    }
+end
+
 apply_tooltip_ass = function(ass)
     if not dw_tooltip_osd then return end
     ass = ass or ""
     local will_visible = (ass ~= "")
-    -- DW only: DM's main subtitle OSD relies on the global background-box.
-    -- Tooltip neutralizes its own native boxes with ASS tags in draw_dw_tooltip().
-    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
+    local wants_override = false
+    if will_visible then
+        local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())
+        wants_override = style_ctx.needs_override
+    end
     local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
     if wants_override and not has_override then
         manage_ui_border_override(true)
@@ -4544,6 +4597,19 @@ local function draw_dw(subs, view_center, active_idx)
     return final_ass
 end
 
+local function format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)
+    return string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+        rect_left, rect_top, style_ctx.bord, style_ctx.shad, style_ctx.bg_color, style_ctx.bg_color,
+        style_ctx.bg_alpha, style_ctx.bg_alpha, style_ctx.bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
+end
+
+local function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)
+    local neutralize_bgbox = style_ctx.neutralize_inband and "{\\3a&HFF&}{\\4a&HFF&}" or ""
+    return string.format("{\\pos(%g, %g)}{\\an6}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s%s",
+        anchor_x, line_center_y, style_ctx.bord, style_ctx.shad, style_ctx.bg_color, style_ctx.bg_color,
+        style_ctx.bg_alpha, style_ctx.bg_alpha, neutralize_bgbox, line_text)
+end
+
 local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local tooltip_sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
     if target_line_idx == -1 or not tooltip_sec_subs or #tooltip_sec_subs == 0 then return "" end
@@ -4572,8 +4638,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local base_h = Options.font_base_height or 1080
     local base_w = math.floor(base_h * 16 / 9)
     local anchor_x = base_w - math.floor((120 * base_h / 1080) + 0.5)
-    
-    local bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity)
+    local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())
+    local bg_alpha = style_ctx.bg_alpha
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end
@@ -4634,7 +4700,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 
                 local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
                 local is_man = (tm.priority == 1 or tm.priority == 2)
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, Options.tooltip_bg_color, bg_alpha, Options.tooltip_border_size)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, style_ctx.bg_color, bg_alpha, style_ctx.bord)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
@@ -4649,16 +4715,8 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
         table.insert(subtitle_metas, {sub_idx = i, visual_lines = visual_lines_meta})
     end
     
-    local bg_color = Options.tooltip_bg_color
-    local bord = Options.tooltip_border_size
-    local dm_mode = (FSM.DRUM_WINDOW == "OFF")
-    local line_bgbox_neutral = ""
+    local bord = style_ctx.bord
     local rect_bg_alpha = bg_alpha
-    -- In DM with global background-box style enabled, use only our measured
-    -- vector card; native text boxes have different geometry and darken twice.
-    if dm_mode and FSM.osd_border_style == "background-box" then
-        line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
-    end
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp
@@ -4713,9 +4771,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
             max_x = math.max(max_x, line_x_start + vl.width)
             
             local line_center_y = cur_y + (layout_line_h / 2)
-            local style_part = string.format("{\\pos(%g, %g)}{\\an6}%s{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}",
-                anchor_x, line_center_y, line_bgbox_neutral, bord, Options.tooltip_shadow_offset, bg_color, bg_color, bg_alpha, bg_alpha)
-            local line_ass = style_part .. vl.line_text
+            local line_ass = format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)
             table.insert(all_tooltip_lines_ass, line_ass)
             
             cur_y = cur_y + layout_line_h
@@ -4733,8 +4789,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + (2 * pad_top))
 
-    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
-        rect_left, rect_top, bord, Options.tooltip_shadow_offset, bg_color, bg_color, bg_alpha, bg_alpha, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
+    local bg_rect = format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)
 
     local ass = bg_rect
     if #all_tooltip_lines_ass > 0 then
