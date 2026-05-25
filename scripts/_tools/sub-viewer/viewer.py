@@ -41,6 +41,83 @@ READER_OPTIMAL_WORDS_PER_MINUTE = 180.0
 READER_MIN_CUE_SECONDS = 1.2
 READER_MAX_CUE_SECONDS = 7.0
 # ==============================================================================
+# Reader timing can be overridden in mpv.conf via script-opts-append lines, e.g.:
+#   script-opts-append=kardenwort-reader_max_cue_seconds=10
+#   script-opts-append=kardenwort-reader_min_cue_seconds=1.2
+#   script-opts-append=kardenwort-reader_cps=15.0
+#   script-opts-append=kardenwort-reader_wpm=180.0
+#   script-opts-append=kardenwort-reader_max_chars_per_line=90
+# ==============================================================================
+
+
+def _find_mpv_conf():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    candidate = script_dir
+    for _ in range(5):
+        conf = os.path.join(candidate, "mpv.conf")
+        if os.path.exists(conf):
+            return conf
+        parent = os.path.dirname(candidate)
+        if parent == candidate:
+            break
+        candidate = parent
+    appdata = os.environ.get("APPDATA", "")
+    if appdata:
+        fallback = os.path.join(appdata, "mpv", "mpv.conf")
+        if os.path.exists(fallback):
+            return fallback
+    return None
+
+
+def _parse_kardenwort_reader_opts(mpv_conf_path):
+    opts = {}
+    if not mpv_conf_path:
+        return opts
+    try:
+        with open(mpv_conf_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                line = line.strip()
+                m = re.match(r'^script-opts-append\s*=\s*kardenwort-reader_(\w+)\s*=\s*(.+)$', line)
+                if m:
+                    opts[m.group(1)] = m.group(2).strip()
+                elif re.match(r'^script-opts\s*=', line):
+                    value_part = line.split('=', 1)[1]
+                    for segment in value_part.split(','):
+                        m2 = re.match(r'^kardenwort-reader_(\w+)=(.+)$', segment.strip())
+                        if m2:
+                            opts[m2.group(1)] = m2.group(2).strip()
+    except Exception:
+        pass
+    return opts
+
+
+def _apply_reader_opts(opts):
+    global READER_MAX_CUE_SECONDS, READER_MIN_CUE_SECONDS
+    global READER_OPTIMAL_CHARACTERS_PER_SECOND, READER_OPTIMAL_WORDS_PER_MINUTE
+    global READER_MAX_CHARS_PER_LINE
+    float_keys = {
+        'max_cue_seconds': 'READER_MAX_CUE_SECONDS',
+        'min_cue_seconds': 'READER_MIN_CUE_SECONDS',
+        'cps': 'READER_OPTIMAL_CHARACTERS_PER_SECOND',
+        'wpm': 'READER_OPTIMAL_WORDS_PER_MINUTE',
+    }
+    int_keys = {
+        'max_chars_per_line': 'READER_MAX_CHARS_PER_LINE',
+    }
+    g = globals()
+    for key, var in float_keys.items():
+        if key in opts:
+            try:
+                g[var] = float(opts[key])
+            except ValueError:
+                pass
+    for key, var in int_keys.items():
+        if key in opts:
+            try:
+                g[var] = int(opts[key])
+            except ValueError:
+                pass
+
 
 def log_error_and_alert(error_msg):
     """
@@ -499,6 +576,8 @@ def get_mpv_log_path():
 
 def main():
     try:
+        _apply_reader_opts(_parse_kardenwort_reader_opts(_find_mpv_conf()))
+
         if len(sys.argv) < 2:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
 
