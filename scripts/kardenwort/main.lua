@@ -1184,10 +1184,20 @@ function parse_time(time_str)
     return 0
 end
 
+local function normalize_inline_break_markers(text)
+    if not text or text == "" then return text or "" end
+    -- Normalize escaped ASS-style break markers that may appear in SRT/TXT content.
+    text = text:gsub("\\N", " \n ")
+    text = text:gsub("\\n", " \n ")
+    text = text:gsub("\\h", " ")
+    return text
+end
+
 function clean_text_srt(line)
     if not line then return "" end
     line = line:gsub("^\xEF\xBB\xBF", "")
     line = line:gsub("\r", ""):gsub("<[^>]+>", ""):gsub("%z", "")
+    line = normalize_inline_break_markers(line)
     return line:gsub("^%s*(.-)%s*$", "%1")
 end
 
@@ -1223,7 +1233,7 @@ function load_sub(path, is_ass)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
-                            local raw_text = text:gsub("\\N", " \n "):gsub("{[^}]+}", "")
+                            local raw_text = normalize_inline_break_markers(text):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%z", ""):match("^%s*(.-)%s*$")
                             if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
@@ -1688,6 +1698,7 @@ end
 
 local function escape_tsv(str)
     if type(str) ~= "string" then return tostring(str or "") end
+    str = normalize_inline_break_markers(str)
     return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
@@ -1927,13 +1938,13 @@ local function get_sub_tokens(s, force_rich)
     
     if use_rich then
         if not s.tokens_rich then
-            local raw_text = s.text:gsub("\n", " ")
+            local raw_text = normalize_inline_break_markers(s.text):gsub("\n", " ")
             s.tokens_rich = build_word_list_internal(raw_text, true)
         end
         return s.tokens_rich
     else
         if not s.tokens then
-            local raw_text = s.text:gsub("\n", " ")
+            local raw_text = normalize_inline_break_markers(s.text):gsub("\n", " ")
             s.tokens = build_word_list_internal(raw_text, false)
             local wc = 0
             for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
@@ -2016,7 +2027,7 @@ local function prepare_export_text(params, options)
         for i = p1_l, p2_l do
             local sub = target_subs[i]
             if sub then
-                local raw_text = sub.text:gsub("\n", " ")
+                local raw_text = normalize_inline_break_markers(sub.text):gsub("\n", " ")
                 local tokens = build_word_list_internal(raw_text, true)
                 
                 local line_parts = {}
@@ -2044,7 +2055,7 @@ local function prepare_export_text(params, options)
         for idx, m in ipairs(members) do
             local sub = target_subs[m.line]
             if sub then
-                local raw_text = sub.text:gsub("\n", " ")
+                local raw_text = normalize_inline_break_markers(sub.text):gsub("\n", " ")
                 local tokens = build_word_list_internal(raw_text, true)
                 local w_text = nil
                 
@@ -2086,7 +2097,7 @@ local function prepare_export_text(params, options)
                         else
                             -- Requirement 86: Use verbatim tokens between adjacent members
                             if m.line == last_m.line then
-                                local last_line_tokens = build_word_list_internal(target_subs[last_m.line].text:gsub("\n", " "), true)
+                                local last_line_tokens = build_word_list_internal(normalize_inline_break_markers(target_subs[last_m.line].text):gsub("\n", " "), true)
                                 for _, t in ipairs(last_line_tokens) do
                                     if t.logical_idx > last_m.word + L_EPSILON and t.logical_idx < m.word - L_EPSILON then
                                         table.insert(parts, t.text)
@@ -2106,7 +2117,7 @@ local function prepare_export_text(params, options)
     elseif params.type == "POINT" then
         local sub = target_subs[params.line]
         if sub then
-            local raw_text = sub.text:gsub("\n", " ")
+            local raw_text = normalize_inline_break_markers(sub.text):gsub("\n", " ")
             if params.word and params.word ~= -1 then
                 local tokens = build_word_list_internal(raw_text, true)
                 for _, t in ipairs(tokens) do
@@ -5547,7 +5558,7 @@ local function dw_anki_export_selection()
             for i = p1_l, p2_l do
                 local sub = subs[i]
                 if sub then
-                    local raw_text = sub.text:gsub("\n", " ")
+                    local raw_text = normalize_inline_break_markers(sub.text):gsub("\n", " ")
                     local tokens = build_word_list_internal(raw_text, true)
                     for _, t in ipairs(tokens) do
                         if t.is_word then
@@ -5571,7 +5582,7 @@ local function dw_anki_export_selection()
             local start_k = math.max(1, p1_l - Options.anki_context_lines)
             for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
                 if subs[k] then 
-                    local text = subs[k].text:gsub("{[^}]+}", "")
+                    local text = normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")
                     
                     if k == p1_l then
                         -- Precision Anchor
@@ -8119,7 +8130,7 @@ local function draw_search_ui()
             if result_idx > #FSM.SEARCH_RESULTS then break end
             
             local result_data = FSM.SEARCH_RESULTS[result_idx]
-            local sub_text = Tracks.pri.subs[result_data.idx].text:gsub("\n", " ")
+            local sub_text = normalize_inline_break_markers(Tracks.pri.subs[result_data.idx].text):gsub("\n", " ")
             local raw_t_table = utf8_to_table(sub_text)
             
             -- Truncate for display (v1.58.0 standard)
@@ -9341,7 +9352,7 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     if FSM.COPY_CONTEXT == "ON" then
         local ctx = get_copy_context_text(time_pos, cl)
         if ctx and ctx ~= "" then
-            return ctx:gsub("{[^}]+}", ""):gsub("\n", " "), true
+            return normalize_inline_break_markers(ctx):gsub("{[^}]+}", ""):gsub("\n", " "), true
         end
     end
 
