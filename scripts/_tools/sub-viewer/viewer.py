@@ -257,7 +257,8 @@ def _estimate_cue_duration_seconds(cue_text):
 
     duration_ms = max(char_ms, word_ms)
     min_ms = READER_MIN_CUE_SECONDS * 1000.0
-    max_ms = READER_MAX_CUE_SECONDS * 1000.0
+    display_lines = cue_text.count('\n') + 1
+    max_ms = READER_MAX_CUE_SECONDS * display_lines * 1000.0
     duration_ms = max(min_ms, min(max_ms, duration_ms))
     return duration_ms / 1000.0
 
