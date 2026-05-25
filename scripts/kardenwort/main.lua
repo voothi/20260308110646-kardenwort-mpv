@@ -3092,10 +3092,9 @@ apply_tooltip_ass = function(ass)
     if not dw_tooltip_osd then return end
     ass = ass or ""
     local will_visible = (ass ~= "")
-    -- DW only: DM relies on the in-ASS neutralization (rect_bg_alpha = "FF",
-    -- line_bgbox_neutral) inside draw_dw_tooltip so flipping the global
-    -- osd-border-style here would strip frames from DM drum/native OSD.
-    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
+    -- Tooltip uses its own measured vector card in both DM and DW. While it is
+    -- visible, disable mpv's native background-box so it cannot add a second box.
+    local wants_override = will_visible
     local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
     if wants_override and not has_override then
         manage_ui_border_override(true)
@@ -4655,13 +4654,9 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local dm_mode = (FSM.DRUM_WINDOW == "OFF")
     local line_bgbox_neutral = ""
     local rect_bg_alpha = bg_alpha
-    -- In DM with global background-box style enabled, mpv already paints a backdrop.
-    -- Keep the shared vector card for geometry consistency, but make it transparent
-    -- to avoid the perceived "double-dark" tooltip window.
+    -- In DM with global background-box style enabled, use only our measured
+    -- vector card; native text boxes have different geometry and darken twice.
     if dm_mode and FSM.osd_border_style == "background-box" then
-        rect_bg_alpha = "FF"
-        -- Keep only the global background-box contribution in DM:
-        -- tooltip lines must not add another dark layer.
         line_bgbox_neutral = "{\\3a&HFF&\\4a&HFF&}"
     end
     
@@ -4737,7 +4732,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local rect_w = math.max(1, (max_x - min_x) + (2 * pad_x))
     local rect_h = math.max(1, block_height + (2 * pad_top))
 
-    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+    local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
         rect_left, rect_top, bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
 
     local ass = bg_rect

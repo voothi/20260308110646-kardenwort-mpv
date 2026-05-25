@@ -373,7 +373,7 @@ def test_tooltip_visibility_engages_ui_border_override():
 
     assert "apply_tooltip_ass = function(ass)" in helper
     assert "local will_visible =" in helper
-    assert "local wants_override = will_visible and (FSM.DRUM_WINDOW ~= \"OFF\")" in helper
+    assert "local wants_override = will_visible" in helper
     assert "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)" in helper
     assert "manage_ui_border_override(true)" in helper
     assert "manage_ui_border_override(false)" in helper
@@ -522,7 +522,7 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
 
-def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dark():
+def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
     src = _lua_source()
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
@@ -530,8 +530,8 @@ def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dar
     assert "local line_bgbox_neutral = \"\"" in body
     assert "local rect_bg_alpha = bg_alpha" in body
     assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
-    assert "rect_bg_alpha = \"FF\"" in body
     assert "line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
+    assert "{\\\\bord0}{\\\\shad0}{\\\\3a&HFF&}{\\\\4a&HFF&}{\\\\1c&H%s&}{\\\\1a&H%s&}{\\\\p1}" in body
     assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, line_center_y, line_bgbox_neutral)" in body
 
 
