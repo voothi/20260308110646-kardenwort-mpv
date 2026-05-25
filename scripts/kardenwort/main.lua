@@ -1184,7 +1184,7 @@ function parse_time(time_str)
     return 0
 end
 
-local function normalize_inline_break_markers(text)
+function normalize_inline_break_markers(text)
     if not text or text == "" then return text or "" end
     -- Normalize escaped ASS-style break markers that may appear in SRT/TXT content.
     text = text:gsub("\\N", " \n ")
