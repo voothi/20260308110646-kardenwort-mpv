@@ -343,3 +343,166 @@ def test_parallel_reader_preserves_hyphenated_terms_without_extra_spaces_or_ass_
         for payload in _srt_payload_lines(ru_srt_text):
             assert payload == payload.strip()
             assert "  " not in payload
+
+
+# =============================================================================
+# Reader cue timing — mpv.conf integration (ZID 20260526012307)
+# =============================================================================
+
+def test_multiline_cue_cap_scales_with_display_lines():
+    """A cue with N display lines gets N× the per-line cap."""
+    viewer = _load_viewer_module()
+    original_max = viewer.READER_MAX_CUE_SECONDS
+    viewer.READER_MAX_CUE_SECONDS = 7.0
+    try:
+        one_line = "Short single line."
+        two_lines = "Line one that wraps here\nLine two continues here."
+        three_lines = "First line of three\nSecond line of three\nThird line of three."
+
+        d1 = viewer._estimate_cue_duration_seconds(one_line)
+        d2 = viewer._estimate_cue_duration_seconds(two_lines)
+        d3 = viewer._estimate_cue_duration_seconds(three_lines)
+
+        assert d1 <= 7.0,  f"1-line cap should be ≤7s, got {d1}"
+        assert d2 <= 14.0, f"2-line cap should be ≤14s, got {d2}"
+        assert d3 <= 21.0, f"3-line cap should be ≤21s, got {d3}"
+        assert d2 > d1,    "2-line cue should be longer than 1-line"
+        assert d3 > d2,    "3-line cue should be longer than 2-line"
+    finally:
+        viewer.READER_MAX_CUE_SECONDS = original_max
+
+
+def test_long_prose_line_exceeds_seven_second_default():
+    """A 190-char prose cue wrapped to 2 display lines must exceed the old 7s cap."""
+    viewer = _load_viewer_module()
+    original_max = viewer.READER_MAX_CHARS_PER_LINE
+    viewer.READER_MAX_CHARS_PER_LINE = 90
+    try:
+        long_text = (
+            "And Microsoft is not alone: across the four biggest hyperscalers, combined 2026 capital "
+            "spending is on track to approach $700 billion, nearly double what they spent in 2025."
+        )
+        wrapped = viewer._split_long_line(long_text, viewer.READER_MAX_CHARS_PER_LINE)
+        cue_text = "\n".join(wrapped)
+        assert len(wrapped) >= 2, "Precondition: text must wrap to at least 2 display lines"
+        duration = viewer._estimate_cue_duration_seconds(cue_text)
+        assert duration > 7.0, f"Long 2-line prose cue should exceed 7s, got {duration:.2f}s"
+    finally:
+        viewer.READER_MAX_CHARS_PER_LINE = original_max
+
+
+def test_parse_kardenwort_reader_opts_reads_script_opts_append():
+    """_parse_kardenwort_reader_opts extracts kardenwort-reader_* from script-opts-append lines."""
+    viewer = _load_viewer_module()
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False, encoding='utf-8') as f:
+        f.write("script-opts-append=kardenwort-reader_max_cue_seconds=12.5\n")
+        f.write("script-opts-append=kardenwort-reader_cps=13.0\n")
+        f.write("script-opts-append=kardenwort-srt_font_size=34\n")  # must NOT appear
+        conf_path = f.name
+    try:
+        opts = viewer._parse_kardenwort_reader_opts(conf_path)
+        assert opts.get('max_cue_seconds') == '12.5'
+        assert opts.get('cps') == '13.0'
+        assert 'srt_font_size' not in opts
+    finally:
+        Path(conf_path).unlink(missing_ok=True)
+
+
+def test_parse_kardenwort_reader_opts_reads_inline_script_opts():
+    """_parse_kardenwort_reader_opts also handles comma-delimited script-opts= lines."""
+    viewer = _load_viewer_module()
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False, encoding='utf-8') as f:
+        f.write("script-opts=kardenwort-reader_wpm=200.0,kardenwort-srt_font_size=34\n")
+        conf_path = f.name
+    try:
+        opts = viewer._parse_kardenwort_reader_opts(conf_path)
+        assert opts.get('wpm') == '200.0'
+        assert 'srt_font_size' not in opts
+    finally:
+        Path(conf_path).unlink(missing_ok=True)
+
+
+def test_parse_kardenwort_reader_opts_returns_empty_for_missing_file():
+    viewer = _load_viewer_module()
+    opts = viewer._parse_kardenwort_reader_opts("/nonexistent/path/mpv.conf")
+    assert opts == {}
+
+
+def test_parse_kardenwort_reader_opts_returns_empty_for_none():
+    viewer = _load_viewer_module()
+    opts = viewer._parse_kardenwort_reader_opts(None)
+    assert opts == {}
+
+
+def test_apply_reader_opts_overrides_float_globals():
+    """_apply_reader_opts updates READER_* float globals correctly."""
+    viewer = _load_viewer_module()
+    original_max = viewer.READER_MAX_CUE_SECONDS
+    original_cps = viewer.READER_OPTIMAL_CHARACTERS_PER_SECOND
+    try:
+        viewer._apply_reader_opts({'max_cue_seconds': '10.0', 'cps': '13.5'})
+        assert viewer.READER_MAX_CUE_SECONDS == 10.0
+        assert viewer.READER_OPTIMAL_CHARACTERS_PER_SECOND == 13.5
+    finally:
+        viewer.READER_MAX_CUE_SECONDS = original_max
+        viewer.READER_OPTIMAL_CHARACTERS_PER_SECOND = original_cps
+
+
+def test_apply_reader_opts_overrides_int_globals():
+    """_apply_reader_opts updates READER_MAX_CHARS_PER_LINE as int."""
+    viewer = _load_viewer_module()
+    original = viewer.READER_MAX_CHARS_PER_LINE
+    try:
+        viewer._apply_reader_opts({'max_chars_per_line': '70'})
+        assert viewer.READER_MAX_CHARS_PER_LINE == 70
+        assert isinstance(viewer.READER_MAX_CHARS_PER_LINE, int)
+    finally:
+        viewer.READER_MAX_CHARS_PER_LINE = original
+
+
+def test_apply_reader_opts_ignores_invalid_values():
+    """_apply_reader_opts silently skips keys with non-numeric values."""
+    viewer = _load_viewer_module()
+    original = viewer.READER_MAX_CUE_SECONDS
+    try:
+        viewer._apply_reader_opts({'max_cue_seconds': 'bad_value'})
+        assert viewer.READER_MAX_CUE_SECONDS == original
+    finally:
+        viewer.READER_MAX_CUE_SECONDS = original
+
+
+def test_apply_reader_opts_ignores_unknown_keys():
+    """_apply_reader_opts does not crash on unknown option keys."""
+    viewer = _load_viewer_module()
+    viewer._apply_reader_opts({'unknown_key': '99', 'another': 'abc'})
+
+
+def test_find_mpv_conf_locates_project_root_conf():
+    """_find_mpv_conf returns a path ending in mpv.conf that actually exists."""
+    viewer = _load_viewer_module()
+    result = viewer._find_mpv_conf()
+    assert result is not None, "_find_mpv_conf should find the project-root mpv.conf"
+    assert Path(result).name == "mpv.conf"
+    assert Path(result).exists()
+
+
+def test_apply_reader_opts_roundtrip_via_temp_conf():
+    """Full roundtrip: write a temp mpv.conf, parse it, apply it, check globals."""
+    viewer = _load_viewer_module()
+    original_max = viewer.READER_MAX_CUE_SECONDS
+    original_wpm = viewer.READER_OPTIMAL_WORDS_PER_MINUTE
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False, encoding='utf-8') as f:
+            f.write("script-opts-append=kardenwort-reader_max_cue_seconds=11.0\n")
+            f.write("script-opts-append=kardenwort-reader_wpm=160.0\n")
+            conf_path = f.name
+
+        opts = viewer._parse_kardenwort_reader_opts(conf_path)
+        viewer._apply_reader_opts(opts)
+
+        assert viewer.READER_MAX_CUE_SECONDS == 11.0
+        assert viewer.READER_OPTIMAL_WORDS_PER_MINUTE == 160.0
+    finally:
+        viewer.READER_MAX_CUE_SECONDS = original_max
+        viewer.READER_OPTIMAL_WORDS_PER_MINUTE = original_wpm
+        Path(conf_path).unlink(missing_ok=True)

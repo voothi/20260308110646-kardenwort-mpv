@@ -41,12 +41,8 @@ READER_OPTIMAL_WORDS_PER_MINUTE = 180.0
 READER_MIN_CUE_SECONDS = 1.2
 READER_MAX_CUE_SECONDS = 7.0
 # ==============================================================================
-# Reader timing can be overridden in mpv.conf via script-opts-append lines, e.g.:
-#   script-opts-append=kardenwort-reader_max_cue_seconds=10
-#   script-opts-append=kardenwort-reader_min_cue_seconds=1.2
-#   script-opts-append=kardenwort-reader_cps=15.0
-#   script-opts-append=kardenwort-reader_wpm=180.0
-#   script-opts-append=kardenwort-reader_max_chars_per_line=90
+# All READER_* values above can be overridden in mpv.conf without editing this
+# file — see the "Sub-Viewer Reader Settings" section in mpv.conf.
 # ==============================================================================
 
 
