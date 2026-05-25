@@ -18,6 +18,14 @@ The Tooltip system SHALL support the standard suite of visual parameters (font n
 - **THEN** the system SHALL resolve and apply local font variables (including `fs` and line height tracking)
 - **AND** rendering SHALL complete without Lua formatting exceptions caused by nil font variables.
 
+### Requirement: Symmetric Tooltip Padding
+The tooltip background card SHALL apply configured extra vertical padding symmetrically so the visual distance from the top rendered line to the top border matches the distance from the bottom rendered line to the bottom border.
+
+#### Scenario: `tooltip_top_pad_extra` is configured
+- **WHEN** `tooltip_top_pad_extra` is greater than zero
+- **THEN** the tooltip renderer SHALL include that extra padding in both the top and bottom card margins
+- **AND** vertical boundary clamping SHALL use the same symmetric padded height.
+
 ### Requirement: Keyboard Tooltip Toggling
 The system SHALL provide configurable keyboard shortcuts (defined in `mpv.conf`) to toggle the visibility of the tooltip for the currently active subtitle. This functionality SHALL be available in Drum Window mode, Drum Mode, and SRT mode (when using custom OSD rendering).
 
@@ -76,6 +84,12 @@ The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns f
 - **WHEN** the user presses and holds RMB and moves the mouse across multiple subtitle lines
 - **THEN** the tooltip SHALL dynamically update to show information for the line currently under the mouse pointer.
 
+#### Scenario: RMB carry-through starts in a gap
+- **GIVEN** the user presses and holds RMB outside a resolved subtitle word or in an inter-line aisle
+- **WHEN** the user carries the pointer into a subtitle line while still holding RMB
+- **THEN** tooltip holding state SHALL already be active
+- **AND** the tooltip SHALL appear for the subtitle line once hit resolution succeeds.
+
 #### Scenario: Tooltip dismisses when mouse focus leaves pinned line (CLICK Mode)
 - **GIVEN** the Drum Window tooltip is in `CLICK` mode (no active keyboard force)
 - **WHEN** the user right-clicks a line to pin the tooltip
@@ -83,7 +97,7 @@ The system SHALL preserve legacy Right Mouse Button (RMB) interaction patterns f
 - **THEN** the pinned tooltip SHALL be dismissed.
 
 ### Requirement: Precision Centering and Interval Sync
-When `tooltip_y_offset_lines = 0`, the tooltip's active line midpoint must align perfectly with the target OSD line midpoint.
+When `tooltip_y_offset_lines = 0`, the tooltip's active line midpoint SHALL align with the target OSD line midpoint.
 
 #### Scenario: Alignment Calculation
 - **GIVEN** a tooltip is displayed for a target line
@@ -180,11 +194,13 @@ The system SHALL support independent selection and multi-word highlight colors f
 ### Requirement: Independent Highlight Weight Calibration
 The system SHALL support independent font-weight (bold/regular) toggles for highlights in all modes, ensuring manual selections can be set to "Premium" regular weight while database matches remain bold.
 
+#### Scenario: Tooltip manual selection weight
+- **WHEN** a manual selection is highlighted in the tooltip
 - **THEN** manual selections in the tooltip SHALL be rendered with regular weight (`\b0`).
 - **AND** database matches (Priority 3) SHALL still respect `anki_highlight_bold`.
 
 ### Requirement: UI - Tooltip Hit-Zones and Highlight Aesthetics
-Tooltips and highlights must be visually accurate and interactive as per archives 20260503190627 and 20260502135022.
+Tooltips and highlights SHALL be visually accurate and interactive as per archives 20260503190627 and 20260502135022.
 
 #### Scenario: Tooltip Hit-Zone Accuracy
 - **WHEN** the mouse hovers over a word in the Drum Window.

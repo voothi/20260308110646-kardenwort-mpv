@@ -15,6 +15,15 @@ The system SHALL bind mouse selection highlights to hardware-level motion events
 - **WHEN** the user drags the mouse to select multiple words
 - **THEN** the highlight SHALL update at the player's native frame rate (60fps+) without polling lag.
 
+### Requirement: Reachable Edge-Scroll During Overflow
+The system SHALL keep Drum Window drag edge-scroll triggers reachable even when long wrapped subtitles make the rendered text block overflow the OSD frame.
+
+#### Scenario: Dragging from an overflowing top or bottom visual line
+- **GIVEN** Drum Window contains long wrapped subtitles whose hit-zones extend beyond the top or bottom OSD boundary
+- **WHEN** the user holds LMB and drags through the first visual line upward or the last visual line downward
+- **THEN** selection SHALL continue to follow the pointer
+- **AND** edge-scroll SHALL use a reachable screen-edge trigger instead of an unreachable off-screen first/last hit-zone boundary.
+
 ### Requirement: Double-Click Seek Synchronization
 The system SHALL support instant seeking via double-click with viewport synchronization logic that respects the active reading mode.
 

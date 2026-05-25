@@ -1,6 +1,6 @@
 # Specification: Rendering Uniformity
 
-## Overview
+## Purpose
 All OSD overlays must exhibit identical visual properties (brightness, sharpness, and layering) to ensure a premium, unified user experience.
 
 ## Standardized Tags
@@ -16,7 +16,7 @@ The following ASS tags are mandatory for all Kardenwort renderers:
 ## Opacity and Alpha
 All transparency settings must be processed through the `calculate_ass_alpha` utility to ensure consistent interpretation of the `00-FF` (hex) scale across `\1a`, `\3a`, and `\4a`.
 
-## Transparency Management
+## Requirements
 
 ### Requirement: Alpha Context Synchronization
 The rendering engine SHALL preserve global `bg_opacity` settings across all OSD layers by explicitly restoring the background alpha context after every surgical tag injection.
@@ -24,6 +24,15 @@ The rendering engine SHALL preserve global `bg_opacity` settings across all OSD 
 #### Scenario: Navigating with transparent background
 - **WHEN** the `dw_bg_opacity` is set to a non-zero value (semi-transparent)
 - **THEN** all rendered subtitle lines SHALL maintain their intended transparency even when containing high-intensity interactive highlights.
+
+### Requirement: Native Background-Box Neutralization
+Custom vector-card OSD renderers SHALL neutralize mpv's native `background-box` contribution on both card and text events to prevent double-dark or mode-dependent tone drift.
+
+#### Scenario: Rendering custom cards while native background-box is enabled
+- **GIVEN** `osd-border-style=background-box` or `sub-border-style=background-box` is active
+- **WHEN** Kardenwort renders a notice, seek card, tooltip card, or other custom vector background
+- **THEN** the custom ASS events SHALL explicitly neutralize native background-box layers
+- **AND** DM and DW SHALL display consistent OSD darkness and frame boundaries for the same configured opacity.
 
 ### Requirement: Uniform Active Subtitle Alignment
 The active subtitle color SHALL be unified across all modes following the historical transition from Blue to White.
