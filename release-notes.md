@@ -1,26 +1,41 @@
-# Release Notes - v1.84.26 (Sentence Scoping Regression Fix)
+# Release Notes - v1.84.28 (Unified Tooltip, Sub-Viewer Spacing & Sentence Scoping Fix)
 
 **Date**: 2026-05-25
-**ZID**: 20260525193414
+**Version**: v1.84.28
+**Implementation ZIDs**: 20260525211220, 20260525205305, 20260525202411, 20260525201206, 20260525194304, 20260525193913, 20260525191040, 20260525182922, 20260525181115, 20260525180632, 20260525175841, 20260525174745, 20260525172206, 20260525171914, 20260525165244, 20260525162045
 
-## Bug Fix
+## Highlights
 
-### Anki `SentenceSource` — Full-Sentence Capture Restored
-
-`extract_anki_context` now exports the **complete grammatical sentence** around the selected word or phrase, instead of truncating to a single subtitle line.
-
-**Root cause**: Change `20260429012045-subtitle-line-sentence-boundaries` replaced period-based boundary detection with NUL-sentinel (`\0`) subtitle-line scoping to fix false splits on German abbreviations (`ca.`, `z.B.`). This broke properly-punctuated SRTs where one sentence spans 2–3 subtitle lines.
-
-**Fix**: Sentence boundaries are now derived from real terminators (`.`, `!`, `?`) by scanning across `\0` sentinels. Abbreviations are skipped via the existing heuristic plus the configurable `anki_abbrev_list`. When no terminator is found (e.g. unpunctuated YouTube auto-subs), the full ±N joined context block is returned.
-
-### New Options
+### 🔍 **Punctuation-Anchored Sentence Scoping & Regression Fix**
+- **Full-Sentence Capture Restored**: `extract_anki_context` now exports the **complete grammatical sentence** around the selected word or phrase, instead of truncating to a single subtitle line.
+- **Root Cause & Fix**: Change `20260429012045-subtitle-line-sentence-boundaries` had replaced period-based boundary detection with NUL-sentinel (`\0`) subtitle-line scoping to fix false splits on German abbreviations, breaking sentences that spanned multiple subtitle lines. Sentence boundaries are now derived from real terminators (`.`, `!`, `?`) by scanning across `\0` sentinels.
+- **German Abbreviation Robustness**: Skips built-in default abbreviations (`ca. z.B. usw. bzw. etc. t.con d.h. u.a. vgl. ggf. bspw. u.U. i.d.R. bzgl. evtl.`) and custom user-provided patterns to prevent false splits.
+- **Local Slot Budget Optimization**: Nesting `token_ending_at` and `is_terminator_char` helper functions locally inside `extract_anki_context` to bypass Lua's chunk-level local slot limit budget and prevent startup/runtime crashes.
+- **New Options**:
 
 | Option | Default | Description |
 |---|---|---|
 | `kardenwort-anki_sentence_terminators` | `.!?` | Characters that mark a sentence end. Each character is an independent terminator. |
 | `kardenwort-anki_abbrev_list` | `ca. z.B. usw. ...` | Space-separated abbreviation tokens the scanner must skip. Augments the built-in heuristic. |
+| `kardenwort-anki_abbrev_smart` | `yes` | Enable built-in heuristic for abbreviation pattern detection. |
+
+### 🎨 **Unified Tooltip & OSD Border Override**
+- **Consolidated Tooltip/OSD Paths**: Consolidated `show_osd()` and `show_seek_osd()` to use a single compact ASS card renderer across all modes (DW, DM, SRT), ensuring visual harmony.
+- **Mode-Aware Tooltip Transparency**: Introduced mode-aware tooltip background alpha controls (`tooltip_dw_bg_alpha`, `tooltip_dm_bg_alpha`, `tooltip_srt_bg_alpha`) to precisely customize transparency per context.
+- **DM Dark-Frame Resolution**: Resolved dark tooltip window issues in Drum Mode by implementing DM-specific transparent card alpha while preserving master subtitle frames.
+- **Symmetric Padding & RMB Hold-Drag**: Applied `tooltip_top_pad_extra` symmetrically to both top and bottom tooltip borders. Restored RMB carry-through behavior, allowing tooltip pin to remain active when dragging from gaps/aisles onto subtitles.
+- **Dynamic OSD Border Overrides**: Implemented strict border ownership rules to prevent Ctrl+F search overlay from corrupting other OSD styles.
+
+### 📺 **Standalone Subtitle Viewer Break Marker Spacing**
+- **Break Spacing Consistency**: Standardized the spacing around break markers in the Standalone Subtitle Viewer tool, ensuring perfect parallel visual sync.
+- **Timeline Bounding**: Automatically scans files and adjusts the player's timeline dynamically to match study material duration.
+- **Zero-Dependency Seekable Canvas**: Integrated a highly optimized black video canvas (`black.mp4`) directly, solving seek failures.
+
+### 🧪 **Milestone: 904 Passed Tests**
+- **Comprehensive Regression Protection**: Reached 904 green tests in our python/pytest suite, adding structural tests for punctuation sentence scoping, OSD border styles, and sub-viewer break markers.
 
 ---
+
 
 # Release Notes - v1.84.24 (OSD Frame Unification & Tooltip Rendering)
 
