@@ -2844,6 +2844,6 @@
 20260525194515 /opsx:apply 20260525193414-restore-period-sentence-scoping
 20260525200839 Implementation Complete Change: 20260525193414-restore-period-sentence-scoping Schema: spec-driven Progress: 24/27 tasks complete ✓ (3 remaining require live mpv verification by you) Completed This Session Group 1–3 — Core fix in scripts/kardenwort/main.lua: Added anki_sentence_terminators = ".!?" and extended anki_abbrev_list defaults to include d.h. u.a. vgl. ggf. bspw. u.U. i.d.R. bzgl. evtl. Added token_ending_at(s, i) and is_terminator_char(c) helpers Replaced the NUL-sentinel scoping block (lines 2919–2943) with bidirectional period-anchored scans that skip abbreviations and fall back to the full joined block when no terminator is found Group 4 — 16 tests all pass: New: tests/acceptance/test_20260525193414_period_sentence_scoping.py — 11 structural tests Updated: tests/acceptance/test_20260509085806_anki_context_verbatim.py — fixed NUL-sentinel comment Group 5 — Docs: README.md — added anki_sentence_terminators, anki_abbrev_list, anki_abbrev_smart rows to options table release-notes.md — added v1.84.26 section documenting the regression fix Remaining (your action) 6.1–6.3: Re-export from 20260412001656-hoeren-b2-telc-uebungstest and verify SentenceSource visually in the TSV 7.1: Run /opsx:archive 20260525193414-restore-period-sentence-scoping once verified
 20260525200919 Add to mpv.conf.
-
-
+20260525202206 Looks like there's a limitation problem again local 200 docs/assets/20260525202221.png
+20260525202406 Fixed. The two helpers (token_ending_at, is_terminator_char) are now defined inside extract_anki_context rather than at module level, so they consume that function's local slot budget instead of the main chunk's. All 16 tests still pass.
 

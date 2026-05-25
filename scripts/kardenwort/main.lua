@@ -1841,25 +1841,6 @@ local function is_abbrev(w)
     return false
 end
 
--- Returns the token (including any trailing period) that ends at byte position i in s.
--- Walks backward past the period character at i to find the token start.
-local function token_ending_at(s, i)
-    local j = i
-    while j >= 1 do
-        local c = s:sub(j, j)
-        if c == " " or c == "\0" or c == "\t" or c == "\n" then break end
-        j = j - 1
-    end
-    return s:sub(j + 1, i)
-end
-
--- Returns true if character c is a configured sentence terminator.
-local function is_terminator_char(c)
-    local t = Options.anki_sentence_terminators
-    if not t or t == "" then t = ".!?" end
-    return t:find(c, 1, true) ~= nil
-end
-
 local function clean_anki_term(term)
     if not term or term == "" then return "" end
     term = term:gsub("{[^}]+}", "")
@@ -2831,7 +2812,23 @@ end
 local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos, coord_map)
     if not full_line or full_line == "" then return "" end
     if not selected_term or selected_term == "" then return full_line end
-    
+
+    -- Helpers scoped here to avoid consuming module-level local slots (Lua 200-local limit).
+    local function token_ending_at(s, i)
+        local j = i
+        while j >= 1 do
+            local c = s:sub(j, j)
+            if c == " " or c == "\0" or c == "\t" or c == "\n" then break end
+            j = j - 1
+        end
+        return s:sub(j + 1, i)
+    end
+    local function is_terminator_char(c)
+        local t = Options.anki_sentence_terminators
+        if not t or t == "" then t = ".!?" end
+        return t:find(c, 1, true) ~= nil
+    end
+
     -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
     -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
     -- If coord_map is provided (Gap 1 compliance), we prioritize logical grounding.
