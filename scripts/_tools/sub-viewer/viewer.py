@@ -226,11 +226,11 @@ def _line_to_cue_text(line):
     if not stripped:
         return ""
     wrapped = _split_long_line(stripped, READER_MAX_CHARS_PER_LINE)
-    return "\\N".join(wrapped)
+    return "\n".join(wrapped)
 
 
 def _estimate_cue_duration_seconds(cue_text):
-    clean = cue_text.replace("\\N", " ").strip()
+    clean = cue_text.replace("\\N", " ").replace("\n", " ").strip()
     if not clean:
         return READER_MIN_CUE_SECONDS
 
@@ -289,7 +289,7 @@ def _text_to_blocks(text):
         stripped = raw.strip()
         if not stripped:
             if current_lines:
-                blocks.append("\\N".join(current_lines))
+                blocks.append("\n".join(current_lines))
                 current_lines = []
             continue
 
@@ -297,11 +297,11 @@ def _text_to_blocks(text):
         for wrapped_line in wrapped:
             current_lines.append(wrapped_line)
             if len(current_lines) >= READER_MAX_LINES_PER_BLOCK:
-                blocks.append("\\N".join(current_lines))
+                blocks.append("\n".join(current_lines))
                 current_lines = []
 
     if current_lines:
-        blocks.append("\\N".join(current_lines))
+        blocks.append("\n".join(current_lines))
 
     return blocks
 
@@ -345,7 +345,7 @@ def build_reader_srt(text_path):
     if len(blocks) < READER_MIN_BLOCKS:
         # Force at least 2 cues for meaningful seek/navigation UX.
         only = blocks[0]
-        parts = _split_long_line(only.replace("\\N", " "), READER_MAX_CHARS_PER_LINE // 2)
+        parts = _split_long_line(only.replace("\\N", " ").replace("\n", " "), READER_MAX_CHARS_PER_LINE // 2)
         if len(parts) >= 2:
             mid = len(parts) // 2
             blocks = [" ".join(parts[:mid]), " ".join(parts[mid:])]
