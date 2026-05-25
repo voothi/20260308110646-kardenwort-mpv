@@ -1,6 +1,9 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+from contextlib import contextmanager
+import shutil
+import uuid
 
 
 def _load_viewer_module():
@@ -12,6 +15,31 @@ def _load_viewer_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _srt_payload_lines(srt_text):
+    lines = []
+    for line in srt_text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.isdigit() or "-->" in stripped:
+            continue
+        lines.append(line)
+    return lines
+
+
+@contextmanager
+def _workspace_scratch_dir():
+    repo_root = Path(__file__).resolve().parents[2]
+    base = repo_root / ".tmp_pytest_subviewer"
+    base.mkdir(parents=True, exist_ok=True)
+    case_dir = base / f"case-{uuid.uuid4().hex}"
+    case_dir.mkdir(parents=True, exist_ok=False)
+    try:
+        yield case_dir
+    finally:
+        shutil.rmtree(case_dir, ignore_errors=True)
 
 
 def test_first_start_parses_over_two_hours():
@@ -239,3 +267,79 @@ def test_parallel_reader_uses_shared_zid_when_one_base_srt_exists():
         assert Path(srt2).parent.name == "20260517162358"
         assert Path(srt1).name == "text1.srt"
         assert Path(srt2).name == "text2.srt"
+
+
+def test_line_to_cue_text_wraps_with_real_newlines_not_ass_markers():
+    viewer = _load_viewer_module()
+    original_max = viewer.READER_MAX_CHARS_PER_LINE
+    viewer.READER_MAX_CHARS_PER_LINE = 16
+    try:
+        cue = viewer._line_to_cue_text(
+            "Microsoft expects capacity constraints through the year."
+        )
+    finally:
+        viewer.READER_MAX_CHARS_PER_LINE = original_max
+
+    assert "\\N" not in cue
+    assert "\n" in cue
+
+
+def test_reader_srt_from_text_does_not_emit_ass_break_markers_or_boundary_spaces():
+    viewer = _load_viewer_module()
+    with _workspace_scratch_dir() as td:
+        txt = td / "briefing.en.txt"
+        txt.write_text(
+            "Microsoft plans to spend roughly $190 billion this year and still expects to run short on capacity.\n"
+            "And Microsoft is not alone: across the four biggest hyperscalers, combined 2026 capital spending is on track.\n",
+            encoding="utf-8",
+        )
+
+        original_max = viewer.READER_MAX_CHARS_PER_LINE
+        viewer.READER_MAX_CHARS_PER_LINE = 24
+        try:
+            srt_path = viewer.build_reader_srt(str(txt))
+        finally:
+            viewer.READER_MAX_CHARS_PER_LINE = original_max
+
+        srt_text = Path(srt_path).read_text(encoding="utf-8")
+        assert "\\N" not in srt_text
+        for payload in _srt_payload_lines(srt_text):
+            assert payload == payload.strip()
+
+
+def test_parallel_reader_preserves_hyphenated_terms_without_extra_spaces_or_ass_markers():
+    viewer = _load_viewer_module()
+    with _workspace_scratch_dir() as base:
+        en_txt = base / "briefing.en.txt"
+        ru_txt = base / "briefing.ru.txt"
+        en_txt.write_text(
+            "Every answer consumes high-bandwidth memory and data-center capacity.\n",
+            encoding="utf-8",
+        )
+        ru_txt.write_text(
+            "Каждый ответ потребляет память и мощности дата-центров.\n",
+            encoding="utf-8",
+        )
+
+        original_max = viewer.READER_MAX_CHARS_PER_LINE
+        viewer.READER_MAX_CHARS_PER_LINE = 18
+        try:
+            en_srt_path, ru_srt_path = viewer.build_parallel_reader_srts(str(en_txt), str(ru_txt))
+        finally:
+            viewer.READER_MAX_CHARS_PER_LINE = original_max
+
+        en_srt_text = Path(en_srt_path).read_text(encoding="utf-8")
+        ru_srt_text = Path(ru_srt_path).read_text(encoding="utf-8")
+
+        assert "\\N" not in en_srt_text
+        assert "\\N" not in ru_srt_text
+        assert "high-bandwidth" in en_srt_text
+        assert "data-center" in en_srt_text
+        assert "дата-центров" in ru_srt_text
+
+        for payload in _srt_payload_lines(en_srt_text):
+            assert payload == payload.strip()
+            assert "  " not in payload
+        for payload in _srt_payload_lines(ru_srt_text):
+            assert payload == payload.strip()
+            assert "  " not in payload
