@@ -3,6 +3,9 @@
 - [ ] 1.1 Add `anki_abbrev_list` to the `Options` table in `scripts/kardenwort/main.lua` with default value `"z.B.,bzw.,usw.,ca.,d.h.,u.a.,etc.,vgl.,ggf.,bspw.,u.U.,i.d.R.,bzgl.,evtl."`.
 - [ ] 1.2 Add the option to `read_options` so `script-opts=kardenwort-anki_abbrev_list=...` in `mpv.conf` overrides the default.
 - [ ] 1.3 Parse the comma-separated string once at load time into a lowercase-keyed lookup table (e.g. `Options._anki_abbrev_set`).
+- [ ] 1.4 Add `anki_sentence_terminators` to `Options` with default value `".!?"` (plain string of characters, no separator).
+- [ ] 1.5 Add `anki_sentence_terminators` to `read_options` so it can be overridden via `mpv.conf`.
+- [ ] 1.6 After loading, build a Lua character class pattern string from `anki_sentence_terminators` (e.g. `"[%.!%?]"` for the default) stored in `Options._sentence_term_pattern`; fall back to `"[%.!%?]"` if the option is empty.
 
 ## 2. Shared abbreviation helper
 
@@ -12,7 +15,7 @@
 
 ## 3. Sentence scoping rewrite in `extract_anki_context`
 
-- [ ] 3.1 In `scripts/kardenwort/main.lua` around lines 2897–2921, replace the existing backward/forward `\0` searches with a backward terminator scan: walking `full_line` from `start_pos - 1` toward index 1, find the nearest `[.!?]` whose look-ahead (next non-`%s%z` char) is whitespace, NUL, end-of-string, OR a capital letter; AND whose preceding token (read backward to the previous whitespace/`\0`/start) is NOT classified as an abbreviation.
+- [ ] 3.1 In `scripts/kardenwort/main.lua` around lines 2897–2921, replace the existing backward/forward `\0` searches with a backward terminator scan: walking `full_line` from `start_pos - 1` toward index 1, find the nearest character matching `Options._sentence_term_pattern` whose look-ahead (next non-`%s%z` char) is whitespace, NUL, end-of-string, OR a capital letter; AND whose preceding token (read backward to the previous whitespace/`\0`/start) is NOT classified as an abbreviation.
 - [ ] 3.2 Implement the symmetric forward terminator scan from `end_pos + 1` toward `#full_line`. Include the terminator character in the captured range (i.e. `sent_end` advances past the matched `.`/`!`/`?`).
 - [ ] 3.3 Compute `raw_sub = full_line:sub(sent_start, sent_end)` then replace `\0` with space and trim, identical to the current post-processing; preserve the `sentence_abs_start` calculation so downstream offset math (lines 2929-3017) is unaffected.
 - [ ] 3.4 If neither scan finds a real terminator, set `sent_start = 1` and `sent_end = #full_line` so the entire joined block becomes the sentence (No-Terminator Fallback).

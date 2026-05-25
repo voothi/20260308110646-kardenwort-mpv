@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Punctuation-Anchored Sentence Scoping
-The context extraction system SHALL derive sentence boundaries from the nearest **real** sentence terminator (`.`, `!`, or `?`) on either side of the selection, scanning **across** subtitle-line NUL sentinels (`\0`). The system SHALL NOT use subtitle-line edges as sentence boundaries when terminators are available. Abbreviations (matched by heuristic or by `anki_abbrev_list`) SHALL NOT count as terminators.
+The context extraction system SHALL derive sentence boundaries from the nearest **real** sentence terminator on either side of the selection, scanning **across** subtitle-line NUL sentinels (`\0`). The set of terminator characters SHALL be configurable via `anki_sentence_terminators` (default: `".!?"`). The system SHALL NOT use subtitle-line edges as sentence boundaries when terminators are available. Abbreviations (matched by heuristic or by `anki_abbrev_list`) SHALL NOT count as terminators.
 
 #### Scenario: Sentence spanning multiple subtitle lines
 - **WHEN** subtitle N reads `"Es kommt zu kräftigen Niederschlägen,"`, subtitle N+1 reads `"die verbreitet als Schnee liegen"`, subtitle N+2 reads `"bleiben. Autofahrer sollten besonders"`
@@ -74,6 +74,26 @@ The system SHALL expose `anki_abbrev_list` as a script option. Its value SHALL b
 - **WHEN** `mpv.conf` contains `script-opts=kardenwort-anki_abbrev_list=z.B.,bzw.,usw.,ca.,Inc.,Prof.`
 - **AND** the scan encounters `"Prof."` in subtitle text
 - **THEN** `is_abbreviation("Prof.")` SHALL return `true`
+
+### Requirement: Configurable Sentence Terminators
+The system SHALL expose `anki_sentence_terminators` as a script option whose value is a string of individual terminator characters (no separators between them). Each character in the string is treated as an independent sentence terminator. The default value SHALL be `".!?"`.
+
+#### Scenario: Default terminators
+- **WHEN** the user does NOT set `kardenwort-anki_sentence_terminators` in `mpv.conf`
+- **THEN** the scan SHALL treat `.`, `!`, and `?` as sentence terminators
+
+#### Scenario: User adds terminator characters
+- **WHEN** `mpv.conf` contains `script-opts=kardenwort-anki_sentence_terminators=.!?;`
+- **THEN** `;` SHALL be treated as an additional sentence terminator during the scan
+- **AND** existing `.!?` behaviour SHALL be preserved
+
+#### Scenario: User narrows terminators
+- **WHEN** `mpv.conf` contains `script-opts=kardenwort-anki_sentence_terminators=.`
+- **THEN** only `.` SHALL end a sentence — `!` and `?` SHALL be treated as ordinary characters
+
+#### Scenario: Empty or missing value falls back to default
+- **WHEN** `anki_sentence_terminators` is set to an empty string
+- **THEN** the system SHALL behave as if the default `".!?"` was set
 
 ### Requirement: NUL Sanitization in Subtitle Loader
 The subtitle parser SHALL strip any NUL bytes from subtitle text before storing, to prevent sentinel collisions in the joined context block.

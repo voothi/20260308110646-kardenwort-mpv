@@ -31,7 +31,7 @@ The user's current SRT (`20260412001656-hoeren-b2-telc-uebungstest.de.srt`) expo
 
 ### Decision 1: Period-anchored boundary scan replaces NUL-sentinel scan
 
-**Choice.** Backward and forward scans walk byte-by-byte through `full_line` (treating `\0` as ordinary whitespace), searching for `[.!?]` followed by either whitespace, a `\0` sentinel, or end-of-string.
+**Choice.** Backward and forward scans walk byte-by-byte through `full_line` (treating `\0` as ordinary whitespace), searching for any character in `Options.anki_sentence_terminators` (default `".!?"`) followed by either whitespace, a `\0` sentinel, or end-of-string. At scan time the option string is converted to a Lua character class pattern so the hot path does no repeated string splitting.
 
 **Alternatives considered:**
 
