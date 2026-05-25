@@ -34,3 +34,4 @@
 - [x] 5.4 Document any remaining broader DW/DM renderer unification candidates separately rather than expanding this change scope.
 - [x] 5.5 Trace `20260525122538` and add a mode-aware DM tooltip card opacity setting to prevent double-dark stacking without changing DW/SRT tooltip behavior or DM main subtitle frames.
 - [x] 5.6 Trace `20260525123946` and add a SRT tooltip card opacity override so SRT can be calibrated independently while preserving the shared renderer.
+- [x] 5.7 Trace `20260525124408` and add a DW tooltip card opacity override so DW/DM/SRT expose the same card calibration surface.

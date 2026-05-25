@@ -20,6 +20,12 @@ SRT differs from DW because `tooltip_native_box_policy=auto` intentionally gives
 
 Implementation decision: `tooltip_srt_bg_opacity` was added as a SRT-only card alpha override. It defaults to empty so stock SRT continues to use `tooltip_bg_opacity`, while `mpv.conf` can set `tooltip_srt_bg_opacity=100` to match the calibrated DM result.
 
+## Trace 20260525124408: DW Tooltip Card Calibration
+
+DW originally used `tooltip_bg_opacity` as the baseline card alpha because it was the mode used to define the tooltip renderer. After adding DM and SRT card alpha overrides, leaving DW implicit would keep one evolutionary special case in the shared style context.
+
+Implementation decision: `tooltip_dw_bg_opacity` was added as a DW-only card alpha override. It defaults to empty so the code fallback remains backward-compatible, while `mpv.conf` can set `tooltip_dw_bg_opacity=100` for the same calibrated transparent-card behavior as DM/SRT.
+
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
 - Keep layout and hit-zone logic separate at first.

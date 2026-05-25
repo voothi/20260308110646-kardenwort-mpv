@@ -582,6 +582,7 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     src = _lua_source()
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=14000)
     assert 'tooltip_native_box_policy = "auto"' in opts
+    assert 'tooltip_dw_bg_opacity = ""' in opts
     assert 'tooltip_dm_bg_opacity = "B0"' in opts
     assert 'tooltip_srt_bg_opacity = ""' in opts
 
@@ -600,7 +601,8 @@ def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     assert 'if needs_override then' in body
     assert "neutralize_inband = false" in body
     assert "local card_opacity = Options.tooltip_bg_opacity" in body
-    assert 'if parent_mode == "dm" and Options.tooltip_dm_bg_opacity' in body
+    assert 'if parent_mode == "dw" and Options.tooltip_dw_bg_opacity' in body
+    assert 'elseif parent_mode == "dm" and Options.tooltip_dm_bg_opacity' in body
     assert 'elseif parent_mode == "srt" and Options.tooltip_srt_bg_opacity' in body
     assert "card_alpha = calculate_ass_alpha(card_opacity)" in body
 

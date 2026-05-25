@@ -455,9 +455,10 @@ Options = {
     tooltip_active_opacity = "00",     -- Transparency for active line
     tooltip_context_opacity = "30",    -- Transparency for context lines
     tooltip_bg_color = "000000",       -- Background color (BGR hex)
-    tooltip_bg_opacity = "60",         -- Background transparency
-    tooltip_dm_bg_opacity = "B0",      -- Drum Mode card transparency; prevents a second dark panel over DM subtitles
-    tooltip_srt_bg_opacity = "",       -- SRT card transparency override; empty uses tooltip_bg_opacity
+    tooltip_bg_opacity = "60",         -- Default tooltip card transparency; used when DW/DM/SRT overrides are empty
+    tooltip_dw_bg_opacity = "100",        -- DW card transparency override; empty uses tooltip_bg_opacity
+    tooltip_dm_bg_opacity = "100",      -- Drum Mode card transparency; prevents a second dark panel over DM subtitles
+    tooltip_srt_bg_opacity = "100",       -- SRT card transparency override; empty uses tooltip_bg_opacity
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
     tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
@@ -3129,7 +3130,9 @@ function build_tooltip_style_context(parent_mode)
     end
 
     local card_opacity = Options.tooltip_bg_opacity
-    if parent_mode == "dm" and Options.tooltip_dm_bg_opacity and Options.tooltip_dm_bg_opacity ~= "" then
+    if parent_mode == "dw" and Options.tooltip_dw_bg_opacity and Options.tooltip_dw_bg_opacity ~= "" then
+        card_opacity = Options.tooltip_dw_bg_opacity
+    elseif parent_mode == "dm" and Options.tooltip_dm_bg_opacity and Options.tooltip_dm_bg_opacity ~= "" then
         card_opacity = Options.tooltip_dm_bg_opacity
     elseif parent_mode == "srt" and Options.tooltip_srt_bg_opacity and Options.tooltip_srt_bg_opacity ~= "" then
         card_opacity = Options.tooltip_srt_bg_opacity
