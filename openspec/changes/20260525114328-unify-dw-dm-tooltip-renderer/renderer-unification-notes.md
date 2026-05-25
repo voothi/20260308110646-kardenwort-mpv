@@ -14,6 +14,12 @@ Considered options:
 
 Implementation decision: `tooltip_dm_bg_opacity` defaults to `B0`; empty value falls back to `tooltip_bg_opacity`. This is intentionally narrower than a full DW/DM renderer merge and gives the recurring visual problem a stable configuration point.
 
+## Trace 20260525123946: SRT Tooltip Card Calibration
+
+SRT differs from DW because `tooltip_native_box_policy=auto` intentionally gives the scoped global override only to DW. SRT, like DM, keeps the parent `background-box` style stable and neutralizes native tooltip text boxes in-band. Therefore the remaining visible dark surface is the measured vector tooltip card, not a DW-style global window.
+
+Implementation decision: `tooltip_srt_bg_opacity` was added as a SRT-only card alpha override. It defaults to empty so stock SRT continues to use `tooltip_bg_opacity`, while `mpv.conf` can set `tooltip_srt_bg_opacity=100` to match the calibrated DM result.
+
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
 - Keep layout and hit-zone logic separate at first.
