@@ -3089,7 +3089,7 @@ local function invalidate_dw_tooltip_cache()
     DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
 end
 
-local function normalize_tooltip_native_box_policy()
+function normalize_tooltip_native_box_policy()
     local policy = tostring(Options.tooltip_native_box_policy or "auto"):lower()
     if policy ~= "auto" and policy ~= "neutralize" and policy ~= "override" then
         return "auto"
@@ -3097,13 +3097,13 @@ local function normalize_tooltip_native_box_policy()
     return policy
 end
 
-local function get_tooltip_parent_mode()
+function get_tooltip_parent_mode()
     if FSM.DRUM_WINDOW ~= "OFF" then return "dw" end
     if FSM.DRUM == "ON" then return "dm" end
     return "srt"
 end
 
-local function build_tooltip_style_context(parent_mode)
+function build_tooltip_style_context(parent_mode)
     parent_mode = parent_mode or get_tooltip_parent_mode()
     local policy = normalize_tooltip_native_box_policy()
     local style_is_bgbox = (FSM.osd_border_style == "background-box")
@@ -4597,13 +4597,13 @@ local function draw_dw(subs, view_center, active_idx)
     return final_ass
 end
 
-local function format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)
+function format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)
     return string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
         rect_left, rect_top, style_ctx.bord, style_ctx.shad, style_ctx.bg_color, style_ctx.bg_color,
         style_ctx.bg_alpha, style_ctx.bg_alpha, style_ctx.bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
 end
 
-local function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)
+function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)
     local neutralize_bgbox = style_ctx.neutralize_inband and "{\\3a&HFF&}{\\4a&HFF&}" or ""
     return string.format("{\\pos(%g, %g)}{\\an6}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s%s",
         anchor_x, line_center_y, style_ctx.bord, style_ctx.shad, style_ctx.bg_color, style_ctx.bg_color,

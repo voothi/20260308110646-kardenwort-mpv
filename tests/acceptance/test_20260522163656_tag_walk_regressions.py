@@ -586,7 +586,7 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
 
 def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     src = _lua_source()
-    body = _function_window(src, "local function normalize_tooltip_native_box_policy()", "apply_tooltip_ass = function(ass)", span=5000)
+    body = _function_window(src, "function normalize_tooltip_native_box_policy()", "apply_tooltip_ass = function(ass)", span=5000)
     assert 'policy ~= "auto" and policy ~= "neutralize" and policy ~= "override"' in body
     assert 'return "srt"' in body
     assert 'if policy == "override" then' in body
@@ -599,7 +599,7 @@ def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
 
 def test_tooltip_text_event_neutralization_is_emitted_after_shadow_tags():
     src = _lua_source()
-    body = _function_window(src, "local function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)", "local function draw_dw_tooltip", span=2000)
+    body = _function_window(src, "function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)", "local function draw_dw_tooltip", span=2000)
     assert 'local neutralize_bgbox = style_ctx.neutralize_inband and "{\\\\3a&HFF&}{\\\\4a&HFF&}" or ""' in body
     # Regression guard: neutralization token is concatenated after the line-level 3a/4a style tags.
     assert '{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\q2}%s%s' in body
