@@ -3092,9 +3092,9 @@ apply_tooltip_ass = function(ass)
     if not dw_tooltip_osd then return end
     ass = ass or ""
     local will_visible = (ass ~= "")
-    -- Tooltip uses its own measured vector card in both DM and DW. While it is
-    -- visible, disable mpv's native background-box so it cannot add a second box.
-    local wants_override = will_visible
+    -- DW only: DM's main subtitle OSD relies on the global background-box.
+    -- Tooltip neutralizes its own native boxes with ASS tags in draw_dw_tooltip().
+    local wants_override = will_visible and (FSM.DRUM_WINDOW ~= "OFF")
     local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
     if wants_override and not has_override then
         manage_ui_border_override(true)
