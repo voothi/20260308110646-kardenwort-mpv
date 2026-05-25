@@ -2806,5 +2806,9 @@
 20260525124651 It is necessary to add a comment whether these are relative values.
 20260525124944 Then add to this a comment on how it works with the new three.
 20260525125206 Failed with dw, see docs/assets/20260525125200.png
+20260525125356 Fixed DW by backing out only the bad calibrated value. What failed: - `tooltip_dw_bg_opacity=100` makes the DW tooltip card fully transparent. - DW is not like DM/SRT here because `auto` still uses the scoped global override for DW. - Result: the measured tooltip card disappears and the tooltip becomes a bad outline/text composition, as in `docs/assets/20260525125200.png`. What I changed: - Kept the DW parameter, but set it empty in [mpv.conf](U:/voothi/20260308110646-kardenwort-mpv/mpv.conf):275 so DW falls back to `tooltip_bg_opacity=60`. - Restored default `tooltip_dw_bg_opacity = ""` in [main.lua](U:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua):459. - Updated trace notes in [renderer-unification-notes.md](U:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260525114328-unify-dw-dm-tooltip-renderer/renderer-unification-notes.md):29. - Updated the regression expectation to current calibrated defaults. Current intended config: - `tooltip_dw_bg_opacity=`: empty, inherit `tooltip_bg_opacity=60` - `tooltip_dm_bg_opacity=100`: transparent card works there - `tooltip_srt_bg_opacity=100`: transparent card works there Checked: - `luac -p scripts/kardenwort/main.lua` - `pytest tests/acceptance/test_20260522163656_tag_walk_regressions.py -q`: `45 passed` I did not run the full test suite.
+
+
+
 
 
