@@ -621,3 +621,31 @@ def test_console_and_osd_frame_suspension_in_dw_mode():
     assert "FSM.seek_osd_active = false" not in seek_osd_body
 
 
+def test_calculate_osd_line_meta_includes_punctuation_in_hit_zones():
+    """drum-context: Drum Mode Punctuation Selection requirement.
+
+    Task 2.4 removed the `is_word` gate from the hit-zone word-collection loop
+    inside calculate_osd_line_meta so that sentence-ending punctuation tokens
+    (`.`, `?`, `!`) are included in FSM.DW_HIT_ZONES and become clickable/
+    selectable in both Drum Mode and Drum Window, matching the spec scenario.
+
+    Regression guard: re-introducing the guard would silently make punctuation
+    untargetable without any other test catching it.
+    """
+    src = _lua_source()
+    body = _function_window(
+        src,
+        "local function calculate_osd_line_meta",
+        "local function dw_build_layout",
+        span=4000,
+    )
+
+    assert "if t.is_word and t.logical_idx then" not in body, (
+        "drum-context: is_word gate must be absent from calculate_osd_line_meta "
+        "so punctuation tokens are included in hit-zones"
+    )
+    assert "if t.logical_idx then" in body, (
+        "drum-context: logical_idx-only check must be present so punctuation "
+        "tokens with a logical_idx are added to the hit-zone word list"
+    )
+
