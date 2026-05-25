@@ -573,8 +573,10 @@ def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
     assert "local rect_bg_alpha = bg_alpha" in body
     assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
     assert "line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
-    assert "{\\\\bord0}{\\\\shad0}{\\\\3a&HFF&}{\\\\4a&HFF&}{\\\\1c&H%s&}{\\\\1a&H%s&}{\\\\p1}" in body
-    assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, line_center_y, line_bgbox_neutral)" in body
+    assert "{\\\\bord%g}{\\\\shad%g}{\\\\3c&H%s&}{\\\\4c&H%s&}{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\1c&H%s&}{\\\\1a&H%s&}{\\\\p1}" in body
+    assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}%s{\\\\bord%g}{\\\\shad%g}{\\\\3c&H%s&}{\\\\4c&H%s&}{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\q2}\"," in body
+    assert "Options.tooltip_shadow_offset" in body
+    assert "{\\\\bord0}{\\\\shad0}" not in body
 
 
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():
