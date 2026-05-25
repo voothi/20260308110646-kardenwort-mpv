@@ -673,6 +673,24 @@ def test_tooltip_activation_paths_only_publish_non_empty_ass():
     assert "if ass ~= \"\" then" in toggle_body
 
 
+def test_search_in_dm_mode_does_not_take_global_border_override():
+    src = _lua_source()
+    fsm = _function_window(src, "FSM = {", "-- =========================================================================", span=8000)
+    draw_body = _function_window(src, "local function draw_search_ui()", "-- =========================================================================\n-- HELP HUD FEATURE", span=9000)
+    bindings_body = _function_window(src, "local function manage_search_bindings(enable)", "function cmd_toggle_search", span=9000)
+
+    assert "SEARCH_BORDER_OVERRIDE = false" in fsm
+    assert 'FSM.SEARCH_BORDER_OVERRIDE = (FSM.DRUM_WINDOW ~= "OFF")' in bindings_body
+    assert "if FSM.SEARCH_BORDER_OVERRIDE then" in bindings_body
+    assert "manage_ui_border_override(true)" in bindings_body
+    assert "manage_ui_border_override(false)" in bindings_body
+    assert "FSM.SEARCH_BORDER_OVERRIDE = false" in bindings_body
+
+    assert 'local text_bgbox_neutral = (FSM.osd_border_style == "background-box" and not FSM.SEARCH_BORDER_OVERRIDE)' in draw_body
+    assert '"{\\\\3a&HFF&}{\\\\4a&HFF&}"' in draw_body
+    assert draw_body.count("text_bgbox_neutral") >= 4
+
+
 def test_console_and_osd_frame_suspension_in_dw_mode():
     src = _lua_source()
     

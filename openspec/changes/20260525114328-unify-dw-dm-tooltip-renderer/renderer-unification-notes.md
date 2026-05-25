@@ -50,6 +50,12 @@ After switching mode-specific card calibration to explicit ASS alpha, keeping `t
 
 Implementation decision: delete the three mode-specific legacy opacity aliases. Keep only the older base `tooltip_bg_opacity` fallback because it predates this change and may exist in user configs.
 
+## Trace 20260525161401: DM Search Border Override Regression
+
+`docs/assets/20260525161436.png` shows Search opened over Drum Mode while the main subtitle surface loses its `background-box` frame. Root cause: Search used the same global UI border override as DW, which changes mpv `osd-border-style` to `outline-and-shadow` and destabilizes DM subtitles.
+
+Implementation decision: Search now takes the global border override only when Drum Window is open. In DM/SRT it keeps the parent subtitle surface stable and neutralizes native Search text background boxes in-band with final `\3a&HFF&` / `\4a&HFF&` tags.
+
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
 - Keep layout and hit-zone logic separate at first.

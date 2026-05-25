@@ -39,3 +39,4 @@
 - [x] 5.9 Trace `20260525125430` and add preferred ASS alpha options so calibrated transparent cards use `FF` instead of misleading `opacity=100`.
 - [x] 5.10 Trace `20260525135736` and add mode-by-mode ASS/OSD contract probes plus regression guards to distinguish real ASS drift from background-image perception.
 - [x] 5.11 Trace `20260525141529` and remove mode-specific legacy opacity aliases after replacing them with explicit ASS alpha options.
+- [x] 5.12 Trace `20260525161401` and prevent Search from taking the global border override in DM/SRT while neutralizing Search text background boxes in-band.

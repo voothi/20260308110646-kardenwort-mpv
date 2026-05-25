@@ -703,6 +703,7 @@ local FSM = {
     SEARCH_CURSOR = 0,
     SEARCH_ANCHOR = -1,
     SEARCH_CHAR_BINDINGS = {},
+    SEARCH_BORDER_OVERRIDE = false,
 
     -- Transient UI State
     saved_osd_border_style = nil,
@@ -8027,6 +8028,8 @@ local function draw_search_ui()
     local shad = Options.search_shadow_offset or 0.0
     
     local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity or "60")
+    local text_bgbox_neutral = (FSM.osd_border_style == "background-box" and not FSM.SEARCH_BORDER_OVERRIDE)
+        and "{\\3a&HFF&}{\\4a&HFF&}" or ""
 
     -- [Task 1.1] Process Query first to determine visual line count
     local display_query = ""
@@ -8083,8 +8086,8 @@ local function draw_search_ui()
         box_x, box_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, input_box_h, input_box_h)
     
     -- Draw Input Text (Task 3.2 Synchronized)
-    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s\n",
-        font_name, box_x + padding_x, box_y + padding_y, shad, opacity_hex, font_size, "FFFFFF", display_query)
+    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s %s\n",
+        font_name, box_x + padding_x, box_y + padding_y, shad, opacity_hex, font_size, "FFFFFF", text_bgbox_neutral, display_query)
         
     -- Draw Results Dropdown
     if #FSM.SEARCH_RESULTS > 0 then
@@ -8191,8 +8194,8 @@ local function draw_search_ui()
                 })
 
                 -- [Task 3.2] Render at current_y
-                ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} %s%s%s\n",
-                    font_name, box_x + padding_x, current_y, opacity_hex, r_font_size, base_color, sel_bold, display_text, sel_bold_end)
+                ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s %s%s%s\n",
+                    font_name, box_x + padding_x, current_y, opacity_hex, r_font_size, base_color, text_bgbox_neutral, sel_bold, display_text, sel_bold_end)
                 
                 current_y = current_y + r_line_height
             end
@@ -8213,8 +8216,8 @@ local function draw_search_ui()
                 r_font_size = font_size * 0.8
             end
         end
-        ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&} No results found.\n",
-            font_name, box_x + padding_x, results_y + padding_y, opacity_hex, r_font_size, "999999")
+        ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s No results found.\n",
+            font_name, box_x + padding_x, results_y + padding_y, opacity_hex, r_font_size, "999999", text_bgbox_neutral)
     end
     
     return ass
@@ -8783,7 +8786,10 @@ local function manage_search_bindings(enable)
         FSM.SEARCH_CURSOR = 0
         FSM.SEARCH_ANCHOR = -1
         
-        manage_ui_border_override(true)
+        FSM.SEARCH_BORDER_OVERRIDE = (FSM.DRUM_WINDOW ~= "OFF")
+        if FSM.SEARCH_BORDER_OVERRIDE then
+            manage_ui_border_override(true)
+        end
         
         -- Boot subs for memory if haven't already
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -9074,7 +9080,10 @@ local function manage_search_bindings(enable)
         render_search()
     else
         FSM.SEARCH_MODE = false
-        manage_ui_border_override(false)
+        if FSM.SEARCH_BORDER_OVERRIDE then
+            manage_ui_border_override(false)
+            FSM.SEARCH_BORDER_OVERRIDE = false
+        end
 
         -- Remove exactly the same search char bindings that were registered.
         for name, _ in pairs(FSM.SEARCH_CHAR_BINDINGS or {}) do
