@@ -43,6 +43,28 @@ The tooltip surface SHALL explicitly own its native border/background-box isolat
 - **THEN** the selected policy SHALL be represented in one shared style context for the whole tooltip render
 - **AND** the renderer SHALL NOT mix scoped override and in-band neutralization in conflicting ways for the same tooltip event.
 
+### Requirement: Search Border-Style Ownership
+The Search HUD SHALL explicitly own its native border/background-box isolation policy and SHALL NOT inherit the global UI border override unless an enclosing Drum Window owner is already active.
+
+#### Scenario: Search opened while Drum Window is active
+- **GIVEN** Drum Window is active (`FSM.DRUM_WINDOW ~= "OFF"`)
+- **WHEN** the Search HUD is opened
+- **THEN** Search SHALL take ownership of the scoped UI border override lifecycle in parallel with the Drum Window overlay
+- **AND** closing Search SHALL release only its own ownership without disturbing other active UI owners.
+
+#### Scenario: Search opened while Drum Window is closed (DM or styled SRT)
+- **GIVEN** Drum Window is OFF
+- **AND** global `osd-border-style` is `background-box`
+- **WHEN** the Search HUD is opened over Drum Mode or styled SRT
+- **THEN** Search SHALL NOT acquire the global UI border override
+- **AND** the parent subtitle surface (DM frame or SRT background-box) SHALL remain visually stable
+- **AND** Search SHALL prevent native background-box leakage on its own text events using in-band ASS neutralization tags.
+
+#### Scenario: Search ownership release is symmetric
+- **WHEN** the Search HUD is closed
+- **THEN** the system SHALL release the scoped UI border override only if Search itself acquired it
+- **AND** the recorded ownership flag SHALL be cleared so a subsequent Search session re-evaluates ownership against the current Drum Window state.
+
 ### Requirement: Configurable Tooltip Native Box Policy
 The system SHALL support an explicit tooltip native-box policy with an automatic default so advanced users can recover from platform-specific mpv/libass border-style behavior without mode-specific option sprawl.
 

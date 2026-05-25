@@ -673,6 +673,37 @@ def test_tooltip_activation_paths_only_publish_non_empty_ass():
     assert "if ass ~= \"\" then" in toggle_body
 
 
+def test_normalize_inline_break_markers_helper_definition_and_substitutions():
+    src = _lua_source()
+    body = _function_window(src, "function normalize_inline_break_markers(text)", "function clean_text_srt", span=2000)
+
+    assert 'text:gsub("\\\\N", "\\n")' in body
+    assert 'text:gsub("\\\\n", "\\n")' in body
+    assert 'text:gsub("\\\\h", " ")' in body
+    assert 'text:gsub("[ \\t]*\\n[ \\t]*", "\\n")' in body
+    assert "if not text or text == \"\" then return text or \"\" end" in body
+
+
+def test_anki_context_extraction_normalizes_inline_break_markers():
+    src = _lua_source()
+
+    point_ctx = _function_window(
+        src,
+        'params = { type = "POINT", line = cl, word = cw }',
+        "if pivot_pos == -1 then pivot_pos = char_offset / 2 end",
+        span=2000,
+    )
+    assert 'normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")' in point_ctx
+
+    set_ctx = _function_window(
+        src,
+        '-- Requirement: Unified Paired Export',
+        "local context_line = table.concat(ctx_parts",
+        span=3000,
+    )
+    assert 'normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")' in set_ctx
+
+
 def test_search_in_dm_mode_does_not_take_global_border_override():
     src = _lua_source()
     fsm = _function_window(src, "FSM = {", "-- =========================================================================", span=8000)

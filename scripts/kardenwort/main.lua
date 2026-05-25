@@ -5619,9 +5619,9 @@ local function dw_anki_export_selection()
             pivot_pos = -1
             local start_k = math.max(1, cl - Options.anki_context_lines)
             for k = start_k, math.min(#subs, cl + Options.anki_context_lines) do
-                if subs[k] then 
-                    local text = subs[k].text:gsub("{[^}]+}", "")
-                    
+                if subs[k] then
+                    local text = normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")
+
                     if k == cl then
                         local s = text:find(term, 1, true)
                         if s then
@@ -5829,9 +5829,9 @@ local function ctrl_commit_set(line_idx, word_idx)
     local pivot_pos = -1
     local start_k = math.max(1, p1_l - Options.anki_context_lines)
     for k = start_k, math.min(#subs, p2_l + Options.anki_context_lines) do
-        if subs[k] then 
-            local text = subs[k].text:gsub("{[^}]+}", "")
-            
+        if subs[k] then
+            local text = normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")
+
             if k == p1_l then
                 local first_word = term:match("%S+") or ""
                 local s = text:find(first_word, 1, true)
