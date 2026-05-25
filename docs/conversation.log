@@ -2805,5 +2805,6 @@
 20260525124630 Yes, we should. DW was only implicit because it was the original baseline, but keeping it implicit is exactly the kind of evolutionary asymmetry that caused this problem. Added: - `tooltip_dw_bg_opacity = ""` default in [main.lua](U:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua):459. - DW card-alpha branch in [main.lua](U:/voothi/20260308110646-kardenwort-mpv/scripts/kardenwort/main.lua):3133. - `kardenwort-tooltip_dw_bg_opacity=100` in [mpv.conf](U:/voothi/20260308110646-kardenwort-mpv/mpv.conf):275. - OpenSpec trace in [renderer-unification-notes.md](U:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260525114328-unify-dw-dm-tooltip-renderer/renderer-unification-notes.md):23. Now DW/DM/SRT all expose the same calibration surface: - `tooltip_dw_bg_opacity=100` - `tooltip_dm_bg_opacity=100` - `tooltip_srt_bg_opacity=100` Checked: - `luac -p scripts/kardenwort/main.lua` - `pytest tests/acceptance/test_20260522163656_tag_walk_regressions.py -q`: `45 passed` I did not run the full test suite.
 20260525124651 It is necessary to add a comment whether these are relative values.
 20260525124944 Then add to this a comment on how it works with the new three.
+20260525125206 Failed with dw, see docs/assets/20260525125200.png
 
 

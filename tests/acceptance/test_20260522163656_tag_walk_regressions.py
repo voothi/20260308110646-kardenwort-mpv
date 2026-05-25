@@ -583,8 +583,8 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=14000)
     assert 'tooltip_native_box_policy = "auto"' in opts
     assert 'tooltip_dw_bg_opacity = ""' in opts
-    assert 'tooltip_dm_bg_opacity = "B0"' in opts
-    assert 'tooltip_srt_bg_opacity = ""' in opts
+    assert 'tooltip_dm_bg_opacity = "100"' in opts
+    assert 'tooltip_srt_bg_opacity = "100"' in opts
 
 
 def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
