@@ -571,7 +571,7 @@ def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
     assert "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())" in body
-    assert "local rect_bg_alpha = bg_alpha" in body
+    assert "local rect_bg_alpha = style_ctx.card_alpha" in body
     assert "local bg_rect = format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)" in body
     assert "local line_ass = format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)" in body
     assert "line_bgbox_neutral" not in body
@@ -582,6 +582,7 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     src = _lua_source()
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=14000)
     assert 'tooltip_native_box_policy = "auto"' in opts
+    assert 'tooltip_dm_bg_opacity = "B0"' in opts
 
 
 def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
@@ -597,6 +598,9 @@ def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     assert "neutralize_inband = true" in body
     assert 'if needs_override then' in body
     assert "neutralize_inband = false" in body
+    assert "local card_opacity = Options.tooltip_bg_opacity" in body
+    assert 'if parent_mode == "dm" and Options.tooltip_dm_bg_opacity' in body
+    assert "card_alpha = calculate_ass_alpha(card_opacity)" in body
 
 
 def test_dm_tooltip_auto_policy_preserves_parent_background_box_frame():

@@ -456,6 +456,7 @@ Options = {
     tooltip_context_opacity = "30",    -- Transparency for context lines
     tooltip_bg_color = "000000",       -- Background color (BGR hex)
     tooltip_bg_opacity = "60",         -- Background transparency
+    tooltip_dm_bg_opacity = "B0",      -- Drum Mode card transparency; prevents a second dark panel over DM subtitles
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
     tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
@@ -3126,6 +3127,11 @@ function build_tooltip_style_context(parent_mode)
         neutralize_inband = false
     end
 
+    local card_opacity = Options.tooltip_bg_opacity
+    if parent_mode == "dm" and Options.tooltip_dm_bg_opacity and Options.tooltip_dm_bg_opacity ~= "" then
+        card_opacity = Options.tooltip_dm_bg_opacity
+    end
+
     return {
         parent_mode = parent_mode,
         policy = policy,
@@ -3134,6 +3140,7 @@ function build_tooltip_style_context(parent_mode)
         neutralize_inband = neutralize_inband,
         bg_color = Options.tooltip_bg_color,
         bg_alpha = calculate_ass_alpha(Options.tooltip_bg_opacity),
+        card_alpha = calculate_ass_alpha(card_opacity),
         bord = Options.tooltip_border_size,
         shad = Options.tooltip_shadow_offset,
     }
@@ -4639,7 +4646,6 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local base_w = math.floor(base_h * 16 / 9)
     local anchor_x = base_w - math.floor((120 * base_h / 1080) + 0.5)
     local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())
-    local bg_alpha = style_ctx.bg_alpha
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end
@@ -4716,7 +4722,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     end
     
     local bord = style_ctx.bord
-    local rect_bg_alpha = bg_alpha
+    local rect_bg_alpha = style_ctx.card_alpha
     
     -- Task 3.2: Refactor block_height calculation
     local layout_line_h = line_height + Options.tooltip_vsp

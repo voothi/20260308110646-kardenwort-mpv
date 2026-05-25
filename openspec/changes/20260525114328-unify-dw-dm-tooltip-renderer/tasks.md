@@ -32,3 +32,4 @@
 - [ ] 5.2 Manually compare `docs/assets/20260525113530.png` and a refreshed DM tooltip screenshot to verify DM now matches the DW tooltip card behavior.
 - [x] 5.3 Verify styled SRT tooltip still activates and does not inherit native per-line boxes under `background-box`.
 - [x] 5.4 Document any remaining broader DW/DM renderer unification candidates separately rather than expanding this change scope.
+- [x] 5.5 Trace `20260525122538` and add a mode-aware DM tooltip card opacity setting to prevent double-dark stacking without changing DW/SRT tooltip behavior or DM main subtitle frames.

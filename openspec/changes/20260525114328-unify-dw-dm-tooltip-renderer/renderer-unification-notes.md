@@ -2,6 +2,18 @@
 
 This change intentionally unifies only the tooltip style surface. The broader DW/DM renderer merge remains out of scope for safety.
 
+## Trace 20260525122538: DM Tooltip Double-Dark Regression
+
+Observed from `docs/assets/20260525122449.png`, `docs/assets/20260525122509.png`, and `docs/assets/20260525122534.png`: SRT remains acceptable, DW remains the visual baseline, while DM stacks a tooltip card over the Drum Mode subtitle surface and becomes visibly darker.
+
+Considered options:
+
+- Global tooltip `osd-border-style` override for all modes. Rejected because it also mutates the active Drum Mode subtitle surface and reproduces the lost main/secondary frame regression.
+- Pure in-band native-box neutralization. Rejected as insufficient because it preserves DM frames but still leaves the measured tooltip vector card at the same opacity as DW/SRT, causing DM double-dark stacking.
+- Keep the shared tooltip renderer, but make tooltip card alpha mode-aware while keeping text/native-box policy shared. Chosen because it removes the extra dark DM panel without changing DW/SRT behavior or touching the parent DM subtitle frames.
+
+Implementation decision: `tooltip_dm_bg_opacity` defaults to `B0`; empty value falls back to `tooltip_bg_opacity`. This is intentionally narrower than a full DW/DM renderer merge and gives the recurring visual problem a stable configuration point.
+
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
 - Keep layout and hit-zone logic separate at first.
