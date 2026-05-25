@@ -1187,9 +1187,12 @@ end
 function normalize_inline_break_markers(text)
     if not text or text == "" then return text or "" end
     -- Normalize escaped ASS-style break markers that may appear in SRT/TXT content.
-    text = text:gsub("\\N", " \n ")
-    text = text:gsub("\\n", " \n ")
+    -- Keep boundaries clean so downstream newline->space conversion does not create
+    -- synthetic double spaces.
+    text = text:gsub("\\N", "\n")
+    text = text:gsub("\\n", "\n")
     text = text:gsub("\\h", " ")
+    text = text:gsub("[ \t]*\n[ \t]*", "\n")
     return text
 end
 
@@ -1298,7 +1301,7 @@ function load_sub(path, is_ass)
                 if current_sub.text == "" then
                     current_sub.text = line
                 else
-                    current_sub.text = current_sub.text .. " \n " .. line
+                    current_sub.text = current_sub.text .. "\n" .. line
                 end
             end
         end
