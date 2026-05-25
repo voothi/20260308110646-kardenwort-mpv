@@ -532,6 +532,21 @@ def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dar
     assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, cur_y, line_bgbox_neutral)" in body
 
 
+def test_draw_drum_uses_explicit_card_frame_instead_of_native_background_box():
+    src = _lua_source()
+    body = _function_window(src, "local function draw_drum(", "local function dw_build_layout")
+
+    assert "local block_min_x = math.huge" in body
+    assert "local block_max_x = -math.huge" in body
+    assert "block_min_x = math.min(block_min_x, vl_x_start)" in body
+    assert "block_max_x = math.max(block_max_x, vl_x_start + vl.total_width)" in body
+    assert "local text_bg_alpha = (FSM.osd_border_style == \"background-box\") and \"FF\" or bg_alpha" in body
+    assert "local bg_rect = string.format(" in body
+    assert "{\\\\bord0}{\\\\shad0}{\\\\3a&HFF&}{\\\\4a&HFF&}" in body
+    assert "{\\\\p1}m 0 0" in body
+    assert "local rect_h = math.max(1, total_h + (2 * pad_y))" in body
+
+
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():
     src = _lua_source()
     body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")

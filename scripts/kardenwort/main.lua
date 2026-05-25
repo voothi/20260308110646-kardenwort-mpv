@@ -4077,13 +4077,20 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
     local y_start = y_pixel
     if not is_top then y_start = y_pixel - total_h end
     
+    local block_min_x = math.huge
+    local block_max_x = -math.huge
     local cur_y = y_start
     for _, m in ipairs(sub_metas) do
-        if hit_zones and Options.osd_interactivity then
-            for _, vl in ipairs(m.vlines) do
-                vl.y_top = cur_y + vl.y_offset
-                vl.y_bottom = vl.y_top + vl.height
-                vl.x_start = 960 - vl.total_width / 2
+        for _, vl in ipairs(m.vlines) do
+            local vl_y_top = cur_y + vl.y_offset
+            local vl_y_bottom = vl_y_top + vl.height
+            local vl_x_start = 960 - vl.total_width / 2
+            block_min_x = math.min(block_min_x, vl_x_start)
+            block_max_x = math.max(block_max_x, vl_x_start + vl.total_width)
+            if hit_zones and Options.osd_interactivity then
+                vl.y_top = vl_y_top
+                vl.y_bottom = vl_y_bottom
+                vl.x_start = vl_x_start
                 vl.sub_idx = m.sub_idx -- For hit-zone tracking
                 vl.is_pri = is_pri
                 table.insert(hit_zones, vl)
@@ -4099,6 +4106,7 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
     local bg_opacity = is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity
     local bord = is_drum and Options.drum_border_size or Options.srt_border_size
     local shad = is_drum and Options.drum_shadow_offset or Options.srt_shadow_offset
+    local bg_alpha = calculate_ass_alpha(bg_opacity)
 
     -- Rendering logic
     local function format_sub_wrapped(meta, is_active, t_pos)
@@ -4124,7 +4132,6 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
                 if meta_item.priority >= 1 or (meta_item.priority == 0 and meta_item.is_phrase) then
                     local final_bold = (meta_item.priority == 3) and Options.anki_highlight_bold or meta.h_bold
                     local is_man = (meta_item.priority == 1 or meta_item.priority == 2)
-                    local bg_alpha = calculate_ass_alpha(is_drum and Options.drum_bg_opacity or Options.srt_bg_opacity)
                     table.insert(formatted_parts, format_highlighted_word({text = meta_item.text}, meta_item.color, base_color, meta_item.is_phrase, bold_state, true, final_bold, is_man, is_drum and Options.drum_bg_color or Options.srt_bg_color, bg_alpha, bord))
                 else
                     table.insert(formatted_parts, meta_item.text)
@@ -4160,10 +4167,22 @@ local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos,
         end
     end
 
+    local text_bg_alpha = (FSM.osd_border_style == "background-box") and "FF" or bg_alpha
     local style_block = string.format("{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s", 
-        bord, shad, bg_color, bg_color, calculate_ass_alpha(bg_opacity), calculate_ass_alpha(bg_opacity), vsp_tag)
+        bord, shad, bg_color, bg_color, text_bg_alpha, text_bg_alpha, vsp_tag)
 
     local ass = ""
+    if block_min_x ~= math.huge then
+        local pad_x = math.max(8, (bord or 0) * 4)
+        local pad_y = math.max(4, (bord or 0) * 2)
+        local rect_left = block_min_x - pad_x
+        local rect_top = y_start - pad_y
+        local rect_w = math.max(1, (block_max_x - block_min_x) + (2 * pad_x))
+        local rect_h = math.max(1, total_h + (2 * pad_y))
+        local bg_rect = string.format("{\\pos(%g, %g)}{\\an7}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
+            rect_left, rect_top, bg_color, bg_alpha, rect_w, rect_w, rect_h, rect_h)
+        ass = ass .. bg_rect .. "\n"
+    end
     if is_top then
         ass = ass .. string.format("{\\pos(960, %d)}{\\an8}{\\fs%d}%s%s\n", y_pixel, font_size, style_block, all_text)
     else
