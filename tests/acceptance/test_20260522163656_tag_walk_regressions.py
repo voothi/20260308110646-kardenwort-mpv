@@ -580,7 +580,7 @@ def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
 
 def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     src = _lua_source()
-    opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=14000)
+    opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=18000)
     assert 'tooltip_native_box_policy = "auto"' in opts
     assert 'tooltip_bg_alpha = ""' in opts
     assert 'tooltip_dw_bg_opacity = ""' in opts

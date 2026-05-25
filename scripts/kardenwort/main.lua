@@ -458,8 +458,11 @@ Options = {
     tooltip_bg_alpha = "",             -- Preferred tooltip card ASS alpha; empty uses legacy tooltip_bg_opacity
     tooltip_bg_opacity = "60",         -- Legacy card transparency alias; 00/0 opaque, FF/100 transparent
     tooltip_dw_bg_alpha = "",          -- Preferred DW card ASS alpha; empty uses legacy/fallback value
+    tooltip_dw_bg_opacity = "",        -- Legacy DW card transparency alias; empty uses tooltip_bg_alpha/opacity
     tooltip_dm_bg_alpha = "",          -- Preferred Drum Mode card ASS alpha; empty uses legacy/fallback value
+    tooltip_dm_bg_opacity = "100",     -- Legacy Drum Mode transparency alias; hides the extra DM card by default
     tooltip_srt_bg_alpha = "",         -- Preferred SRT card ASS alpha; empty uses legacy/fallback value
+    tooltip_srt_bg_opacity = "100",    -- Legacy SRT card transparency alias; hides the extra SRT card by default
     tooltip_border_size = 1.2,
     tooltip_shadow_offset = 1.0,
     tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
@@ -10308,6 +10311,25 @@ mp.register_script_message("test-query-tooltip-state", function()
         force = FSM.DW_TOOLTIP_FORCE
     }
     mp.set_property("user-data/test-tooltip-state", utils.format_json(res))
+end)
+
+mp.register_script_message("test-query-tooltip-style-contract", function()
+    local result = {}
+    for _, mode in ipairs({"dw", "dm", "srt"}) do
+        local ctx = build_tooltip_style_context(mode)
+        result[mode] = {
+            parent_mode = ctx.parent_mode,
+            policy = ctx.policy,
+            is_bgbox = ctx.is_bgbox,
+            needs_override = ctx.needs_override,
+            neutralize_inband = ctx.neutralize_inband,
+            bg_alpha = ctx.bg_alpha,
+            card_alpha = ctx.card_alpha,
+            card_ass = format_tooltip_card_event(ctx, 10, 20, 100, 50, ctx.card_alpha),
+            text_ass = format_tooltip_text_event(ctx, 160, 40, "sample"),
+        }
+    end
+    mp.set_property("user-data/test-tooltip-style-contract", utils.format_json(result))
 end)
 
 mp.register_script_message("test-query-hit-zones", function()

@@ -38,6 +38,12 @@ The mode-specific card override approach is mechanically sound, but exposing the
 
 Implementation decision: add preferred `tooltip_bg_alpha`, `tooltip_dw_bg_alpha`, `tooltip_dm_bg_alpha`, and `tooltip_srt_bg_alpha` options. These use explicit ASS alpha semantics: `00` is opaque and `FF` is fully transparent. The legacy `tooltip_*_bg_opacity` options remain accepted as fallbacks for existing configs.
 
+## Trace 20260525135736: Screenshot Drift Versus ASS Drift
+
+The screenshots `docs/assets/20260525140307.png`, `docs/assets/20260525140324.png`, and `docs/assets/20260525140557.png` can look different even when the tooltip ASS contract is stable, because DM/SRT now use transparent extra tooltip cards and the underlying video/slides strongly affect perceived contrast.
+
+Implementation decision: add a deterministic `test-query-tooltip-style-contract` probe that reports DW/DM/SRT style contexts plus sample card/text ASS. Regression coverage now checks that `render-query` exposes `drum`, `dw`, and `tooltip` overlays, and that the mode contract under `background-box` remains: DW uses scoped override/fallback card alpha; DM/SRT neutralize native boxes and use transparent card alpha.
+
 ### Candidate 1: Shared Card/Text Event Builder For DW And DM Main Overlays
 - Lift card/text ASS event formatting from `draw_dw` and `draw_drum` into common helpers.
 - Keep layout and hit-zone logic separate at first.
