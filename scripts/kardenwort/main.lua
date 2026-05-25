@@ -2924,7 +2924,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             if is_terminator_char(c) then
                 -- Look-ahead: char immediately after the terminator must be whitespace/NUL/end
                 local after = full_line:sub(i + 1, i + 1)
-                if after == "" or after == " " or after == "\t" or after == "\0" or i == #full_line then
+                if after == "" or after == " " or after == "\t" or after == "\0" then
                     -- For "!" and "?" there is no abbreviation concern; always a real boundary.
                     -- For "." check whether the preceding token is an abbreviation.
                     if c ~= "." or not is_abbrev(token_ending_at(full_line, i)) then
@@ -2951,7 +2951,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             local c = full_line:sub(k, k)
             if is_terminator_char(c) then
                 local after = full_line:sub(k + 1, k + 1)
-                if after == "" or after == " " or after == "\t" or after == "\0" or k == #full_line then
+                if after == "" or after == " " or after == "\t" or after == "\0" then
                     if c ~= "." or not is_abbrev(token_ending_at(full_line, k)) then
                         f_term_pos = k
                         break
@@ -5598,7 +5598,6 @@ local function dw_anki_export_selection()
         local term = ""
         local context_line = ""
         local time_pos = 0
-        local is_sentence_boundary = false
         local pivot_pos = 0
         local advanced_index = nil
 
