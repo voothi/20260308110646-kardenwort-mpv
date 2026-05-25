@@ -3115,11 +3115,10 @@ function build_tooltip_style_context(parent_mode)
     elseif policy == "neutralize" then
         neutralize_inband = style_is_bgbox
     else
-        if parent_mode == "dw" then
-            needs_override = true
-        elseif style_is_bgbox then
-            neutralize_inband = true
-        end
+        -- The real mpv background-box renderer can still paint per-line boxes
+        -- around ass-events text. The default tooltip contract therefore uses
+        -- the same scoped outline-and-shadow override in DW, DM, and SRT.
+        needs_override = true
     end
 
     if needs_override then
