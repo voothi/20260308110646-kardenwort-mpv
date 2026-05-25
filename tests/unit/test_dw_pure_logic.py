@@ -83,14 +83,20 @@ def dw_auto_scroll_direction(opts, hit_zones, dm_mode, osd_y):
     if first_zone is None or last_zone is None:
         return 0
 
+    edge_activation_pad = max(2, math.floor(get_dw_drag_threshold_px(opts) / 2))
     if dm_mode:
         top_scroll_trigger = first_zone["y_top"]
         bottom_scroll_trigger = last_zone["y_bottom"]
     else:
-        top_scroll_trigger = min(top_scroll_trigger, first_zone["y_top"])
-        bottom_scroll_trigger = max(bottom_scroll_trigger, last_zone["y_bottom"])
+        if first_zone["y_top"] <= edge_activation_pad:
+            top_scroll_trigger = edge_zone
+        else:
+            top_scroll_trigger = min(top_scroll_trigger, first_zone["y_top"])
+        if last_zone["y_bottom"] >= (base_h - edge_activation_pad):
+            bottom_scroll_trigger = base_h - edge_zone
+        else:
+            bottom_scroll_trigger = max(bottom_scroll_trigger, last_zone["y_bottom"])
 
-    edge_activation_pad = max(2, math.floor(get_dw_drag_threshold_px(opts) / 2))
     if osd_y < (top_scroll_trigger - edge_activation_pad):
         return -1
     if osd_y > (bottom_scroll_trigger + edge_activation_pad):
@@ -257,6 +263,24 @@ def test_dw_auto_scroll_keeps_legacy_screen_edge_bounds():
     ]
     assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=200) == 0
     assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=159) == -1
+    assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=921) == 1
+
+
+def test_dw_auto_scroll_uses_reachable_top_edge_when_wrapped_block_overflows():
+    opts = {"dw_mouse_drag_threshold_px": 5, "dw_mouse_edge_scroll_ratio": 0.15, "font_base_height": 1080}
+    zones = [
+        {"sub_idx": 1, "y_top": -35, "y_bottom": 20},
+        {"sub_idx": 2, "y_top": 1040, "y_bottom": 1095},
+    ]
+    assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=159) == -1
+
+
+def test_dw_auto_scroll_uses_reachable_bottom_edge_when_wrapped_block_overflows():
+    opts = {"dw_mouse_drag_threshold_px": 5, "dw_mouse_edge_scroll_ratio": 0.15, "font_base_height": 1080}
+    zones = [
+        {"sub_idx": 1, "y_top": -35, "y_bottom": 20},
+        {"sub_idx": 2, "y_top": 1040, "y_bottom": 1095},
+    ]
     assert dw_auto_scroll_direction(opts, zones, dm_mode=False, osd_y=921) == 1
 
 

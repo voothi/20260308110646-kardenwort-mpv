@@ -5186,10 +5186,16 @@ local function dw_mouse_auto_scroll()
             bottom_scroll_trigger = last_zone.y_bottom
         end
     else
-        if first_zone and first_zone.y_top then
+        local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad
+        local dw_overflows_bottom = last_zone.y_bottom and last_zone.y_bottom >= (base_h - edge_activation_pad)
+        if dw_overflows_top then
+            top_scroll_trigger = edge_zone
+        elseif first_zone and first_zone.y_top then
             top_scroll_trigger = math.min(top_scroll_trigger, first_zone.y_top)
         end
-        if last_zone and last_zone.y_bottom then
+        if dw_overflows_bottom then
+            bottom_scroll_trigger = base_h - edge_zone
+        elseif last_zone and last_zone.y_bottom then
             bottom_scroll_trigger = math.max(bottom_scroll_trigger, last_zone.y_bottom)
         end
     end

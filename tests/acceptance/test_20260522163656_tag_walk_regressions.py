@@ -196,6 +196,18 @@ def test_dw_mouse_auto_scroll_uses_base_height_instead_of_hardcoded_1080():
     assert "elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then" in auto_scroll_body
 
 
+def test_dw_mouse_auto_scroll_keeps_edge_triggers_reachable_when_block_overflows():
+    src = _lua_source()
+    auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
+
+    assert "local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad" in auto_scroll_body
+    assert "local dw_overflows_bottom = last_zone.y_bottom and last_zone.y_bottom >= (base_h - edge_activation_pad)" in auto_scroll_body
+    assert "if dw_overflows_top then" in auto_scroll_body
+    assert "top_scroll_trigger = edge_zone" in auto_scroll_body
+    assert "if dw_overflows_bottom then" in auto_scroll_body
+    assert "bottom_scroll_trigger = base_h - edge_zone" in auto_scroll_body
+
+
 def test_dw_mouse_auto_scroll_helper_stays_non_local_for_lua_limit():
     src = _lua_source()
     assert "function dw_get_auto_scroll_block_zones(" in src
