@@ -513,8 +513,11 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
     assert "local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)" in body
-    assert "local half_h_with_pad = half_h + pad_y" in body
-    assert "local rect_h = math.max(1, block_height + pad_top + pad_y)" in body
+    assert "local half_h_with_pad = half_h + pad_top" in body
+    assert "local rect_top = block_top - pad_top" in body
+    assert "local rect_h = math.max(1, block_height + (2 * pad_top))" in body
+    assert "local line_center_y = cur_y + (layout_line_h / 2)" in body
+    assert "anchor_x, line_center_y, line_bgbox_neutral" in body
     assert "if final_y - half_h_with_pad < margin then" in body
     assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
 
@@ -529,7 +532,7 @@ def test_dm_background_box_mode_disables_shared_card_opacity_to_avoid_double_dar
     assert "if dm_mode and FSM.osd_border_style == \"background-box\" then" in body
     assert "rect_bg_alpha = \"FF\"" in body
     assert "line_bgbox_neutral = \"{\\\\3a&HFF&\\\\4a&HFF&}\"" in body
-    assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, cur_y, line_bgbox_neutral)" in body
+    assert "string.format(\"{\\\\pos(%g, %g)}{\\\\an6}{\\\\bord0}{\\\\shad0}{\\\\q2}%s\", anchor_x, line_center_y, line_bgbox_neutral)" in body
 
 
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():
