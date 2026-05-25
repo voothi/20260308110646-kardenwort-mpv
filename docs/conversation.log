@@ -2832,6 +2832,6 @@
 20260525175905 Openspec Apply Change 20260525175219-sub-viewer-break-marker-spacing-consistency
 20260525180023 ## Implementation Complete **Change:** `20260525175219-sub-viewer-break-marker-spacing-consistency` **Schema:** `spec-driven` **Progress:** `9/9 tasks complete` ✓ I applied the `openspec-apply-change` workflow and confirmed the change is already fully implemented and marked done. I also re-read all context artifacts (proposal/specs/design/tasks) and verified status is `all_done`. What’s complete: - Reader SRT generation now uses real newlines (no `\N` payload markers). - Break-marker normalization is shared and spacing-safe across DW/DM/tooltip text prep paths. - Lua startup compile-limit regression is addressed. - Targeted viewer regressions were added and validated. OpenSpec state: - `openspec status --change "20260525175219-sub-viewer-break-marker-spacing-consistency"` shows all artifacts done. - `openspec instructions apply...` returns `state: "all_done"`. This change is ready to archive with `/opsx:archive`.
 20260525180120 Openspec Archive Change --sync 20260525175219-sub-viewer-break-marker-spacing-consistency
-
+20260525180659 Openspec Archive Change --sync 20260525114328-unify-dw-dm-tooltip-renderer
 
 
