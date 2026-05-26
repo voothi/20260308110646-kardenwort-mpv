@@ -26,14 +26,14 @@
 ## 5. Timed Audio Assembly
 
 - [x] 5.1 Implement silence gap calculation from SRT timings: compute silence duration between each cue's expected start and the previous cue's audio end
-- [x] 5.2 Build FFmpeg concat filter or file list that interleaves per-cue WAVs with generated silence segments
-- [x] 5.3 Handle overlapping cues: when synthesized audio overflows into next cue's time slot, defer the next cue's start (graceful overflow)
+- [x] 5.2 Build FFmpeg absolute timestamp assembly using `adelay` + `amix` instead of concat
+- [x] 5.3 Handle overlong synthesized cues with Subtitle Edit-style speed fitting before assembly, then report any remaining overflow
 - [x] 5.4 Generate the final assembled WAV (or pipe directly to the MP4 muxing step)
 
 ## 6. MP4 Output Generation
 
 - [x] 6.1 Implement FFmpeg command builder for black canvas + audio muxing (match Convert Media encoding parameters)
-- [x] 6.2 Implement output path resolution: `<basename>.mp4` in same directory, with ZID-dir duplicate handling
+- [x] 6.2 Implement output path resolution: `<basename-without-language-postfix>.mp4` in same directory, with ZID-dir duplicate handling
 - [x] 6.3 Integrate ZID generation (call `zid.py --no-clipboard` or fallback to `datetime.now()`)
 
 ## 7. Cleanup and Error Handling
@@ -74,8 +74,9 @@
 - [x] 12.2 **Spec correction**: update design/spec wording from concat/graceful-defer behavior to explicit subtitle-locked absolute-start behavior with overflow diagnostics
 - [x] 12.3 **Pure timing plan**: extract timing placement into `build_audio_placement_plan()` so cue placement and overflow can be unit-tested without running Piper or FFmpeg
 - [x] 12.4 **Unit tests**: add tests for SRT parsing, language alias/default resolution, postfix-free MP4 output naming, and timing overflow detection
-- [ ] 12.5 **Diagnostic run**: process the problem SRT with the updated warning output and record overflow count/largest overflow in `docs/conversation.log`
+- [x] 12.5 **Diagnostic run**: process the problem SRT with the updated warning output and record overflow count/largest overflow in `docs/conversation.log`
 - [x] 12.6 **Decision point**: choose the final sync policy for overflowing cues: use Subtitle Edit-style subtitle-locked fit as the default
 - [x] 12.7 **Implement chosen policy**: add config-driven `fit_to_subtitle` speed stage with trim, optional VAD silence compression, rubberband/atempo speed-up, and max speed cap
-- [ ] 12.8 **Media-level verification**: verify with ffprobe/ffmpeg on a short fixture and manually compare generated MP4 with matching subtitles
+- [x] 12.8 **Media-level verification**: verify with ffprobe/ffmpeg on a short fixture and manually compare generated MP4 with matching subtitles
 - [x] 12.9 **Subtitle Edit parity research**: inspect `TextToSpeechViewModel.FixSpeed`, `ReviewSpeechViewModel.TrimAndAdjustSpeed`, and `FfmpegGenerator` helpers from `U:\voothi\20260517160217-subtitleedit`
+- [x] 12.10 **Polish pass**: remove stale concat/defer task wording and confirm spec, implementation, and focused unit tests cover the chosen sync policy
