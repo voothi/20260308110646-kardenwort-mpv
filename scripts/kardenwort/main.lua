@@ -1826,17 +1826,21 @@ end
 
 
 
-local function is_abbrev(w)
+local function is_abbrev(w, lookahead)
     if not w then return false end
     local l_word = w:lower()
     local abbrev_list = " " .. (Options.anki_abbrev_list or ""):lower() .. " "
     if abbrev_list:find(" " .. l_word .. " ", 1, true) then return true end
     if Options.anki_abbrev_smart then
-        if w:match("^%l+%.$") and #w <= 5 then return true end
+        -- The 1-4 lowercase letter heuristic catches German shorts like ca./usw./vgl.,
+        -- but also misfires on common 3-5 char English/German words at sentence end
+        -- ("work.", "view.", "use.", "way."). Real sentence terminators are almost
+        -- always followed by an uppercase letter; when the look-ahead is uppercase
+        -- we suppress the heuristic so the explicit list stays authoritative.
+        local heuristic_suppressed = lookahead and lookahead:match("^%u$") ~= nil
+        if not heuristic_suppressed and w:match("^%l+%.$") and #w <= 5 then return true end
         if w:match("^%u%.$") then return true end
         if w:match("^%u%.%u%.$") then return true end
-        -- multi-segment like d.h., i.d.R. — each individual segment already matched above;
-        -- full token caught via list. No additional pattern needed.
     end
     return false
 end
@@ -2828,6 +2832,15 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         if not t or t == "" then t = ".!?" end
         return t:find(c, 1, true) ~= nil
     end
+    local function lookahead_after(s, pos)
+        local j = pos + 1
+        while j <= #s do
+            local c = s:sub(j, j)
+            if c ~= " " and c ~= "\t" and c ~= "\0" and c ~= "\n" then return c end
+            j = j + 1
+        end
+        return ""
+    end
 
     -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
     -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
@@ -2926,8 +2939,10 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                 local after = full_line:sub(i + 1, i + 1)
                 if after == "" or after == " " or after == "\t" or after == "\0" then
                     -- For "!" and "?" there is no abbreviation concern; always a real boundary.
-                    -- For "." check whether the preceding token is an abbreviation.
-                    if c ~= "." or not is_abbrev(token_ending_at(full_line, i)) then
+                    -- For "." check whether the preceding token is an abbreviation. The
+                    -- look-ahead character lets is_abbrev suppress the lowercase heuristic
+                    -- when the period is clearly followed by a new sentence (uppercase).
+                    if c ~= "." or not is_abbrev(token_ending_at(full_line, i), lookahead_after(full_line, i)) then
                         b_term_pos = i
                         break
                     end
@@ -2952,7 +2967,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             if is_terminator_char(c) then
                 local after = full_line:sub(k + 1, k + 1)
                 if after == "" or after == " " or after == "\t" or after == "\0" then
-                    if c ~= "." or not is_abbrev(token_ending_at(full_line, k)) then
+                    if c ~= "." or not is_abbrev(token_ending_at(full_line, k), lookahead_after(full_line, k)) then
                         f_term_pos = k
                         break
                     end

@@ -234,3 +234,60 @@ def test_anki_abbrev_list_includes_german_defaults():
         assert abbrev in line, (
             f"German abbreviation '{abbrev}' not in anki_abbrev_list default value"
         )
+
+
+# ---------------------------------------------------------------------------
+# Edge case 20260526113537 — uppercase look-ahead suppresses lowercase
+# abbreviation heuristic so 4-letter common words ("work.", "view.") do not
+# false-positive as abbreviations when the next sentence clearly begins.
+# ---------------------------------------------------------------------------
+
+def test_is_abbrev_accepts_lookahead_argument():
+    """is_abbrev must accept a second lookahead argument so callers can disambiguate
+    a real sentence end ("work. Microsoft") from a mid-sentence abbreviation ("ca. 3 km")."""
+    content = _lua()
+    assert re.search(r"local function is_abbrev\(w,\s*lookahead\)", content), (
+        "is_abbrev must accept an optional lookahead character argument"
+    )
+
+
+def test_is_abbrev_suppresses_lowercase_heuristic_on_uppercase_lookahead():
+    """The 1-4 lowercase letter heuristic must be suppressed when the look-ahead
+    character is uppercase — otherwise common English/German words such as
+    "work.", "view.", "many.", "this." misfire as abbreviations."""
+    content = _lua()
+    idx = content.find("local function is_abbrev(w, lookahead)")
+    assert idx != -1, "Patched is_abbrev signature not found"
+    body = content[idx:idx + 1200]
+    assert "heuristic_suppressed" in body, (
+        "is_abbrev must compute heuristic_suppressed based on the lookahead"
+    )
+    # The suppression must apply specifically to the `^%l+%.$` heuristic,
+    # not the uppercase-initial patterns.
+    assert re.search(
+        r"not heuristic_suppressed and w:match\(\"\^%l\+%\.\$\"\)",
+        body,
+    ), (
+        "Lowercase-letter heuristic must be gated by 'not heuristic_suppressed'; "
+        "uppercase-letter patterns must remain active"
+    )
+
+
+def test_extract_anki_context_passes_lookahead_to_is_abbrev():
+    """Both the backward and forward scans must compute the next visible
+    character past the candidate period and pass it to is_abbrev."""
+    content = _lua()
+    # Helper that walks past whitespace/\0 to the next visible character
+    assert "local function lookahead_after" in content, (
+        "lookahead_after helper not defined inside extract_anki_context"
+    )
+    block = _scoping_block(content)
+    # Both scans must consult is_abbrev with the lookahead character.
+    matches = re.findall(
+        r"is_abbrev\(token_ending_at\(full_line,\s*\w+\),\s*lookahead_after\(full_line,\s*\w+\)\)",
+        block,
+    )
+    assert len(matches) >= 2, (
+        f"Both backward and forward scans must call is_abbrev with lookahead_after; "
+        f"found only {len(matches)} occurrences"
+    )
