@@ -9903,32 +9903,30 @@ function cmd_cycle_audio()
     end
 
     local supported = {0}
-    local supported_active = {}
     for _, t in ipairs(tracks) do
         if t.type == "audio" then
             local tid = tonumber(t.id)
             if tid then
                 table.insert(supported, tid)
-                table.insert(supported_active, tid)
             end
         end
     end
     table.sort(supported)
-    table.sort(supported_active)
 
     if #supported <= 1 then
         show_osd("Audio: None available")
         return
     end
 
-    -- Dynamically initialize last_aid and prev_aid history if not set
-    if not FSM.last_aid then
-        FSM.last_aid = supported_active[1] or 0
-        FSM.prev_aid = supported_active[2] or supported_active[1] or 0
+    -- Dynamically initialize last/prev selection history if not set.
+    -- OFF (0) participates in the remembered pair.
+    if FSM.last_aid == nil then
+        FSM.last_aid = current_aid
+        FSM.prev_aid = 0
     end
 
-    -- Update history if current active track shifted outside of our script actions
-    if current_aid ~= 0 and current_aid ~= FSM.last_aid then
+    -- Update history if current slot shifted outside of our script actions.
+    if current_aid ~= FSM.last_aid then
         FSM.prev_aid = FSM.last_aid
         FSM.last_aid = current_aid
     end
@@ -9939,7 +9937,7 @@ function cmd_cycle_audio()
 
     local next_aid = 0
     if elapsed > threshold then
-        -- Slow tap: toggle between last two active tracks
+        -- Slow tap: toggle between last two selected slots (including OFF)
         if current_aid == FSM.last_aid then
             next_aid = FSM.prev_aid
         else
@@ -9964,12 +9962,12 @@ function cmd_cycle_audio()
         mp.set_property("aid", "no")
     else
         mp.set_property_number("aid", next_aid)
-        
-        -- Update the last active tracks history
-        if next_aid ~= FSM.last_aid then
-            FSM.prev_aid = FSM.last_aid
-            FSM.last_aid = next_aid
-        end
+    end
+
+    -- Update the last selected slots history (including OFF).
+    if next_aid ~= FSM.last_aid then
+        FSM.prev_aid = FSM.last_aid
+        FSM.last_aid = next_aid
     end
 
     FSM.last_audio_cycle_time = now

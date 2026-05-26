@@ -124,3 +124,11 @@ def test_companion_audio_configuration_and_file_loaded_hook_are_declared():
 
     assert "script-opts-append=kardenwort-companion_audio_enabled=yes" in conf
     assert "script-opts-append=kardenwort-companion_audio_attach_on_load=yes" in conf
+
+
+def test_cycle_pair_memory_includes_off_slot():
+    src = Path("scripts/kardenwort/main.lua").read_text(encoding="utf-8")
+
+    assert "if current_aid ~= FSM.last_aid then" in src
+    assert "if current_aid ~= 0 and current_aid ~= FSM.last_aid then" not in src
+    assert "Slow tap: toggle between last two selected slots (including OFF)" in src
