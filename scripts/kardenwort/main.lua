@@ -9822,63 +9822,60 @@ local function cmd_cycle_sec_sid()
     drum_osd:update()
 end
 
-function cmd_cycle_audio()
-    local path = mp.get_property("path")
-    local companions = {}
-    local current_postfix = ""
-    local base_prefix = ""
-    local ext = ""
-    if path and path ~= "" then
-        local normalized_path = path:gsub("\\", "/")
-        local dir = normalized_path:match("^(.*/)") or ""
-        local filename = normalized_path:sub(#dir + 1)
-        ext = filename:match("%.([^%.]+)$") or ""
-        local filename_no_ext = filename
-        if #ext > 0 then
-            filename_no_ext = filename:sub(1, #filename - #ext - 1)
+function normalize_path_for_compare(path)
+    if not path or path == "" then return "" end
+    local normalized = path:gsub("\\", "/")
+    if package.config:sub(1,1) == "\\" then
+        normalized = normalized:lower()
+    end
+    return normalized
+end
+
+function ensure_companion_audio_tracks(path)
+    if not path or path == "" then return end
+    local normalized_path = path:gsub("\\", "/")
+    local dir = normalized_path:match("^(.*/)") or ""
+    local filename = normalized_path:sub(#dir + 1)
+    local ext = filename:match("%.([^%.]+)$") or ""
+    if ext == "" then return end
+
+    local filename_no_ext = filename:sub(1, #filename - #ext - 1)
+    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
+    if not (current_postfix and (#current_postfix == 2 or #current_postfix == 3)) then
+        base_prefix = filename_no_ext
+    end
+    if not base_prefix or base_prefix == "" then return end
+
+    local companions = get_companion_files(dir, base_prefix, ext)
+    if #companions <= 1 then return end
+
+    local existing_audio = {}
+    local tracks = mp.get_property_native("track-list") or {}
+    for _, t in ipairs(tracks) do
+        if t.type == "audio" and t.external then
+            local p = t["external-filename"] or t["external_filename"] or ""
+            existing_audio[normalize_path_for_compare(p)] = true
         end
-        
-        local current_postfix_parsed
-        base_prefix, current_postfix_parsed = filename_no_ext:match("^(.+)%.([%a%-]+)$")
-        if current_postfix_parsed and (#current_postfix_parsed == 2 or #current_postfix_parsed == 3) then
-            current_postfix = current_postfix_parsed
-        else
-            base_prefix = filename_no_ext
-            current_postfix = ""
-        end
-        
-        companions = get_companion_files(dir, base_prefix, ext)
     end
 
-    if #companions > 1 then
-        local current_idx = 1
-        local current_postfix_upper = current_postfix ~= "" and current_postfix:upper() or "ORIGINAL"
-        for i, c in ipairs(companions) do
-            if c.postfix == current_postfix_upper then
-                current_idx = i
-                break
+    local is_windows = package.config:sub(1,1) == "\\"
+    for _, companion in ipairs(companions) do
+        if companion.postfix ~= "ORIGINAL" then
+            local normalized_companion_path = normalize_path_for_compare(companion.path)
+            if not existing_audio[normalized_companion_path] then
+                local load_path = companion.path
+                if is_windows then
+                    load_path = load_path:gsub("/", "\\")
+                end
+                mp.commandv("audio-add", load_path, "auto", companion.postfix, companion.raw_postfix)
             end
         end
-        
-        local next_idx = current_idx % #companions + 1
-        local target = companions[next_idx]
-        
-        local time_pos = mp.get_property_number("time-pos") or 0.0
-        local speed = mp.get_property_number("speed") or 1.0
-        local paused = mp.get_property_bool("pause")
-        
-        local is_windows = package.config:sub(1,1) == "\\"
-        local load_path = target.path
-        if is_windows then
-            load_path = load_path:gsub("/", "\\")
-        end
-        
-        local options_str = string.format("start=%.3f,speed=%.3f,pause=%s", time_pos, speed, paused and "yes" or "no"):gsub(",", ".")
-        mp.commandv("loadfile", load_path, "replace", options_str)
-        
-        show_osd("Audio: " .. target.postfix)
-        return
     end
+
+end
+
+function cmd_cycle_audio()
+    ensure_companion_audio_tracks(mp.get_property("path"))
 
     local tracks = mp.get_property_native("track-list") or {}
     local current_aid = tonumber(mp.get_property("aid") or 0) or 0
@@ -9963,7 +9960,7 @@ function cmd_cycle_audio()
     if next_aid ~= 0 then
         for _, t in ipairs(tracks) do
             if tonumber(t.id) == next_aid then
-                local lang_lbl = (t.lang and t.lang ~= "und") and t.lang:upper() or nil
+                local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown") and t.lang:upper() or nil
                 local title_lbl = t.title or nil
                 if lang_lbl and title_lbl then
                     label = lang_lbl .. " - " .. title_lbl

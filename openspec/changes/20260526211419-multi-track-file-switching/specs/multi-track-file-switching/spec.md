@@ -10,24 +10,29 @@ The system SHALL normalize postfix tags to uppercase languages (e.g., `.ru` -> `
 
 ### Requirement: Unified Audio and Companion Cycling (Shift+3)
 The system SHALL support unified, dynamic track cycling bound layout-safely to `Shift+3`, `SHARP`, and `№`.
-If more than 1 companion media file is indexed in the folder, the hotkey SHALL cycle between companion files.
+If more than 1 companion media file is indexed in the folder, the hotkey SHALL attach companion file audio tracks as external audio tracks and cycle `aid` across internal and external audio options.
 If 1 or fewer companion media files exist, the hotkey SHALL cycle the internal multiplexed audio tracks inside the media container, adhering to the standard GBoard-style time-threshold cycle behavior.
 
-### Requirement: State-Preserving Companion Swapping
-The system SHALL support dynamic, seamless swapping of the active media file to a companion track file upon user request.
-During swapping, the system MUST preserve:
-1. Current playback position (`time-pos`) in seconds.
-2. Current playback speed multiplier (`speed`).
-3. Current playback state (paused vs. playing).
-The system SHALL trigger the replacement using the native `loadfile` MPV command with exact time restoration, resuming playback smoothly.
+#### Scenario: Shift+3 cycles audio without replacing media file
+- **WHEN** a media file `video.mp4` is loaded and companion files `video.ru.mp4` and `video.de.mp4` exist
+- **THEN** pressing `Shift+3` attaches companion audio tracks and cycles active audio using `aid`
+- **AND** the active media file path remains `video.mp4`.
 
-#### Scenario: Seamless swap of media file during playback
-- **WHEN** user triggers a companion track file swap from `video.mp4` (playing at 42.5 seconds, speed 1.1x) to `video.ru.mp4`
-- **THEN** the system reloads the file with `video.ru.mp4`, restoring position to 42.5 seconds, speed to 1.1x, and continues playing.
+### Requirement: Companion Audio Attachment
+The system SHALL treat companion files as audio providers and SHALL NOT replace the active media file for companion audio switching.
+During companion handling, the system MUST:
+1. Discover and attach missing companion file audio tracks via MPV external audio track APIs.
+2. Keep current playback position, speed, and pause state naturally unchanged because no `loadfile replace` occurs.
+3. Continue using one unified `Shift+3` cycle flow for both internal and companion-provided audio tracks.
+
+#### Scenario: Companion file audio is added as external track
+- **WHEN** user triggers audio cycling on `video.mp4` and companion file `video.ru.mp4` exists
+- **THEN** `video.ru.mp4` audio is attached as an external audio track
+- **AND** the media file is not replaced.
 
 
 ### Requirement: Themed HUD Notification
-The system SHALL display an instant OSD confirmation when swapping companion files.
+The system SHALL display an instant OSD confirmation when switching active audio tracks.
 The OSD confirmation MUST be rendered using the custom themed, semi-transparent Kardenwort OSD notice box rather than plain, unstyled MPV OSD.
 
 #### Scenario: OSD feedback on companion file cycle
