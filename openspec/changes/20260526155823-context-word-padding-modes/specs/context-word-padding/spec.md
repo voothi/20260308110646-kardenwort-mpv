@@ -35,3 +35,9 @@ The system SHALL first calculate context boundaries using the existing abbreviat
 - **WHEN** `anki_context_words_before` is `0`
 - **AND** `anki_context_words_after` is `0`
 - **THEN** the exported context SHALL match the sentence-scoped result before word padding
+
+#### Scenario: No real terminator disables padding expansion
+- **WHEN** neither backward nor forward sentence scan finds a real sentence terminator
+- **AND** `anki_context_words_before` or `anki_context_words_after` is greater than `0`
+- **THEN** the exported context SHALL remain the no-terminator fallback sentence span
+- **AND** no additional before/after word expansion SHALL be applied

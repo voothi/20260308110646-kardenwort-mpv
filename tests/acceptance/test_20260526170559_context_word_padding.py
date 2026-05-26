@@ -32,9 +32,19 @@ def test_padding_applies_after_sentence_scoping():
     assert idx != -1
     body = content[idx:idx + 25000]
     assert "padding_active = (pad_before > 0) or (pad_after > 0)" in body
-    assert "if padding_active then" in body
+    assert "if padding_allowed then" in body
     assert "final_first_word_idx = math.max(1, first_sent_word_idx - pad_before)" in body
     assert "final_last_word_idx = math.min(#word_tokens, last_sent_word_idx + pad_after)" in body
+
+
+def test_padding_requires_real_sentence_boundary():
+    content = _lua()
+    idx = content.find("local function extract_anki_context")
+    assert idx != -1
+    body = content[idx:idx + 25000]
+    assert "local has_real_boundary = false" in body
+    assert "has_real_boundary = true" in body
+    assert "padding_allowed = padding_active and has_real_boundary" in body
 
 
 def test_default_sentence_path_is_preserved():

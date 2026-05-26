@@ -2957,6 +2957,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local sent_start = 1
     local sent_end = #full_line
     local sentence_abs_start = 1   -- tracks where the cleaned sentence starts in full_line
+    local has_real_boundary = false
     
     if start_pos then
         -- === Backward scan: find nearest real sentence terminator before start_pos ===
@@ -2984,6 +2985,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
         if b_term_pos then
             sent_start = b_term_pos + 1   -- sentence begins right after the terminator
+            has_real_boundary = true
             print(string.format("[kardenwort] Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
                 full_line:sub(b_term_pos, b_term_pos), b_term_pos, sent_start))
         else
@@ -3009,6 +3011,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
         if f_term_pos then
             sent_end = f_term_pos   -- include the terminator character
+            has_real_boundary = true
             print(string.format("[kardenwort] Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
                 full_line:sub(f_term_pos, f_term_pos), f_term_pos, sent_end))
         else
@@ -3016,7 +3019,8 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             print("[kardenwort] Sent boundary (forward): no terminator found, fallback to block end")
         end
 
-        if padding_active then
+        local padding_allowed = padding_active and has_real_boundary
+        if padding_allowed then
             -- Expand sentence-scoped byte bounds by logical words while keeping literal source slicing.
             local full_line_spaced = full_line:gsub("%z", " ")
             local tokens = build_word_list_internal(full_line_spaced, true)
@@ -3101,7 +3105,8 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     end
     
     local span = last_idx - first_idx + 1
-    if padding_active then
+    local padding_allowed = padding_active and has_real_boundary
+    if padding_allowed then
         local words_needed = span + pad_before + pad_after
         if words_needed > limit then
             limit = words_needed
@@ -3113,7 +3118,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     if span >= limit then
         local pad_left = Options.anki_context_span_pad or 3
         local pad_right = pad_left
-        if padding_active then
+        if padding_allowed then
             pad_left = math.max(pad_left, pad_before)
             pad_right = math.max(pad_right, pad_after)
         end
