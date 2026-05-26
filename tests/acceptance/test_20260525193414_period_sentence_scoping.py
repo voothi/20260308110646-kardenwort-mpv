@@ -291,3 +291,18 @@ def test_extract_anki_context_passes_lookahead_to_is_abbrev():
         f"Both backward and forward scans must call is_abbrev with lookahead_after; "
         f"found only {len(matches)} occurrences"
     )
+
+
+def test_spaced_initialism_periods_do_not_split_sentence():
+    """Spaced initialisms such as "z. B." must not split at the first period.
+
+    Regression anchor: 20260526131237
+    """
+    content = _lua()
+    assert "local function is_spaced_initialism_period_at" in content, (
+        "spaced initialism guard missing; 'z. B.' can split at the first period"
+    )
+    block = _scoping_block(content)
+    assert block.count("is_spaced_initialism_period_at(full_line,") >= 2, (
+        "both backward and forward scans must skip spaced-initialism periods"
+    )

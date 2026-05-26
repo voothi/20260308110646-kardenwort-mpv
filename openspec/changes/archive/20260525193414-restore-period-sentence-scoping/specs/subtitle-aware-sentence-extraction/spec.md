@@ -36,10 +36,11 @@ When **neither** the backward nor the forward sentence-terminator scan finds a r
 - **THEN** the returned sentence SHALL begin after the backward terminator and extend to the end of the joined context block
 
 ### Requirement: Abbreviation-Aware Sentence Boundary Detection
-The sentence-scoping scan and the word-level `is_sentence_boundary` check SHALL share a single `is_abbreviation(token)` helper. A token SHALL be classified as an abbreviation when **either** of the following holds:
+The sentence-scoping scan and the word-level `is_sentence_boundary` check SHALL share abbreviation handling. A token SHALL be classified as an abbreviation when **any** of the following holds:
 
 1. The token matches the heuristic pattern: 1–4 lowercase letters followed by `.` (e.g. `ca.`, `usw.`, `bzw.`, `d.h.`), OR a sequence of single-uppercase-letter+`.` segments (e.g. `z.B.`, `T.CON`); OR
-2. The token (including its trailing period) appears in `Options.anki_abbrev_list` (case-insensitive exact match).
+2. The token (including its trailing period) appears in `Options.anki_abbrev_list` (case-insensitive exact match); OR
+3. The candidate period participates in a spaced initialism such as `z. B.`.
 
 The configurable allowlist SHALL be additive on top of the heuristic — the heuristic remains primary.
 
@@ -58,20 +59,24 @@ The configurable allowlist SHALL be additive on top of the heuristic — the heu
 - **THEN** `is_abbreviation("raus.")` SHALL return `false`
 - **AND** the scan SHALL treat this `.` as a sentence terminator
 
+#### Scenario: Spaced initialism is not split
+- **WHEN** the scan encounters `"z. B. Globus"` inside a sentence
+- **THEN** neither the period after `"z"` nor the period after `"B"` SHALL truncate the returned sentence
+
 #### Scenario: Word-level boundary check shares the same helper
 - **WHEN** `dw_anki_export_selection` evaluates whether the word before the user's selection ends a sentence
 - **THEN** it SHALL call the same `is_abbreviation` helper used by the sentence-scoping scan
 - **AND** SHALL NOT duplicate the heuristic logic locally
 
 ### Requirement: Configurable Abbreviation Allowlist
-The system SHALL expose `anki_abbrev_list` as a script option. Its value SHALL be a comma-separated list of abbreviation tokens (each including the trailing period). The default value SHALL include common German abbreviations.
+The system SHALL expose `anki_abbrev_list` as a script option. Its value SHALL be a space-separated list of abbreviation tokens (each including the trailing period). The default value SHALL include common German abbreviations.
 
 #### Scenario: Default value covers common German abbreviations
 - **WHEN** the user does NOT set `kardenwort-anki_abbrev_list` in `mpv.conf`
 - **THEN** the effective list SHALL include at minimum `z.B.`, `bzw.`, `usw.`, `ca.`, `d.h.`, `u.a.`, `etc.`, `vgl.`, `ggf.`, `bspw.`
 
 #### Scenario: User extends the allowlist
-- **WHEN** `mpv.conf` contains `script-opts=kardenwort-anki_abbrev_list=z.B.,bzw.,usw.,ca.,Inc.,Prof.`
+- **WHEN** `mpv.conf` contains `script-opts=kardenwort-anki_abbrev_list=z.B. bzw. usw. ca. Inc. Prof.`
 - **AND** the scan encounters `"Prof."` in subtitle text
 - **THEN** `is_abbreviation("Prof.")` SHALL return `true`
 

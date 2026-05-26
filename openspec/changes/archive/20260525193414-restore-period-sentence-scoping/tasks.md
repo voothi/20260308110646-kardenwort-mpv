@@ -28,6 +28,7 @@
 - [x] 4.3 Add a test for the abbreviation skip with `"Es liegt ca. 97 km von Plattling"` — assert `extract_anki_context` for selection `"97"` does NOT split at `"ca."`.
 - [x] 4.4 Add a test for the no-terminator fallback with three unpunctuated subtitle lines — assert the result is the entire joined block (space-separated), not a single line.
 - [x] 4.5 Add a test for the new `anki_abbrev_list` extension: configure list `"Prof."`, feed context `"Prof. Müller sagte das."`, selection `"Müller"`, assert the result includes `"Prof. Müller sagte das."` (not split at `"Prof."`).
+- [x] 4.5b Add a regression guard for spaced initialisms such as `"z. B."` so the first period does not truncate the sentence (verified by discussion anchor `20260526131237`).
 - [x] 4.6 Review the two existing acceptance tests `tests/acceptance/test_20260509085806_anki_context_verbatim.py` and `tests/acceptance/test_20260509102214_spec_depth_pass2.py` for fixtures that assume single-subtitle-line scoping; update assertions to match the new (correct) full-sentence behaviour, or document them as covering a different invariant.
 
 ## 5. Documentation
@@ -37,11 +38,11 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Re-export the words `verbreitet`, `glatten`, `wichtige Suchmeldung`, `Autofahrer ... rechnen` from the user's `20260412001656-hoeren-b2-telc-uebungstest` SRT and visually verify the `SentenceSource` column contains full sentences matching the proposal's expected-output table.
-- [ ] 6.2 Verify a YouTube auto-subtitle export (no punctuation) still produces a non-empty multi-line `SentenceSource` (the full ±N joined block).
-- [ ] 6.3 Verify that exports of selections that include an abbreviation (`ca.`, `z.B.`) at the sentence start/end still produce the correct full sentence without truncation.
+- [x] 6.1 Re-export the words `verbreitet`, `glatten`, `wichtige Suchmeldung`, `Autofahrer ... rechnen` from the user's `20260412001656-hoeren-b2-telc-uebungstest` SRT and visually verify the `SentenceSource` column contains full sentences matching the proposal's expected-output table. (Confirmed by discussion anchor `20260526124335`.)
+- [x] 6.2 Verify a YouTube auto-subtitle export (no punctuation) still produces a non-empty multi-line `SentenceSource` (the full ±N joined block). (Confirmed by `20260515233947-1-tag-als-postbotin` examples in discussion anchor `20260526124335`.)
+- [x] 6.3 Verify that exports of selections that include an abbreviation (`ca.`, `z.B.`) at the sentence start/end still produce the correct full sentence without truncation. (Confirmed for spaced `z. B.` by discussion anchor `20260526131237`; `ca.` is covered by acceptance guard 4.3.)
 - [x] 6.4 Run `openspec validate 20260525193414-restore-period-sentence-scoping` and confirm zero errors.
 
 ## 7. Archive
 
-- [ ] 7.1 After all acceptance tests pass and verification scenarios are confirmed visually, run `openspec archive 20260525193414-restore-period-sentence-scoping` so the `specs/subtitle-aware-sentence-extraction/spec.md` and `specs/adaptive-context-truncation/spec.md` files are updated with the new merged content.
+- [x] 7.1 After all acceptance tests pass and verification scenarios are confirmed visually, run `openspec archive 20260525193414-restore-period-sentence-scoping` so the `specs/subtitle-aware-sentence-extraction/spec.md` and `specs/adaptive-context-truncation/spec.md` files are updated with the new merged content. (Archived under `openspec/changes/archive/20260525193414-restore-period-sentence-scoping`; specs were manually synced before archive because CLI auto-sync could not match one renamed requirement header.)

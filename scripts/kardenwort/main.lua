@@ -2844,12 +2844,12 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local function is_spaced_initialism_period_at(s, dot_pos)
         -- Detect abbreviations like "z. B." where the first period must not end a sentence.
         local prev = s:sub(dot_pos - 1, dot_pos - 1)
-        if not prev:match("[%a\192-\255]") then return false end
+        if not prev:match("^%a$") then return false end
         local j = dot_pos + 1
         while j <= #s do
             local c = s:sub(j, j)
             if c ~= " " and c ~= "\t" and c ~= "\0" and c ~= "\n" then
-                if c:match("[%a\192-\255]") then
+                if c:match("^%a$") then
                     local k = j + 1
                     while k <= #s do
                         local c2 = s:sub(k, k)
