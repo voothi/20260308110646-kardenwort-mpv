@@ -8,6 +8,11 @@ The system SHALL normalize postfix tags to uppercase languages (e.g., `.ru` -> `
 - **WHEN** a media file `video.mp4` is loaded and directory contains `video.ru.mp4` and `video.de.mp4`
 - **THEN** the system successfully indexes the tracks: `ORIGINAL` (active), `RU`, and `DE`.
 
+### Requirement: Unified Audio and Companion Cycling (Shift+3)
+The system SHALL support unified, dynamic track cycling bound layout-safely to `Shift+3`, `SHARP`, and `№`.
+If more than 1 companion media file is indexed in the folder, the hotkey SHALL cycle between companion files.
+If 1 or fewer companion media files exist, the hotkey SHALL cycle the internal multiplexed audio tracks inside the media container, adhering to the standard GBoard-style time-threshold cycle behavior.
+
 ### Requirement: State-Preserving Companion Swapping
 The system SHALL support dynamic, seamless swapping of the active media file to a companion track file upon user request.
 During swapping, the system MUST preserve:
@@ -27,4 +32,4 @@ The OSD confirmation MUST be rendered using the custom themed, semi-transparent 
 
 #### Scenario: OSD feedback on companion file cycle
 - **WHEN** the user cycles the companion track file to `DE`
-- **THEN** the system displays a themed OSD box containing `"Companion: DE"` for a short duration.
+- **THEN** the system displays a themed OSD box containing `"Track: DE"` for a short duration.

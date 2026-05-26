@@ -8625,7 +8625,6 @@ local HELP_SCHEMA = {
     { category = "Standard Controls", actions = {
         { desc = "Toggle Help HUD", cmd = "kardenwort/toggle-help", whitelist = {["F1"]=true} },
         { desc = "Cycle Audio Track", cmd = "kardenwort/cycle-audio" },
-        { desc = "Cycle Companion Track", cmd = "kardenwort/cycle-companion" },
         { desc = "Adjust Volume", cmd = "volume", whitelist = {["9"]=true, ["0"]=true} },
         { desc = "Adjust Playback Speed", cmd = "speed" },
         { desc = "Frame Step Fwd/Back", cmd = "frame.*step", whitelist = {["."]=true, [","]=true, ["ю"]=true, ["б"]=true} },
@@ -9824,6 +9823,58 @@ local function cmd_cycle_sec_sid()
 end
 
 function cmd_cycle_audio()
+    local path = mp.get_property("path")
+    local companions = {}
+    local current_postfix = ""
+    local base_prefix = ""
+    local ext = ""
+    if path and path ~= "" then
+        local normalized_path = path:gsub("\\", "/")
+        local dir = normalized_path:match("^(.*/)") or ""
+        local filename = normalized_path:sub(#dir + 1)
+        ext = filename:match("%.([^%.]+)$") or ""
+        local filename_no_ext = filename
+        if #ext > 0 then
+            filename_no_ext = filename:sub(1, #filename - #ext - 1)
+        end
+        
+        local current_postfix_parsed
+        base_prefix, current_postfix_parsed = filename_no_ext:match("^(.+)%.([%a%-]+)$")
+        if current_postfix_parsed and (#current_postfix_parsed == 2 or #current_postfix_parsed == 3) then
+            current_postfix = current_postfix_parsed
+        else
+            base_prefix = filename_no_ext
+            current_postfix = ""
+        end
+        
+        companions = get_companion_files(dir, base_prefix, ext)
+    end
+
+    if #companions > 1 then
+        local current_idx = 1
+        local current_postfix_upper = current_postfix ~= "" and current_postfix:upper() or "ORIGINAL"
+        for i, c in ipairs(companions) do
+            if c.postfix == current_postfix_upper then
+                current_idx = i
+                break
+            end
+        end
+        
+        local next_idx = current_idx % #companions + 1
+        local target = companions[next_idx]
+        
+        local time_pos = mp.get_property_number("time-pos") or 0.0
+        local speed = mp.get_property_number("speed") or 1.0
+        local paused = mp.get_property_bool("pause")
+        
+        mp.commandv("loadfile", target.path, "replace", "start=" .. tostring(time_pos))
+        mp.set_property_number("speed", speed)
+        mp.set_property_bool("pause", paused)
+        
+        show_osd("Track: " .. target.postfix)
+        return
+    end
+
     local tracks = mp.get_property_native("track-list") or {}
     local current_aid = tonumber(mp.get_property("aid") or 0) or 0
     if current_aid == 0 then
@@ -9961,58 +10012,6 @@ function get_companion_files(dir, base_prefix, ext)
     return companions
 end
 
-function cmd_cycle_companion()
-    local path = mp.get_property("path")
-    if not path or path == "" then
-        show_osd("No file currently active")
-        return
-    end
-    
-    local normalized_path = path:gsub("\\", "/")
-    local dir = normalized_path:match("^(.*/)") or ""
-    local filename = normalized_path:sub(#dir + 1)
-    local ext = filename:match("%.([^%.]+)$") or ""
-    local filename_no_ext = filename
-    if #ext > 0 then
-        filename_no_ext = filename:sub(1, #filename - #ext - 1)
-    end
-    
-    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
-    if current_postfix and (#current_postfix == 2 or #current_postfix == 3) then
-        -- Valid language postfix
-    else
-        base_prefix = filename_no_ext
-        current_postfix = ""
-    end
-    
-    local companions = get_companion_files(dir, base_prefix, ext)
-    if #companions <= 1 then
-        show_osd("No companion tracks found")
-        return
-    end
-    
-    local current_idx = 1
-    local current_postfix_upper = current_postfix ~= "" and current_postfix:upper() or "ORIGINAL"
-    for i, c in ipairs(companions) do
-        if c.postfix == current_postfix_upper then
-            current_idx = i
-            break
-        end
-    end
-    
-    local next_idx = current_idx % #companions + 1
-    local target = companions[next_idx]
-    
-    local time_pos = mp.get_property_number("time-pos") or 0.0
-    local speed = mp.get_property_number("speed") or 1.0
-    local paused = mp.get_property_bool("pause")
-    
-    mp.commandv("loadfile", target.path, "replace", "start=" .. tostring(time_pos))
-    mp.set_property_number("speed", speed)
-    mp.set_property_bool("pause", paused)
-    
-    show_osd("Track: " .. target.postfix)
-end
 
 local function cmd_toggle_osc()
     FSM.OSC_VIS = (FSM.OSC_VIS + 1) % 3
@@ -10212,7 +10211,6 @@ mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 mp.add_key_binding(nil, "cycle-immersion-mode", cmd_cycle_immersion_mode)
 mp.add_key_binding(nil, "toggle-help", cmd_toggle_help)
 mp.add_key_binding(nil, "cycle-audio", cmd_cycle_audio)
-mp.add_key_binding(nil, "cycle-companion", cmd_cycle_companion)
 
 local function register_global_position_keys()
     local function bind(opt, name, fn)

@@ -6,13 +6,13 @@
 
 ## 2. State-Preserving Swapping Engine
 
-- [x] 2.1 Write cmd_cycle_companion function that gets current time-pos, speed, and pause state
-- [x] 2.2 Execute loadfile replace with time parameter
+- [x] 2.1 Integrate directory scanning and swapping logic into cmd_cycle_audio to dynamically intercept audio switches when companion files are present
+- [x] 2.2 Execute loadfile replace with time parameter when multiple companion files are detected
 - [x] 2.3 Restore speed and pause state after replacement
 
 ## 3. UI/OSD & Configuration
 
-- [x] 3.1 Bind cycle-companion command to Shift+4 and $ in input.conf
-- [x] 3.2 Add Shift+4 / $ cycle-companion reference to F1 HELP_SCHEMA
-- [x] 3.3 Show premium themed OSD notice card showing active companion file language
+- [x] 3.1 Keep keybindings bound to Shift+3, SHARP, and № for cycle-audio layout-safely in input.conf
+- [x] 3.2 Ensure F1 HELP_SCHEMA includes the unified Cycle Audio Track mapping
+- [x] 3.3 Show premium themed OSD notice card showing active companion file language (e.g. Track: RU)
 - [x] 3.4 Document new capability in README.md and add option in mpv.conf

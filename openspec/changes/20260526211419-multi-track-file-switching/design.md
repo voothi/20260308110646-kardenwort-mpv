@@ -8,7 +8,8 @@ Currently, there is no way for a user to switch between these separate companion
 
 **Goals:**
 - Automatically scan the active media directory using MPV's native filesystem APIs to index language-postfix companion files.
-- Seamlessly swap the active file at runtime when the hotkey (`Shift+4` or `$`) is triggered.
+- Seamlessly swap the active file at runtime when the hotkey (`Shift+3`, `SHARP`, or `№`) is triggered.
+- Unified keybinding: If companion files exist in the directory, cycle companion files. Otherwise, fall back to standard internal multiplexed audio track cycling (using GBoard-style double-tap switching).
 - Guarantee 100% preservation of the active `time-pos`, `speed`, and `pause` state during swaps.
 - Deliver themed HUD visual feedback showing the active companion track's language code.
 
@@ -27,9 +28,9 @@ Currently, there is no way for a user to switch between these separate companion
 - **Decision**: Swapping will capture `time-pos`, `speed`, and `pause` state before invoking `loadfile next_path replace start=<time>`.
 - **Rationale**: MPV's `loadfile` replaces the current track. Passing the `start=<time>` argument ensures immediate seeking on load. Re-applying `speed` and `pause` state immediately after loading guarantees continuity.
 
-### 3. Keybindings
-- **Decision**: Bind `Shift+4` and `$` in `input.conf` to invoke `cycle-companion`.
-- **Rationale**: `Shift+4` is universally normalized by MPV, and `$` covers explicit shift-symbol layout setups.
+### 3. Keybindings & Hybrid Selector
+- **Decision**: Bind the unified switching logic to `Shift+3`, `SHARP`, and `№` (mapping to `cycle-audio` in `input.conf`).
+- **Rationale**: Keeps a single primary layout-safe hotkey for all audio cycling operations. If multiple companion files are discovered in the workspace directory, we intercept the command to swap physical files. If not, we fall back to multiplexed tracks.
 
 ## Risks / Trade-offs
 

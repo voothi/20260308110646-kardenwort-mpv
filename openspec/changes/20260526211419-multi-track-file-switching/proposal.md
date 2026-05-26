@@ -7,24 +7,19 @@ Currently, MPV track switching only operates on multiplexed tracks within the ac
 ## What Changes
 
 - **Companion Discovery**: Automatically scans the active media directory to identify and index companion media files sharing the same prefix but possessing language postfixes (e.g., `<name>.<lang>.<ext>`).
+- **Unified Switcher Logic**: Consolidates both companion file track switching and standard internal track cycling under a single keyboard shortcut (`Shift+3`, `SHARP`, or `№`). If multiple companion files are found, `Shift+3` cycles through files. If no companion files exist, it falls back seamlessly to cycling multiplexed tracks inside the container.
 - **Seamless State-Preserving Swapping**: Dynamically swaps the active video file using a dedicated script-binding. Swapping perfectly preserves:
   - Playback position (`time-pos`)
   - Playback speed (`speed`)
   - Playback state (playing vs. paused)
 - **Themed HUD Confirmation**: Reports track swaps instantly with a premium, semi-transparent Kardenwort OSD card matching the suite's theme.
-- **Layout-Agnostic Keybindings**: Registers hotkeys in both English and Russian keyboards for file cycling.
+- **Layout-Agnostic Keybindings**: Registers hotkeys in both English and Russian keyboards for unified track cycling.
 
 ## Capabilities
 
-### New Capabilities
-- `multi-track-file-switching`: Dynamic indexing of companion multi-track media files in the same directory and state-preserving runtime swapping.
-
-### Modified Capabilities
-<!-- None -->
-
 ## Impact
 
-- **`scripts/kardenwort/main.lua`**: Implements directory scanning, base/postfix matching, time/speed preservation, file loading, and themed OSD notification logic.
-- **`input.conf`**: Maps dedicated shortcuts to cycle through discovered companion files.
+- **`scripts/kardenwort/main.lua`**: Implements directory scanning, base/postfix matching, time/speed preservation, file loading, and themed OSD notification logic under the unified `cmd_cycle_audio` action.
+- **`input.conf`**: Cleans up secondary key bindings to keep all track switching actions unified on `Shift+3`.
 - **`mpv.conf`**: Exposes config options to toggle companion loading behaviors.
 - **`README.md`**: Documents the new capabilities, shortcuts, and directory structure expectations.
