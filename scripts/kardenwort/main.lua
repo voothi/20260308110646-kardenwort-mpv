@@ -231,6 +231,8 @@ function expand_ru_keys(key_string, opt_name)
 end
 
 function validate_config()
+    Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))
+    Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))
     local errors = {}
     local function check_keys(opt_val, opt_name)
         if not opt_val or opt_val == "" then return end
@@ -544,6 +546,8 @@ Options = {
     key_sec_sub_pos_down = "T",
 
     anki_context_max_words = 40,
+    anki_context_words_before = 0,
+    anki_context_words_after = 0,
     anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
     anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: 0075D1 | RGB: #D17500)
     anki_highlight_depth_2 = "005DAE",
@@ -2945,6 +2949,10 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
     end
     
+    local pad_before = Options.anki_context_words_before or 0
+    local pad_after = Options.anki_context_words_after or 0
+    local padding_active = (pad_before > 0) or (pad_after > 0)
+
     local sentence = full_line
     local sent_start = 1
     local sent_end = #full_line
@@ -3008,6 +3016,44 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             print("[kardenwort] Sent boundary (forward): no terminator found, fallback to block end")
         end
 
+        if padding_active then
+            -- Expand sentence-scoped byte bounds by logical words while keeping literal source slicing.
+            local full_line_spaced = full_line:gsub("%z", " ")
+            local tokens = build_word_list_internal(full_line_spaced, true)
+            local word_tokens = {}
+            local curr_byte = 1
+            for _, t in ipairs(tokens) do
+                local start_byte = curr_byte
+                local end_byte = curr_byte + #t.text - 1
+                if t.is_word then
+                    table.insert(word_tokens, {
+                        start_byte = start_byte,
+                        end_byte = end_byte,
+                    })
+                end
+                curr_byte = end_byte + 1
+            end
+
+            local first_sent_word_idx, last_sent_word_idx = nil, nil
+            for idx, wt in ipairs(word_tokens) do
+                if wt.end_byte >= sent_start and wt.start_byte <= sent_end then
+                    first_sent_word_idx = first_sent_word_idx or idx
+                    last_sent_word_idx = idx
+                end
+            end
+
+            if first_sent_word_idx and last_sent_word_idx then
+                local final_first_word_idx = math.max(1, first_sent_word_idx - pad_before)
+                local final_last_word_idx = math.min(#word_tokens, last_sent_word_idx + pad_after)
+                if final_first_word_idx < first_sent_word_idx then
+                    sent_start = word_tokens[final_first_word_idx].start_byte
+                end
+                if final_last_word_idx > last_sent_word_idx then
+                    sent_end = word_tokens[final_last_word_idx].end_byte
+                end
+            end
+        end
+
         local raw_sub = full_line:sub(sent_start, sent_end)
         -- Replace sentinels with spaces and trim
         sentence = raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
@@ -3020,7 +3066,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     -- 2. Check word count of the extracted sentence.
     local words = build_word_list(sentence)
     local limit = max_words_override or Options.anki_context_max_words
-    if #words <= limit then return sentence end
     
     -- 3. If the sentence is still too long, truncate around the selected span.
     -- Use the pre-computed sentence_abs_start so the "." append doesn't break offset math.
@@ -3055,16 +3100,25 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         return sentence
     end
     
-    -- If the selection span itself is wider than the limit, the user picked words far apart —
-    -- return the full sentence so none of the picked words are hidden.
     local span = last_idx - first_idx + 1
+    if padding_active then
+        local words_needed = span + pad_before + pad_after
+        if words_needed > limit then
+            limit = words_needed
+        end
+    end
+    if #words <= limit then return sentence end
+
+    -- If the selection span itself is wider than the limit, the user picked words far apart.
     if span >= limit then
-        -- Selection spans more words than the limit allows padding for.
-        -- Crop to the span but add a small fixed padding on each side so the
-        -- extreme selected words don't get cut mid-phrase.
-        local pad = Options.anki_context_span_pad
-        local crop_start = math.max(1, first_idx - pad)
-        local crop_end   = math.min(#words, last_idx + pad)
+        local pad_left = Options.anki_context_span_pad or 3
+        local pad_right = pad_left
+        if padding_active then
+            pad_left = math.max(pad_left, pad_before)
+            pad_right = math.max(pad_right, pad_after)
+        end
+        local crop_start = math.max(1, first_idx - pad_left)
+        local crop_end   = math.min(#words, last_idx + pad_right)
         Diagnostic.trace(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
         local f_byte = (crop_start == 1) and 1 or nil
         local l_byte = (crop_end == #words) and #sentence or nil
