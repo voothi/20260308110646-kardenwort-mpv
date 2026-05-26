@@ -31,10 +31,6 @@ The system SHALL first calculate context boundaries using the existing abbreviat
 - **AND** the exported context SHALL include the following word `Ein`
 - **AND** structural markers such as `##` and `###` inside the selected substring SHALL be preserved
 
-#### Scenario: Trailing punctuation on the padded word is preserved
-- **WHEN** `anki_context_words_after` includes a following word that is immediately followed by punctuation
-- **THEN** the exported context SHALL include that adjacent punctuation with the padded word
-
 #### Scenario: Disabled padding remains sentence-only
 - **WHEN** `anki_context_words_before` is `0`
 - **AND** `anki_context_words_after` is `0`
