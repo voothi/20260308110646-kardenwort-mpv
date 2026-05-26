@@ -1,3 +1,28 @@
+# Release Notes - v1.84.34 (Spaced Initialisms & Smart Lookahead Abbreviation Scoping)
+
+**Date**: 2026-05-26
+**Version**: v1.84.34
+**Implementation ZIDs**: 20260526135317, 20260526133555, 20260526133239, 20260526131131, 20260526130947, 20260526123947, 20260526121703
+
+## Highlights
+
+### 🔍 **Spaced Initialisms Sentence Boundary Protection**
+- **Non-Splitting Spaced Patterns**: Integrated a smart checker (`is_spaced_initialism_period_at`) into both the forward and backward sentence-scoping scans in `extract_anki_context`. This detects patterns like `"z. B."` where the space is followed by a letter and a period, preventing the scanner from false-splitting a sentence at the first initial's dot.
+- **Robust Multi-Word German Support**: Restores clean context harvesting for common spaced abbreviations such as `"z. B. Globus"`.
+
+### 🧠 **Smart Lookahead Heuristic Suppression**
+- **Uppercase-Aware Context Splits**: The 1-4 lowercase letter heuristic (`^%l+%.$`) used to mistakenly classify common 4-letter English or German words ending a sentence (like `"work."`, `"view."`, `"use."`, `"way."`) as abbreviations when the next sentence began, preventing valid sentence splits.
+- **Lookahead Resolution**: Added a lookahead character detector (`lookahead_after`) that retrieves the next non-whitespace character following a candidate period. If that character is uppercase (`^%u$`), the lowercase heuristic is suppressed, allowing the explicit abbreviation list to remain the sole source of truth for abbreviations at sentence boundaries.
+
+### 🧪 **Comprehensive Regression Protection**
+- **Automated Scoping Coverage**: Expanded `tests/acceptance/test_20260525193414_period_sentence_scoping.py` with multi-layered checks for lookahead-based heuristic suppression, lookahead argument passing, and spaced initialisms.
+- **Milestone Validation**: Ensured clean execution of all acceptance scenarios for punctuation sentence scoping.
+
+### 📋 **Specification Parity**
+- **Spec Updates**: Updated the canonical specifications in `openspec/specs/subtitle-aware-sentence-extraction/spec.md` and `openspec/specs/adaptive-context-truncation/spec.md` to reflect these robust initialism and lookahead-driven abbreviation boundaries.
+
+---
+
 # Release Notes - v1.84.32 (Unified Tooltip, Spacing, Sentence Scoping & Sub-Viewer Timing Options)
 
 **Date**: 2026-05-26
