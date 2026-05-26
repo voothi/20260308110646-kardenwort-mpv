@@ -2,9 +2,7 @@
 
 ## Purpose
 Define how `extract_anki_context` computes sentence scope and word-count truncation so exported Anki context remains complete, bounded, and correctly aligned to the selected term.
-
 ## Requirements
-
 ### Requirement: Sentence Scoping via Punctuation Terminators
 The sentence extraction phase of `extract_anki_context` SHALL locate the sentence containing the selection by scanning backward from `start_pos` and forward from `end_pos` for the nearest real sentence terminator. Real terminators are characters in `Options.anki_sentence_terminators` (default `".!?"`) that are not classified as abbreviations by the shared abbreviation handling in `subtitle-aware-sentence-extraction`. The scan SHALL traverse `\0` subtitle-line sentinels as whitespace. When no real terminator is found on either side, the entire joined context block SHALL be used as the sentence.
 
@@ -30,11 +28,17 @@ The sentence extraction phase of `extract_anki_context` SHALL locate the sentenc
 - **AND** word-count truncation in the subsequent step SHALL still apply
 
 ### Requirement: Adaptive Word-Count Truncation
-The context extraction system SHALL dynamically adjust the word-count truncation window based on the length of the selected term.
+The context extraction system SHALL dynamically adjust the word-count truncation window based on the length of the selected term and any explicit word padding required by sentence-based extraction.
 
 #### Scenario: Exporting a long term
 - **WHEN** the selected term length in words plus a standard buffer exceeds the default `anki_context_max_words`
+- **AND** sentence-based extraction is active
 - **THEN** the system SHALL increase the effective truncation limit for that specific export to ensure surrounding context is preserved
+
+#### Scenario: Sentence extension padding raises the effective limit
+- **WHEN** sentence-based extraction is active
+- **AND** the selected span plus `anki_context_words_before` and `anki_context_words_after` exceeds `anki_context_max_words`
+- **THEN** the system SHALL increase the effective truncation limit for that specific export so the selected span and requested padding are preserved when those words exist in the source
 
 ### Requirement: Increased Default Context Buffer
 The system SHALL default to a higher word-count limit to accommodate complex sentence structures.
@@ -61,9 +65,17 @@ The system SHALL ensure that character-relative spans are mapped to word indices
 - **AND** derive word indices using relative character offsets based on this true origin
 
 ### Requirement: Adaptive Span Padding for Wide Selections
-When the highlighted span itself is wider than the allowed word limit, the system SHALL fall back to a tight-crop representation of the span with natural padding.
+When the highlighted span itself is wider than the allowed word limit, the system SHALL fall back to a tight-crop representation of the span with natural padding. If explicit context word padding is active, the tight crop SHALL use at least the configured before/after word padding for the corresponding side.
 
 #### Scenario: Exporting a wide selection
 - **WHEN** the detected word span between the first and last selected words is greater than or equal to `anki_context_max_words`
+- **AND** sentence-based extraction is active
 - **THEN** the system SHALL return only the words within that span plus a small fixed padding on each side
 - **AND** clamp this padded range to the sentence boundaries
+
+#### Scenario: Wide selection with explicit padding
+- **WHEN** the detected word span between the first and last selected words is greater than or equal to `anki_context_max_words`
+- **AND** sentence-based extraction is active
+- **THEN** the system SHALL return the words within that span plus at least `anki_context_words_before` words before the first selected word and `anki_context_words_after` words after the last selected word when available
+- **AND** clamp this padded range to the joined context boundaries
+

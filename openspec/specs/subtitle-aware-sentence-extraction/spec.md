@@ -2,14 +2,14 @@
 
 ## Purpose
 Ensure that sentence boundaries for Anki context extraction are derived from real sentence punctuation, not subtitle line edges, while preserving abbreviation-heavy German text.
-
 ## Requirements
-
 ### Requirement: Punctuation-Anchored Sentence Scoping
-The context extraction system SHALL derive sentence boundaries from the nearest real sentence terminator on either side of the selection, scanning across subtitle-line NUL sentinels (`\0`). The set of terminator characters SHALL be configurable via `anki_sentence_terminators` (default: `".!?"`). The system SHALL NOT use subtitle-line edges as sentence boundaries when terminators are available. Abbreviations matched by heuristic, by `anki_abbrev_list`, or by spaced-initialism handling SHALL NOT count as terminators.
+The context extraction system SHALL derive sentence boundaries from the nearest real sentence terminator on either side of the selection, scanning across subtitle-line NUL sentinels (`\0`). The set of terminator characters SHALL be configurable via `anki_sentence_terminators` (default: `".!?"`). The system SHALL NOT use subtitle-line edges as sentence boundaries when terminators are available. Abbreviations matched by heuristic, by `anki_abbrev_list`, or by spaced-initialism handling SHALL NOT count as terminators. Sentence scoping SHALL remain the base behavior before any optional word-padding extension is applied.
 
 #### Scenario: Sentence spanning multiple subtitle lines
-- **WHEN** subtitle N reads `"Es kommt zu kräftigen Niederschlägen,"`, subtitle N+1 reads `"die verbreitet als Schnee liegen"`, subtitle N+2 reads `"bleiben. Autofahrer sollten besonders"`
+- **WHEN** subtitle N reads `"Es kommt zu kräftigen Niederschlägen,"`
+- **AND** subtitle N+1 reads `"die verbreitet als Schnee liegen"`
+- **AND** subtitle N+2 reads `"bleiben. Autofahrer sollten besonders"`
 - **AND** the user selects the word `"verbreitet"` from subtitle N+1
 - **THEN** the system SHALL return `"Es kommt zu kräftigen Niederschlägen, die verbreitet als Schnee liegen bleiben."` as the primary sentence
 - **AND** the system SHALL NOT truncate the result to a single subtitle line
@@ -28,11 +28,18 @@ The context extraction system SHALL derive sentence boundaries from the nearest 
 - **WHEN** the forward scan finds `.`, `!`, or `?` after the selection
 - **THEN** the returned sentence SHALL include that terminator character
 
+#### Scenario: Word padding keeps sentence scan as base
+- **WHEN** sentence-based extraction uses `anki_context_words_before` or `anki_context_words_after`
+- **AND** the joined context contains a real sentence terminator before the selected span
+- **THEN** the backward sentence scan SHALL use the same abbreviation-aware terminator rules as `sentence` mode
+- **AND** any configured word padding SHALL be applied only after the base sentence span has been found
+
 ### Requirement: No-Terminator Fallback to Full Joined Context
 When neither the backward nor the forward sentence-terminator scan finds a real terminator within the joined context block, the system SHALL return the entire joined context with `\0` sentinels replaced by spaces. Subsequent word-count truncation (`anki_context_max_words`) SHALL still apply.
 
 #### Scenario: Unpunctuated auto-subtitle block
-- **WHEN** the joined context is `"so the next morning I went\0to the store and bought\0three apples and a pear"` and the selection anchors to `"apples"`
+- **WHEN** the joined context is `"so the next morning I went\0to the store and bought\0three apples and a pear"`
+- **AND** the selection anchors to `"apples"`
 - **THEN** the returned sentence SHALL be `"so the next morning I went to the store and bought three apples and a pear"`
 - **AND** the system SHALL NOT return only `"three apples and a pear"`
 
@@ -110,3 +117,4 @@ The `SentenceSource` context field in exported Anki cards SHALL preserve the exa
 - **WHEN** the sentence-scoping scan returns content that originally spanned three subtitle lines joined by `\0`
 - **THEN** the `\0` sentinels SHALL be replaced by single spaces in the returned sentence
 - **AND** no other whitespace normalization SHALL be applied
+
