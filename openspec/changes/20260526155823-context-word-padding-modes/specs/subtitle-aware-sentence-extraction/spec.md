@@ -32,7 +32,7 @@ The context extraction system SHALL derive sentence boundaries from the nearest 
 - **AND** any configured word padding SHALL be applied only after the base sentence span has been found
 
 ### Requirement: No-Terminator Fallback to Full Joined Context
-When neither the backward nor the forward sentence-terminator scan finds a real terminator within the joined context block, the system SHALL return the entire joined context with `\0` sentinels replaced by spaces. Subsequent word-count truncation (`anki_context_max_words`) SHALL still apply. When optional auto-subtitle word-window fallback is active for the current extraction, the system SHALL bypass this no-terminator fallback and use word-window boundaries instead.
+When neither the backward nor the forward sentence-terminator scan finds a real terminator within the joined context block, the system SHALL return the entire joined context with `\0` sentinels replaced by spaces. Subsequent word-count truncation (`anki_context_max_words`) SHALL still apply.
 
 #### Scenario: Unpunctuated auto-subtitle block
 - **WHEN** the joined context is `"so the next morning I went\0to the store and bought\0three apples and a pear"`
@@ -43,10 +43,3 @@ When neither the backward nor the forward sentence-terminator scan finds a real 
 #### Scenario: Asymmetric terminator availability
 - **WHEN** the backward scan finds a terminator but the forward scan does not
 - **THEN** the returned sentence SHALL begin after the backward terminator and extend to the end of the joined context block
-
-#### Scenario: Auto fallback word window does not use no-terminator fallback
-- **WHEN** `anki_context_auto_word_window` is `true`
-- **AND** auto-subtitle fallback is active for the current extraction
-- **AND** the joined context contains no sentence terminators
-- **THEN** the exported context SHALL be bounded by `anki_context_words_before` and `anki_context_words_after`
-- **AND** the system SHALL NOT first expand to the full joined context block
