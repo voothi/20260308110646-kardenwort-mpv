@@ -51,7 +51,7 @@
 ## 9. Windows SendTo Installer
 
 - [x] 9.1 Create `install.py` following the Sub Viewer pattern: create "Kardenwort Sub TTS.lnk" in SendTo directory
-- [x] 9.2 Target `pythonw.exe` with `sub_tts.py` as argument, configure shortcut with minimized window style
+- [x] 9.2 Use `python.exe` with visible window (`WindowStyle=1`) and `--pause` flag so user can read progress before closing
 
 ## 10. Verification
 
@@ -59,4 +59,10 @@
 - [ ] 10.2 Manual test: process a `.ru.srt` file to verify language auto-detection
 - [ ] 10.3 Manual test: process a file without language postfix to verify default language fallback
 - [ ] 10.4 Manual test: verify duplicate handling — run twice on the same file, confirm ZID-dir creation
-- [ ] 10.5 Manual test: verify SendTo shortcut works from Windows Explorer
+- [ ] 10.5 Manual test: verify SendTo shortcut works from Windows Explorer (window visible, steps readable)
+
+## 11. Bugfixes (20260526192510)
+
+- [x] 11.1 **Output filename**: strip language postfix from output name (`video.de.srt` → `video.mp4`, not `video.de.mp4`)
+- [x] 11.2 **Console window**: switch install.py from `pythonw.exe` (hidden) to `python.exe` + `WindowStyle=1` + `--pause` flag; window stays open until user presses Enter
+- [x] 11.3 **Audio sync**: fix concat builder — anchor each cue WAV at its exact `start_ms` from SRT (not at running `cursor_ms`); prevents cumulative drift when previous cue's audio runs long

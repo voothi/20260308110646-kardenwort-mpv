@@ -36,10 +36,12 @@ def main():
         print(f"Error: Could not find {script_path}")
         sys.exit(1)
 
-    # Prefer pythonw.exe to avoid a terminal window on double-click / SendTo
-    pythonw_path = sys.executable.lower().replace("python.exe", "pythonw.exe")
-    if not os.path.exists(pythonw_path):
-        pythonw_path = sys.executable
+    # Use python.exe (NOT pythonw.exe) so a visible console window appears
+    # during SendTo processing, letting the user see progress.
+    python_path = sys.executable
+    # Ensure we use python.exe, not pythonw.exe
+    if python_path.lower().endswith("pythonw.exe"):
+        python_path = python_path[:-len("pythonw.exe")] + "python.exe"
 
     sendto_dir = os.path.expandvars(SENDTO_DIRECTORY)
     os.makedirs(sendto_dir, exist_ok=True)
@@ -56,7 +58,7 @@ def main():
                 print(f"Warning: Could not remove old shortcut: {exc}")
 
     print(f"Script Path:       {script_path}")
-    print(f"Pythonw Path:      {pythonw_path}")
+    print(f"Python Path:       {python_path}")
     print(f"SendTo Directory:  {sendto_dir}")
     print(f"Shortcut Path:     {shortcut_path}")
 
@@ -64,13 +66,14 @@ def main():
     #    The shortcut passes --sendto so sub_tts.py knows it came from Explorer.
     arguments = f'""{script_path}"" --sendto %1'
 
+    # --pause keeps the console open so user can read progress and close manually.
     ps_script = (
         f"$WshShell = New-Object -ComObject WScript.Shell; "
         f"$Shortcut = $WshShell.CreateShortcut('{shortcut_path}'); "
-        f"$Shortcut.TargetPath = '{pythonw_path}'; "
-        f"$Shortcut.Arguments = '\"{script_path}\" --sendto'; "
+        f"$Shortcut.TargetPath = '{python_path}'; "
+        f"$Shortcut.Arguments = '\"{script_path}\" --sendto --pause'; "
         f"$Shortcut.Description = 'Kardenwort Sub TTS Pipeline — SRT to MP4 with Piper TTS'; "
-        f"$Shortcut.WindowStyle = 7; "   # 7 = SW_SHOWMINNOACTIVE (minimized, no focus)
+        f"$Shortcut.WindowStyle = 1; "   # 1 = SW_SHOWNORMAL (visible, normal window)
         f"$Shortcut.Save()"
     )
 
@@ -87,7 +90,7 @@ def main():
         print("  1. Locate one or more .srt files in Windows Explorer.")
         print(f"  2. Right-click → Send to → '{SHORTCUT_DISPLAY_NAME}'.")
         print("  3. The pipeline detects the language from the filename postfix")
-        print("     (e.g., video.de.srt → German) and generates video.de.mp4.")
+        print("     (e.g., video.de.srt → German) and generates video.mp4.")
         print("\nFirst-time setup:")
         print(f"  Make sure config.ini exists at: {os.path.join(os.path.dirname(script_path), 'config.ini')}")
         print(f"  (Copy config.ini.template to config.ini and edit the paths.)")

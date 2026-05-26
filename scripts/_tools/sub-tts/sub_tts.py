@@ -292,14 +292,37 @@ def get_zid(config):
 # OUTPUT PATH RESOLUTION (tasks 6.2 + 6.3)
 # ==============================================================================
 
-def resolve_output_path(srt_path, output_dir, config, zid_cache):
+def strip_lang_postfix(stem, lang):
+    """
+    Strip the language postfix from the stem if present.
+    e.g., 'video.de' with lang='de' → 'video'
+         'video.rus' with lang='ru' and alias → 'video'
+         'video' (no postfix) → 'video'
+    """
+    # Check if the rightmost extension of stem matches the lang code
+    # or any of its known source aliases.
+    parts = stem.rsplit(".", 1)
+    if len(parts) == 2:
+        candidate = parts[1].lower()
+        # Build alias reverse map: lang_code → [postfixes that map to it]
+        all_postfixes = {lang}  # include the code itself
+        for postfix, code in BUILTIN_LANG_ALIASES.items():
+            if code == lang:
+                all_postfixes.add(postfix)
+        if candidate in all_postfixes:
+            return parts[0]
+    return stem
+
+
+def resolve_output_path(srt_path, output_dir, config, lang, zid_cache):
     """
     Build the output .mp4 path.
-    Policy: same filename base + .mp4, in output_dir.
+    Policy: base filename WITHOUT language postfix + .mp4, in output_dir.
     Duplicates: ZID-dir, skip, or overwrite (from config).
     """
-    stem = Path(srt_path).name          # e.g., 'video.de.srt'
-    base = Path(stem).stem              # e.g., 'video.de'  (strip .srt)
+    stem = Path(srt_path).stem          # e.g., 'video.de'  (strip .srt)
+    clean_stem = strip_lang_postfix(stem, lang)   # e.g., 'video'
+    base = clean_stem
     primary = Path(output_dir) / f"{base}.mp4"
 
     if not primary.exists():
@@ -440,7 +463,16 @@ def build_ffmpeg_concat_list(synthesis_results, temp_dir, ffmpeg_path):
     silence_wav = temp_dir / "silence.wav"
     concat_list_path = temp_dir / "concat.txt"
 
-    segments = []  # list of (duration_ms, path) or (duration_ms, None for silence)
+    # ------------------------------------------------------------------
+    # Strategy: anchor EVERY cue at its exact SRT start_ms.
+    # cursor_ms tracks where the audio stream currently is.
+    # If cue_start_ms > cursor_ms → insert silence to reach it.
+    # If the previous cue's WAV overlapped (cursor_ms > cue_start_ms)
+    # → we still insert 0 ms of silence (no gap) but do NOT skip the
+    #   cue; the result is cues played back-to-back.  This is better
+    #   than the old behaviour which pushed ALL subsequent cues forward.
+    # ------------------------------------------------------------------
+    segments = []  # list of ("silence", ms) | ("wav", path)
 
     cursor_ms = 0
 
@@ -449,31 +481,30 @@ def build_ffmpeg_concat_list(synthesis_results, temp_dir, ffmpeg_path):
         wav_path = item["wav_path"]
 
         if wav_path is None:
-            # Failed cue: advance cursor to cue's end_ms if possible
+            # Failed cue: advance cursor to its end_ms so we stay aligned
             cursor_ms = max(cursor_ms, cue["end_ms"])
             continue
 
         cue_start_ms = cue["start_ms"]
 
-        # Gap before this cue
-        if cue_start_ms > cursor_ms:
-            gap_ms = cue_start_ms - cursor_ms
+        # Gap before this cue (may be 0 if previous WAV ran long)
+        gap_ms = max(0, cue_start_ms - cursor_ms)
+        if gap_ms > 0:
             segments.append(("silence", gap_ms))
-            cursor_ms = cue_start_ms
 
         # Actual duration of the synthesized WAV
         wav_dur_ms = get_wav_duration_ms(wav_path, ffmpeg_path)
         if wav_dur_ms <= 0:
             wav_dur_ms = cue["end_ms"] - cue["start_ms"]  # SRT window as fallback
 
-        segments.append(("wav", str(wav_path), wav_dur_ms))
-        cursor_ms += wav_dur_ms
+        segments.append(("wav", str(wav_path)))
+        # Advance cursor to cue_start_ms + WAV duration (not cursor_ms + WAV duration)
+        cursor_ms = cue_start_ms + wav_dur_ms
 
     if not segments:
         return None
 
     # Generate individual silence WAVs per required duration
-    # (Using FFmpeg lavfi aevalsrc for exact-duration silence)
     concat_entries = []
     silence_index = 0
 
@@ -484,11 +515,10 @@ def build_ffmpeg_concat_list(synthesis_results, temp_dir, ffmpeg_path):
                 continue
             dur_s = dur_ms / 1000.0
             sil_path = temp_dir / f"silence_{silence_index:04d}.wav"
-            # Generate silence WAV
             sil_cmd = [
                 ffmpeg_path, "-y",
                 "-f", "lavfi",
-                "-i", f"anullsrc=r=22050:cl=mono",
+                "-i", "anullsrc=r=22050:cl=mono",
                 "-t", f"{dur_s:.3f}",
                 "-c:a", "pcm_s16le",
                 str(sil_path),
@@ -711,7 +741,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             return False
 
         # 6. Output path
-        output_mp4, policy = resolve_output_path(str(srt_path), output_dir, config, zid_cache)
+        output_mp4, policy = resolve_output_path(str(srt_path), output_dir, config, lang, zid_cache)
         if policy == "skip":
             print(f"  Skipping (output already exists): {output_mp4}")
             success = True
@@ -772,6 +802,11 @@ def parse_args():
         "--sendto",
         action="store_true",
         help="Windows SendTo mode: treat all positional arguments as selected files.",
+    )
+    parser.add_argument(
+        "--pause",
+        action="store_true",
+        help="Pause and wait for Enter key after processing (useful when launched from SendTo so the window stays open).",
     )
 
     return parser.parse_args()
@@ -846,6 +881,12 @@ def main():
             if not ok:
                 print(f"  ✗ {path}")
     print(f"{'='*60}")
+
+    if args.pause:
+        try:
+            input("\nPress Enter to close this window...")
+        except (EOFError, KeyboardInterrupt):
+            pass
 
     sys.exit(0 if succeeded == total else 1)
 
