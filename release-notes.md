@@ -1,8 +1,35 @@
+# Release Notes - v1.84.38 (Sentence-Scoped Context Word Padding & Abbreviation Extensions)
+
+**Date**: 2026-05-26
+**Version**: v1.84.38
+**Implementation ZIDs**: 20260526182315, 20260526181918, 20260526180752, 20260526175338, 20260526174516, 20260526174357, 20260526174307, 20260526174047, 20260526170353, 20260526163754, 20260526160334, 20260526155430, 20260526152501, 20260526152440
+
+## Highlights
+
+### 📝 **Configurable Sentence-Scoped Context Word Padding**
+- **Logical-to-Byte Word Boundary Mapping**: Integrated a dynamic logical word token scanner (`extract_anki_context`) that maps relative word indexes to raw subtitle byte indices, extending sentence boundaries elegantly without stripping structural layout markers (`##`, `###`).
+- **Independent Settings**: Introduced `anki_context_words_before` and `anki_context_words_after` settings, allowing fine-grained control over how many context words are gathered around mined vocabularies.
+- **Strict Scoping Safeguard**: Enforces that context padding only applies when a real sentence boundary terminator (`.!?`) is detected, preserving raw subtitle block fallback size boundaries when no natural terminator is present.
+- **Negative Input Normalization**: Automatically sanitizes user settings using `math.max(0, math.floor(tonumber(...) or 0))` inside `validate_config()` to guarantee system stability under malformed or negative bounds.
+- **Dynamic Word Budget Scaling**: Automatically scales the global `anki_context_max_words` limit upward if the selection span plus padding word counts exceed the default limit, preventing clipping.
+
+### 🔍 **Abbreviation List Extensions**
+- **Comprehensive Multi-Language Abbreviation Coverage**: Greatly expanded `anki_abbrev_list` in `mpv.conf` to include a wide array of common English and German abbreviations (e.g. `d. h.`, `u. a.`, `i. d.`, `u. U.`, `i. d. R.`, `e.g.`, `i.e.`, `approx.`, `vs.`, `prof.`, `dr.`, `mr.`, `mrs.`, `ms.`), drastically reducing false sentence-splitting during extraction.
+
+### 🧪 **Focused Acceptance Verification**
+- **Robust Acceptance Suite**: Added `tests/acceptance/test_20260526170559_context_word_padding.py` with comprehensive assertions covering default preservation, negative bounds, limit scaling, and word-boundary mappings.
+
+### 📋 **Canonical Specifications Synchronization**
+- **OpenSpec Archive & Sync**: Synchronized the new requirements and design specs directly to `openspec/specs/context-word-padding/spec.md`, `openspec/specs/adaptive-context-truncation/spec.md`, and `openspec/specs/subtitle-aware-sentence-extraction/spec.md`.
+
+---
+
 # Release Notes - v1.84.34 (Spaced Initialisms & Smart Lookahead Abbreviation Scoping)
 
 **Date**: 2026-05-26
 **Version**: v1.84.34
 **Implementation ZIDs**: 20260526135317, 20260526133555, 20260526133239, 20260526131131, 20260526130947, 20260526123947, 20260526121703
+
 
 ## Highlights
 

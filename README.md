@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.84.34-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.34)
+[![Version](https://img.shields.io/badge/version-v1.84.38-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.38)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
