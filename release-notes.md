@@ -1,3 +1,35 @@
+# Release Notes - v1.84.30 (Dynamic Per-Line Duration Cap & Configurable Reader Settings)
+
+**Date**: 2026-05-26
+**Version**: v1.84.30
+**Implementation ZIDs**: 20260526015322, 20260526014058, 20260526013219, 20260526011725, 20260526011122
+
+## Highlights
+
+### 📺 **Dynamic Per-Line Subtitle Duration Cap**
+- **Symmetric Line-Aware Cap**: Modified the standalone Sub-Viewer timing engine (`_estimate_cue_duration_seconds`) to dynamically scale the maximum cue duration with the number of display lines. Rather than capping all text segments at a flat 7.0 seconds, each additional wrapped line extends the duration cap by another 7.0 seconds (`max_ms = READER_MAX_CUE_SECONDS * display_lines * 1000.0`).
+- **Prose-Reading Improvements**: Ensures multi-line study materials and long paragraphs (e.g. 190+ characters wrapped to 2–3 rows) remain on screen for adequate reading time instead of disappearing prematurely.
+
+### 📅 **Dedicated Date Cue Minimum Floor**
+- **Date String Recognition**: Integrated a robust date matching engine using a comprehensive regex (`_DATE_RE`) capable of detecting standard date strings across multiple common formats (e.g. `May 24, 2026`, `24 May 2026`, `2026-05-24`, `05/24/2026`, `January 1, 2024`).
+- **Minimum Floor Protection**: Guarantees that any cue containing a recognizable calendar date is displayed for a minimum of `READER_MIN_DATE_SECONDS` (default: 2.5 seconds), while preserving longer natural reading durations when applicable.
+
+### ⚙️ **Configurable Sub-Viewer Reader Settings**
+- **Namespace-Driven Options**: Exposed all primary reader timing parameters via the `kardenwort-reader_*` script-opts namespace. Users can now fully override and fine-tune timing variables directly from their `mpv.conf` without modifying the core `viewer.py` source code.
+- **Dynamic Configuration Loading**: Built a robust file search and parser pipeline in Python (`_find_mpv_conf()`, `_parse_kardenwort_reader_opts()`, and `_apply_reader_opts()`) that traverses directory levels up to five levels to find, parse, and override modules variables at launch.
+- **Exposed Variables**:
+  - `kardenwort-reader_max_cue_seconds=7.0` (Base ceiling per display line)
+  - `kardenwort-reader_min_cue_seconds=1.2` (Minimum reading floor)
+  - `kardenwort-reader_min_date_seconds=2.5` (Minimum date display floor)
+  - `kardenwort-reader_cps=15.0` (Optimal reading speed in characters per second)
+  - `kardenwort-reader_wpm=180.0` (Optimal reading speed in words per minute)
+  - `kardenwort-reader_max_chars_per_line=90` (Line wrap width threshold)
+
+### 🧪 **Milestone: 35 Unit Tests Added**
+- **100% Correct Timing Verification**: Added comprehensive unit test coverage under `tests/unit/test_sub_viewer_unit.py` validating the line-based cap, date recognition, invalid configuration fallback, and multi-directory `mpv.conf` resolution.
+
+---
+
 # Release Notes - v1.84.28 (Unified Tooltip, Sub-Viewer Spacing & Sentence Scoping Fix)
 
 **Date**: 2026-05-25
