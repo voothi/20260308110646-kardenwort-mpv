@@ -1,0 +1,44 @@
+[paths]
+# ============================================================================
+# All paths can be absolute or relative to the sub-tts directory.
+# Use forward slashes (/) for paths, even on Windows.
+# ============================================================================
+
+# Full path to the root of the piper-tts project.
+# This directory must contain piper_tts.py and a valid config.ini.
+# Example: U:/voothi/20241206010110-piper-tts
+piper_tts_root = U:/voothi/20241206010110-piper-tts
+
+# Full path to the ffmpeg executable.
+# Example: C:/Tools/ffmpeg/bin/ffmpeg.exe
+ffmpeg_executable = C:/Tools/ffmpeg/ffmpeg-7.1-essentials_build/bin/ffmpeg.exe
+
+# Full path to the zid.py script (used for ZID-based duplicate handling).
+# Leave empty to use datetime.now() as fallback.
+# Example: U:/voothi/20241116203211-zid/zid.py
+zid_script = U:/voothi/20241116203211-zid/zid.py
+
+
+[tts_settings]
+# The default language to use when no language postfix is found in the filename.
+# Must match a language code supported by the Piper TTS config.ini (e.g., en, de, ru).
+default_lang = en
+
+# How to handle output filename duplicates.
+# zid-dir  : route to a new ZID-named subdirectory (recommended)
+# skip     : skip conversion if the output file already exists
+# overwrite: overwrite the existing output file
+duplicate_mode = zid-dir
+
+
+[lang_aliases]
+# ============================================================================
+# Optional: Map subtitle filename postfixes to Piper language codes.
+# Format: <postfix> = <language_code>
+# These override the built-in alias table.
+# The built-in table already handles: eng -> en, ger -> de, rus -> ru
+# ============================================================================
+# eng = en
+# ger = de
+# rus = ru
+# ukr = uk
