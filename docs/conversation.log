@@ -2978,3 +2978,8 @@
 20260526235402 ================================================================================== 939 passed in 929.84s (0:15:29) ===================================================================================
 20260526235455 Create release v1.84.42 tags: v1.84.38..20260527000344
 20260527001218 Look at the latest releases and see what we haven’t added to README.md in the description and add it.
+20260527003228 Change Shift+3 -> 1 to EN/RU README.md input.conf mpv.conf input.conf
+20260527003505 Updated as requested: `Shift+3` -> `1` for EN/RU keybinding references. Changed files: - [input.conf](u:\voothi\20260308110646-kardenwort-mpv\input.conf):118 - Replaced audio-cycle binding block with: - `1 script-binding kardenwort/cycle-audio` - Updated comment to reflect EN/RU use of `1`. - [README.md](u:\voothi\20260308110646-kardenwort-mpv\README.md):500 - Updated keybinding table row from `Shift+3/#` and `Shift+3/№` to `1` / `1`. Note: - [mpv.conf](u:\voothi\20260308110646-kardenwort-mpv\mpv.conf) has no functional keybinding line for this mapping, so no functional change was needed there.
+
+
+
