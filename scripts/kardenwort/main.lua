@@ -623,6 +623,7 @@ Options = {
     help_text_color = "CCCCCC",  -- Gray
     help_key_color = "00CCFF",   -- Gold (BGR: 00CCFF | RGB: #FFCC00)
     help_column_width = 40,
+    audio_switch_threshold = 1.0,
 }
 options.read_options(Options, "kardenwort")
 
@@ -9830,40 +9831,76 @@ function cmd_cycle_audio()
     end
 
     local supported = {0}
+    local supported_active = {}
     for _, t in ipairs(tracks) do
         if t.type == "audio" then
             local tid = tonumber(t.id)
             if tid then
                 table.insert(supported, tid)
+                table.insert(supported_active, tid)
             end
         end
     end
     table.sort(supported)
+    table.sort(supported_active)
 
     if #supported <= 1 then
         show_osd("Audio: None available")
         return
     end
 
-    local next_aid = 0
-    local found = false
-    for i = 1, #supported do
-        if supported[i] == current_aid then
-            next_aid = supported[i % #supported + 1]
-            found = true
-            break
-        end
+    -- Dynamically initialize last_aid and prev_aid history if not set
+    if not FSM.last_aid then
+        FSM.last_aid = supported_active[1] or 0
+        FSM.prev_aid = supported_active[2] or supported_active[1] or 0
     end
-    
-    if not found then
-        next_aid = supported[2] or 0
+
+    -- Update history if current active track shifted outside of our script actions
+    if current_aid ~= 0 and current_aid ~= FSM.last_aid then
+        FSM.prev_aid = FSM.last_aid
+        FSM.last_aid = current_aid
+    end
+
+    local now = mp.get_time()
+    local elapsed = now - (FSM.last_audio_cycle_time or 0)
+    local threshold = tonumber(Options.audio_switch_threshold) or 1.0
+
+    local next_aid = 0
+    if elapsed > threshold then
+        -- Slow tap: toggle between last two active tracks
+        if current_aid == FSM.last_aid then
+            next_aid = FSM.prev_aid
+        else
+            next_aid = FSM.last_aid
+        end
+    else
+        -- Rapid tap: cycle through all tracks sequentially
+        local found = false
+        for i = 1, #supported do
+            if supported[i] == current_aid then
+                next_aid = supported[i % #supported + 1]
+                found = true
+                break
+            end
+        end
+        if not found then
+            next_aid = supported[2] or 0
+        end
     end
 
     if next_aid == 0 then
         mp.set_property("aid", "no")
     else
         mp.set_property_number("aid", next_aid)
+        
+        -- Update the last active tracks history
+        if next_aid ~= FSM.last_aid then
+            FSM.prev_aid = FSM.last_aid
+            FSM.last_aid = next_aid
+        end
     end
+
+    FSM.last_audio_cycle_time = now
     
     local label = "OFF"
     if next_aid ~= 0 then
