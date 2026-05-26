@@ -2841,6 +2841,30 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
         return ""
     end
+    local function is_spaced_initialism_period_at(s, dot_pos)
+        -- Detect abbreviations like "z. B." where the first period must not end a sentence.
+        local prev = s:sub(dot_pos - 1, dot_pos - 1)
+        if not prev:match("[%a\192-\255]") then return false end
+        local j = dot_pos + 1
+        while j <= #s do
+            local c = s:sub(j, j)
+            if c ~= " " and c ~= "\t" and c ~= "\0" and c ~= "\n" then
+                if c:match("[%a\192-\255]") then
+                    local k = j + 1
+                    while k <= #s do
+                        local c2 = s:sub(k, k)
+                        if c2 ~= " " and c2 ~= "\t" and c2 ~= "\0" and c2 ~= "\n" then
+                            return c2 == "."
+                        end
+                        k = k + 1
+                    end
+                end
+                return false
+            end
+            j = j + 1
+        end
+        return false
+    end
 
     -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
     -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
@@ -2942,7 +2966,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                     -- For "." check whether the preceding token is an abbreviation. The
                     -- look-ahead character lets is_abbrev suppress the lowercase heuristic
                     -- when the period is clearly followed by a new sentence (uppercase).
-                    if c ~= "." or not is_abbrev(token_ending_at(full_line, i), lookahead_after(full_line, i)) then
+                    if c ~= "." or (not is_abbrev(token_ending_at(full_line, i), lookahead_after(full_line, i)) and not is_spaced_initialism_period_at(full_line, i)) then
                         b_term_pos = i
                         break
                     end
@@ -2967,7 +2991,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             if is_terminator_char(c) then
                 local after = full_line:sub(k + 1, k + 1)
                 if after == "" or after == " " or after == "\t" or after == "\0" then
-                    if c ~= "." or not is_abbrev(token_ending_at(full_line, k), lookahead_after(full_line, k)) then
+                    if c ~= "." or (not is_abbrev(token_ending_at(full_line, k), lookahead_after(full_line, k)) and not is_spaced_initialism_period_at(full_line, k)) then
                         f_term_pos = k
                         break
                     end
