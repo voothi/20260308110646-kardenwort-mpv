@@ -67,3 +67,17 @@
 - [x] 11.2 **Console window**: switch install.py from `pythonw.exe` (hidden) to `python.exe` + `WindowStyle=1` + `--pause` flag; window stays open until user presses Enter
 - [x] 11.3 **Audio sync**: fix concat builder — anchor each cue WAV at its exact `start_ms` from SRT (not at running `cursor_ms`); prevents cumulative drift when previous cue's audio runs long
 - [x] 11.4 **Audio sync v2**: replaced `concat` filter completely with an `amix` batch approach because `concat` physically appends (preventing true overlaps). Now every cue is individually anchored to a silent base track using `adelay` for perfect absolute timing, regardless of TTS audio length.
+
+## 12. Sync Review and Test Hardening (20260526195053)
+
+- [x] 12.1 **Critical review**: identify the impossible timing contract: exact SRT starts, no overlap, and no subtitle retiming cannot all be true when synthesized speech is longer than the cue window
+- [x] 12.2 **Spec correction**: update design/spec wording from concat/graceful-defer behavior to explicit subtitle-locked absolute-start behavior with overflow diagnostics
+- [x] 12.3 **Pure timing plan**: extract timing placement into `build_audio_placement_plan()` so cue placement and overflow can be unit-tested without running Piper or FFmpeg
+- [x] 12.4 **Unit tests**: add tests for SRT parsing, language alias/default resolution, postfix-free MP4 output naming, and timing overflow detection
+- [ ] 12.5 **Diagnostic run**: process the problem SRT with the updated warning output and record overflow count/largest overflow in `docs/conversation.log`
+- [ ] 12.6 **Decision point**: choose the final sync policy for overflowing cues:
+  - subtitle-locked fit: trim silence and speed up bounded clips so original subtitles remain valid
+  - audio-locked retime: keep natural speech and emit a retimed `.srt`/`.tsv` matching generated narration
+  - hybrid: fit small overflows, retime/report large overflows
+- [ ] 12.7 **Implement chosen policy**: add config and CLI option, then make SendTo use the selected default
+- [ ] 12.8 **Media-level verification**: verify with ffprobe/ffmpeg on a short fixture and manually compare generated MP4 with matching subtitles

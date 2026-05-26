@@ -35,16 +35,33 @@ Currently, generating spoken audio from subtitle files requires Subtitle Edit's 
 
 **Alternative considered**: Importing `piper_tts.py` directly — rejected because it would create a tight dependency and require `pyperclip` to be installed in the caller's environment.
 
-### D2: Per-Cue WAV Generation + FFmpeg Concatenation
+### D2: Per-Cue WAV Generation + Timestamped FFmpeg Assembly
 
 **Decision**: Generate individual WAV files per subtitle cue using Piper TTS's `--output-file` argument, then use FFmpeg to:
-1. Insert silence gaps (based on SRT timing) between cues.
-2. Concatenate all audio into a single WAV.
+1. Place each cue's audio at an explicit timestamp.
+2. Mix all timed cue audio into a single WAV.
 3. Mux with a black video canvas to produce the final MP4.
 
 **Rationale**: This approach gives precise timing control aligned with the original subtitle timings. Each cue's audio starts at the exact timestamp from the SRT file, with silence filling gaps. This mirrors Subtitle Edit's "Generate speech from text" behavior.
 
 **Alternative considered**: Streaming all text to Piper in one call — rejected because it doesn't provide per-cue timing control and Piper generates continuous audio.
+
+**Rejected implementation detail**: FFmpeg concat-based assembly is not suitable for subtitle-locked timing. Concat appends streams sequentially, so a cue that runs longer than its subtitle window pushes every following cue later and creates cumulative drift.
+
+### D2b: Synchronization Policy Must Be Explicit
+
+**Decision**: Treat sync as a policy decision rather than an implicit side effect of the FFmpeg filter graph.
+
+Current implementation uses a **subtitle-locked / absolute-start** policy:
+- Every synthesized cue is anchored to the cue's SRT `start_ms`.
+- Later cues are not shifted when earlier synthesized audio is too long.
+- Overflow is reported as a timing warning.
+
+**Rationale**: This prevents cumulative drift and makes the generated MP4 comparable to the original subtitle timestamps.
+
+**Trade-off**: If Piper speech is longer than the available subtitle window, exact SRT starts can cause overlapping speech. Avoiding overlap requires either speeding/trimming audio or retiming subtitles.
+
+**Next policy to implement**: A measured **fit-to-subtitle** policy that trims leading/trailing silence and applies bounded `atempo` acceleration so each cue fits its subtitle window where possible. If a cue still cannot fit cleanly, the tool should generate a timing report and optionally emit a retimed `.srt` that matches the synthesized audio.
 
 ### D3: Language Detection from Filename Postfix
 
@@ -69,7 +86,7 @@ The mapping follows the same `LANG_SUFFIXES` convention already used in `viewer.
 
 ### D5: Output Placement Policy (Same-Dir, Matching Convert Media)
 
-**Decision**: Output `.mp4` is placed in the same directory as the source `.srt` file, named `<basename>.mp4` (e.g., `video.de.srt` → `video.de.mp4`). Duplicate handling uses ZID-dir policy, identical to Convert Media.
+**Decision**: Output `.mp4` is placed in the same directory as the source `.srt` file, named `<basename-without-language-postfix>.mp4` (e.g., `video.de.srt` → `video.mp4`). Duplicate handling uses ZID-dir policy, identical to Convert Media.
 
 **Rationale**: Consistent with the Convert Media tool's `same-dir` / `zid-dir` defaults.
 

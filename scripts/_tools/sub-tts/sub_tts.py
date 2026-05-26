@@ -446,15 +446,16 @@ def get_wav_duration_ms(wav_path, ffmpeg_path):
 # TIMED AUDIO ASSEMBLY (tasks 5.1 – 5.4)
 # ==============================================================================
 
-def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
+def build_audio_placement_plan(synthesis_results, ffmpeg_path):
     """
-    Assemble all per-cue WAVs into one combined WAV by placing each at its
-    exact SRT start time. Uses FFmpeg's adelay and amix filters.
-    Processes in batches to avoid command-line length limits.
+    Build the pure timing plan used by assemble_audio().
+
+    Each successful cue is anchored to its SRT start timestamp. The overflow
+    fields are diagnostic: they reveal where synthesized speech runs past the
+    next subtitle start, which is the core source of perceived subtitle/audio
+    desync if playback expects non-overlapping narration.
     """
     valid_cues = []
-    max_end_ms = 0
-    
     for item in synthesis_results:
         if not item["ok"] or not item["wav_path"]:
             continue
@@ -462,19 +463,51 @@ def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
         wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
         if wav_dur_ms <= 0:
             wav_dur_ms = cue["end_ms"] - cue["start_ms"]
-            
+
         valid_cues.append({
             "path": item["wav_path"],
             "start_ms": cue["start_ms"],
-            "dur_ms": wav_dur_ms
+            "end_ms": cue["end_ms"],
+            "dur_ms": wav_dur_ms,
+            "audio_end_ms": cue["start_ms"] + wav_dur_ms,
+            "overflow_ms": 0,
         })
-        max_end_ms = max(max_end_ms, cue["start_ms"] + wav_dur_ms, cue["end_ms"])
-        
+
+    for idx, cue_info in enumerate(valid_cues[:-1]):
+        next_start = valid_cues[idx + 1]["start_ms"]
+        cue_info["next_start_ms"] = next_start
+        cue_info["overflow_ms"] = max(0, cue_info["audio_end_ms"] - next_start)
+    if valid_cues:
+        valid_cues[-1]["next_start_ms"] = None
+
+    max_end_ms = 0
+    for cue_info in valid_cues:
+        max_end_ms = max(max_end_ms, cue_info["audio_end_ms"], cue_info["end_ms"])
+
+    return valid_cues, max_end_ms
+
+
+def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
+    """
+    Assemble all per-cue WAVs into one combined WAV by placing each at its
+    exact SRT start time. Uses FFmpeg's adelay and amix filters.
+    Processes in batches to avoid command-line length limits.
+    """
+    valid_cues, max_end_ms = build_audio_placement_plan(synthesis_results, ffmpeg_path)
+
     if not valid_cues:
         print("Error: No audio segments to assemble.", file=sys.stderr)
         return None
 
     print("  Assembling timed audio track (anchored to absolute timestamps)...", flush=True)
+    overflow_count = sum(1 for cue_info in valid_cues if cue_info["overflow_ms"] > 0)
+    if overflow_count:
+        worst = max(cue_info["overflow_ms"] for cue_info in valid_cues)
+        print(
+            f"  Timing warning: {overflow_count} synthesized cue(s) exceed the next subtitle start; "
+            f"largest overflow is {worst / 1000.0:.2f}s.",
+            flush=True,
+        )
 
     base_wav = temp_dir / "base_0.wav"
     # Create an initial silent base track of the total required duration

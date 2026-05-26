@@ -51,7 +51,11 @@ HTML tags and SRT formatting tags (e.g., `<i>`, `<b>`, `{\an8}`) SHALL be stripp
 ### Requirement: Timed audio assembly
 The system SHALL assemble the per-cue WAV files into a single audio track where each cue's audio is positioned at its SRT start time.
 
-Silent gaps SHALL be inserted between cues to match the original subtitle timing. If a synthesized cue's audio duration exceeds the available window (from its start time to the next cue's start time), the audio SHALL NOT be truncated — subsequent cues SHALL start after the previous cue's audio finishes (graceful overflow).
+Silent gaps SHALL be preserved between cues when the synthesized audio fits within the original subtitle timing.
+
+If a synthesized cue's audio duration exceeds the available window (from its start time to the next cue's start time), the system SHALL NOT shift subsequent cues later in the default subtitle-locked mode. The overflowing cue MAY overlap the following cue, and the system SHALL report a timing warning that includes the number of overflowing cues and the largest overflow duration.
+
+The system SHALL expose timing placement as a testable plan before FFmpeg assembly so overflow behavior can be validated without running Piper or FFmpeg.
 
 #### Scenario: Two cues with gap
 - **WHEN** cue 1 starts at 00:00:01.000 and cue 2 starts at 00:00:05.000
@@ -61,7 +65,12 @@ Silent gaps SHALL be inserted between cues to match the original subtitle timing
 #### Scenario: Overlapping cue audio
 - **WHEN** cue 1 starts at 00:00:01.000, cue 2 starts at 00:00:02.000
 - **AND** cue 1's synthesized audio is 3 seconds long
-- **THEN** cue 2's audio SHALL start at t=4s (after cue 1 finishes), not at t=2s
+- **THEN** cue 2's audio SHALL still start at t=2s in subtitle-locked mode
+- **AND** the system SHALL report that cue 1 overflows the next cue by 2 seconds
+
+#### Scenario: Timing plan can be tested without media processing
+- **WHEN** cue WAV durations are known
+- **THEN** the system SHALL produce a timing plan with cue start, audio end, next cue start, and overflow fields
 
 ---
 
@@ -70,18 +79,18 @@ The system SHALL produce an MP4 file containing:
 1. A black video canvas track (matching Convert Media's encoding parameters).
 2. The assembled synthesized audio as the audio track.
 
-The output file SHALL be named `<basename>.mp4` and placed in the same directory as the source SRT file (e.g., `video.de.srt` → `video.de.mp4`).
+The output file SHALL be named `<basename-without-language-postfix>.mp4` and placed in the same directory as the source SRT file (e.g., `video.de.srt` → `video.mp4`).
 
 When the output file already exists, the system SHALL use ZID-based duplicate handling (create a subdirectory named with the current ZID timestamp and place the output there).
 
 #### Scenario: Successful MP4 generation
 - **WHEN** processing `video.de.srt` completes successfully
-- **THEN** the output file `video.de.mp4` SHALL exist in the same directory as the SRT file
+- **THEN** the output file `video.mp4` SHALL exist in the same directory as the SRT file
 - **AND** the MP4 SHALL contain a black video track and the synthesized audio track
 
 #### Scenario: Duplicate output handling
-- **WHEN** `video.de.mp4` already exists in the output directory
-- **THEN** the system SHALL create a ZID-named subdirectory (e.g., `20260526184741/`) and place `video.de.mp4` inside it
+- **WHEN** `video.mp4` already exists in the output directory
+- **THEN** the system SHALL create a ZID-named subdirectory (e.g., `20260526184741/`) and place `video.mp4` inside it
 
 ---
 
@@ -139,10 +148,12 @@ The system SHALL provide an `install.py` script that creates a Windows "Send to"
 
 The shortcut SHALL accept one or more `.srt` files dropped via the Windows Explorer "Send to" context menu and invoke `sub_tts.py` with those files as arguments.
 
+The shortcut SHALL use `python.exe` and keep a visible console window open after completion so progress, timing warnings, and error diagnostics can be read.
+
 #### Scenario: SendTo installation
 - **WHEN** the user runs `python install.py`
 - **THEN** a shortcut named "Kardenwort Sub TTS.lnk" SHALL be created in the user's SendTo directory
-- **AND** the shortcut SHALL target `pythonw.exe` with `sub_tts.py` as the argument
+- **AND** the shortcut SHALL target `python.exe` with `sub_tts.py --sendto --pause` as arguments
 
 #### Scenario: Multiple file SendTo
 - **WHEN** the user selects 3 SRT files and uses "Send to" → "Kardenwort Sub TTS"
