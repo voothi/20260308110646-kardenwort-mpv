@@ -231,6 +231,8 @@ function expand_ru_keys(key_string, opt_name)
 end
 
 function validate_config()
+    Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))
+    Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))
     local errors = {}
     local function check_keys(opt_val, opt_name)
         if not opt_val or opt_val == "" then return end
@@ -544,6 +546,8 @@ Options = {
     key_sec_sub_pos_down = "T",
 
     anki_context_max_words = 40,
+    anki_context_words_before = 0,
+    anki_context_words_after = 0,
     anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
     anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: 0075D1 | RGB: #D17500)
     anki_highlight_depth_2 = "005DAE",
@@ -2815,7 +2819,7 @@ end
 
 local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos, coord_map)
     if not full_line or full_line == "" then return "" end
-    if not selected_term or selected_term == "" then return full_line end
+    if not selected_term or selected_term == "" then return full_line:gsub("%z", " "):match("^%s*(.-)%s*$") or "" end
 
     -- Helpers scoped here to avoid consuming module-level local slots (Lua 200-local limit).
     local function token_ending_at(s, i)
@@ -2867,8 +2871,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     end
 
     -- 1. Try to find the occurrence closest to the pivot position (or center if not provided).
-    -- This handles ambiguous common words (e.g. "die") when multiple context lines are present.
-    -- If coord_map is provided (Gap 1 compliance), we prioritize logical grounding.
     local term_lower = selected_term:lower()
     local full_lower = full_line:lower()
     local center = pivot_pos or (#full_line / 2)
@@ -2890,18 +2892,8 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     end
     if start_pos then print(string.format("  - Selected match at index %d", start_pos)) end
     
-    -- Non-contiguous term fallback: the composed term can't be found verbatim
-    -- (words were skipped between picks, or picks span sentence boundaries).
-    -- Anchor accurately by finding the occurrence of EVERY word in the term
-    -- that is closest to the blob center, then using the min-start and max-end
-    -- of those matches as the search span. This ensures that selections spanning
-    -- across sentence boundaries (e.g. "und ... Ende") correctly capture all
-    -- involved sentences.
+    -- Non-contiguous term fallback
     if not start_pos then
-        -- Sequential forward search: find the first word closest to the pivot,
-        -- then find each subsequent word strictly after the previous match.
-        -- This preserves the document order of the original selection and avoids
-        -- picking an earlier occurrence of a later word (e.g. "bag six" instead of "six five four").
         local seq_pos = 1
         local first_word_found = false
         local min_s, max_e = nil, nil
@@ -2909,7 +2901,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         for word in term_lower:gmatch("%S+") do
             if word ~= "..." then
                 if not first_word_found then
-                    -- For the first real word, pick the occurrence closest to the pivot
                     local best_ws, best_we = nil, nil
                     local best_dist_word = math.huge
                     local s_from = 1
@@ -2930,7 +2921,6 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                         first_word_found = true
                     end
                 else
-                    -- For subsequent words, search strictly forward from the previous match
                     local ws, we = full_lower:find(word, seq_pos, true)
                     if ws then
                         max_e = we
@@ -2944,174 +2934,177 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             start_pos, end_pos = min_s, max_e
         end
     end
-    
-    local sentence = full_line
+
+    -- Index ALL word tokens in full_line to factor logical word counts and map to source substring boundaries.
+    -- Replace NUL sentinels with spaces for tokenization to keep character indices exactly preserved.
+    local full_line_spaced = full_line:gsub("%z", " ")
+    local tokens = build_word_list_internal(full_line_spaced, true)
+    local word_tokens = {}
+    local curr_byte = 1
+    for _, t in ipairs(tokens) do
+        local text = t.text
+        local start_byte = curr_byte
+        local end_byte = curr_byte + #text - 1
+        t.start_byte = start_byte
+        t.end_byte = end_byte
+        if t.is_word then
+            table.insert(word_tokens, t)
+        end
+        curr_byte = end_byte + 1
+    end
+
+    -- Find the word tokens corresponding to the selection span
+    local first_sel_word_idx, last_sel_word_idx = nil, nil
+    if start_pos then
+        for idx, wt in ipairs(word_tokens) do
+            if wt.end_byte >= start_pos and wt.start_byte <= end_pos then
+                if not first_sel_word_idx then first_sel_word_idx = idx end
+                last_sel_word_idx = idx
+            end
+        end
+    end
+
+    if not start_pos or not first_sel_word_idx or not last_sel_word_idx then
+        return full_line:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
+    end
+
+    local first_idx = first_sel_word_idx -- compatibility alias
+    local last_idx = last_sel_word_idx   -- compatibility alias
+
+    -- === Sentence Scoping ===
     local sent_start = 1
     local sent_end = #full_line
-    local sentence_abs_start = 1   -- tracks where the cleaned sentence starts in full_line
-    
-    if start_pos then
-        -- === Backward scan: find nearest real sentence terminator before start_pos ===
-        -- Scans across \0 sentinels; skips abbreviations via is_abbrev.
-        -- If no real terminator found, sent_start stays at 1 (full-block fallback).
-        local b_term_pos = nil
-        local i = start_pos - 1
-        while i >= 1 do
-            local c = full_line:sub(i, i)
-            if is_terminator_char(c) then
-                -- Look-ahead: char immediately after the terminator must be whitespace/NUL/end
-                local after = full_line:sub(i + 1, i + 1)
-                if after == "" or after == " " or after == "\t" or after == "\0" then
-                    -- For "!" and "?" there is no abbreviation concern; always a real boundary.
-                    -- For "." check whether the preceding token is an abbreviation. The
-                    -- look-ahead character lets is_abbrev suppress the lowercase heuristic
-                    -- when the period is clearly followed by a new sentence (uppercase).
-                    if c ~= "." or (not is_abbrev(token_ending_at(full_line, i), lookahead_after(full_line, i)) and not is_spaced_initialism_period_at(full_line, i)) then
-                        b_term_pos = i
-                        break
-                    end
+
+    -- === Backward scan: find nearest real sentence terminator before start_pos ===
+    local b_term_pos = nil
+    local i = start_pos - 1
+    while i >= 1 do
+        local c = full_line:sub(i, i)
+        if is_terminator_char(c) then
+            local after = full_line:sub(i + 1, i + 1)
+            if after == "" or after == " " or after == "\t" or after == "\0" then
+                if c ~= "." or (not is_abbrev(token_ending_at(full_line, i), lookahead_after(full_line, i)) and not is_spaced_initialism_period_at(full_line, i)) then
+                    b_term_pos = i
+                    break
                 end
             end
-            i = i - 1
         end
-        if b_term_pos then
-            sent_start = b_term_pos + 1   -- sentence begins right after the terminator
-            print(string.format("[kardenwort] Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
-                full_line:sub(b_term_pos, b_term_pos), b_term_pos, sent_start))
-        else
-            sent_start = 1
-            print("[kardenwort] Sent boundary (backward): no terminator found, fallback to block start")
-        end
-
-        -- === Forward scan: find nearest real sentence terminator after end_pos ===
-        local f_term_pos = nil
-        local k = end_pos + 1
-        while k <= #full_line do
-            local c = full_line:sub(k, k)
-            if is_terminator_char(c) then
-                local after = full_line:sub(k + 1, k + 1)
-                if after == "" or after == " " or after == "\t" or after == "\0" then
-                    if c ~= "." or (not is_abbrev(token_ending_at(full_line, k), lookahead_after(full_line, k)) and not is_spaced_initialism_period_at(full_line, k)) then
-                        f_term_pos = k
-                        break
-                    end
-                end
-            end
-            k = k + 1
-        end
-        if f_term_pos then
-            sent_end = f_term_pos   -- include the terminator character
-            print(string.format("[kardenwort] Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
-                full_line:sub(f_term_pos, f_term_pos), f_term_pos, sent_end))
-        else
-            sent_end = #full_line
-            print("[kardenwort] Sent boundary (forward): no terminator found, fallback to block end")
-        end
-
-        local raw_sub = full_line:sub(sent_start, sent_end)
-        -- Replace sentinels with spaces and trim
-        sentence = raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
-
-        -- Track where the cleaned sentence actually begins in full_line (for truncation offset math)
-        local lead = raw_sub:match("^([%s%z]*)") or ""
-        sentence_abs_start = sent_start + #lead
+        i = i - 1
+    end
+    if b_term_pos then
+        sent_start = b_term_pos + 1
+        print(string.format("[kardenwort] Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
+            full_line:sub(b_term_pos, b_term_pos), b_term_pos, sent_start))
+    else
+        sent_start = 1
+        print("[kardenwort] Sent boundary (backward): no terminator found, fallback to block start")
     end
 
-    -- 2. Check word count of the extracted sentence.
-    local words = build_word_list(sentence)
+    -- === Forward scan: find nearest real sentence terminator after end_pos ===
+    local f_term_pos = nil
+    local k = end_pos + 1
+    while k <= #full_line do
+        local c = full_line:sub(k, k)
+        if is_terminator_char(c) then
+            local after = full_line:sub(k + 1, k + 1)
+            if after == "" or after == " " or after == "\t" or after == "\0" then
+                if c ~= "." or (not is_abbrev(token_ending_at(full_line, k), lookahead_after(full_line, k)) and not is_spaced_initialism_period_at(full_line, k)) then
+                    f_term_pos = k
+                    break
+                end
+            end
+        end
+        k = k + 1
+    end
+    if f_term_pos then
+        sent_end = f_term_pos
+        print(string.format("[kardenwort] Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
+            full_line:sub(f_term_pos, f_term_pos), f_term_pos, sent_end))
+    else
+        sent_end = #full_line
+        print("[kardenwort] Sent boundary (forward): no terminator found, fallback to block end")
+    end
+
+    -- Map sentence boundary bytes back to word token indices
+    local first_sent_word_idx, last_sent_word_idx = nil, nil
+    for idx, wt in ipairs(word_tokens) do
+        if wt.start_byte >= sent_start and wt.end_byte <= sent_end then
+            if not first_sent_word_idx then first_sent_word_idx = idx end
+            last_sent_word_idx = idx
+        end
+    end
+
+    -- Apply optional before/after word padding after sentence scoping
+    local pad_before = Options.anki_context_words_before or 0
+    local pad_after = Options.anki_context_words_after or 0
+
+    local final_first_word_idx = first_sent_word_idx or 1
+    local final_last_word_idx = last_sent_word_idx or #word_tokens
+
+    final_first_word_idx = math.max(1, final_first_word_idx - pad_before)
+    final_last_word_idx = math.min(#word_tokens, final_last_word_idx + pad_after)
+
+    -- Dynamic Truncation limits: raise effective limit if explicit padding + selection span exceeds it
     local limit = max_words_override or Options.anki_context_max_words
-    if #words <= limit then return sentence end
-    
-    -- 3. If the sentence is still too long, truncate around the selected span.
-    -- Use the pre-computed sentence_abs_start so the "." append doesn't break offset math.
-    local first_idx, last_idx = nil, nil
-    if start_pos then
-        local s_rel = start_pos - sentence_abs_start + 1
-        local e_rel = end_pos   - sentence_abs_start + 1
-        s_rel = math.max(1, s_rel)
-        e_rel = math.max(s_rel, e_rel)
-        
-        local curr_char = 1
-        for i, w in ipairs(words) do
-            local w_start = sentence:find(w, curr_char, true)
-            if w_start then
-                local w_end = w_start + #w - 1
-                if w_end >= s_rel and w_start <= e_rel then
-                    first_idx = first_idx or i
-                    last_idx = i
-                end
-                curr_char = w_end + 1
-            end
+    if pad_before > 0 or pad_after > 0 then
+        local sel_span = last_sel_word_idx - first_sel_word_idx + 1
+        local words_needed = sel_span + pad_before + pad_after
+        if words_needed > limit then
+            limit = words_needed
         end
-        
-
-    else
-
     end
-    if first_idx then
-        Diagnostic.trace(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
-    else
 
-        return sentence
-    end
-    
-    -- If the selection span itself is wider than the limit, the user picked words far apart —
-    -- return the full sentence so none of the picked words are hidden.
-    local span = last_idx - first_idx + 1
+    -- If the selection span itself is wider than the limit, handle wide selection
+    local span = last_sel_word_idx - first_sel_word_idx + 1
     if span >= limit then
-        -- Selection spans more words than the limit allows padding for.
-        -- Crop to the span but add a small fixed padding on each side so the
-        -- extreme selected words don't get cut mid-phrase.
-        local pad = Options.anki_context_span_pad
-        local crop_start = math.max(1, first_idx - pad)
-        local crop_end   = math.min(#words, last_idx + pad)
-        Diagnostic.trace(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
-        local f_byte = (crop_start == 1) and 1 or nil
-        local l_byte = (crop_end == #words) and #sentence or nil
-        local curr = 1
-        for i = 1, crop_end do
-            local s, e = sentence:find(words[i], curr, true)
-            if s then
-                if i == crop_start then f_byte = s end
-                if i == crop_end then l_byte = e end
-                curr = e + 1
-            end
+        local is_explicit_padding_active = (pad_before > 0) or (pad_after > 0)
+        local crop_start, crop_end
+        if is_explicit_padding_active then
+            local actual_pad_before = math.max(Options.anki_context_span_pad or 3, pad_before)
+            local actual_pad_after = math.max(Options.anki_context_span_pad or 3, pad_after)
+            crop_start = math.max(1, first_sel_word_idx - actual_pad_before)
+            crop_end   = math.min(#word_tokens, last_sel_word_idx + actual_pad_after)
+        else
+            local pad = Options.anki_context_span_pad or 3
+            crop_start = math.max(first_sent_word_idx or 1, first_sel_word_idx - pad)
+            crop_end   = math.min(last_sent_word_idx or #word_tokens, last_sel_word_idx + pad)
         end
-        return sentence:sub(f_byte or 1, l_byte or #sentence):match("^%s*(.-)%s*$")
+        local f_byte = word_tokens[crop_start].start_byte
+        local l_byte = word_tokens[crop_end].end_byte
+        local raw_sub = full_line:sub(f_byte, l_byte)
+        return raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
     end
-    
-    -- Center the viewport around the detected span
-    local center_idx = math.floor((first_idx + last_idx) / 2)
+
+    -- Center the viewport around the detected selection span
+    local total_words = final_last_word_idx - final_first_word_idx + 1
+    if total_words <= limit then -- #words <= limit
+        local f_byte = word_tokens[final_first_word_idx].start_byte
+        local l_byte = word_tokens[final_last_word_idx].end_byte
+        local raw_sub = full_line:sub(f_byte, l_byte)
+        return raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
+    end
+
+    local center_idx = math.floor((first_sel_word_idx + last_sel_word_idx) / 2)
     local half_max = math.floor(limit / 2)
-    local context_start = math.max(1, center_idx - half_max)
-    local context_end = math.min(#words, center_idx + half_max)
-    
+    local context_start = math.max(final_first_word_idx, center_idx - half_max)
+    local context_end = math.min(final_last_word_idx, center_idx + half_max)
+
     -- Shift viewport to ensure the full core span is visible
-    if context_start > first_idx then
-        local shift = context_start - first_idx
-        context_start = first_idx
+    if context_start > first_sel_word_idx then
+        local shift = context_start - first_sel_word_idx
+        context_start = first_sel_word_idx
         context_end = math.max(context_start, context_end - shift)
     end
-    if context_end < last_idx then
-        local shift = last_idx - context_end
-        context_end = last_idx
-        context_start = math.max(1, context_start - shift)
+    if context_end < last_sel_word_idx then
+        local shift = last_sel_word_idx - context_end
+        context_end = last_sel_word_idx
+        context_start = math.max(final_first_word_idx, context_start - shift)
     end
-    
-    Diagnostic.trace(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
-    
-    local f_byte = (context_start == 1) and 1 or nil
-    local l_byte = (context_end == #words) and #sentence or nil
-    local curr = 1
-    for i = 1, context_end do
-        local s, e = sentence:find(words[i], curr, true)
-        if s then
-            if i == context_start then f_byte = s end
-            if i == context_end then l_byte = e end
-            curr = e + 1
-        end
-    end
-    return sentence:sub(f_byte or 1, l_byte or #sentence):match("^%s*(.-)%s*$")
+
+    local f_byte = word_tokens[context_start].start_byte
+    local l_byte = word_tokens[context_end].end_byte
+    local raw_sub = full_line:sub(f_byte, l_byte)
+    return raw_sub:gsub("%z", " "):match("^%s*(.-)%s*$") or ""
 end
 
 

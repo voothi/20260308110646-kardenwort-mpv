@@ -2896,7 +2896,7 @@
 20260526164715 How it works now, what script-opts-append=kardenwort-anki_context_max_words=40 script-opts-append=kardenwort-anki_context_span_pad=3 script-opts-append=kardenwort-anki_context_lines=6
 20260526165207 How can we simply and elegantly add only 2 parameters to the current implementation ..._before + ..._after, what should we call it?
 20260526165444 Change 20260526155823-context-word-padding-modes for this task.
-
+20260526170406 opsx-apply 20260526155823-context-word-padding-modes
 
 
 
