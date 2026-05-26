@@ -9961,7 +9961,30 @@ function cmd_cycle_audio()
         for _, t in ipairs(tracks) do
             if tonumber(t.id) == next_aid then
                 local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown") and t.lang:upper() or nil
-                local title_lbl = t.title or nil
+                local title_lbl = (t.title and t.title ~= "") and t.title or nil
+
+                if lang_lbl and title_lbl and title_lbl:upper() == lang_lbl then
+                    title_lbl = nil
+                end
+
+                if (not title_lbl) and t.external then
+                    local ext_path = t["external-filename"] or t["external_filename"] or ""
+                    if ext_path ~= "" then
+                        local ext_file = ext_path:gsub("\\", "/"):match("([^/]+)$") or ""
+                        local ext = ext_file:match("%.([^%.]+)$") or ""
+                        local ext_stem = ext_file
+                        if #ext > 0 then
+                            ext_stem = ext_file:sub(1, #ext_file - #ext - 1)
+                        end
+                        local base_name, postfix = ext_stem:match("^(.+)%.([%a%-]+)$")
+                        if postfix and (#postfix == 2 or #postfix == 3) and base_name and base_name ~= "" then
+                            title_lbl = base_name
+                        elseif ext_stem ~= "" then
+                            title_lbl = ext_stem
+                        end
+                    end
+                end
+
                 if lang_lbl and title_lbl then
                     label = lang_lbl .. " - " .. title_lbl
                 elseif lang_lbl then
@@ -9971,7 +9994,6 @@ function cmd_cycle_audio()
                 else
                     label = "TRACK " .. next_aid
                 end
-                if label:find("%.") then label = label:match("([^%.]+)%.") or label end
                 break
             end
         end
