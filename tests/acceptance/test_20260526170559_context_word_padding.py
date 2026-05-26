@@ -37,6 +37,16 @@ def test_padding_applies_after_sentence_scoping():
     assert "final_last_word_idx = math.min(#word_tokens, last_sent_word_idx + pad_after)" in body
 
 
+def test_padding_after_preserves_adjacent_punctuation():
+    content = _lua()
+    idx = content.find("local function extract_anki_context")
+    assert idx != -1
+    body = content[idx:idx + 25000]
+    assert "while sent_end < #full_line do" in body
+    assert "next_char:match" in body
+    assert "%.,!?;:" in body
+
+
 def test_default_sentence_path_is_preserved():
     content = _lua()
     idx = content.find("local function extract_anki_context")

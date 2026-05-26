@@ -3050,6 +3050,11 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                 end
                 if final_last_word_idx > last_sent_word_idx then
                     sent_end = word_tokens[final_last_word_idx].end_byte
+                    while sent_end < #full_line do
+                        local next_char = full_line:sub(sent_end + 1, sent_end + 1)
+                        if not next_char:match("[%.,!?;:%)%]%}\"']") then break end
+                        sent_end = sent_end + 1
+                    end
                 end
             end
         end
