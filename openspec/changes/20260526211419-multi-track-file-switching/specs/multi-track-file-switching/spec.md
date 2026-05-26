@@ -20,13 +20,6 @@ The system SHALL trigger the replacement using the native `loadfile` MPV command
 - **WHEN** user triggers a companion track file swap from `video.mp4` (playing at 42.5 seconds, speed 1.1x) to `video.ru.mp4`
 - **THEN** the system reloads the file with `video.ru.mp4`, restoring position to 42.5 seconds, speed to 1.1x, and continues playing.
 
-### Requirement: Automatic Subtitle Re-anchoring
-Upon swapping to a companion track file, the system SHALL scan for matching subtitle files (e.g., `.srt`) in the same directory that match the newly selected track postfix (e.g., `video.ru.srt` or `video.ru.en.srt`).
-The system SHALL automatically load and bind the matching subtitle file to the primary `sid` and secondary `secondary-sid` slots to preserve the immersion study layout.
-
-#### Scenario: Automatic subtitle load on companion swap
-- **WHEN** user switches active media to `video.ru.mp4` and `video.ru.srt` is present in the directory
-- **THEN** the system automatically loads `video.ru.srt` as the active subtitle track.
 
 ### Requirement: Themed HUD Notification
 The system SHALL display an instant OSD confirmation when swapping companion files.

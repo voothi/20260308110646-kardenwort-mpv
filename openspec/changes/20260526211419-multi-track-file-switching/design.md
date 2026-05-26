@@ -11,7 +11,6 @@ Currently, there is no way for a user to switch between these separate companion
 - Seamlessly swap the active file at runtime when the hotkey (`Shift+4` or `$`) is triggered.
 - Guarantee 100% preservation of the active `time-pos`, `speed`, and `pause` state during swaps.
 - Deliver themed HUD visual feedback showing the active companion track's language code.
-- Automatically scan and link corresponding subtitle sidecars matching the postfix.
 
 **Non-Goals:**
 - Dynamically mixing/merging audio-only files with the main video file at runtime.

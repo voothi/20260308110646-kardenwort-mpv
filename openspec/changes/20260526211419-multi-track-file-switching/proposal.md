@@ -11,7 +11,6 @@ Currently, MPV track switching only operates on multiplexed tracks within the ac
   - Playback position (`time-pos`)
   - Playback speed (`speed`)
   - Playback state (playing vs. paused)
-- **Automatic Subtitle Re-anchoring**: Automatically re-aligns and loads corresponding subtitle sidecar files (e.g., `.srt`) matching the newly active companion language to maintain the dual-subtitle display.
 - **Themed HUD Confirmation**: Reports track swaps instantly with a premium, semi-transparent Kardenwort OSD card matching the suite's theme.
 - **Layout-Agnostic Keybindings**: Registers hotkeys in both English and Russian keyboards for file cycling.
 

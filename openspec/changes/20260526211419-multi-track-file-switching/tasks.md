@@ -10,14 +10,9 @@
 - [ ] 2.2 Execute loadfile replace with time parameter
 - [ ] 2.3 Restore speed and pause state after replacement
 
-## 3. Subtitle Re-anchoring
+## 3. UI/OSD & Configuration
 
-- [ ] 3.1 Implement dynamic lookup for subtitle companion files (.srt) matching the selected track postfix
-- [ ] 3.2 Auto-load and bind subtitle track on companion swap
-
-## 4. UI/OSD & Configuration
-
-- [ ] 4.1 Bind cycle-companion command to Shift+4 and $ in input.conf
-- [ ] 4.2 Add Shift+4 / $ cycle-companion reference to F1 HELP_SCHEMA
-- [ ] 4.3 Show premium themed OSD notice card showing active companion file language
-- [ ] 4.4 Document new capability in README.md and add option in mpv.conf
+- [ ] 3.1 Bind cycle-companion command to Shift+4 and $ in input.conf
+- [ ] 3.2 Add Shift+4 / $ cycle-companion reference to F1 HELP_SCHEMA
+- [ ] 3.3 Show premium themed OSD notice card showing active companion file language
+- [ ] 3.4 Document new capability in README.md and add option in mpv.conf
