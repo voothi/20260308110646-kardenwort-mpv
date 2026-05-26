@@ -446,133 +446,102 @@ def get_wav_duration_ms(wav_path, ffmpeg_path):
 # TIMED AUDIO ASSEMBLY (tasks 5.1 – 5.4)
 # ==============================================================================
 
-def build_ffmpeg_concat_list(synthesis_results, temp_dir, ffmpeg_path):
-    """
-    Build an FFmpeg concat file-list that interleaves per-cue WAVs with
-    silence pads to match original SRT timing.
-
-    Returns path to the concat list file, or None if no cues were synthesized.
-
-    Strategy:
-      - Track 'cursor_ms': where the audio stream is currently positioned.
-      - For each cue with a synthesized WAV:
-          1. If cue.start_ms > cursor_ms → insert a silence segment.
-          2. Append the cue WAV.
-          3. Advance cursor_ms by the WAV's actual duration.
-    """
-    silence_wav = temp_dir / "silence.wav"
-    concat_list_path = temp_dir / "concat.txt"
-
-    # ------------------------------------------------------------------
-    # Strategy: anchor EVERY cue at its exact SRT start_ms.
-    # cursor_ms tracks where the audio stream currently is.
-    # If cue_start_ms > cursor_ms → insert silence to reach it.
-    # If the previous cue's WAV overlapped (cursor_ms > cue_start_ms)
-    # → we still insert 0 ms of silence (no gap) but do NOT skip the
-    #   cue; the result is cues played back-to-back.  This is better
-    #   than the old behaviour which pushed ALL subsequent cues forward.
-    # ------------------------------------------------------------------
-    segments = []  # list of ("silence", ms) | ("wav", path)
-
-    cursor_ms = 0
-
-    for item in synthesis_results:
-        cue = item["cue"]
-        wav_path = item["wav_path"]
-
-        if wav_path is None:
-            # Failed cue: advance cursor to its end_ms so we stay aligned
-            cursor_ms = max(cursor_ms, cue["end_ms"])
-            continue
-
-        cue_start_ms = cue["start_ms"]
-
-        # Gap before this cue (may be 0 if previous WAV ran long)
-        gap_ms = max(0, cue_start_ms - cursor_ms)
-        if gap_ms > 0:
-            segments.append(("silence", gap_ms))
-
-        # Actual duration of the synthesized WAV
-        wav_dur_ms = get_wav_duration_ms(wav_path, ffmpeg_path)
-        if wav_dur_ms <= 0:
-            wav_dur_ms = cue["end_ms"] - cue["start_ms"]  # SRT window as fallback
-
-        segments.append(("wav", str(wav_path)))
-        # Advance cursor to cue_start_ms + WAV duration (not cursor_ms + WAV duration)
-        cursor_ms = cue_start_ms + wav_dur_ms
-
-    if not segments:
-        return None
-
-    # Generate individual silence WAVs per required duration
-    concat_entries = []
-    silence_index = 0
-
-    for seg in segments:
-        if seg[0] == "silence":
-            dur_ms = seg[1]
-            if dur_ms <= 0:
-                continue
-            dur_s = dur_ms / 1000.0
-            sil_path = temp_dir / f"silence_{silence_index:04d}.wav"
-            sil_cmd = [
-                ffmpeg_path, "-y",
-                "-f", "lavfi",
-                "-i", "anullsrc=r=22050:cl=mono",
-                "-t", f"{dur_s:.3f}",
-                "-c:a", "pcm_s16le",
-                str(sil_path),
-            ]
-            result = subprocess.run(sil_cmd, capture_output=True, timeout=60)
-            if result.returncode == 0 and sil_path.exists():
-                concat_entries.append(str(sil_path))
-                silence_index += 1
-        elif seg[0] == "wav":
-            concat_entries.append(seg[1])
-
-    if not concat_entries:
-        return None
-
-    # Write FFmpeg concat list
-    with open(concat_list_path, "w", encoding="utf-8") as f:
-        for entry in concat_entries:
-            # Escape backslashes for FFmpeg concat protocol
-            safe = entry.replace("\\", "/")
-            f.write(f"file '{safe}'\n")
-
-    return concat_list_path
-
-
 def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
     """
-    Assemble all per-cue WAVs (with silence gaps) into one combined WAV.
-    Returns path to the assembled WAV, or None on failure.
+    Assemble all per-cue WAVs into one combined WAV by placing each at its
+    exact SRT start time. Uses FFmpeg's adelay and amix filters.
+    Processes in batches to avoid command-line length limits.
     """
-    concat_list = build_ffmpeg_concat_list(synthesis_results, temp_dir, ffmpeg_path)
-    if concat_list is None:
+    valid_cues = []
+    max_end_ms = 0
+    
+    for item in synthesis_results:
+        if not item["ok"] or not item["wav_path"]:
+            continue
+        cue = item["cue"]
+        wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
+        if wav_dur_ms <= 0:
+            wav_dur_ms = cue["end_ms"] - cue["start_ms"]
+            
+        valid_cues.append({
+            "path": item["wav_path"],
+            "start_ms": cue["start_ms"],
+            "dur_ms": wav_dur_ms
+        })
+        max_end_ms = max(max_end_ms, cue["start_ms"] + wav_dur_ms, cue["end_ms"])
+        
+    if not valid_cues:
         print("Error: No audio segments to assemble.", file=sys.stderr)
         return None
 
-    assembled_wav = temp_dir / "assembled.wav"
-    cmd = [
-        ffmpeg_path, "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", str(concat_list),
-        "-c:a", "pcm_s16le",
-        str(assembled_wav),
-    ]
+    print("  Assembling timed audio track (anchored to absolute timestamps)...", flush=True)
 
-    print("  Assembling timed audio track...", flush=True)
+    base_wav = temp_dir / "base_0.wav"
+    # Create an initial silent base track of the total required duration
+    cmd_base = [
+        ffmpeg_path, "-y",
+        "-f", "lavfi",
+        "-i", "anullsrc=r=22050:cl=mono",
+        "-t", f"{max_end_ms / 1000.0:.3f}",
+        "-c:a", "pcm_s16le",
+        str(base_wav)
+    ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        if result.returncode != 0:
-            print(f"Error: FFmpeg audio assembly failed:\n{result.stderr}", file=sys.stderr)
-            return None
-        return assembled_wav
+        subprocess.run(cmd_base, capture_output=True, check=True)
     except Exception as exc:
-        print(f"Error: FFmpeg audio assembly exception: {exc}", file=sys.stderr)
+        print(f"Error: FFmpeg base track generation failed: {exc}", file=sys.stderr)
         return None
+
+    batch_size = 64
+    current_base = base_wav
+
+    for batch_idx, i in enumerate(range(0, len(valid_cues), batch_size)):
+        batch = valid_cues[i:i + batch_size]
+        next_base = temp_dir / f"base_{batch_idx + 1}.wav"
+        script_path = temp_dir / f"filter_{batch_idx}.txt"
+
+        cmd = [ffmpeg_path, "-y", "-i", str(current_base)]
+        filter_lines = []
+        amix_inputs = ["[0:a]"]
+
+        for j, cue_info in enumerate(batch, start=1):
+            cmd.extend(["-i", str(cue_info["path"])])
+            delay = cue_info["start_ms"]
+            # Delay in ms for all channels
+            filter_lines.append(f"[{j}:a]adelay={delay}|{delay}[a{j}];")
+            amix_inputs.append(f"[a{j}]")
+
+        amix_str = "".join(amix_inputs)
+        num_inputs = len(batch) + 1
+        # duration=first keeps the length locked to the base track length
+        # normalize=0 prevents volume dropping when multiple streams mix
+        filter_lines.append(f"{amix_str}amix=inputs={num_inputs}:duration=first:dropout_transition=0:normalize=0[aout]")
+
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(filter_lines))
+
+        cmd.extend([
+            "-filter_complex_script", str(script_path),
+            "-map", "[aout]",
+            "-c:a", "pcm_s16le",
+            str(next_base)
+        ])
+
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            if res.returncode != 0:
+                print(f"Error: FFmpeg audio batch {batch_idx} failed:\n{res.stderr}", file=sys.stderr)
+                return None
+        except Exception as exc:
+            print(f"Error: FFmpeg audio batch {batch_idx} exception: {exc}", file=sys.stderr)
+            return None
+
+        current_base = next_base
+
+    final_wav = temp_dir / "assembled.wav"
+    import shutil
+    shutil.move(current_base, final_wav)
+    return final_wav
 
 
 # ==============================================================================

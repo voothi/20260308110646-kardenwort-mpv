@@ -66,3 +66,4 @@
 - [x] 11.1 **Output filename**: strip language postfix from output name (`video.de.srt` → `video.mp4`, not `video.de.mp4`)
 - [x] 11.2 **Console window**: switch install.py from `pythonw.exe` (hidden) to `python.exe` + `WindowStyle=1` + `--pause` flag; window stays open until user presses Enter
 - [x] 11.3 **Audio sync**: fix concat builder — anchor each cue WAV at its exact `start_ms` from SRT (not at running `cursor_ms`); prevents cumulative drift when previous cue's audio runs long
+- [x] 11.4 **Audio sync v2**: replaced `concat` filter completely with an `amix` batch approach because `concat` physically appends (preventing true overlaps). Now every cue is individually anchored to a silent base track using `adelay` for perfect absolute timing, regardless of TTS audio length.
