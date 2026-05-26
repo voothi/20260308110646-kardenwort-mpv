@@ -1,3 +1,28 @@
+# Release Notes - v1.84.42 (Sub-TTS Pipeline & Multi-Track File Switching)
+
+**Date**: 2026-05-27
+**Version**: v1.84.42
+**Implementation ZIDs**: 20260527000155, 20260526235414, 20260526233202, 20260526223741, 20260526221337, 20260526220316, 20260526214322, 20260526213736, 20260526213502, 20260526212747, 20260526212355, 20260526211734, 20260526210854, 20260526210018, 20260526205930, 20260526205612, 20260526204910, 20260526204600, 20260526201856, 20260526201624, 20260526201527, 20260526200837, 20260526200628, 20260526195807, 20260526194215, 20260526193053, 20260526192837, 20260526191313, 20260526185646
+
+## Highlights
+
+### 🎙️ **Sub-TTS Pipeline Integration**
+- Added a new standalone tooling stack under `scripts/_tools/sub-tts/`, including `sub_tts.py`, install/config helpers, and template-driven runtime settings.
+- Introduced a production-oriented text-to-speech generation flow with configurable providers, export controls, and batch subtitle processing support.
+- Added user-facing defaults in `mpv.conf` and `input.conf` to support practical operation and configuration parity.
+
+### 🔀 **Multi-Track File Switching Hardening**
+- Extended the runtime logic in `scripts/kardenwort/main.lua` to improve multi-track file switching behavior and reduce state drift during track transitions.
+- Added robust acceptance coverage in `tests/acceptance/test_20260526221909_multi_track_production_hardening.py` for production transition scenarios.
+
+### 🧪 **Targeted Regression Coverage**
+- Added dedicated unit validation for the new pipeline in `tests/unit/test_20260526195053_sub_tts_pipeline.py`.
+- Expanded OpenSpec artifacts for both capabilities in:
+  - `openspec/specs/sub-tts-pipeline/spec.md`
+  - `openspec/specs/multi-track-file-switching/spec.md`
+
+---
+
 # Release Notes - v1.84.38 (Sentence-Scoped Context Word Padding & Abbreviation Extensions)
 
 **Date**: 2026-05-26
