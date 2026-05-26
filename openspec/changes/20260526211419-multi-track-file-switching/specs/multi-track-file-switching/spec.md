@@ -30,6 +30,28 @@ During companion handling, the system MUST:
 - **THEN** `video.ru.mp4` audio is attached as an external audio track
 - **AND** the media file is not replaced.
 
+### Requirement: Companion Attachment Safety
+The system SHALL prevent redundant or self-referential companion audio attachment to keep the audio track-list stable in long-running sessions.
+
+#### Scenario: Active postfix file is not re-attached as external audio
+- **GIVEN** the active media path is `video.ru.mp4`
+- **AND** sibling files include `video.mp4` and `video.de.mp4`
+- **WHEN** companion discovery/attachment runs
+- **THEN** `video.ru.mp4` is not attached as an external audio track.
+
+#### Scenario: Repeated cycling does not duplicate companion tracks
+- **GIVEN** companion audio tracks for `video.ru.mp4` and `video.de.mp4` are already attached
+- **WHEN** the user triggers `Shift+3` repeatedly
+- **THEN** the number of companion external audio tracks remains unchanged.
+
+### Requirement: Companion Configuration Controls
+The system SHALL expose runtime options in `kardenwort` script options to support production-safe rollout and rollback.
+
+#### Scenario: Companion behavior can be toggled and pre-attached on load
+- **WHEN** `kardenwort-companion_audio_enabled=yes` and `kardenwort-companion_audio_attach_on_load=yes`
+- **THEN** companion audio discovery is enabled for both `file-loaded` and on-demand cycle execution.
+- **AND** setting either option to `no` disables that specific behavior without requiring code changes.
+
 
 ### Requirement: Themed HUD Notification
 The system SHALL display an instant OSD confirmation when switching active audio tracks.

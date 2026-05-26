@@ -596,6 +596,8 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-immersion_mode_default` | `PHRASE` | Default mode at startup (`PHRASE` or `MOVIE`). |
 | `kardenwort-key_cycle_immersion_mode` | `F А` | Hotkey to cycle Phrase/Movie immersion modes. |
 | `kardenwort-audio_switch_threshold` | `1.0` | Double-tap threshold in seconds. Rapid taps cycle all, slow taps toggle last two active. |
+| `kardenwort-companion_audio_enabled` | `yes` | Master toggle for companion file audio discovery and attachment. |
+| `kardenwort-companion_audio_attach_on_load` | `yes` | Pre-attaches companion audio tracks on media load without replacing the active file. |
 
 #### **3. Drum Mode (Dynamic Multi-line Context)**
 | Parameter | Default | Description |

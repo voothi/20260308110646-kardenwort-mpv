@@ -11,6 +11,7 @@ Currently, MPV track switching only operates on multiplexed tracks within the ac
 - **Audio-Only Continuity**: Keeps playback continuity by not replacing the active media file during companion language switches.
 - **Themed HUD Confirmation**: Reports active audio instantly with a premium, semi-transparent Kardenwort OSD card matching the suite's theme.
 - **Layout-Agnostic Keybindings**: Registers hotkeys in both English and Russian keyboards for unified track cycling.
+- **Production Hardening**: Adds companion safety gates (no self-attachment, no duplicate re-attachment), plus explicit runtime toggles for staged rollout.
 
 ## Capabilities
 
@@ -20,3 +21,4 @@ Currently, MPV track switching only operates on multiplexed tracks within the ac
 - **`input.conf`**: Cleans up secondary key bindings to keep all track switching actions unified on `Shift+3`.
 - **`mpv.conf`**: Exposes config options to toggle companion loading behaviors.
 - **`README.md`**: Documents the new capabilities, shortcuts, and directory structure expectations.
+- **`tests/acceptance/*multi_track_production_hardening.py`**: Adds runtime checks for no-file-replace behavior, no duplicate attachment, and no self-attachment when booting from postfix media.

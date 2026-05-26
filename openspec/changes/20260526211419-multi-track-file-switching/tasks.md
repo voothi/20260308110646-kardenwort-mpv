@@ -16,3 +16,10 @@
 - [x] 3.2 Ensure F1 HELP_SCHEMA includes the unified Cycle Audio Track mapping
 - [x] 3.3 Show premium themed OSD notice card showing active audio label (e.g. Audio: RU)
 - [x] 3.4 Document new capability in README.md and add option in mpv.conf
+
+## 4. Production Hardening & Verification
+
+- [x] 4.1 Prevent self-attachment when current media already has a language postfix (e.g., `video.ru.mp4`)
+- [x] 4.2 Canonicalize paths and avoid duplicate companion re-attachment across repeated `Shift+3` cycles
+- [x] 4.3 Add runtime toggles for companion attachment behavior in script options and mpv.conf
+- [x] 4.4 Add acceptance tests covering no-file-replace continuity and companion attachment stability

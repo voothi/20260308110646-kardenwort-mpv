@@ -27,10 +27,15 @@ Currently, there is no way for a user to switch between these separate companion
 ### 2. Companion Audio Attachment (No Media Replacement)
 - **Decision**: Companion files are treated as external audio sources and attached using MPV audio-track APIs (`audio-add`), then selected through normal `aid` cycling.
 - **Rationale**: Replacing the whole media file resets too much session state and violates the user's audio-only switching intent.
+- **Hardening Detail**: Normalize/canonicalize companion paths before comparison, skip the currently active media path, and attach only when missing to prevent duplicate or self-referential external tracks.
 
 ### 3. Keybindings & Hybrid Selector
 - **Decision**: Bind the unified switching logic to `Shift+3`, `SHARP`, and `№` (mapping to `cycle-audio` in `input.conf`).
 - **Rationale**: Keeps a single primary layout-safe hotkey for all audio cycling operations. If multiple companion files are discovered in the workspace directory, we attach their audio and cycle in one flow. If not, we fall back to multiplexed tracks.
+
+### 4. Runtime Safety Controls
+- **Decision**: Expose `kardenwort-companion_audio_enabled` and `kardenwort-companion_audio_attach_on_load` options.
+- **Rationale**: Allows production rollback/rollout without code edits and supports strict environments where auto-attachment should be disabled while preserving manual Shift+3 fallback.
 
 ## Risks / Trade-offs
 

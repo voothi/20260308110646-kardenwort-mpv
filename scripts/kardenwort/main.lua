@@ -624,6 +624,8 @@ Options = {
     help_key_color = "00CCFF",   -- Gold (BGR: 00CCFF | RGB: #FFCC00)
     help_column_width = 40,
     audio_switch_threshold = 1.0,
+    companion_audio_enabled = true,
+    companion_audio_attach_on_load = true,
 }
 options.read_options(Options, "kardenwort")
 
@@ -9831,7 +9833,22 @@ function normalize_path_for_compare(path)
     return normalized
 end
 
+function canonicalize_local_path(path)
+    if not path or path == "" then return "" end
+    local normalized = path
+    local ok, expanded = pcall(mp.command_native, {"expand-path", path})
+    if ok and type(expanded) == "string" and expanded ~= "" then
+        normalized = expanded
+    end
+    local ok2, canonical = pcall(mp.command_native, {"normalize-path", normalized})
+    if ok2 and type(canonical) == "string" and canonical ~= "" then
+        normalized = canonical
+    end
+    return normalize_path_for_compare(normalized)
+end
+
 function ensure_companion_audio_tracks(path)
+    if Options.companion_audio_enabled == false then return end
     if not path or path == "" then return end
     local normalized_path = path:gsub("\\", "/")
     local dir = normalized_path:match("^(.*/)") or ""
@@ -9849,20 +9866,21 @@ function ensure_companion_audio_tracks(path)
     local companions = get_companion_files(dir, base_prefix, ext)
     if #companions <= 1 then return end
 
+    local current_path_norm = canonicalize_local_path(path)
     local existing_audio = {}
     local tracks = mp.get_property_native("track-list") or {}
     for _, t in ipairs(tracks) do
         if t.type == "audio" and t.external then
             local p = t["external-filename"] or t["external_filename"] or ""
-            existing_audio[normalize_path_for_compare(p)] = true
+            existing_audio[canonicalize_local_path(p)] = true
         end
     end
 
     local is_windows = package.config:sub(1,1) == "\\"
     for _, companion in ipairs(companions) do
         if companion.postfix ~= "ORIGINAL" then
-            local normalized_companion_path = normalize_path_for_compare(companion.path)
-            if not existing_audio[normalized_companion_path] then
+            local normalized_companion_path = canonicalize_local_path(companion.path)
+            if normalized_companion_path ~= current_path_norm and not existing_audio[normalized_companion_path] then
                 local load_path = companion.path
                 if is_windows then
                     load_path = load_path:gsub("/", "\\")
@@ -10160,6 +10178,12 @@ mp.register_event("shutdown", function()
     end
     while (FSM.ui_border_override_depth or 0) > 0 do
         manage_ui_border_override(false)
+    end
+end)
+
+mp.register_event("file-loaded", function()
+    if Options.companion_audio_attach_on_load ~= false then
+        ensure_companion_audio_tracks(mp.get_property("path"))
     end
 end)
 
