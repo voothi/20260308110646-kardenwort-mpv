@@ -41,6 +41,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Smart Spacebar](#smart-spacebar)
   - [Smart Font Scaling](#smart-font-scaling)
   - [Standalone Subtitle Viewer (SendTo Menu)](#standalone-subtitle-viewer-sendto-menu)
+  - [Sub-TTS Pipeline Tool](#sub-tts-pipeline-tool)
 - [Example Data Structures](#example-data-structures)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
   - [Visual Keyboard Layout (English)](#visual-keyboard-layout-english)
@@ -253,6 +254,8 @@ This suite solves problems that standard video players and generic scripts ignor
 53. **Secondary Sub Only Mode**: A dedicated focus state that displays only the translation track while maintaining full background synchronization with the primary target-language stream for mining and FSM logic. Features a **Track Cycle Guard** (`Shift+C`) to prevent contradictory state transitions.
 54. **UTF-8-Safe Copy Preview**: Guarantees character-safe truncation of Drum Window and context copies to prevent multibyte character slicing and OSD mojibake artifacts.
 55. **Consistent Dual-Track Copy Routing**: Resolves a routing discrepancy in `Copy Subtitle Mode: B` by consistently extracting from the secondary track for all selection types (Point, Range, Set), aligning manual selections with no-selection fallback.
+56. **Companion Audio Auto-Attach**: Automatically discovers and attaches companion audio files on load for faster multi-track study workflows, with script-opts toggles for strict control.
+57. **Sub-TTS Production Pipeline**: Adds a dedicated subtitle-to-speech generation toolchain under `scripts/_tools/sub-tts` with configurable providers and template-driven runtime settings.
 
 [Return to Top](#table-of-contents)
 
@@ -439,6 +442,15 @@ A dedicated, distraction-free environment for reading, navigating, and highlight
 *   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
 *   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/_tools/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
 *   **Setup**: Run `python scripts/_tools/sub-viewer/install.py` once to register it in your Windows shell.
+
+[Return to Top](#table-of-contents)
+
+### <span id="sub-tts-pipeline-tool"></span>Sub-TTS Pipeline Tool
+A dedicated helper toolchain for generating speech audio from subtitles in reproducible batch workflows.
+*   **Location**: `scripts/_tools/sub-tts/` (`sub_tts.py`, `install.py`, `config.ini.template`).
+*   **Template-Driven Config**: Uses a generated `config.ini` so provider credentials and runtime behavior can be managed without editing script code.
+*   **Batch-Friendly Workflow**: Designed for production-oriented subtitle processing with configurable export controls and language-aware runs.
+*   **Integration Path**: Complements in-player TTS triggers by supporting offline pre-generation workflows when needed.
 
 [Return to Top](#table-of-contents)
 
@@ -723,6 +735,8 @@ The project uses a centralized configuration model. All core script behaviors ar
 | `kardenwort-anki_sync_period` | `5` | Interval (seconds) for automatic TSV database reloading. |
 | `kardenwort-anki_context_lines` | `6` | Surrounding lines captured in Anki flashcard context. |
 | `kardenwort-anki_context_max_words` | `40` | Maximum word count allowed per exported context sentence. |
+| `kardenwort-anki_context_words_before` | `5` | Number of logical words prepended before the selected term after sentence scoping (clamped to non-negative integer). |
+| `kardenwort-anki_context_words_after` | `5` | Number of logical words appended after the selected term after sentence scoping (clamped to non-negative integer). |
 | `kardenwort-anki_sentence_terminators` | `.!?` | Characters that mark a sentence end (no separator; each char is a terminator). Controls the punctuation-anchored sentence boundary scan in `extract_anki_context`. |
 | `kardenwort-anki_abbrev_list` | `ca. z.B. usw. ...` | Space-separated list of abbreviation tokens (including trailing period) that the sentence scanner must not treat as sentence ends. Augments the built-in smart heuristic. |
 | `kardenwort-anki_abbrev_smart` | `yes` | Enable built-in heuristic for abbreviation detection (short lowercase+period, uppercase+period patterns). |
