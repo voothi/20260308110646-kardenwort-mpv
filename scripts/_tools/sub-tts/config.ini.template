@@ -30,6 +30,27 @@ default_lang = en
 # overwrite: overwrite the existing output file
 duplicate_mode = zid-dir
 
+# Fit generated TTS audio into each subtitle time slot, following Subtitle Edit's
+# "Fix speed" stage: trim boundary silence, optionally compress internal pauses,
+# then speed up only the cues that are still too long.
+fit_to_subtitle = true
+
+# Optional VAD-like pause compression before tempo adjustment.
+vad_silence_compression = false
+vad_max_silence_seconds = 0.15
+
+# Prefer FFmpeg's rubberband filter for better pitch-preserving speed changes
+# when the local FFmpeg build supports it; otherwise the tool falls back to atempo.
+high_quality_time_stretch = false
+
+# Subtitle Edit permits up to 1000ms of the gap before the next subtitle to avoid
+# unnecessary speed-up when there is room after the cue.
+max_extra_gap_ms = 1000
+
+# Cap automatic speed-up. Increase if you prefer strict subtitle fit over
+# natural-sounding speech.
+max_speed_factor = 2.0
+
 
 [lang_aliases]
 # ============================================================================

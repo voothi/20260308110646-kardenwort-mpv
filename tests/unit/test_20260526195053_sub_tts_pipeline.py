@@ -124,3 +124,18 @@ def test_audio_placement_plan_reports_overflow_without_moving_next_cue(monkeypat
     assert plan[0]["overflow_ms"] == 1500
     assert plan[1]["start_ms"] == 2500
     assert max_end_ms == 4000
+
+
+def test_speed_factor_is_capped_for_subtitle_fit():
+    sub_tts = _load_sub_tts()
+
+    assert sub_tts.calculate_speed_factor(9000, 6000, 2.0) == 1.5
+    assert sub_tts.calculate_speed_factor(9000, 3000, 2.0) == 2.0
+    assert sub_tts.calculate_speed_factor(3000, 6000, 2.0) == 1.0
+
+
+def test_atempo_filter_chains_large_speed_factors():
+    sub_tts = _load_sub_tts()
+
+    assert sub_tts.build_atempo_filter(1.25) == "atempo=1.250"
+    assert sub_tts.build_atempo_filter(3.0) == "atempo=2.000,atempo=1.500"

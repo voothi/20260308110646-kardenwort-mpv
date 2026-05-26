@@ -61,7 +61,15 @@ Current implementation uses a **subtitle-locked / absolute-start** policy:
 
 **Trade-off**: If Piper speech is longer than the available subtitle window, exact SRT starts can cause overlapping speech. Avoiding overlap requires either speeding/trimming audio or retiming subtitles.
 
-**Next policy to implement**: A measured **fit-to-subtitle** policy that trims leading/trailing silence and applies bounded `atempo` acceleration so each cue fits its subtitle window where possible. If a cue still cannot fit cleanly, the tool should generate a timing report and optionally emit a retimed `.srt` that matches the synthesized audio.
+**Implemented policy**: A measured **fit-to-subtitle** policy modeled after Subtitle Edit's `FixSpeed` stage:
+- Trim leading/trailing silence from each generated cue WAV.
+- Optionally compress internal silence gaps before changing tempo.
+- Allow up to 1000ms of available gap before the next subtitle to reduce unnecessary speed-up.
+- If the cue is still too long, calculate `speed_factor = audio_duration / target_duration`.
+- Prefer FFmpeg `rubberband=tempo=...` for high-quality pitch-preserving stretch when enabled and available; otherwise use `atempo`.
+- Cap automatic speed-up with `max_speed_factor`; remaining overflow is reported by the placement diagnostics.
+
+**Remaining option**: If a cue still cannot fit cleanly after the configured speed cap, a future iteration can emit a retimed `.srt` matching generated narration.
 
 ### D3: Language Detection from Filename Postfix
 

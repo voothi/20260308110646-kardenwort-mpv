@@ -57,6 +57,15 @@ If a synthesized cue's audio duration exceeds the available window (from its sta
 
 The system SHALL expose timing placement as a testable plan before FFmpeg assembly so overflow behavior can be validated without running Piper or FFmpeg.
 
+Before final assembly, the system SHALL run a Subtitle Edit-style speed fitting stage when `fit_to_subtitle=true`:
+1. Trim leading/trailing silence from each cue WAV.
+2. Optionally compress internal silence when configured.
+3. Allow a configurable portion of the following subtitle gap as extra target duration.
+4. Speed up only cue WAVs that still exceed the target duration.
+5. Preserve pitch using FFmpeg `rubberband` when enabled and available, otherwise use `atempo`.
+
+The system SHALL cap automatic speed-up using `max_speed_factor` and SHALL report remaining overflow when the cap prevents a perfect fit.
+
 #### Scenario: Two cues with gap
 - **WHEN** cue 1 starts at 00:00:01.000 and cue 2 starts at 00:00:05.000
 - **AND** cue 1's synthesized audio is 2 seconds long
@@ -71,6 +80,17 @@ The system SHALL expose timing placement as a testable plan before FFmpeg assemb
 #### Scenario: Timing plan can be tested without media processing
 - **WHEN** cue WAV durations are known
 - **THEN** the system SHALL produce a timing plan with cue start, audio end, next cue start, and overflow fields
+
+#### Scenario: Long cue is sped up to fit subtitle window
+- **WHEN** a cue's generated WAV is 9000ms long
+- **AND** the subtitle window plus allowed following gap is 6000ms
+- **THEN** the system SHALL apply a 1.5x speed factor before assembly
+
+#### Scenario: Speed factor is capped
+- **WHEN** a cue would require 3.0x speed to fit
+- **AND** `max_speed_factor` is `2.0`
+- **THEN** the system SHALL apply no more than 2.0x speed
+- **AND** the remaining overflow SHALL be reported
 
 ---
 
@@ -130,6 +150,7 @@ The system SHALL read its configuration from `scripts/_tools/sub-tts/config.ini`
 
 - `[paths]`: `piper_tts_root` (path to piper-tts project), `ffmpeg_executable` (path to ffmpeg.exe), `zid_script` (path to zid.py).
 - `[tts_settings]`: `default_lang` (fallback language), `duplicate_mode` (zid-dir | skip | overwrite).
+- `[tts_settings]`: `fit_to_subtitle`, `vad_silence_compression`, `vad_max_silence_seconds`, `high_quality_time_stretch`, `max_extra_gap_ms`, `max_speed_factor`.
 - `[lang_aliases]`: Optional postfix-to-language overrides (e.g., `ger = de`, `rus = ru`, `eng = en`).
 
 #### Scenario: Config file missing

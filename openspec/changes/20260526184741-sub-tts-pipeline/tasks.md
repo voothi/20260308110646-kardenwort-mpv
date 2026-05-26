@@ -75,9 +75,7 @@
 - [x] 12.3 **Pure timing plan**: extract timing placement into `build_audio_placement_plan()` so cue placement and overflow can be unit-tested without running Piper or FFmpeg
 - [x] 12.4 **Unit tests**: add tests for SRT parsing, language alias/default resolution, postfix-free MP4 output naming, and timing overflow detection
 - [ ] 12.5 **Diagnostic run**: process the problem SRT with the updated warning output and record overflow count/largest overflow in `docs/conversation.log`
-- [ ] 12.6 **Decision point**: choose the final sync policy for overflowing cues:
-  - subtitle-locked fit: trim silence and speed up bounded clips so original subtitles remain valid
-  - audio-locked retime: keep natural speech and emit a retimed `.srt`/`.tsv` matching generated narration
-  - hybrid: fit small overflows, retime/report large overflows
-- [ ] 12.7 **Implement chosen policy**: add config and CLI option, then make SendTo use the selected default
+- [x] 12.6 **Decision point**: choose the final sync policy for overflowing cues: use Subtitle Edit-style subtitle-locked fit as the default
+- [x] 12.7 **Implement chosen policy**: add config-driven `fit_to_subtitle` speed stage with trim, optional VAD silence compression, rubberband/atempo speed-up, and max speed cap
 - [ ] 12.8 **Media-level verification**: verify with ffprobe/ffmpeg on a short fixture and manually compare generated MP4 with matching subtitles
+- [x] 12.9 **Subtitle Edit parity research**: inspect `TextToSpeechViewModel.FixSpeed`, `ReviewSpeechViewModel.TrimAndAdjustSpeed`, and `FfmpegGenerator` helpers from `U:\voothi\20260517160217-subtitleedit`

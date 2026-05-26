@@ -62,6 +62,8 @@ DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_AUDIO_BITRATE = "128k"
 DEFAULT_MOVFLAGS = "+faststart"
 
+_FFMPEG_FILTER_CACHE = {}
+
 
 # ==============================================================================
 # CONFIGURATION LOADING
@@ -443,6 +445,198 @@ def get_wav_duration_ms(wav_path, ffmpeg_path):
 
 
 # ==============================================================================
+# SPEED ADJUSTMENT (Subtitle Edit-style FixSpeed stage)
+# ==============================================================================
+
+def config_bool(config, section, key, default=False):
+    """Read a boolean config value with a tolerant fallback."""
+    try:
+        return config.getboolean(section, key, fallback=default)
+    except ValueError:
+        return default
+
+
+def config_float(config, section, key, default):
+    """Read a float config value with a tolerant fallback."""
+    try:
+        return config.getfloat(section, key, fallback=default)
+    except ValueError:
+        return default
+
+
+def calculate_speed_factor(duration_ms, target_ms, max_speed_factor):
+    """
+    Return the speed-up factor needed to fit duration_ms into target_ms.
+    Values <= 1.0 mean no speed-up is needed.
+    """
+    if duration_ms <= 0 or target_ms <= 0:
+        return 1.0
+    factor = duration_ms / target_ms
+    if factor <= 1.0:
+        return 1.0
+    return min(factor, max(1.0, max_speed_factor))
+
+
+def ffmpeg_filter_exists(ffmpeg_path, filter_name):
+    """Return True if the FFmpeg build reports a named filter."""
+    cache_key = (str(ffmpeg_path), filter_name)
+    if cache_key in _FFMPEG_FILTER_CACHE:
+        return _FFMPEG_FILTER_CACHE[cache_key]
+    try:
+        result = subprocess.run(
+            [ffmpeg_path, "-hide_banner", "-filters"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        exists = result.returncode == 0 and filter_name in result.stdout
+    except Exception:
+        exists = False
+    _FFMPEG_FILTER_CACHE[cache_key] = exists
+    return exists
+
+
+def run_ffmpeg_audio_filter(ffmpeg_path, input_file, output_file, audio_filter, timeout=300):
+    """Run FFmpeg with a single audio filter and return True on usable output."""
+    cmd = [
+        ffmpeg_path, "-y",
+        "-i", str(input_file),
+        "-af", audio_filter,
+        str(output_file),
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if result.returncode == 0 and Path(output_file).exists() and Path(output_file).stat().st_size > 0:
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def build_atempo_filter(speed_factor):
+    """
+    Build an atempo chain. Chaining keeps compatibility with FFmpeg builds that
+    only accept 0.5..2.0 per atempo instance.
+    """
+    remaining = max(0.5, float(speed_factor))
+    parts = []
+    while remaining > 2.0:
+        parts.append("atempo=2.000")
+        remaining /= 2.0
+    parts.append(f"atempo={remaining:.3f}")
+    return ",".join(parts)
+
+
+def change_audio_speed(input_file, output_file, speed_factor, ffmpeg_path, high_quality):
+    """
+    Speed up audio while preserving pitch. Prefer rubberband when requested and
+    available, otherwise use atempo.
+    """
+    speed = max(0.5, min(float(speed_factor), 100.0))
+    if high_quality and ffmpeg_filter_exists(ffmpeg_path, "rubberband"):
+        rubberband = (
+            f"rubberband=tempo={speed:.3f}:"
+            "transients=smooth:engine=faster:window=short"
+        )
+        if run_ffmpeg_audio_filter(ffmpeg_path, input_file, output_file, rubberband):
+            return True
+
+    return run_ffmpeg_audio_filter(
+        ffmpeg_path,
+        input_file,
+        output_file,
+        build_atempo_filter(speed),
+    )
+
+
+def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
+    """
+    Port of Subtitle Edit's FixSpeed stage:
+      1. Trim leading/trailing silence.
+      2. Optionally compress internal silence.
+      3. Speed up only cues that still exceed their subtitle window.
+    """
+    if not config_bool(config, "tts_settings", "fit_to_subtitle", True):
+        return synthesis_results
+
+    vad_enabled = config_bool(config, "tts_settings", "vad_silence_compression", False)
+    vad_max_silence = config_float(config, "tts_settings", "vad_max_silence_seconds", 0.15)
+    high_quality = config_bool(config, "tts_settings", "high_quality_time_stretch", False)
+    max_gap_ms = int(config_float(config, "tts_settings", "max_extra_gap_ms", 1000.0))
+    max_speed_factor = config_float(config, "tts_settings", "max_speed_factor", 2.0)
+
+    print("  Adjusting speed to fit subtitle timing...", flush=True)
+    adjusted = []
+    total = len(synthesis_results)
+
+    for index, item in enumerate(synthesis_results):
+        if not item["ok"] or not item["wav_path"]:
+            adjusted.append(item)
+            continue
+
+        cue = item["cue"]
+        current_file = Path(item["wav_path"])
+        print(f"  [{index + 1}/{total}] Adjusting speed for cue {cue['index']}...", flush=True)
+
+        trim_output = temp_dir / f"trim_{cue['index']:05d}.wav"
+        trim_filter = (
+            "areverse,atrim=start=0.1,"
+            "silenceremove=start_periods=1:start_silence=0.1:start_threshold=0.01,"
+            "areverse,atrim=start=0.1,"
+            "silenceremove=start_periods=1:start_silence=0.1:start_threshold=0.01"
+        )
+        if run_ffmpeg_audio_filter(ffmpeg_path, current_file, trim_output, trim_filter):
+            current_file = trim_output
+
+        if vad_enabled:
+            vad_output = temp_dir / f"vad_{cue['index']:05d}.wav"
+            max_silence = max(0.01, vad_max_silence)
+            vad_filter = (
+                "silenceremove=stop_periods=-1:"
+                f"stop_duration={max_silence:.2f}:stop_threshold=-40dB"
+            )
+            if run_ffmpeg_audio_filter(ffmpeg_path, current_file, vad_output, vad_filter):
+                current_file = vad_output
+
+        add_duration_ms = 0
+        if index + 1 < total:
+            next_cue = synthesis_results[index + 1]["cue"]
+            if cue["end_ms"] < next_cue["start_ms"]:
+                add_duration_ms = min(max_gap_ms, next_cue["start_ms"] - cue["end_ms"])
+
+        target_ms = max(1, cue["end_ms"] - cue["start_ms"] + add_duration_ms)
+        duration_ms = get_wav_duration_ms(current_file, ffmpeg_path)
+        speed_factor = calculate_speed_factor(duration_ms, target_ms, max_speed_factor)
+
+        speed_limited = duration_ms > 0 and target_ms > 0 and duration_ms / target_ms > max_speed_factor
+        if speed_factor > 1.0:
+            speed_output = temp_dir / f"speed_{cue['index']:05d}.wav"
+            if change_audio_speed(current_file, speed_output, speed_factor, ffmpeg_path, high_quality):
+                current_file = speed_output
+            else:
+                print(f"  [WARN] Speed adjustment failed for cue {cue['index']}; using trimmed audio.", file=sys.stderr)
+
+        adjusted_item = dict(item)
+        adjusted_item["wav_path"] = current_file
+        adjusted_item["speed_factor"] = speed_factor
+        adjusted_item["speed_limited"] = speed_limited
+        adjusted_item["target_ms"] = target_ms
+        adjusted_item["fit_duration_ms"] = get_wav_duration_ms(current_file, ffmpeg_path)
+        adjusted.append(adjusted_item)
+
+    speedups = [r.get("speed_factor", 1.0) for r in adjusted if r.get("speed_factor", 1.0) > 1.0]
+    limited = sum(1 for r in adjusted if r.get("speed_limited"))
+    if speedups:
+        print(
+            f"  Speed adjustment: {len(speedups)} cue(s) sped up; "
+            f"max factor {max(speedups):.2f}x; limited cues {limited}.",
+            flush=True,
+        )
+
+    return adjusted
+
+
+# ==============================================================================
 # TIMED AUDIO ASSEMBLY (tasks 5.1 – 5.4)
 # ==============================================================================
 
@@ -737,12 +931,15 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             print("Error: All cue synthesis attempts failed. Check Piper TTS setup.", file=sys.stderr)
             return False
 
-        # 5. Assemble timed audio
+        # 5. Subtitle Edit-style speed fitting
+        synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
+
+        # 6. Assemble timed audio
         assembled_wav = assemble_audio(synthesis_results, temp_dir, ffmpeg_path)
         if assembled_wav is None:
             return False
 
-        # 6. Output path
+        # 7. Output path
         output_mp4, policy = resolve_output_path(str(srt_path), output_dir, config, lang, zid_cache)
         if policy == "skip":
             print(f"  Skipping (output already exists): {output_mp4}")
@@ -751,7 +948,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
 
         output_mp4.parent.mkdir(parents=True, exist_ok=True)
 
-        # 7. Mux to MP4
+        # 8. Mux to MP4
         ok = mux_to_mp4(assembled_wav, output_mp4, ffmpeg_path)
         if ok:
             print(f"  ✓ Output: {output_mp4}")
