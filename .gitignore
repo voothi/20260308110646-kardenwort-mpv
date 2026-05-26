@@ -36,7 +36,7 @@ pytest_out.log
 .pytest_tmp/
 dist/
 scripts/_tools/sub-viewer/logs/mpv_sub_viewer.log
-scripts/_tools/sub-tts/config.ini
+# scripts/_tools/sub-tts/config.ini
 scripts/_tools/sub-tts/logs/
 scripts/_tools/sub-tts/__pycache__/
 
