@@ -55,11 +55,11 @@
 
 ## 10. Verification
 
-- [ ] 10.1 Manual test: process a short `.de.srt` file (3-5 cues) and verify the output MP4 has correct timing
-- [ ] 10.2 Manual test: process a `.ru.srt` file to verify language auto-detection
-- [ ] 10.3 Manual test: process a file without language postfix to verify default language fallback
-- [ ] 10.4 Manual test: verify duplicate handling — run twice on the same file, confirm ZID-dir creation
-- [ ] 10.5 Manual test: verify SendTo shortcut works from Windows Explorer (window visible, steps readable)
+- [x] 10.1 Manual test: process a short `.de.srt` file (3-5 cues) and verify the output MP4 has correct timing
+- [x] 10.2 Manual test: process a `.ru.srt` file to verify language auto-detection
+- [x] 10.3 Manual test: process a file without language postfix to verify default language fallback
+- [x] 10.4 Manual test: verify duplicate handling — run twice on the same file, confirm ZID-dir creation
+- [x] 10.5 Manual test: verify SendTo shortcut works from Windows Explorer (window visible, steps readable)
 
 ## 11. Bugfixes (20260526192510)
 
