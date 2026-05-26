@@ -1,8 +1,8 @@
-# Release Notes - v1.84.30 (Dynamic Per-Line Duration Cap & Configurable Reader Settings)
+# Release Notes - v1.84.32 (Unified Tooltip, Spacing, Sentence Scoping & Sub-Viewer Timing Options)
 
 **Date**: 2026-05-26
-**Version**: v1.84.30
-**Implementation ZIDs**: 20260526015322, 20260526014058, 20260526013219, 20260526011725, 20260526011122
+**Version**: v1.84.32
+**Implementation ZIDs**: 20260526015322, 20260526014058, 20260526013219, 20260526011725, 20260526011122, 20260525211220, 20260525205305, 20260525202411, 20260525201206, 20260525194304, 20260525193913, 20260525191040, 20260525182922, 20260525181115, 20260525180632, 20260525175841, 20260525174745, 20260525172206, 20260525171914, 20260525165244, 20260525162045
 
 ## Highlights
 
@@ -24,19 +24,6 @@
   - `kardenwort-reader_cps=15.0` (Optimal reading speed in characters per second)
   - `kardenwort-reader_wpm=180.0` (Optimal reading speed in words per minute)
   - `kardenwort-reader_max_chars_per_line=90` (Line wrap width threshold)
-
-### 🧪 **Milestone: 35 Unit Tests Added**
-- **100% Correct Timing Verification**: Added comprehensive unit test coverage under `tests/unit/test_sub_viewer_unit.py` validating the line-based cap, date recognition, invalid configuration fallback, and multi-directory `mpv.conf` resolution.
-
----
-
-# Release Notes - v1.84.28 (Unified Tooltip, Sub-Viewer Spacing & Sentence Scoping Fix)
-
-**Date**: 2026-05-25
-**Version**: v1.84.28
-**Implementation ZIDs**: 20260525211220, 20260525205305, 20260525202411, 20260525201206, 20260525194304, 20260525193913, 20260525191040, 20260525182922, 20260525181115, 20260525180632, 20260525175841, 20260525174745, 20260525172206, 20260525171914, 20260525165244, 20260525162045
-
-## Highlights
 
 ### 🔍 **Punctuation-Anchored Sentence Scoping & Regression Fix**
 - **Full-Sentence Capture Restored**: `extract_anki_context` now exports the **complete grammatical sentence** around the selected word or phrase, instead of truncating to a single subtitle line.
@@ -63,10 +50,13 @@
 - **Timeline Bounding**: Automatically scans files and adjusts the player's timeline dynamically to match study material duration.
 - **Zero-Dependency Seekable Canvas**: Integrated a highly optimized black video canvas (`black.mp4`) directly, solving seek failures.
 
-### 🧪 **Milestone: 904 Passed Tests**
+### 🧪 **Milestone: 904 passed tests & 35 new sub-viewer tests**
 - **Comprehensive Regression Protection**: Reached 904 green tests in our python/pytest suite, adding structural tests for punctuation sentence scoping, OSD border styles, and sub-viewer break markers.
+- **Timing & Configuration Verification**: Added 35 comprehensive unit tests under `tests/unit/test_sub_viewer_unit.py` validating the line-based cap, date floor, config parsing, and directory-based `mpv.conf` resolution.
 
 ---
+
+
 
 
 # Release Notes - v1.84.24 (OSD Frame Unification & Tooltip Rendering)
