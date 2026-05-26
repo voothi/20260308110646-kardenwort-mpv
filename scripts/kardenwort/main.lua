@@ -9821,7 +9821,7 @@ local function cmd_cycle_sec_sid()
     drum_osd:update()
 end
 
-local function cmd_cycle_audio()
+function cmd_cycle_audio()
     local tracks = mp.get_property_native("track-list") or {}
     local current_aid = tonumber(mp.get_property("aid") or 0) or 0
     if current_aid == 0 then
