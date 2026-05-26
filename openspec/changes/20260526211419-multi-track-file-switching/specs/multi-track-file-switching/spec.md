@@ -32,4 +32,4 @@ The OSD confirmation MUST be rendered using the custom themed, semi-transparent 
 
 #### Scenario: OSD feedback on companion file cycle
 - **WHEN** the user cycles the companion track file to `DE`
-- **THEN** the system displays a themed OSD box containing `"Track: DE"` for a short duration.
+- **THEN** the system displays a themed OSD box containing `"Audio: DE"` for a short duration.

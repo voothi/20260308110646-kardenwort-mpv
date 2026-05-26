@@ -9867,11 +9867,16 @@ function cmd_cycle_audio()
         local speed = mp.get_property_number("speed") or 1.0
         local paused = mp.get_property_bool("pause")
         
-        mp.commandv("loadfile", target.path, "replace", "start=" .. tostring(time_pos))
-        mp.set_property_number("speed", speed)
-        mp.set_property_bool("pause", paused)
+        local is_windows = package.config:sub(1,1) == "\\"
+        local load_path = target.path
+        if is_windows then
+            load_path = load_path:gsub("/", "\\")
+        end
         
-        show_osd("Track: " .. target.postfix)
+        local options_str = string.format("start=%.3f,speed=%.3f,pause=%s", time_pos, speed, paused and "yes" or "no"):gsub(",", ".")
+        mp.commandv("loadfile", load_path, "replace", options_str)
+        
+        show_osd("Audio: " .. target.postfix)
         return
     end
 
