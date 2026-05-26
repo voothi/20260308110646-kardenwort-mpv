@@ -8623,6 +8623,7 @@ local HELP_SCHEMA = {
     }},
     { category = "Standard Controls", actions = {
         { desc = "Toggle Help HUD", cmd = "kardenwort/toggle-help", whitelist = {["F1"]=true} },
+        { desc = "Cycle Audio Track", cmd = "kardenwort/cycle-audio" },
         { desc = "Adjust Volume", cmd = "volume", whitelist = {["9"]=true, ["0"]=true} },
         { desc = "Adjust Playback Speed", cmd = "speed" },
         { desc = "Frame Step Fwd/Back", cmd = "frame.*step", whitelist = {["."]=true, [","]=true, ["ю"]=true, ["б"]=true} },
@@ -9820,6 +9821,74 @@ local function cmd_cycle_sec_sid()
     drum_osd:update()
 end
 
+local function cmd_cycle_audio()
+    local tracks = mp.get_property_native("track-list") or {}
+    local current_aid = tonumber(mp.get_property("aid") or 0) or 0
+    if current_aid == 0 then
+        local aid_str = mp.get_property("aid")
+        if aid_str == "no" then current_aid = 0 end
+    end
+
+    local supported = {0}
+    for _, t in ipairs(tracks) do
+        if t.type == "audio" then
+            local tid = tonumber(t.id)
+            if tid then
+                table.insert(supported, tid)
+            end
+        end
+    end
+    table.sort(supported)
+
+    if #supported <= 1 then
+        show_osd("Audio: None available")
+        return
+    end
+
+    local next_aid = 0
+    local found = false
+    for i = 1, #supported do
+        if supported[i] == current_aid then
+            next_aid = supported[i % #supported + 1]
+            found = true
+            break
+        end
+    end
+    
+    if not found then
+        next_aid = supported[2] or 0
+    end
+
+    if next_aid == 0 then
+        mp.set_property("aid", "no")
+    else
+        mp.set_property_number("aid", next_aid)
+    end
+    
+    local label = "OFF"
+    if next_aid ~= 0 then
+        for _, t in ipairs(tracks) do
+            if tonumber(t.id) == next_aid then
+                local lang_lbl = (t.lang and t.lang ~= "und") and t.lang:upper() or nil
+                local title_lbl = t.title or nil
+                if lang_lbl and title_lbl then
+                    label = lang_lbl .. " - " .. title_lbl
+                elseif lang_lbl then
+                    label = lang_lbl
+                elseif title_lbl then
+                    label = title_lbl
+                else
+                    label = "TRACK " .. next_aid
+                end
+                if label:find("%.") then label = label:match("([^%.]+)%.") or label end
+                break
+            end
+        end
+    end
+    
+    show_osd("Audio: " .. label)
+end
+
 local function cmd_toggle_osc()
     FSM.OSC_VIS = (FSM.OSC_VIS + 1) % 3
     local lbl, cmd = "AUTO", "auto"
@@ -10017,6 +10086,7 @@ mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 mp.add_key_binding(nil, "cycle-immersion-mode", cmd_cycle_immersion_mode)
 mp.add_key_binding(nil, "toggle-help", cmd_toggle_help)
+mp.add_key_binding(nil, "cycle-audio", cmd_cycle_audio)
 
 local function register_global_position_keys()
     local function bind(opt, name, fn)

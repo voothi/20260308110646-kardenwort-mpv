@@ -485,7 +485,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `F` / `А` | `F` / `А` | **Cycle Immersion Mode** (Phrase ↔ Movie) |
 | `X` / `Ч` | `X` / `Ч` | Cycle **Secondary Position** (Top ↔ Bottom) |
 | `C` / `С` | `C` / `С` | **Cycle Secondary Track** (Translation) |
-| `Shift+3` / `#` | `Shift+3` / `#` | **Cycle Audio Track** (Target ↔ Translation ↔ Muted) |
+| `Shift+3` / `#` | `Shift+3` / `№` | **Cycle Audio Track** (Target ↔ Translation ↔ Muted) |
 | `s` / `ы` | `s` / `ы` | **Subtitle Replay** (Loop / One-shot) |
 | `S` / `Ы` | `S` / `Ы` | Toggle **Autopause** (ON/OFF) |
 | `z` / `я` | `z` / `я` | Toggle **Static Reading Mode** (Drum Window) |
