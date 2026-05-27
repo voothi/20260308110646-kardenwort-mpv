@@ -336,12 +336,30 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     target_dir = out_dir
     target_path = primary_path
     
-    if primary_path.exists():
+    # Robust ZID-agnostic duplicate detection: check if any file in the target directory
+    # ends with f"-{sanitized_title}.mp4"
+    existing_file = None
+    if out_dir.exists():
+        for f in out_dir.iterdir():
+            if f.is_file() and f.name.endswith(f"-{sanitized_title}.mp4"):
+                existing_file = f
+                break
+
+    if existing_file:
         if dup_mode == "skip":
-            print(f"   [!] File already exists: {primary_path.name}. Skipping download (skip mode).", flush=True)
+            print(f"   [!] File already exists (as {existing_file.name}). Skipping download (skip mode).", flush=True)
             return True
         elif dup_mode == "overwrite":
-            print(f"   [!] File already exists: {primary_path.name}. Overwriting (overwrite mode).", flush=True)
+            print(f"   [!] File already exists (as {existing_file.name}). Overwriting (overwrite mode).", flush=True)
+            # To cleanly overwrite, delete the old ZID-prefixed video and any associated subtitle/chapter files
+            old_zid = existing_file.name.split("-")[0]
+            try:
+                for f in out_dir.iterdir():
+                    if f.is_file() and f.name.startswith(old_zid) and sanitized_title in f.name:
+                        f.unlink()
+                        print(f"   • Removed old file: {f.name}", flush=True)
+            except Exception as e:
+                print(f"   [!] Warning: Failed to fully delete old duplicate files: {e}", file=sys.stderr)
         else:
             # default: zid-dir
             if not zid_cache.get("value"):
@@ -351,7 +369,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             target_dir = out_dir / session_zid
             target_dir.mkdir(parents=True, exist_ok=True)
             target_path = target_dir / video_filename
-            print(f"   [!] File already exists: {primary_path.name}. Saving to subfolder: {target_path.name} (zid-dir mode).", flush=True)
+            print(f"   [!] File already exists (as {existing_file.name}). Saving to subfolder: {target_path.name} (zid-dir mode).", flush=True)
 
     # 3. Handle Chapter configuration
     ch_mode = settings["youtube_download_chapters_mode"]
