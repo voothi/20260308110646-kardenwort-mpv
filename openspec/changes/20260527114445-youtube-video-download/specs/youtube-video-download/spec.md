@@ -183,22 +183,31 @@ The download system SHALL download videos with chapter metadata. The system SHAL
 - **AND** the system SHALL not create a chapter file
 - **AND** the system SHALL not display an error
 
-### Requirement: Subtitle Download Master Toggle
-The download system SHALL expose `youtube_download_subtitles` as a boolean setting. When false, no subtitle download SHALL occur regardless of other subtitle settings.
+### Requirement: Download Mode
+The download system SHALL expose `youtube_download_mode` as a string setting controlling what is fetched for each URL. Valid values are `"video+subtitles"` (default), `"video"`, and `"subtitles"`.
 
-#### Scenario: Subtitle download is disabled
-- **WHEN** `youtube_download_subtitles` is `false`
-- **AND** a video is downloaded
-- **THEN** the system SHALL not download any subtitle files
+#### Scenario: Mode is "video+subtitles" (default)
+- **WHEN** `youtube_download_mode` is `"video+subtitles"`
+- **AND** a URL is processed
+- **THEN** the system SHALL download the video file
+- **AND** the system SHALL download subtitle files according to `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback`
+
+#### Scenario: Mode is "video"
+- **WHEN** `youtube_download_mode` is `"video"`
+- **AND** a URL is processed
+- **THEN** the system SHALL download the video file only
+- **AND** the system SHALL not perform any subtitle operations
 - **AND** the system SHALL not log subtitle-related messages
 
-#### Scenario: Subtitle download is enabled
-- **WHEN** `youtube_download_subtitles` is `true`
-- **AND** a video is downloaded
-- **THEN** the system SHALL proceed with subtitle download according to `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` settings
+#### Scenario: Mode is "subtitles"
+- **WHEN** `youtube_download_mode` is `"subtitles"`
+- **AND** a URL is processed
+- **THEN** the system SHALL download subtitle files only
+- **AND** the system SHALL NOT download the video file
+- **AND** the subtitle files SHALL be named `{ZID}-{sanitized-title}.{lang}.srt`
 
 ### Requirement: SRT Subtitle Download
-The download system SHALL automatically download SRT subtitle files as separate files based on configuration. The system SHALL expose `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` as configuration options. Subtitles SHALL always be converted to SRT format via `--convert-subs srt` regardless of the format provided by YouTube.
+The download system SHALL automatically download SRT subtitle files when `youtube_download_mode` is `"video+subtitles"` or `"subtitles"`. The system SHALL expose `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` as configuration options. Subtitles SHALL always be converted to SRT format via `--convert-subs srt` regardless of the format provided by YouTube.
 
 #### Scenario: Download original subtitles only
 - **WHEN** `youtube_download_subtitle_languages` is `"original"`
@@ -281,17 +290,31 @@ The download system SHALL provide progress feedback for downloads.
 - **THEN** the system SHALL display an error message
 - **AND** the system SHALL log the error details
 
-### Requirement: Existing File Handling
-The download system SHALL handle cases where a video file already exists in the target directory.
+### Requirement: Duplicate File Handling
+The download system SHALL expose `youtube_download_duplicate_mode` as a string setting controlling what happens when an output file already exists. Valid values are `"zid-dir"` (default), `"skip"`, and `"overwrite"`. The session ZID used for `"zid-dir"` SHALL be shared across all downloads in one "Send to" invocation via a `zid_cache` dict initialized once per session.
 
-#### Scenario: File already exists
-- **WHEN** a video file with the same name already exists in the target directory
+#### Scenario: Duplicate mode is "zid-dir" (default) — file already exists
+- **WHEN** `youtube_download_duplicate_mode` is `"zid-dir"`
+- **AND** the target output file already exists in `youtube_download_directory`
+- **THEN** the system SHALL create a subdirectory named `{session-ZID}/` inside `youtube_download_directory`
+- **AND** the system SHALL place the downloaded file inside that subdirectory
+- **AND** the system SHALL log a message indicating the file was placed in the ZID subfolder
+
+#### Scenario: Duplicate mode is "zid-dir" — multiple duplicates in one session
+- **WHEN** `youtube_download_duplicate_mode` is `"zid-dir"`
+- **AND** multiple URLs in one session produce files that already exist
+- **THEN** all duplicate files SHALL be placed in the same `{session-ZID}/` subfolder
+- **AND** the session ZID SHALL be the same for all duplicates within one "Send to" invocation
+
+#### Scenario: Duplicate mode is "skip"
+- **WHEN** `youtube_download_duplicate_mode` is `"skip"`
+- **AND** the target output file already exists
 - **THEN** the system SHALL skip the download
 - **AND** the system SHALL log a message that the file was skipped
 
-#### Scenario: File already exists with overwrite option
-- **WHEN** a video file with the same name already exists
-- **AND** `youtube_download_overwrite` is `true`
+#### Scenario: Duplicate mode is "overwrite"
+- **WHEN** `youtube_download_duplicate_mode` is `"overwrite"`
+- **AND** the target output file already exists
 - **THEN** the system SHALL overwrite the existing file
 - **AND** the system SHALL log a message that the file was overwritten
 

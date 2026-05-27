@@ -9,8 +9,8 @@
 
 - [ ] 2.1 Add `youtube_download_resolution` configuration option (default: "360p")
 - [ ] 2.2 Add `youtube_download_directory` configuration option (default: user's Videos folder)
-- [ ] 2.3 Add `youtube_download_overwrite` configuration option (default: false)
-- [ ] 2.4 Add `youtube_download_subtitles` configuration option (default: true) — master toggle for all subtitle download
+- [ ] 2.3 Add `youtube_download_mode` configuration option (default: "video+subtitles") — controls what is fetched: "video+subtitles", "video", or "subtitles"
+- [ ] 2.4 Add `youtube_download_duplicate_mode` configuration option (default: "zid-dir") — controls existing file handling: "zid-dir", "skip", or "overwrite"
 - [ ] 2.5 Add `youtube_download_subtitle_languages` configuration option (default: "original") — "original" resolves to detected video language; comma-separated BCP-47 codes otherwise
 - [ ] 2.6 Add `youtube_download_subtitle_auto_fallback` configuration option (default: true)
 - [ ] 2.7 Add `youtube_download_auto_update` configuration option (default: true)
@@ -44,11 +44,12 @@
 - [ ] 5.2 Implement resolution fallback when requested resolution is unavailable
 - [ ] 5.3 Implement directory creation if target directory doesn't exist
 - [ ] 5.4 Implement directory write permission checking
-- [ ] 5.5 Implement existing file handling (skip or overwrite based on config)
+- [ ] 5.5 Implement `youtube_download_duplicate_mode` handling: "skip" → log and skip; "overwrite" → replace; "zid-dir" → create `{session-ZID}/` subfolder and place file inside
 - [ ] 5.6 Add download progress tracking and display
 - [ ] 5.7 Implement ZID-based filename generation (same convention as `zid_name.py`)
 - [ ] 5.8 Implement unique ZID generation for each download
 - [ ] 5.9 Implement ZID collision guard: track used ZIDs in session set; sleep 1s and retry on collision
+- [ ] 5.9a Implement session `zid_cache` dict (initialized once per "Send to" invocation, shared across all URLs) for use by `youtube_download_duplicate_mode = "zid-dir"` — mirrors sub-tts pattern
 - [ ] 5.10 Implement video title extraction from YouTube metadata
 - [ ] 5.11 Implement title sanitization using `zid_name.py` rules
 - [ ] 5.12 Format filename as `{ZID}-{sanitized-title}.mp4`
@@ -60,7 +61,7 @@
 - [ ] 6.2 Implement chapter metadata saving to separate file (when `youtube_download_chapters_mode` is "separate" or "both")
 - [ ] 6.3 Implement chapter file naming with `.chapters.txt` suffix
 - [ ] 6.4 Implement chapter file format with titles and timestamps
-- [ ] 6.5 Implement subtitle master toggle: skip all subtitle logic when `youtube_download_subtitles` is false
+- [ ] 6.5 Implement download mode routing: "video" → skip all subtitle logic; "subtitles" → skip video download, subtitles only; "video+subtitles" → both
 - [ ] 6.6 Implement subtitle language selection: for "original" fetch `language` field from `yt-dlp --dump-json`; fall back to all manual tracks if absent; for comma-separated list use directly as BCP-47 codes
 - [ ] 6.7 Implement SRT format conversion via `--convert-subs srt` (yt-dlp native conversion from vtt/srv3)
 - [ ] 6.8 Implement auto-subtitle fallback when no manual subtitles available
@@ -112,13 +113,18 @@
 - [ ] 10.14 Add acceptance test for subtitle download (original language)
 - [ ] 10.15 Add acceptance test for subtitle download (specific languages)
 - [ ] 10.16 Add acceptance test for subtitle download (auto-subtitle fallback)
-- [ ] 10.17 Add acceptance test for existing file handling
+- [ ] 10.17 Add acceptance test for `youtube_download_duplicate_mode = "skip"` (file skipped when exists)
+- [ ] 10.17a Add acceptance test for `youtube_download_duplicate_mode = "overwrite"` (file replaced when exists)
+- [ ] 10.17b Add acceptance test for `youtube_download_duplicate_mode = "zid-dir"` (duplicate placed in session ZID subfolder)
+- [ ] 10.17c Add acceptance test for multiple duplicates in one session sharing the same ZID subfolder
 - [ ] 10.18 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
 - [ ] 10.19 Add acceptance test for yt-dlp auto-update functionality
 - [ ] 10.20 Add acceptance test for yt-dlp initial auto-install when not present
 - [ ] 10.21 Add acceptance test for ZID collision guard (two downloads within same second)
 - [ ] 10.22 Add acceptance test for MP4 container enforcement (output is always .mp4)
-- [ ] 10.23 Add acceptance test for subtitle master toggle disabled (no subtitle files created)
+- [ ] 10.23 Add acceptance test for `youtube_download_mode = "video"` (no subtitle files created)
+- [ ] 10.23a Add acceptance test for `youtube_download_mode = "video+subtitles"` (video and subtitle files created)
+- [ ] 10.23b Add acceptance test for `youtube_download_mode = "subtitles"` (only subtitle files created, no video)
 - [ ] 10.24 Add acceptance test for "original" language resolution from metadata
 - [ ] 10.25 Add acceptance test for "original" language fallback when metadata `language` field absent
 - [ ] 10.26 Add acceptance test for SRT format output (subtitle files end with .srt)

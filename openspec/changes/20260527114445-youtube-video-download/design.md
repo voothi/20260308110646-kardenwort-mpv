@@ -41,10 +41,10 @@ The user currently downloads YouTube videos for language learning using external
    Add eight new configuration options:
    - `youtube_download_resolution` (default: "360p")
    - `youtube_download_directory` (default: user's Videos folder or project-specific directory)
-   - `youtube_download_overwrite` (default: false) - Overwrite existing files; skip by default
+   - `youtube_download_mode` (default: "video+subtitles") - What to download: "video+subtitles", "video", or "subtitles"
+   - `youtube_download_duplicate_mode` (default: "zid-dir") - How to handle existing files: "zid-dir", "skip", or "overwrite"
    - `youtube_download_auto_update` (default: true) - Check and install yt-dlp updates before downloads
    - `youtube_download_chapters_mode` (default: "embedded") - Chapter output mode: "embedded", "separate", or "both"
-   - `youtube_download_subtitles` (default: true) - Master toggle for subtitle download
    - `youtube_download_subtitle_languages` (default: "original") - Languages to download: "original" (video's detected language), or comma-separated BCP-47 codes (e.g., "en,de,ru")
    - `youtube_download_subtitle_auto_fallback` (default: true) - Download auto-subtitles if no manual ones available
 
@@ -58,14 +58,18 @@ The user currently downloads YouTube videos for language learning using external
    - Download videos using the configured backend
    - Save to the configured directory at the specified resolution
 
-5. **Automatic subtitle and chapter download**
+5. **Mode-driven download: video, subtitles, or both**
 
-   The integration will automatically download:
-   - SRT subtitle files as separate files based on configuration:
-     - Language selection: original, auto, or specific languages (comma-separated)
-     - Auto-subtitle fallback if no manual ones available (configurable)
-     - Naming: same ZID and name as video, differing only in language code postfix and .srt extension (e.g., `{ZID}-{name}.en.srt`)
-   - Chapter metadata (either embedded in the video file or saved to a separate file based on configuration)
+   `youtube_download_mode` controls exactly what yt-dlp fetches per URL:
+   - `"video+subtitles"` (default): download the video file and SRT subtitle files
+   - `"video"`: download the video file only; no subtitle operations are performed
+   - `"subtitles"`: download SRT subtitle files only; no video is downloaded — useful when the video already exists locally
+
+   When subtitles are included (`"video+subtitles"` or `"subtitles"`):
+   - Language selection: "original" (detected from metadata) or comma-separated BCP-47 codes
+   - Auto-subtitle fallback if no manual ones available (configurable)
+   - Naming: `{ZID}-{name}.{lang}.srt` — same ZID and base name as the video
+   - Chapter metadata: embedded or separate file based on `youtube_download_chapters_mode`
    This eliminates the need for manual subtitle download via newpipe/asbplayer.
 
 6. **Automatic yt-dlp updates**
@@ -101,6 +105,15 @@ The user currently downloads YouTube videos for language learning using external
 
     The `"original"` value for `youtube_download_subtitle_languages` maps to the video's detected audio/caption language as reported by the YouTube metadata. Implementation: fetch video info with `yt-dlp --dump-json`, read the `language` field, and use that language code as the subtitle language selector. If the `language` field is absent, fall back to downloading all available manual subtitles and picking the first one.
 
+13. **Duplicate file handling via `youtube_download_duplicate_mode` — mirrors sub-tts pattern**
+
+    When a target output file already exists, three modes are supported (same as `duplicate_mode` in `scripts/_tools/sub-tts/sub_tts.py`):
+    - `"zid-dir"` (default): create a subdirectory named after the session ZID (`{session-ZID}/`) inside `youtube_download_directory` and place the file there. The session ZID is shared across all downloads in one "Send to" invocation via a `zid_cache` dict, so all duplicates from one session land in the same subfolder.
+    - `"skip"`: log a skip message and move on to the next URL
+    - `"overwrite"`: replace the existing file
+
+    The `zid_cache` is initialized once per session (one "Send to" invocation) and reused across all URLs, exactly as in sub-tts `process_srt` / main loop.
+
 ## Risks / Trade-offs
 
 - [Risk] YouTube URLs may change or videos may be deleted, causing download failures.
@@ -123,4 +136,4 @@ The user currently downloads YouTube videos for language learning using external
 
 - Should the integration support batch processing of multiple URLs in a single file? (Yes, for efficiency)
 - Should there be a progress indicator for long downloads? (Yes, yt-dlp provides this)
-- How should the integration handle videos that are already downloaded (skip or overwrite)? (Skip by default, configurable)
+- How should the integration handle videos that are already downloaded? (Resolved: `youtube_download_duplicate_mode` = "zid-dir" by default, mirroring sub-tts; also supports "skip" and "overwrite")
