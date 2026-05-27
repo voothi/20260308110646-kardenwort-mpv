@@ -3184,6 +3184,8 @@
 20260528004913 This ZID line bothers me, it prevents me from reading the title, highlighting it with a double blank line docs/assets/20260528004927.png
 20260528005032 Edited config.ini Viewed config.ini:100-108 Edited config.ini Searched for "ZID: " Searched for "ZID" Viewed youtube_downloader.py:1070-1095 Edited youtube_downloader.py Ran command: `pytest tests/unit/test_20260527132904_youtube_downloader.py tests/unit/test_20260527132904_youtube_downloader_integration.py tests/unit/test_20260526195053_sub_tts_pipeline.py` Ran command: `python U:\voothi\20241116203211-zid\zid.py --no-clipboard` 20260528005032 ### Metadata Visual Isolation Added We have added double blank lines before and after the **Title** display in `youtube_downloader.py`. This completely isolates the title from both the preceding action text and the subsequent `ZID`/`Slug` lines, making it instantly readable: ```text ➔ Fetching video metadata... • Title: Google Bans Coding With Its Biggest Attack On Devs Ever: AntiGravity 2.0 • ZID: 20260528005055 • Slug: google-bans-coding-with ``` All **38 unit tests pass successfully**! The title is now highlighted and isolated, ensuring outstanding visibility.
 20260528005241 I don't like it, fix it docs/assets/20260528005227.png
+20260528005736 This section is poorly structured, the ZID is hanging for no reason, others are also in the air. Let's do this, we have logs that are all close to the left edge with square brackets. docs/assets/20260528005836.png Make it consistent so that there is a single component design.
+20260528010212 Take the style from pip Python and redo it.
 
 
 

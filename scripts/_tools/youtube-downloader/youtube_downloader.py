@@ -1480,9 +1480,7 @@ def main():
     print("================================================================================", flush=True)
     print("                    KARDENWORT YOUTUBE DOWNLOAD ENGINE                          ", flush=True)
     print("================================================================================", flush=True)
-    print(flush=True)
-    print(flush=True)
-    print(f"ZID: {get_current_zid()}\n", flush=True)
+    print(f"  [backend] Session ZID: {get_current_zid()}\n", flush=True)
     
     parser = argparse.ArgumentParser(description="YouTube Downloader Integration")
     parser.add_argument("inputs", nargs="*", help="Files, directories or raw URLs containing YouTube links")
