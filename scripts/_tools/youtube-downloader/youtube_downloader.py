@@ -277,6 +277,60 @@ def process_input_paths(paths):
                 
     return queue
 
+_original_run = subprocess.run
+
+def run_subprocess_streaming(cmd, *args, **kwargs):
+    """Runs a subprocess and streams stdout and stderr in real-time, preventing mixed lines."""
+    if subprocess.run is not _original_run:
+        return subprocess.run(cmd, *args, **kwargs)
+        
+    import threading
+    
+    def stream_pipe(pipe, is_stderr, state):
+        while True:
+            char = pipe.read(1)
+            if not char:
+                break
+            
+            if is_stderr and state.get("last_char") not in ["\n", "\r"]:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                state["last_char"] = "\n"
+                
+            if is_stderr:
+                sys.stderr.write(char)
+                sys.stderr.flush()
+            else:
+                sys.stdout.write(char)
+                sys.stdout.flush()
+                
+            state["last_char"] = char
+
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=0,
+        encoding="utf-8",
+        errors="replace"
+    )
+    
+    state = {"last_char": "\n"}
+    
+    t_out = threading.Thread(target=stream_pipe, args=(process.stdout, False, state))
+    t_err = threading.Thread(target=stream_pipe, args=(process.stderr, True, state))
+    
+    t_out.start()
+    t_err.start()
+    
+    t_out.join()
+    t_err.join()
+    
+    process.wait()
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, cmd)
+
 # ==============================================================================
 # MAIN DOWNLOAD PIPELINE
 # ==============================================================================
@@ -531,7 +585,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             print("┌── [SUBTITLES DOWNLOAD PIPELINE] ───────────────────────────────────────────┐", flush=True)
             print(f" ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
-                subprocess.run(sub_cmd, check=True)
+                run_subprocess_streaming(sub_cmd, check=True)
             except subprocess.CalledProcessError:
                 if cookies_file or cookies_browser:
                     source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
@@ -548,7 +602,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                             continue
                         fallback_sub_cmd.append(arg)
                     try:
-                        subprocess.run(fallback_sub_cmd, check=True)
+                        run_subprocess_streaming(fallback_sub_cmd, check=True)
                     except subprocess.CalledProcessError:
                         print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
                         subtitle_download_failed = True
@@ -587,7 +641,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         print("┌── [VIDEO DOWNLOAD PIPELINE] ───────────────────────────────────────────────┐", flush=True)
         print(f" ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
         try:
-            subprocess.run(video_cmd, check=True)
+            run_subprocess_streaming(video_cmd, check=True)
         except subprocess.CalledProcessError:
             if cookies_file or cookies_browser:
                 source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
@@ -604,7 +658,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         continue
                     fallback_video_cmd.append(arg)
                 try:
-                    subprocess.run(fallback_video_cmd, check=True)
+                    run_subprocess_streaming(fallback_video_cmd, check=True)
                 except subprocess.CalledProcessError:
                     print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
                     print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
