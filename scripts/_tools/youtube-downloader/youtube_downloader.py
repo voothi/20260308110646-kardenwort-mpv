@@ -366,6 +366,28 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
             print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
             return None
 
+def resolve_original_language(info):
+    """Resolves the video's main language, with intelligent base-code fallback for regional dialects."""
+    detected_lang = info.get("language")
+    if not detected_lang:
+        return None
+        
+    meta_subs = info.get("subtitles", {}) or {}
+    meta_auto = info.get("automatic_captions", {}) or {}
+    
+    # If the detected language exists exactly in subtitles/auto captions, use it
+    if detected_lang in meta_subs or detected_lang in meta_auto:
+        return detected_lang
+        
+    # If not, but it is a regional dialect (e.g. en-US, zh-CN), try the base language code (e.g. en, zh)
+    if "-" in detected_lang:
+        base_lang = detected_lang.split("-")[0]
+        if base_lang in meta_subs or base_lang in meta_auto:
+            return base_lang
+            
+    # Fallback to the detected language anyway so yt-dlp can try its own matching
+    return detected_lang
+
 def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
@@ -457,7 +479,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 raw_list = [l.strip() for l in pref_langs.split(",") if l.strip()]
                 for l in raw_list:
                     if l == "original":
-                        detected_lang = info.get("language")
+                        detected_lang = resolve_original_language(info)
                         if detected_lang:
                             sub_langs_list.append(detected_lang)
                         else:
@@ -529,7 +551,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         sub_langs_list = []
         for l in raw_list:
             if l == "original":
-                detected_lang = info.get("language")
+                detected_lang = resolve_original_language(info)
                 if detected_lang:
                     sub_langs_list.append(detected_lang)
                 else:
