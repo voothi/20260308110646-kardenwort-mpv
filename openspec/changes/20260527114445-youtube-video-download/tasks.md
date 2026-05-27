@@ -44,7 +44,7 @@
 - [x] 5.2 Implement resolution fallback when requested resolution is unavailable
 - [x] 5.3 Implement directory creation if target directory doesn't exist
 - [x] 5.4 Implement directory write permission checking
-- [x] 5.5 Implement `youtube_download_duplicate_mode` handling: "skip" → log and skip; "overwrite" → replace; "zid-dir" → create `{session-ZID}/` subfolder and place file inside
+- [x] 5.5 Implement `youtube_download_duplicate_mode` handling: "skip" → per-type missing-file recovery (check chapters, subtitles, companion audio; if any absent, override ZID to old value and re-run only the missing downloads; if all present, early-return); "overwrite" → delete all old ZID-prefixed files then re-download everything; "zid-dir" → create `{session-ZID}/` subfolder and place file inside
 - [x] 5.6 Add download progress tracking and display
 - [x] 5.7 Implement ZID-based filename generation (same convention as `zid_name.py`)
 - [x] 5.8 Implement unique ZID generation for each download
@@ -74,10 +74,10 @@
 - [x] 7.1 Create Windows batch script or PowerShell script for "Send to" integration
 - [x] 7.2 Create `install.py` setup script that places the shortcut in `%APPDATA%\Microsoft\Windows\SendTo\`
 - [x] 7.3 Create shortcut in Windows "Send to" folder (done by install script above)
-- [x] 7.4 Test "Send to" integration with single file
-- [x] 7.5 Test "Send to" integration with multiple files
-- [x] 7.6 Test "Send to" integration with directory containing files with URLs
-- [x] 7.7 Test queue order processing (file by file, then links within each file)
+- [x] 7.4 *(manual verification)* Test "Send to" integration with single file
+- [x] 7.5 *(manual verification)* Test "Send to" integration with multiple files
+- [x] 7.6 *(manual verification)* Test "Send to" integration with directory containing files with URLs
+- [x] 7.7 *(manual verification)* Test queue order processing (file by file, then links within each file)
 
 ## 8. Error Handling and Logging
 
@@ -97,43 +97,47 @@
 
 ## 10. Testing
 
-- [x] 10.1 Add acceptance test for YouTube URL detection
-- [x] 10.2 Add acceptance test for single URL download
-- [x] 10.3 Add acceptance test for multiple URL download
-- [x] 10.4 Add acceptance test for directory processing (multiple files with URLs)
-- [x] 10.5 Add acceptance test for queue order processing
-- [x] 10.6 Add acceptance test for resolution configuration
-- [x] 10.7 Add acceptance test for directory configuration
-- [x] 10.8 Add acceptance test for ZID-based filename generation
-- [x] 10.9 Add acceptance test for unique ZID generation
-- [x] 10.10 Add acceptance test for title sanitization
-- [x] 10.11 Add acceptance test for chapter metadata download (embedded mode)
-- [x] 10.12 Add acceptance test for chapter metadata download (separate mode)
-- [x] 10.13 Add acceptance test for chapter metadata download (both mode)
-- [x] 10.14 Add acceptance test for subtitle download (original language)
-- [x] 10.15 Add acceptance test for subtitle download (specific languages)
-- [x] 10.16 Add acceptance test for subtitle download (auto-subtitle fallback)
-- [x] 10.17 Add acceptance test for `youtube_download_duplicate_mode = "skip"` (file skipped when exists)
-- [x] 10.17a Add acceptance test for `youtube_download_duplicate_mode = "overwrite"` (file replaced when exists)
-- [x] 10.17b Add acceptance test for `youtube_download_duplicate_mode = "zid-dir"` (duplicate placed in session ZID subfolder)
-- [x] 10.17c Add acceptance test for multiple duplicates in one session sharing the same ZID subfolder
-- [x] 10.18 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
-- [x] 10.19 Add acceptance test for yt-dlp auto-update functionality
-- [x] 10.20 Add acceptance test for yt-dlp initial auto-install when not present
-- [x] 10.21 Add acceptance test for ZID collision guard (two downloads within same second)
-- [x] 10.22 Add acceptance test for MP4 container enforcement (output is always .mp4)
-- [x] 10.23 Add acceptance test for `youtube_download_mode = "video"` (no subtitle files created)
-- [x] 10.23a Add acceptance test for `youtube_download_mode = "video+subtitles"` (video and subtitle files created)
-- [x] 10.23b Add acceptance test for `youtube_download_mode = "subtitles"` (only subtitle files created, no video)
-- [x] 10.24 Add acceptance test for "original" language resolution from metadata
-- [x] 10.25 Add acceptance test for "original" language fallback when metadata `language` field absent
-- [x] 10.26 Add acceptance test for SRT format output (subtitle files end with .srt)
+> **Note (ZID: 20260527202140):** Tasks 10.x are unit tests (yt-dlp mocked, run in-process). They do not require mpv IPC fixtures and must **not** carry the `acceptance:` marker defined in `pytest.ini`. The correct marker is none or `unit:`.
+
+- [x] 10.1 Add unit test for YouTube URL detection
+- [x] 10.2 Add unit test for single URL download
+- [x] 10.3 Add unit test for multiple URL download
+- [x] 10.4 Add unit test for directory processing (multiple files with URLs)
+- [x] 10.5 Add unit test for queue order processing
+- [x] 10.6 Add unit test for resolution configuration
+- [x] 10.7 Add unit test for directory configuration
+- [x] 10.8 Add unit test for ZID-based filename generation
+- [x] 10.9 Add unit test for unique ZID generation
+- [x] 10.10 Add unit test for title sanitization
+- [x] 10.11 Add unit test for chapter metadata download (embedded mode)
+- [x] 10.12 Add unit test for chapter metadata download (separate mode)
+- [x] 10.13 Add unit test for chapter metadata download (both mode)
+- [x] 10.14 Add unit test for subtitle download (original language)
+- [x] 10.15 Add unit test for subtitle download (specific languages)
+- [x] 10.16 Add unit test for subtitle download (auto-subtitle fallback)
+- [x] 10.17 Add unit test for `youtube_download_duplicate_mode = "skip"` (file skipped when exists)
+- [x] 10.17a Add unit test for `youtube_download_duplicate_mode = "overwrite"` (file replaced when exists)
+- [x] 10.17b Add unit test for `youtube_download_duplicate_mode = "zid-dir"` (duplicate placed in session ZID subfolder)
+- [x] 10.17c Add unit test for multiple duplicates in one session sharing the same ZID subfolder
+- [x] 10.18 Add unit test for error scenarios (no URL, missing yt-dlp, etc.)
+- [x] 10.19 Add unit test for yt-dlp auto-update functionality
+- [x] 10.20 Add unit test for yt-dlp initial auto-install when not present
+- [x] 10.21 Add unit test for ZID collision guard (two downloads within same second)
+- [x] 10.22 Add unit test for MP4 container enforcement (output is always .mp4)
+- [x] 10.23 Add unit test for `youtube_download_mode = "video"` (no subtitle files created)
+- [x] 10.23a Add unit test for `youtube_download_mode = "video+subtitles"` (video and subtitle files created)
+- [x] 10.23b Add unit test for `youtube_download_mode = "subtitles"` (only subtitle files created, no video)
+- [x] 10.24 Add unit test for "original" language resolution from metadata
+- [x] 10.25 Add unit test for "original" language fallback when metadata `language` field absent
+- [x] 10.26 Add unit test for SRT format output (subtitle files end with .srt)
 
 ## 11. Integration and Polish
 
-- [x] 11.1 Test integration with existing TSV workflow
-- [x] 11.2 Verify no interference with existing mpv functionality
-- [x] 11.3 Performance testing for large batches of downloads
+> **Note (ZID: 20260527202140):** Tasks 11.1–11.3 are manual verification checkpoints; there are no corresponding automated tests. A regression in these areas would not be caught by CI. Convert to automated tests if the surface area grows.
+
+- [x] 11.1 *(manual verification)* Test integration with existing TSV workflow
+- [x] 11.2 *(manual verification)* Verify no interference with existing mpv functionality
+- [x] 11.3 *(manual verification)* Performance testing for large batches of downloads
 - [x] 11.4 Code review and cleanup
 
 ## 12. SRT Subtitle Post-Processing (ZID: 20260527182908)
@@ -177,13 +181,17 @@ Companion audio files are language-dubbed audio-only `.mp4` files sitting alongs
 
 ## 15. Skip-Mode Recovery Post-Processing Fix (ZID: 20260527193201)
 
-Two bugs in the `duplicate_mode = skip` recovery path identified at ZID: 20260527191838.
+Three bugs in the `duplicate_mode = skip` recovery path, reviewed at ZID: 20260527202140.
 
-**Bug 1 — Wasted yt-dlp call:** When only companion audio is missing (all subtitle files already exist), the recovery forces `youtube_download_mode = "subtitles"` and launches a full subtitle yt-dlp command. yt-dlp's no-overwrite behaviour skips the existing files silently, so subtitles are not corrupted — but a full network round-trip to YouTube is made for nothing.
+**Bug 1 — Wasted yt-dlp call:** When only companion audio is missing, the recovery unconditionally forces `youtube_download_mode = "subtitles"` and launches a subtitle yt-dlp command. yt-dlp's no-overwrite behaviour skips existing `.srt` files silently — subtitles are not corrupted — but a full network round-trip is wasted.
 
-**Bug 2 — Double post-processing:** After the subtitle download step, `clean_srt_file` and `sync_secondary_srt_timestamps` run on every `.srt` file that exists on disk, including files that were already present before the recovery run. These operations are mostly idempotent but not guaranteed to be — `fix_sentence_splits` in particular can produce different output on a second pass if the first pass already merged some blocks.
+**Bug 2 — Double post-processing of existing subtitles:** `clean_srt_file` and `sync_secondary_srt_timestamps` run on every `.srt` present on disk after the download step, including files that existed before the recovery. `fix_sentence_splits` is not guaranteed idempotent on a second pass.
 
-- [ ] 15.1 Before the subtitle download command, snapshot which subtitle files already exist: `pre_existing_subs = { path for lang in sub_langs_list if (path := target_dir / f"{zid}-{sanitized_title}.{lang}.srt").exists() }`
-- [ ] 15.2 In the post-download loop, only call `clean_srt_file` and append to `subtitles_written` for files that were **not** in `pre_existing_subs` (i.e., newly downloaded); still check `sub_file.exists()` as before, but gate post-processing on `sub_file not in pre_existing_subs`
-- [ ] 15.3 Fix Bug 1: in the recovery block, replace the unconditional `settings["youtube_download_mode"] = "subtitles"` with a conditional — only force subtitle mode if at least one subtitle file is in `missing_files`; if only companion audio files are missing, set mode to a new sentinel `"none"` (or leave it as the original mode but gate the subtitle download step on `mode in ["video+subtitles", "subtitles"] and not all_subs_already_exist`); video download must still be skipped regardless
-- [ ] 15.4 Add unit tests: `test_no_subtitle_redownload_when_only_companion_missing`, `test_clean_srt_not_called_on_preexisting_subtitle`, `test_sync_not_called_on_preexisting_subtitle`
+**Bug 3 — Sync fires with wrong set after recovery (15.2 design gap):** If recovery downloads only a secondary track (e.g. `ru.srt`) while the primary (`en.srt`) was pre-existing, the naive fix of only appending newly-written files to `subtitles_written` leaves it with 1 entry — sync requires ≥2 and never fires. The new secondary gets no timestamp alignment.
+
+- [ ] 15.1 Before the subtitle download command, build `pre_existing_subs`: a set of paths for subtitle files that already exist on disk before yt-dlp runs (iterate `sub_langs_list`, check `.exists()` on each expected path)
+- [ ] 15.2 In the post-download loop, run `clean_srt_file` only on files **not** in `pre_existing_subs` (newly downloaded); populate `subtitles_newly_written` with this subset
+- [ ] 15.2a For `sync_secondary_srt_timestamps`, build `subtitles_all_present` = pre-existing + newly written; gate sync on `len(subtitles_all_present) >= 2` using this wider set so that a freshly-downloaded secondary is still aligned against a pre-existing primary
+- [ ] 15.3 Fix Bug 1: replace the unconditional `settings["youtube_download_mode"] = "subtitles"` with a local `skip_video = True` flag; gate the video download step on `mode != "subtitles" and not skip_video`; gate the subtitle download step on `mode in ["video+subtitles", "subtitles"] and any_subs_in_missing_files`; do **not** introduce a new string value for `youtube_download_mode` — that would require updating every `if mode in [...]` check in the pipeline
+- [ ] 15.4 Add unit tests: `test_no_subtitle_redownload_when_only_companion_missing`, `test_clean_srt_not_called_on_preexisting_subtitle`, `test_sync_fires_when_secondary_newly_downloaded_primary_preexisting`
+- [ ] 15.5 Fix companion audio language region mismatch: the metadata guard in `download_companion_audio` uses `f.get("language") == lang` (exact match); YouTube metadata regularly returns regional codes like `"ru-RU"` while the user configures `"ru"`; apply the same base-code stripping logic as `resolve_original_language` before the comparison; also update the yt-dlp `-f` selector to use the actual language tag found in `formats` rather than the user's configured code, so the format selector matches what yt-dlp sees
