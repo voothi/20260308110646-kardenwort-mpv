@@ -353,25 +353,32 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     if download_subs:
         pref_langs = settings["youtube_download_subtitle_languages"]
-        if pref_langs == "original":
-            detected_lang = info.get("language")
-            if detected_lang:
-                sub_langs_list.append(detected_lang)
-            else:
-                # Fallback to all manual subtitle languages in metadata
-                meta_subs = info.get("subtitles", {})
-                if meta_subs:
-                    sub_langs_list.extend(meta_subs.keys())
-                    print("Language auto-detection fell back to all available subtitles.", flush=True)
+        raw_list = [l.strip() for l in pref_langs.split(",") if l.strip()]
+        
+        # Resolve 'original' if present in the list
+        sub_langs_list = []
+        for l in raw_list:
+            if l == "original":
+                detected_lang = info.get("language")
+                if detected_lang:
+                    sub_langs_list.append(detected_lang)
                 else:
-                    # Try to fall back to auto-generated subtitles if available
-                    meta_auto = info.get("automatic_captions", {})
-                    if meta_auto:
-                        sub_langs_list.extend(meta_auto.keys())
-                        print("Language auto-detection fell back to all available auto-subtitles.", flush=True)
-        else:
-            # Comma-separated list
-            sub_langs_list = [l.strip() for l in pref_langs.split(",") if l.strip()]
+                    # Fallback to all manual subtitle languages in metadata
+                    meta_subs = info.get("subtitles", {})
+                    if meta_subs:
+                        sub_langs_list.extend(meta_subs.keys())
+                        print("Language auto-detection fell back to all available subtitles.", flush=True)
+                    else:
+                        # Try to fall back to auto-generated subtitles if available
+                        meta_auto = info.get("automatic_captions", {})
+                        if meta_auto:
+                            sub_langs_list.extend(meta_auto.keys())
+                            print("Language auto-detection fell back to all available auto-subtitles.", flush=True)
+            else:
+                sub_langs_list.append(l)
+                
+        # Remove duplicates while preserving order
+        sub_langs_list = list(dict.fromkeys(sub_langs_list))
 
     # 5. Build yt-dlp arguments
     cmd = ["yt-dlp"]
