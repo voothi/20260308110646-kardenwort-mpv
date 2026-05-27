@@ -486,6 +486,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     output_tmpl = str(target_dir / f"{zid}-{sanitized_title}.%(ext)s")
 
+    subtitle_download_failed = False
+
     # 5. Build and run subtitle download command (if needed)
     if download_subs and sub_langs_list:
         sub_cmd = ["yt-dlp", "--skip-download", "--no-warnings", "-o", output_tmpl]
@@ -515,6 +517,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
+            print("┌── [SUBTITLES DOWNLOAD PIPELINE] ─────────────────────────────────────────────┐", flush=True)
             print(f" ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
                 subprocess.run(sub_cmd, check=True)
@@ -536,9 +539,12 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         subprocess.run(fallback_sub_cmd, check=True)
                     except subprocess.CalledProcessError:
                         print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
+                        subtitle_download_failed = True
                 else:
                     # Decoupled error handling: log warning and continue with video download
                     print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
+                    subtitle_download_failed = True
+            print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
         else:
             print("   • No subtitles were available.", flush=True)
 
@@ -564,6 +570,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         video_cmd.append(url)
         
+        print("┌── [VIDEO DOWNLOAD PIPELINE] ─────────────────────────────────────────────────┐", flush=True)
         print(f" ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
         try:
             subprocess.run(video_cmd, check=True)
@@ -585,28 +592,39 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     subprocess.run(fallback_video_cmd, check=True)
                 except subprocess.CalledProcessError:
                     print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
+                    print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                     return False
             else:
                 print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
+                print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                 return False
+        print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
         chapters_path = target_dir / f"{zid}-{sanitized_title}.chapters.txt"
         save_separate_chapters(info.get("chapters", []), chapters_path)
 
-    # 7. Print download results summary
-    if mode == "subtitles":
-        print("\n ➔ Success! (Subtitles only)", flush=True)
-    else:
-        print(f"\n ➔ Success! Video saved to: {target_path}", flush=True)
-        
-    # Check what subtitle files were written
+    # 7. Print download results summary and verify actual file creation
+    subtitles_written = []
     if download_subs:
         for lang in sub_langs_list:
             sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
             if sub_file.exists():
-                print(f"   • Subtitle saved: {sub_file}", flush=True)
+                subtitles_written.append(sub_file)
+
+    if mode == "subtitles":
+        if subtitles_written or not subtitle_download_failed:
+            print("\n ➔ Success! (Subtitles only)", flush=True)
+            for sub_file in subtitles_written:
+                print(f"   • Subtitle saved: {sub_file.name}", flush=True)
+        else:
+            print("\n ➔ Failure: No subtitles were downloaded.", flush=True)
+            return False
+    else:
+        print(f"\n ➔ Success! Video saved to: {target_path.name}", flush=True)
+        for sub_file in subtitles_written:
+            print(f"   • Subtitle saved: {sub_file.name}", flush=True)
 
     return True
 

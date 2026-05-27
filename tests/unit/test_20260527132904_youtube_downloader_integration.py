@@ -412,4 +412,37 @@ def test_duplicate_mode_skip_recovers_missing_subtitles(yd, tmp_path, monkeypatc
     assert (target_dir / "20260527132904-test-video.chapters.txt").exists()
 
 
+def test_download_mode_subtitles_failure(yd, tmp_path, monkeypatch):
+    """Verifies that if subtitles download fails in subtitles mode, the function returns False."""
+    target_dir = tmp_path
+    
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "overwrite",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "original",
+    }
+    
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {"title": "Test Video", "language": "en", "subtitles": {"en": {}}})
+    
+    def mock_run(cmd, *args, **kwargs):
+        raise yd.subprocess.CalledProcessError(1, cmd)
+        
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "20260527132904")
+    
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+    
+    assert not success
+
+
+
 
