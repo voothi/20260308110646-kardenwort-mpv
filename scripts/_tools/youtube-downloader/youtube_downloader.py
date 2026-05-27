@@ -670,13 +670,22 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     # Without this check, yt-dlp would fall back to the default audio stream, producing a
     # duplicate of the main video's audio rather than an alternate language track.
     formats = info.get("formats", []) or []
-    has_dubbed_track = any(
-        f.get("acodec", "none") not in ("none", "")
-        and f.get("vcodec", "none") in ("none", "")
-        and f.get("language") == lang
-        for f in formats
-    )
-    if not has_dubbed_track:
+    requested_lang = str(lang).strip()
+    requested_base = get_base_language_code(requested_lang).lower()
+    matched_lang_tag = None
+    for f in formats:
+        acodec = f.get("acodec", "none")
+        vcodec = f.get("vcodec", "none")
+        format_lang = str(f.get("language") or "").strip()
+        if acodec in ("none", "") or vcodec not in ("none", "") or not format_lang:
+            continue
+        if (
+            format_lang.lower() == requested_lang.lower()
+            or get_base_language_code(format_lang).lower() == requested_base
+        ):
+            matched_lang_tag = format_lang
+            break
+    if not matched_lang_tag:
         print(f"   • No dubbed audio-only track for language '{lang}' in metadata — skipping companion audio.", flush=True)
         return True
 
@@ -687,7 +696,7 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     cookies_file = settings.get("youtube_download_cookies_file", "").strip()
 
     cmd = ["yt-dlp", "--color", "always", "--no-warnings",
-           "-f", f"bestaudio[language={lang}]",
+           "-f", f"bestaudio[language={matched_lang_tag}]",
            "--merge-output-format", "mp4",
            "-o", output_tmpl]
     if cookies_file:
@@ -759,6 +768,16 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
             print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
             return None
 
+def get_base_language_code(lang):
+    """Returns the base language code for regional tags (e.g. ru-RU -> ru, de_DE -> de)."""
+    if not lang:
+        return ""
+    normalized = str(lang).strip()
+    for sep in ("-", "_"):
+        if sep in normalized:
+            return normalized.split(sep)[0]
+    return normalized
+
 def resolve_original_language(info):
     """Resolves the video's main language, with intelligent base-code fallback for regional dialects."""
     detected_lang = info.get("language")
@@ -773,11 +792,9 @@ def resolve_original_language(info):
         return detected_lang
         
     # If not, but it is a regional dialect (e.g. en-US, zh-CN, de_DE), try the base language code (e.g. en, zh, de)
-    sep = "-" if "-" in detected_lang else ("_" if "_" in detected_lang else None)
-    if sep:
-        base_lang = detected_lang.split(sep)[0]
-        if base_lang in meta_subs or base_lang in meta_auto:
-            return base_lang
+    base_lang = get_base_language_code(detected_lang)
+    if base_lang != detected_lang and (base_lang in meta_subs or base_lang in meta_auto):
+        return base_lang
             
     # Fallback to the detected language anyway so yt-dlp can try its own matching
     return detected_lang
@@ -838,6 +855,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     target_dir = out_dir
     target_path = primary_path
+    is_skip_recovery = False
+    any_subs_missing = False
     
     # Robust ZID-agnostic duplicate detection: check if any file in the target directory
     # ends with f"-{sanitized_title}.mp4"
@@ -892,6 +911,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     sub_file = out_dir / f"{old_zid}-{sanitized_title}.{lang}.srt"
                     if not sub_file.exists():
                         missing_files.append(f"{lang}.srt")
+                        any_subs_missing = True
 
             # Check companion audio files
             comp_langs_str = settings.get("youtube_download_companion_audio_languages", "").strip()
@@ -910,9 +930,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 print(f"       Initiating missing file recovery using existing ZID: {old_zid}...", flush=True)
                 # Override ZID to match the existing video's ZID
                 zid = old_zid
-                # Force subtitle-only download mode to skip video download
-                settings = settings.copy()
-                settings["youtube_download_mode"] = "subtitles"
+                is_skip_recovery = True
         elif dup_mode == "overwrite":
             print(f"   [!] File already exists (as {existing_file.name}). Overwriting (overwrite mode).", flush=True)
             # To cleanly overwrite, delete the old ZID-prefixed video and any associated subtitle/chapter files
@@ -978,9 +996,20 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     output_tmpl = str(target_dir / f"{zid}-{sanitized_title}.%(ext)s")
 
     subtitle_download_failed = False
+    pre_existing_subs = set()
+    if download_subs:
+        for lang in sub_langs_list:
+            sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
+            if sub_file.exists():
+                pre_existing_subs.add(sub_file)
 
     # 5. Build and run subtitle download command (if needed)
-    if download_subs and sub_langs_list:
+    should_download_subs = (
+        download_subs
+        and bool(sub_langs_list)
+        and (not is_skip_recovery or any_subs_missing)
+    )
+    if should_download_subs:
         sub_cmd = ["yt-dlp", "--color", "always", "--skip-download", "--no-warnings", "-o", output_tmpl]
         if cookies_file:
             sub_cmd.extend(["--cookies", cookies_file])
@@ -1043,7 +1072,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             print("   • No subtitles were available.", flush=True)
 
     # 6. Build and run video download command (if needed)
-    if mode != "subtitles":
+    skip_video = is_skip_recovery
+    if mode != "subtitles" and not skip_video:
         video_cmd = ["yt-dlp", "--color", "always", "--no-warnings"]
         if cookies_file:
             video_cmd.extend(["--cookies", cookies_file])
@@ -1103,25 +1133,32 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         save_separate_chapters(info.get("chapters", []), chapters_path)
 
     # 7. Print download results summary and verify actual file creation
-    subtitles_written = []
+    subtitles_newly_written = []
+    subtitles_all_present = []
     if download_subs:
         for lang in sub_langs_list:
             sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
             if sub_file.exists():
-                clean_srt_file(
-                    sub_file,
-                    clean_hyphens=settings.get("youtube_download_clean_hyphens", False),
-                    unbreak_lines=settings.get("youtube_download_unbreak_lines", False),
-                    hyphenation_marks=settings.get("youtube_download_hyphenation_marks", "-¬"),
-                    compositional_conjunctions=settings.get("youtube_download_compositional_conjunctions", "und,oder,sowie,bzw,bis"),
-                    fix_sentence_splits=settings.get("youtube_download_fix_sentence_splits", False)
-                )
-                subtitles_written.append(sub_file)
+                subtitles_all_present.append(sub_file)
+                if sub_file not in pre_existing_subs:
+                    clean_srt_file(
+                        sub_file,
+                        clean_hyphens=settings.get("youtube_download_clean_hyphens", False),
+                        unbreak_lines=settings.get("youtube_download_unbreak_lines", False),
+                        hyphenation_marks=settings.get("youtube_download_hyphenation_marks", "-¬"),
+                        compositional_conjunctions=settings.get("youtube_download_compositional_conjunctions", "und,oder,sowie,bzw,bis"),
+                        fix_sentence_splits=settings.get("youtube_download_fix_sentence_splits", False)
+                    )
+                    subtitles_newly_written.append(sub_file)
 
         # Re-timestamp secondary tracks to match the primary (first written) track
-        if settings.get("youtube_download_sync_secondary_timestamps", False) and len(subtitles_written) >= 2:
-            primary_sub = subtitles_written[0]
-            for secondary_sub in subtitles_written[1:]:
+        if (
+            settings.get("youtube_download_sync_secondary_timestamps", False)
+            and len(subtitles_all_present) >= 2
+            and subtitles_newly_written
+        ):
+            primary_sub = subtitles_all_present[0]
+            for secondary_sub in subtitles_all_present[1:]:
                 sync_secondary_srt_timestamps(primary_sub, secondary_sub)
 
     # 7a. Download companion audio tracks (audio-only MP4 per language for mpv audio-add)
@@ -1139,9 +1176,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     companion_audio_written.append(comp_file)
 
     if mode == "subtitles":
-        if subtitles_written or not subtitle_download_failed:
+        if subtitles_all_present or not subtitle_download_failed:
             print("\n ➔ Success! (Subtitles only)", flush=True)
-            for sub_file in subtitles_written:
+            for sub_file in subtitles_all_present:
                 print(f"   • Subtitle saved: {sub_file.name}", flush=True)
             for comp_file in companion_audio_written:
                 print(f"   • Companion audio saved: {comp_file.name}", flush=True)
@@ -1150,7 +1187,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             return False
     else:
         print(f"\n ➔ Success! Video saved to: {target_path.name}", flush=True)
-        for sub_file in subtitles_written:
+        for sub_file in subtitles_all_present:
             print(f"   • Subtitle saved: {sub_file.name}", flush=True)
         for comp_file in companion_audio_written:
             print(f"   • Companion audio saved: {comp_file.name}", flush=True)

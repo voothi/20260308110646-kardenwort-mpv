@@ -153,6 +153,45 @@ def test_companion_audio_download_single_lang():
     assert cmd[cmd.index("--merge-output-format") + 1] == "mp4"
 
 
+def test_companion_audio_region_base_code_matches_regional_metadata():
+    yd = _load_downloader()
+    info = _make_info(formats=[_audio_only("ru-RU")])
+    call_count = [0]
+
+    def fake_run(cmd, **kwargs):
+        call_count[0] += 1
+
+    with patch.object(yd, "run_subprocess_streaming", side_effect=fake_run):
+        result = yd.download_companion_audio(
+            "https://youtu.be/test", "20260527000001", "test-video",
+            Path("C:/tmp"), "ru", info, _settings()
+        )
+
+    assert result is True
+    assert call_count[0] == 1
+
+
+def test_companion_audio_region_match_uses_metadata_tag_in_selector():
+    """Deterministic end-to-end check: selector must use metadata tag (ru-RU), not config code (ru)."""
+    yd = _load_downloader()
+    info = _make_info(formats=[_audio_only("ru-RU")])
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+
+    with patch.object(yd, "run_subprocess_streaming", side_effect=fake_run):
+        result = yd.download_companion_audio(
+            "https://youtu.be/test", "20260527000001", "test-video",
+            Path("C:/tmp"), "ru", info, _settings()
+        )
+
+    assert result is True
+    cmd = captured["cmd"]
+    assert "-f" in cmd
+    assert cmd[cmd.index("-f") + 1] == "bestaudio[language=ru-RU]"
+
+
 # ---------------------------------------------------------------------------
 # Multi-language: download called once per language
 # ---------------------------------------------------------------------------
