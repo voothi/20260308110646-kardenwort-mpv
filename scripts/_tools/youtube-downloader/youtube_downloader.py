@@ -528,7 +528,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
-            print("┌── [SUBTITLES DOWNLOAD PIPELINE] ─────────────────────────────────────────────┐", flush=True)
+            print("┌── [SUBTITLES DOWNLOAD PIPELINE] ───────────────────────────────────────────┐", flush=True)
             print(f" ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
                 subprocess.run(sub_cmd, check=True)
@@ -556,7 +556,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     # Decoupled error handling: log warning and continue with video download
                     print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
                     subtitle_download_failed = True
-            print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+            print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
         else:
             print("   • No subtitles were available.", flush=True)
 
@@ -584,7 +584,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         video_cmd.append(url)
         
-        print("┌── [VIDEO DOWNLOAD PIPELINE] ─────────────────────────────────────────────────┐", flush=True)
+        print("┌── [VIDEO DOWNLOAD PIPELINE] ───────────────────────────────────────────────┐", flush=True)
         print(f" ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
         try:
             subprocess.run(video_cmd, check=True)
@@ -607,13 +607,13 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     subprocess.run(fallback_video_cmd, check=True)
                 except subprocess.CalledProcessError:
                     print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
-                    print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+                    print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                     return False
             else:
                 print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
-                print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+                print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                 return False
-        print("└──────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+        print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
@@ -687,7 +687,7 @@ def main():
         sys.exit(1)
 
     print(f" [queue] Detected {len(queue)} YouTube URL(s) to process.", flush=True)
-    print("┌" + "─" * 78 + "┐", flush=True)
+    print("┌" + "─" * 76 + "┐", flush=True)
     for idx, (source, url, source_dir) in enumerate(queue):
         # Truncate source label if it is too long to keep it beautiful
         display_source = source
@@ -696,16 +696,16 @@ def main():
         
         # Safely truncate URL to prevent box break
         display_url = url
-        if len(display_url) > 65:
-            display_url = display_url[:62] + "..."
+        if len(display_url) > 61:
+            display_url = display_url[:58] + "..."
             
         line1 = f" • Source: {display_source}"
         line2 = f"   URL:    {display_url}"
-        print(f"│{line1.ljust(78)}│", flush=True)
-        print(f"│{line2.ljust(78)}│", flush=True)
+        print(f"│{line1.ljust(76)}│", flush=True)
+        print(f"│{line2.ljust(76)}│", flush=True)
         if idx < len(queue) - 1:
-            print(f"│{' '.ljust(78)}│", flush=True)
-    print("└" + "─" * 78 + "┘\n", flush=True)
+            print(f"│{' '.ljust(76)}│", flush=True)
+    print("└" + "─" * 76 + "┘\n", flush=True)
 
     # 3. Setup backend (check & update yt-dlp)
     print(" [backend] Checking and updating yt-dlp...", flush=True)
