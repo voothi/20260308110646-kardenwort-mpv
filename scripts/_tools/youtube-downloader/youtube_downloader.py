@@ -231,7 +231,7 @@ def extract_urls_from_file(file_path):
 
 def process_input_paths(paths):
     """Processes file and directory input paths into ordered YouTube URLs in queue order."""
-    queue = []  # List of tuples: (source_label, url)
+    queue = []  # List of tuples: (source_label, url, source_dir)
     
     for path in sorted(paths):
         p = Path(path)
@@ -243,7 +243,7 @@ def process_input_paths(paths):
             # Extract URLs from single file
             file_urls = extract_urls_from_file(p)
             for url in file_urls:
-                queue.append((p.name, url))
+                queue.append((p.name, url, p.parent))
         elif p.is_dir():
             # Extract URLs from all files in directory in alphabetical order
             file_found = False
@@ -256,7 +256,7 @@ def process_input_paths(paths):
                 if file_urls:
                     file_found = True
                     for url in file_urls:
-                        queue.append((f"{p.name}/{child.relative_to(p)}", url))
+                        queue.append((f"{p.name}/{child.relative_to(p)}", url, p))
             if not file_found:
                 print(f"Warning: No files with YouTube URLs found in directory: {path}", file=sys.stderr)
                 
@@ -276,7 +276,7 @@ def run_ytdlp_info(url):
         print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
         return None
 
-def download_video_and_metadata(url, settings, used_zids, zid_cache):
+def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
     print(f"\nFetching video metadata for: {url}...", flush=True)
@@ -294,7 +294,16 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache):
     print(f"Sanitized Slug: {sanitized_title}")
 
     # Check write permission and create download directory
-    out_dir = Path(settings["youtube_download_directory"])
+    target_dir_setting = settings["youtube_download_directory"]
+    if target_dir_setting.lower() == "source":
+        if source_dir:
+            out_dir = Path(source_dir)
+        else:
+            # Fallback to Videos if no source_dir (e.g. raw CLI URL)
+            out_dir = Path(os.path.join(os.environ.get("USERPROFILE", "C:\\"), "Videos"))
+    else:
+        out_dir = Path(target_dir_setting)
+
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
         # Test write permission by writing a tiny temp file
@@ -477,8 +486,8 @@ def main():
     file_urls = process_input_paths(paths)
     
     # Assemble final queue
-    # Format: list of (source_label, url)
-    queue = [( "Direct URL", url ) for url in raw_urls] + file_urls
+    # Format: list of (source_label, url, source_dir)
+    queue = [( "Direct URL", url, None ) for url in raw_urls] + file_urls
 
     if not queue:
         print("Error: No YouTube URLs detected in the input.", file=sys.stderr)
@@ -487,7 +496,7 @@ def main():
         sys.exit(1)
 
     print(f"Detected {len(queue)} YouTube URL(s) to process.", flush=True)
-    for source, url in queue:
+    for source, url, source_dir in queue:
         print(f"  - [{source}] {url}", flush=True)
 
     # 3. Setup backend (check & update yt-dlp)
@@ -501,10 +510,10 @@ def main():
     zid_cache = {}  # Shared session ZID cache for duplicate handling
     success_count = 0
     
-    for idx, (source, url) in enumerate(queue, 1):
+    for idx, (source, url, source_dir) in enumerate(queue, 1):
         print(f"\n{'='*80}\nProcessing URL {idx}/{len(queue)} (Source: {source})\n{'='*80}", flush=True)
         try:
-            if download_video_and_metadata(url, settings, used_zids, zid_cache):
+            if download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=source_dir):
                 success_count += 1
         except Exception as e:
             print(f"Error occurred while processing {url}: {e}", file=sys.stderr)

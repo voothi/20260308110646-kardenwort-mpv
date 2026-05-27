@@ -217,3 +217,44 @@ def test_download_mode_subtitles_only(yd, tmp_path, monkeypatch):
     
     assert success
     assert skip_download_passed
+
+
+def test_download_directory_source(yd, tmp_path, monkeypatch):
+    """Verifies that 'source' download directory correctly uses source_dir."""
+    source_folder = tmp_path / "my_source_folder"
+    source_folder.mkdir()
+    
+    settings = {
+        "youtube_download_directory": "source",
+        "youtube_download_duplicate_mode": "overwrite",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "original",
+    }
+    
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {"title": "Source Video"})
+    
+    download_dir = None
+    def mock_run(cmd, *args, **kwargs):
+        nonlocal download_dir
+        for idx, arg in enumerate(cmd):
+            if arg == "-o":
+                download_dir = Path(cmd[idx+1]).parent
+                break
+                
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "20260527132904")
+    
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {},
+        source_dir=source_folder
+    )
+    
+    assert success
+    assert download_dir == source_folder
+
