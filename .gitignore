@@ -58,3 +58,4 @@ mpv_success_test.log
 mpv_test_launch.log
 docs/assets/
 .tmp_pytest_subviewer/
+_tmp_pytest/
