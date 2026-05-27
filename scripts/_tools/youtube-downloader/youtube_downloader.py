@@ -678,18 +678,19 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     Returns True on success or graceful skip (no track for that language).
     Returns False only on an actual download failure.
     """
-    # Guard: check that a genuine audio-only dubbed track exists for this language in metadata.
+    # Guard: check that a genuine dubbed track exists for this language in metadata.
     # Without this check, yt-dlp would fall back to the default audio stream, producing a
     # duplicate of the main video's audio rather than an alternate language track.
+    # Since AI-dubbed tracks are often only served in combined video+audio formats (e.g. HLS/m3u8),
+    # we allow formats that contain video but filter to ensure they have audio (acodec != "none").
     formats = info.get("formats", []) or []
     requested_lang = str(lang).strip()
     requested_base = get_base_language_code(requested_lang).lower()
     matched_lang_tag = None
     for f in formats:
         acodec = f.get("acodec", "none")
-        vcodec = f.get("vcodec", "none")
         format_lang = str(f.get("language") or "").strip()
-        if acodec in ("none", "") or vcodec not in ("none", "") or not format_lang:
+        if acodec in ("none", "") or not format_lang:
             continue
         if (
             format_lang.lower() == requested_lang.lower()
@@ -698,7 +699,7 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
             matched_lang_tag = format_lang
             break
     if not matched_lang_tag:
-        print(f"   • No dubbed audio-only track for language '{lang}' in metadata — skipping companion audio.", flush=True)
+        print(f"   • No dubbed audio track for language '{lang}' in metadata — skipping companion audio.", flush=True)
         return True
 
     output_path = Path(target_dir) / f"{zid}-{sanitized_title}.{lang}.mp4"
@@ -707,8 +708,11 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
     cookies_file = settings.get("youtube_download_cookies_file", "").strip()
 
-    cmd = ["yt-dlp", "--color", "always", "--no-warnings",
-           "-f", f"bestaudio[language={matched_lang_tag}]",
+    # Pass --js-runtimes node --remote-components ejs:github to ensure HLS/m3u8 auto-dubbed streams are extracted.
+    # Try bestaudio first, then fall back to worst/best (which matches combined formats at lowest resolution to save bandwidth).
+    cmd = ["yt-dlp", "--js-runtimes", "node", "--remote-components", "ejs:github",
+           "--color", "always", "--no-warnings",
+           "-f", f"bestaudio[language={matched_lang_tag}]/worst[language={matched_lang_tag}]/best[language={matched_lang_tag}]",
            "--merge-output-format", "mp4",
            "-o", output_tmpl]
     if cookies_file:
@@ -721,6 +725,20 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     print(f" ➔ Downloading companion audio ({lang}, audio-only MP4)...", flush=True)
     try:
         run_subprocess_streaming(cmd, check=True)
+        # Strip video stream if the final file contains video, to save disk space
+        if output_path.exists():
+            try:
+                temp_path = output_path.with_suffix(".tmp.mp4")
+                ffmpeg_cmd = ["ffmpeg", "-y", "-i", str(output_path), "-vn", "-c:a", "copy", str(temp_path)]
+                res = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+                if res.returncode == 0 and temp_path.exists():
+                    os.replace(temp_path, output_path)
+                    print(f"   • Extracted audio-only stream from companion to save disk space.", flush=True)
+                else:
+                    if temp_path.exists():
+                        temp_path.unlink()
+            except Exception:
+                pass
         print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
         return True
     except subprocess.CalledProcessError:
@@ -753,7 +771,7 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
 # ==============================================================================
 def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
     """Runs yt-dlp --dump-json to fetch metadata."""
-    cmd = ["yt-dlp", "--dump-json", "--no-warnings"]
+    cmd = ["yt-dlp", "--js-runtimes", "node", "--remote-components", "ejs:github", "--dump-json", "--no-warnings"]
     if cookies_file:
         cmd.extend(["--cookies", cookies_file])
     elif cookies_browser:
@@ -768,7 +786,7 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
             source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
             print(f"   [!] Warning: Failed to load cookies from {source_desc} (might be open, locked, or DPAPI error).", flush=True)
             print("       Retrying metadata fetch without cookies...", flush=True)
-            fallback_cmd = ["yt-dlp", "--dump-json", "--no-warnings", url]
+            fallback_cmd = ["yt-dlp", "--js-runtimes", "node", "--remote-components", "ejs:github", "--dump-json", "--no-warnings", url]
             try:
                 res = subprocess.run(fallback_cmd, capture_output=True, text=True, check=True, encoding="utf-8")
                 import json

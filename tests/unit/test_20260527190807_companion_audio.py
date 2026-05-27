@@ -101,8 +101,8 @@ def test_companion_audio_skips_when_no_dubbed_track():
     assert call_count[0] == 0, "yt-dlp must not be called when no dubbed track exists"
 
 
-def test_companion_audio_skips_combined_format():
-    """Combined video+audio format with correct language must NOT trigger download."""
+def test_companion_audio_supports_combined_format():
+    """Combined video+audio format with correct language MUST trigger download."""
     yd = _load_downloader()
     formats = [{"acodec": "mp4a.40.2", "vcodec": "avc1.64001F", "language": "ru"}]
     info = _make_info(formats=formats)
@@ -118,7 +118,7 @@ def test_companion_audio_skips_combined_format():
         )
 
     assert result is True
-    assert call_count[0] == 0
+    assert call_count[0] == 1, "Combined format with correct language must trigger download"
 
 
 # ---------------------------------------------------------------------------
@@ -147,8 +147,12 @@ def test_companion_audio_download_single_lang():
     assert result is True
 
     cmd = captured["cmd"]
+    assert "--js-runtimes" in cmd
+    assert cmd[cmd.index("--js-runtimes") + 1] == "node"
+    assert "--remote-components" in cmd
+    assert cmd[cmd.index("--remote-components") + 1] == "ejs:github"
     assert "-f" in cmd
-    assert cmd[cmd.index("-f") + 1] == "bestaudio[language=ru]"
+    assert cmd[cmd.index("-f") + 1] == "bestaudio[language=ru]/worst[language=ru]/best[language=ru]"
     assert "--merge-output-format" in cmd
     assert cmd[cmd.index("--merge-output-format") + 1] == "mp4"
 
@@ -189,7 +193,7 @@ def test_companion_audio_region_match_uses_metadata_tag_in_selector():
     assert result is True
     cmd = captured["cmd"]
     assert "-f" in cmd
-    assert cmd[cmd.index("-f") + 1] == "bestaudio[language=ru-RU]"
+    assert cmd[cmd.index("-f") + 1] == "bestaudio[language=ru-RU]/worst[language=ru-RU]/best[language=ru-RU]"
 
 
 # ---------------------------------------------------------------------------
