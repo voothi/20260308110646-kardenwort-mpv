@@ -5,7 +5,6 @@ Acceptance/integration tests for downloader configurations, modes, subtitle lang
 """
 
 import os
-import shutil
 import importlib.util
 from pathlib import Path
 import pytest
@@ -29,14 +28,6 @@ def _load_downloader():
 @pytest.fixture
 def yd():
     return _load_downloader()
-
-def _make_workspace_temp_dir(name):
-    base = Path(__file__).resolve().parents[2] / "tests" / ".runtime_tmp" / name
-    if base.exists():
-        shutil.rmtree(base, ignore_errors=True)
-    base.mkdir(parents=True, exist_ok=True)
-    return base
-
 
 def test_directory_creation_and_write_check(yd, tmp_path, monkeypatch):
     """Verifies directory is created if missing and write permission checked."""
@@ -451,162 +442,150 @@ def test_download_mode_subtitles_failure(yd, tmp_path, monkeypatch):
     assert not success
 
 
-def test_no_subtitle_redownload_when_only_companion_missing(yd, monkeypatch):
+def test_no_subtitle_redownload_when_only_companion_missing(yd, tmp_path, monkeypatch):
     """Skip recovery: if only companion audio is missing, subtitles must not be redownloaded."""
-    target_dir = _make_workspace_temp_dir("only_companion_missing")
     old_zid = "20260527132904"
-    try:
-        (target_dir / f"{old_zid}-test-video.mp4").touch()
-        (target_dir / f"{old_zid}-test-video.en.srt").touch()
+    (tmp_path / f"{old_zid}-test-video.mp4").touch()
+    (tmp_path / f"{old_zid}-test-video.en.srt").touch()
 
-        settings = {
-            "youtube_download_directory": str(target_dir),
-            "youtube_download_duplicate_mode": "skip",
-            "youtube_download_chapters_mode": "embedded",
-            "youtube_download_mode": "video+subtitles",
-            "youtube_download_resolution": "360p",
-            "youtube_download_subtitle_auto_fallback": True,
-            "youtube_download_subtitle_languages": "en",
-            "youtube_download_companion_audio_languages": "ru",
-            "youtube_download_sync_secondary_timestamps": False,
-        }
+    settings = {
+        "youtube_download_directory": str(tmp_path),
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "en",
+        "youtube_download_companion_audio_languages": "ru",
+        "youtube_download_sync_secondary_timestamps": False,
+    }
 
-        monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
-            "title": "Test Video",
-            "language": "en",
-            "subtitles": {"en": {}},
-            "chapters": [],
-            "formats": [{"acodec": "mp4a.40.2", "vcodec": "none", "language": "ru"}],
-        })
-        monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "en",
+        "subtitles": {"en": {}},
+        "chapters": [],
+        "formats": [{"acodec": "mp4a.40.2", "vcodec": "none", "language": "ru"}],
+    })
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
 
-        seen_cmds = []
-        def mock_stream(cmd, check=True):
-            seen_cmds.append(cmd)
-            if "--skip-download" in cmd:
-                raise AssertionError("Subtitle command must not run when only companion audio is missing.")
-            if any(str(arg).startswith("bestaudio[language=") for arg in cmd):
-                (target_dir / f"{old_zid}-test-video.ru.mp4").touch()
+    seen_cmds = []
+    def mock_stream(cmd, check=True):
+        seen_cmds.append(cmd)
+        if "--skip-download" in cmd:
+            raise AssertionError("Subtitle command must not run when only companion audio is missing.")
+        if any(str(arg).startswith("bestaudio[language=") for arg in cmd):
+            (tmp_path / f"{old_zid}-test-video.ru.mp4").touch()
 
-        monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
+    monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
 
-        success = yd.download_video_and_metadata(
-            "https://youtube.com/watch?v=dQw4w9WgXcQ",
-            settings,
-            set(),
-            {}
-        )
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
 
-        assert success
-        assert all("--skip-download" not in cmd for cmd in seen_cmds)
-        assert any(any(str(arg).startswith("bestaudio[language=") for arg in cmd) for cmd in seen_cmds)
-        assert (target_dir / f"{old_zid}-test-video.ru.mp4").exists()
-    finally:
-        shutil.rmtree(target_dir, ignore_errors=True)
+    assert success
+    assert all("--skip-download" not in cmd for cmd in seen_cmds)
+    assert any(any(str(arg).startswith("bestaudio[language=") for arg in cmd) for cmd in seen_cmds)
+    assert (tmp_path / f"{old_zid}-test-video.ru.mp4").exists()
 
 
-def test_clean_srt_not_called_on_preexisting_subtitle(yd, monkeypatch):
+def test_clean_srt_not_called_on_preexisting_subtitle(yd, tmp_path, monkeypatch):
     """Skip recovery: clean_srt_file must run only for newly downloaded subtitles."""
-    target_dir = _make_workspace_temp_dir("clean_not_preexisting")
     old_zid = "20260527132904"
-    try:
-        existing_en = target_dir / f"{old_zid}-test-video.en.srt"
-        new_ru = target_dir / f"{old_zid}-test-video.ru.srt"
-        (target_dir / f"{old_zid}-test-video.mp4").touch()
-        existing_en.touch()
+    existing_en = tmp_path / f"{old_zid}-test-video.en.srt"
+    new_ru = tmp_path / f"{old_zid}-test-video.ru.srt"
+    (tmp_path / f"{old_zid}-test-video.mp4").touch()
+    existing_en.touch()
 
-        settings = {
-            "youtube_download_directory": str(target_dir),
-            "youtube_download_duplicate_mode": "skip",
-            "youtube_download_chapters_mode": "embedded",
-            "youtube_download_mode": "video+subtitles",
-            "youtube_download_resolution": "360p",
-            "youtube_download_subtitle_auto_fallback": True,
-            "youtube_download_subtitle_languages": "en,ru",
-            "youtube_download_companion_audio_languages": "",
-            "youtube_download_sync_secondary_timestamps": False,
-        }
+    settings = {
+        "youtube_download_directory": str(tmp_path),
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "en,ru",
+        "youtube_download_companion_audio_languages": "",
+        "youtube_download_sync_secondary_timestamps": False,
+    }
 
-        monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
-            "title": "Test Video",
-            "language": "en",
-            "subtitles": {"en": {}, "ru": {}},
-            "chapters": [],
-            "formats": [],
-        })
-        monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "en",
+        "subtitles": {"en": {}, "ru": {}},
+        "chapters": [],
+        "formats": [],
+    })
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
 
-        def mock_stream(cmd, check=True):
-            if "--skip-download" in cmd:
-                new_ru.touch()
+    def mock_stream(cmd, check=True):
+        if "--skip-download" in cmd:
+            new_ru.touch()
 
-        monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
+    monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
 
-        cleaned_paths = []
-        monkeypatch.setattr(yd, "clean_srt_file", lambda path, **kwargs: cleaned_paths.append(path))
+    cleaned_paths = []
+    monkeypatch.setattr(yd, "clean_srt_file", lambda path, **kwargs: cleaned_paths.append(path))
 
-        success = yd.download_video_and_metadata(
-            "https://youtube.com/watch?v=dQw4w9WgXcQ",
-            settings,
-            set(),
-            {}
-        )
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
 
-        assert success
-        assert cleaned_paths == [new_ru]
-    finally:
-        shutil.rmtree(target_dir, ignore_errors=True)
+    assert success
+    assert cleaned_paths == [new_ru]
 
 
-def test_sync_fires_when_secondary_newly_downloaded_primary_preexisting(yd, monkeypatch):
+def test_sync_fires_when_secondary_newly_downloaded_primary_preexisting(yd, tmp_path, monkeypatch):
     """Skip recovery: sync must run with ordered [primary pre-existing, secondary new]."""
-    target_dir = _make_workspace_temp_dir("sync_mixed_subs")
     old_zid = "20260527132904"
-    try:
-        en_path = target_dir / f"{old_zid}-test-video.en.srt"
-        ru_path = target_dir / f"{old_zid}-test-video.ru.srt"
-        (target_dir / f"{old_zid}-test-video.mp4").touch()
-        en_path.touch()
+    en_path = tmp_path / f"{old_zid}-test-video.en.srt"
+    ru_path = tmp_path / f"{old_zid}-test-video.ru.srt"
+    (tmp_path / f"{old_zid}-test-video.mp4").touch()
+    en_path.touch()
 
-        settings = {
-            "youtube_download_directory": str(target_dir),
-            "youtube_download_duplicate_mode": "skip",
-            "youtube_download_chapters_mode": "embedded",
-            "youtube_download_mode": "video+subtitles",
-            "youtube_download_resolution": "360p",
-            "youtube_download_subtitle_auto_fallback": True,
-            "youtube_download_subtitle_languages": "en,ru",
-            "youtube_download_companion_audio_languages": "",
-            "youtube_download_sync_secondary_timestamps": True,
-        }
+    settings = {
+        "youtube_download_directory": str(tmp_path),
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "en,ru",
+        "youtube_download_companion_audio_languages": "",
+        "youtube_download_sync_secondary_timestamps": True,
+    }
 
-        monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
-            "title": "Test Video",
-            "language": "en",
-            "subtitles": {"en": {}, "ru": {}},
-            "chapters": [],
-            "formats": [],
-        })
-        monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "en",
+        "subtitles": {"en": {}, "ru": {}},
+        "chapters": [],
+        "formats": [],
+    })
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
 
-        def mock_stream(cmd, check=True):
-            if "--skip-download" in cmd:
-                ru_path.touch()
+    def mock_stream(cmd, check=True):
+        if "--skip-download" in cmd:
+            ru_path.touch()
 
-        monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
-        monkeypatch.setattr(yd, "clean_srt_file", lambda *args, **kwargs: None)
+    monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
+    monkeypatch.setattr(yd, "clean_srt_file", lambda *args, **kwargs: None)
 
-        sync_calls = []
-        monkeypatch.setattr(yd, "sync_secondary_srt_timestamps", lambda primary, secondary: sync_calls.append((primary, secondary)))
+    sync_calls = []
+    monkeypatch.setattr(yd, "sync_secondary_srt_timestamps", lambda primary, secondary: sync_calls.append((primary, secondary)))
 
-        success = yd.download_video_and_metadata(
-            "https://youtube.com/watch?v=dQw4w9WgXcQ",
-            settings,
-            set(),
-            {}
-        )
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
 
-        assert success
-        assert sync_calls == [(en_path, ru_path)]
-    finally:
-        shutil.rmtree(target_dir, ignore_errors=True)
+    assert success
+    assert sync_calls == [(en_path, ru_path)]

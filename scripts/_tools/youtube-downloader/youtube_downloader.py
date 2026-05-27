@@ -656,6 +656,16 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
 # ==============================================================================
 # COMPANION AUDIO DOWNLOAD (Task 14.3)
 # ==============================================================================
+def get_base_language_code(lang):
+    """Returns the base language code for regional tags (e.g. ru-RU -> ru, de_DE -> de)."""
+    if not lang:
+        return ""
+    normalized = str(lang).strip()
+    for sep in ("-", "_"):
+        if sep in normalized:
+            return normalized.split(sep)[0]
+    return normalized
+
 def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, settings):
     """Downloads an audio-only companion track for a specific dubbed language.
 
@@ -767,16 +777,6 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
         else:
             print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
             return None
-
-def get_base_language_code(lang):
-    """Returns the base language code for regional tags (e.g. ru-RU -> ru, de_DE -> de)."""
-    if not lang:
-        return ""
-    normalized = str(lang).strip()
-    for sep in ("-", "_"):
-        if sep in normalized:
-            return normalized.split(sep)[0]
-    return normalized
 
 def resolve_original_language(info):
     """Resolves the video's main language, with intelligent base-code fallback for regional dialects."""
@@ -928,8 +928,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             else:
                 print(f"   [!] Video already exists (as {existing_file.name}), but some files are missing: {', '.join(missing_files)}.", flush=True)
                 print(f"       Initiating missing file recovery using existing ZID: {old_zid}...", flush=True)
-                # Override ZID to match the existing video's ZID
+                # Override ZID to match the existing video's ZID, and re-point target_path
+                # at the actual on-disk video so the success summary names a real file.
                 zid = old_zid
+                target_path = existing_file
                 is_skip_recovery = True
         elif dup_mode == "overwrite":
             print(f"   [!] File already exists (as {existing_file.name}). Overwriting (overwrite mode).", flush=True)
@@ -1151,15 +1153,26 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     )
                     subtitles_newly_written.append(sub_file)
 
-        # Re-timestamp secondary tracks to match the primary (first written) track
+        # Re-timestamp secondary tracks to match the configured primary language's track.
+        # subtitles_all_present is built in sub_langs_list order, but if the configured
+        # primary language failed to download we must NOT silently promote a secondary
+        # to primary — that would re-time everything against the wrong reference.
         if (
             settings.get("youtube_download_sync_secondary_timestamps", False)
             and len(subtitles_all_present) >= 2
             and subtitles_newly_written
         ):
-            primary_sub = subtitles_all_present[0]
-            for secondary_sub in subtitles_all_present[1:]:
-                sync_secondary_srt_timestamps(primary_sub, secondary_sub)
+            expected_primary = target_dir / f"{zid}-{sanitized_title}.{sub_langs_list[0]}.srt"
+            if subtitles_all_present[0] == expected_primary:
+                primary_sub = subtitles_all_present[0]
+                for secondary_sub in subtitles_all_present[1:]:
+                    sync_secondary_srt_timestamps(primary_sub, secondary_sub)
+            else:
+                print(
+                    f"   [!] Skipping subtitle sync: primary language '{sub_langs_list[0]}' "
+                    f"is missing on disk; refusing to retime against a secondary track.",
+                    flush=True,
+                )
 
     # 7a. Download companion audio tracks (audio-only MP4 per language for mpv audio-add)
     companion_audio_written = []

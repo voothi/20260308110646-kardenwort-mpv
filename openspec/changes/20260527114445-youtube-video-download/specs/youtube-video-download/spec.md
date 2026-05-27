@@ -415,8 +415,13 @@ When `youtube_download_duplicate_mode` is `"skip"` and a matching video file alr
 - **WHEN** `youtube_download_sync_secondary_timestamps` is `true`
 - **AND** skip-mode recovery has a mix of pre-existing and newly downloaded subtitle files
 - **AND** at least two subtitle tracks are present after recovery
+- **AND** at least one of those tracks was newly downloaded in this run
 - **THEN** sync SHALL run using an ordered list that includes both pre-existing and newly downloaded tracks
 - **AND** the first language in configured subtitle order SHALL remain the deterministic primary track
+
+#### Scenario: Skip recovery with no newly downloaded subtitles
+- **WHEN** skip-mode recovery runs and no subtitle file was downloaded in this run (e.g. only companion audio was missing)
+- **THEN** subtitle timestamp sync SHALL NOT run on the already-present, already-synced subtitle files
 
 ### Requirement: Companion Audio Language Matching
 The companion-audio track selector SHALL support regional language tags and SHALL use the matched metadata language tag when constructing the yt-dlp format selector.

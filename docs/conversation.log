@@ -3146,6 +3146,59 @@
 20260527204308 Verdict: the plan is strategically sound, but not yet surgically complete. The architecture is good; the recovery edge-cases are not. 1. Critical inconsistency still in implementation: skip-recovery forces subtitle mode unconditionally, causing unnecessary yt-dlp subtitle calls when only companion audio is missing ([youtube_downloader.py:915](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/youtube_downloader.py:915), [youtube_downloader.py:1046](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/youtube_downloader.py:1046)). 2. Critical correctness risk: pre-existing subtitles are re-cleaned and sync is gated only by newly discovered list, which can skip required re-timestamping in mixed old/new recovery ([youtube_downloader.py:1111](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/youtube_downloader.py:1111), [youtube_downloader.py:1122](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/youtube_downloader.py:1122)). 3. Critical language-matching bug: companion audio requires exact `language == lang`, so `ru` can miss `ru-RU` ([youtube_downloader.py:676](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/youtube_downloader.py:676)). 4. False/documentation drift: config comments claim longer subtitle tracks are trimmed, but spec/tests/implementation intent preserve blocks and remap timestamps ([config.ini:59](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/config.ini:59), [config.ini.template:59](/u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/youtube-downloader/config.ini.template:59)). 5. Planning drift (now fixed): proposal/design still referenced old config/testing framing. Edits I made now (OpenSpec artifacts only): 1. Added explicit architecture verdict and gap list in [design.md:117](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260527114445-youtube-video-download/design.md:117). 2. Corrected impact/test statements in [proposal.md:42](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260527114445-youtube-video-download/proposal.md:42). 3. Tightened task truthfulness and added release-gate follow-up in [tasks.md:182](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260527114445-youtube-video-download/tasks.md:182) and [tasks.md:199](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260527114445-youtube-video-download/tasks.md:199). 4. Added hard requirements for skip-recovery correctness and regional companion-audio matching in [spec.md:397](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260527114445-youtube-video-download/specs/youtube-video-download/spec.md:397) and [spec.md:421](/u:/voothi/20260308110646-kardenwort-mpv/openspec/changes/20260527114445-youtube-video-download/specs/youtube-video-download/spec.md:421). No full tests were run. If you want, next I can implement section 15.1–15.5 directly and keep it narrowly scoped.
 20260527204852 Openspec Apply Change 20260527114445-youtube-video-download
 20260527210055 Using change: `20260527114445-youtube-video-download` (schema: `spec-driven`). ## Implementation Complete Progress is now **137/137 tasks complete** (`state: all_done`), and section 15/16 is finished. ### What I changed - Skip-recovery logic and subtitle handling fixes in [youtube_downloader.py](u:\voothi\20260308110646-kardenwort-mpv\scripts\_tools\youtube-downloader\youtube_downloader.py): `659`, `771`, `858`, `999`, `1007`, `1075`, `1136` - Added section 15.4 tests in [test_20260527132904_youtube_downloader_integration.py](u:\voothi\20260308110646-kardenwort-mpv\tests\unit\test_20260527132904_youtube_downloader_integration.py): `33`, `454`, `508`, `561` - Added region-aware companion audio tests in [test_20260527190807_companion_audio.py](u:\voothi\20260308110646-kardenwort-mpv\tests\unit\test_20260527190807_companion_audio.py): `156`, `174` - Fixed subtitle-sync comment drift in: [config.ini](u:\voothi\20260308110646-kardenwort-mpv\scripts\_tools\youtube-downloader\config.ini):`59`, [config.ini.template](u:\voothi\20260308110646-kardenwort-mpv\scripts\_tools\youtube-downloader\config.ini.template):`59` - Marked tasks 15.1–16.3 done in [tasks.md](u:\voothi\20260308110646-kardenwort-mpv\openspec\changes\20260527114445-youtube-video-download\tasks.md):`192`+ ### Verification run - `pytest tests\unit\test_20260527132904_youtube_downloader_integration.py -k "no_subtitle_redownload_when_only_companion_missing or clean_srt_not_called_on_preexisting_subtitle or sync_fires_when_secondary_newly_downloaded_primary_preexisting"` → **3 passed** - `pytest tests\unit\test_20260527190807_companion_audio.py -k "region_base_code_matches_regional_metadata or region_match_uses_metadata_tag_in_selector"` → **2 passed** Change is ready to archive with `/opsx:archive`.
+20260527210632 Check it out as a senior developer b8a77236f2bc7fd9115ebf9578a52c5b0fa2a6e0
+20260527211113 Senior review of b8a77236f Solid commit overall — the refactor from "mutate settings['youtube_download_mode'] = 'subtitles'" to local is_skip_recovery / skip_video flags is the correct surgery, and the pre_existing_subs / subtitles_newly_written split correctly idempotents post-processing. The companion-audio region fix is also well-shaped: exact-match first, then base-code fallback, and the -f selector uses the metadata tag (ru-RU) rather than the user's config code (ru). Things I'd push back on in review: 🟡 Spec/implementation drift — undocumented sync gate youtube_downloader.py:1155-1159 adds and subtitles_newly_written to the sync condition. Task 15.2a explicitly says "gate sync on len(subtitles_all_present) >= 2" — no mention of subtitles_newly_written. The extra clause is defensible (skip a no-op re-sync when both subs were pre-existing on a companion-audio-only recovery), but it diverges from the written spec without comment. Action: either drop the clause to honor the spec, or amend spec.md:414-419 + tasks.md:194 to record "sync runs only when at least one new track was written this run." My pick: keep the gate, update the docs. 🟡 Tests write into the working tree test_20260527132904_youtube_downloader_integration.py:33-38 introduces _make_workspace_temp_dir that creates tests/.runtime_tmp// inside the repo. Every other test in the file uses pytest's tmp_path fixture. There's no reason to deviate — tmp_path is just a Path and works fine for mocked subprocess side-effects. Worse: tests/.runtime_tmp/ is not in.gitignore, so any failed/aborted test (Ctrl+C, debugger exit before finally) leaves debris that git will track. Action: rewrite the three new tests to use tmp_path; remove the helper. 🟠 Pre-existing UX bug now more visible The skip-recovery success branch prints target_path.name (youtube_downloader.py:1189), but target_path was built from the new freshly-generated ZID before zid = old_zid swap on line 932. So in recovery mode the success line names a file that doesn't exist on disk. Not introduced by this commit, but now more reachable (recovery succeeds more often). Worth a small follow-up: rebuild target_path after the ZID swap, or report the actual created artifacts instead. 🟢 Minor youtube_downloader.py:771: get_base_language_code is defined after its first caller download_companion_audio. Works at call time, but reads upside-down. Move it up next to resolve_original_language. Asymmetry worth noting: companion audio matches ru → ru-RU via base-code fallback, but youtube_download_subtitle_languages = ru still passes ru literally to --sub-langs. yt-dlp has its own resolution so this likely works, but it's not symmetric with the new companion-audio behavior. Out of scope here; flag it as a known asymmetry. The subtitles_all_present[0] = primary invariant relies on the primary language's.srt actually existing. If primary is missing and ≥2 secondaries succeed, the first secondary silently becomes "primary." Pre-existing, but the subtitles_all_present rename is a chance to add a guard or at minimum a comment. Bottom line Ship-able. Two real follow-ups: (1) reconcile the subtitles_newly_written gate with the spec, (2) move the new tests onto tmp_path (or add tests/.runtime_tmp/ to.gitignore if you want to keep the helper for a reason I'm missing). The recovery UX bug is pre-existing and can be a separate ticket.
+20260527211340 Eliminate all the described comments.
+20260527211847 Changes Spec/task alignment — spec.md:414-425 and tasks.md:194: documented the subtitles_newly_written clause in the sync gate, plus an explicit "no newly downloaded subs → no sync" scenario. Tests on tmp_path — test_20260527132904_youtube_downloader_integration.py: three skip-recovery tests now use pytest's tmp_path fixture; the _make_workspace_temp_dir helper and the now-unused shutil import are gone. Recovery success message — youtube_downloader.py:933-934: after zid = old_zid, target_path is re-pointed at existing_file so the success summary names a real on-disk artifact. Helper placement — get_base_language_code now lives above its first caller download_companion_audio (line 659) and is still reused by resolve_original_language. Primary-track guard — youtube_downloader.py:1156-1175: sync now refuses to run if the configured primary language's.srt is missing on disk, instead of silently promoting a secondary to primary; user gets an explicit [!] Skipping subtitle sync line. Cleanup — removed stale tests/.runtime_tmp/ directory from the working tree.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
