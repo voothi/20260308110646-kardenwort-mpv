@@ -77,7 +77,7 @@ FRAGMENT_SKIP_REGEX = re.compile(
     r'fragment not found;\s*Skipping fragment\s+(\d+)'
 )
 
-def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_current=None, frag_total=None):
+def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_current=None, frag_total=None, indent="  "):
     """Generates a premium-themed, beautiful carriage-returned progress bar."""
     bar_width = 25
     filled_width = int(round(bar_width * percent_val / 100.0))
@@ -88,12 +88,57 @@ def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_cu
     eta_clean = eta_str.strip()
     
     frag_info = f" (frag {frag_current}/{frag_total})" if frag_current and frag_total else ""
-    return f"\r  ➔ Downloading: [{bar}] {percent_val:.1f}% of {size_clean} at {speed_clean} ETA {eta_clean}{frag_info}"
+    return f"\r{indent}➔ Downloading: [{bar}] {percent_val:.1f}% of {size_clean} at {speed_clean} ETA {eta_clean}{frag_info}"
 
 def clear_line():
     """Clears the current console line completely to prevent character leftovers."""
     sys.stdout.write("\r\x1b[K" + " " * 120 + "\r")
     sys.stdout.flush()
+
+def pause_console(success=True):
+    """Pauses the console window.
+    If success is True, shows a premium countdown to auto-close.
+    If success is False, pauses indefinitely so the user can inspect errors.
+    """
+    if not success:
+        input("\nPress Enter to exit...")
+        return
+
+    timeout_secs = 5
+    print(f"\nPress Enter to exit (or wait {timeout_secs}s for auto-close)...", end="", flush=True)
+    
+    is_windows = sys.platform.startswith("win")
+    if is_windows and sys.stdout.isatty():
+        import msvcrt
+        start_time = time.time()
+        last_remaining = timeout_secs
+        while True:
+            if msvcrt.kbhit():
+                try:
+                    msvcrt.getch()
+                except Exception:
+                    pass
+                break
+            
+            elapsed = time.time() - start_time
+            remaining = int(round(timeout_secs - elapsed))
+            if remaining <= 0:
+                break
+                
+            if remaining != last_remaining:
+                sys.stdout.write(f"\rPress Enter to exit (or wait {remaining}s for auto-close)...")
+                sys.stdout.flush()
+                last_remaining = remaining
+            
+            time.sleep(0.05)
+        # Clear the countdown text line cleanly
+        sys.stdout.write("\r" + " " * 65 + "\r")
+        sys.stdout.flush()
+    else:
+        try:
+            input("\nPress Enter to exit...")
+        except Exception:
+            pass
 
 # ==============================================================================
 # CONFIGURATION LOADING (Tasks 2.1 – 2.8)
@@ -660,11 +705,18 @@ def process_input_paths(paths):
 
 _original_run = subprocess.run
 
-def run_subprocess_streaming(cmd, *args, **kwargs):
+def run_subprocess_streaming(cmd, *args, indent="", **kwargs):
     """Runs a subprocess and streams stdout and stderr in real-time, preventing mixed lines."""
     if subprocess.run is not _original_run:
         return subprocess.run(cmd, *args, **kwargs)
         
+    def indent_line(line, indent):
+        if not indent:
+            return line
+        if line.startswith("\r"):
+            return "\r" + indent + line[1:]
+        return indent + line
+
     def process_line(raw_line, is_stderr, is_tty, state):
         line_content = raw_line.rstrip("\r\n")
         line_clean = strip_ansi(line_content)
@@ -682,23 +734,23 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                 if retry_match:
                     attempt, total = retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"    [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif generic_retry_match:
                     attempt, total = generic_retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"    [!] Network warning: retry attempt ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  [!] Network warning: retry attempt ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif frag_skip_match:
                     frag_num = frag_skip_match.group(1)
                     clear_line()
-                    sys.stdout.write(f"    [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
+                    sys.stdout.write(f"\r{indent}  [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 else:
-                    sys.stderr.write(raw_line)
+                    sys.stderr.write(indent_line(raw_line, indent))
                     sys.stderr.flush()
                     if raw_line:
                         state["last_char"] = raw_line[-1]
@@ -717,7 +769,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     percent_val = float(percent_str)
                     
                     if is_tty:
-                        bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot)
+                        bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot, indent=indent)
                         clear_line()
                         sys.stdout.write(bar_line)
                         sys.stdout.flush()
@@ -725,7 +777,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     else:
                         last_pct = state.get("last_percent", -10)
                         if percent_val - last_pct >= 10 or percent_val == 100:
-                            bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot).strip("\r")
+                            bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot, indent=indent).strip("\r")
                             sys.stdout.write(f"{bar_line}\n")
                             sys.stdout.flush()
                             state["last_percent"] = percent_val
@@ -734,7 +786,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     size_str, speed_str, time_str = sub_progress_match.groups()
                     if is_tty:
                         clear_line()
-                        sys.stdout.write(f"\r  ➔ Downloading subtitles: {size_str.strip()} at {speed_str.strip()} ({time_str.strip()})")
+                        sys.stdout.write(f"\r{indent}➔ Downloading subtitles: {size_str.strip()} at {speed_str.strip()} ({time_str.strip()})")
                         sys.stdout.flush()
                         state["last_char"] = "\r"
                 elif complete_match:
@@ -743,33 +795,33 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                         clear_line()
                     
                     time_info = f" in {time_str}" if time_str else ""
-                    sys.stdout.write(f"    • Completed download of {size_str.strip()}{time_info} at {speed_str.strip()}\n")
+                    sys.stdout.write(f"{indent}  • Completed download of {size_str.strip()}{time_info} at {speed_str.strip()}\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                     state["last_percent"] = -10
                 elif retry_match:
                     attempt, total = retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"    [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif generic_retry_match:
                     attempt, total = generic_retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"    [!] Network warning: retry attempt ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  [!] Network warning: retry attempt ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif frag_skip_match:
                     frag_num = frag_skip_match.group(1)
                     clear_line()
-                    sys.stdout.write(f"    [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
+                    sys.stdout.write(f"\r{indent}  [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 else:
                     if line_clean.startswith("[download]") and ("%" in line_clean or "100%" in line_clean):
                         pass
                     else:
-                        sys.stdout.write(raw_line)
+                        sys.stdout.write(indent_line(raw_line, indent))
                         sys.stdout.flush()
                         if raw_line:
                             state["last_char"] = raw_line[-1]
@@ -893,10 +945,12 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
         cmd.extend(["--cookies-from-browser", cookies_browser])
     cmd.append(url)
 
-    print(f"┌── [COMPANION AUDIO: {lang}] ─────────────────────────────────────────────────┐", flush=True)
-    print(f"  ➔ Downloading companion audio ({lang}, audio-only MP4)...", flush=True)
+    header = f"┌── [COMPANION AUDIO: {lang}] "
+    border_len = 78 - 2 - len(header) - 1
+    print("  " + header + "─" * border_len + "┐", flush=True)
+    print(f"    ➔ Downloading companion audio ({lang}, audio-only MP4)...", flush=True)
     try:
-        run_subprocess_streaming(cmd, check=True)
+        run_subprocess_streaming(cmd, check=True, indent="    ")
         # Strip video stream if the final file contains video, to save disk space
         if output_path.exists():
             try:
@@ -911,7 +965,7 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
                         temp_path.unlink()
             except Exception:
                 pass
-        print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+        print(f"  └{'─' * 74}┘\n", flush=True)
         return True
     except subprocess.CalledProcessError:
         if cookies_file or cookies_browser:
@@ -929,13 +983,13 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
                     continue
                 fallback_cmd.append(arg)
             try:
-                run_subprocess_streaming(fallback_cmd, check=True)
-                print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+                run_subprocess_streaming(fallback_cmd, check=True, indent="    ")
+                print(f"  └{'─' * 74}┘\n", flush=True)
                 return True
             except subprocess.CalledProcessError:
                 pass
         print(f"    [!] Warning: Companion audio download failed for language '{lang}'.", file=sys.stderr)
-        print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+        print(f"  └{'─' * 74}┘\n", flush=True)
         return False
 
 # ==============================================================================
@@ -1244,10 +1298,12 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
-            print("┌── [SUBTITLES DOWNLOAD PIPELINE] ───────────────────────────────────────────┐", flush=True)
-            print(f"  ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
+            header = "┌── [SUBTITLES DOWNLOAD PIPELINE] "
+            border_len = 78 - 2 - len(header) - 1
+            print("  " + header + "─" * border_len + "┐", flush=True)
+            print(f"    ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
-                run_subprocess_streaming(sub_cmd, check=True)
+                run_subprocess_streaming(sub_cmd, check=True, indent="    ")
             except subprocess.CalledProcessError:
                 if cookies_file or cookies_browser:
                     source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
@@ -1264,7 +1320,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                             continue
                         fallback_sub_cmd.append(arg)
                     try:
-                        run_subprocess_streaming(fallback_sub_cmd, check=True)
+                        run_subprocess_streaming(fallback_sub_cmd, check=True, indent="    ")
                     except subprocess.CalledProcessError:
                         print(f"    [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
                         subtitle_download_failed = True
@@ -1272,7 +1328,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     # Decoupled error handling: log warning and continue with video download
                     print(f"    [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
                     subtitle_download_failed = True
-            print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+            print(f"  └{'─' * 74}┘\n", flush=True)
         else:
             print("    • No subtitles were available.", flush=True)
 
@@ -1305,10 +1361,12 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         video_cmd.append(url)
         
-        print("┌── [VIDEO DOWNLOAD PIPELINE] ───────────────────────────────────────────────┐", flush=True)
-        print(f"  ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
+        header = "┌── [VIDEO DOWNLOAD PIPELINE] "
+        border_len = 78 - 2 - len(header) - 1
+        print("  " + header + "─" * border_len + "┐", flush=True)
+        print(f"    ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
         try:
-            run_subprocess_streaming(video_cmd, check=True)
+            run_subprocess_streaming(video_cmd, check=True, indent="    ")
         except subprocess.CalledProcessError:
             if cookies_file or cookies_browser:
                 source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
@@ -1325,16 +1383,16 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         continue
                     fallback_video_cmd.append(arg)
                 try:
-                    run_subprocess_streaming(fallback_video_cmd, check=True)
+                    run_subprocess_streaming(fallback_video_cmd, check=True, indent="    ")
                 except subprocess.CalledProcessError:
                     print("    [!] Error: yt-dlp video download failed.", file=sys.stderr)
-                    print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+                    print(f"  └{'─' * 74}┘\n", flush=True)
                     return False
             else:
                 print("    [!] Error: yt-dlp video download failed.", file=sys.stderr)
-                print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+                print(f"  └{'─' * 74}┘\n", flush=True)
                 return False
-        print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+        print(f"  └{'─' * 74}┘\n", flush=True)
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
@@ -1454,7 +1512,7 @@ def main():
     if not queue:
         print("  [!] Error: No YouTube URLs detected in the input.", file=sys.stderr)
         if args.pause:
-            input("\nPress Enter to exit...")
+            pause_console(success=False)
         sys.exit(1)
 
     print(f"  [queue] Detected {len(queue)} YouTube URL(s) to process.", flush=True)
@@ -1482,7 +1540,7 @@ def main():
     print("  [backend] Checking and updating yt-dlp...", flush=True)
     if not setup_backend(settings["youtube_download_auto_update"]):
         if args.pause:
-            input("\nPress Enter to exit...")
+            pause_console(success=False)
         sys.exit(1)
     print("  [backend] yt-dlp is ready.\n", flush=True)
 
@@ -1509,7 +1567,7 @@ def main():
     print(f"================================================================================", flush=True)
     
     if args.pause:
-        input("\nPress Enter to exit...")
+        pause_console(success=(success_count == len(queue)))
 
 if __name__ == "__main__":
     main()
