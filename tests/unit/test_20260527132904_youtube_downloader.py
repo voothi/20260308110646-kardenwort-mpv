@@ -112,3 +112,23 @@ def test_unique_zid_generation_and_collision_guard(monkeypatch):
     assert zid1 == "20260527132904"
     assert zid2 == "20260527132905"
     assert zid1 != zid2
+
+
+def test_get_current_zid(monkeypatch):
+    yd = _load_downloader()
+    
+    # 1. Success case: subprocess returns mock ZID
+    class MockCompletedProcess:
+        def __init__(self):
+            self.stdout = "20260527141526\n"
+            
+    monkeypatch.setattr(yd.subprocess, "run", lambda *args, **kwargs: MockCompletedProcess())
+    assert yd.get_current_zid() == "20260527141526"
+    
+    # 2. Failure fallback case: subprocess raises error, falls back to time.strftime
+    def mock_run_error(*args, **kwargs):
+        raise RuntimeError("ZID script failed")
+        
+    monkeypatch.setattr(yd.subprocess, "run", mock_run_error)
+    monkeypatch.setattr(yd.time, "strftime", lambda fmt: "99991231235959")
+    assert yd.get_current_zid() == "99991231235959"

@@ -76,6 +76,19 @@ def load_config():
 # ==============================================================================
 # ZID GENERATION & SANITIZATION (Tasks 5.7 – 5.12)
 # ==============================================================================
+def get_current_zid():
+    """Calls the system ZID script to retrieve the current anchor ZID, falling back to local time."""
+    try:
+        res = subprocess.run(
+            ["python", "U:\\voothi\\20241116203211-zid\\zid.py", "--no-clipboard"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return res.stdout.strip()
+    except Exception:
+        return time.strftime("%Y%m%d%H%M%S")
+
 def get_unique_zid(used_zids):
     """Generates a unique ZID YYYYMMDDHHMMSS, sleeping 1s on collision."""
     while True:
