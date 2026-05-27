@@ -397,10 +397,18 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenati
 # SECONDARY SUBTITLE TIMESTAMP SYNC (Option A)
 # ==============================================================================
 def sync_secondary_srt_timestamps(primary_path, secondary_path):
-    """Copies timestamps from the primary SRT onto the secondary SRT block-by-block.
-    If the block counts differ, the longer track is trimmed to match the shorter one.
-    Only the timestamp lines are replaced; the subtitle text content is untouched.
+    """Re-timestamps the secondary SRT to match the primary using time-based
+    nearest-neighbor matching.
+
+    For each secondary block, its original start_time is matched to the closest
+    primary block's start_time via binary search.  Monotonic forward progress is
+    enforced so that timestamps never go backwards.
+
+    This avoids the cumulative positional drift that arises when the two tracks
+    have different block counts (e.g. EN=356 vs RU=350).
     """
+    import bisect
+
     try:
         primary_path = Path(primary_path)
         secondary_path = Path(secondary_path)
@@ -443,19 +451,54 @@ def sync_secondary_srt_timestamps(primary_path, secondary_path):
                 blocks.append(current)
             return blocks
 
+        def srt_time_to_ms(t):
+            """Converts '00:02:15,840' -> 135840 (milliseconds)."""
+            parts = t.split(":")
+            h = int(parts[0])
+            m = int(parts[1])
+            s_ms = parts[2].split(",")
+            s = int(s_ms[0])
+            ms = int(s_ms[1]) if len(s_ms) > 1 else 0
+            return h * 3600000 + m * 60000 + s * 1000 + ms
+
         primary_blocks = read_blocks(primary_path)
         secondary_blocks = read_blocks(secondary_path)
 
         if not primary_blocks or not secondary_blocks:
             return
 
-        # Trim both to the shorter length so every secondary block gets a primary timestamp
-        count = min(len(primary_blocks), len(secondary_blocks))
-        primary_blocks = primary_blocks[:count]
-        secondary_blocks = secondary_blocks[:count]
+        # Build a sorted list of primary start times in ms for binary search
+        primary_starts_ms = [srt_time_to_ms(b["start_time"]) for b in primary_blocks]
+
+        # Match each secondary block to the nearest primary block by start time
+        min_idx = 0  # enforce monotonic non-decreasing progress
+        matched_pairs = []  # list of (primary_block, secondary_block)
+
+        for sb in secondary_blocks:
+            sb_start_ms = srt_time_to_ms(sb["start_time"])
+
+            # Binary search for the insertion point in the primary timeline
+            pos = bisect.bisect_left(primary_starts_ms, sb_start_ms, lo=min_idx)
+
+            # Find the closest primary block between pos-1 and pos
+            best = pos
+            if pos >= len(primary_starts_ms):
+                best = len(primary_starts_ms) - 1
+            elif pos > min_idx:
+                diff_left = abs(primary_starts_ms[pos - 1] - sb_start_ms)
+                diff_right = abs(primary_starts_ms[pos] - sb_start_ms)
+                if diff_left <= diff_right:
+                    best = pos - 1
+
+            # Clamp to valid range and enforce monotonic progress
+            best = max(best, min_idx)
+            best = min(best, len(primary_blocks) - 1)
+
+            matched_pairs.append((primary_blocks[best], sb))
+            min_idx = best  # allow same primary block for adjacent secondary blocks
 
         new_content = []
-        for idx, (pb, sb) in enumerate(zip(primary_blocks, secondary_blocks), 1):
+        for idx, (pb, sb) in enumerate(matched_pairs, 1):
             new_content.append(str(idx))
             new_content.append(f"{pb['start_time']} --> {pb['end_time']}")
             for line in sb["lines"]:
@@ -463,7 +506,8 @@ def sync_secondary_srt_timestamps(primary_path, secondary_path):
             new_content.append("")  # blank separator
 
         secondary_path.write_text("\n".join(new_content), encoding="utf-8", newline="\n")
-        print(f"   [sync] Re-timestamped {secondary_path.name} to match {primary_path.name} ({count} blocks).", flush=True)
+        print(f"   [sync] Re-timestamped {secondary_path.name} to match {primary_path.name} "
+              f"({len(matched_pairs)} blocks, time-aligned).", flush=True)
 
     except Exception as e:
         print(f"   [!] Warning: Failed to sync secondary subtitle timestamps: {e}", file=sys.stderr)

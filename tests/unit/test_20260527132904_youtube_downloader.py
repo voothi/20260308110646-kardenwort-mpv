@@ -309,7 +309,6 @@ def test_clean_srt_file_both(tmp_path):
     assert cleaned.strip() == expected.strip()
 
 
-
 def test_sync_secondary_srt_timestamps(tmp_path):
     yd = _load_downloader()
 
@@ -361,7 +360,11 @@ def test_sync_secondary_srt_timestamps(tmp_path):
 def test_sync_secondary_srt_timestamps_different_counts(tmp_path):
     yd = _load_downloader()
 
-    # Primary: 2 blocks; Secondary: 3 blocks - secondary gets trimmed to 2
+    # Primary: 2 blocks; Secondary: 3 blocks.
+    # Time-based matching keeps all 3 secondary blocks:
+    #   RU block 1 (01:500) -> closest EN block 1 (01:000)
+    #   RU block 2 (03:000) -> closest EN block 2 (02:000)
+    #   RU block 3 (05:000) -> maps to EN block 2 (clamped by monotonic progress)
     primary_content = (
         "1\n"
         "00:00:01,000 --> 00:00:02,000\n"
@@ -392,12 +395,16 @@ def test_sync_secondary_srt_timestamps_different_counts(tmp_path):
     yd.sync_secondary_srt_timestamps(primary_file, secondary_file)
 
     result = secondary_file.read_text(encoding="utf-8")
-    assert result.count("-->") == 2
+    # All 3 secondary blocks are preserved (not trimmed)
+    assert result.count("-->") == 3
     assert "00:00:01,000 --> 00:00:02,000" in result
     assert "00:00:02,000 --> 00:00:04,000" in result
     assert "Блок один" in result
     assert "Блок два" in result
-    assert "Блок три" not in result
+    assert "Блок три" in result
+    # Old secondary timestamps must not appear
+    assert "00:00:01,500" not in result
+    assert "00:00:05,000 --> 00:00:07,000" not in result
 
 
 def test_sync_secondary_srt_timestamps_missing_file(tmp_path):
