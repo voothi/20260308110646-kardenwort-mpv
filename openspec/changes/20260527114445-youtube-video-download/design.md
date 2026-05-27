@@ -34,12 +34,13 @@ The user currently downloads YouTube videos for language learning using external
    - Robust error handling and retry logic
    - Active maintenance and frequent updates
 
-3. **Configuration-driven resolution, directory, and updates**
+3. **Configuration-driven resolution, directory, updates, and chapters**
 
-   Add three new configuration options:
+   Add four new configuration options:
    - `youtube_download_resolution` (default: "1080p")
    - `youtube_download_directory` (default: user's Videos folder or project-specific directory)
    - `youtube_download_auto_update` (default: true) - Check and install yt-dlp updates before downloads
+   - `youtube_download_chapters_separate` (default: false) - Save chapters to a separate file instead of embedding
 
 4. **File-based "Send to" integration**
 
@@ -52,7 +53,7 @@ The user currently downloads YouTube videos for language learning using external
 
    The integration will automatically download:
    - SRT subtitle files separately (for each available language)
-   - Chapter metadata embedded in the video file
+   - Chapter metadata (either embedded in the video file or saved to a separate file based on configuration)
    This eliminates the need for manual subtitle download via newpipe/asbplayer.
 
 6. **Automatic yt-dlp updates**
