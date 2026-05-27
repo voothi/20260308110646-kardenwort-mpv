@@ -1022,7 +1022,7 @@ end
 
 -- Playback-independent resolver for static grounding (TSV anchors, probes).
 -- Unlike get_center_index(), this must not depend on ACTIVE_IDX sticky state.
-local function get_center_index_static(subs, time_pos)
+function get_center_index_static(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
 
     local low, high = 1, #subs
