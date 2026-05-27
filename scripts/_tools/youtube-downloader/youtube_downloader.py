@@ -22,6 +22,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Optional
 
 # ==============================================================================
 # GLOBAL CONSTANTS & REGEX
@@ -136,13 +137,13 @@ def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_cu
     """Generates a Python pip-style, elegant carriage-returned progress bar with modern colors."""
     bar_width = 40
     filled_width = int(round(bar_width * percent_val / 100.0))
-    bar = "\x1b[32m" + "━" * filled_width + "\x1b[90m" + "━" * (bar_width - filled_width) + "\x1b[0m"
+    bar = _green("━" * filled_width) + _dim("━" * (bar_width - filled_width))
     
     size_clean = size_str.strip()
     speed_clean = speed_str.strip()
     eta_clean = eta_str.strip()
     
-    frag_info = f" \x1b[90m(frag {frag_current}/{frag_total})\x1b[0m" if frag_current and frag_total else ""
+    frag_info = f" {_dim(f'(frag {frag_current}/{frag_total})')}" if frag_current and frag_total else ""
     
     # Try to format as current/total size like pip (e.g. 3.5/10.5 MiB)
     match = re.search(r"([\d\.]+)\s*([a-zA-Z]+)", size_clean)
@@ -157,19 +158,19 @@ def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_cu
     else:
         progress_size = f"{percent_val:.1f}% of {size_clean}"
         
-    return f"\r{indent}{bar} \x1b[36m{progress_size}\x1b[0m \x1b[33m{speed_clean}\x1b[0m \x1b[90meta\x1b[0m \x1b[36m{eta_clean}\x1b[0m{frag_info}"
+    return f"\r{indent}{bar} {_cyan(progress_size)} {_yellow(speed_clean)} {_dim('eta')} {_cyan(eta_clean)}{frag_info}"
 
 def clear_line():
     """Clears the current console line completely to prevent character leftovers."""
     sys.stdout.write("\r\x1b[K" + " " * 120 + "\r")
     sys.stdout.flush()
 
-def pause_console(success=True, timeout_secs=PAUSE_AUTO_CLOSE_TIMEOUT_SECS):
+def pause_console(success: bool = True, timeout_secs: Optional[int] = PAUSE_AUTO_CLOSE_TIMEOUT_SECS):
     """Pauses the console window.
     If success is True and timeout_secs is provided, shows a premium countdown to auto-close.
     If success is False or timeout_secs is None, pauses indefinitely so the user can inspect errors.
     """
-    if not success or timeout_secs is None or timeout_secs == "":
+    if not success or timeout_secs is None:
         try:
             input("\nPress Enter to exit...")
         except Exception:
@@ -1308,7 +1309,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         meta_auto = info.get("automatic_captions", {})
                         if meta_auto:
                             sub_langs_list.extend(meta_auto.keys())
-                        log_info("Language auto-detection fell back to all available auto-subtitles.")
+                            log_info("Language auto-detection fell back to all available auto-subtitles.")
             else:
                 sub_langs_list.append(l)
                 
@@ -1604,6 +1605,7 @@ def main():
     
     if args.pause:
         timeout_val = settings.get("youtube_download_auto_close_timeout_secs", "").strip()
+        timeout: Optional[int]
         if not timeout_val:
             timeout = None
         else:
