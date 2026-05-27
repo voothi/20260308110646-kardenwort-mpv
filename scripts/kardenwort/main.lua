@@ -1020,6 +1020,45 @@ function get_center_index(subs, time_pos)
     return best
 end
 
+-- Playback-independent resolver for static grounding (TSV anchors, probes).
+-- Unlike get_center_index(), this must not depend on ACTIVE_IDX sticky state.
+local function get_center_index_static(subs, time_pos)
+    if not subs or #subs == 0 then return -1 end
+
+    local low, high = 1, #subs
+    local best = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            best = mid
+            low = mid + 1
+        else
+            high = mid - 1
+        end
+    end
+
+    if best == -1 then return 1 end
+    if time_pos <= 0 then return 1 end
+
+    if time_pos <= subs[best].end_time then
+        return best
+    end
+
+    if best < #subs then
+        local next_sub = subs[best + 1]
+        if time_pos >= next_sub.start_time then
+            return best + 1
+        end
+        if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
+            return best
+        else
+            return best + 1
+        end
+    end
+
+    return best
+end
+
 
 local function sync_ctrl_pending_list()
     local members = {}
@@ -2524,7 +2563,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
             local t_center = data.__cached_anchor_sub
             if not t_center or data.__cached_time ~= data.time then
-                t_center = get_center_index(subs, data.time)
+                t_center = get_center_index_static(subs, data.time)
                 data.__cached_anchor_sub = t_center
                 data.__cached_time = data.time
             end
@@ -2621,7 +2660,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                         else
                             -- Local Mode (Global OFF): MUST be grounded if pivots exist
                             if data.__pivots and #data.__pivots > 0 then
-                                local origin_l = get_center_index(subs, data.time)
+                                local origin_l = get_center_index_static(subs, data.time)
                                 if origin_l ~= -1 then
                                     -- Verify the specific pivot corresponding to this word part
                                     local g = data.__pivots[term_offset]
@@ -2654,7 +2693,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
                     -- Phase 3: Split Matching (Only if not already matched as contiguous, and is multi-word)
                     if not match_found and #term_clean > 1 then
-                        local origin_sub_idx = Options.anki_global_highlight and sub_idx or get_center_index(subs, data.time)
+                        local origin_sub_idx = Options.anki_global_highlight and sub_idx or get_center_index_static(subs, data.time)
                         if not subs[sub_idx].__split_valid_indices then
                             subs[sub_idx].__split_valid_indices = {}
                         end

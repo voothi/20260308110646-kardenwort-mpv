@@ -11,6 +11,7 @@ lines must not also highlight unless exact-slot resolution is unavailable.
 import tempfile
 import time
 import shutil
+import json
 from pathlib import Path
 
 import pytest
@@ -84,11 +85,32 @@ def _wait_for_tsv_load(ipc, expected_size, timeout_s=8.0):
     deadline = time.time() + timeout_s
     state = {}
     while time.time() < deadline:
-        state = query_kardenwort_state(ipc)
+        state = _query_state_robust(ipc)
         if state and state.get("anki_db_size", 0) == expected_size:
             return state
         time.sleep(0.2)
     return state
+
+
+def _query_state_robust(ipc, retries=3):
+    for _ in range(retries):
+        state = query_kardenwort_state(ipc)
+        if state and "options" in state:
+            return state
+        # Fallback path: explicit query + direct property read (no event dependency).
+        try:
+            ipc.command(["script-message-to", "kardenwort", "state-query"])
+            raw = ipc.get_property("user-data/kardenwort/state") or ""
+            if raw and "|" in raw:
+                raw = raw.split("|", 1)[1]
+            if raw and raw != "{}":
+                parsed = json.loads(raw)
+                if parsed and "options" in parsed:
+                    return parsed
+        except Exception:
+            pass
+        time.sleep(0.2)
+    return {}
 
 
 def test_local_anchor_uses_exact_slot_before_neighbor_fallback():
@@ -142,15 +164,18 @@ def test_adjacent_identical_boundary_highlight_respects_exact_anchor_only():
             ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_record_file", str(tsv_path)])
             ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_global_highlight", "no"])
 
+            ready = _query_state_robust(ipc, retries=8)
+            assert ready and "options" in ready, "kardenwort state probe did not become ready in time"
+
             loaded = _wait_for_tsv_load(ipc, tsv_path.stat().st_size)
             assert loaded.get("anki_db_size", 0) == tsv_path.stat().st_size, "TSV did not load in time"
 
             ipc.command(["script-message-to", "kardenwort", "test-calc-highlight-stack", "1", "1", "2.001"])
-            state_prev = query_kardenwort_state(ipc)
+            state_prev = _query_state_robust(ipc)
             prev_stack = (state_prev.get("test_data") or {}).get("highlight_stack") or {}
 
             ipc.command(["script-message-to", "kardenwort", "test-calc-highlight-stack", "2", "1", "2.001"])
-            state_curr = query_kardenwort_state(ipc)
+            state_curr = _query_state_robust(ipc)
             curr_stack = (state_curr.get("test_data") or {}).get("highlight_stack") or {}
 
             assert prev_stack.get("ok") is True, f"previous-line stack probe failed: {prev_stack}"
