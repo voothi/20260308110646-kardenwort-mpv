@@ -31,6 +31,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = SCRIPT_DIR / "config.ini"
 CONFIG_TEMPLATE = SCRIPT_DIR / "config.ini.template"
 
+# Console auto-close timeout in seconds (on successful runs in SendTo/pause mode)
+PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
+
 SHORTCUT_DISPLAY_NAME = "Kardenwort Sub TTS"
 
 # Built-in alias table: subtitle filename postfix → Piper language code
@@ -974,7 +977,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         cleanup_temp_dir(temp_dir, success)
 
 
-def pause_console(success=True):
+def pause_console(success=True, timeout_secs=PAUSE_AUTO_CLOSE_TIMEOUT_SECS):
     """Pauses the console window.
     If success is True, shows a premium countdown to auto-close.
     If success is False, pauses indefinitely so the user can inspect errors.
@@ -983,7 +986,6 @@ def pause_console(success=True):
         input("\nPress Enter to exit...")
         return
 
-    timeout_secs = 5
     print(f"\nPress Enter to exit (or wait {timeout_secs}s for auto-close)...", end="", flush=True)
     
     is_windows = sys.platform.startswith("win")
@@ -1157,7 +1159,12 @@ def main():
     print(f"{'='*60}")
 
     if args.pause:
-        pause_console(success=(succeeded == total))
+        timeout = PAUSE_AUTO_CLOSE_TIMEOUT_SECS
+        try:
+            timeout = int(config.get("tts_settings", "auto_close_timeout_secs", fallback=str(PAUSE_AUTO_CLOSE_TIMEOUT_SECS)))
+        except Exception:
+            pass
+        pause_console(success=(succeeded == total), timeout_secs=timeout)
 
     sys.exit(0 if succeeded == total else 1)
 

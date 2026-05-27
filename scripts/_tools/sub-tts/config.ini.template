@@ -58,6 +58,12 @@ max_extra_gap_ms = 1000
 max_speed_factor = 2.0
 
 
+# Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
+# Set to 0 to close instantly; ignored on errors so they can be inspected.
+# Default: 15
+# auto_close_timeout_secs = 15
+
+
 [lang_aliases]
 # ============================================================================
 # Optional: Map subtitle filename postfixes to Piper language codes.

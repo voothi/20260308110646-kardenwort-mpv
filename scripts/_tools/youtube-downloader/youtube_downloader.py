@@ -29,6 +29,9 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = SCRIPT_DIR / "config.ini"
 
+# Console auto-close timeout in seconds (on successful runs in SendTo/pause mode)
+PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
+
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
 
@@ -95,7 +98,7 @@ def clear_line():
     sys.stdout.write("\r\x1b[K" + " " * 120 + "\r")
     sys.stdout.flush()
 
-def pause_console(success=True):
+def pause_console(success=True, timeout_secs=PAUSE_AUTO_CLOSE_TIMEOUT_SECS):
     """Pauses the console window.
     If success is True, shows a premium countdown to auto-close.
     If success is False, pauses indefinitely so the user can inspect errors.
@@ -104,7 +107,6 @@ def pause_console(success=True):
         input("\nPress Enter to exit...")
         return
 
-    timeout_secs = 5
     print(f"\nPress Enter to exit (or wait {timeout_secs}s for auto-close)...", end="", flush=True)
     
     is_windows = sys.platform.startswith("win")
@@ -166,6 +168,7 @@ def load_config():
         "youtube_download_companion_audio_languages": "",
         "youtube_download_js_runtime": "node",
         "youtube_download_zid_script": "",
+        "youtube_download_auto_close_timeout_secs": "15",
     }
 
     if CONFIG_FILE.exists():
@@ -945,12 +948,10 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
         cmd.extend(["--cookies-from-browser", cookies_browser])
     cmd.append(url)
 
-    header = f"┌── [COMPANION AUDIO: {lang}] "
-    border_len = 78 - 2 - len(header) - 1
-    print("  " + header + "─" * border_len + "┐", flush=True)
-    print(f"    ➔ Downloading companion audio ({lang}, audio-only MP4)...", flush=True)
+    print(f"┌── [COMPANION AUDIO: {lang}] ─────────────────────────────────────────────────┐", flush=True)
+    print(f"  ➔ Downloading companion audio ({lang}, audio-only MP4)...", flush=True)
     try:
-        run_subprocess_streaming(cmd, check=True, indent="    ")
+        run_subprocess_streaming(cmd, check=True)
         # Strip video stream if the final file contains video, to save disk space
         if output_path.exists():
             try:
@@ -965,7 +966,7 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
                         temp_path.unlink()
             except Exception:
                 pass
-        print(f"  └{'─' * 74}┘\n", flush=True)
+        print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
         return True
     except subprocess.CalledProcessError:
         if cookies_file or cookies_browser:
@@ -983,13 +984,13 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
                     continue
                 fallback_cmd.append(arg)
             try:
-                run_subprocess_streaming(fallback_cmd, check=True, indent="    ")
-                print(f"  └{'─' * 74}┘\n", flush=True)
+                run_subprocess_streaming(fallback_cmd, check=True)
+                print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                 return True
             except subprocess.CalledProcessError:
                 pass
         print(f"    [!] Warning: Companion audio download failed for language '{lang}'.", file=sys.stderr)
-        print(f"  └{'─' * 74}┘\n", flush=True)
+        print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
         return False
 
 # ==============================================================================
@@ -1298,12 +1299,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
-            header = "┌── [SUBTITLES DOWNLOAD PIPELINE] "
-            border_len = 78 - 2 - len(header) - 1
-            print("  " + header + "─" * border_len + "┐", flush=True)
-            print(f"    ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
+            print("┌── [SUBTITLES DOWNLOAD PIPELINE] ───────────────────────────────────────────┐", flush=True)
+            print(f"  ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
-                run_subprocess_streaming(sub_cmd, check=True, indent="    ")
+                run_subprocess_streaming(sub_cmd, check=True)
             except subprocess.CalledProcessError:
                 if cookies_file or cookies_browser:
                     source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
@@ -1320,7 +1319,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                             continue
                         fallback_sub_cmd.append(arg)
                     try:
-                        run_subprocess_streaming(fallback_sub_cmd, check=True, indent="    ")
+                        run_subprocess_streaming(fallback_sub_cmd, check=True)
                     except subprocess.CalledProcessError:
                         print(f"    [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
                         subtitle_download_failed = True
@@ -1328,7 +1327,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     # Decoupled error handling: log warning and continue with video download
                     print(f"    [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
                     subtitle_download_failed = True
-            print(f"  └{'─' * 74}┘\n", flush=True)
+            print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
         else:
             print("    • No subtitles were available.", flush=True)
 
@@ -1361,12 +1360,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         video_cmd.append(url)
         
-        header = "┌── [VIDEO DOWNLOAD PIPELINE] "
-        border_len = 78 - 2 - len(header) - 1
-        print("  " + header + "─" * border_len + "┐", flush=True)
-        print(f"    ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
+        print("┌── [VIDEO DOWNLOAD PIPELINE] ───────────────────────────────────────────────┐", flush=True)
+        print(f"  ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
         try:
-            run_subprocess_streaming(video_cmd, check=True, indent="    ")
+            run_subprocess_streaming(video_cmd, check=True)
         except subprocess.CalledProcessError:
             if cookies_file or cookies_browser:
                 source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
@@ -1383,16 +1380,16 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         continue
                     fallback_video_cmd.append(arg)
                 try:
-                    run_subprocess_streaming(fallback_video_cmd, check=True, indent="    ")
+                    run_subprocess_streaming(fallback_video_cmd, check=True)
                 except subprocess.CalledProcessError:
                     print("    [!] Error: yt-dlp video download failed.", file=sys.stderr)
-                    print(f"  └{'─' * 74}┘\n", flush=True)
+                    print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                     return False
             else:
                 print("    [!] Error: yt-dlp video download failed.", file=sys.stderr)
-                print(f"  └{'─' * 74}┘\n", flush=True)
+                print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
                 return False
-        print(f"  └{'─' * 74}┘\n", flush=True)
+        print("└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
@@ -1567,7 +1564,12 @@ def main():
     print(f"================================================================================", flush=True)
     
     if args.pause:
-        pause_console(success=(success_count == len(queue)))
+        timeout = PAUSE_AUTO_CLOSE_TIMEOUT_SECS
+        try:
+            timeout = int(settings.get("youtube_download_auto_close_timeout_secs", str(PAUSE_AUTO_CLOSE_TIMEOUT_SECS)))
+        except Exception:
+            pass
+        pause_console(success=(success_count == len(queue)), timeout_secs=timeout)
 
 if __name__ == "__main__":
     main()
