@@ -100,11 +100,14 @@ def clear_line():
 
 def pause_console(success=True, timeout_secs=PAUSE_AUTO_CLOSE_TIMEOUT_SECS):
     """Pauses the console window.
-    If success is True, shows a premium countdown to auto-close.
-    If success is False, pauses indefinitely so the user can inspect errors.
+    If success is True and timeout_secs is provided, shows a premium countdown to auto-close.
+    If success is False or timeout_secs is None, pauses indefinitely so the user can inspect errors.
     """
-    if not success:
-        input("\nPress Enter to exit...")
+    if not success or timeout_secs is None or timeout_secs == "":
+        try:
+            input("\nPress Enter to exit...")
+        except Exception:
+            pass
         return
 
     print(f"\nPress Enter to exit (or wait {timeout_secs}s for auto-close)...", end="", flush=True)
@@ -1564,11 +1567,14 @@ def main():
     print(f"================================================================================", flush=True)
     
     if args.pause:
-        timeout = PAUSE_AUTO_CLOSE_TIMEOUT_SECS
-        try:
-            timeout = int(settings.get("youtube_download_auto_close_timeout_secs", str(PAUSE_AUTO_CLOSE_TIMEOUT_SECS)))
-        except Exception:
-            pass
+        timeout_val = settings.get("youtube_download_auto_close_timeout_secs", "").strip()
+        if not timeout_val:
+            timeout = None
+        else:
+            try:
+                timeout = int(timeout_val)
+            except Exception:
+                timeout = PAUSE_AUTO_CLOSE_TIMEOUT_SECS
         pause_console(success=(success_count == len(queue)), timeout_secs=timeout)
 
 if __name__ == "__main__":
