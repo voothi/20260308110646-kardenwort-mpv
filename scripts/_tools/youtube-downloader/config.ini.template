@@ -41,4 +41,11 @@ youtube_download_chapters_mode = embedded
 # Extract cookies from browser to bypass YouTube rate-limiting and HTTP 429 errors.
 #   Leave empty to disable (default)
 #   Supported values: chrome, firefox, edge, opera, safari, brave, vivaldi, etc.
+# Note: Chrome on Windows 11 often blocks external processes via DPAPI App-Bound encryption.
+# If you hit DPAPI errors, use firefox, edge, or specify a cookies file below.
 # youtube_download_cookies_browser = chrome
+
+# Alternatively, specify the path to a manually exported Netscape/Mozilla cookies file.
+# Leave empty to disable (default). Specifying a cookies file is 100% immune to locks/DPAPI errors.
+# youtube_download_cookies_file = 
+

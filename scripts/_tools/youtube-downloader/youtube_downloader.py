@@ -49,6 +49,7 @@ def load_config():
         "youtube_download_auto_update": "true",
         "youtube_download_chapters_mode": "embedded",
         "youtube_download_cookies_browser": "",
+        "youtube_download_cookies_file": "",
     }
 
     if CONFIG_FILE.exists():
@@ -279,10 +280,12 @@ def process_input_paths(paths):
 # ==============================================================================
 # MAIN DOWNLOAD PIPELINE
 # ==============================================================================
-def run_ytdlp_info(url, cookies_browser=None):
+def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
     """Runs yt-dlp --dump-json to fetch metadata."""
     cmd = ["yt-dlp", "--dump-json", "--no-warnings"]
-    if cookies_browser:
+    if cookies_file:
+        cmd.extend(["--cookies", cookies_file])
+    elif cookies_browser:
         cmd.extend(["--cookies-from-browser", cookies_browser])
     cmd.append(url)
     try:
@@ -290,8 +293,9 @@ def run_ytdlp_info(url, cookies_browser=None):
         import json
         return json.loads(res.stdout)
     except Exception as e:
-        if cookies_browser:
-            print(f"   [!] Warning: Failed to load cookies from {cookies_browser} (the browser might be open/locked).", flush=True)
+        if cookies_file or cookies_browser:
+            source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+            print(f"   [!] Warning: Failed to load cookies from {source_desc} (might be open, locked, or DPAPI error).", flush=True)
             print("       Retrying metadata fetch without cookies...", flush=True)
             fallback_cmd = ["yt-dlp", "--dump-json", "--no-warnings", url]
             try:
@@ -310,8 +314,13 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     # 1. Fetch metadata
     print(f" ➔ Fetching video metadata...", flush=True)
     cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
+    cookies_file = settings.get("youtube_download_cookies_file", "").strip()
     try:
-        info = run_ytdlp_info(url, cookies_browser=cookies_browser if cookies_browser else None)
+        info = run_ytdlp_info(
+            url,
+            cookies_browser=cookies_browser if cookies_browser else None,
+            cookies_file=cookies_file if cookies_file else None
+        )
     except TypeError:
         # Fallback for mocked single-argument lambdas in unit/integration tests
         info = run_ytdlp_info(url)
@@ -491,7 +500,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     # 5. Build and run subtitle download command (if needed)
     if download_subs and sub_langs_list:
         sub_cmd = ["yt-dlp", "--skip-download", "--no-warnings", "-o", output_tmpl]
-        if cookies_browser:
+        if cookies_file:
+            sub_cmd.extend(["--cookies", cookies_file])
+        elif cookies_browser:
             sub_cmd.extend(["--cookies-from-browser", cookies_browser])
         sub_cmd.extend(["--convert-subs", "srt"])
         sub_cmd.extend(["--sub-langs", ",".join(sub_langs_list)])
@@ -522,8 +533,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             try:
                 subprocess.run(sub_cmd, check=True)
             except subprocess.CalledProcessError:
-                if cookies_browser:
-                    print("   [!] Warning: Subtitle download failed with cookies (browser might be open/locked).", flush=True)
+                if cookies_file or cookies_browser:
+                    source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+                    print(f"   [!] Warning: Subtitle download failed with cookies ({source_desc} might be open/locked).", flush=True)
                     print("       Retrying subtitle download without cookies...", flush=True)
                     fallback_sub_cmd = []
                     skip_next = False
@@ -531,7 +543,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         if skip_next:
                             skip_next = False
                             continue
-                        if arg == "--cookies-from-browser":
+                        if arg in ["--cookies-from-browser", "--cookies"]:
                             skip_next = True
                             continue
                         fallback_sub_cmd.append(arg)
@@ -551,7 +563,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     # 6. Build and run video download command (if needed)
     if mode != "subtitles":
         video_cmd = ["yt-dlp", "--no-warnings"]
-        if cookies_browser:
+        if cookies_file:
+            video_cmd.extend(["--cookies", cookies_file])
+        elif cookies_browser:
             video_cmd.extend(["--cookies-from-browser", cookies_browser])
         
         # Resolution format selection
@@ -575,8 +589,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         try:
             subprocess.run(video_cmd, check=True)
         except subprocess.CalledProcessError:
-            if cookies_browser:
-                print("   [!] Warning: Video download failed with cookies (browser might be open/locked).", flush=True)
+            if cookies_file or cookies_browser:
+                source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+                print(f"   [!] Warning: Video download failed with cookies ({source_desc} might be open/locked).", flush=True)
                 print("       Retrying video download without cookies...", flush=True)
                 fallback_video_cmd = []
                 skip_next = False
@@ -584,7 +599,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     if skip_next:
                         skip_next = False
                         continue
-                    if arg == "--cookies-from-browser":
+                    if arg in ["--cookies-from-browser", "--cookies"]:
                         skip_next = True
                         continue
                     fallback_video_cmd.append(arg)
