@@ -137,9 +137,11 @@ def test_get_current_zid(monkeypatch):
 def test_clean_srt_file(tmp_path):
     yd = _load_downloader()
     
+    # Simulating the real-world bug where there is a blank line between timestamp and text
     dirty_content = (
         "1\n"
         "00:00:02,160 --> 00:00:04,470\n"
+        "\n"
         "On Tuesday, May 19th, thousands of\n"
         "\n"
         "2\n"
@@ -149,10 +151,12 @@ def test_clean_srt_file(tmp_path):
         "3\n"
         "00:00:04,480 --> 00:00:06,270\n"
         "On Tuesday, May 19th, thousands of\n"
+        "\n"
         "developers opened their computers and\n"
         "\n"
         "4\n"
         "00:00:06,270 --> 00:00:06,280\n"
+        "\n"
         "developers opened their computers and\n"
         "\n"
         "5\n"

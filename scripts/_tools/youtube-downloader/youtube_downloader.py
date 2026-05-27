@@ -248,46 +248,53 @@ def clean_srt_file(srt_path):
         # Standardize line endings to \n
         content = content.replace("\r\n", "\n")
         
-        # Split into blocks by double newlines or similar separators
-        raw_blocks = re.split(r'\n\n+', content.strip())
-        
+        lines = content.split("\n")
         parsed_blocks = []
-        for raw in raw_blocks:
-            lines = [line.strip() for line in raw.split("\n") if line.strip()]
-            if len(lines) < 2:
-                continue
-            
-            # Line 0 is typically the index
-            # Line 1 is the timestamp range, e.g. "00:00:02,160 --> 00:00:04,470"
-            index = lines[0]
-            time_line = lines[1]
-            if "-->" not in time_line:
-                # Malformed block or index missing, look for "-->" in any of the first few lines
-                found_time = False
-                for i, l in enumerate(lines[:3]):
-                    if "-->" in l:
-                        time_line = l
-                        index = lines[i-1] if i > 0 else ""
-                        lines = lines[i+1:]
-                        found_time = True
-                        break
-                if not found_time:
-                    continue
-            else:
-                lines = lines[2:]
+        current_block = None
+        
+        for i, line in enumerate(lines):
+            trimmed = line.strip()
+            if "-->" in trimmed:
+                if current_block is not None:
+                    parsed_blocks.append(current_block)
                 
-            times = time_line.split("-->")
-            if len(times) != 2:
-                continue
-            start_time = times[0].strip()
-            end_time = times[1].strip()
-            
-            parsed_blocks.append({
-                "index": index,
-                "start_time": start_time,
-                "end_time": end_time,
-                "lines": lines
-            })
+                index = ""
+                for j in range(i - 1, -1, -1):
+                    prev_line = lines[j].strip()
+                    if prev_line:
+                        if prev_line.isdigit():
+                            index = prev_line
+                        break
+                
+                times = trimmed.split("-->")
+                start_time = times[0].strip()
+                end_time = times[1].strip()
+                
+                current_block = {
+                    "index": index,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "lines": []
+                }
+            else:
+                if current_block is not None:
+                    if trimmed:
+                        is_next_index = False
+                        if trimmed.isdigit():
+                            for k in range(i + 1, min(i + 5, len(lines))):
+                                next_trimmed = lines[k].strip()
+                                if not next_trimmed:
+                                    continue
+                                if "-->" in next_trimmed:
+                                    is_next_index = True
+                                    break
+                                else:
+                                    break
+                        if not is_next_index:
+                            current_block["lines"].append(trimmed)
+                            
+        if current_block is not None:
+            parsed_blocks.append(current_block)
             
         if not parsed_blocks:
             return
