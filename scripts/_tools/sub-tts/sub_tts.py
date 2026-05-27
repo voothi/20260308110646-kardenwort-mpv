@@ -892,9 +892,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         zid_cache = {}
 
     srt_path = Path(srt_path).resolve()
-    print(f"\n\n{'='*60}")
-    print(f"Processing: {srt_path.name}")
-    print(f"{'='*60}\n\n")
+    print(f"Processing: {srt_path.name}", flush=True)
 
     # 1. Language detection
     if lang_override:
@@ -969,7 +967,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         # 8. Mux to MP4
         ok = mux_to_mp4(assembled_wav, output_mp4, ffmpeg_path)
         if ok:
-            print(f"  ✓ Output: {output_mp4}")
+            print(f"  Output: {output_mp4}")
             success = True
         return ok
 
@@ -1087,6 +1085,8 @@ def parse_args():
 def main():
     start_time = time.time()
     args = parse_args()
+    config = load_config()
+    print(f"Kardenwort Sub TTS Pipeline (ZID: {get_zid(config)})\n", flush=True)
 
     # Collect input files
     input_files = args.srt_files
@@ -1113,9 +1113,6 @@ def main():
         if args.pause:
             pause_console(success=False)
         sys.exit(1)
-
-    # Load configuration
-    config = load_config()
 
     # Resolve FFmpeg
     try:
@@ -1152,14 +1149,12 @@ def main():
     succeeded = sum(1 for _, ok in results if ok)
     total = len(results)
 
-    print(f"\n\n{'='*60}")
-    print(f"Completed in {elapsed:.1f}s — {succeeded}/{total} files converted successfully.")
+    print(f"\nSuccessfully converted {succeeded}/{total} file(s) in {elapsed:.1f}s.", flush=True)
     if succeeded < total:
-        print("Failed files:")
+        print("Failed files:", file=sys.stderr)
         for path, ok in results:
             if not ok:
-                print(f"  ✗ {path}")
-    print(f"{'='*60}")
+                print(f"  ERROR: {path}", file=sys.stderr)
 
     if args.pause:
         timeout_val = config.get("tts_settings", "auto_close_timeout_secs", fallback="").strip()

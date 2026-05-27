@@ -532,15 +532,14 @@ def test_premium_console_presentation(monkeypatch):
     
     # 1. Test make_premium_progress_bar formatting
     bar = yd.make_premium_progress_bar(33.6, "11.90MiB", "2.48MiB/s", "00:03")
-    assert "➔ Downloading:" in bar
-    assert "33.6%" in bar
-    assert "11.90MiB" in bar
+    assert "━━" in bar
+    assert "4.0/11.9 MiB" in bar
     assert "2.48MiB/s" in bar
-    assert "ETA 00:03" in bar
+    assert "eta 00:03" in bar
     
     bar_frag = yd.make_premium_progress_bar(99.5, "~  14.73MiB", "617.35KiB/s", "00:01", "165", "167")
     assert "(frag 165/167)" in bar_frag
-    assert "99.5%" in bar_frag
+    assert "14.7/14.7 MiB" in bar_frag
     
     # 2. Test ANSI escape stripping
     colored_text = "\x1b[0;32m[download]\x1b[0m   0.0% of    4.08MiB at  136.82KiB/s ETA 00:30"
@@ -639,11 +638,9 @@ def test_premium_console_presentation(monkeypatch):
     
     stdout_output = captured_stdout.getvalue()
     
-    assert "➔ Downloading:" in stdout_output
-    assert "0.0%" in stdout_output
-    assert "➔ Downloading subtitles:" in stdout_output
-    assert "1.00KiB" in stdout_output
-    assert "Completed download of 124.39KiB in 00:00:00 at 657.40KiB/s" in stdout_output
-    assert "[!] Network warning: connection issue detected, retrying (1/10)..." in stdout_output
-    assert "[!] Fragment warning: Skipping missing fragment 149..." in stdout_output
+    assert "0.0/4.1 MiB" in stdout_output
+    assert "Downloading subtitles: 1.00KiB" in stdout_output
+    assert "Completed download of 124.39KiB" in stdout_output
+    assert "WARNING: connection issue detected, retrying (1/10)..." in stdout_output
+    assert "WARNING: Skipping missing fragment 149..." in stdout_output
 
