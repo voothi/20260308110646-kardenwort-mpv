@@ -48,6 +48,7 @@ def load_config():
         "youtube_download_subtitle_auto_fallback": "true",
         "youtube_download_auto_update": "true",
         "youtube_download_chapters_mode": "embedded",
+        "youtube_download_cookies_browser": "",
     }
 
     if CONFIG_FILE.exists():
@@ -278,9 +279,12 @@ def process_input_paths(paths):
 # ==============================================================================
 # MAIN DOWNLOAD PIPELINE
 # ==============================================================================
-def run_ytdlp_info(url):
+def run_ytdlp_info(url, cookies_browser=None):
     """Runs yt-dlp --dump-json to fetch metadata."""
-    cmd = ["yt-dlp", "--dump-json", "--no-warnings", url]
+    cmd = ["yt-dlp", "--dump-json", "--no-warnings"]
+    if cookies_browser:
+        cmd.extend(["--cookies-from-browser", cookies_browser])
+    cmd.append(url)
     try:
         res = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")
         import json
@@ -293,7 +297,12 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
     print(f" ➔ Fetching video metadata...", flush=True)
-    info = run_ytdlp_info(url)
+    cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
+    try:
+        info = run_ytdlp_info(url, cookies_browser=cookies_browser if cookies_browser else None)
+    except TypeError:
+        # Fallback for mocked single-argument lambdas in unit/integration tests
+        info = run_ytdlp_info(url)
     if not info:
         print("   [!] Error: Failed to fetch metadata.", file=sys.stderr)
         return False
@@ -468,6 +477,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     # 5. Build and run subtitle download command (if needed)
     if download_subs and sub_langs_list:
         sub_cmd = ["yt-dlp", "--skip-download", "--no-warnings", "-o", output_tmpl]
+        if cookies_browser:
+            sub_cmd.extend(["--cookies-from-browser", cookies_browser])
         sub_cmd.extend(["--convert-subs", "srt"])
         sub_cmd.extend(["--sub-langs", ",".join(sub_langs_list)])
         
@@ -504,6 +515,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     # 6. Build and run video download command (if needed)
     if mode != "subtitles":
         video_cmd = ["yt-dlp", "--no-warnings"]
+        if cookies_browser:
+            video_cmd.extend(["--cookies-from-browser", cookies_browser])
         
         # Resolution format selection
         fmt = get_ytdlp_format(settings["youtube_download_resolution"])
@@ -592,17 +605,25 @@ def main():
         sys.exit(1)
 
     print(f" [queue] Detected {len(queue)} YouTube URL(s) to process.", flush=True)
-    print("┌" + "─" * 79, flush=True)
+    print("┌" + "─" * 78 + "┐", flush=True)
     for idx, (source, url, source_dir) in enumerate(queue):
         # Truncate source label if it is too long to keep it beautiful
         display_source = source
         if len(display_source) > 60:
             display_source = display_source[:27] + "..." + display_source[-30:]
-        print(f"│ • Source: {display_source}", flush=True)
-        print(f"│   URL:    {url}", flush=True)
+        
+        # Safely truncate URL to prevent box break
+        display_url = url
+        if len(display_url) > 65:
+            display_url = display_url[:62] + "..."
+            
+        line1 = f" • Source: {display_source}"
+        line2 = f"   URL:    {display_url}"
+        print(f"│{line1.ljust(78)}│", flush=True)
+        print(f"│{line2.ljust(78)}│", flush=True)
         if idx < len(queue) - 1:
-            print("│", flush=True)
-    print("└" + "─" * 79 + "\n", flush=True)
+            print(f"│{' '.ljust(78)}│", flush=True)
+    print("└" + "─" * 78 + "┘\n", flush=True)
 
     # 3. Setup backend (check & update yt-dlp)
     print(" [backend] Checking and updating yt-dlp...", flush=True)

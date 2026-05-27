@@ -37,3 +37,8 @@ youtube_download_auto_update = true
 #   separate - Save chapters to a separate .chapters.txt file
 #   both     - Both embed chapters and save to a separate .chapters.txt file
 youtube_download_chapters_mode = embedded
+
+# Extract cookies from browser to bypass YouTube rate-limiting and HTTP 429 errors.
+#   Leave empty to disable (default)
+#   Supported values: chrome, firefox, edge, opera, safari, brave, vivaldi, etc.
+# youtube_download_cookies_browser = chrome

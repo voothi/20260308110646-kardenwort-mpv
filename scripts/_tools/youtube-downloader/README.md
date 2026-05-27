@@ -43,6 +43,7 @@ Available configuration options:
 - `youtube_download_subtitle_auto_fallback`: `true` (default) or `false`.
 - `youtube_download_auto_update`: `true` (default) or `false` (automatically updates yt-dlp before downloads).
 - `youtube_download_chapters_mode`: `embedded` (default), `separate`, or `both`.
+- `youtube_download_cookies_browser`: Extracted browser cookies (e.g. `chrome`, `firefox`, `edge`, `brave`, `safari`) to bypass YouTube's strict rate-limiting and HTTP 429 errors (default: empty/disabled).
 
 ## CLI Usage
 
