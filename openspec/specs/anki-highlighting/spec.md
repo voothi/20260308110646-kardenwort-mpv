@@ -46,6 +46,17 @@ The identifies engine MUST anchor mining records using a multi-pivot coordinate 
 - **AND** `anki_global_highlight` is disabled
 - **THEN** the system MUST use the L:W:T coordinates to highlight ONLY the specific word occurrence associated with the mining record.
 
+#### Scenario: Boundary epsilon uses exact-first anchoring
+- **WHEN** a local highlight record is anchored near an inter-subtitle boundary
+- **AND** the exact pivot slot (`origin + l_off`, `p_idx`) is resolvable on its expected subtitle line
+- **THEN** the engine MUST accept only that exact line for grounding
+- **AND** it MUST NOT also highlight an adjacent subtitle line that contains the same word at the same logical index.
+
+#### Scenario: Neighbor drift allowed only as fallback
+- **WHEN** local mode grounding is evaluated and the exact pivot slot cannot be resolved (e.g., due to timeline/index drift after subtitle edits)
+- **THEN** the engine MAY use `+/-1` subtitle drift tolerance as a recovery fallback
+- **AND** this fallback MUST preserve the original pivot word index constraint.
+
 #### Scenario: Strict Grounding Enforcement
 - **WHEN** a record contains a valid index anchor
 - **AND** `anki_global_highlight` is disabled

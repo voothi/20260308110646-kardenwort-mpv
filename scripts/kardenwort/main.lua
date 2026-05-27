@@ -2379,20 +2379,35 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
     -- Local pivot anchoring rule:
     -- 1) Exact subtitle line match has priority.
     -- 2) +/-1 drift is allowed only when the exact slot cannot be resolved.
+    local exact_pivot_slot_cache = {}
     local function has_exact_pivot_slot(expected_sub_idx, pivot_l_idx, expected_clean_word)
+        local key = tostring(expected_sub_idx) .. "|" .. tostring(pivot_l_idx) .. "|" .. tostring(expected_clean_word or "")
+        if exact_pivot_slot_cache[key] ~= nil then
+            return exact_pivot_slot_cache[key]
+        end
         local expected_sub = subs[expected_sub_idx]
-        if not expected_sub then return false end
+        if not expected_sub then
+            exact_pivot_slot_cache[key] = false
+            return false
+        end
         local expected_tokens = get_sub_tokens(expected_sub)
-        if not expected_tokens then return false end
+        if not expected_tokens then
+            exact_pivot_slot_cache[key] = false
+            return false
+        end
         for _, tok in ipairs(expected_tokens) do
             if tok.is_word and logical_cmp(tok.logical_idx, pivot_l_idx) then
                 local tok_clean = tok.lower_clean or utf8_to_lower(tok.text:gsub("[%p%s]", ""))
                 if expected_clean_word and expected_clean_word ~= "" then
-                    return tok_clean == expected_clean_word
+                    local match = (tok_clean == expected_clean_word)
+                    exact_pivot_slot_cache[key] = match
+                    return match
                 end
+                exact_pivot_slot_cache[key] = true
                 return true
             end
         end
+        exact_pivot_slot_cache[key] = false
         return false
     end
 
@@ -10629,6 +10644,48 @@ mp.register_script_message("test-get-tokens", function(text)
     end
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.test_tokens = snap
+end)
+
+mp.register_script_message("test-calc-highlight-stack", function(line_str, word_str, time_str)
+    local line_idx = tonumber(line_str)
+    local word_idx = tonumber(word_str)
+    local time_pos = tonumber(time_str) or mp.get_property_number("time-pos", 0) or 0
+    local res = { ok = false, reason = "invalid_args" }
+    local subs = Tracks.pri.subs
+
+    if subs and line_idx and word_idx and subs[line_idx] then
+        local tokens = get_sub_tokens(subs[line_idx])
+        local token_idx = nil
+        if tokens then
+            for i, tok in ipairs(tokens) do
+                if tok.is_word and logical_cmp(tok.logical_idx, word_idx) then
+                    token_idx = i
+                    break
+                end
+            end
+        end
+        if token_idx then
+            local orange_stack, purple_stack, has_phrase, matching_terms, purple_depth =
+                calculate_highlight_stack(subs, line_idx, token_idx, time_pos)
+            res = {
+                ok = true,
+                line = line_idx,
+                word = word_idx,
+                token_idx = token_idx,
+                time = time_pos,
+                orange_stack = orange_stack,
+                purple_stack = purple_stack,
+                has_phrase = has_phrase,
+                purple_depth = purple_depth,
+                term_count = #(matching_terms or {}),
+            }
+        else
+            res = { ok = false, reason = "token_not_found", line = line_idx, word = word_idx }
+        end
+    end
+
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.highlight_stack = res
 end)
 
 mp.register_script_message("test-set-option", function(name, val)
