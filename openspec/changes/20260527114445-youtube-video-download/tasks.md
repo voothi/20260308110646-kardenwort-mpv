@@ -72,7 +72,7 @@
 ## 7. Windows "Send to" Integration
 
 - [x] 7.1 Create Windows batch script or PowerShell script for "Send to" integration
-- [x] 7.2 Create `install_send_to.ps1` setup script that places the shortcut in `%APPDATA%\Microsoft\Windows\SendTo\`
+- [x] 7.2 Create `install.py` setup script that places the shortcut in `%APPDATA%\Microsoft\Windows\SendTo\`
 - [x] 7.3 Create shortcut in Windows "Send to" folder (done by install script above)
 - [x] 7.4 Test "Send to" integration with single file
 - [x] 7.5 Test "Send to" integration with multiple files

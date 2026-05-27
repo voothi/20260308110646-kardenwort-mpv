@@ -24,9 +24,9 @@ A premium Windows "Send to" integration for downloading YouTube videos at config
 ## Installation
 
 1. Make sure you have python in your Windows `PATH`.
-2. Open PowerShell in this directory and run:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File install_send_to.ps1
+2. Open a terminal (PowerShell or Command Prompt) in this directory and run:
+   ```bash
+   python install.py
    ```
    This will install a shortcut named `Download YouTube Video` in your Windows `Send to` menu.
 
