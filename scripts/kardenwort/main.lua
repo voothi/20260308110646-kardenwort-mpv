@@ -10725,6 +10725,7 @@ mp.register_script_message("test-calc-highlight-stack", function(line_str, word_
 
     FSM.TEST_DATA = FSM.TEST_DATA or {}
     FSM.TEST_DATA.highlight_stack = res
+    mp.set_property("user-data/kardenwort/highlight_stack", utils.format_json(res))
 end)
 
 mp.register_script_message("test-set-option", function(name, val)

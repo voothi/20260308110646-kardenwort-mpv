@@ -124,6 +124,24 @@ def _send_kardenwort(ipc, *args, timeout_s=8.0):
     raise AssertionError(f"script-message-to kardenwort failed for args={args}, last_resp={last_resp}")
 
 
+def _query_highlight_stack(ipc, line, word, time_pos, timeout_s=8.0):
+    _send_kardenwort(ipc, "test-calc-highlight-stack", str(line), str(word), str(time_pos))
+    deadline = time.time() + timeout_s
+    last = {}
+    while time.time() < deadline:
+        try:
+            raw = ipc.get_property("user-data/kardenwort/highlight_stack") or ""
+            if raw:
+                parsed = json.loads(raw)
+                last = parsed
+                if parsed.get("line") == line and parsed.get("word") == word:
+                    return parsed
+        except Exception:
+            pass
+        time.sleep(0.1)
+    return last
+
+
 def test_local_anchor_uses_exact_slot_before_neighbor_fallback():
     src = _lua_source()
     assert "local function has_exact_pivot_slot(" in src
@@ -179,13 +197,8 @@ def test_adjacent_identical_boundary_highlight_respects_exact_anchor_only():
             loaded = _wait_for_tsv_load(ipc, tsv_path.stat().st_size)
             assert loaded.get("anki_db_size", 0) == tsv_path.stat().st_size, "TSV did not load in time"
 
-            _send_kardenwort(ipc, "test-calc-highlight-stack", "1", "1", "2.001")
-            state_prev = _query_state_robust(ipc)
-            prev_stack = (state_prev.get("test_data") or {}).get("highlight_stack") or {}
-
-            _send_kardenwort(ipc, "test-calc-highlight-stack", "2", "1", "2.001")
-            state_curr = _query_state_robust(ipc)
-            curr_stack = (state_curr.get("test_data") or {}).get("highlight_stack") or {}
+            prev_stack = _query_highlight_stack(ipc, 1, 1, "2.001")
+            curr_stack = _query_highlight_stack(ipc, 2, 1, "2.001")
 
             assert prev_stack.get("ok") is True, f"previous-line stack probe failed: {prev_stack}"
             assert curr_stack.get("ok") is True, f"anchor-line stack probe failed: {curr_stack}"
