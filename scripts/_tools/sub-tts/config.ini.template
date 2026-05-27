@@ -30,6 +30,11 @@ default_lang = en
 # overwrite: overwrite the existing output file
 duplicate_mode = zid-dir
 
+# Keep the language postfix in the output MP4 filename (e.g. video.de.mp4 instead of video.mp4)
+# in accordance with the postfix in the SRT file.
+keep_lang_postfix = false
+
+
 # Fit generated TTS audio into each subtitle time slot, following Subtitle Edit's
 # "Fix speed" stage: trim boundary silence, optionally compress internal pauses,
 # then speed up only the cues that are still too long.

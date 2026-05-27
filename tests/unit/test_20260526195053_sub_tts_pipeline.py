@@ -139,3 +139,42 @@ def test_atempo_filter_chains_large_speed_factors():
 
     assert sub_tts.build_atempo_filter(1.25) == "atempo=1.250"
     assert sub_tts.build_atempo_filter(3.0) == "atempo=2.000,atempo=1.500"
+
+
+def test_resolve_output_path_keeps_language_postfix_when_overridden():
+    sub_tts = _load_sub_tts()
+    config = _config()
+    output_dir = Path("C:/kardenwort-test-output")
+    srt_path = output_dir / "video.en.srt"
+
+    output_path, policy = sub_tts.resolve_output_path(
+        srt_path,
+        output_dir,
+        config,
+        "en",
+        zid_cache={"zid": "20260526195053"},
+        keep_lang_postfix=True,
+    )
+
+    assert output_path == output_dir / "video.en.mp4"
+    assert policy == "new"
+
+
+def test_resolve_output_path_respects_config_option():
+    sub_tts = _load_sub_tts()
+    config = _config()
+    config["tts_settings"]["keep_lang_postfix"] = "true"
+    output_dir = Path("C:/kardenwort-test-output")
+    srt_path = output_dir / "video.de.srt"
+
+    output_path, policy = sub_tts.resolve_output_path(
+        srt_path,
+        output_dir,
+        config,
+        "de",
+        zid_cache={"zid": "20260526195053"},
+    )
+
+    assert output_path == output_dir / "video.de.mp4"
+    assert policy == "new"
+

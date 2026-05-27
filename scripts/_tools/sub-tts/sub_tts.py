@@ -316,15 +316,21 @@ def strip_lang_postfix(stem, lang):
     return stem
 
 
-def resolve_output_path(srt_path, output_dir, config, lang, zid_cache):
+def resolve_output_path(srt_path, output_dir, config, lang, zid_cache, keep_lang_postfix=None):
     """
     Build the output .mp4 path.
     Policy: base filename WITHOUT language postfix + .mp4, in output_dir.
     Duplicates: ZID-dir, skip, or overwrite (from config).
     """
+    if keep_lang_postfix is None:
+        keep_lang_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
+
     stem = Path(srt_path).stem          # e.g., 'video.de'  (strip .srt)
-    clean_stem = strip_lang_postfix(stem, lang)   # e.g., 'video'
-    base = clean_stem
+    if keep_lang_postfix:
+        base = stem
+    else:
+        clean_stem = strip_lang_postfix(stem, lang)   # e.g., 'video'
+        base = clean_stem
     primary = Path(output_dir) / f"{base}.mp4"
 
     if not primary.exists():
@@ -865,7 +871,8 @@ def resolve_ffmpeg(config, cli_override=None):
 # ==============================================================================
 
 def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
-                lang_override=None, output_dir_override=None, zid_cache=None):
+                lang_override=None, output_dir_override=None, zid_cache=None,
+                keep_lang_postfix_override=None):
     """
     Full pipeline for a single SRT file:
       1. Detect language
@@ -940,7 +947,14 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             return False
 
         # 7. Output path
-        output_mp4, policy = resolve_output_path(str(srt_path), output_dir, config, lang, zid_cache)
+        output_mp4, policy = resolve_output_path(
+            str(srt_path),
+            output_dir,
+            config,
+            lang,
+            zid_cache,
+            keep_lang_postfix=keep_lang_postfix_override,
+        )
         if policy == "skip":
             print(f"  Skipping (output already exists): {output_mp4}")
             success = True
@@ -996,6 +1010,12 @@ def parse_args():
         type=str,
         default=None,
         help="Override FFmpeg executable path.",
+    )
+    parser.add_argument(
+        "--keep-lang-postfix",
+        action="store_true",
+        default=None,
+        help="Keep the language postfix in the output MP4 filename.",
     )
     parser.add_argument(
         "--sendto",
@@ -1064,6 +1084,7 @@ def main():
             lang_override=args.lang,
             output_dir_override=args.output_dir,
             zid_cache=zid_cache,
+            keep_lang_postfix_override=args.keep_lang_postfix,
         )
         results.append((srt_path, ok))
 
