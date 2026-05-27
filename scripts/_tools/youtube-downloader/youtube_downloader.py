@@ -54,7 +54,7 @@ PROGRESS_REGEX = re.compile(
 
 # Subtitle progress: [download]   15.00KiB at    1.66MiB/s (00:00:00)
 SUB_PROGRESS_REGEX = re.compile(
-    r'\[download\]\s+(\d+(?:\.\d+)?[a-zA-Z]+)\s+at\s+([^\s]+)\s+\(([^)]+)\)'
+    r'\[download\]\s+(\d+(?:\.\d+)?[a-zA-Z]+)\s+at\s+(.+?)\s+\(([^)]+)\)'
 )
 
 # Completion matching: [download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s
@@ -89,6 +89,11 @@ def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_cu
     
     frag_info = f" (frag {frag_current}/{frag_total})" if frag_current and frag_total else ""
     return f"\r ➔ Downloading: [{bar}] {percent_val:.1f}% of {size_clean} at {speed_clean} ETA {eta_clean}{frag_info}"
+
+def clear_line():
+    """Clears the current console line completely to prevent character leftovers."""
+    sys.stdout.write("\r\x1b[K" + " " * 120 + "\r")
+    sys.stdout.flush()
 
 # ==============================================================================
 # CONFIGURATION LOADING (Tasks 2.1 – 2.8)
@@ -676,19 +681,19 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                 
                 if retry_match:
                     attempt, total = retry_match.groups()
-                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    clear_line()
                     sys.stdout.write(f"   [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif generic_retry_match:
                     attempt, total = generic_retry_match.groups()
-                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    clear_line()
                     sys.stdout.write(f"   [!] Network warning: retry attempt ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif frag_skip_match:
                     frag_num = frag_skip_match.group(1)
-                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    clear_line()
                     sys.stdout.write(f"   [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
@@ -713,7 +718,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     
                     if is_tty:
                         bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot)
-                        sys.stdout.write("\r" + " " * 80 + "\r")
+                        clear_line()
                         sys.stdout.write(bar_line)
                         sys.stdout.flush()
                         state["last_char"] = "\r"
@@ -728,14 +733,14 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                 elif sub_progress_match:
                     size_str, speed_str, time_str = sub_progress_match.groups()
                     if is_tty:
-                        sys.stdout.write("\r" + " " * 80 + "\r")
+                        clear_line()
                         sys.stdout.write(f"\r ➔ Downloading subtitles: {size_str.strip()} at {speed_str.strip()} ({time_str.strip()})")
                         sys.stdout.flush()
                         state["last_char"] = "\r"
                 elif complete_match:
                     size_str, time_str, speed_str = complete_match.groups()
                     if is_tty:
-                        sys.stdout.write("\r" + " " * 80 + "\r")
+                        clear_line()
                     
                     time_info = f" in {time_str}" if time_str else ""
                     sys.stdout.write(f"   • Completed download of {size_str.strip()}{time_info} at {speed_str.strip()}\n")
@@ -744,19 +749,19 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     state["last_percent"] = -10
                 elif retry_match:
                     attempt, total = retry_match.groups()
-                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    clear_line()
                     sys.stdout.write(f"   [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif generic_retry_match:
                     attempt, total = generic_retry_match.groups()
-                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    clear_line()
                     sys.stdout.write(f"   [!] Network warning: retry attempt ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif frag_skip_match:
                     frag_num = frag_skip_match.group(1)
-                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    clear_line()
                     sys.stdout.write(f"   [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
