@@ -17,7 +17,12 @@ The download system SHALL detect YouTube URLs in input files. The system SHALL s
 - **AND** the system SHALL not attempt any download
 
 ### Requirement: Configurable Download Resolution
-The download system SHALL expose `youtube_download_resolution` as a string setting. This setting SHALL define the preferred video resolution for downloads.
+The download system SHALL expose `youtube_download_resolution` as a string setting. This setting SHALL define the preferred video resolution for downloads. The default value SHALL be "360p".
+
+#### Scenario: Resolution is set to default (360p)
+- **WHEN** `youtube_download_resolution` is not explicitly set
+- **AND** a video is downloaded
+- **THEN** the downloaded video SHALL be at 360p resolution or the closest available resolution
 
 #### Scenario: Resolution is set to 1080p
 - **WHEN** `youtube_download_resolution` is `"1080p"`

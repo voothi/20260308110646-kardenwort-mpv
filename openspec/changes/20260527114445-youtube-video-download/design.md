@@ -37,7 +37,7 @@ The user currently downloads YouTube videos for language learning using external
 3. **Configuration-driven resolution, directory, updates, and chapters**
 
    Add four new configuration options:
-   - `youtube_download_resolution` (default: "1080p")
+   - `youtube_download_resolution` (default: "360p")
    - `youtube_download_directory` (default: user's Videos folder or project-specific directory)
    - `youtube_download_auto_update` (default: true) - Check and install yt-dlp updates before downloads
    - `youtube_download_chapters_mode` (default: "embedded") - Chapter output mode: "embedded", "separate", or "both"

@@ -6,7 +6,7 @@
 
 ## 2. Configuration
 
-- [ ] 2.1 Add `youtube_download_resolution` configuration option (default: "1080p")
+- [ ] 2.1 Add `youtube_download_resolution` configuration option (default: "360p")
 - [ ] 2.2 Add `youtube_download_directory` configuration option (default: user's Videos folder)
 - [ ] 2.3 Add `youtube_download_overwrite` configuration option (default: false)
 - [ ] 2.4 Add `youtube_download_subtitles` configuration option (default: true)

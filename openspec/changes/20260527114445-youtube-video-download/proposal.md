@@ -16,7 +16,7 @@ The current workflow for downloading YouTube videos for language learning involv
 
 ### New Capabilities
 - `youtube-video-download`: Enables automated YouTube video download from files containing URLs via "Send to" integration
-- `configurable-download-resolution`: Allows setting preferred video resolution in configuration
+- `configurable-download-resolution`: Allows setting preferred video resolution in configuration (default: 360p)
 - `configurable-download-directory`: Allows setting target download directory in configuration
 - `chapter-support`: Downloads videos with chapter metadata
 - `chapter-output-mode`: Configurable chapter output: embedded, separate, or both
