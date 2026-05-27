@@ -265,6 +265,16 @@ def test_clean_srt_file_both(tmp_path):
         "00:00:02,160 --> 00:00:04,470\n"
         "- On Tuesday, May 19th,\n"
         "thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:06,270\n"
+        "This is an inter-\n"
+        "national agreement.\n"
+        "\n"
+        "3\n"
+        "00:00:06,270 --> 00:00:08,000\n"
+        "Es gibt Erst-\n"
+        "und Zweitleser.\n"
     )
     
     sub_file = tmp_path / "test_both.srt"
@@ -278,6 +288,14 @@ def test_clean_srt_file_both(tmp_path):
         "1\n"
         "00:00:02,160 --> 00:00:04,470\n"
         "On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:06,270\n"
+        "This is an international agreement.\n"
+        "\n"
+        "3\n"
+        "00:00:06,270 --> 00:00:08,000\n"
+        "Es gibt Erst- und Zweitleser.\n"
     )
     
     assert cleaned.strip() == expected.strip()

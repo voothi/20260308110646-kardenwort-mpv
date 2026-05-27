@@ -237,7 +237,7 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False):
     Merges consecutive blocks with identical text and eliminates roll-up line overlap.
     Optional cleaning parameters:
       clean_hyphens: strips leading dashes/hyphens from subtitle lines.
-      unbreak_lines: joins multi-line blocks into single lines.
+      unbreak_lines: joins multi-line blocks into single lines, handling word hyphenation breaks.
     """
     try:
         path = Path(srt_path)
@@ -297,7 +297,15 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False):
                                     break
                         if not is_next_index:
                             if clean_hyphens:
+                                # Remove leading '-' or '–' or '—' followed by optional spaces
                                 trimmed = re.sub(r'^[-\u2013\u2014]\s*', '', trimmed)
+                            
+                            # Apply robust text cleaning rules from remove-newline-util
+                            trimmed = re.sub(r'<[^<]+?>', '', trimmed)  # Remove HTML tags if any
+                            trimmed = re.sub(r'\s{2,}', ' ', trimmed)   # Collapse multiple spaces
+                            trimmed = re.sub(r'\s+([:;,.!?])', r'\1', trimmed)  # Remove spaces before punctuation
+                            trimmed = trimmed.strip()
+                            
                             if trimmed:
                                 current_block["lines"].append(trimmed)
                             
@@ -340,9 +348,21 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False):
             
             lines_to_write = cb["lines"]
             if unbreak_lines:
-                joined = " ".join(lines_to_write)
-                joined = re.sub(r"\s+", " ", joined).strip()
-                lines_to_write = [joined] if joined else []
+                text = "\n".join(lines_to_write)
+                
+                # Robust word hyphenation joining ported from remove-newline-util
+                marks = r'-¬'
+                conjunctions = r'(?:und|oder|sowie|bzw|bis)'
+                # 1. German compositional hyphens: keep hyphen at newline (e.g. Zweit-\nund -> Zweit- und)
+                text = re.sub(fr'((?<!\s)[{marks}])\s*\n\s*(?={conjunctions}\b)', r'\1 ', text)
+                # 2. Standard word hyphenation break: join words (e.g. hyphen-\nation -> hyphenation)
+                text = re.sub(fr'[{marks}]\s*\n\s*', '', text)
+                # 3. Replace remaining linebreaks with space
+                text = re.sub(r'\n', ' ', text)
+                
+                # Final pass collapses and trims
+                text = re.sub(r"\s+", " ", text).strip()
+                lines_to_write = [text] if text else []
                 
             for line in lines_to_write:
                 new_content.append(line)
