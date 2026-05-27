@@ -230,6 +230,107 @@ def save_separate_chapters(chapters, output_path):
     except Exception as e:
         print(f"Warning: Failed to save separate chapters: {e}", file=sys.stderr)
 
+def clean_srt_file(srt_path):
+    """Cleans up duplicate/repeating lines from rolling subtitles in a .srt file.
+    Merges consecutive blocks with identical text and eliminates roll-up line overlap.
+    """
+    try:
+        path = Path(srt_path)
+        if not path.exists():
+            return
+        
+        # Read file contents using utf-8-sig to handle optional BOM safely
+        try:
+            content = path.read_text(encoding="utf-8-sig")
+        except Exception:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+            
+        # Standardize line endings to \n
+        content = content.replace("\r\n", "\n")
+        
+        # Split into blocks by double newlines or similar separators
+        raw_blocks = re.split(r'\n\n+', content.strip())
+        
+        parsed_blocks = []
+        for raw in raw_blocks:
+            lines = [line.strip() for line in raw.split("\n") if line.strip()]
+            if len(lines) < 2:
+                continue
+            
+            # Line 0 is typically the index
+            # Line 1 is the timestamp range, e.g. "00:00:02,160 --> 00:00:04,470"
+            index = lines[0]
+            time_line = lines[1]
+            if "-->" not in time_line:
+                # Malformed block or index missing, look for "-->" in any of the first few lines
+                found_time = False
+                for i, l in enumerate(lines[:3]):
+                    if "-->" in l:
+                        time_line = l
+                        index = lines[i-1] if i > 0 else ""
+                        lines = lines[i+1:]
+                        found_time = True
+                        break
+                if not found_time:
+                    continue
+            else:
+                lines = lines[2:]
+                
+            times = time_line.split("-->")
+            if len(times) != 2:
+                continue
+            start_time = times[0].strip()
+            end_time = times[1].strip()
+            
+            parsed_blocks.append({
+                "index": index,
+                "start_time": start_time,
+                "end_time": end_time,
+                "lines": lines
+            })
+            
+        if not parsed_blocks:
+            return
+            
+        cleaned_blocks = []
+        
+        for i, b in enumerate(parsed_blocks):
+            prev_block = parsed_blocks[i-1] if i > 0 else None
+            
+            filtered_lines = []
+            for line in b["lines"]:
+                if prev_block and line in prev_block["lines"]:
+                    continue
+                filtered_lines.append(line)
+                
+            if not filtered_lines:
+                if cleaned_blocks:
+                    cleaned_blocks[-1]["end_time"] = b["end_time"]
+                continue
+                
+            if cleaned_blocks and cleaned_blocks[-1]["lines"] == filtered_lines:
+                cleaned_blocks[-1]["end_time"] = b["end_time"]
+            else:
+                cleaned_blocks.append({
+                    "start_time": b["start_time"],
+                    "end_time": b["end_time"],
+                    "lines": filtered_lines
+                })
+                
+        # Re-write the cleaned blocks to SRT file
+        new_content = []
+        for idx, cb in enumerate(cleaned_blocks, 1):
+            new_content.append(str(idx))
+            new_content.append(f"{cb['start_time']} --> {cb['end_time']}")
+            for line in cb["lines"]:
+                new_content.append(line)
+            new_content.append("")  # Empty line between blocks
+            
+        path.write_text("\n".join(new_content), encoding="utf-8", newline="\n")
+        
+    except Exception as e:
+        print(f"   [!] Warning: Failed to clean subtitle file: {e}", file=sys.stderr)
+
 # ==============================================================================
 # URL EXTRACTION (Tasks 3.1 – 3.8)
 # ==============================================================================
@@ -706,6 +807,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         for lang in sub_langs_list:
             sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
             if sub_file.exists():
+                clean_srt_file(sub_file)
                 subtitles_written.append(sub_file)
 
     if mode == "subtitles":

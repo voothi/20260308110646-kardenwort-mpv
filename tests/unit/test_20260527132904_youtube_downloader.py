@@ -132,3 +132,55 @@ def test_get_current_zid(monkeypatch):
     monkeypatch.setattr(yd.subprocess, "run", mock_run_error)
     monkeypatch.setattr(yd.time, "strftime", lambda fmt: "99991231235959")
     assert yd.get_current_zid() == "99991231235959"
+
+
+def test_clean_srt_file(tmp_path):
+    yd = _load_downloader()
+    
+    dirty_content = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:04,480\n"
+        "On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "3\n"
+        "00:00:04,480 --> 00:00:06,270\n"
+        "On Tuesday, May 19th, thousands of\n"
+        "developers opened their computers and\n"
+        "\n"
+        "4\n"
+        "00:00:06,270 --> 00:00:06,280\n"
+        "developers opened their computers and\n"
+        "\n"
+        "5\n"
+        "00:00:06,280 --> 00:00:07,950\n"
+        "developers opened their computers and\n"
+        "found their code editors had basically\n"
+    )
+    
+    sub_file = tmp_path / "test.srt"
+    sub_file.write_text(dirty_content, encoding="utf-8")
+    
+    yd.clean_srt_file(sub_file)
+    
+    cleaned = sub_file.read_text(encoding="utf-8").replace("\r\n", "\n")
+    
+    expected = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,480\n"
+        "On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,480 --> 00:00:06,280\n"
+        "developers opened their computers and\n"
+        "\n"
+        "3\n"
+        "00:00:06,280 --> 00:00:07,950\n"
+        "found their code editors had basically\n"
+    )
+    
+    assert cleaned.strip() == expected.strip()
+
