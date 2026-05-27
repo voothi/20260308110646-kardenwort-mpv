@@ -303,3 +303,49 @@ def test_subtitle_languages_mixed_original(yd, tmp_path, monkeypatch):
     assert sub_langs_passed == "en,ru"
 
 
+def test_subtitle_download_fails_gracefully(yd, tmp_path, monkeypatch):
+    """Verifies that subtitle download failures do not abort video download."""
+    target_dir = tmp_path
+    
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "overwrite",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "en",
+    }
+    
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "en",
+        "subtitles": {"en": {}}
+    })
+    
+    import subprocess
+    video_download_called = False
+    
+    def mock_run(cmd, *args, **kwargs):
+        nonlocal video_download_called
+        if "--skip-download" in cmd:
+            # Simulate subtitle download failure
+            raise subprocess.CalledProcessError(1, cmd, stderr="HTTP Error 429: Too Many Requests")
+        else:
+            video_download_called = True
+            
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "20260527132904")
+    
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+    
+    assert success  # Returns True because video download succeeded!
+    assert video_download_called  # Video download was executed!
+
+
+

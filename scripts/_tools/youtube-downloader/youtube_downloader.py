@@ -380,30 +380,13 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         # Remove duplicates while preserving order
         sub_langs_list = list(dict.fromkeys(sub_langs_list))
 
-    # 5. Build yt-dlp arguments
-    cmd = ["yt-dlp"]
-    
-    # Resolution format selection
-    fmt = get_ytdlp_format(settings["youtube_download_resolution"])
-    cmd.extend(["-f", fmt])
-    
-    # Merge output container format to MP4
-    cmd.extend(["--merge-output-format", "mp4"])
-
-    # Output filename template
     output_tmpl = str(target_dir / f"{zid}-{sanitized_title}.%(ext)s")
-    cmd.extend(["-o", output_tmpl])
 
-    # Chapter embedding
-    if embed_chapters and has_chapters:
-        cmd.append("--embed-chapters")
-    else:
-        cmd.append("--no-embed-chapters")
-
-    # Subtitle arguments
+    # 5. Build and run subtitle download command (if needed)
     if download_subs and sub_langs_list:
-        cmd.extend(["--convert-subs", "srt"])
-        cmd.extend(["--sub-langs", ",".join(sub_langs_list)])
+        sub_cmd = ["yt-dlp", "--skip-download", "-o", output_tmpl]
+        sub_cmd.extend(["--convert-subs", "srt"])
+        sub_cmd.extend(["--sub-langs", ",".join(sub_langs_list)])
         
         # Determine whether to download manual, auto, or both
         has_manual = False
@@ -418,28 +401,49 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 has_auto = True
                 
         if has_manual:
-            cmd.append("--write-subs")
+            sub_cmd.append("--write-subs")
         if has_auto and use_auto_subs:
-            cmd.append("--write-auto-subs")
+            sub_cmd.append("--write-auto-subs")
             print("Auto-subtitles will be downloaded.", flush=True)
             
-        if not has_manual and not has_auto:
+        sub_cmd.append(url)
+        
+        if has_manual or (has_auto and use_auto_subs):
+            print(f"Running subtitle download command: {' '.join(sub_cmd)}", flush=True)
+            try:
+                subprocess.run(sub_cmd, check=True)
+            except subprocess.CalledProcessError as e:
+                # Decoupled error handling: log warning and continue with video download
+                print(f"\nWarning: Subtitle download failed (network issue or 429 Too Many Requests): {e}", file=sys.stderr)
+        else:
             print("No subtitles were available.", flush=True)
 
-    # Subtitles only mode
-    if mode == "subtitles":
-        cmd.append("--skip-download")
-
-    # Add URL
-    cmd.append(url)
-
-    # Run yt-dlp
-    print(f"Running download command: {' '.join(cmd)}", flush=True)
-    try:
-        subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: yt-dlp download failed: {e}", file=sys.stderr)
-        return False
+    # 6. Build and run video download command (if needed)
+    if mode != "subtitles":
+        video_cmd = ["yt-dlp"]
+        
+        # Resolution format selection
+        fmt = get_ytdlp_format(settings["youtube_download_resolution"])
+        video_cmd.extend(["-f", fmt])
+        
+        # Merge output container format to MP4
+        video_cmd.extend(["--merge-output-format", "mp4"])
+        video_cmd.extend(["-o", output_tmpl])
+        
+        # Chapter embedding
+        if embed_chapters and has_chapters:
+            video_cmd.append("--embed-chapters")
+        else:
+            video_cmd.append("--no-embed-chapters")
+            
+        video_cmd.append(url)
+        
+        print(f"Running video download command: {' '.join(video_cmd)}", flush=True)
+        try:
+            subprocess.run(video_cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error: yt-dlp video download failed: {e}", file=sys.stderr)
+            return False
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
