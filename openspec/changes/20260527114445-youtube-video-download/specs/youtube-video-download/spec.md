@@ -50,6 +50,12 @@ The download system SHALL generate unique ZID-based filenames for downloaded vid
 - **THEN** each video SHALL receive a unique ZID based on its download timestamp
 - **AND** no two videos SHALL have the same ZID
 
+#### Scenario: ZID collision in batch download
+- **WHEN** two or more videos are queued for download within the same second
+- **THEN** the system SHALL detect the duplicate ZID before use
+- **AND** the system SHALL wait 1 second and generate a new ZID
+- **AND** the resulting filenames SHALL still be unique
+
 ### Requirement: Configurable Download Resolution
 The download system SHALL expose `youtube_download_resolution` as a string setting. This setting SHALL define the preferred video resolution for downloads. The default value SHALL be "360p".
 
@@ -104,6 +110,14 @@ The download system SHALL use yt-dlp as the sole download backend. The system SH
 - **THEN** the system SHALL display an error message
 - **AND** the system SHALL not attempt the download
 - **AND** the system SHALL provide installation instructions
+
+#### Scenario: yt-dlp is not available and auto-update is enabled
+- **WHEN** yt-dlp is not installed
+- **AND** `youtube_download_auto_update` is `true`
+- **THEN** the system SHALL attempt to install yt-dlp via `pip install yt-dlp`
+- **AND** the system SHALL log a message about the installation
+- **AND** if installation succeeds the system SHALL proceed with the download
+- **AND** if installation fails the system SHALL display an error with manual installation instructions
 
 ### Requirement: yt-dlp Auto-Update
 The download system SHALL check for and install yt-dlp updates before starting downloads. The system SHALL expose `youtube_download_auto_update` as a boolean setting.
@@ -169,16 +183,37 @@ The download system SHALL download videos with chapter metadata. The system SHAL
 - **AND** the system SHALL not create a chapter file
 - **AND** the system SHALL not display an error
 
+### Requirement: Subtitle Download Master Toggle
+The download system SHALL expose `youtube_download_subtitles` as a boolean setting. When false, no subtitle download SHALL occur regardless of other subtitle settings.
+
+#### Scenario: Subtitle download is disabled
+- **WHEN** `youtube_download_subtitles` is `false`
+- **AND** a video is downloaded
+- **THEN** the system SHALL not download any subtitle files
+- **AND** the system SHALL not log subtitle-related messages
+
+#### Scenario: Subtitle download is enabled
+- **WHEN** `youtube_download_subtitles` is `true`
+- **AND** a video is downloaded
+- **THEN** the system SHALL proceed with subtitle download according to `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` settings
+
 ### Requirement: SRT Subtitle Download
-The download system SHALL automatically download SRT subtitle files as separate files based on configuration. The system SHALL expose `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` as configuration options.
+The download system SHALL automatically download SRT subtitle files as separate files based on configuration. The system SHALL expose `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` as configuration options. Subtitles SHALL always be converted to SRT format via `--convert-subs srt` regardless of the format provided by YouTube.
 
 #### Scenario: Download original subtitles only
 - **WHEN** `youtube_download_subtitle_languages` is `"original"`
 - **AND** a YouTube video has original subtitles available
 - **AND** the video is downloaded
-- **THEN** the system SHALL download SRT subtitle files for the original language
+- **THEN** the system SHALL resolve the video's detected language from YouTube metadata (`language` field in yt-dlp JSON output)
+- **AND** the system SHALL download SRT subtitle files for that detected language
 - **AND** the subtitle files SHALL be saved in the same directory as the video
 - **AND** the subtitle files SHALL have the same ZID and name as the video with language code postfix (e.g., `{ZID}-{name}.en.srt`)
+
+#### Scenario: Original language field absent in metadata
+- **WHEN** `youtube_download_subtitle_languages` is `"original"`
+- **AND** the video's YouTube metadata does not contain a `language` field
+- **THEN** the system SHALL download all available manual subtitle tracks
+- **AND** the system SHALL log a message that language auto-detection fell back to all available subtitles
 
 #### Scenario: Download specific languages
 - **WHEN** `youtube_download_subtitle_languages` is a comma-separated list (e.g., "en,de,ru")
@@ -256,6 +291,21 @@ The download system SHALL handle cases where a video file already exists in the 
 
 #### Scenario: File already exists with overwrite option
 - **WHEN** a video file with the same name already exists
-- **AND** an overwrite option is enabled
+- **AND** `youtube_download_overwrite` is `true`
 - **THEN** the system SHALL overwrite the existing file
 - **AND** the system SHALL log a message that the file was overwritten
+
+### Requirement: MP4 Container Enforcement
+The download system SHALL always produce MP4 output files by remuxing the downloaded streams into an MP4 container without re-encoding. This is achieved via `--merge-output-format mp4` passed to yt-dlp.
+
+#### Scenario: yt-dlp selects non-MP4 format
+- **WHEN** yt-dlp's best-quality format selection would produce a `.webm` or `.mkv` output
+- **AND** a video is downloaded
+- **THEN** the system SHALL pass `--merge-output-format mp4` to yt-dlp
+- **AND** the downloaded file SHALL have a `.mp4` extension
+- **AND** no video or audio re-encoding SHALL occur
+
+#### Scenario: Filename extension matches container
+- **WHEN** a video download completes
+- **THEN** the output filename SHALL always end with `.mp4`
+- **AND** the filename format SHALL be `{ZID}-{sanitized-title}.mp4`

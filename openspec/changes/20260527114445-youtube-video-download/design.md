@@ -19,7 +19,7 @@ The user currently downloads YouTube videos for language learning using external
 - Supporting multiple download backends (yt-dlp is sufficient)
 - Creating a new video player interface
 - Modifying existing mpv playback functionality
-- Implementing video transcoding or format conversion
+- Re-encoding video or converting codecs (container remuxing to MP4 is done without re-encoding)
 
 ## Decisions
 
@@ -38,12 +38,14 @@ The user currently downloads YouTube videos for language learning using external
 
 3. **Configuration-driven resolution, directory, updates, chapters, and subtitles**
 
-   Add six new configuration options:
+   Add eight new configuration options:
    - `youtube_download_resolution` (default: "360p")
    - `youtube_download_directory` (default: user's Videos folder or project-specific directory)
+   - `youtube_download_overwrite` (default: false) - Overwrite existing files; skip by default
    - `youtube_download_auto_update` (default: true) - Check and install yt-dlp updates before downloads
    - `youtube_download_chapters_mode` (default: "embedded") - Chapter output mode: "embedded", "separate", or "both"
-   - `youtube_download_subtitle_languages` (default: "original") - Languages to download: "original", "auto", or comma-separated list (e.g., "en,de,ru")
+   - `youtube_download_subtitles` (default: true) - Master toggle for subtitle download
+   - `youtube_download_subtitle_languages` (default: "original") - Languages to download: "original" (video's detected language), or comma-separated BCP-47 codes (e.g., "en,de,ru")
    - `youtube_download_subtitle_auto_fallback` (default: true) - Download auto-subtitles if no manual ones available
 
 4. **File and directory-based "Send to" integration**
@@ -83,6 +85,22 @@ The user currently downloads YouTube videos for language learning using external
 
    The integration should be optional and not interfere with existing mpv functionality.
 
+9. **Enforce MP4 container via remux (no re-encoding)**
+
+   yt-dlp's best-quality format selection often produces `.webm` or `.mkv` containers. To guarantee the `{ZID}-{title}.mp4` filename convention and compatibility with the existing mpv workflow, always pass `--merge-output-format mp4` to yt-dlp. This remuxes the output into an MP4 container without re-encoding the video or audio streams.
+
+10. **ZID uniqueness guarantee for batch downloads**
+
+    ZIDs are second-precision timestamps (YYYYMMDDHHMMSS). When downloading multiple videos in a batch, multiple downloads could start within the same second and produce duplicate ZIDs. Strategy: maintain a set of ZIDs already assigned in the current session. Before assigning a ZID, check the set; if the ZID is already taken, sleep 1 second and generate a new one. This guarantees uniqueness within a session with minimal overhead.
+
+11. **SRT subtitle format via yt-dlp conversion**
+
+    yt-dlp downloads subtitles in the format provided by YouTube (`.vtt`, `.srv3`, etc.). To guarantee `.srt` output as specified in the subtitle naming convention, always pass `--convert-subs srt` to yt-dlp. This conversion is lossless for timing and text content.
+
+12. **"original" subtitle language resolved via yt-dlp language detection**
+
+    The `"original"` value for `youtube_download_subtitle_languages` maps to the video's detected audio/caption language as reported by the YouTube metadata. Implementation: fetch video info with `yt-dlp --dump-json`, read the `language` field, and use that language code as the subtitle language selector. If the `language` field is absent, fall back to downloading all available manual subtitles and picking the first one.
+
 ## Risks / Trade-offs
 
 - [Risk] YouTube URLs may change or videos may be deleted, causing download failures.
@@ -90,7 +108,7 @@ The user currently downloads YouTube videos for language learning using external
 - [Risk] Windows "Send to" integration requires registry modifications and may not work on all systems.
   - Mitigation: Provide alternative invocation methods (command-line, drag-and-drop) and clear setup instructions.
 - [Risk] Downloading at high resolutions may consume significant bandwidth and storage.
-  - Mitigation: Default to reasonable resolution (1080p) and allow user configuration.
+  - Mitigation: Default to conservative resolution (360p) and allow user configuration.
 
 ## Migration Plan
 

@@ -3,14 +3,15 @@
 - [ ] 1.1 Create `scripts/_tools/youtube-downloader/` directory structure
 - [ ] 1.2 Add `__init__.py` to make it a Python package
 - [ ] 1.3 Create `youtube_downloader.py` main script
+- [ ] 1.4 Create `requirements.txt` listing `yt-dlp` as the sole dependency
 
 ## 2. Configuration
 
 - [ ] 2.1 Add `youtube_download_resolution` configuration option (default: "360p")
 - [ ] 2.2 Add `youtube_download_directory` configuration option (default: user's Videos folder)
 - [ ] 2.3 Add `youtube_download_overwrite` configuration option (default: false)
-- [ ] 2.4 Add `youtube_download_subtitles` configuration option (default: true)
-- [ ] 2.5 Add `youtube_download_subtitle_languages` configuration option (default: "original")
+- [ ] 2.4 Add `youtube_download_subtitles` configuration option (default: true) — master toggle for all subtitle download
+- [ ] 2.5 Add `youtube_download_subtitle_languages` configuration option (default: "original") — "original" resolves to detected video language; comma-separated BCP-47 codes otherwise
 - [ ] 2.6 Add `youtube_download_subtitle_auto_fallback` configuration option (default: true)
 - [ ] 2.7 Add `youtube_download_auto_update` configuration option (default: true)
 - [ ] 2.8 Add `youtube_download_chapters_mode` configuration option (default: "embedded")
@@ -32,9 +33,10 @@
 - [ ] 4.1 Implement yt-dlp backend integration
 - [ ] 4.2 Add yt-dlp availability checking
 - [ ] 4.3 Add yt-dlp installation instructions in error messages
-- [ ] 4.4 Implement yt-dlp auto-update check before downloads
-- [ ] 4.5 Implement yt-dlp update installation when updates are available
-- [ ] 4.6 Add error handling for update check failures
+- [ ] 4.4 Implement yt-dlp initial auto-install via `pip install yt-dlp` when not present and `youtube_download_auto_update` is true
+- [ ] 4.5 Implement yt-dlp auto-update check before downloads (when already installed)
+- [ ] 4.6 Implement yt-dlp update installation when updates are available
+- [ ] 4.7 Add error handling for update/install check failures
 
 ## 5. Download Functionality
 
@@ -46,9 +48,11 @@
 - [ ] 5.6 Add download progress tracking and display
 - [ ] 5.7 Implement ZID-based filename generation (same convention as `zid_name.py`)
 - [ ] 5.8 Implement unique ZID generation for each download
-- [ ] 5.9 Implement video title extraction from YouTube metadata
-- [ ] 5.10 Implement title sanitization using `zid_name.py` rules
-- [ ] 5.11 Format filename as `{ZID}-{sanitized-title}.mp4`
+- [ ] 5.9 Implement ZID collision guard: track used ZIDs in session set; sleep 1s and retry on collision
+- [ ] 5.10 Implement video title extraction from YouTube metadata
+- [ ] 5.11 Implement title sanitization using `zid_name.py` rules
+- [ ] 5.12 Format filename as `{ZID}-{sanitized-title}.mp4`
+- [ ] 5.13 Enforce MP4 container via `--merge-output-format mp4` (remux without re-encoding)
 
 ## 6. Chapter and Subtitle Download
 
@@ -56,20 +60,23 @@
 - [ ] 6.2 Implement chapter metadata saving to separate file (when `youtube_download_chapters_mode` is "separate" or "both")
 - [ ] 6.3 Implement chapter file naming with `.chapters.txt` suffix
 - [ ] 6.4 Implement chapter file format with titles and timestamps
-- [ ] 6.5 Implement subtitle language selection (original, auto, or list of languages)
-- [ ] 6.6 Implement auto-subtitle fallback when no manual subtitles available
-- [ ] 6.7 Implement subtitle file naming with same ZID and name as video, with language code postfix
-- [ ] 6.8 Add handling for videos without subtitles
-- [ ] 6.9 Add error handling for subtitle download failures
+- [ ] 6.5 Implement subtitle master toggle: skip all subtitle logic when `youtube_download_subtitles` is false
+- [ ] 6.6 Implement subtitle language selection: for "original" fetch `language` field from `yt-dlp --dump-json`; fall back to all manual tracks if absent; for comma-separated list use directly as BCP-47 codes
+- [ ] 6.7 Implement SRT format conversion via `--convert-subs srt` (yt-dlp native conversion from vtt/srv3)
+- [ ] 6.8 Implement auto-subtitle fallback when no manual subtitles available
+- [ ] 6.9 Implement subtitle file naming with same ZID and name as video, with language code postfix
+- [ ] 6.10 Add handling for videos without subtitles
+- [ ] 6.11 Add error handling for subtitle download failures
 
 ## 7. Windows "Send to" Integration
 
 - [ ] 7.1 Create Windows batch script or PowerShell script for "Send to" integration
-- [ ] 7.2 Create shortcut in Windows "Send to" folder
-- [ ] 7.3 Test "Send to" integration with single file
-- [ ] 7.4 Test "Send to" integration with multiple files
-- [ ] 7.5 Test "Send to" integration with directory containing files with URLs
-- [ ] 7.6 Test queue order processing (file by file, then links within each file)
+- [ ] 7.2 Create `install_send_to.ps1` setup script that places the shortcut in `%APPDATA%\Microsoft\Windows\SendTo\`
+- [ ] 7.3 Create shortcut in Windows "Send to" folder (done by install script above)
+- [ ] 7.4 Test "Send to" integration with single file
+- [ ] 7.5 Test "Send to" integration with multiple files
+- [ ] 7.6 Test "Send to" integration with directory containing files with URLs
+- [ ] 7.7 Test queue order processing (file by file, then links within each file)
 
 ## 8. Error Handling and Logging
 
@@ -108,6 +115,13 @@
 - [ ] 10.17 Add acceptance test for existing file handling
 - [ ] 10.18 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
 - [ ] 10.19 Add acceptance test for yt-dlp auto-update functionality
+- [ ] 10.20 Add acceptance test for yt-dlp initial auto-install when not present
+- [ ] 10.21 Add acceptance test for ZID collision guard (two downloads within same second)
+- [ ] 10.22 Add acceptance test for MP4 container enforcement (output is always .mp4)
+- [ ] 10.23 Add acceptance test for subtitle master toggle disabled (no subtitle files created)
+- [ ] 10.24 Add acceptance test for "original" language resolution from metadata
+- [ ] 10.25 Add acceptance test for "original" language fallback when metadata `language` field absent
+- [ ] 10.26 Add acceptance test for SRT format output (subtitle files end with .srt)
 
 ## 11. Integration and Polish
 
