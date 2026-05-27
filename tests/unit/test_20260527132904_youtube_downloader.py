@@ -308,3 +308,102 @@ def test_clean_srt_file_both(tmp_path):
     
     assert cleaned.strip() == expected.strip()
 
+
+
+def test_sync_secondary_srt_timestamps(tmp_path):
+    yd = _load_downloader()
+
+    primary_content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:02,000\n"
+        "Hello world\n"
+        "\n"
+        "2\n"
+        "00:00:02,000 --> 00:00:04,000\n"
+        "How are you\n"
+        "\n"
+        "3\n"
+        "00:00:04,000 --> 00:00:06,000\n"
+        "Goodbye\n"
+    )
+    # Secondary has same 3 blocks but desynchronised timestamps
+    secondary_content = (
+        "1\n"
+        "00:00:01,500 --> 00:00:03,000\n"
+        "Привет мир\n"
+        "\n"
+        "2\n"
+        "00:00:03,000 --> 00:00:05,500\n"
+        "Как дела\n"
+        "\n"
+        "3\n"
+        "00:00:05,500 --> 00:00:07,500\n"
+        "Пока\n"
+    )
+    primary_file = tmp_path / "video.en.srt"
+    secondary_file = tmp_path / "video.ru.srt"
+    primary_file.write_text(primary_content, encoding="utf-8")
+    secondary_file.write_text(secondary_content, encoding="utf-8")
+
+    yd.sync_secondary_srt_timestamps(primary_file, secondary_file)
+
+    result = secondary_file.read_text(encoding="utf-8")
+    assert "00:00:01,000 --> 00:00:02,000" in result
+    assert "00:00:02,000 --> 00:00:04,000" in result
+    assert "00:00:04,000 --> 00:00:06,000" in result
+    assert "Привет мир" in result
+    assert "Как дела" in result
+    assert "Пока" in result
+    assert "00:00:01,500" not in result
+    assert "00:00:05,500 --> 00:00:07,500" not in result
+
+
+def test_sync_secondary_srt_timestamps_different_counts(tmp_path):
+    yd = _load_downloader()
+
+    # Primary: 2 blocks; Secondary: 3 blocks - secondary gets trimmed to 2
+    primary_content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:02,000\n"
+        "Block one\n"
+        "\n"
+        "2\n"
+        "00:00:02,000 --> 00:00:04,000\n"
+        "Block two\n"
+    )
+    secondary_content = (
+        "1\n"
+        "00:00:01,500 --> 00:00:03,000\n"
+        "Блок один\n"
+        "\n"
+        "2\n"
+        "00:00:03,000 --> 00:00:05,000\n"
+        "Блок два\n"
+        "\n"
+        "3\n"
+        "00:00:05,000 --> 00:00:07,000\n"
+        "Блок три\n"
+    )
+    primary_file = tmp_path / "video.en.srt"
+    secondary_file = tmp_path / "video.ru.srt"
+    primary_file.write_text(primary_content, encoding="utf-8")
+    secondary_file.write_text(secondary_content, encoding="utf-8")
+
+    yd.sync_secondary_srt_timestamps(primary_file, secondary_file)
+
+    result = secondary_file.read_text(encoding="utf-8")
+    assert result.count("-->") == 2
+    assert "00:00:01,000 --> 00:00:02,000" in result
+    assert "00:00:02,000 --> 00:00:04,000" in result
+    assert "Блок один" in result
+    assert "Блок два" in result
+    assert "Блок три" not in result
+
+
+def test_sync_secondary_srt_timestamps_missing_file(tmp_path):
+    yd = _load_downloader()
+    # Must not raise when the secondary file does not exist
+    primary_file = tmp_path / "video.en.srt"
+    primary_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
+    missing = tmp_path / "video.ru.srt"
+    yd.sync_secondary_srt_timestamps(primary_file, missing)  # must not raise

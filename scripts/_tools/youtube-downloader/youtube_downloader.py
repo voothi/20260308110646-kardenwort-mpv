@@ -57,6 +57,7 @@ def load_config():
         "youtube_download_unbreak_lines": "false",
         "youtube_download_hyphenation_marks": "-¬",
         "youtube_download_compositional_conjunctions": "und,oder,sowie,bzw,bis",
+        "youtube_download_sync_secondary_timestamps": "false",
         "youtube_download_zid_script": "",
     }
 
@@ -391,6 +392,81 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenati
         
     except Exception as e:
         print(f"   [!] Warning: Failed to clean subtitle file: {e}", file=sys.stderr)
+
+# ==============================================================================
+# SECONDARY SUBTITLE TIMESTAMP SYNC (Option A)
+# ==============================================================================
+def sync_secondary_srt_timestamps(primary_path, secondary_path):
+    """Copies timestamps from the primary SRT onto the secondary SRT block-by-block.
+    If the block counts differ, the longer track is trimmed to match the shorter one.
+    Only the timestamp lines are replaced; the subtitle text content is untouched.
+    """
+    try:
+        primary_path = Path(primary_path)
+        secondary_path = Path(secondary_path)
+        if not primary_path.exists() or not secondary_path.exists():
+            return
+
+        def read_blocks(p):
+            """Returns a list of dicts: {start_time, end_time, lines}."""
+            content = p.read_text(encoding="utf-8-sig", errors="ignore")
+            content = content.replace("\r\n", "\n")
+            raw_lines = content.split("\n")
+            blocks = []
+            current = None
+            for i, raw in enumerate(raw_lines):
+                trimmed = raw.strip()
+                if "-->" in trimmed:
+                    if current is not None:
+                        blocks.append(current)
+                    times = trimmed.split("-->")
+                    current = {
+                        "start_time": times[0].strip(),
+                        "end_time": times[1].strip(),
+                        "lines": []
+                    }
+                else:
+                    if current is not None and trimmed:
+                        # Skip pure-digit index lines that precede the next timestamp
+                        is_next_index = False
+                        if trimmed.isdigit():
+                            for k in range(i + 1, min(i + 5, len(raw_lines))):
+                                nxt = raw_lines[k].strip()
+                                if not nxt:
+                                    continue
+                                if "-->" in nxt:
+                                    is_next_index = True
+                                break
+                        if not is_next_index:
+                            current["lines"].append(trimmed)
+            if current is not None:
+                blocks.append(current)
+            return blocks
+
+        primary_blocks = read_blocks(primary_path)
+        secondary_blocks = read_blocks(secondary_path)
+
+        if not primary_blocks or not secondary_blocks:
+            return
+
+        # Trim both to the shorter length so every secondary block gets a primary timestamp
+        count = min(len(primary_blocks), len(secondary_blocks))
+        primary_blocks = primary_blocks[:count]
+        secondary_blocks = secondary_blocks[:count]
+
+        new_content = []
+        for idx, (pb, sb) in enumerate(zip(primary_blocks, secondary_blocks), 1):
+            new_content.append(str(idx))
+            new_content.append(f"{pb['start_time']} --> {pb['end_time']}")
+            for line in sb["lines"]:
+                new_content.append(line)
+            new_content.append("")  # blank separator
+
+        secondary_path.write_text("\n".join(new_content), encoding="utf-8", newline="\n")
+        print(f"   [sync] Re-timestamped {secondary_path.name} to match {primary_path.name} ({count} blocks).", flush=True)
+
+    except Exception as e:
+        print(f"   [!] Warning: Failed to sync secondary subtitle timestamps: {e}", file=sys.stderr)
 
 # ==============================================================================
 # URL EXTRACTION (Tasks 3.1 – 3.8)
@@ -876,6 +952,12 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     compositional_conjunctions=settings.get("youtube_download_compositional_conjunctions", "und,oder,sowie,bzw,bis")
                 )
                 subtitles_written.append(sub_file)
+
+        # Re-timestamp secondary tracks to match the primary (first written) track
+        if settings.get("youtube_download_sync_secondary_timestamps", False) and len(subtitles_written) >= 2:
+            primary_sub = subtitles_written[0]
+            for secondary_sub in subtitles_written[1:]:
+                sync_secondary_srt_timestamps(primary_sub, secondary_sub)
 
     if mode == "subtitles":
         if subtitles_written or not subtitle_download_failed:
