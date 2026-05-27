@@ -889,9 +889,9 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         zid_cache = {}
 
     srt_path = Path(srt_path).resolve()
-    print(f"\n{'='*60}")
+    print(f"\n\n{'='*60}")
     print(f"Processing: {srt_path.name}")
-    print(f"{'='*60}")
+    print(f"{'='*60}\n\n")
 
     # 1. Language detection
     if lang_override:
@@ -1100,7 +1100,7 @@ def main():
     succeeded = sum(1 for _, ok in results if ok)
     total = len(results)
 
-    print(f"\n{'='*60}")
+    print(f"\n\n{'='*60}")
     print(f"Completed in {elapsed:.1f}s — {succeeded}/{total} files converted successfully.")
     if succeeded < total:
         print("Failed files:")
