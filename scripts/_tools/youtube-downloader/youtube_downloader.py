@@ -290,8 +290,20 @@ def run_ytdlp_info(url, cookies_browser=None):
         import json
         return json.loads(res.stdout)
     except Exception as e:
-        print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
-        return None
+        if cookies_browser:
+            print(f"   [!] Warning: Failed to load cookies from {cookies_browser} (the browser might be open/locked).", flush=True)
+            print("       Retrying metadata fetch without cookies...", flush=True)
+            fallback_cmd = ["yt-dlp", "--dump-json", "--no-warnings", url]
+            try:
+                res = subprocess.run(fallback_cmd, capture_output=True, text=True, check=True, encoding="utf-8")
+                import json
+                return json.loads(res.stdout)
+            except Exception as e2:
+                print(f"Error: Failed to fetch metadata for {url}: {e2}", file=sys.stderr)
+                return None
+        else:
+            print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
+            return None
 
 def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
@@ -507,8 +519,26 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             try:
                 subprocess.run(sub_cmd, check=True)
             except subprocess.CalledProcessError:
-                # Decoupled error handling: log warning and continue with video download
-                print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
+                if cookies_browser:
+                    print("   [!] Warning: Subtitle download failed with cookies (browser might be open/locked).", flush=True)
+                    print("       Retrying subtitle download without cookies...", flush=True)
+                    fallback_sub_cmd = []
+                    skip_next = False
+                    for arg in sub_cmd:
+                        if skip_next:
+                            skip_next = False
+                            continue
+                        if arg == "--cookies-from-browser":
+                            skip_next = True
+                            continue
+                        fallback_sub_cmd.append(arg)
+                    try:
+                        subprocess.run(fallback_sub_cmd, check=True)
+                    except subprocess.CalledProcessError:
+                        print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
+                else:
+                    # Decoupled error handling: log warning and continue with video download
+                    print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
         else:
             print("   • No subtitles were available.", flush=True)
 
@@ -538,8 +568,27 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         try:
             subprocess.run(video_cmd, check=True)
         except subprocess.CalledProcessError:
-            print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
-            return False
+            if cookies_browser:
+                print("   [!] Warning: Video download failed with cookies (browser might be open/locked).", flush=True)
+                print("       Retrying video download without cookies...", flush=True)
+                fallback_video_cmd = []
+                skip_next = False
+                for arg in video_cmd:
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    if arg == "--cookies-from-browser":
+                        skip_next = True
+                        continue
+                    fallback_video_cmd.append(arg)
+                try:
+                    subprocess.run(fallback_video_cmd, check=True)
+                except subprocess.CalledProcessError:
+                    print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
+                    return False
+            else:
+                print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
+                return False
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
