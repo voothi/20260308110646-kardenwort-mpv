@@ -348,4 +348,68 @@ def test_subtitle_download_fails_gracefully(yd, tmp_path, monkeypatch):
     assert video_download_called  # Video download was executed!
 
 
+def test_duplicate_mode_skip_recovers_missing_subtitles(yd, tmp_path, monkeypatch):
+    """Verifies that in skip mode, if the video exists but subtitles are missing, only subtitles are downloaded using the old ZID."""
+    target_dir = tmp_path
+    
+    # Touch existing video file
+    existing_video = target_dir / "20260527132904-test-video.mp4"
+    existing_video.touch()
+    
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_chapters_mode": "separate",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "en",
+    }
+    
+    chapters_metadata = [
+        {"start_time": 0.0, "title": "Intro"},
+    ]
+    
+    # Detected lang is 'en', subtitles exist in metadata
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "en",
+        "subtitles": {"en": {}},
+        "chapters": chapters_metadata
+    })
+    
+    video_download_called = False
+    subtitle_download_called = False
+    
+    def mock_run(cmd, *args, **kwargs):
+        nonlocal video_download_called, subtitle_download_called
+        if "--skip-download" in cmd:
+            subtitle_download_called = True
+            # Simulate writing the subtitle file
+            sub_file = target_dir / "20260527132904-test-video.en.srt"
+            sub_file.touch()
+        else:
+            video_download_called = True
+            
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    # The new ZID generated is different, but the script should override it to match existing file's ZID
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
+    
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+    
+    assert success
+    assert not video_download_called  # Video download was skipped!
+    assert subtitle_download_called   # Subtitle download was initiated!
+    
+    # Verify subtitle was created with the correct old ZID
+    assert (target_dir / "20260527132904-test-video.en.srt").exists()
+    # Verify chapters was created with the correct old ZID
+    assert (target_dir / "20260527132904-test-video.chapters.txt").exists()
+
+
 

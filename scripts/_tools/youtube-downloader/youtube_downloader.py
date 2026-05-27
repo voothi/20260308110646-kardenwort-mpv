@@ -346,13 +346,64 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 break
 
     if existing_file:
+        old_zid = existing_file.name.split("-")[0]
         if dup_mode == "skip":
-            print(f"   [!] File already exists (as {existing_file.name}). Skipping download (skip mode).", flush=True)
-            return True
+            # Determine what files are required and check if they are missing
+            ch_mode = settings["youtube_download_chapters_mode"]
+            save_chapters_file = ch_mode in ["separate", "both"]
+            has_chapters = len(info.get("chapters", []) or []) > 0
+            
+            missing_files = []
+            
+            # Check chapter file
+            if save_chapters_file and has_chapters:
+                chapters_path = out_dir / f"{old_zid}-{sanitized_title}.chapters.txt"
+                if not chapters_path.exists():
+                    missing_files.append("chapters.txt")
+                    
+            # Check subtitle files
+            mode = settings["youtube_download_mode"]
+            download_subs = mode in ["video+subtitles", "subtitles"]
+            sub_langs_list = []
+            if download_subs:
+                pref_langs = settings["youtube_download_subtitle_languages"]
+                raw_list = [l.strip() for l in pref_langs.split(",") if l.strip()]
+                for l in raw_list:
+                    if l == "original":
+                        detected_lang = info.get("language")
+                        if detected_lang:
+                            sub_langs_list.append(detected_lang)
+                        else:
+                            meta_subs = info.get("subtitles", {})
+                            if meta_subs:
+                                sub_langs_list.extend(meta_subs.keys())
+                            else:
+                                meta_auto = info.get("automatic_captions", {})
+                                if meta_auto:
+                                    sub_langs_list.extend(meta_auto.keys())
+                    else:
+                        sub_langs_list.append(l)
+                sub_langs_list = list(dict.fromkeys(sub_langs_list))
+                
+                for lang in sub_langs_list:
+                    sub_file = out_dir / f"{old_zid}-{sanitized_title}.{lang}.srt"
+                    if not sub_file.exists():
+                        missing_files.append(f"{lang}.srt")
+                        
+            if not missing_files:
+                print(f"   [!] File already exists (as {existing_file.name}). Skipping download (skip mode).", flush=True)
+                return True
+            else:
+                print(f"   [!] Video already exists (as {existing_file.name}), but some files are missing: {', '.join(missing_files)}.", flush=True)
+                print(f"       Initiating missing file recovery using existing ZID: {old_zid}...", flush=True)
+                # Override ZID to match the existing video's ZID
+                zid = old_zid
+                # Force subtitle-only download mode to skip video download
+                settings = settings.copy()
+                settings["youtube_download_mode"] = "subtitles"
         elif dup_mode == "overwrite":
             print(f"   [!] File already exists (as {existing_file.name}). Overwriting (overwrite mode).", flush=True)
             # To cleanly overwrite, delete the old ZID-prefixed video and any associated subtitle/chapter files
-            old_zid = existing_file.name.split("-")[0]
             try:
                 for f in out_dir.iterdir():
                     if f.is_file() and f.name.startswith(old_zid) and sanitized_title in f.name:
