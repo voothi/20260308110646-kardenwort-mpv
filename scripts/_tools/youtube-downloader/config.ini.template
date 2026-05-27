@@ -1,0 +1,36 @@
+[Settings]
+# Preferred video resolution (e.g., 360p, 720p, 1080p, or best)
+youtube_download_resolution = 360p
+
+# Directory where downloaded files will be saved.
+# If left empty, it defaults to the Windows user's Videos folder (%USERPROFILE%\Videos).
+youtube_download_directory = 
+
+# What to download:
+#   video+subtitles - Download the video and separate SRT subtitle files (default)
+#   video           - Download the video only; no subtitle files
+#   subtitles       - Download SRT subtitle files only; no video file
+youtube_download_mode = video+subtitles
+
+# How to handle files that already exist in the target directory:
+#   zid-dir   - Create a subfolder named after the session ZID and place files there (default)
+#   skip      - Log a skip message and proceed to the next URL
+#   overwrite - Overwrite the existing files
+youtube_download_duplicate_mode = zid-dir
+
+# Subtitle languages to download:
+#   original - Detect the video's main language from metadata and download it
+#   en,de,ru - Comma-separated list of BCP-47 language codes
+youtube_download_subtitle_languages = original
+
+# Whether to fall back to auto-generated subtitles if manual ones are not available (true/false)
+youtube_download_subtitle_auto_fallback = true
+
+# Whether to check for and install yt-dlp updates before starting downloads (true/false)
+youtube_download_auto_update = true
+
+# How to save chapter metadata:
+#   embedded - Embed chapters directly inside the video container (default)
+#   separate - Save chapters to a separate .chapters.txt file
+#   both     - Both embed chapters and save to a separate .chapters.txt file
+youtube_download_chapters_mode = embedded
