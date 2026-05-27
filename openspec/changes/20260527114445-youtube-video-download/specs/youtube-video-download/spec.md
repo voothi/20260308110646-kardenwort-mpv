@@ -170,17 +170,52 @@ The download system SHALL download videos with chapter metadata. The system SHAL
 - **AND** the system SHALL not display an error
 
 ### Requirement: SRT Subtitle Download
-The download system SHALL automatically download SRT subtitle files separately for each available language.
+The download system SHALL automatically download SRT subtitle files based on configuration. The system SHALL expose `youtube_download_subtitle_languages`, `youtube_download_subtitle_auto_fallback`, and `youtube_download_subtitle_format` as configuration options.
 
-#### Scenario: Video has subtitles
-- **WHEN** a YouTube video has subtitles available
+#### Scenario: Download original subtitles only
+- **WHEN** `youtube_download_subtitle_languages` is `"original"`
+- **AND** a YouTube video has original subtitles available
 - **AND** the video is downloaded
-- **THEN** the system SHALL download SRT subtitle files for each available language
+- **THEN** the system SHALL download SRT subtitle files for the original language
 - **AND** the subtitle files SHALL be saved in the same directory as the video
-- **AND** the subtitle files SHALL have the same base name as the video with language code suffix
+- **AND** the subtitle files SHALL have the same ZID and name as the video with language code postfix (e.g., `{ZID}-{name}.en.srt`)
+
+#### Scenario: Download specific languages
+- **WHEN** `youtube_download_subtitle_languages` is a comma-separated list (e.g., "en,de,ru")
+- **AND** a YouTube video has subtitles for the specified languages
+- **AND** the video is downloaded
+- **THEN** the system SHALL download SRT subtitle files for each specified language
+- **AND** the subtitle files SHALL be saved in the same directory as the video
+- **AND** the subtitle files SHALL have the same ZID and name as the video with language code postfix
+
+#### Scenario: Auto-subtitle fallback enabled
+- **WHEN** `youtube_download_subtitle_auto_fallback` is `true`
+- **AND** a YouTube video has no manual subtitles for the requested language
+- **AND** the video is downloaded
+- **THEN** the system SHALL download auto-generated subtitles for the requested language
+- **AND** the system SHALL log a message that auto-subtitles were downloaded
+
+#### Scenario: Auto-subtitle fallback disabled
+- **WHEN** `youtube_download_subtitle_auto_fallback` is `false`
+- **AND** a YouTube video has no manual subtitles for the requested language
+- **AND** the video is downloaded
+- **THEN** the system SHALL not download subtitles for that language
+- **AND** the system SHALL log a message that no manual subtitles were available
+
+#### Scenario: Separate subtitle format (default)
+- **WHEN** `youtube_download_subtitle_format` is `"separate"`
+- **AND** multiple subtitle languages are downloaded
+- **THEN** the system SHALL create separate SRT files for each language
+- **AND** each file SHALL have the same ZID and name as the video with language code postfix (e.g., `{ZID}-{name}.en.srt`, `{ZID}-{name}.de.srt`)
+
+#### Scenario: Single subtitle format
+- **WHEN** `youtube_download_subtitle_format` is `"single"`
+- **AND** multiple subtitle languages are downloaded
+- **THEN** the system SHALL create a single SRT file containing all subtitle tracks
+- **AND** the file SHALL have the same ZID and name as the video with `.srt` extension (e.g., `{ZID}-{name}.srt`)
 
 #### Scenario: Video has no subtitles
-- **WHEN** a YouTube video has no subtitles available
+- **WHEN** a YouTube video has no subtitles available (manual or auto)
 - **AND** the video is downloaded
 - **THEN** the system SHALL download the video without subtitles
 - **AND** the system SHALL log a message that no subtitles were available

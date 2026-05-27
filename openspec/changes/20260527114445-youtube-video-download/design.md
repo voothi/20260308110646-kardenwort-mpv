@@ -36,13 +36,16 @@ The user currently downloads YouTube videos for language learning using external
    - Robust error handling and retry logic
    - Active maintenance and frequent updates
 
-3. **Configuration-driven resolution, directory, updates, and chapters**
+3. **Configuration-driven resolution, directory, updates, chapters, and subtitles**
 
-   Add four new configuration options:
+   Add seven new configuration options:
    - `youtube_download_resolution` (default: "360p")
    - `youtube_download_directory` (default: user's Videos folder or project-specific directory)
    - `youtube_download_auto_update` (default: true) - Check and install yt-dlp updates before downloads
    - `youtube_download_chapters_mode` (default: "embedded") - Chapter output mode: "embedded", "separate", or "both"
+   - `youtube_download_subtitle_languages` (default: "original") - Languages to download: "original", "auto", or comma-separated list (e.g., "en,de,ru")
+   - `youtube_download_subtitle_auto_fallback` (default: true) - Download auto-subtitles if no manual ones available
+   - `youtube_download_subtitle_format` (default: "separate") - Subtitle format: "separate" (multiple files with language codes) or "single" (one file)
 
 4. **File and directory-based "Send to" integration**
 
@@ -57,7 +60,11 @@ The user currently downloads YouTube videos for language learning using external
 5. **Automatic subtitle and chapter download**
 
    The integration will automatically download:
-   - SRT subtitle files separately (for each available language)
+   - SRT subtitle files based on configuration:
+     - Language selection: original, auto, or specific languages (comma-separated)
+     - Auto-subtitle fallback if no manual ones available (configurable)
+     - Format: separate files with language codes (e.g., `{ZID}-{name}.en.srt`) or single file
+     - Naming: same ZID and name as video, differing only in language code postfix and .srt extension
    - Chapter metadata (either embedded in the video file or saved to a separate file based on configuration)
    This eliminates the need for manual subtitle download via newpipe/asbplayer.
 
