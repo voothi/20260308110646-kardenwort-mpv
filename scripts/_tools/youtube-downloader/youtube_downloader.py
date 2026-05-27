@@ -1480,6 +1480,8 @@ def main():
     print("================================================================================", flush=True)
     print("                    KARDENWORT YOUTUBE DOWNLOAD ENGINE                          ", flush=True)
     print("================================================================================", flush=True)
+    print(flush=True)
+    print(flush=True)
     print(f"ZID: {get_current_zid()}\n", flush=True)
     
     parser = argparse.ArgumentParser(description="YouTube Downloader Integration")
