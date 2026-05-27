@@ -39,6 +39,6 @@ The current workflow for downloading YouTube videos for language learning involv
 ## Impact
 
 - **`scripts/_tools/`**: New download integration tool/script
-- **`mpv.conf` / configuration**: New options for download resolution and directory settings
+- **`scripts/_tools/youtube-downloader/config.ini`**: New downloader options (resolution, directory, duplicate handling, subtitles, chapters, companion audio, and post-processing)
 - **`docs/`**: Documentation for the new "Send to" workflow
-- **Tests**: Acceptance tests for download integration functionality
+- **Tests**: Unit tests with mocked yt-dlp and manual verification checkpoints (no full end-to-end network acceptance suite in CI)

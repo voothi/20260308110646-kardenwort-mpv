@@ -114,6 +114,20 @@ The user currently downloads YouTube videos for language learning using external
 
     The `zid_cache` is initialized once per session (one "Send to" invocation) and reused across all URLs, exactly as in sub-tts `process_srt` / main loop.
 
+## Architecture Review (Chief Architect Pass, ZID: 20260527204017)
+
+**Verdict:** The solution direction is sound and cohesive (single backend, config-driven behavior, strong naming discipline, and good workflow fit), but two correctness gaps remain in the `skip` recovery branch and one language-matching gap in companion audio.
+
+**Confirmed inconsistencies / false assumptions:**
+- The current `skip` recovery still forces `youtube_download_mode = "subtitles"` unconditionally, which triggers unnecessary subtitle download attempts when only companion audio is missing.
+- Existing subtitle files are post-processed again during `skip` recovery, which risks non-idempotent transformations (`fix_sentence_splits`) on already-cleaned tracks.
+- Companion audio matching currently requires exact `language == lang`; this can miss valid tracks when metadata uses regional tags like `ru-RU` and config uses `ru`.
+- Documentation drift: one config comment says longer subtitle tracks are "trimmed"; implementation/spec behavior preserves all secondary blocks and remaps timestamps.
+
+**Design alignment decision:**
+- Keep section 15 as mandatory stabilization work before considering this change implementation-complete.
+- Treat the companion language normalization as part of the core matching contract, not a nice-to-have optimization.
+
 ## Risks / Trade-offs
 
 - [Risk] YouTube URLs may change or videos may be deleted, causing download failures.
@@ -126,14 +140,12 @@ The user currently downloads YouTube videos for language learning using external
 ## Migration Plan
 
 1. Create Python download script in `scripts/_tools/youtube-downloader/`
-2. Add configuration options to `mpv.conf` or a separate config file
+2. Add configuration options to `scripts/_tools/youtube-downloader/config.ini`
 3. Create Windows "Send to" integration script/shortcut
 4. Add documentation for setup and usage
-5. Add acceptance tests for download functionality
+5. Add unit tests (mocked yt-dlp) and manual verification checkpoints for download functionality
 6. Update user-facing documentation
 
 ## Open Questions
 
-- Should the integration support batch processing of multiple URLs in a single file? (Yes, for efficiency)
-- Should there be a progress indicator for long downloads? (Yes, yt-dlp provides this)
-- How should the integration handle videos that are already downloaded? (Resolved: `youtube_download_duplicate_mode` = "zid-dir" by default, mirroring sub-tts; also supports "skip" and "overwrite")
+- None at design level. Remaining uncertainty is implementation-level and tracked in `tasks.md` section 15.

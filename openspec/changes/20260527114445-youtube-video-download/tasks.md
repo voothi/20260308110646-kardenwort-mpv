@@ -15,7 +15,7 @@
 - [x] 2.6 Add `youtube_download_subtitle_auto_fallback` configuration option (default: true)
 - [x] 2.7 Add `youtube_download_auto_update` configuration option (default: true)
 - [x] 2.8 Add `youtube_download_chapters_mode` configuration option (default: "embedded")
-- [x] 2.9 Update `mpv.conf` with commented examples for YouTube download settings
+- [x] 2.9 Update `scripts/_tools/youtube-downloader/config.ini` and `config.ini.template` with commented examples for YouTube download settings
 
 ## 3. YouTube URL Detection
 
@@ -44,7 +44,7 @@
 - [x] 5.2 Implement resolution fallback when requested resolution is unavailable
 - [x] 5.3 Implement directory creation if target directory doesn't exist
 - [x] 5.4 Implement directory write permission checking
-- [x] 5.5 Implement `youtube_download_duplicate_mode` handling: "skip" → per-type missing-file recovery (check chapters, subtitles, companion audio; if any absent, override ZID to old value and re-run only the missing downloads; if all present, early-return); "overwrite" → delete all old ZID-prefixed files then re-download everything; "zid-dir" → create `{session-ZID}/` subfolder and place file inside
+- [x] 5.5 Implement baseline `youtube_download_duplicate_mode` handling: "skip" missing-file recovery, "overwrite", and "zid-dir" placement (further correctness fixes tracked in section 15)
 - [x] 5.6 Add download progress tracking and display
 - [x] 5.7 Implement ZID-based filename generation (same convention as `zid_name.py`)
 - [x] 5.8 Implement unique ZID generation for each download
@@ -195,3 +195,9 @@ Three bugs in the `duplicate_mode = skip` recovery path, reviewed at ZID: 202605
 - [ ] 15.3 Fix Bug 1 with a recovery-local gate: introduce `is_skip_recovery` and `any_subs_missing` in the duplicate-mode recovery branch; use local `skip_video = is_skip_recovery`; gate video on `mode != "subtitles" and not skip_video`; gate subtitle download on `mode in ["video+subtitles", "subtitles"] and (not is_skip_recovery or any_subs_missing)`; do **not** introduce a new string value for `youtube_download_mode` — that would require updating every `if mode in [...]` check in the pipeline
 - [ ] 15.4 Add unit tests: `test_no_subtitle_redownload_when_only_companion_missing`, `test_clean_srt_not_called_on_preexisting_subtitle`, `test_sync_fires_when_secondary_newly_downloaded_primary_preexisting`
 - [ ] 15.5 Fix companion audio language region mismatch: the metadata guard in `download_companion_audio` uses `f.get("language") == lang` (exact match); YouTube metadata regularly returns regional codes like `"ru-RU"` while the user configures `"ru"`; apply the same base-code stripping logic as `resolve_original_language` before the comparison; update the yt-dlp `-f` selector to use the actual matched language tag from `formats` rather than the user's configured code, so the selector matches what yt-dlp sees; add unit tests covering `ru` config vs `ru-RU` metadata and selector-tag correctness
+
+## 16. Architecture Alignment Follow-Up (ZID: 20260527204017)
+
+- [ ] 16.1 Treat section 15 as a release gate: do not mark this change "implementation complete" until 15.1–15.5 are done and tests are passing
+- [ ] 16.2 Remove documentation drift about subtitle sync trimming: align `config.ini` / `config.ini.template` comment text with actual behavior ("preserve all secondary blocks; remap timestamps"), matching section 13 intent
+- [ ] 16.3 Add one deterministic unit test proving region-aware companion audio matching uses metadata language tag (e.g., config `ru`, metadata `ru-RU`) end-to-end in command construction

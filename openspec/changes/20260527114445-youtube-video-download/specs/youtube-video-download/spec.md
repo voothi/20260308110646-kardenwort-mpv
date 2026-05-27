@@ -392,4 +392,37 @@ The download system SHALL expose `youtube_download_sync_secondary_timestamps` as
 - **WHEN** the primary track has more blocks than the secondary track (or vice versa)
 - **THEN** the system SHALL match each secondary block to the nearest primary block by time
 - **AND** all secondary blocks SHALL be preserved in the output (no trimming)
-- **AND** secondary blocks beyond the primary timeline SHALL map to the last available primary block
+- **AND** secondary blocks beyond the primary timeline SHALL map to the last available primary block
+
+### Requirement: Skip-Mode Recovery Correctness
+When `youtube_download_duplicate_mode` is `"skip"` and a matching video file already exists, the system SHALL recover only truly missing artifacts and SHALL avoid reprocessing pre-existing subtitle files.
+
+#### Scenario: Only companion audio is missing
+- **WHEN** the video file already exists
+- **AND** all expected subtitle/chapter artifacts already exist
+- **AND** one or more companion audio files are missing
+- **THEN** the system SHALL skip video download
+- **AND** the system SHALL skip subtitle download
+- **AND** the system SHALL download only the missing companion audio files
+
+#### Scenario: Pre-existing subtitles during skip recovery
+- **WHEN** skip-mode recovery runs for a video with some subtitle files already present
+- **AND** additional subtitle files are newly downloaded in this recovery run
+- **THEN** subtitle post-processing (`clean_srt_file`) SHALL run only on newly downloaded subtitle files
+- **AND** already-existing subtitle files SHALL NOT be post-processed again
+
+#### Scenario: Timestamp sync with mixed pre-existing and newly downloaded subtitles
+- **WHEN** `youtube_download_sync_secondary_timestamps` is `true`
+- **AND** skip-mode recovery has a mix of pre-existing and newly downloaded subtitle files
+- **AND** at least two subtitle tracks are present after recovery
+- **THEN** sync SHALL run using an ordered list that includes both pre-existing and newly downloaded tracks
+- **AND** the first language in configured subtitle order SHALL remain the deterministic primary track
+
+### Requirement: Companion Audio Language Matching
+The companion-audio track selector SHALL support regional language tags and SHALL use the matched metadata language tag when constructing the yt-dlp format selector.
+
+#### Scenario: Configured base code matches regional metadata code
+- **WHEN** `youtube_download_companion_audio_languages` contains a base code (for example `ru`)
+- **AND** YouTube metadata exposes a matching audio-only dubbed track under a regional tag (for example `ru-RU`)
+- **THEN** the system SHALL treat the track as a valid match
+- **AND** the yt-dlp `-f` selector SHALL use the actual matched metadata tag (`ru-RU`) rather than the base configured code
