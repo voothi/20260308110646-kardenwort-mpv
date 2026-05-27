@@ -556,7 +556,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     # 5. Build and run subtitle download command (if needed)
     if download_subs and sub_langs_list:
-        sub_cmd = ["yt-dlp", "--skip-download", "--no-warnings", "-o", output_tmpl]
+        sub_cmd = ["yt-dlp", "--color", "always", "--skip-download", "--no-warnings", "-o", output_tmpl]
         if cookies_file:
             sub_cmd.extend(["--cookies", cookies_file])
         elif cookies_browser:
@@ -619,7 +619,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     # 6. Build and run video download command (if needed)
     if mode != "subtitles":
-        video_cmd = ["yt-dlp", "--no-warnings"]
+        video_cmd = ["yt-dlp", "--color", "always", "--no-warnings"]
         if cookies_file:
             video_cmd.extend(["--cookies", cookies_file])
         elif cookies_browser:
