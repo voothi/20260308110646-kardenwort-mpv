@@ -57,3 +57,4 @@ mpv_start_test.log
 mpv_success_test.log
 mpv_test_launch.log
 docs/assets/
+.tmp_pytest_subviewer/
