@@ -10,7 +10,7 @@ The current workflow for downloading YouTube videos for language learning involv
 - Support TSV source file workflow where the YouTube link file is used as Source
 - Download videos with chapters and separately download SRT subtitle files
 - Option to check and install yt-dlp updates before starting downloads
-- Option to save chapters to a separate file (configurable)
+- Option to save chapters: embedded only, separate file only, or both (configurable)
 
 ## Capabilities
 
@@ -19,7 +19,7 @@ The current workflow for downloading YouTube videos for language learning involv
 - `configurable-download-resolution`: Allows setting preferred video resolution in configuration
 - `configurable-download-directory`: Allows setting target download directory in configuration
 - `chapter-support`: Downloads videos with chapter metadata
-- `chapter-separate-file`: Allows saving chapters to a separate file (configurable)
+- `chapter-output-mode`: Configurable chapter output: embedded, separate, or both
 - `subtitle-download`: Automatically downloads SRT subtitle files separately
 - `auto-update-ytdlp`: Allows checking and installing yt-dlp updates before downloads
 

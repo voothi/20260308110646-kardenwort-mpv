@@ -94,21 +94,32 @@ The download system SHALL check for and install yt-dlp updates before starting d
 - **AND** the system SHALL proceed with the video download using the current yt-dlp version
 
 ### Requirement: Chapter Metadata Download
-The download system SHALL download videos with chapter metadata. The system SHALL expose `youtube_download_chapters_separate` as a boolean setting to control whether chapters are embedded in the video file or saved to a separate file.
+The download system SHALL download videos with chapter metadata. The system SHALL expose `youtube_download_chapters_mode` as a string setting to control chapter output mode: "embedded", "separate", or "both".
 
 #### Scenario: Chapters embedded in video (default)
-- **WHEN** `youtube_download_chapters_separate` is `false`
+- **WHEN** `youtube_download_chapters_mode` is `"embedded"`
 - **AND** a YouTube video has chapter metadata
 - **AND** the video is downloaded
 - **THEN** the downloaded video SHALL contain embedded chapter markers
 - **AND** the chapters SHALL be accessible during playback
 - **AND** no separate chapter file SHALL be created
 
-#### Scenario: Chapters saved to separate file
-- **WHEN** `youtube_download_chapters_separate` is `true`
+#### Scenario: Chapters saved to separate file only
+- **WHEN** `youtube_download_chapters_mode` is `"separate"`
 - **AND** a YouTube video has chapter metadata
 - **AND** the video is downloaded
 - **THEN** the system SHALL save chapter metadata to a separate file
+- **AND** the chapter file SHALL have the same base name as the video with a `.chapters.txt` suffix
+- **AND** the chapter file SHALL contain chapter titles and timestamps in a readable format
+- **AND** the video SHALL NOT contain embedded chapter markers
+
+#### Scenario: Chapters embedded and saved to separate file
+- **WHEN** `youtube_download_chapters_mode` is `"both"`
+- **AND** a YouTube video has chapter metadata
+- **AND** the video is downloaded
+- **THEN** the downloaded video SHALL contain embedded chapter markers
+- **AND** the chapters SHALL be accessible during playback
+- **AND** the system SHALL also save chapter metadata to a separate file
 - **AND** the chapter file SHALL have the same base name as the video with a `.chapters.txt` suffix
 - **AND** the chapter file SHALL contain chapter titles and timestamps in a readable format
 

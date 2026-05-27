@@ -11,7 +11,7 @@
 - [ ] 2.3 Add `youtube_download_overwrite` configuration option (default: false)
 - [ ] 2.4 Add `youtube_download_subtitles` configuration option (default: true)
 - [ ] 2.5 Add `youtube_download_auto_update` configuration option (default: true)
-- [ ] 2.6 Add `youtube_download_chapters_separate` configuration option (default: false)
+- [ ] 2.6 Add `youtube_download_chapters_mode` configuration option (default: "embedded")
 - [ ] 2.7 Update `mpv.conf` with commented examples for YouTube download settings
 
 ## 3. YouTube URL Detection
@@ -42,8 +42,8 @@
 
 ## 6. Chapter and Subtitle Download
 
-- [ ] 6.1 Implement chapter metadata embedding in downloaded videos (when `youtube_download_chapters_separate` is false)
-- [ ] 6.2 Implement chapter metadata saving to separate file (when `youtube_download_chapters_separate` is true)
+- [ ] 6.1 Implement chapter metadata embedding in downloaded videos (when `youtube_download_chapters_mode` is "embedded" or "both")
+- [ ] 6.2 Implement chapter metadata saving to separate file (when `youtube_download_chapters_mode` is "separate" or "both")
 - [ ] 6.3 Implement chapter file naming with `.chapters.txt` suffix
 - [ ] 6.4 Implement chapter file format with titles and timestamps
 - [ ] 6.5 Implement automatic SRT subtitle download for all available languages
@@ -81,12 +81,13 @@
 - [ ] 10.3 Add acceptance test for multiple URL download
 - [ ] 10.4 Add acceptance test for resolution configuration
 - [ ] 10.5 Add acceptance test for directory configuration
-- [ ] 10.6 Add acceptance test for chapter metadata download (embedded)
-- [ ] 10.7 Add acceptance test for chapter metadata download (separate file)
-- [ ] 10.8 Add acceptance test for SRT subtitle download
-- [ ] 10.9 Add acceptance test for existing file handling
-- [ ] 10.10 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
-- [ ] 10.11 Add acceptance test for yt-dlp auto-update functionality
+- [ ] 10.6 Add acceptance test for chapter metadata download (embedded mode)
+- [ ] 10.7 Add acceptance test for chapter metadata download (separate mode)
+- [ ] 10.8 Add acceptance test for chapter metadata download (both mode)
+- [ ] 10.9 Add acceptance test for SRT subtitle download
+- [ ] 10.10 Add acceptance test for existing file handling
+- [ ] 10.11 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
+- [ ] 10.12 Add acceptance test for yt-dlp auto-update functionality
 
 ## 11. Integration and Polish
 
