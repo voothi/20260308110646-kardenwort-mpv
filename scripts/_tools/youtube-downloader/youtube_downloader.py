@@ -60,6 +60,7 @@ def load_config():
         "youtube_download_fix_sentence_splits": "false",
         "youtube_download_sync_secondary_timestamps": "false",
         "youtube_download_companion_audio_languages": "",
+        "youtube_download_js_runtime": "node",
         "youtube_download_zid_script": "",
     }
 
@@ -708,13 +709,17 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
     cookies_file = settings.get("youtube_download_cookies_file", "").strip()
 
-    # Pass --js-runtimes node --remote-components ejs:github to ensure HLS/m3u8 auto-dubbed streams are extracted.
+    # Pass --js-runtimes and --remote-components if a JS runtime is configured.
     # Try bestaudio first, then fall back to worst/best (which matches combined formats at lowest resolution to save bandwidth).
-    cmd = ["yt-dlp", "--js-runtimes", "node", "--remote-components", "ejs:github",
+    cmd = ["yt-dlp"]
+    js_runtime = str(settings.get("youtube_download_js_runtime", "node")).strip()
+    if js_runtime and js_runtime.lower() != "none":
+        cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+    cmd.extend([
            "--color", "always", "--no-warnings",
            "-f", f"bestaudio[language={matched_lang_tag}]/worst[language={matched_lang_tag}]/best[language={matched_lang_tag}]",
            "--merge-output-format", "mp4",
-           "-o", output_tmpl]
+           "-o", output_tmpl])
     if cookies_file:
         cmd.extend(["--cookies", cookies_file])
     elif cookies_browser:
@@ -769,9 +774,13 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
 # ==============================================================================
 # MAIN DOWNLOAD PIPELINE
 # ==============================================================================
-def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
+def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="node"):
     """Runs yt-dlp --dump-json to fetch metadata."""
-    cmd = ["yt-dlp", "--js-runtimes", "node", "--remote-components", "ejs:github", "--dump-json", "--no-warnings"]
+    cmd = ["yt-dlp"]
+    js_runtime = str(js_runtime or "").strip()
+    if js_runtime and js_runtime.lower() != "none":
+        cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+    cmd.extend(["--dump-json", "--no-warnings"])
     if cookies_file:
         cmd.extend(["--cookies", cookies_file])
     elif cookies_browser:
@@ -786,7 +795,10 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
             source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
             print(f"   [!] Warning: Failed to load cookies from {source_desc} (might be open, locked, or DPAPI error).", flush=True)
             print("       Retrying metadata fetch without cookies...", flush=True)
-            fallback_cmd = ["yt-dlp", "--js-runtimes", "node", "--remote-components", "ejs:github", "--dump-json", "--no-warnings", url]
+            fallback_cmd = ["yt-dlp"]
+            if js_runtime and js_runtime.lower() != "none":
+                fallback_cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+            fallback_cmd.extend(["--dump-json", "--no-warnings", url])
             try:
                 res = subprocess.run(fallback_cmd, capture_output=True, text=True, check=True, encoding="utf-8")
                 import json
@@ -829,7 +841,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         info = run_ytdlp_info(
             url,
             cookies_browser=cookies_browser if cookies_browser else None,
-            cookies_file=cookies_file if cookies_file else None
+            cookies_file=cookies_file if cookies_file else None,
+            js_runtime=settings.get("youtube_download_js_runtime", "node")
         )
     except TypeError:
         # Fallback for mocked single-argument lambdas in unit/integration tests
@@ -1032,7 +1045,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         and (not is_skip_recovery or any_subs_missing)
     )
     if should_download_subs:
-        sub_cmd = ["yt-dlp", "--color", "always", "--skip-download", "--no-warnings", "-o", output_tmpl]
+        sub_cmd = ["yt-dlp"]
+        js_runtime = str(settings.get("youtube_download_js_runtime", "node")).strip()
+        if js_runtime and js_runtime.lower() != "none":
+            sub_cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+        sub_cmd.extend(["--color", "always", "--skip-download", "--no-warnings", "-o", output_tmpl])
         if cookies_file:
             sub_cmd.extend(["--cookies", cookies_file])
         elif cookies_browser:
@@ -1096,7 +1113,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     # 6. Build and run video download command (if needed)
     skip_video = is_skip_recovery
     if mode != "subtitles" and not skip_video:
-        video_cmd = ["yt-dlp", "--color", "always", "--no-warnings"]
+        video_cmd = ["yt-dlp"]
+        js_runtime = str(settings.get("youtube_download_js_runtime", "node")).strip()
+        if js_runtime and js_runtime.lower() != "none":
+            video_cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+        video_cmd.extend(["--color", "always", "--no-warnings"])
         if cookies_file:
             video_cmd.extend(["--cookies", cookies_file])
         elif cookies_browser:

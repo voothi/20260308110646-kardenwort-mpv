@@ -62,6 +62,7 @@ def _settings(**overrides):
         "youtube_download_fix_sentence_splits": False,
         "youtube_download_sync_secondary_timestamps": False,
         "youtube_download_companion_audio_languages": "",
+        "youtube_download_js_runtime": "node",
         "youtube_download_zid_script": "",
     }
     base.update(overrides)
@@ -279,3 +280,64 @@ def test_no_missing_when_companion_exists():
                 missing_files.append(f"{comp_lang}.mp4 (companion audio)")
 
         assert missing_files == []
+
+
+# ---------------------------------------------------------------------------
+# JS Runtime Options: custom path and none settings
+# ---------------------------------------------------------------------------
+
+def test_companion_audio_custom_js_runtime():
+    yd = _load_downloader()
+    info = _make_info(formats=[_audio_only("ru")])
+    captured = {}
+
+    with tempfile.TemporaryDirectory() as tmp:
+        target_dir = Path(tmp)
+        comp_file = target_dir / "20260527000001-test-video.ru.mp4"
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            comp_file.touch()
+
+        custom_runtime = "node:C:\\Custom\\node.exe"
+        settings = _settings(youtube_download_js_runtime=custom_runtime)
+
+        with patch.object(yd, "run_subprocess_streaming", side_effect=fake_run):
+            result = yd.download_companion_audio(
+                "https://youtu.be/test", "20260527000001", "test-video",
+                target_dir, "ru", info, settings
+            )
+
+    assert result is True
+    cmd = captured["cmd"]
+    assert "--js-runtimes" in cmd
+    assert cmd[cmd.index("--js-runtimes") + 1] == custom_runtime
+    assert "--remote-components" in cmd
+    assert cmd[cmd.index("--remote-components") + 1] == "ejs:github"
+
+
+def test_companion_audio_disabled_js_runtime():
+    yd = _load_downloader()
+    info = _make_info(formats=[_audio_only("ru")])
+    captured = {}
+
+    with tempfile.TemporaryDirectory() as tmp:
+        target_dir = Path(tmp)
+        comp_file = target_dir / "20260527000001-test-video.ru.mp4"
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            comp_file.touch()
+
+        settings = _settings(youtube_download_js_runtime="none")
+
+        with patch.object(yd, "run_subprocess_streaming", side_effect=fake_run):
+            result = yd.download_companion_audio(
+                "https://youtu.be/test", "20260527000001", "test-video",
+                target_dir, "ru", info, settings
+            )
+
+    assert result is True
+    cmd = captured["cmd"]
+    assert "--js-runtimes" not in cmd
+    assert "--remote-components" not in cmd
