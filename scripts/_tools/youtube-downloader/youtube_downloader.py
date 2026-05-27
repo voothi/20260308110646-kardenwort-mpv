@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -35,6 +36,47 @@ _ZID_SCRIPT: str = ""
 YOUTUBE_URL_REGEX = re.compile(
     r'(https?://(?:[a-zA-Z0-9_-]+\.)?youtube\.com/(?:watch\?v=|shorts/|embed/|v/)[a-zA-Z0-9_-]{11}|https?://youtu\.be/[a-zA-Z0-9_-]{11})'
 )
+
+# Lock to prevent mixed character/line writes from parallel stdout/stderr threads
+PRINT_LOCK = threading.Lock()
+
+# Progress matching: [download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03
+PROGRESS_REGEX = re.compile(
+    r'\[download\]\s+(\d+\.\d+|\d+)%\s+of\s+(~?\s*\d+\.\d+[a-zA-Z]+)\s+at\s+([^\s]+)\s+ETA\s+([^\s]+)(?:\s+\(frag\s+(\d+)/(\d+)\))?'
+)
+
+# Completion matching: [download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s
+PROGRESS_COMPLETE_REGEX = re.compile(
+    r'\[download\]\s+(?:100%|100\.0%)\s+of\s+(~?\s*\d+\.\d+[a-zA-Z]+)(?:\s+in\s+([^\s]+))?\s+at\s+([^\s]+)'
+)
+
+# Connection resolution/socket error retries: Got error: ... Failed to resolve '...' Retrying (1/10)...
+ERROR_RETRY_REGEX = re.compile(
+    r'Got error:.*Failed to resolve.*Retrying\s+\((\d+)/(\d+)\)'
+)
+
+# Generic retries: Got error: ... Retrying (1/10)...
+ERROR_GENERIC_RETRY_REGEX = re.compile(
+    r'Got error:.*Retrying\s+\((\d+)/(\d+)\)'
+)
+
+# Fragment missing/skip: fragment not found; Skipping fragment 159 ...
+FRAGMENT_SKIP_REGEX = re.compile(
+    r'fragment not found;\s*Skipping fragment\s+(\d+)'
+)
+
+def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_current=None, frag_total=None):
+    """Generates a premium-themed, beautiful carriage-returned progress bar."""
+    bar_width = 25
+    filled_width = int(round(bar_width * percent_val / 100.0))
+    bar = "█" * filled_width + "░" * (bar_width - filled_width)
+    
+    size_clean = size_str.strip()
+    speed_clean = speed_str.strip()
+    eta_clean = eta_str.strip()
+    
+    frag_info = f" (frag {frag_current}/{frag_total})" if frag_current and frag_total else ""
+    return f"\r ➔ Downloading: [{bar}] {percent_val:.1f}% of {size_clean} at {speed_clean} ETA {eta_clean}{frag_info}"
 
 # ==============================================================================
 # CONFIGURATION LOADING (Tasks 2.1 – 2.8)
@@ -606,30 +648,129 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
     if subprocess.run is not _original_run:
         return subprocess.run(cmd, *args, **kwargs)
         
-    import threading
-    
+    def process_line(raw_line, is_stderr, is_tty, state):
+        line_content = raw_line.rstrip("\r\n")
+        
+        if is_stderr:
+            with PRINT_LOCK:
+                if state.get("last_pipe") != "stderr" and state.get("last_char") not in ("\n", "\r"):
+                    sys.stdout.write("\n")
+                    sys.stdout.flush()
+                
+                retry_match = ERROR_RETRY_REGEX.search(line_content)
+                generic_retry_match = ERROR_GENERIC_RETRY_REGEX.search(line_content)
+                frag_skip_match = FRAGMENT_SKIP_REGEX.search(line_content)
+                
+                if retry_match:
+                    attempt, total = retry_match.groups()
+                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    sys.stdout.write(f"   [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                elif generic_retry_match:
+                    attempt, total = generic_retry_match.groups()
+                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    sys.stdout.write(f"   [!] Network warning: retry attempt ({attempt}/{total})...\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                elif frag_skip_match:
+                    frag_num = frag_skip_match.group(1)
+                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    sys.stdout.write(f"   [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                else:
+                    sys.stderr.write(raw_line)
+                    sys.stderr.flush()
+                    if raw_line:
+                        state["last_char"] = raw_line[-1]
+                state["last_pipe"] = "stderr"
+        else:
+            progress_match = PROGRESS_REGEX.search(line_content)
+            complete_match = PROGRESS_COMPLETE_REGEX.search(line_content)
+            retry_match = ERROR_RETRY_REGEX.search(line_content)
+            generic_retry_match = ERROR_GENERIC_RETRY_REGEX.search(line_content)
+            frag_skip_match = FRAGMENT_SKIP_REGEX.search(line_content)
+            
+            with PRINT_LOCK:
+                if progress_match:
+                    percent_str, size_str, speed_str, eta_str, frag_curr, frag_tot = progress_match.groups()
+                    percent_val = float(percent_str)
+                    
+                    if is_tty:
+                        bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot)
+                        sys.stdout.write("\r" + " " * 80 + "\r")
+                        sys.stdout.write(bar_line)
+                        sys.stdout.flush()
+                        state["last_char"] = "\r"
+                    else:
+                        last_pct = state.get("last_percent", -10)
+                        if percent_val - last_pct >= 10 or percent_val == 100:
+                            bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot).strip("\r")
+                            sys.stdout.write(f"{bar_line}\n")
+                            sys.stdout.flush()
+                            state["last_percent"] = percent_val
+                            state["last_char"] = "\n"
+                elif complete_match:
+                    size_str, time_str, speed_str = complete_match.groups()
+                    if is_tty:
+                        sys.stdout.write("\r" + " " * 80 + "\r")
+                    
+                    time_info = f" in {time_str}" if time_str else ""
+                    sys.stdout.write(f"   • Completed download of {size_str.strip()}{time_info} at {speed_str.strip()}\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                    state["last_percent"] = -10
+                elif retry_match:
+                    attempt, total = retry_match.groups()
+                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    sys.stdout.write(f"   [!] Network warning: connection issue detected, retrying ({attempt}/{total})...\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                elif generic_retry_match:
+                    attempt, total = generic_retry_match.groups()
+                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    sys.stdout.write(f"   [!] Network warning: retry attempt ({attempt}/{total})...\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                elif frag_skip_match:
+                    frag_num = frag_skip_match.group(1)
+                    sys.stdout.write("\r" + " " * 80 + "\r")
+                    sys.stdout.write(f"   [!] Fragment warning: Skipping missing fragment {frag_num}...\n")
+                    sys.stdout.flush()
+                    state["last_char"] = "\n"
+                else:
+                    if line_content.startswith("[download]") and ("%" in line_content or "100%" in line_content):
+                        pass
+                    else:
+                        sys.stdout.write(raw_line)
+                        sys.stdout.flush()
+                        if raw_line:
+                            state["last_char"] = raw_line[-1]
+                state["last_pipe"] = "stdout"
+
     def stream_pipe(pipe, is_stderr, state):
+        buffer = []
+        is_tty = sys.stdout.isatty()
+        
         while True:
-            char = pipe.read(1)
+            try:
+                char = pipe.read(1)
+            except Exception:
+                break
+                
             if not char:
+                if buffer:
+                    line = "".join(buffer)
+                    process_line(line, is_stderr, is_tty, state)
                 break
             
-            pipe_name = "stderr" if is_stderr else "stdout"
-            
-            if is_stderr and state.get("last_pipe") != "stderr" and state.get("last_char") not in ["\n", "\r"]:
-                sys.stdout.write("\n")
-                sys.stdout.flush()
-                state["last_char"] = "\n"
-                
-            if is_stderr:
-                sys.stderr.write(char)
-                sys.stderr.flush()
+            if char in ("\n", "\r"):
+                line = "".join(buffer)
+                buffer.clear()
+                process_line(line + char, is_stderr, is_tty, state)
             else:
-                sys.stdout.write(char)
-                sys.stdout.flush()
-                
-            state["last_char"] = char
-            state["last_pipe"] = pipe_name
+                buffer.append(char)
 
     process = subprocess.Popen(
         cmd,
@@ -641,7 +782,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
         errors="replace"
     )
     
-    state = {"last_char": "\n"}
+    state = {"last_char": "\n", "last_percent": -10}
     
     t_out = threading.Thread(target=stream_pipe, args=(process.stdout, False, state))
     t_err = threading.Thread(target=stream_pipe, args=(process.stderr, True, state))

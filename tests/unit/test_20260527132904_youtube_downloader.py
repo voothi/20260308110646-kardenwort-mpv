@@ -524,3 +524,121 @@ def test_clean_srt_file_fix_sentence_splits_with_unbreak(tmp_path):
     # Block 2's leading ". " is merged into block 1 and "Next sentence" becomes its own block
     assert ". Next sentence" not in cleaned
     assert "Next sentence" in cleaned
+
+
+def test_premium_console_presentation(monkeypatch):
+    yd = _load_downloader()
+    import sys
+    
+    # 1. Test make_premium_progress_bar formatting
+    bar = yd.make_premium_progress_bar(33.6, "11.90MiB", "2.48MiB/s", "00:03")
+    assert "➔ Downloading:" in bar
+    assert "33.6%" in bar
+    assert "11.90MiB" in bar
+    assert "2.48MiB/s" in bar
+    assert "ETA 00:03" in bar
+    
+    bar_frag = yd.make_premium_progress_bar(99.5, "~  14.73MiB", "617.35KiB/s", "00:01", "165", "167")
+    assert "(frag 165/167)" in bar_frag
+    assert "99.5%" in bar_frag
+    
+    # 2. Test regex matching on various lines
+    # standard progress line
+    line1 = "[download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03"
+    m1 = yd.PROGRESS_REGEX.search(line1)
+    assert m1 is not None
+    assert m1.group(1) == "33.6"
+    assert m1.group(2) == "11.90MiB"
+    assert m1.group(3) == "2.48MiB/s"
+    assert m1.group(4) == "00:03"
+    
+    # fragment progress line
+    line2 = "[download]  99.5% of ~  14.73MiB at  617.35KiB/s ETA 00:01 (frag 165/167)"
+    m2 = yd.PROGRESS_REGEX.search(line2)
+    assert m2 is not None
+    assert m2.group(1) == "99.5"
+    assert m2.group(2) == "~  14.73MiB"
+    assert m2.group(3) == "617.35KiB/s"
+    assert m2.group(4) == "00:01"
+    assert m2.group(5) == "165"
+    assert m2.group(6) == "167"
+    
+    # completion line
+    line3 = "[download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s"
+    m3 = yd.PROGRESS_COMPLETE_REGEX.search(line3)
+    assert m3 is not None
+    assert m3.group(1) == "11.90MiB"
+    assert m3.group(2) == "00:00:04"
+    assert m3.group(3) == "2.52MiB/s"
+    
+    # socket retry line
+    line4 = "[download] Got error: <urllib3.connection.HTTPSConnection object at 0x00000296F9B50FB0>: Failed to resolve 'rr8---sn-bvvbaxivnuxqqu5b-4g5l.googlevideo.com' ([Errno 11001] getaddrinfo failed). Retrying (9/10)..."
+    m4 = yd.ERROR_RETRY_REGEX.search(line4)
+    assert m4 is not None
+    assert m4.group(1) == "9"
+    assert m4.group(2) == "10"
+    
+    # generic retry line
+    line5 = "Got error: Some other socket error. Retrying (3/5)..."
+    m5 = yd.ERROR_GENERIC_RETRY_REGEX.search(line5)
+    assert m5 is not None
+    assert m5.group(1) == "3"
+    assert m5.group(2) == "5"
+    
+    # fragment skip line
+    line6 = "[download] fragment not found; Skipping fragment 149 ..."
+    m6 = yd.FRAGMENT_SKIP_REGEX.search(line6)
+    assert m6 is not None
+    assert m6.group(1) == "149"
+
+    # 3. Test simulated stream parsing with run_subprocess_streaming
+    import io
+    
+    class MockPipe(io.StringIO):
+        def __init__(self, data):
+            super().__init__(data)
+        def read(self, limit):
+            return super().read(limit)
+            
+    class MockProcess:
+        def __init__(self, stdout_data, stderr_data):
+            self.stdout = MockPipe(stdout_data)
+            self.stderr = MockPipe(stderr_data)
+            self.returncode = 0
+        def wait(self):
+            pass
+            
+    def mock_popen(cmd, **kwargs):
+        stdout_data = (
+            "[download] Destination: test.mp4\n"
+            "[download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03\r"
+            "[download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s\n"
+        )
+        stderr_data = (
+            "Got error: <urllib3.connection.HTTPSConnection>: Failed to resolve 'rr8.googlevideo.com' ([Errno 11001] getaddrinfo failed). Retrying (1/10)...\n"
+            "[download] fragment not found; Skipping fragment 149 ...\n"
+        )
+        return MockProcess(stdout_data, stderr_data)
+        
+    monkeypatch.setattr(yd.subprocess, "Popen", mock_popen)
+    
+    captured_stdout = io.StringIO()
+    captured_stderr = io.StringIO()
+    
+    monkeypatch.setattr(sys.stdout, "write", captured_stdout.write)
+    monkeypatch.setattr(sys.stdout, "flush", lambda: None)
+    monkeypatch.setattr(sys.stderr, "write", captured_stderr.write)
+    monkeypatch.setattr(sys.stderr, "flush", lambda: None)
+    
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    
+    yd.run_subprocess_streaming(["mock-command"])
+    
+    stdout_output = captured_stdout.getvalue()
+    
+    assert "➔ Downloading:" in stdout_output
+    assert "33.6%" in stdout_output
+    assert "Completed download of 11.90MiB in 00:00:04 at 2.52MiB/s" in stdout_output
+    assert "[!] Network warning: connection issue detected, retrying (1/10)..." in stdout_output
+    assert "[!] Fragment warning: Skipping missing fragment 149..." in stdout_output
+
