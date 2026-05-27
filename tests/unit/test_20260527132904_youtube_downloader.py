@@ -117,7 +117,10 @@ def test_unique_zid_generation_and_collision_guard(monkeypatch):
 def test_get_current_zid(monkeypatch):
     yd = _load_downloader()
     
-    # 1. Success case: subprocess returns mock ZID
+    # 1. Success case: subprocess returns mock ZID.
+    #    _ZID_SCRIPT must be non-empty for get_current_zid() to call subprocess
+    #    (in tests load_config() is not called, so we set it directly).
+    yd._ZID_SCRIPT = "/path/to/zid_script"
     class MockCompletedProcess:
         def __init__(self):
             self.stdout = "20260527141526\n"
@@ -125,13 +128,18 @@ def test_get_current_zid(monkeypatch):
     monkeypatch.setattr(yd.subprocess, "run", lambda *args, **kwargs: MockCompletedProcess())
     assert yd.get_current_zid() == "20260527141526"
     
-    # 2. Failure fallback case: subprocess raises error, falls back to time.strftime
+    # 2. Failure fallback: subprocess raises, returns time.strftime
     def mock_run_error(*args, **kwargs):
         raise RuntimeError("ZID script failed")
         
     monkeypatch.setattr(yd.subprocess, "run", mock_run_error)
     monkeypatch.setattr(yd.time, "strftime", lambda fmt: "99991231235959")
     assert yd.get_current_zid() == "99991231235959"
+
+    # 3. No script configured: falls back immediately without calling subprocess
+    monkeypatch.setattr(yd, "_ZID_SCRIPT", "")
+    monkeypatch.setattr(yd.time, "strftime", lambda fmt: "00000000000000")
+    assert yd.get_current_zid() == "00000000000000"
 
 
 def test_clean_srt_file(tmp_path):

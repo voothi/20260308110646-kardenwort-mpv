@@ -28,6 +28,9 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = SCRIPT_DIR / "config.ini"
 
+# Path to the ZID script; overridden from config via load_config()
+_ZID_SCRIPT: str = ""
+
 # Match standard and short YouTube URLs
 YOUTUBE_URL_REGEX = re.compile(
     r'(https?://(?:[a-zA-Z0-9_-]+\.)?youtube\.com/(?:watch\?v=|shorts/|embed/|v/)[a-zA-Z0-9_-]{11}|https?://youtu\.be/[a-zA-Z0-9_-]{11})'
@@ -52,6 +55,9 @@ def load_config():
         "youtube_download_cookies_file": "",
         "youtube_download_clean_hyphens": "false",
         "youtube_download_unbreak_lines": "false",
+        "youtube_download_hyphenation_marks": "-¬",
+        "youtube_download_compositional_conjunctions": "und,oder,sowie,bzw,bis",
+        "youtube_download_zid_script": "",
     }
 
     if CONFIG_FILE.exists():
@@ -74,24 +80,33 @@ def load_config():
         settings["youtube_download_directory"] = os.path.join(os.environ.get("USERPROFILE", "C:\\"), "Videos")
     else:
         settings["youtube_download_directory"] = os.path.expandvars(settings["youtube_download_directory"])
-        
+
+    # Propagate ZID script path to module-level variable so get_current_zid() can use it
+    global _ZID_SCRIPT
+    _ZID_SCRIPT = os.path.expandvars(settings["youtube_download_zid_script"])
+
     return settings
 
 # ==============================================================================
 # ZID GENERATION & SANITIZATION (Tasks 5.7 – 5.12)
 # ==============================================================================
 def get_current_zid():
-    """Calls the system ZID script to retrieve the current anchor ZID, falling back to local time."""
-    try:
-        res = subprocess.run(
-            ["python", "U:\\voothi\\20241116203211-zid\\zid.py", "--no-clipboard"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return res.stdout.strip()
-    except Exception:
-        return time.strftime("%Y%m%d%H%M%S")
+    """Calls the system ZID script to retrieve the current anchor ZID, falling back to local time.
+    The path to the ZID script is read from the config setting 'youtube_download_zid_script'.
+    Falls back to the local system time if the script is not configured or fails.
+    """
+    if _ZID_SCRIPT:
+        try:
+            res = subprocess.run(
+                ["python", _ZID_SCRIPT, "--no-clipboard"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return res.stdout.strip()
+        except Exception:
+            pass
+    return time.strftime("%Y%m%d%H%M%S")
 
 def get_unique_zid(used_zids):
     """Generates a unique ZID YYYYMMDDHHMMSS, sleeping 1s on collision."""
@@ -232,12 +247,14 @@ def save_separate_chapters(chapters, output_path):
     except Exception as e:
         print(f"Warning: Failed to save separate chapters: {e}", file=sys.stderr)
 
-def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False):
+def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenation_marks="-¬", compositional_conjunctions="und,oder,sowie,bzw,bis"):
     """Cleans up duplicate/repeating lines from rolling subtitles in a .srt file.
     Merges consecutive blocks with identical text and eliminates roll-up line overlap.
     Optional cleaning parameters:
       clean_hyphens: strips leading dashes/hyphens from subtitle lines.
       unbreak_lines: joins multi-line blocks into single lines, handling word hyphenation breaks.
+      hyphenation_marks: characters considered hyphens (e.g. "-¬").
+      compositional_conjunctions: comma-separated list of conjunctions that preserve hyphens when unbreaking.
     """
     try:
         path = Path(srt_path)
@@ -350,13 +367,15 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False):
             if unbreak_lines:
                 text = "\n".join(lines_to_write)
                 
-                # Robust word hyphenation joining ported from remove-newline-util
-                marks = r'-¬'
-                conjunctions = r'(?:und|oder|sowie|bzw|bis)'
+                # Robust word hyphenation joining ported from remove-newline-util using config values
+                escaped_marks = re.escape(hyphenation_marks)
+                conj_list = [c.strip() for c in compositional_conjunctions.split(",") if c.strip()]
+                conj_regex = f"(?:{'|'.join(map(re.escape, conj_list))})" if conj_list else "(?:)"
+                
                 # 1. German compositional hyphens: keep hyphen at newline (e.g. Zweit-\nund -> Zweit- und)
-                text = re.sub(fr'((?<!\s)[{marks}])\s*\n\s*(?={conjunctions}\b)', r'\1 ', text)
+                text = re.sub(fr'((?<!\s)[{escaped_marks}])\s*\n\s*(?={conj_regex}\b)', r'\1 ', text)
                 # 2. Standard word hyphenation break: join words (e.g. hyphen-\nation -> hyphenation)
-                text = re.sub(fr'[{marks}]\s*\n\s*', '', text)
+                text = re.sub(fr'[{escaped_marks}]\s*\n\s*', '', text)
                 # 3. Replace remaining linebreaks with space
                 text = re.sub(r'\n', ' ', text)
                 
@@ -852,7 +871,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 clean_srt_file(
                     sub_file,
                     clean_hyphens=settings.get("youtube_download_clean_hyphens", False),
-                    unbreak_lines=settings.get("youtube_download_unbreak_lines", False)
+                    unbreak_lines=settings.get("youtube_download_unbreak_lines", False),
+                    hyphenation_marks=settings.get("youtube_download_hyphenation_marks", "-¬"),
+                    compositional_conjunctions=settings.get("youtube_download_compositional_conjunctions", "und,oder,sowie,bzw,bis")
                 )
                 subtitles_written.append(sub_file)
 

@@ -29,11 +29,22 @@ youtube_download_subtitle_languages = original
 # Whether to fall back to auto-generated subtitles if manual ones are not available (true/false)
 youtube_download_subtitle_auto_fallback = true
 
+# Path to the ZID script used to generate Zettelkasten timestamps.
+# Leave empty to fall back to local system time.
+# Example: youtube_download_zid_script = U:\voothi\20241116203211-zid\zid.py
+youtube_download_zid_script =
+
 # Whether to automatically clean leading hyphens/dashes from subtitle lines (true/false)
 youtube_download_clean_hyphens = false
 
 # Whether to unbreak multi-line subtitles into single lines per block (true/false)
 youtube_download_unbreak_lines = false
+
+# Characters treated as hyphenation marks (default: -¬)
+youtube_download_hyphenation_marks = -¬
+
+# Comma-separated list of conjunctions that preserve trailing hyphens when unbreaking (e.g. for German composition split-hyphens)
+youtube_download_compositional_conjunctions = und,oder,sowie,bzw,bis
 
 # Whether to check for and install yt-dlp updates before starting downloads (true/false)
 youtube_download_auto_update = true
