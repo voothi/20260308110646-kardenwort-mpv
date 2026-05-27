@@ -5,12 +5,14 @@ The user currently downloads YouTube videos for language learning using external
 ## Goals / Non-Goals
 
 **Goals:**
-- Create a "Send to" integration that processes files containing YouTube URLs
+- Create a "Send to" integration that processes files and directories containing YouTube URLs
 - Download videos at configurable resolution (set in config)
 - Use yt-dlp as the sole download backend (best solution for console-based downloads)
+- Generate unique ZID-based filenames using video title (same convention as `zid_name.py`)
 - Download videos with chapter metadata
 - Automatically download SRT subtitle files separately
 - Allow configuration of target download directory
+- Support directory processing: search for files with links and process in queue order
 - Integrate seamlessly with existing TSV source file workflow
 
 **Non-Goals:**
@@ -42,10 +44,13 @@ The user currently downloads YouTube videos for language learning using external
    - `youtube_download_auto_update` (default: true) - Check and install yt-dlp updates before downloads
    - `youtube_download_chapters_mode` (default: "embedded") - Chapter output mode: "embedded", "separate", or "both"
 
-4. **File-based "Send to" integration**
+4. **File and directory-based "Send to" integration**
 
-   Create a Windows shell integration that allows right-clicking on files containing YouTube URLs and selecting "Send to" → "Download YouTube Video". The script will:
-   - Parse the file for YouTube URLs
+   Create a Windows shell integration that allows right-clicking on files/directories and selecting "Send to" → "Download YouTube Video". The script will:
+   - For files: Parse the file for YouTube URLs
+   - For directories: Search for files containing YouTube URLs
+   - Process URLs in queue order (file by file, then links within each file)
+   - Generate unique ZID-based filenames using video title (same convention as `zid_name.py`)
    - Download videos using the configured backend
    - Save to the configured directory at the specified resolution
 
@@ -60,7 +65,16 @@ The user currently downloads YouTube videos for language learning using external
 
    The integration will check for and install yt-dlp updates before starting downloads (configurable). This ensures compatibility with YouTube's frequent changes and provides the latest features and bug fixes.
 
-7. **Minimal disruption to existing workflow**
+7. **ZID-based filename generation**
+
+   The integration will generate unique ZID-based filenames for downloaded videos using the same naming convention as `zid_name.py`:
+   - Generate a unique ZID (YYYYMMDDHHMMSS format) for each download
+   - Extract video title from YouTube metadata
+   - Apply `zid_name.py` sanitization rules to the title
+   - Format: `{ZID}-{sanitized-title}.mp4`
+   - This ensures unique, traceable filenames consistent with the user's Zettelkasten workflow
+
+8. **Minimal disruption to existing workflow**
 
    The integration should be optional and not interfere with existing mpv functionality.
 

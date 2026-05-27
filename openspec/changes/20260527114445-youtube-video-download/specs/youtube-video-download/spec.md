@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: YouTube URL Detection
-The download system SHALL detect YouTube URLs in input files. The system SHALL support standard YouTube URL formats including youtube.com and youtu.be links.
+The download system SHALL detect YouTube URLs in input files and directories. The system SHALL support standard YouTube URL formats including youtube.com and youtu.be links.
 
 #### Scenario: Single YouTube URL in file
 - **WHEN** a file contains a single YouTube URL
@@ -11,10 +11,44 @@ The download system SHALL detect YouTube URLs in input files. The system SHALL s
 - **WHEN** a file contains multiple YouTube URLs
 - **THEN** the system SHALL identify and extract all URLs for batch download
 
+#### Scenario: Directory with multiple files containing URLs
+- **WHEN** a directory is selected via "Send to"
+- **AND** the directory contains multiple files with YouTube URLs
+- **THEN** the system SHALL search for files containing YouTube URLs
+- **AND** the system SHALL process files in queue order
+- **AND** the system SHALL extract URLs from each file in order
+
 #### Scenario: No YouTube URL in file
 - **WHEN** a file contains no YouTube URLs
 - **THEN** the system SHALL display an error message
 - **AND** the system SHALL not attempt any download
+
+#### Scenario: No files with URLs in directory
+- **WHEN** a directory is selected via "Send to"
+- **AND** the directory contains no files with YouTube URLs
+- **THEN** the system SHALL display an error message
+- **AND** the system SHALL not attempt any download
+
+### Requirement: ZID-Based Filename Generation
+The download system SHALL generate unique ZID-based filenames for downloaded videos using the same naming convention as `zid_name.py`.
+
+#### Scenario: Generate ZID-based filename
+- **WHEN** a video is downloaded
+- **THEN** the system SHALL generate a unique ZID in YYYYMMDDHHMMSS format
+- **AND** the system SHALL extract the video title from YouTube metadata
+- **AND** the system SHALL apply `zid_name.py` sanitization rules to the title
+- **AND** the system SHALL format the filename as `{ZID}-{sanitized-title}.mp4`
+
+#### Scenario: Handle special characters in title
+- **WHEN** a video title contains special characters
+- **THEN** the system SHALL sanitize the title according to `zid_name.py` rules
+- **AND** the system SHALL replace special characters with appropriate alternatives
+- **AND** the system SHALL preserve file extension
+
+#### Scenario: Generate unique ZID for each download
+- **WHEN** multiple videos are downloaded
+- **THEN** each video SHALL receive a unique ZID based on its download timestamp
+- **AND** no two videos SHALL have the same ZID
 
 ### Requirement: Configurable Download Resolution
 The download system SHALL expose `youtube_download_resolution` as a string setting. This setting SHALL define the preferred video resolution for downloads. The default value SHALL be "360p".

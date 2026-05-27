@@ -21,6 +21,9 @@
 - [ ] 3.3 Support youtu.be short URL format
 - [ ] 3.4 Implement file reading and URL extraction
 - [ ] 3.5 Add error handling for files with no YouTube URLs
+- [ ] 3.6 Implement directory processing (search for files containing URLs)
+- [ ] 3.7 Implement queue order processing (file by file, then links within each file)
+- [ ] 3.8 Add error handling for directories with no files containing URLs
 
 ## 4. yt-dlp Backend Implementation
 
@@ -39,6 +42,11 @@
 - [ ] 5.4 Implement directory write permission checking
 - [ ] 5.5 Implement existing file handling (skip or overwrite based on config)
 - [ ] 5.6 Add download progress tracking and display
+- [ ] 5.7 Implement ZID-based filename generation (same convention as `zid_name.py`)
+- [ ] 5.8 Implement unique ZID generation for each download
+- [ ] 5.9 Implement video title extraction from YouTube metadata
+- [ ] 5.10 Implement title sanitization using `zid_name.py` rules
+- [ ] 5.11 Format filename as `{ZID}-{sanitized-title}.mp4`
 
 ## 6. Chapter and Subtitle Download
 
@@ -57,6 +65,8 @@
 - [ ] 7.2 Create shortcut in Windows "Send to" folder
 - [ ] 7.3 Test "Send to" integration with single file
 - [ ] 7.4 Test "Send to" integration with multiple files
+- [ ] 7.5 Test "Send to" integration with directory containing files with URLs
+- [ ] 7.6 Test queue order processing (file by file, then links within each file)
 
 ## 8. Error Handling and Logging
 
@@ -79,15 +89,20 @@
 - [ ] 10.1 Add acceptance test for YouTube URL detection
 - [ ] 10.2 Add acceptance test for single URL download
 - [ ] 10.3 Add acceptance test for multiple URL download
-- [ ] 10.4 Add acceptance test for resolution configuration
-- [ ] 10.5 Add acceptance test for directory configuration
-- [ ] 10.6 Add acceptance test for chapter metadata download (embedded mode)
-- [ ] 10.7 Add acceptance test for chapter metadata download (separate mode)
-- [ ] 10.8 Add acceptance test for chapter metadata download (both mode)
-- [ ] 10.9 Add acceptance test for SRT subtitle download
-- [ ] 10.10 Add acceptance test for existing file handling
-- [ ] 10.11 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
-- [ ] 10.12 Add acceptance test for yt-dlp auto-update functionality
+- [ ] 10.4 Add acceptance test for directory processing (multiple files with URLs)
+- [ ] 10.5 Add acceptance test for queue order processing
+- [ ] 10.6 Add acceptance test for resolution configuration
+- [ ] 10.7 Add acceptance test for directory configuration
+- [ ] 10.8 Add acceptance test for ZID-based filename generation
+- [ ] 10.9 Add acceptance test for unique ZID generation
+- [ ] 10.10 Add acceptance test for title sanitization
+- [ ] 10.11 Add acceptance test for chapter metadata download (embedded mode)
+- [ ] 10.12 Add acceptance test for chapter metadata download (separate mode)
+- [ ] 10.13 Add acceptance test for chapter metadata download (both mode)
+- [ ] 10.14 Add acceptance test for SRT subtitle download
+- [ ] 10.15 Add acceptance test for existing file handling
+- [ ] 10.16 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
+- [ ] 10.17 Add acceptance test for yt-dlp auto-update functionality
 
 ## 11. Integration and Polish
 
