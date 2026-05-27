@@ -459,3 +459,68 @@ def test_sync_secondary_srt_timestamps_missing_file(tmp_path):
     primary_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
     missing = tmp_path / "video.ru.srt"
     yd.sync_secondary_srt_timestamps(primary_file, missing)  # must not raise
+
+
+def test_sync_secondary_srt_timestamps_missing_primary(tmp_path):
+    yd = _load_downloader()
+    # Must not raise when the primary file does not exist
+    missing = tmp_path / "video.en.srt"
+    secondary_file = tmp_path / "video.ru.srt"
+    secondary_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nПривет\n", encoding="utf-8")
+    yd.sync_secondary_srt_timestamps(missing, secondary_file)  # must not raise
+    # Secondary file must be left unchanged
+    assert "Привет" in secondary_file.read_text(encoding="utf-8")
+
+
+def test_clean_srt_file_fix_sentence_splits_disabled(tmp_path):
+    yd = _load_downloader()
+    # When fix_sentence_splits=False (default), punctuation-only blocks are left untouched
+    content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:02,000\n"
+        "Gemini 3.5 Flash\n"
+        "\n"
+        "2\n"
+        "00:00:02,000 --> 00:00:03,000\n"
+        ".\n"
+        "\n"
+        "3\n"
+        "00:00:03,000 --> 00:00:05,000\n"
+        ". Google claims\n"
+    )
+    sub_file = tmp_path / "test_no_fix.srt"
+    sub_file.write_text(content, encoding="utf-8")
+
+    yd.clean_srt_file(sub_file, fix_sentence_splits=False)
+
+    cleaned = sub_file.read_text(encoding="utf-8")
+    # Punctuation-only block and leading-punct block must survive intact
+    lines = [l.strip() for l in cleaned.split("\n")]
+    assert "." in lines
+    assert ". Google claims" in cleaned
+
+
+def test_clean_srt_file_fix_sentence_splits_with_unbreak(tmp_path):
+    yd = _load_downloader()
+    # fix_sentence_splits should work correctly together with unbreak_lines
+    content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:03,000\n"
+        "Line one\n"
+        "continues here\n"
+        "\n"
+        "2\n"
+        "00:00:03,000 --> 00:00:05,000\n"
+        ". Next sentence\n"
+    )
+    sub_file = tmp_path / "test_both.srt"
+    sub_file.write_text(content, encoding="utf-8")
+
+    yd.clean_srt_file(sub_file, unbreak_lines=True, fix_sentence_splits=True)
+
+    cleaned = sub_file.read_text(encoding="utf-8")
+    # Block 1 is unbroken: "Line one continues here."
+    assert "Line one continues here." in cleaned
+    # Block 2's leading ". " is merged into block 1 and "Next sentence" becomes its own block
+    assert ". Next sentence" not in cleaned
+    assert "Next sentence" in cleaned

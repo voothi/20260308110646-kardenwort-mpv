@@ -257,6 +257,9 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenati
       unbreak_lines: joins multi-line blocks into single lines, handling word hyphenation breaks.
       hyphenation_marks: characters considered hyphens (e.g. "-¬").
       compositional_conjunctions: comma-separated list of conjunctions that preserve hyphens when unbreaking.
+      fix_sentence_splits: merges blocks that begin with punctuation (e.g. ". " or ",") or whose
+                           entire content is punctuation-only (e.g. ".") back onto the previous block.
+                           This corrects a common artifact in YouTube auto-translated tracks.
     """
     try:
         path = Path(srt_path)

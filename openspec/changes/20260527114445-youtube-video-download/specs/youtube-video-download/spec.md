@@ -332,3 +332,64 @@ The download system SHALL always produce MP4 output files by remuxing the downlo
 - **WHEN** a video download completes
 - **THEN** the output filename SHALL always end with `.mp4`
 - **AND** the filename format SHALL be `{ZID}-{sanitized-title}.mp4`
+
+### Requirement: SRT Subtitle Post-Processing
+The download system SHALL apply configurable post-processing to downloaded SRT files to clean up common artifacts from YouTube's rolling-caption and auto-translation pipelines.
+
+#### Scenario: Clean leading hyphens from subtitle lines
+- **WHEN** `youtube_download_clean_hyphens` is `true`
+- **AND** a subtitle file has been downloaded
+- **THEN** the system SHALL strip leading `-`, `–`, or `—` characters (and any following spaces) from each subtitle text line
+
+#### Scenario: Unbreak multi-line subtitle blocks into single lines
+- **WHEN** `youtube_download_unbreak_lines` is `true`
+- **AND** a subtitle block contains multiple text lines
+- **THEN** the system SHALL join those lines into a single line
+- **AND** the system SHALL handle word-hyphenation breaks (e.g. `hyphen-\nnation` → `hyphenation`)
+- **AND** the system SHALL preserve compositional hyphens when a line is broken before a conjunction listed in `youtube_download_compositional_conjunctions`
+
+#### Scenario: Fix sentence-split artifacts from auto-translated tracks
+- **WHEN** `youtube_download_fix_sentence_splits` is `true`
+- **AND** a subtitle block's entire text content is a punctuation character only (e.g. `.`)
+- **THEN** the system SHALL append that punctuation to the previous block's last line
+- **AND** the system SHALL remove the punctuation-only block
+
+#### Scenario: Fix leading-punctuation artifacts from auto-translated tracks
+- **WHEN** `youtube_download_fix_sentence_splits` is `true`
+- **AND** a subtitle block's text begins with a punctuation character (e.g. `. Next sentence` or `, continuation`)
+- **THEN** the system SHALL strip the leading punctuation from the block
+- **AND** the system SHALL append it to the previous block's last line
+- **AND** if text remains after the punctuation, the system SHALL preserve it as the block's content
+
+#### Scenario: Post-processing is disabled by default
+- **WHEN** `youtube_download_clean_hyphens` is `false`
+- **AND** `youtube_download_unbreak_lines` is `false`
+- **AND** `youtube_download_fix_sentence_splits` is `false`
+- **THEN** the system SHALL write the cleaned (deduplicated) SRT without any further modifications
+
+### Requirement: Secondary Subtitle Timestamp Synchronization
+The download system SHALL expose `youtube_download_sync_secondary_timestamps` as a boolean setting. When enabled, after all subtitle tracks are downloaded and cleaned, the system SHALL re-timestamp all secondary subtitle tracks to match the primary (first-downloaded) track using time-based nearest-neighbour matching.
+
+#### Scenario: Sync is enabled and multiple tracks were downloaded
+- **WHEN** `youtube_download_sync_secondary_timestamps` is `true`
+- **AND** two or more subtitle files have been written for a video
+- **THEN** the system SHALL use the first downloaded track as the primary timeline
+- **AND** for each secondary track block, the system SHALL find the primary block whose start time is closest by time (binary search, monotonic forward progress)
+- **AND** the system SHALL write the matched primary timestamps onto the secondary track
+- **AND** the secondary track's text content SHALL remain untouched
+- **AND** the system SHALL log the number of re-timestamped blocks
+
+#### Scenario: Sync is disabled (default)
+- **WHEN** `youtube_download_sync_secondary_timestamps` is `false`
+- **THEN** downloaded subtitle tracks SHALL retain their original timestamps from YouTube
+
+#### Scenario: Secondary file is missing
+- **WHEN** `youtube_download_sync_secondary_timestamps` is `true`
+- **AND** the secondary subtitle file does not exist
+- **THEN** the system SHALL log a warning and continue without error
+
+#### Scenario: Block counts differ between primary and secondary tracks
+- **WHEN** the primary track has more blocks than the secondary track (or vice versa)
+- **THEN** the system SHALL match each secondary block to the nearest primary block by time
+- **AND** all secondary blocks SHALL be preserved in the output (no trimming)
+- **AND** secondary blocks beyond the primary timeline SHALL map to the last available primary block

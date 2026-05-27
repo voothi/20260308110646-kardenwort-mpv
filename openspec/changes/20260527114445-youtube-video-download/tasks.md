@@ -135,3 +135,24 @@
 - [x] 11.2 Verify no interference with existing mpv functionality
 - [x] 11.3 Performance testing for large batches of downloads
 - [x] 11.4 Code review and cleanup
+
+## 12. SRT Subtitle Post-Processing (ZID: 20260527182908)
+
+- [x] 12.1 Add `youtube_download_clean_hyphens` configuration option (default: false) — strips leading dashes from subtitle lines
+- [x] 12.2 Add `youtube_download_unbreak_lines` configuration option (default: false) — joins multi-line subtitle blocks into a single line
+- [x] 12.3 Add `youtube_download_hyphenation_marks` configuration option — characters treated as word-hyphenation marks (default: `-¬`)
+- [x] 12.4 Add `youtube_download_compositional_conjunctions` configuration option — conjunctions that preserve trailing hyphens when unbreaking (default: `und,oder,sowie,bzw,bis`)
+- [x] 12.5 Implement `clean_hyphens` pass in `clean_srt_file`: strip leading `-`, `–`, `—` and following spaces from each text line
+- [x] 12.6 Implement `unbreak_lines` pass in `clean_srt_file`: join multiple lines per block; handle word-hyphenation breaks; preserve compositional hyphens before conjunctions
+- [x] 12.7 Add `youtube_download_fix_sentence_splits` configuration option (default: false) — merges punctuation-only and leading-punctuation blocks back onto the previous block
+- [x] 12.8 Implement `fix_sentence_splits` post-deduplication pass in `clean_srt_file`
+- [x] 12.9 Add unit tests: `test_clean_srt_file_clean_hyphens`, `test_clean_srt_file_unbreak_lines`, `test_clean_srt_file_both`, `test_clean_srt_file_fix_sentence_splits`, `test_clean_srt_file_fix_sentence_splits_disabled`, `test_clean_srt_file_fix_sentence_splits_with_unbreak`
+- [x] 12.10 Update README and config.ini.template with new settings
+
+## 13. Secondary Subtitle Timestamp Synchronization (ZID: 20260527182908)
+
+- [x] 13.1 Add `youtube_download_sync_secondary_timestamps` configuration option (default: false)
+- [x] 13.2 Implement `sync_secondary_srt_timestamps(primary_path, secondary_path)` function: time-based nearest-neighbour matching using binary search; monotonic forward progress; preserves secondary text unchanged
+- [x] 13.3 Integrate sync into the download pipeline: after all tracks are cleaned, if enabled and ≥2 subtitle files were written, apply sync with first track as primary
+- [x] 13.4 Add unit tests: `test_sync_secondary_srt_timestamps`, `test_sync_secondary_srt_timestamps_different_counts`, `test_sync_secondary_srt_timestamps_missing_file`, `test_sync_secondary_srt_timestamps_missing_primary`
+- [x] 13.5 Update README and config.ini.template with the new setting
