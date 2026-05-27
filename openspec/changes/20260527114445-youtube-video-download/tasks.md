@@ -12,10 +12,9 @@
 - [ ] 2.4 Add `youtube_download_subtitles` configuration option (default: true)
 - [ ] 2.5 Add `youtube_download_subtitle_languages` configuration option (default: "original")
 - [ ] 2.6 Add `youtube_download_subtitle_auto_fallback` configuration option (default: true)
-- [ ] 2.7 Add `youtube_download_subtitle_format` configuration option (default: "separate")
-- [ ] 2.8 Add `youtube_download_auto_update` configuration option (default: true)
-- [ ] 2.9 Add `youtube_download_chapters_mode` configuration option (default: "embedded")
-- [ ] 2.10 Update `mpv.conf` with commented examples for YouTube download settings
+- [ ] 2.7 Add `youtube_download_auto_update` configuration option (default: true)
+- [ ] 2.8 Add `youtube_download_chapters_mode` configuration option (default: "embedded")
+- [ ] 2.9 Update `mpv.conf` with commented examples for YouTube download settings
 
 ## 3. YouTube URL Detection
 
@@ -59,10 +58,9 @@
 - [ ] 6.4 Implement chapter file format with titles and timestamps
 - [ ] 6.5 Implement subtitle language selection (original, auto, or list of languages)
 - [ ] 6.6 Implement auto-subtitle fallback when no manual subtitles available
-- [ ] 6.7 Implement subtitle format selection (separate or single file)
-- [ ] 6.8 Implement subtitle file naming with same ZID and name as video, with language code postfix
-- [ ] 6.9 Add handling for videos without subtitles
-- [ ] 6.10 Add error handling for subtitle download failures
+- [ ] 6.7 Implement subtitle file naming with same ZID and name as video, with language code postfix
+- [ ] 6.8 Add handling for videos without subtitles
+- [ ] 6.9 Add error handling for subtitle download failures
 
 ## 7. Windows "Send to" Integration
 
@@ -107,11 +105,9 @@
 - [ ] 10.14 Add acceptance test for subtitle download (original language)
 - [ ] 10.15 Add acceptance test for subtitle download (specific languages)
 - [ ] 10.16 Add acceptance test for subtitle download (auto-subtitle fallback)
-- [ ] 10.17 Add acceptance test for subtitle download (separate format)
-- [ ] 10.18 Add acceptance test for subtitle download (single format)
-- [ ] 10.19 Add acceptance test for existing file handling
-- [ ] 10.20 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
-- [ ] 10.21 Add acceptance test for yt-dlp auto-update functionality
+- [ ] 10.17 Add acceptance test for existing file handling
+- [ ] 10.18 Add acceptance test for error scenarios (no URL, missing yt-dlp, etc.)
+- [ ] 10.19 Add acceptance test for yt-dlp auto-update functionality
 
 ## 11. Integration and Polish
 

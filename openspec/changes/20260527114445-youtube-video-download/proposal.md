@@ -15,8 +15,7 @@ The current workflow for downloading YouTube videos for language learning involv
 - Support directory processing: search for files with links and download each link in each file in queue order
 - Configurable subtitle download: specify which languages to download (original, list of languages)
 - Option to download auto-subtitles if no manual ones are available
-- Flexible subtitle track handling: single file or multiple files with language codes
-- Subtitle naming: same ZID and name as video, differing only in language code postfix and .srt extension
+- Subtitle naming: same ZID and name as video, differing only in language code postfix and .srt extension (separate files)
 
 ## Capabilities
 
@@ -31,7 +30,6 @@ The current workflow for downloading YouTube videos for language learning involv
 - `subtitle-download`: Automatically downloads SRT subtitle files separately
 - `subtitle-language-selection`: Configurable which subtitle languages to download (original, list)
 - `subtitle-auto-fallback`: Option to download auto-subtitles if no manual ones available
-- `subtitle-track-format`: Flexible subtitle track handling (single or multiple files with language codes)
 - `subtitle-zid-naming`: Subtitles use same ZID and name as video, with language code postfix
 - `auto-update-ytdlp`: Allows checking and installing yt-dlp updates before downloads
 

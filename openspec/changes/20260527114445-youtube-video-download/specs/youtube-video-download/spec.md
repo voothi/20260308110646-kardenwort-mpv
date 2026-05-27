@@ -170,7 +170,7 @@ The download system SHALL download videos with chapter metadata. The system SHAL
 - **AND** the system SHALL not display an error
 
 ### Requirement: SRT Subtitle Download
-The download system SHALL automatically download SRT subtitle files based on configuration. The system SHALL expose `youtube_download_subtitle_languages`, `youtube_download_subtitle_auto_fallback`, and `youtube_download_subtitle_format` as configuration options.
+The download system SHALL automatically download SRT subtitle files as separate files based on configuration. The system SHALL expose `youtube_download_subtitle_languages` and `youtube_download_subtitle_auto_fallback` as configuration options.
 
 #### Scenario: Download original subtitles only
 - **WHEN** `youtube_download_subtitle_languages` is `"original"`
@@ -184,7 +184,7 @@ The download system SHALL automatically download SRT subtitle files based on con
 - **WHEN** `youtube_download_subtitle_languages` is a comma-separated list (e.g., "en,de,ru")
 - **AND** a YouTube video has subtitles for the specified languages
 - **AND** the video is downloaded
-- **THEN** the system SHALL download SRT subtitle files for each specified language
+- **THEN** the system SHALL download separate SRT subtitle files for each specified language
 - **AND** the subtitle files SHALL be saved in the same directory as the video
 - **AND** the subtitle files SHALL have the same ZID and name as the video with language code postfix
 
@@ -201,18 +201,6 @@ The download system SHALL automatically download SRT subtitle files based on con
 - **AND** the video is downloaded
 - **THEN** the system SHALL not download subtitles for that language
 - **AND** the system SHALL log a message that no manual subtitles were available
-
-#### Scenario: Separate subtitle format (default)
-- **WHEN** `youtube_download_subtitle_format` is `"separate"`
-- **AND** multiple subtitle languages are downloaded
-- **THEN** the system SHALL create separate SRT files for each language
-- **AND** each file SHALL have the same ZID and name as the video with language code postfix (e.g., `{ZID}-{name}.en.srt`, `{ZID}-{name}.de.srt`)
-
-#### Scenario: Single subtitle format
-- **WHEN** `youtube_download_subtitle_format` is `"single"`
-- **AND** multiple subtitle languages are downloaded
-- **THEN** the system SHALL create a single SRT file containing all subtitle tracks
-- **AND** the file SHALL have the same ZID and name as the video with `.srt` extension (e.g., `{ZID}-{name}.srt`)
 
 #### Scenario: Video has no subtitles
 - **WHEN** a YouTube video has no subtitles available (manual or auto)
