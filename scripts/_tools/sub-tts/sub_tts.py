@@ -974,9 +974,50 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         cleanup_temp_dir(temp_dir, success)
 
 
-# ==============================================================================
-# CLI INTERFACE (tasks 8.1 – 8.3)
-# ==============================================================================
+def pause_console(success=True):
+    """Pauses the console window.
+    If success is True, shows a premium countdown to auto-close.
+    If success is False, pauses indefinitely so the user can inspect errors.
+    """
+    if not success:
+        input("\nPress Enter to exit...")
+        return
+
+    timeout_secs = 5
+    print(f"\nPress Enter to exit (or wait {timeout_secs}s for auto-close)...", end="", flush=True)
+    
+    is_windows = sys.platform.startswith("win")
+    if is_windows and sys.stdout.isatty():
+        import msvcrt
+        start_time = time.time()
+        last_remaining = timeout_secs
+        while True:
+            if msvcrt.kbhit():
+                try:
+                    msvcrt.getch()
+                except Exception:
+                    pass
+                break
+            
+            elapsed = time.time() - start_time
+            remaining = int(round(timeout_secs - elapsed))
+            if remaining <= 0:
+                break
+                
+            if remaining != last_remaining:
+                sys.stdout.write(f"\rPress Enter to exit (or wait {remaining}s for auto-close)...")
+                sys.stdout.flush()
+                last_remaining = remaining
+            
+            time.sleep(0.05)
+        # Clear the countdown text line cleanly
+        sys.stdout.write("\r" + " " * 65 + "\r")
+        sys.stdout.flush()
+    else:
+        try:
+            input("\nPress Enter to exit...")
+        except Exception:
+            pass
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -1052,6 +1093,8 @@ def main():
             "   or: python sub_tts.py --sendto <file1> <file2>  (SendTo mode)",
             file=sys.stderr,
         )
+        if args.pause:
+            pause_console(success=False)
         sys.exit(1)
 
     # Filter to .srt files only
@@ -1062,6 +1105,8 @@ def main():
 
     if not srt_files:
         print("Error: No valid .srt files were provided.", file=sys.stderr)
+        if args.pause:
+            pause_console(success=False)
         sys.exit(1)
 
     # Load configuration
@@ -1072,6 +1117,8 @@ def main():
         ffmpeg_path = resolve_ffmpeg(config, cli_override=args.ffmpeg_path)
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
+        if args.pause:
+            pause_console(success=False)
         sys.exit(1)
 
     # Load Piper TTS config
@@ -1110,10 +1157,7 @@ def main():
     print(f"{'='*60}")
 
     if args.pause:
-        try:
-            input("\nPress Enter to close this window...")
-        except (EOFError, KeyboardInterrupt):
-            pass
+        pause_console(success=(succeeded == total))
 
     sys.exit(0 if succeeded == total else 1)
 
