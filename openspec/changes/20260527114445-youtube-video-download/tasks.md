@@ -156,3 +156,16 @@
 - [x] 13.3 Integrate sync into the download pipeline: after all tracks are cleaned, if enabled and ≥2 subtitle files were written, apply sync with first track as primary
 - [x] 13.4 Add unit tests: `test_sync_secondary_srt_timestamps`, `test_sync_secondary_srt_timestamps_different_counts`, `test_sync_secondary_srt_timestamps_missing_file`, `test_sync_secondary_srt_timestamps_missing_primary`
 - [x] 13.5 Update README and config.ini.template with the new setting
+
+## 14. Companion Audio Track Download (ZID: 20260527184334)
+
+Companion audio files are language-dubbed audio-only `.mp4` files sitting alongside the main video, named `{ZID}-{title}.{lang}.mp4`. mpv's `ensure_companion_audio_tracks` auto-loads them as switchable audio tracks (hotkey `1`). The feature mirrors the subtitle language logic: a comma-separated list of BCP-47 codes to download, empty string disables.
+
+- [ ] 14.1 Add `youtube_download_companion_audio_languages` configuration option — comma-separated BCP-47 codes (e.g., `ru,de`); empty string disables companion audio download (default: `""`)
+- [ ] 14.2 Update `load_config()` defaults dict to include `youtube_download_companion_audio_languages = ""` with no bool coercion (string passthrough, same as `youtube_download_subtitle_languages`)
+- [ ] 14.3 Implement `download_companion_audio(url, zid, sanitized_title, target_dir, lang, settings)` function: build yt-dlp command with `-f "bestaudio[language={lang}]/bestaudio"` and `--merge-output-format mp4`; write to `{target_dir}/{zid}-{sanitized_title}.{lang}.mp4`; return True on success, False on failure; apply cookies options same as video/subtitle commands; log a warning (not error) when no audio track for the language is available and return True
+- [ ] 14.4 Integrate companion audio download into `download_video_and_metadata` pipeline: after subtitle download and before the summary block — for each language in `youtube_download_companion_audio_languages`, skip (log) if `{target_dir}/{zid}-{sanitized_title}.{lang}.mp4` already exists; otherwise call `download_companion_audio`; collect written companion paths for the summary
+- [ ] 14.5 Extend `duplicate_mode = skip` missing-file check to include companion audio files: for each language in `youtube_download_companion_audio_languages`, check if `{old_zid}-{sanitized_title}.{lang}.mp4` is absent in `out_dir`; add missing entries to `missing_files`; the existing recovery path (override ZID + force `youtube_download_mode = subtitles`) already skips video re-download — extend it to also run the companion audio download step for missing tracks
+- [ ] 14.6 Update `config.ini` and `config.ini.template` with `youtube_download_companion_audio_languages` option, a comment explaining the naming convention and mpv integration, and an example value
+- [ ] 14.7 Update README with companion audio section: feature description, config option, naming convention, how mpv picks them up, and example workflow
+- [ ] 14.8 Add acceptance tests: `test_companion_audio_download_single_lang`, `test_companion_audio_download_multi_lang`, `test_companion_audio_skip_existing`, `test_companion_audio_missing_recovery_in_skip_mode`, `test_companion_audio_disabled_when_empty`
