@@ -1244,7 +1244,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         missing_files.append(f"{comp_lang}.mp4 (companion audio)")
 
             if not missing_files:
-                log_skip(f"File already exists ({existing_file.name}). Skipping (skip mode).")
+                log_skip(
+                    f"All required artifacts already exist for {existing_file.name} "
+                    f"(video, subtitles, chapters, companion audio). Skipping (skip mode)."
+                )
                 return True
             else:
                 log_warn(f"Video already exists ({existing_file.name}), but some files are missing: {', '.join(missing_files)}.")
