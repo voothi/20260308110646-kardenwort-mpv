@@ -279,9 +279,10 @@ def run_ytdlp_info(url):
 def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
-    print(f"\nFetching video metadata for: {url}...", flush=True)
+    print(f" ➔ Fetching video metadata...", flush=True)
     info = run_ytdlp_info(url)
     if not info:
+        print("   [!] Error: Failed to fetch metadata.", file=sys.stderr)
         return False
 
     title = info.get("title", "Unknown Video")
@@ -289,9 +290,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     
     # Generate unique ZID
     zid = get_unique_zid(used_zids)
-    print(f"Title: {title}")
-    print(f"ZID: {zid}")
-    print(f"Sanitized Slug: {sanitized_title}")
+    print(f"   • Title: {title}")
+    print(f"   • ZID:   {zid}")
+    print(f"   • Slug:  {sanitized_title}")
 
     # Check write permission and create download directory
     target_dir_setting = settings["youtube_download_directory"]
@@ -311,7 +312,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         test_file.touch()
         test_file.unlink()
     except Exception as e:
-        print(f"Error: Download directory '{out_dir}' is not writable: {e}", file=sys.stderr)
+        print(f"   [!] Error: Download directory '{out_dir}' is not writable: {e}", file=sys.stderr)
         return False
 
     # 2. Resolve target directories based on duplicate_mode
@@ -324,10 +325,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     
     if primary_path.exists():
         if dup_mode == "skip":
-            print(f"File already exists: {primary_path}. Skipping download (skip mode).", flush=True)
+            print(f"   [!] File already exists: {primary_path.name}. Skipping download (skip mode).", flush=True)
             return True
         elif dup_mode == "overwrite":
-            print(f"File already exists: {primary_path}. Overwriting (overwrite mode).", flush=True)
+            print(f"   [!] File already exists: {primary_path.name}. Overwriting (overwrite mode).", flush=True)
         else:
             # default: zid-dir
             if not zid_cache.get("value"):
@@ -337,7 +338,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             target_dir = out_dir / session_zid
             target_dir.mkdir(parents=True, exist_ok=True)
             target_path = target_dir / video_filename
-            print(f"File already exists: {primary_path}. Saving to subfolder: {target_path} (zid-dir mode).", flush=True)
+            print(f"   [!] File already exists: {primary_path.name}. Saving to subfolder: {target_path.name} (zid-dir mode).", flush=True)
 
     # 3. Handle Chapter configuration
     ch_mode = settings["youtube_download_chapters_mode"]
@@ -384,7 +385,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     # 5. Build and run subtitle download command (if needed)
     if download_subs and sub_langs_list:
-        sub_cmd = ["yt-dlp", "--skip-download", "-o", output_tmpl]
+        sub_cmd = ["yt-dlp", "--skip-download", "--no-warnings", "-o", output_tmpl]
         sub_cmd.extend(["--convert-subs", "srt"])
         sub_cmd.extend(["--sub-langs", ",".join(sub_langs_list)])
         
@@ -404,23 +405,23 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             sub_cmd.append("--write-subs")
         if has_auto and use_auto_subs:
             sub_cmd.append("--write-auto-subs")
-            print("Auto-subtitles will be downloaded.", flush=True)
+            print("   • Auto-subtitles will be downloaded.", flush=True)
             
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
-            print(f"Running subtitle download command: {' '.join(sub_cmd)}", flush=True)
+            print(f" ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
                 subprocess.run(sub_cmd, check=True)
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError:
                 # Decoupled error handling: log warning and continue with video download
-                print(f"\nWarning: Subtitle download failed (network issue or 429 Too Many Requests): {e}", file=sys.stderr)
+                print(f"   [!] Warning: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
         else:
-            print("No subtitles were available.", flush=True)
+            print("   • No subtitles were available.", flush=True)
 
     # 6. Build and run video download command (if needed)
     if mode != "subtitles":
-        video_cmd = ["yt-dlp"]
+        video_cmd = ["yt-dlp", "--no-warnings"]
         
         # Resolution format selection
         fmt = get_ytdlp_format(settings["youtube_download_resolution"])
@@ -438,11 +439,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         video_cmd.append(url)
         
-        print(f"Running video download command: {' '.join(video_cmd)}", flush=True)
+        print(f" ➔ Downloading video ({settings['youtube_download_resolution']})...", flush=True)
         try:
             subprocess.run(video_cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Error: yt-dlp video download failed: {e}", file=sys.stderr)
+        except subprocess.CalledProcessError:
+            print("   [!] Error: yt-dlp video download failed.", file=sys.stderr)
             return False
 
     # 6. Save separate chapters if configured and present
@@ -452,16 +453,16 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     # 7. Print download results summary
     if mode == "subtitles":
-        print("\nDownload completed successfully! (Subtitles only)", flush=True)
+        print("\n ➔ Success! (Subtitles only)", flush=True)
     else:
-        print(f"\nDownload completed successfully!\nSaved video to: {target_path}", flush=True)
+        print(f"\n ➔ Success! Video saved to: {target_path}", flush=True)
         
     # Check what subtitle files were written
     if download_subs:
         for lang in sub_langs_list:
             sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
             if sub_file.exists():
-                print(f"Saved subtitle file: {sub_file}", flush=True)
+                print(f"   • Subtitle saved: {sub_file}", flush=True)
 
     return True
 
@@ -469,8 +470,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 # MAIN ENTRYPOINT
 # ==============================================================================
 def main():
-    # Insert current ZID from RULE
-    print("ZID: 20260527132904", flush=True)
+    print("================================================================================", flush=True)
+    print("                    KARDENWORT YOUTUBE DOWNLOAD ENGINE                          ", flush=True)
+    print("================================================================================", flush=True)
+    print(f"ZID: {get_current_zid()}\n", flush=True)
     
     parser = argparse.ArgumentParser(description="YouTube Downloader Integration")
     parser.add_argument("inputs", nargs="*", help="Files, directories or raw URLs containing YouTube links")
@@ -501,20 +504,24 @@ def main():
     queue = [( "Direct URL", url, None ) for url in raw_urls] + file_urls
 
     if not queue:
-        print("Error: No YouTube URLs detected in the input.", file=sys.stderr)
+        print(" [!] Error: No YouTube URLs detected in the input.", file=sys.stderr)
         if args.pause:
             input("\nPress Enter to exit...")
         sys.exit(1)
 
-    print(f"Detected {len(queue)} YouTube URL(s) to process.", flush=True)
+    print(f" [queue] Detected {len(queue)} YouTube URL(s) to process.", flush=True)
+    print(" ┌" + "─" * 78, flush=True)
     for source, url, source_dir in queue:
-        print(f"  - [{source}] {url}", flush=True)
+        print(f" │ [{source}] {url}", flush=True)
+    print(" └" + "─" * 78 + "\n", flush=True)
 
     # 3. Setup backend (check & update yt-dlp)
+    print(" [backend] Checking and updating yt-dlp...", flush=True)
     if not setup_backend(settings["youtube_download_auto_update"]):
         if args.pause:
             input("\nPress Enter to exit...")
         sys.exit(1)
+    print(" [backend] yt-dlp is ready.\n", flush=True)
 
     # 4. Process queue
     used_zids = set()
@@ -522,14 +529,18 @@ def main():
     success_count = 0
     
     for idx, (source, url, source_dir) in enumerate(queue, 1):
-        print(f"\n{'='*80}\nProcessing URL {idx}/{len(queue)} (Source: {source})\n{'='*80}", flush=True)
+        print(f"================================================================================", flush=True)
+        print(f" [{idx}/{len(queue)}] Processing URL (Source: {source})", flush=True)
+        print(f"================================================================================", flush=True)
         try:
             if download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=source_dir):
                 success_count += 1
         except Exception as e:
-            print(f"Error occurred while processing {url}: {e}", file=sys.stderr)
+            print(f"   [!] Error occurred while processing: {e}", file=sys.stderr)
 
-    print(f"\n{'='*80}\nSummary: Successfully processed {success_count}/{len(queue)} URL(s).\n{'='*80}", flush=True)
+    print(f"\n================================================================================", flush=True)
+    print(f" [Summary] Successfully processed {success_count}/{len(queue)} URL(s).", flush=True)
+    print(f"================================================================================", flush=True)
     
     if args.pause:
         input("\nPress Enter to exit...")

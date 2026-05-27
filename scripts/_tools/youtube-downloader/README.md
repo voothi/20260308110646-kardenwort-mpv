@@ -28,7 +28,7 @@ A premium Windows "Send to" integration for downloading YouTube videos at config
    ```bash
    python install.py
    ```
-   This will install a shortcut named `Download YouTube Video` in your Windows `Send to` menu.
+   This will install a shortcut named `Kardenwort YouTube Downloader` in your Windows `Send to` menu.
 
 ## Configuration
 

@@ -2,10 +2,10 @@
 # ==============================================================================
 # YouTube Video Downloader — Windows SendTo Shortcut Installer
 #
-# Creates a "Download YouTube Video" shortcut in the Windows "Send to" folder.
+# Creates a "Kardenwort YouTube Downloader" shortcut in the Windows "Send to" folder.
 # After installation:
 #   1. Select files or directories containing YouTube URLs.
-#   2. Right-click → Send to → Download YouTube Video.
+#   2. Right-click → Send to → Kardenwort YouTube Downloader.
 #   3. The downloader runs and downloads videos/subtitles.
 #
 # Usage:
@@ -20,10 +20,10 @@ import subprocess
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
 # ==============================================================================
 # The display name of the Windows context menu shortcut (excluding .lnk extension)
-SHORTCUT_DISPLAY_NAME = "Download YouTube Video"
+SHORTCUT_DISPLAY_NAME = "Kardenwort YouTube Downloader"
 
 # Legacy shortcut names to search for and automatically clean up during install
-LEGACY_SHORTCUT_NAMES = ()
+LEGACY_SHORTCUT_NAMES = ("Download YouTube Video",)
 
 # Standard SendTo location (Windows %APPDATA% mapping)
 SENDTO_DIRECTORY = r'%APPDATA%\Microsoft\Windows\SendTo'
