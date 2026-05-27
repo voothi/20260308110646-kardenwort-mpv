@@ -50,6 +50,58 @@ def strip_ansi(text):
     """Removes all VT100 / ANSI escape sequences from the given text."""
     return ANSI_ESCAPE.sub('', text)
 
+# ==============================================================================
+# PIP-STYLE CONSOLE OUTPUT HELPERS
+# ==============================================================================
+# Colors: bold cyan [INFO], bold yellow [WARN], bold red [ERROR], bold green [OK]
+# All tags are left-aligned and square-bracketed, matching pip's output style.
+_IS_TTY = sys.stdout.isatty()
+
+def _c(code, text):
+    """Wraps text in an ANSI escape if stdout is a TTY."""
+    return f"\x1b[{code}m{text}\x1b[0m" if _IS_TTY else text
+
+def _tag_info():    return _c("1;36", "[INFO]")    # bold cyan
+def _tag_warn():    return _c("1;33", "[WARN]")    # bold yellow
+def _tag_error():   return _c("1;31", "[ERROR]")   # bold red
+def _tag_ok():      return _c("1;32", "[OK]")      # bold green
+def _tag_skip():    return _c("1;35", "[SKIP]")    # bold magenta
+def _tag_sync():    return _c("1;36", "[SYNC]")    # bold cyan
+
+def _dim(text):     return _c("90", text)          # dim grey
+def _bold(text):    return _c("1", text)            # bold white
+def _cyan(text):    return _c("36", text)           # cyan
+def _green(text):   return _c("32", text)           # green
+def _yellow(text):  return _c("33", text)           # yellow
+
+def log_info(msg, indent=""):
+    """Prints an [INFO] tagged line."""
+    print(f"{indent}{_tag_info()} {msg}", flush=True)
+
+def log_warn(msg, indent=""):
+    """Prints a [WARN] tagged line to stdout."""
+    print(f"{indent}{_tag_warn()} {msg}", flush=True)
+
+def log_error(msg, indent=""):
+    """Prints an [ERROR] tagged line to stderr."""
+    print(f"{indent}{_tag_error()} {msg}", file=sys.stderr, flush=True)
+
+def log_ok(msg, indent=""):
+    """Prints an [OK] tagged line."""
+    print(f"{indent}{_tag_ok()} {msg}", flush=True)
+
+def log_skip(msg, indent=""):
+    """Prints a [SKIP] tagged line."""
+    print(f"{indent}{_tag_skip()} {msg}", flush=True)
+
+def log_detail(msg, indent="  "):
+    """Prints a dim bullet detail line (indented)."""
+    print(f"{indent}{_dim('·')} {msg}", flush=True)
+
+def log_section(title):
+    """Prints a section separator line in bold, preceded by a blank line."""
+    print(f"\n{_bold(title)}", flush=True)
+
 # Progress matching: [download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03
 PROGRESS_REGEX = re.compile(
     r'\[download\]\s+(\d+(?:\.\d+)?)%\s+of\s+(~?\s*\d+(?:\.\d+)?[a-zA-Z]+)\s+at\s+([^\s]+)\s+ETA\s+([^\s]+)(?:\s+\(frag\s+(\d+)/(\d+)\))?'
@@ -81,16 +133,16 @@ FRAGMENT_SKIP_REGEX = re.compile(
 )
 
 def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_current=None, frag_total=None, indent="     "):
-    """Generates a Python pip-style, elegant carriage-returned progress bar."""
+    """Generates a Python pip-style, elegant carriage-returned progress bar with modern colors."""
     bar_width = 40
     filled_width = int(round(bar_width * percent_val / 100.0))
-    bar = "━" * filled_width + " " * (bar_width - filled_width)
+    bar = "\x1b[32m" + "━" * filled_width + "\x1b[90m" + "━" * (bar_width - filled_width) + "\x1b[0m"
     
     size_clean = size_str.strip()
     speed_clean = speed_str.strip()
     eta_clean = eta_str.strip()
     
-    frag_info = f" (frag {frag_current}/{frag_total})" if frag_current and frag_total else ""
+    frag_info = f" \x1b[90m(frag {frag_current}/{frag_total})\x1b[0m" if frag_current and frag_total else ""
     
     # Try to format as current/total size like pip (e.g. 3.5/10.5 MiB)
     match = re.search(r"([\d\.]+)\s*([a-zA-Z]+)", size_clean)
@@ -105,7 +157,7 @@ def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_cu
     else:
         progress_size = f"{percent_val:.1f}% of {size_clean}"
         
-    return f"\r{indent}{bar} {progress_size} {speed_clean} eta {eta_clean}{frag_info}"
+    return f"\r{indent}{bar} \x1b[36m{progress_size}\x1b[0m \x1b[33m{speed_clean}\x1b[0m \x1b[90meta\x1b[0m \x1b[36m{eta_clean}\x1b[0m{frag_info}"
 
 def clear_line():
     """Clears the current console line completely to prevent character leftovers."""
@@ -371,9 +423,9 @@ def save_separate_chapters(chapters, output_path):
                 start = ch.get("start_time", 0)
                 title = ch.get("title", f"Chapter at {start}s")
                 f.write(f"{format_seconds(start)} - {title}\n")
-        print(f"    Saved separate chapters to: {output_path}", flush=True)
+        log_detail(f"Saved separate chapters to: {output_path}")
     except Exception as e:
-        print(f"Warning: Failed to save separate chapters: {e}", file=sys.stderr)
+        log_warn(f"Failed to save separate chapters: {e}")
 
 def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenation_marks="-¬", compositional_conjunctions="und,oder,sowie,bzw,bis", fix_sentence_splits=False):
     """Cleans up duplicate/repeating lines from rolling subtitles in a .srt file.
@@ -554,7 +606,7 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenati
             f.write("\n".join(new_content))
 
     except Exception as e:
-        print(f"    [!] Warning: Failed to clean subtitle file: {e}", file=sys.stderr)
+        log_warn(f"Failed to clean subtitle file: {e}")
 
 # ==============================================================================
 # SECONDARY SUBTITLE TIMESTAMP SYNC (Option A)
@@ -670,11 +722,11 @@ def sync_secondary_srt_timestamps(primary_path, secondary_path):
 
         with secondary_path.open("w", encoding="utf-8", newline="\n") as f:
             f.write("\n".join(new_content))
-        print(f"    [sync] Re-timestamped {secondary_path.name} to match {primary_path.name} "
+        print(f"  {_tag_sync()} Re-timestamped {secondary_path.name} to match {primary_path.name} "
               f"({len(matched_pairs)} blocks, time-aligned).", flush=True)
 
     except Exception as e:
-        print(f"    [!] Warning: Failed to sync secondary subtitle timestamps: {e}", file=sys.stderr)
+        log_warn(f"Failed to sync secondary subtitle timestamps: {e}")
 
 # ==============================================================================
 # URL EXTRACTION (Tasks 3.1 – 3.8)
@@ -687,7 +739,7 @@ def extract_urls_from_file(file_path):
             content = f.read()
             urls.extend(YOUTUBE_URL_REGEX.findall(content))
     except Exception as e:
-        print(f"Warning: Could not read file {file_path}: {e}", file=sys.stderr)
+        log_warn(f"Could not read file {file_path}: {e}")
     return urls
 
 def process_input_paths(paths):
@@ -697,7 +749,7 @@ def process_input_paths(paths):
     for path in sorted(paths):
         p = Path(path)
         if not p.exists():
-            print(f"Warning: Input path does not exist: {path}", file=sys.stderr)
+            log_warn(f"Input path does not exist: {path}")
             continue
             
         if p.is_file():
@@ -719,7 +771,7 @@ def process_input_paths(paths):
                     for url in file_urls:
                         queue.append((f"{p.name}/{child.relative_to(p)}", url, p))
             if not file_found:
-                print(f"Warning: No files with YouTube URLs found in directory: {path}", file=sys.stderr)
+                log_warn(f"No files with YouTube URLs found in directory: {path}")
                 
     return queue
 
@@ -754,19 +806,19 @@ def run_subprocess_streaming(cmd, *args, indent="", **kwargs):
                 if retry_match:
                     attempt, total = retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"\r{indent}  WARNING: connection issue detected, retrying ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  {_tag_warn()} connection issue detected, retrying ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif generic_retry_match:
                     attempt, total = generic_retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"\r{indent}  WARNING: retry attempt ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  {_tag_warn()} retry attempt ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif frag_skip_match:
                     frag_num = frag_skip_match.group(1)
                     clear_line()
-                    sys.stdout.write(f"\r{indent}  WARNING: Skipping missing fragment {frag_num}...\n")
+                    sys.stdout.write(f"\r{indent}  {_tag_warn()} Skipping missing fragment {frag_num}...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 else:
@@ -822,19 +874,19 @@ def run_subprocess_streaming(cmd, *args, indent="", **kwargs):
                 elif retry_match:
                     attempt, total = retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"\r{indent}  WARNING: connection issue detected, retrying ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  {_tag_warn()} connection issue detected, retrying ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif generic_retry_match:
                     attempt, total = generic_retry_match.groups()
                     clear_line()
-                    sys.stdout.write(f"\r{indent}  WARNING: retry attempt ({attempt}/{total})...\n")
+                    sys.stdout.write(f"\r{indent}  {_tag_warn()} retry attempt ({attempt}/{total})...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 elif frag_skip_match:
                     frag_num = frag_skip_match.group(1)
                     clear_line()
-                    sys.stdout.write(f"\r{indent}  WARNING: Skipping missing fragment {frag_num}...\n")
+                    sys.stdout.write(f"\r{indent}  {_tag_warn()} Skipping missing fragment {frag_num}...\n")
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 else:
@@ -1069,7 +1121,7 @@ def resolve_original_language(info):
 def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
-    print(f"\n\n  ➔ Fetching video metadata...", flush=True)
+    log_section("Fetching video metadata...")
     cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
     cookies_file = settings.get("youtube_download_cookies_file", "").strip()
     try:
@@ -1083,7 +1135,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         # Fallback for mocked single-argument lambdas in unit/integration tests
         info = run_ytdlp_info(url)
     if not info:
-        print("    [!] Error: Failed to fetch metadata.", file=sys.stderr)
+        log_error("Failed to fetch metadata.")
         return False
 
     title = info.get("title", "Unknown Video")
@@ -1091,9 +1143,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     
     # Generate unique ZID
     zid = get_unique_zid(used_zids)
-    print(f"    • Title: {title}")
-    print(f"    • ZID:   {zid}")
-    print(f"    • Slug:  {sanitized_title}")
+    log_detail(f"Title: {_bold(title)}")
+    log_detail(f"ZID:   {_cyan(zid)}")
+    log_detail(f"Slug:  {sanitized_title}")
 
     # Check write permission and create download directory
     target_dir_setting = settings["youtube_download_directory"]
@@ -1113,7 +1165,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         test_file.touch()
         test_file.unlink()
     except Exception as e:
-        print(f"    [!] Error: Download directory '{out_dir}' is not writable: {e}", file=sys.stderr)
+        log_error(f"Download directory '{out_dir}' is not writable: {e}")
         return False
 
     # 2. Resolve target directories based on duplicate_mode
@@ -1191,26 +1243,26 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                         missing_files.append(f"{comp_lang}.mp4 (companion audio)")
 
             if not missing_files:
-                print(f"    [!] File already exists (as {existing_file.name}). Skipping download (skip mode).", flush=True)
+                log_skip(f"File already exists ({existing_file.name}). Skipping (skip mode).")
                 return True
             else:
-                print(f"    [!] Video already exists (as {existing_file.name}), but some files are missing: {', '.join(missing_files)}.", flush=True)
-                print(f"        Initiating missing file recovery using existing ZID: {old_zid}...", flush=True)
+                log_warn(f"Video already exists ({existing_file.name}), but some files are missing: {', '.join(missing_files)}.")
+                log_info(f"Initiating missing file recovery using existing ZID: {old_zid}...")
                 # Override ZID to match the existing video's ZID, and re-point target_path
                 # at the actual on-disk video so the success summary names a real file.
                 zid = old_zid
                 target_path = existing_file
                 is_skip_recovery = True
         elif dup_mode == "overwrite":
-            print(f"    [!] File already exists (as {existing_file.name}). Overwriting (overwrite mode).", flush=True)
+            log_warn(f"File already exists ({existing_file.name}). Overwriting (overwrite mode).")
             # To cleanly overwrite, delete the old ZID-prefixed video and any associated subtitle/chapter files
             try:
                 for f in out_dir.iterdir():
                     if f.is_file() and f.name.startswith(old_zid) and sanitized_title in f.name:
                         f.unlink()
-                        print(f"    • Removed old file: {f.name}", flush=True)
+                        log_detail(f"Removed old file: {f.name}")
             except Exception as e:
-                print(f"    [!] Warning: Failed to fully delete old duplicate files: {e}", file=sys.stderr)
+                log_warn(f"Failed to fully delete old duplicate files: {e}")
         else:
             # default: zid-dir
             if not zid_cache.get("value"):
@@ -1220,7 +1272,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             target_dir = out_dir / session_zid
             target_dir.mkdir(parents=True, exist_ok=True)
             target_path = target_dir / video_filename
-            print(f"    [!] File already exists (as {existing_file.name}). Saving to subfolder: {target_path.name} (zid-dir mode).", flush=True)
+            log_warn(f"File already exists ({existing_file.name}). Saving to subfolder: {target_path.name} (zid-dir mode).")
 
     # 3. Handle Chapter configuration
     ch_mode = settings["youtube_download_chapters_mode"]
@@ -1250,13 +1302,13 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     meta_subs = info.get("subtitles", {})
                     if meta_subs:
                         sub_langs_list.extend(meta_subs.keys())
-                        print("    • Language auto-detection fell back to all available subtitles.", flush=True)
+                        log_info("Language auto-detection fell back to all available subtitles.")
                     else:
                         # Try to fall back to auto-generated subtitles if available
                         meta_auto = info.get("automatic_captions", {})
                         if meta_auto:
                             sub_langs_list.extend(meta_auto.keys())
-                            print("    • Language auto-detection fell back to all available auto-subtitles.", flush=True)
+                        log_info("Language auto-detection fell back to all available auto-subtitles.")
             else:
                 sub_langs_list.append(l)
                 
@@ -1308,19 +1360,18 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             sub_cmd.append("--write-subs")
         if has_auto and use_auto_subs:
             sub_cmd.append("--write-auto-subs")
-            print("    Auto-subtitles will be downloaded.", flush=True)
+            log_info("Auto-subtitles will be downloaded.")
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
-            print(flush=True)
-            print(f"  Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
+            log_section(f"SUBTITLES DOWNLOAD ({','.join(sub_langs_list)})")
             try:
                 run_subprocess_streaming(sub_cmd, check=True)
             except subprocess.CalledProcessError:
                 if cookies_file or cookies_browser:
                     source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
-                    print(f"    WARNING: Subtitle download failed with cookies ({source_desc} might be open/locked).", flush=True)
-                    print("    Retrying subtitle download without cookies...", flush=True)
+                    log_warn(f"Subtitle download failed with cookies ({source_desc} might be open/locked).")
+                    log_info("Retrying subtitle download without cookies...")
                     fallback_sub_cmd = []
                     skip_next = False
                     for arg in sub_cmd:
@@ -1334,14 +1385,14 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     try:
                         run_subprocess_streaming(fallback_sub_cmd, check=True)
                     except subprocess.CalledProcessError:
-                        print(f"    WARNING: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
+                        log_warn("Subtitle download skipped (network issue or 429 Too Many Requests).")
                         subtitle_download_failed = True
                 else:
                     # Decoupled error handling: log warning and continue with video download
-                    print(f"    WARNING: Subtitle download skipped (network issue or 429 Too Many Requests)", file=sys.stderr)
+                    log_warn("Subtitle download skipped (network issue or 429 Too Many Requests).")
                     subtitle_download_failed = True
         else:
-            print("    No subtitles were available.", flush=True)
+            log_info("No subtitles were available.")
 
     # 6. Build and run video download command (if needed)
     skip_video = is_skip_recovery
@@ -1372,14 +1423,14 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         video_cmd.append(url)
         
-        print(f"  Downloading video ({settings['youtube_download_resolution']})...", flush=True)
+        log_section(f"VIDEO DOWNLOAD ({settings['youtube_download_resolution']})")
         try:
             run_subprocess_streaming(video_cmd, check=True)
         except subprocess.CalledProcessError:
             if cookies_file or cookies_browser:
                 source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
-                print(f"    WARNING: Video download failed with cookies ({source_desc} might be open/locked).", flush=True)
-                print("    Retrying video download without cookies...", flush=True)
+                log_warn(f"Video download failed with cookies ({source_desc} might be open/locked).")
+                log_info("Retrying video download without cookies...")
                 fallback_video_cmd = []
                 skip_next = False
                 for arg in video_cmd:
@@ -1393,10 +1444,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 try:
                     run_subprocess_streaming(fallback_video_cmd, check=True)
                 except subprocess.CalledProcessError:
-                    print("    ERROR: yt-dlp video download failed.", file=sys.stderr)
+                    log_error("yt-dlp video download failed.")
                     return False
             else:
-                print("    ERROR: yt-dlp video download failed.", file=sys.stderr)
+                log_error("yt-dlp video download failed.")
                 return False
 
     # 6. Save separate chapters if configured and present
@@ -1438,10 +1489,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 for secondary_sub in subtitles_all_present[1:]:
                     sync_secondary_srt_timestamps(primary_sub, secondary_sub)
             else:
-                print(
-                    f"    [!] Skipping subtitle sync: primary language '{sub_langs_list[0]}' "
-                    f"is missing on disk; refusing to retime against a secondary track.",
-                    flush=True,
+                log_warn(
+                    f"Skipping subtitle sync: primary language '{sub_langs_list[0]}' "
+                    f"is missing on disk; refusing to retime against a secondary track."
                 )
 
     # 7a. Download companion audio tracks (audio-only MP4 per language for mpv audio-add)
@@ -1452,7 +1502,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         for comp_lang in comp_langs:
             comp_file = target_dir / f"{zid}-{sanitized_title}.{comp_lang}.mp4"
             if comp_file.exists():
-                print(f"    Companion audio '{comp_lang}' already exists — skipping.", flush=True)
+                log_skip(f"Companion audio '{comp_lang}' already exists — skipping.")
                 continue
             if download_companion_audio(url, zid, sanitized_title, target_dir, comp_lang, info, settings):
                 if comp_file.exists():
@@ -1460,20 +1510,20 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     if mode == "subtitles":
         if subtitles_all_present or not subtitle_download_failed:
-            print("\n  Successfully downloaded subtitles.", flush=True)
+            log_ok("Subtitles downloaded successfully.")
             for sub_file in subtitles_all_present:
-                print(f"    Subtitle saved: {sub_file.name}", flush=True)
+                log_detail(f"Subtitle: {sub_file.name}")
             for comp_file in companion_audio_written:
-                print(f"    Companion audio saved: {comp_file.name}", flush=True)
+                log_detail(f"Companion audio: {comp_file.name}")
         else:
-            print("\n  ERROR: No subtitles were downloaded.", flush=True)
+            log_error("No subtitles were downloaded.")
             return False
     else:
-        print(f"\n  Successfully downloaded video to: {target_path.name}", flush=True)
+        log_ok(f"Video downloaded: {_cyan(target_path.name)}")
         for sub_file in subtitles_all_present:
-            print(f"    Subtitle saved: {sub_file.name}", flush=True)
+            log_detail(f"Subtitle: {sub_file.name}")
         for comp_file in companion_audio_written:
-            print(f"    Companion audio saved: {comp_file.name}", flush=True)
+            log_detail(f"Companion audio: {comp_file.name}")
 
     return True
 
@@ -1481,7 +1531,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 # MAIN ENTRYPOINT
 # ==============================================================================
 def main():
-    print(f"Kardenwort YouTube Download Engine (ZID: {get_current_zid()})\n", flush=True)
+    print(f"\n{_bold('Kardenwort YouTube Download Engine')} {_dim(f'(ZID: {get_current_zid()})')}\n", flush=True)
     
     parser = argparse.ArgumentParser(description="YouTube Downloader Integration")
     parser.add_argument("inputs", nargs="*", help="Files, directories or raw URLs containing YouTube links")
@@ -1512,23 +1562,24 @@ def main():
     queue = [( "Direct URL", url, None ) for url in raw_urls] + file_urls
 
     if not queue:
-        print("  ERROR: No YouTube URLs detected in the input.", file=sys.stderr)
+        log_error("No YouTube URLs detected in the input.")
         if args.pause:
             pause_console(success=False)
         sys.exit(1)
 
-    print(f"Collecting {len(queue)} YouTube URL(s) to process...", flush=True)
+    log_info(f"Collected {_bold(str(len(queue)))} YouTube URL(s) to process:")
     for idx, (source, url, source_dir) in enumerate(queue):
-        print(f"  {source} -> {url}", flush=True)
+        log_detail(f"{source} → {_dim(url)}")
     print(flush=True)
 
     # 3. Setup backend (check & update yt-dlp)
-    print("Checking backend yt-dlp...", end="", flush=True)
+    log_info("Checking backend yt-dlp...", indent="")
     if not setup_backend(settings["youtube_download_auto_update"]):
         if args.pause:
             pause_console(success=False)
         sys.exit(1)
-    print(" ready.\n", flush=True)
+    log_ok("yt-dlp ready.")
+    print(flush=True)
 
     # 4. Process queue
     used_zids = set()
@@ -1539,14 +1590,17 @@ def main():
         display_source = source
         if len(display_source) > 40:
             display_source = display_source[:18] + "..." + display_source[-20:]
-        print(f"Processing URL [{idx}/{len(queue)}] ({display_source})", flush=True)
+        log_section(f"[{idx}/{len(queue)}] {display_source}")
         try:
             if download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=source_dir):
                 success_count += 1
         except Exception as e:
-            print(f"    ERROR: occurred while processing: {e}", file=sys.stderr)
+            log_error(f"Unhandled error while processing: {e}")
 
-    print(f"\nSuccessfully processed {success_count}/{len(queue)} URL(s).", flush=True)
+    if success_count == len(queue):
+        log_ok(f"All {success_count}/{len(queue)} URL(s) processed successfully.")
+    else:
+        log_warn(f"Processed {success_count}/{len(queue)} URL(s). {len(queue) - success_count} failed.")
     
     if args.pause:
         timeout_val = settings.get("youtube_download_auto_close_timeout_secs", "").strip()

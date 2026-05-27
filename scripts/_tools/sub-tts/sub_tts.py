@@ -36,6 +36,48 @@ PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
 
 SHORTCUT_DISPLAY_NAME = "Kardenwort Sub TTS"
 
+# ==============================================================================
+# PIP-STYLE CONSOLE OUTPUT HELPERS
+# ==============================================================================
+_IS_TTY = sys.stdout.isatty()
+
+def _c(code, text):
+    """Wraps text in an ANSI escape if stdout is a TTY."""
+    return f"\x1b[{code}m{text}\x1b[0m" if _IS_TTY else text
+
+def _tag_info():    return _c("1;36", "[INFO]")
+def _tag_warn():    return _c("1;33", "[WARN]")
+def _tag_error():   return _c("1;31", "[ERROR]")
+def _tag_ok():      return _c("1;32", "[OK]")
+def _tag_skip():    return _c("1;35", "[SKIP]")
+
+def _dim(text):     return _c("90", text)
+def _bold(text):    return _c("1", text)
+def _cyan(text):    return _c("36", text)
+def _green(text):   return _c("32", text)
+
+def log_info(msg, indent=""):
+    print(f"{indent}{_tag_info()} {msg}", flush=True)
+
+def log_warn(msg, indent=""):
+    print(f"{indent}{_tag_warn()} {msg}", flush=True)
+
+def log_error(msg, indent=""):
+    print(f"{indent}{_tag_error()} {msg}", file=sys.stderr, flush=True)
+
+def log_ok(msg, indent=""):
+    print(f"{indent}{_tag_ok()} {msg}", flush=True)
+
+def log_skip(msg, indent=""):
+    print(f"{indent}{_tag_skip()} {msg}", flush=True)
+
+def log_detail(msg, indent="  "):
+    print(f"{indent}{_dim('·')} {msg}", flush=True)
+
+def log_section(title):
+    print(f"\n{_bold(title)}", flush=True)
+
+
 # Built-in alias table: subtitle filename postfix → Piper language code
 BUILTIN_LANG_ALIASES = {
     "eng": "en",
@@ -376,7 +418,7 @@ def synthesize_cue(cue, lang, wav_path, piper_root, total, current):
     Returns True on success, False on error (non-fatal).
     """
     piper_script = piper_root / "piper_tts.py"
-    print(f"  [{current}/{total}] Synthesizing cue {cue['index']}: \"{cue['text'][:60]}\"", flush=True)
+    print(f"  {_dim(f'[{current}/{total}]')} Synthesizing cue {cue['index']}: {_dim(repr(cue['text'][:60]))}", flush=True)
 
     cmd = [
         sys.executable,
@@ -395,18 +437,14 @@ def synthesize_cue(cue, lang, wav_path, piper_root, total, current):
             timeout=120,
         )
         if result.returncode != 0:
-            print(
-                f"  [WARN] Piper failed for cue {cue['index']}:\n"
-                f"    {result.stderr.strip()}",
-                file=sys.stderr,
-            )
+            log_warn(f"Piper failed for cue {cue['index']}: {result.stderr.strip()}")
             return False
         return True
     except subprocess.TimeoutExpired:
-        print(f"  [WARN] Piper timed out for cue {cue['index']}.", file=sys.stderr)
+        log_warn(f"Piper timed out for cue {cue['index']}.")
         return False
     except Exception as exc:
-        print(f"  [WARN] Piper error for cue {cue['index']}: {exc}", file=sys.stderr)
+        log_warn(f"Piper error for cue {cue['index']}: {exc}")
         return False
 
 
@@ -700,17 +738,16 @@ def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
     valid_cues, max_end_ms = build_audio_placement_plan(synthesis_results, ffmpeg_path)
 
     if not valid_cues:
-        print("Error: No audio segments to assemble.", file=sys.stderr)
+        log_error("No audio segments to assemble.")
         return None
 
-    print("  Assembling timed audio track (anchored to absolute timestamps)...", flush=True)
+    log_info("Assembling timed audio track (anchored to absolute timestamps)...")
     overflow_count = sum(1 for cue_info in valid_cues if cue_info["overflow_ms"] > 0)
     if overflow_count:
         worst = max(cue_info["overflow_ms"] for cue_info in valid_cues)
-        print(
-            f"  Timing warning: {overflow_count} synthesized cue(s) exceed the next subtitle start; "
-            f"largest overflow is {worst / 1000.0:.2f}s.",
-            flush=True,
+        log_warn(
+            f"{overflow_count} synthesized cue(s) exceed the next subtitle start; "
+            f"largest overflow is {worst / 1000.0:.2f}s."
         )
 
     base_wav = temp_dir / "base_0.wav"
@@ -726,7 +763,7 @@ def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
     try:
         subprocess.run(cmd_base, capture_output=True, check=True)
     except Exception as exc:
-        print(f"Error: FFmpeg base track generation failed: {exc}", file=sys.stderr)
+        log_error(f"FFmpeg base track generation failed: {exc}")
         return None
 
     batch_size = 64
@@ -767,10 +804,10 @@ def assemble_audio(synthesis_results, temp_dir, ffmpeg_path):
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             if res.returncode != 0:
-                print(f"Error: FFmpeg audio batch {batch_idx} failed:\n{res.stderr}", file=sys.stderr)
+                log_error(f"FFmpeg audio batch {batch_idx} failed:\n{res.stderr}")
                 return None
         except Exception as exc:
-            print(f"Error: FFmpeg audio batch {batch_idx} exception: {exc}", file=sys.stderr)
+            log_error(f"FFmpeg audio batch {batch_idx} exception: {exc}")
             return None
 
         current_base = next_base
@@ -809,15 +846,15 @@ def mux_to_mp4(assembled_wav, output_mp4, ffmpeg_path):
         str(output_mp4),
     ]
 
-    print(f"  Muxing to MP4: {output_mp4}", flush=True)
+    log_info(f"Muxing to MP4: {_dim(str(output_mp4))}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
         if result.returncode != 0:
-            print(f"Error: FFmpeg MP4 muxing failed:\n{result.stderr}", file=sys.stderr)
+            log_error(f"FFmpeg MP4 muxing failed:\n{result.stderr}")
             return False
         return True
     except Exception as exc:
-        print(f"Error: FFmpeg muxing exception: {exc}", file=sys.stderr)
+        log_error(f"FFmpeg muxing exception: {exc}")
         return False
 
 
@@ -836,10 +873,7 @@ def cleanup_temp_dir(temp_dir, success):
         except Exception:
             pass
     else:
-        print(
-            f"  [INFO] Temporary files preserved for debugging: '{temp_dir}'",
-            file=sys.stderr,
-        )
+        log_info(f"Temporary files preserved for debugging: '{temp_dir}'")
 
 
 # ==============================================================================
@@ -892,58 +926,63 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         zid_cache = {}
 
     srt_path = Path(srt_path).resolve()
-    print(f"Processing: {srt_path.name}", flush=True)
+    log_section(f"Processing: {_bold(srt_path.name)}")
 
     # 1. Language detection
     if lang_override:
         lang = lang_override.strip().lower()
-        print(f"  Language: {lang} (CLI override)")
+        log_detail(f"Language: {_cyan(lang)} (CLI override)")
     else:
         lang = detect_language(str(srt_path), config)
-        print(f"  Language detected: {lang} (from filename postfix)")
+        log_detail(f"Language detected: {_cyan(lang)} (from filename postfix)")
 
     supported = get_supported_languages(piper_config)
     validate_language(lang, piper_config, supported)
 
     section = f"voice_{lang}"
     model_file = piper_config.get(section, "model", fallback="(unknown)")
-    print(f"  Piper model: {model_file}")
+    log_detail(f"Piper model: {_dim(model_file)}")
 
     # 2. Parse SRT
-    print("  Parsing SRT...", flush=True)
+    log_info("Parsing SRT...")
     try:
         cues = parse_srt(str(srt_path))
     except Exception as exc:
-        print(f"Error parsing SRT file: {exc}", file=sys.stderr)
+        log_error(f"Error parsing SRT file: {exc}")
         return False
 
     if not cues:
-        print("Error: No valid subtitle cues found in the SRT file.", file=sys.stderr)
+        log_error("No valid subtitle cues found in the SRT file.")
         return False
 
-    print(f"  Found {len(cues)} cues to synthesize.")
+    log_detail(f"Found {_bold(str(len(cues)))} cues to synthesize.")
 
     # 3. Temporary directory
     output_dir = Path(output_dir_override) if output_dir_override else srt_path.parent
     output_dir.mkdir(parents=True, exist_ok=True)
     temp_dir = Path(tempfile.mkdtemp(prefix="sub_tts_", dir=output_dir))
-    print(f"  Temp dir: {temp_dir}")
+    log_detail(f"Temp dir: {_dim(str(temp_dir))}")
 
     success = False
     try:
         # 4. Per-cue synthesis
+        log_section("TTS SYNTHESIS")
         synthesis_results = synthesize_all_cues(cues, lang, temp_dir, piper_root)
         successful = sum(1 for r in synthesis_results if r["ok"])
-        print(f"  Synthesis complete: {successful}/{len(cues)} cues succeeded.")
+        if successful == len(cues):
+            log_ok(f"Synthesis complete: {successful}/{len(cues)} cues.")
+        else:
+            log_warn(f"Synthesis complete: {successful}/{len(cues)} cues.")
 
         if successful == 0:
-            print("Error: All cue synthesis attempts failed. Check Piper TTS setup.", file=sys.stderr)
+            log_error("All cue synthesis attempts failed. Check Piper TTS setup.")
             return False
 
         # 5. Subtitle Edit-style speed fitting
         synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
 
         # 6. Assemble timed audio
+        log_section("AUDIO ASSEMBLY")
         assembled_wav = assemble_audio(synthesis_results, temp_dir, ffmpeg_path)
         if assembled_wav is None:
             return False
@@ -958,16 +997,17 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             keep_lang_postfix=keep_lang_postfix_override,
         )
         if policy == "skip":
-            print(f"  Skipping (output already exists): {output_mp4}")
+            log_skip(f"Output already exists: {output_mp4}")
             success = True
             return True
 
         output_mp4.parent.mkdir(parents=True, exist_ok=True)
 
         # 8. Mux to MP4
+        log_section("MP4 MUXING")
         ok = mux_to_mp4(assembled_wav, output_mp4, ffmpeg_path)
         if ok:
-            print(f"  Output: {output_mp4}")
+            log_ok(f"Output: {_cyan(str(output_mp4))}")
             success = True
         return ok
 
@@ -1086,17 +1126,16 @@ def main():
     start_time = time.time()
     args = parse_args()
     config = load_config()
-    print(f"Kardenwort Sub TTS Pipeline (ZID: {get_zid(config)})\n", flush=True)
+    print(f"\n{_bold('Kardenwort Sub TTS Pipeline')} {_dim(f'(ZID: {get_zid(config)})')}\n", flush=True)
 
     # Collect input files
     input_files = args.srt_files
 
     if not input_files:
-        print(
+        log_error(
             "No SRT files provided.\n"
             "Usage: python sub_tts.py video.de.srt [video2.ru.srt ...]\n"
-            "   or: python sub_tts.py --sendto <file1> <file2>  (SendTo mode)",
-            file=sys.stderr,
+            "   or: python sub_tts.py --sendto <file1> <file2>  (SendTo mode)"
         )
         if args.pause:
             pause_console(success=False)
@@ -1106,10 +1145,10 @@ def main():
     srt_files = [f for f in input_files if f.lower().endswith(".srt")]
     skipped = [f for f in input_files if not f.lower().endswith(".srt")]
     for s in skipped:
-        print(f"[SKIP] Not an SRT file: {s}")
+        log_skip(f"Not an SRT file: {s}")
 
     if not srt_files:
-        print("Error: No valid .srt files were provided.", file=sys.stderr)
+        log_error("No valid .srt files were provided.")
         if args.pause:
             pause_console(success=False)
         sys.exit(1)
@@ -1118,7 +1157,7 @@ def main():
     try:
         ffmpeg_path = resolve_ffmpeg(config, cli_override=args.ffmpeg_path)
     except FileNotFoundError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        log_error(str(exc))
         if args.pause:
             pause_console(success=False)
         sys.exit(1)
@@ -1149,12 +1188,14 @@ def main():
     succeeded = sum(1 for _, ok in results if ok)
     total = len(results)
 
-    print(f"\nSuccessfully converted {succeeded}/{total} file(s) in {elapsed:.1f}s.", flush=True)
-    if succeeded < total:
-        print("Failed files:", file=sys.stderr)
+    print(flush=True)
+    if succeeded == total:
+        log_ok(f"All {succeeded}/{total} file(s) converted in {elapsed:.1f}s.")
+    else:
+        log_warn(f"Converted {succeeded}/{total} file(s) in {elapsed:.1f}s.")
         for path, ok in results:
             if not ok:
-                print(f"  ERROR: {path}", file=sys.stderr)
+                log_error(f"Failed: {path}")
 
     if args.pause:
         timeout_val = config.get("tts_settings", "auto_close_timeout_secs", fallback="").strip()

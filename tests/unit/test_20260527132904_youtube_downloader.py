@@ -535,7 +535,7 @@ def test_premium_console_presentation(monkeypatch):
     assert "━━" in bar
     assert "4.0/11.9 MiB" in bar
     assert "2.48MiB/s" in bar
-    assert "eta 00:03" in bar
+    assert "eta 00:03" in yd.strip_ansi(bar)
     
     bar_frag = yd.make_premium_progress_bar(99.5, "~  14.73MiB", "617.35KiB/s", "00:01", "165", "167")
     assert "(frag 165/167)" in bar_frag
@@ -641,6 +641,8 @@ def test_premium_console_presentation(monkeypatch):
     assert "0.0/4.1 MiB" in stdout_output
     assert "Downloading subtitles: 1.00KiB" in stdout_output
     assert "Completed download of 124.39KiB" in stdout_output
-    assert "WARNING: connection issue detected, retrying (1/10)..." in stdout_output
-    assert "WARNING: Skipping missing fragment 149..." in stdout_output
+    # The streaming output now uses [WARN] pip-style tag (was WARNING:)
+    plain_stdout = yd.strip_ansi(stdout_output)
+    assert "[WARN] connection issue detected, retrying (1/10)..." in plain_stdout
+    assert "[WARN] Skipping missing fragment 149..." in plain_stdout
 
