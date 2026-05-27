@@ -29,6 +29,12 @@ youtube_download_subtitle_languages = original
 # Whether to fall back to auto-generated subtitles if manual ones are not available (true/false)
 youtube_download_subtitle_auto_fallback = true
 
+# Whether to automatically clean leading hyphens/dashes from subtitle lines (true/false)
+youtube_download_clean_hyphens = false
+
+# Whether to unbreak multi-line subtitles into single lines per block (true/false)
+youtube_download_unbreak_lines = false
+
 # Whether to check for and install yt-dlp updates before starting downloads (true/false)
 youtube_download_auto_update = true
 

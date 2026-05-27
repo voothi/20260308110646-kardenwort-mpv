@@ -50,6 +50,8 @@ def load_config():
         "youtube_download_chapters_mode": "embedded",
         "youtube_download_cookies_browser": "",
         "youtube_download_cookies_file": "",
+        "youtube_download_clean_hyphens": "false",
+        "youtube_download_unbreak_lines": "false",
     }
 
     if CONFIG_FILE.exists():
@@ -230,9 +232,12 @@ def save_separate_chapters(chapters, output_path):
     except Exception as e:
         print(f"Warning: Failed to save separate chapters: {e}", file=sys.stderr)
 
-def clean_srt_file(srt_path):
+def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False):
     """Cleans up duplicate/repeating lines from rolling subtitles in a .srt file.
     Merges consecutive blocks with identical text and eliminates roll-up line overlap.
+    Optional cleaning parameters:
+      clean_hyphens: strips leading dashes/hyphens from subtitle lines.
+      unbreak_lines: joins multi-line blocks into single lines.
     """
     try:
         path = Path(srt_path)
@@ -291,7 +296,10 @@ def clean_srt_file(srt_path):
                                 else:
                                     break
                         if not is_next_index:
-                            current_block["lines"].append(trimmed)
+                            if clean_hyphens:
+                                trimmed = re.sub(r'^[-\u2013\u2014]\s*', '', trimmed)
+                            if trimmed:
+                                current_block["lines"].append(trimmed)
                             
         if current_block is not None:
             parsed_blocks.append(current_block)
@@ -329,7 +337,14 @@ def clean_srt_file(srt_path):
         for idx, cb in enumerate(cleaned_blocks, 1):
             new_content.append(str(idx))
             new_content.append(f"{cb['start_time']} --> {cb['end_time']}")
-            for line in cb["lines"]:
+            
+            lines_to_write = cb["lines"]
+            if unbreak_lines:
+                joined = " ".join(lines_to_write)
+                joined = re.sub(r"\s+", " ", joined).strip()
+                lines_to_write = [joined] if joined else []
+                
+            for line in lines_to_write:
                 new_content.append(line)
             new_content.append("")  # Empty line between blocks
             
@@ -814,7 +829,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         for lang in sub_langs_list:
             sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
             if sub_file.exists():
-                clean_srt_file(sub_file)
+                clean_srt_file(
+                    sub_file,
+                    clean_hyphens=settings.get("youtube_download_clean_hyphens", False),
+                    unbreak_lines=settings.get("youtube_download_unbreak_lines", False)
+                )
                 subtitles_written.append(sub_file)
 
     if mode == "subtitles":

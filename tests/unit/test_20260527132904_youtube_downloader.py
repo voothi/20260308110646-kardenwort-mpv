@@ -188,3 +188,97 @@ def test_clean_srt_file(tmp_path):
     
     assert cleaned.strip() == expected.strip()
 
+
+def test_clean_srt_file_clean_hyphens(tmp_path):
+    yd = _load_downloader()
+    
+    content = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "- On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:06,270\n"
+        "— developers opened their computers and\n"
+    )
+    
+    sub_file = tmp_path / "test_hyphens.srt"
+    sub_file.write_text(content, encoding="utf-8")
+    
+    yd.clean_srt_file(sub_file, clean_hyphens=True)
+    
+    cleaned = sub_file.read_text(encoding="utf-8").replace("\r\n", "\n")
+    
+    expected = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:06,270\n"
+        "developers opened their computers and\n"
+    )
+    
+    assert cleaned.strip() == expected.strip()
+
+
+def test_clean_srt_file_unbreak_lines(tmp_path):
+    yd = _load_downloader()
+    
+    content = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "On Tuesday, May 19th,\n"
+        "thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:06,270\n"
+        "developers opened\n"
+        "their computers and\n"
+    )
+    
+    sub_file = tmp_path / "test_unbreak.srt"
+    sub_file.write_text(content, encoding="utf-8")
+    
+    yd.clean_srt_file(sub_file, unbreak_lines=True)
+    
+    cleaned = sub_file.read_text(encoding="utf-8").replace("\r\n", "\n")
+    
+    expected = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "On Tuesday, May 19th, thousands of\n"
+        "\n"
+        "2\n"
+        "00:00:04,470 --> 00:00:06,270\n"
+        "developers opened their computers and\n"
+    )
+    
+    assert cleaned.strip() == expected.strip()
+
+
+def test_clean_srt_file_both(tmp_path):
+    yd = _load_downloader()
+    
+    content = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "- On Tuesday, May 19th,\n"
+        "thousands of\n"
+    )
+    
+    sub_file = tmp_path / "test_both.srt"
+    sub_file.write_text(content, encoding="utf-8")
+    
+    yd.clean_srt_file(sub_file, clean_hyphens=True, unbreak_lines=True)
+    
+    cleaned = sub_file.read_text(encoding="utf-8").replace("\r\n", "\n")
+    
+    expected = (
+        "1\n"
+        "00:00:02,160 --> 00:00:04,470\n"
+        "On Tuesday, May 19th, thousands of\n"
+    )
+    
+    assert cleaned.strip() == expected.strip()
+
