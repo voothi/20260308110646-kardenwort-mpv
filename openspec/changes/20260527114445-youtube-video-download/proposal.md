@@ -6,9 +6,10 @@ The current workflow for downloading YouTube videos for language learning involv
 
 - Add a "Send to" integration that processes files containing YouTube URLs
 - Download videos at configurable resolution (set in config) to a specified directory
-- Integrate with existing download tools: newpipe, asbplayer, youtube-dl-gui, yt-dlp
+- Use yt-dlp as the download backend (best solution for console-based downloads with chapters and SRT subtitles)
 - Support TSV source file workflow where the YouTube link file is used as Source
-- Maintain existing subtitle download workflow (user continues to use newpipe or asbplayer for subtitles)
+- Download videos with chapters and separately download SRT subtitle files
+- Option to check and install yt-dlp updates before starting downloads
 
 ## Capabilities
 
@@ -16,6 +17,9 @@ The current workflow for downloading YouTube videos for language learning involv
 - `youtube-video-download`: Enables automated YouTube video download from files containing URLs via "Send to" integration
 - `configurable-download-resolution`: Allows setting preferred video resolution in configuration
 - `configurable-download-directory`: Allows setting target download directory in configuration
+- `chapter-support`: Downloads videos with chapter metadata
+- `subtitle-download`: Automatically downloads SRT subtitle files separately
+- `auto-update-ytdlp`: Allows checking and installing yt-dlp updates before downloads
 
 ### Modified Capabilities
 - None (this is a standalone integration feature)

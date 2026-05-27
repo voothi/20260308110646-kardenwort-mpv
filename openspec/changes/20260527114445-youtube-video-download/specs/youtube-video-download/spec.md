@@ -52,33 +52,82 @@ The download system SHALL expose `youtube_download_directory` as a string settin
 - **THEN** the system SHALL display an error message
 - **AND** the system SHALL not attempt the download
 
-### Requirement: Multiple Download Backend Support
-The download system SHALL support multiple download backends: yt-dlp, youtube-dl-gui, newpipe, and asbplayer. The system SHALL expose `youtube_download_backend` as a string setting to select the backend.
+### Requirement: yt-dlp Backend
+The download system SHALL use yt-dlp as the sole download backend. The system SHALL verify that yt-dlp is installed and available.
 
-#### Scenario: Backend is set to yt-dlp
-- **WHEN** `youtube_download_backend` is `"yt-dlp"`
+#### Scenario: yt-dlp is available
+- **WHEN** yt-dlp is installed and available
 - **AND** a video is downloaded
 - **THEN** the system SHALL use yt-dlp for the download
 
-#### Scenario: Backend is set to youtube-dl-gui
-- **WHEN** `youtube_download_backend` is `"youtube-dl-gui"`
-- **AND** a video is downloaded
-- **THEN** the system SHALL use youtube-dl-gui for the download
-
-#### Scenario: Backend is set to newpipe
-- **WHEN** `youtube_download_backend` is `"newpipe"`
-- **AND** a video is downloaded
-- **THEN** the system SHALL use newpipe for the download
-
-#### Scenario: Backend is set to asbplayer
-- **WHEN** `youtube_download_backend` is `"asbplayer"`
-- **AND** a video is downloaded
-- **THEN** the system SHALL use asbplayer for the download
-
-#### Scenario: Backend is not available
-- **WHEN** the selected backend is not installed or available
+#### Scenario: yt-dlp is not available
+- **WHEN** yt-dlp is not installed or not available
 - **THEN** the system SHALL display an error message
 - **AND** the system SHALL not attempt the download
+- **AND** the system SHALL provide installation instructions
+
+### Requirement: yt-dlp Auto-Update
+The download system SHALL check for and install yt-dlp updates before starting downloads. The system SHALL expose `youtube_download_auto_update` as a boolean setting.
+
+#### Scenario: Auto-update is enabled and update is available
+- **WHEN** `youtube_download_auto_update` is `true`
+- **AND** a yt-dlp update is available
+- **AND** a video download is initiated
+- **THEN** the system SHALL download and install the yt-dlp update
+- **AND** the system SHALL log a message about the update
+- **AND** the system SHALL proceed with the video download
+
+#### Scenario: Auto-update is enabled and no update is available
+- **WHEN** `youtube_download_auto_update` is `true`
+- **AND** no yt-dlp update is available
+- **AND** a video download is initiated
+- **THEN** the system SHALL proceed with the video download without updating
+
+#### Scenario: Auto-update is disabled
+- **WHEN** `youtube_download_auto_update` is `false`
+- **AND** a video download is initiated
+- **THEN** the system SHALL proceed with the video download without checking for updates
+
+#### Scenario: Update check fails
+- **WHEN** the yt-dlp update check fails
+- **THEN** the system SHALL log a warning message
+- **AND** the system SHALL proceed with the video download using the current yt-dlp version
+
+### Requirement: Chapter Metadata Download
+The download system SHALL download videos with chapter metadata embedded in the video file.
+
+#### Scenario: Video has chapters
+- **WHEN** a YouTube video has chapter metadata
+- **AND** the video is downloaded
+- **THEN** the downloaded video SHALL contain embedded chapter markers
+- **AND** the chapters SHALL be accessible during playback
+
+#### Scenario: Video has no chapters
+- **WHEN** a YouTube video has no chapter metadata
+- **AND** the video is downloaded
+- **THEN** the system SHALL download the video without chapters
+- **AND** the system SHALL not display an error
+
+### Requirement: SRT Subtitle Download
+The download system SHALL automatically download SRT subtitle files separately for each available language.
+
+#### Scenario: Video has subtitles
+- **WHEN** a YouTube video has subtitles available
+- **AND** the video is downloaded
+- **THEN** the system SHALL download SRT subtitle files for each available language
+- **AND** the subtitle files SHALL be saved in the same directory as the video
+- **AND** the subtitle files SHALL have the same base name as the video with language code suffix
+
+#### Scenario: Video has no subtitles
+- **WHEN** a YouTube video has no subtitles available
+- **AND** the video is downloaded
+- **THEN** the system SHALL download the video without subtitles
+- **AND** the system SHALL log a message that no subtitles were available
+
+#### Scenario: Subtitle download fails
+- **WHEN** subtitle download fails
+- **THEN** the system SHALL log a warning message
+- **AND** the system SHALL continue with video download
 
 ### Requirement: Windows "Send to" Integration
 The download system SHALL provide a Windows "Send to" integration that allows right-clicking on files and selecting "Download YouTube Video".
