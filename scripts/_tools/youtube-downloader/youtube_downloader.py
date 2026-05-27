@@ -379,9 +379,10 @@ def resolve_original_language(info):
     if detected_lang in meta_subs or detected_lang in meta_auto:
         return detected_lang
         
-    # If not, but it is a regional dialect (e.g. en-US, zh-CN), try the base language code (e.g. en, zh)
-    if "-" in detected_lang:
-        base_lang = detected_lang.split("-")[0]
+    # If not, but it is a regional dialect (e.g. en-US, zh-CN, de_DE), try the base language code (e.g. en, zh, de)
+    sep = "-" if "-" in detected_lang else ("_" if "_" in detected_lang else None)
+    if sep:
+        base_lang = detected_lang.split(sep)[0]
         if base_lang in meta_subs or base_lang in meta_auto:
             return base_lang
             
