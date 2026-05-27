@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-from tests.ipc.mpv_ipc import query_kardenwort_state
 from tests.ipc.mpv_session import MpvSession
 
 
@@ -85,7 +84,7 @@ def _wait_for_tsv_load(ipc, expected_size, timeout_s=8.0):
     deadline = time.time() + timeout_s
     state = {}
     while time.time() < deadline:
-        state = _query_state_robust(ipc)
+        state = _query_state_robust(ipc, retries=1)
         if state and state.get("anki_db_size", 0) == expected_size:
             return state
         time.sleep(0.2)
@@ -94,12 +93,9 @@ def _wait_for_tsv_load(ipc, expected_size, timeout_s=8.0):
 
 def _query_state_robust(ipc, retries=3):
     for _ in range(retries):
-        state = query_kardenwort_state(ipc)
-        if state and "options" in state:
-            return state
-        # Fallback path: explicit query + direct property read (no event dependency).
+        # Use direct query + direct property read only (eventless path, stable on Windows).
         try:
-            ipc.command(["script-message-to", "kardenwort", "state-query"])
+            ipc.command(["script-message-to", "kardenwort", "state-query"], timeout=2.0)
             raw = ipc.get_property("user-data/kardenwort/state") or ""
             if raw and "|" in raw:
                 raw = raw.split("|", 1)[1]
@@ -111,6 +107,21 @@ def _query_state_robust(ipc, retries=3):
             pass
         time.sleep(0.2)
     return {}
+
+
+def _send_kardenwort(ipc, *args, timeout_s=8.0):
+    deadline = time.time() + timeout_s
+    last_resp = None
+    while time.time() < deadline:
+        try:
+            resp = ipc.command(["script-message-to", "kardenwort", *args], timeout=2.0)
+            last_resp = resp
+            if resp and resp.get("error") == "success":
+                return resp
+        except Exception:
+            pass
+        time.sleep(0.2)
+    raise AssertionError(f"script-message-to kardenwort failed for args={args}, last_resp={last_resp}")
 
 
 def test_local_anchor_uses_exact_slot_before_neighbor_fallback():
@@ -160,21 +171,19 @@ def test_adjacent_identical_boundary_highlight_respects_exact_anchor_only():
         session.start()
         try:
             ipc = session.ipc
-            ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_sync_period", "0.2"])
-            ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_record_file", str(tsv_path)])
-            ipc.command(["script-message-to", "kardenwort", "test-set-option", "anki_global_highlight", "no"])
-
-            ready = _query_state_robust(ipc, retries=8)
-            assert ready and "options" in ready, "kardenwort state probe did not become ready in time"
+            _send_kardenwort(ipc, "test-set-option", "anki_sync_period", "0.2")
+            _send_kardenwort(ipc, "test-set-option", "anki_record_file", str(tsv_path))
+            _send_kardenwort(ipc, "test-set-option", "anki_global_highlight", "no")
+            _send_kardenwort(ipc, "test-load-anki-tsv")
 
             loaded = _wait_for_tsv_load(ipc, tsv_path.stat().st_size)
             assert loaded.get("anki_db_size", 0) == tsv_path.stat().st_size, "TSV did not load in time"
 
-            ipc.command(["script-message-to", "kardenwort", "test-calc-highlight-stack", "1", "1", "2.001"])
+            _send_kardenwort(ipc, "test-calc-highlight-stack", "1", "1", "2.001")
             state_prev = _query_state_robust(ipc)
             prev_stack = (state_prev.get("test_data") or {}).get("highlight_stack") or {}
 
-            ipc.command(["script-message-to", "kardenwort", "test-calc-highlight-stack", "2", "1", "2.001"])
+            _send_kardenwort(ipc, "test-calc-highlight-stack", "2", "1", "2.001")
             state_curr = _query_state_robust(ipc)
             curr_stack = (state_curr.get("test_data") or {}).get("highlight_stack") or {}
 

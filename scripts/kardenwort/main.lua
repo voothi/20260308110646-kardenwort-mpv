@@ -10736,6 +10736,10 @@ mp.register_script_message("test-set-option", function(name, val)
     flush_rendering_caches()
 end)
 
+mp.register_script_message("test-load-anki-tsv", function()
+    load_anki_tsv(true, true)
+end)
+
 mp.register_script_message("test-dw-toggle", function()
     cmd_toggle_drum_window()
 end)
