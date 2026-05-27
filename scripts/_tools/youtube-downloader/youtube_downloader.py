@@ -425,8 +425,9 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenati
                 new_content.append(line)
             new_content.append("")  # Empty line between blocks
             
-        path.write_text("\n".join(new_content), encoding="utf-8", newline="\n")
-        
+        with path.open("w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(new_content))
+
     except Exception as e:
         print(f"   [!] Warning: Failed to clean subtitle file: {e}", file=sys.stderr)
 
@@ -542,7 +543,8 @@ def sync_secondary_srt_timestamps(primary_path, secondary_path):
                 new_content.append(line)
             new_content.append("")  # blank separator
 
-        secondary_path.write_text("\n".join(new_content), encoding="utf-8", newline="\n")
+        with secondary_path.open("w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(new_content))
         print(f"   [sync] Re-timestamped {secondary_path.name} to match {primary_path.name} "
               f"({len(matched_pairs)} blocks, time-aligned).", flush=True)
 
