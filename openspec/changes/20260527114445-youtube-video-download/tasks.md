@@ -174,3 +174,16 @@ Companion audio files are language-dubbed audio-only `.mp4` files sitting alongs
 - [x] 14.6 Update `config.ini` and `config.ini.template` with `youtube_download_companion_audio_languages` option, a comment explaining the naming convention and mpv integration, and an example value
 - [x] 14.7 Update README with companion audio section: feature description, config option, naming convention, how mpv picks them up, and example workflow
 - [x] 14.8 Add acceptance tests: `test_companion_audio_download_single_lang`, `test_companion_audio_download_multi_lang`, `test_companion_audio_skip_existing`, `test_companion_audio_missing_recovery_in_skip_mode`, `test_companion_audio_disabled_when_empty`
+
+## 15. Skip-Mode Recovery Post-Processing Fix (ZID: 20260527193201)
+
+Two bugs in the `duplicate_mode = skip` recovery path identified at ZID: 20260527191838.
+
+**Bug 1 — Wasted yt-dlp call:** When only companion audio is missing (all subtitle files already exist), the recovery forces `youtube_download_mode = "subtitles"` and launches a full subtitle yt-dlp command. yt-dlp's no-overwrite behaviour skips the existing files silently, so subtitles are not corrupted — but a full network round-trip to YouTube is made for nothing.
+
+**Bug 2 — Double post-processing:** After the subtitle download step, `clean_srt_file` and `sync_secondary_srt_timestamps` run on every `.srt` file that exists on disk, including files that were already present before the recovery run. These operations are mostly idempotent but not guaranteed to be — `fix_sentence_splits` in particular can produce different output on a second pass if the first pass already merged some blocks.
+
+- [ ] 15.1 Before the subtitle download command, snapshot which subtitle files already exist: `pre_existing_subs = { path for lang in sub_langs_list if (path := target_dir / f"{zid}-{sanitized_title}.{lang}.srt").exists() }`
+- [ ] 15.2 In the post-download loop, only call `clean_srt_file` and append to `subtitles_written` for files that were **not** in `pre_existing_subs` (i.e., newly downloaded); still check `sub_file.exists()` as before, but gate post-processing on `sub_file not in pre_existing_subs`
+- [ ] 15.3 Fix Bug 1: in the recovery block, replace the unconditional `settings["youtube_download_mode"] = "subtitles"` with a conditional — only force subtitle mode if at least one subtitle file is in `missing_files`; if only companion audio files are missing, set mode to a new sentinel `"none"` (or leave it as the original mode but gate the subtitle download step on `mode in ["video+subtitles", "subtitles"] and not all_subs_already_exist`); video download must still be skipped regardless
+- [ ] 15.4 Add unit tests: `test_no_subtitle_redownload_when_only_companion_missing`, `test_clean_srt_not_called_on_preexisting_subtitle`, `test_sync_not_called_on_preexisting_subtitle`
