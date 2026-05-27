@@ -1302,6 +1302,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         sub_cmd.append(url)
         
         if has_manual or (has_auto and use_auto_subs):
+            print(flush=True)
             print("┌── [SUBTITLES DOWNLOAD PIPELINE] ───────────────────────────────────────────┐", flush=True)
             print(f"  ➔ Downloading subtitles ({','.join(sub_langs_list)})...", flush=True)
             try:
