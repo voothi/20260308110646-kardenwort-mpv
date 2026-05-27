@@ -40,14 +40,26 @@ YOUTUBE_URL_REGEX = re.compile(
 # Lock to prevent mixed character/line writes from parallel stdout/stderr threads
 PRINT_LOCK = threading.Lock()
 
+# ANSI escape sequence remover
+ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+def strip_ansi(text):
+    """Removes all VT100 / ANSI escape sequences from the given text."""
+    return ANSI_ESCAPE.sub('', text)
+
 # Progress matching: [download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03
 PROGRESS_REGEX = re.compile(
-    r'\[download\]\s+(\d+\.\d+|\d+)%\s+of\s+(~?\s*\d+\.\d+[a-zA-Z]+)\s+at\s+([^\s]+)\s+ETA\s+([^\s]+)(?:\s+\(frag\s+(\d+)/(\d+)\))?'
+    r'\[download\]\s+(\d+(?:\.\d+)?)%\s+of\s+(~?\s*\d+(?:\.\d+)?[a-zA-Z]+)\s+at\s+([^\s]+)\s+ETA\s+([^\s]+)(?:\s+\(frag\s+(\d+)/(\d+)\))?'
+)
+
+# Subtitle progress: [download]   15.00KiB at    1.66MiB/s (00:00:00)
+SUB_PROGRESS_REGEX = re.compile(
+    r'\[download\]\s+(\d+(?:\.\d+)?[a-zA-Z]+)\s+at\s+([^\s]+)\s+\(([^)]+)\)'
 )
 
 # Completion matching: [download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s
 PROGRESS_COMPLETE_REGEX = re.compile(
-    r'\[download\]\s+(?:100%|100\.0%)\s+of\s+(~?\s*\d+\.\d+[a-zA-Z]+)(?:\s+in\s+([^\s]+))?\s+at\s+([^\s]+)'
+    r'\[download\]\s+(?:100%|100\.0%)\s+of\s+(~?\s*\d+(?:\.\d+)?[a-zA-Z]+)(?:\s+in\s+([^\s]+))?\s+at\s+([^\s]+)'
 )
 
 # Connection resolution/socket error retries: Got error: ... Failed to resolve '...' Retrying (1/10)...
@@ -650,6 +662,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
         
     def process_line(raw_line, is_stderr, is_tty, state):
         line_content = raw_line.rstrip("\r\n")
+        line_clean = strip_ansi(line_content)
         
         if is_stderr:
             with PRINT_LOCK:
@@ -657,9 +670,9 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     sys.stdout.write("\n")
                     sys.stdout.flush()
                 
-                retry_match = ERROR_RETRY_REGEX.search(line_content)
-                generic_retry_match = ERROR_GENERIC_RETRY_REGEX.search(line_content)
-                frag_skip_match = FRAGMENT_SKIP_REGEX.search(line_content)
+                retry_match = ERROR_RETRY_REGEX.search(line_clean)
+                generic_retry_match = ERROR_GENERIC_RETRY_REGEX.search(line_clean)
+                frag_skip_match = FRAGMENT_SKIP_REGEX.search(line_clean)
                 
                 if retry_match:
                     attempt, total = retry_match.groups()
@@ -686,11 +699,12 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                         state["last_char"] = raw_line[-1]
                 state["last_pipe"] = "stderr"
         else:
-            progress_match = PROGRESS_REGEX.search(line_content)
-            complete_match = PROGRESS_COMPLETE_REGEX.search(line_content)
-            retry_match = ERROR_RETRY_REGEX.search(line_content)
-            generic_retry_match = ERROR_GENERIC_RETRY_REGEX.search(line_content)
-            frag_skip_match = FRAGMENT_SKIP_REGEX.search(line_content)
+            progress_match = PROGRESS_REGEX.search(line_clean)
+            sub_progress_match = SUB_PROGRESS_REGEX.search(line_clean)
+            complete_match = PROGRESS_COMPLETE_REGEX.search(line_clean)
+            retry_match = ERROR_RETRY_REGEX.search(line_clean)
+            generic_retry_match = ERROR_GENERIC_RETRY_REGEX.search(line_clean)
+            frag_skip_match = FRAGMENT_SKIP_REGEX.search(line_clean)
             
             with PRINT_LOCK:
                 if progress_match:
@@ -711,6 +725,13 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                             sys.stdout.flush()
                             state["last_percent"] = percent_val
                             state["last_char"] = "\n"
+                elif sub_progress_match:
+                    size_str, speed_str, time_str = sub_progress_match.groups()
+                    if is_tty:
+                        sys.stdout.write("\r" + " " * 80 + "\r")
+                        sys.stdout.write(f"\r ➔ Downloading subtitles: {size_str.strip()} at {speed_str.strip()} ({time_str.strip()})")
+                        sys.stdout.flush()
+                        state["last_char"] = "\r"
                 elif complete_match:
                     size_str, time_str, speed_str = complete_match.groups()
                     if is_tty:
@@ -740,7 +761,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                 else:
-                    if line_content.startswith("[download]") and ("%" in line_content or "100%" in line_content):
+                    if line_clean.startswith("[download]") and ("%" in line_clean or "100%" in line_clean):
                         pass
                     else:
                         sys.stdout.write(raw_line)

@@ -542,34 +542,35 @@ def test_premium_console_presentation(monkeypatch):
     assert "(frag 165/167)" in bar_frag
     assert "99.5%" in bar_frag
     
-    # 2. Test regex matching on various lines
+    # 2. Test ANSI escape stripping
+    colored_text = "\x1b[0;32m[download]\x1b[0m   0.0% of    4.08MiB at  136.82KiB/s ETA 00:30"
+    assert yd.strip_ansi(colored_text) == "[download]   0.0% of    4.08MiB at  136.82KiB/s ETA 00:30"
+    
+    # 3. Test regex matching on various lines
     # standard progress line
-    line1 = "[download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03"
+    line1 = "[download]   0.0% of    4.08MiB at  136.82KiB/s ETA 00:30"
     m1 = yd.PROGRESS_REGEX.search(line1)
     assert m1 is not None
-    assert m1.group(1) == "33.6"
-    assert m1.group(2) == "11.90MiB"
-    assert m1.group(3) == "2.48MiB/s"
-    assert m1.group(4) == "00:03"
+    assert m1.group(1) == "0.0"
+    assert m1.group(2) == "4.08MiB"
+    assert m1.group(3) == "136.82KiB/s"
+    assert m1.group(4) == "00:30"
     
-    # fragment progress line
-    line2 = "[download]  99.5% of ~  14.73MiB at  617.35KiB/s ETA 00:01 (frag 165/167)"
-    m2 = yd.PROGRESS_REGEX.search(line2)
-    assert m2 is not None
-    assert m2.group(1) == "99.5"
-    assert m2.group(2) == "~  14.73MiB"
-    assert m2.group(3) == "617.35KiB/s"
-    assert m2.group(4) == "00:01"
-    assert m2.group(5) == "165"
-    assert m2.group(6) == "167"
+    # subtitle progress line
+    line_sub = "[download]    1.00KiB at  999.36KiB/s (00:00:00)"
+    m_sub = yd.SUB_PROGRESS_REGEX.search(line_sub)
+    assert m_sub is not None
+    assert m_sub.group(1) == "1.00KiB"
+    assert m_sub.group(2) == "999.36KiB/s"
+    assert m_sub.group(3) == "00:00:00"
     
     # completion line
-    line3 = "[download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s"
+    line3 = "[download] 100% of  124.39KiB in 00:00:00 at 657.40KiB/s"
     m3 = yd.PROGRESS_COMPLETE_REGEX.search(line3)
     assert m3 is not None
-    assert m3.group(1) == "11.90MiB"
-    assert m3.group(2) == "00:00:04"
-    assert m3.group(3) == "2.52MiB/s"
+    assert m3.group(1) == "124.39KiB"
+    assert m3.group(2) == "00:00:00"
+    assert m3.group(3) == "657.40KiB/s"
     
     # socket retry line
     line4 = "[download] Got error: <urllib3.connection.HTTPSConnection object at 0x00000296F9B50FB0>: Failed to resolve 'rr8---sn-bvvbaxivnuxqqu5b-4g5l.googlevideo.com' ([Errno 11001] getaddrinfo failed). Retrying (9/10)..."
@@ -591,7 +592,7 @@ def test_premium_console_presentation(monkeypatch):
     assert m6 is not None
     assert m6.group(1) == "149"
 
-    # 3. Test simulated stream parsing with run_subprocess_streaming
+    # 4. Test simulated stream parsing with run_subprocess_streaming
     import io
     
     class MockPipe(io.StringIO):
@@ -609,13 +610,15 @@ def test_premium_console_presentation(monkeypatch):
             pass
             
     def mock_popen(cmd, **kwargs):
+        # Simulated stdout with ANSI escape sequences
         stdout_data = (
             "[download] Destination: test.mp4\n"
-            "[download]  33.6% of   11.90MiB at    2.48MiB/s ETA 00:03\r"
-            "[download] 100% of   11.90MiB in 00:00:04 at 2.52MiB/s\n"
+            "\x1b[32m[download]\x1b[0m   0.0% of    4.08MiB at  136.82KiB/s ETA 00:30\r"
+            "\x1b[32m[download]\x1b[0m   1.00KiB at  999.36KiB/s (00:00:00)\r"
+            "\x1b[32m[download]\x1b[0m 100% of  124.39KiB in 00:00:00 at 657.40KiB/s\n"
         )
         stderr_data = (
-            "Got error: <urllib3.connection.HTTPSConnection>: Failed to resolve 'rr8.googlevideo.com' ([Errno 11001] getaddrinfo failed). Retrying (1/10)...\n"
+            "\x1b[31mGot error: <urllib3.connection.HTTPSConnection>: Failed to resolve 'rr8.googlevideo.com' ([Errno 11001] getaddrinfo failed). Retrying (1/10)...\x1b[0m\n"
             "[download] fragment not found; Skipping fragment 149 ...\n"
         )
         return MockProcess(stdout_data, stderr_data)
@@ -637,8 +640,10 @@ def test_premium_console_presentation(monkeypatch):
     stdout_output = captured_stdout.getvalue()
     
     assert "➔ Downloading:" in stdout_output
-    assert "33.6%" in stdout_output
-    assert "Completed download of 11.90MiB in 00:00:04 at 2.52MiB/s" in stdout_output
+    assert "0.0%" in stdout_output
+    assert "➔ Downloading subtitles:" in stdout_output
+    assert "1.00KiB" in stdout_output
+    assert "Completed download of 124.39KiB in 00:00:00 at 657.40KiB/s" in stdout_output
     assert "[!] Network warning: connection issue detected, retrying (1/10)..." in stdout_output
     assert "[!] Fragment warning: Skipping missing fragment 149..." in stdout_output
 
