@@ -1022,6 +1022,7 @@ end
 
 -- Playback-independent resolver for static grounding (TSV anchors, probes).
 -- Unlike get_center_index(), this must not depend on ACTIVE_IDX sticky state.
+-- Declared global (not local) to stay within Lua's 200-local-variable limit per chunk.
 function get_center_index_static(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
 
@@ -1038,7 +1039,6 @@ function get_center_index_static(subs, time_pos)
     end
 
     if best == -1 then return 1 end
-    if time_pos <= 0 then return 1 end
 
     if time_pos <= subs[best].end_time then
         return best

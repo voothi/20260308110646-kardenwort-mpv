@@ -319,7 +319,8 @@ def strip_lang_postfix(stem, lang):
 def resolve_output_path(srt_path, output_dir, config, lang, zid_cache, keep_lang_postfix=None):
     """
     Build the output .mp4 path.
-    Policy: base filename WITHOUT language postfix + .mp4, in output_dir.
+    Policy: base filename + .mp4 in output_dir; language postfix stripped unless
+    keep_lang_postfix is True (via argument or tts_settings.keep_lang_postfix in config).
     Duplicates: ZID-dir, skip, or overwrite (from config).
     """
     if keep_lang_postfix is None:
@@ -1016,6 +1017,12 @@ def parse_args():
         action="store_true",
         default=None,
         help="Keep the language postfix in the output MP4 filename.",
+    )
+    parser.add_argument(
+        "--no-keep-lang-postfix",
+        action="store_false",
+        dest="keep_lang_postfix",
+        help="Strip the language postfix from the output MP4 filename (overrides config).",
     )
     parser.add_argument(
         "--sendto",

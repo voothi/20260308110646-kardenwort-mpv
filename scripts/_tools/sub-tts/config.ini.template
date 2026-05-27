@@ -32,6 +32,7 @@ duplicate_mode = zid-dir
 
 # Keep the language postfix in the output MP4 filename (e.g. video.de.mp4 instead of video.mp4)
 # in accordance with the postfix in the SRT file.
+# Note: config.ini (the live config) may differ — check it for the active setting.
 keep_lang_postfix = false
 
 
