@@ -523,10 +523,17 @@ def main():
         sys.exit(1)
 
     print(f" [queue] Detected {len(queue)} YouTube URL(s) to process.", flush=True)
-    print(" ┌" + "─" * 78, flush=True)
-    for source, url, source_dir in queue:
-        print(f" │ [{source}] {url}", flush=True)
-    print(" └" + "─" * 78 + "\n", flush=True)
+    print("┌" + "─" * 79, flush=True)
+    for idx, (source, url, source_dir) in enumerate(queue):
+        # Truncate source label if it is too long to keep it beautiful
+        display_source = source
+        if len(display_source) > 60:
+            display_source = display_source[:27] + "..." + display_source[-30:]
+        print(f"│ • Source: {display_source}", flush=True)
+        print(f"│   URL:    {url}", flush=True)
+        if idx < len(queue) - 1:
+            print("│", flush=True)
+    print("└" + "─" * 79 + "\n", flush=True)
 
     # 3. Setup backend (check & update yt-dlp)
     print(" [backend] Checking and updating yt-dlp...", flush=True)
@@ -542,8 +549,11 @@ def main():
     success_count = 0
     
     for idx, (source, url, source_dir) in enumerate(queue, 1):
+        display_source = source
+        if len(display_source) > 40:
+            display_source = display_source[:18] + "..." + display_source[-20:]
         print(f"================================================================================", flush=True)
-        print(f" [{idx}/{len(queue)}] Processing URL (Source: {source})", flush=True)
+        print(f" [{idx}/{len(queue)}] Processing URL (Source: {display_source})", flush=True)
         print(f"================================================================================", flush=True)
         try:
             if download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=source_dir):
