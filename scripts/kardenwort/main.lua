@@ -2376,6 +2376,36 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
         return nil
     end
 
+    -- Local pivot anchoring rule:
+    -- 1) Exact subtitle line match has priority.
+    -- 2) +/-1 drift is allowed only when the exact slot cannot be resolved.
+    local function has_exact_pivot_slot(expected_sub_idx, pivot_l_idx, expected_clean_word)
+        local expected_sub = subs[expected_sub_idx]
+        if not expected_sub then return false end
+        local expected_tokens = get_sub_tokens(expected_sub)
+        if not expected_tokens then return false end
+        for _, tok in ipairs(expected_tokens) do
+            if tok.is_word and logical_cmp(tok.logical_idx, pivot_l_idx) then
+                local tok_clean = tok.lower_clean or utf8_to_lower(tok.text:gsub("[%p%s]", ""))
+                if expected_clean_word and expected_clean_word ~= "" then
+                    return tok_clean == expected_clean_word
+                end
+                return true
+            end
+        end
+        return false
+    end
+
+    local function pivot_line_match(actual_sub_idx, expected_sub_idx, pivot_l_idx, expected_clean_word)
+        if actual_sub_idx == expected_sub_idx then return true end
+        if math.abs(actual_sub_idx - expected_sub_idx) ~= 1 then return false end
+        -- If the exact slot exists and already matches, block neighbor-line duplication.
+        if has_exact_pivot_slot(expected_sub_idx, pivot_l_idx, expected_clean_word) then
+            return false
+        end
+        return true
+    end
+
     local orange_stack = 0
     local purple_stack = 0
     local purple_depth = 0
@@ -2582,7 +2612,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                     local g = data.__pivots[term_offset]
                                     if g then
                                         -- Apply +/- 1 segment drift tolerance to absorb +1ms temporal epsilon boundaries
-                                        local line_match = math.abs(sub_idx - (origin_l + g.l_off)) <= 1
+                                        local expected_sub_idx = origin_l + g.l_off
+                                        local expected_word = term_clean[term_offset]
+                                        local line_match = pivot_line_match(sub_idx, expected_sub_idx, g.p_idx, expected_word)
                                         if line_match and target_l_idx == g.p_idx then
                                             context_satisfied = true
                                         end
@@ -2669,7 +2701,9 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                 for _, g in ipairs(data.__pivots) do
                                                     local m = ctx_list[current_tuple[g.t_pos]]
                                                     -- Apply +/- 1 segment drift tolerance
-                                                    local line_match = m and math.abs(m.s_i - (origin_sub_idx + g.l_off)) <= 1
+                                                    local expected_sub_idx = origin_sub_idx + g.l_off
+                                                    local expected_word = term_clean[g.t_pos]
+                                                    local line_match = m and pivot_line_match(m.s_i, expected_sub_idx, g.p_idx, expected_word)
                                                     if not (line_match and m.l_i == g.p_idx) then
                                                         all_pivots_matched = false; break
                                                     end
