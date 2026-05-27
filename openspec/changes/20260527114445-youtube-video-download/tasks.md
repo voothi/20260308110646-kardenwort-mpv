@@ -201,3 +201,10 @@ Three bugs in the `duplicate_mode = skip` recovery path, reviewed at ZID: 202605
 - [x] 16.1 Treat section 15 as a release gate: do not mark this change "implementation complete" until 15.1–15.5 are done and tests are passing
 - [x] 16.2 Remove documentation drift about subtitle sync trimming: align `config.ini` / `config.ini.template` comment text with actual behavior ("preserve all secondary blocks; remap timestamps"), matching section 13 intent
 - [x] 16.3 Add one deterministic unit test proving region-aware companion audio matching uses metadata language tag (e.g., config `ru`, metadata `ru-RU`) end-to-end in command construction
+
+## 17. Pip-Style Regression Guardrails (ZID: 20260528013823)
+
+- [x] 17.1 Fix non-TTY progress output to avoid raw ANSI escape leakage (TTY-gated coloring only)
+- [x] 17.2 Fix original-language fallback logging to avoid false "auto-subtitles fallback" message when no auto tracks exist
+- [x] 17.3 Add unit test: `test_progress_bar_plain_text_when_not_tty`
+- [x] 17.4 Add unit test: `test_original_language_fallback_logs_nothing_when_no_tracks`

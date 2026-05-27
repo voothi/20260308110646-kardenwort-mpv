@@ -431,3 +431,18 @@ The companion-audio track selector SHALL support regional language tags and SHAL
 - **AND** YouTube metadata exposes a matching audio-only dubbed track under a regional tag (for example `ru-RU`)
 - **THEN** the system SHALL treat the track as a valid match
 - **AND** the yt-dlp `-f` selector SHALL use the actual matched metadata tag (`ru-RU`) rather than the base configured code
+
+### Requirement: Pip-Style Output and Fallback Log Accuracy
+Progress rendering and fallback diagnostics SHALL remain accurate across TTY and non-TTY execution contexts.
+
+#### Scenario: Non-TTY progress output
+- **WHEN** progress text is rendered while stdout is not a TTY
+- **THEN** progress lines SHALL not contain raw ANSI escape sequences
+- **AND** the textual progress information SHALL remain readable in plain logs
+
+#### Scenario: Original-language fallback with no subtitle tracks
+- **WHEN** `youtube_download_subtitle_languages` is `"original"`
+- **AND** language detection fails
+- **AND** neither manual subtitles nor automatic captions are present in metadata
+- **THEN** the system SHALL NOT log that it fell back to all subtitles
+- **AND** the system SHALL NOT log that it fell back to all auto-subtitles

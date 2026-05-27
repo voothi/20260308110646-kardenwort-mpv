@@ -646,3 +646,65 @@ def test_premium_console_presentation(monkeypatch):
     assert "[WARN] connection issue detected, retrying (1/10)..." in plain_stdout
     assert "[WARN] Skipping missing fragment 149..." in plain_stdout
 
+
+def test_progress_bar_plain_text_when_not_tty(monkeypatch):
+    yd = _load_downloader()
+    monkeypatch.setattr(yd, "_IS_TTY", False)
+
+    bar = yd.make_premium_progress_bar(33.6, "11.90MiB", "2.48MiB/s", "00:03")
+
+    assert "\x1b[" not in bar
+    assert "4.0/11.9 MiB" in bar
+    assert "eta 00:03" in bar
+
+
+def test_original_language_fallback_logs_nothing_when_no_tracks(monkeypatch):
+    yd = _load_downloader()
+
+    info = {
+        "title": "No Subtitle Metadata",
+        "chapters": [],
+        "subtitles": {},
+        "automatic_captions": {},
+        "formats": [],
+    }
+
+    info_logs = []
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda *args, **kwargs: info)
+    monkeypatch.setattr(yd, "resolve_original_language", lambda _info: "")
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used_zids: "20260528013823")
+    monkeypatch.setattr(yd, "log_info", lambda msg, indent="": info_logs.append(msg))
+
+    test_dir = Path(__file__).resolve().parents[2] / "tmp_test_20260528013823"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    settings = {
+        "youtube_download_resolution": "360p",
+        "youtube_download_directory": str(test_dir),
+        "youtube_download_mode": "subtitles",
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_subtitle_languages": "original",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_cookies_browser": "",
+        "youtube_download_cookies_file": "",
+        "youtube_download_clean_hyphens": False,
+        "youtube_download_unbreak_lines": False,
+        "youtube_download_hyphenation_marks": "-¬",
+        "youtube_download_compositional_conjunctions": "und,oder,sowie,bzw,bis",
+        "youtube_download_fix_sentence_splits": False,
+        "youtube_download_sync_secondary_timestamps": False,
+        "youtube_download_companion_audio_languages": "",
+        "youtube_download_js_runtime": "node",
+    }
+
+    ok = yd.download_video_and_metadata(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        used_zids=set(),
+        zid_cache={},
+        source_dir=None,
+    )
+
+    assert ok is True
+    assert "Language auto-detection fell back to all available subtitles." not in info_logs
+    assert "Language auto-detection fell back to all available auto-subtitles." not in info_logs
