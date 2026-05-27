@@ -292,7 +292,9 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
             if not char:
                 break
             
-            if is_stderr and state.get("last_char") not in ["\n", "\r"]:
+            pipe_name = "stderr" if is_stderr else "stdout"
+            
+            if is_stderr and state.get("last_pipe") != "stderr" and state.get("last_char") not in ["\n", "\r"]:
                 sys.stdout.write("\n")
                 sys.stdout.flush()
                 state["last_char"] = "\n"
@@ -305,6 +307,7 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
                 sys.stdout.flush()
                 
             state["last_char"] = char
+            state["last_pipe"] = pipe_name
 
     process = subprocess.Popen(
         cmd,
