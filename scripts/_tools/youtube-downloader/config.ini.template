@@ -59,6 +59,19 @@ youtube_download_fix_sentence_splits = false
 # The longer track is trimmed to match the shorter one when block counts differ.
 youtube_download_sync_secondary_timestamps = false
 
+# Companion audio track languages to download as audio-only MP4 files.
+# When a YouTube video has dubbed audio tracks (e.g. a Russian dub), each specified language
+# is downloaded as a separate audio-only MP4 file:
+#   {ZID}-{title}.{lang}.mp4   (e.g. 20260527181921-google-bans-coding-with.ru.mp4)
+# mpv auto-loads these files as external audio tracks when the video is opened,
+# allowing you to switch between them with the companion audio hotkey (key: 1).
+# Only languages with a genuine audio-only dubbed track in YouTube metadata are downloaded;
+# if no such track exists for a language, the download is silently skipped.
+#   Leave empty to disable (default)
+#   en,ru  - Download English and Russian companion audio tracks
+# youtube_download_companion_audio_languages = en,ru
+youtube_download_companion_audio_languages =
+
 # Whether to check for and install yt-dlp updates before starting downloads (true/false)
 youtube_download_auto_update = true
 

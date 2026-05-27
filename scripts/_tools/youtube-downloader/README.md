@@ -16,9 +16,11 @@ A premium Windows "Send to" integration for downloading YouTube videos at config
   - Specific BCP-47 languages support (e.g., `en,de,ru`).
   - Auto-generated subtitles fallback if manual ones are unavailable.
 - **Enforced MP4 Container:** Seamless remuxing to MP4 container via yt-dlp without re-encoding.
+- **Companion Audio Track Download:**
+  Download dubbed audio tracks as audio-only MP4 files alongside the main video. mpv auto-loads them as switchable audio tracks (hotkey `1`). Only genuine dubbed tracks are downloaded — default audio is never duplicated.
 - **Duplicate File Handling:**
   - `zid-dir`: Places all duplicate files in a subfolder named after the session ZID.
-  - `skip`: Skips duplicate downloads.
+  - `skip`: Skips duplicate downloads. When a video already exists, missing companion audio or subtitle files are recovered automatically.
   - `overwrite`: Replaces existing files.
 
 ## Installation
@@ -58,6 +60,9 @@ Available configuration options:
 
 - `youtube_download_sync_secondary_timestamps`: `true` or `false` (default). When enabled and multiple subtitle tracks are downloaded (e.g. `original,ru`), re-timestamps all secondary tracks to match the primary track's timing using time-based nearest-neighbour matching. This corrects the inherent timestamp drift between independently auto-generated YouTube subtitle tracks so that A/D navigation in mpv stays in sync across languages.
 
+**Companion Audio Tracks:**
+
+- `youtube_download_companion_audio_languages`: Comma-separated BCP-47 language codes (e.g. `en,ru`), or leave empty to disable (default: empty). When a YouTube video has dubbed audio tracks in the specified languages, each is downloaded as a separate audio-only MP4 file named `{ZID}-{title}.{lang}.mp4` (e.g. `20260527181921-google-bans-coding-with.ru.mp4`). The files sit next to the main video. mpv's companion audio feature auto-loads them as external audio tracks on file open, and the hotkey `1` cycles between them while the video view is preserved. Only genuine dubbed tracks (audio-only streams with the requested language tag in YouTube metadata) are downloaded — if a video has no Russian dub, `ru` is silently skipped without wasting bandwidth. In `duplicate_mode = skip`, if a video already exists but a companion audio file is missing, it is downloaded automatically on re-run.
 
 ## CLI Usage
 

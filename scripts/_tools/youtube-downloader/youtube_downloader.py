@@ -59,6 +59,7 @@ def load_config():
         "youtube_download_compositional_conjunctions": "und,oder,sowie,bzw,bis",
         "youtube_download_fix_sentence_splits": "false",
         "youtube_download_sync_secondary_timestamps": "false",
+        "youtube_download_companion_audio_languages": "",
         "youtube_download_zid_script": "",
     }
 
@@ -653,6 +654,80 @@ def run_subprocess_streaming(cmd, *args, **kwargs):
         raise subprocess.CalledProcessError(process.returncode, cmd)
 
 # ==============================================================================
+# COMPANION AUDIO DOWNLOAD (Task 14.3)
+# ==============================================================================
+def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, settings):
+    """Downloads an audio-only companion track for a specific dubbed language.
+
+    Output: {target_dir}/{zid}-{sanitized_title}.{lang}.mp4
+    The MP4 container holds one audio stream only (no video), ~10x smaller than a full video.
+    mpv loads it via audio-add as an external track for the companion_audio hotkey cycle.
+
+    Returns True on success or graceful skip (no track for that language).
+    Returns False only on an actual download failure.
+    """
+    # Guard: check that a genuine audio-only dubbed track exists for this language in metadata.
+    # Without this check, yt-dlp would fall back to the default audio stream, producing a
+    # duplicate of the main video's audio rather than an alternate language track.
+    formats = info.get("formats", []) or []
+    has_dubbed_track = any(
+        f.get("acodec", "none") not in ("none", "")
+        and f.get("vcodec", "none") in ("none", "")
+        and f.get("language") == lang
+        for f in formats
+    )
+    if not has_dubbed_track:
+        print(f"   • No dubbed audio-only track for language '{lang}' in metadata — skipping companion audio.", flush=True)
+        return True
+
+    output_path = Path(target_dir) / f"{zid}-{sanitized_title}.{lang}.mp4"
+    output_tmpl = str(output_path)
+
+    cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
+    cookies_file = settings.get("youtube_download_cookies_file", "").strip()
+
+    cmd = ["yt-dlp", "--color", "always", "--no-warnings",
+           "-f", f"bestaudio[language={lang}]",
+           "--merge-output-format", "mp4",
+           "-o", output_tmpl]
+    if cookies_file:
+        cmd.extend(["--cookies", cookies_file])
+    elif cookies_browser:
+        cmd.extend(["--cookies-from-browser", cookies_browser])
+    cmd.append(url)
+
+    print(f"┌── [COMPANION AUDIO: {lang}] ─────────────────────────────────────────────────┐", flush=True)
+    print(f" ➔ Downloading companion audio ({lang}, audio-only MP4)...", flush=True)
+    try:
+        run_subprocess_streaming(cmd, check=True)
+        print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+        return True
+    except subprocess.CalledProcessError:
+        if cookies_file or cookies_browser:
+            source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+            print(f"   [!] Warning: Companion audio download failed with cookies ({source_desc} might be open/locked).", flush=True)
+            print("       Retrying without cookies...", flush=True)
+            fallback_cmd = []
+            skip_next = False
+            for arg in cmd:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if arg in ["--cookies-from-browser", "--cookies"]:
+                    skip_next = True
+                    continue
+                fallback_cmd.append(arg)
+            try:
+                run_subprocess_streaming(fallback_cmd, check=True)
+                print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+                return True
+            except subprocess.CalledProcessError:
+                pass
+        print(f"   [!] Warning: Companion audio download failed for language '{lang}'.", file=sys.stderr)
+        print(f"└────────────────────────────────────────────────────────────────────────────┘\n", flush=True)
+        return False
+
+# ==============================================================================
 # MAIN DOWNLOAD PIPELINE
 # ==============================================================================
 def run_ytdlp_info(url, cookies_browser=None, cookies_file=None):
@@ -817,7 +892,16 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     sub_file = out_dir / f"{old_zid}-{sanitized_title}.{lang}.srt"
                     if not sub_file.exists():
                         missing_files.append(f"{lang}.srt")
-                        
+
+            # Check companion audio files
+            comp_langs_str = settings.get("youtube_download_companion_audio_languages", "").strip()
+            if comp_langs_str:
+                comp_langs = [l.strip() for l in comp_langs_str.split(",") if l.strip()]
+                for comp_lang in comp_langs:
+                    comp_file = out_dir / f"{old_zid}-{sanitized_title}.{comp_lang}.mp4"
+                    if not comp_file.exists():
+                        missing_files.append(f"{comp_lang}.mp4 (companion audio)")
+
             if not missing_files:
                 print(f"   [!] File already exists (as {existing_file.name}). Skipping download (skip mode).", flush=True)
                 return True
@@ -1040,11 +1124,27 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             for secondary_sub in subtitles_written[1:]:
                 sync_secondary_srt_timestamps(primary_sub, secondary_sub)
 
+    # 7a. Download companion audio tracks (audio-only MP4 per language for mpv audio-add)
+    companion_audio_written = []
+    comp_langs_str = settings.get("youtube_download_companion_audio_languages", "").strip()
+    if comp_langs_str:
+        comp_langs = [l.strip() for l in comp_langs_str.split(",") if l.strip()]
+        for comp_lang in comp_langs:
+            comp_file = target_dir / f"{zid}-{sanitized_title}.{comp_lang}.mp4"
+            if comp_file.exists():
+                print(f"   • Companion audio '{comp_lang}' already exists — skipping.", flush=True)
+                continue
+            if download_companion_audio(url, zid, sanitized_title, target_dir, comp_lang, info, settings):
+                if comp_file.exists():
+                    companion_audio_written.append(comp_file)
+
     if mode == "subtitles":
         if subtitles_written or not subtitle_download_failed:
             print("\n ➔ Success! (Subtitles only)", flush=True)
             for sub_file in subtitles_written:
                 print(f"   • Subtitle saved: {sub_file.name}", flush=True)
+            for comp_file in companion_audio_written:
+                print(f"   • Companion audio saved: {comp_file.name}", flush=True)
         else:
             print("\n ➔ Failure: No subtitles were downloaded.", flush=True)
             return False
@@ -1052,6 +1152,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         print(f"\n ➔ Success! Video saved to: {target_path.name}", flush=True)
         for sub_file in subtitles_written:
             print(f"   • Subtitle saved: {sub_file.name}", flush=True)
+        for comp_file in companion_audio_written:
+            print(f"   • Companion audio saved: {comp_file.name}", flush=True)
 
     return True
 
