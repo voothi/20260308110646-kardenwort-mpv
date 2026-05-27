@@ -57,6 +57,7 @@ def load_config():
         "youtube_download_unbreak_lines": "false",
         "youtube_download_hyphenation_marks": "-¬",
         "youtube_download_compositional_conjunctions": "und,oder,sowie,bzw,bis",
+        "youtube_download_fix_sentence_splits": "false",
         "youtube_download_sync_secondary_timestamps": "false",
         "youtube_download_zid_script": "",
     }
@@ -248,7 +249,7 @@ def save_separate_chapters(chapters, output_path):
     except Exception as e:
         print(f"Warning: Failed to save separate chapters: {e}", file=sys.stderr)
 
-def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenation_marks="-¬", compositional_conjunctions="und,oder,sowie,bzw,bis"):
+def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenation_marks="-¬", compositional_conjunctions="und,oder,sowie,bzw,bis", fix_sentence_splits=False):
     """Cleans up duplicate/repeating lines from rolling subtitles in a .srt file.
     Merges consecutive blocks with identical text and eliminates roll-up line overlap.
     Optional cleaning parameters:
@@ -359,6 +360,38 @@ def clean_srt_file(srt_path, clean_hyphens=False, unbreak_lines=False, hyphenati
                 })
                 
         # Re-write the cleaned blocks to SRT file
+        # Optional pass: fix sentence splits from auto-translated tracks.
+        # A block whose text starts with punctuation (e.g. ". word", ", word") or whose
+        # entire text IS punctuation (e.g. ".") is a sentence-split artifact.
+        # Fix: strip the leading punctuation from the block and append it to the
+        # previous block's last line, then extend the previous block's end_time to cover
+        # this block's duration.
+        if fix_sentence_splits and len(cleaned_blocks) > 1:
+            _LEADING_PUNCT_RE = re.compile(r'^([.,!?;:\s]+)\s*')
+            _PUNCT_ONLY_RE = re.compile(r'^[.,!?;:\s]+$')
+            merged = [cleaned_blocks[0]]
+            for cb in cleaned_blocks[1:]:
+                combined = " ".join(cb["lines"]).strip()
+                m = _LEADING_PUNCT_RE.match(combined)
+                if m and merged:
+                    # Append the leading punctuation to the previous block's last line
+                    punct = m.group(1).rstrip()
+                    remainder = combined[m.end():].strip()
+                    if merged[-1]["lines"]:
+                        merged[-1]["lines"][-1] = merged[-1]["lines"][-1] + punct
+                    # Extend the previous block's end_time to cover this block
+                    merged[-1]["end_time"] = cb["end_time"]
+                    # If there is remaining text after the punctuation, keep it as a new block
+                    if remainder:
+                        merged.append({
+                            "start_time": cb["start_time"],
+                            "end_time": cb["end_time"],
+                            "lines": [remainder]
+                        })
+                else:
+                    merged.append(cb)
+            cleaned_blocks = merged
+
         new_content = []
         for idx, cb in enumerate(cleaned_blocks, 1):
             new_content.append(str(idx))
@@ -993,7 +1026,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                     clean_hyphens=settings.get("youtube_download_clean_hyphens", False),
                     unbreak_lines=settings.get("youtube_download_unbreak_lines", False),
                     hyphenation_marks=settings.get("youtube_download_hyphenation_marks", "-¬"),
-                    compositional_conjunctions=settings.get("youtube_download_compositional_conjunctions", "und,oder,sowie,bzw,bis")
+                    compositional_conjunctions=settings.get("youtube_download_compositional_conjunctions", "und,oder,sowie,bzw,bis"),
+                    fix_sentence_splits=settings.get("youtube_download_fix_sentence_splits", False)
                 )
                 subtitles_written.append(sub_file)
 

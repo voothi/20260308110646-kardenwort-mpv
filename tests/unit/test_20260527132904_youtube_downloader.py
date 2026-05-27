@@ -309,6 +309,51 @@ def test_clean_srt_file_both(tmp_path):
     assert cleaned.strip() == expected.strip()
 
 
+def test_clean_srt_file_fix_sentence_splits(tmp_path):
+    yd = _load_downloader()
+
+    content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:02,000\n"
+        "Gemini 3.5 Flash\n"
+        "\n"
+        "2\n"
+        "00:00:02,000 --> 00:00:03,000\n"
+        ".\n"
+        "\n"
+        "3\n"
+        "00:00:03,000 --> 00:00:05,000\n"
+        ". Google claims it reaches 289 tokens\n"
+        "\n"
+        "4\n"
+        "00:00:05,000 --> 00:00:07,000\n"
+        ", continuation text here\n"
+        "\n"
+        "5\n"
+        "00:00:07,000 --> 00:00:09,000\n"
+        "Normal block with text\n"
+    )
+    sub_file = tmp_path / "test_splits.srt"
+    sub_file.write_text(content, encoding="utf-8")
+
+    yd.clean_srt_file(sub_file, fix_sentence_splits=True)
+
+    cleaned = sub_file.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+    # Block 2 was "." only - it should be merged onto block 1
+    assert "Gemini 3.5 Flash." in cleaned
+    # Block 3 started with ". " - the period should be on the previous line
+    assert ". Google" not in cleaned
+    # Block 4 started with "," - the comma should be merged into previous
+    assert ", continuation" not in cleaned
+    # The normal block must still be there
+    assert "Normal block with text" in cleaned
+    # No standalone "." block
+    lines = [l.strip() for l in cleaned.split("\n")]
+    assert "." not in lines
+
+
+
 def test_sync_secondary_srt_timestamps(tmp_path):
     yd = _load_downloader()
 
