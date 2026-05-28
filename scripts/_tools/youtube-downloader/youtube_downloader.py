@@ -165,9 +165,9 @@ def make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_cu
         
     return f"\r{indent}{bar} {_cyan(progress_size)} {_yellow(speed_clean)} {_dim('eta')} {_cyan(eta_clean)}{frag_info}"
 
-def clear_line():
+def clear_line(width=65):
     """Clears the current console line completely to prevent character leftovers."""
-    sys.stdout.write("\r\x1b[K" + " " * 120 + "\r")
+    sys.stdout.write("\r\x1b[K" + " " * width + "\r")
     sys.stdout.flush()
 
 def pause_console(success: bool = True, timeout_secs: Optional[int] = PAUSE_AUTO_CLOSE_TIMEOUT_SECS):
@@ -185,7 +185,7 @@ def pause_console(success: bool = True, timeout_secs: Optional[int] = PAUSE_AUTO
     print(f"\nPress Enter to exit (or wait {timeout_secs}s for auto-close)...", end="", flush=True)
     
     is_windows = sys.platform.startswith("win")
-    if is_windows and sys.stdout.isatty():
+    if is_windows and _IS_TTY:
         import msvcrt
         start_time = time.time()
         last_remaining = timeout_secs
@@ -209,8 +209,7 @@ def pause_console(success: bool = True, timeout_secs: Optional[int] = PAUSE_AUTO
             
             time.sleep(0.05)
         # Clear the countdown text line cleanly
-        sys.stdout.write("\r" + " " * 65 + "\r")
-        sys.stdout.flush()
+        clear_line()
     else:
         try:
             input("\nPress Enter to exit...")
@@ -834,7 +833,7 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
             return "\r" + indent + line[1:]
         return indent + line
 
-    def process_line(raw_line, is_stderr, is_tty, state):
+    def process_line(raw_line, is_stderr, state):
         state["last_activity_ts"] = time.time()
         line_content = raw_line.rstrip("\r\n")
         line_clean = strip_ansi(line_content)
@@ -886,7 +885,7 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
                     percent_str, size_str, speed_str, eta_str, frag_curr, frag_tot = progress_match.groups()
                     percent_val = float(percent_str)
                     
-                    if is_tty:
+                    if _IS_TTY:
                         bar_line = make_premium_progress_bar(percent_val, size_str, speed_str, eta_str, frag_curr, frag_tot, indent=indent)
                         clear_line()
                         sys.stdout.write(bar_line)
@@ -902,14 +901,21 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
                             state["last_char"] = "\n"
                 elif sub_progress_match:
                     size_str, speed_str, time_str = sub_progress_match.groups()
-                    if is_tty:
+                    if _IS_TTY:
                         clear_line()
                         sys.stdout.write(f"\r{indent}Downloading subtitles: {size_str.strip()} at {speed_str.strip()} ({time_str.strip()})")
                         sys.stdout.flush()
                         state["last_char"] = "\r"
+                    else:
+                        if not state.get("sub_progress_emitted"):
+                            sub_line = f"\r{indent}Downloading subtitles: {size_str.strip()} at {speed_str.strip()} ({time_str.strip()})".strip("\r")
+                            sys.stdout.write(f"{sub_line}\n")
+                            sys.stdout.flush()
+                            state["sub_progress_emitted"] = True
+                            state["last_char"] = "\n"
                 elif complete_match:
                     size_str, time_str, speed_str = complete_match.groups()
-                    if is_tty:
+                    if _IS_TTY:
                         clear_line()
                     
                     time_info = f" in {time_str}" if time_str else ""
@@ -917,6 +923,7 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
                     sys.stdout.flush()
                     state["last_char"] = "\n"
                     state["last_percent"] = -10
+                    state["sub_progress_emitted"] = False
                 elif retry_match:
                     attempt, total = retry_match.groups()
                     clear_line()
@@ -947,7 +954,6 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
 
     def stream_pipe(pipe, is_stderr, state):
         buffer = []
-        is_tty = sys.stdout.isatty()
         
         while True:
             try:
@@ -958,13 +964,13 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
             if not char:
                 if buffer:
                     line = "".join(buffer)
-                    process_line(line, is_stderr, is_tty, state)
+                    process_line(line, is_stderr, state)
                 break
             
             if char in ("\n", "\r"):
                 line = "".join(buffer)
                 buffer.clear()
-                process_line(line + char, is_stderr, is_tty, state)
+                process_line(line + char, is_stderr, state)
             else:
                 buffer.append(char)
 
@@ -978,7 +984,7 @@ def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **k
         errors="replace"
     )
     
-    state = {"last_char": "\n", "last_percent": -10, "last_activity_ts": time.time()}
+    state = {"last_char": "\n", "last_percent": -10, "last_activity_ts": time.time(), "sub_progress_emitted": False}
 
     t_out = threading.Thread(target=stream_pipe, args=(process.stdout, False, state))
     t_err = threading.Thread(target=stream_pipe, args=(process.stderr, True, state))
@@ -1167,6 +1173,8 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
                 res = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
                 if res.returncode == 0 and temp_path.exists():
                     os.replace(temp_path, output_path)
+                    if _IS_TTY:
+                        clear_line()
                     print(f"    Extracted audio-only stream from companion to save disk space.", flush=True)
                 else:
                     if temp_path.exists():
@@ -1177,6 +1185,8 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     except subprocess.CalledProcessError:
         if cookies_file or cookies_browser:
             source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+            if _IS_TTY:
+                clear_line()
             print(f"    WARNING: Companion audio download failed with cookies ({source_desc} might be open/locked).", flush=True)
             print("    Retrying without cookies...", flush=True)
             try:
@@ -1184,6 +1194,8 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
                 return True
             except subprocess.CalledProcessError:
                 pass
+        if _IS_TTY:
+            clear_line()
         print(f"    WARNING: Companion audio download failed for language '{lang}'.", file=sys.stderr)
         return False
 
@@ -1558,18 +1570,27 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             except subprocess.CalledProcessError:
                 if cookies_file or cookies_browser:
                     source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+                    if _IS_TTY:
+                        clear_line()
                     log_warn(f"Subtitle download failed with cookies ({source_desc} might be open/locked).")
                     log_info("Retrying subtitle download without cookies...")
                     try:
                         run_with_retry(_strip_cookies_from_cmd(sub_cmd), max_attempts=_max_attempts, label="Subtitle download (no cookies)", inactivity_timeout=_watchdog_timeout)
                     except subprocess.CalledProcessError:
+                        if _IS_TTY:
+                            clear_line()
                         log_warn("Subtitle download skipped (network issue or 429 Too Many Requests).")
                         subtitle_download_failed = True
                 else:
+                    if _IS_TTY:
+                        clear_line()
                     log_warn("Subtitle download skipped (network issue or 429 Too Many Requests).")
                     subtitle_download_failed = True
         else:
             log_info("No subtitles were available.")
+            
+        if _IS_TTY:
+            clear_line()
 
     # 6. Build and run video download command (if needed)
     skip_video = is_skip_recovery
@@ -1607,16 +1628,25 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         except subprocess.CalledProcessError:
             if cookies_file or cookies_browser:
                 source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
+                if _IS_TTY:
+                    clear_line()
                 log_warn(f"Video download failed with cookies ({source_desc} might be open/locked).")
                 log_info("Retrying video download without cookies...")
                 try:
                     run_with_retry(_strip_cookies_from_cmd(video_cmd), max_attempts=_max_attempts, label="Video download (no cookies)", inactivity_timeout=_watchdog_timeout)
                 except subprocess.CalledProcessError:
+                    if _IS_TTY:
+                        clear_line()
                     log_error("yt-dlp video download failed.")
                     return False
             else:
+                if _IS_TTY:
+                    clear_line()
                 log_error("yt-dlp video download failed.")
                 return False
+        
+        if _IS_TTY:
+            clear_line()
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
@@ -1675,6 +1705,9 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             if download_companion_audio(url, zid, sanitized_title, target_dir, comp_lang, info, settings):
                 if comp_file.exists():
                     companion_audio_written.append(comp_file)
+        
+        if _IS_TTY:
+            clear_line()
 
     if mode == "subtitles":
         if subtitles_all_present or not subtitle_download_failed:
@@ -1758,7 +1791,7 @@ def main():
         display_source = source
         if len(display_source) > 40:
             display_source = display_source[:18] + "..." + display_source[-20:]
-        log_section(f"[{idx}/{len(queue)}] {display_source}")
+        log_section(f"{_dim(f'[{idx}/{len(queue)}]')} {display_source}")
         try:
             if download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=source_dir):
                 success_count += 1
