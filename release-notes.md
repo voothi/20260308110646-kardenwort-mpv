@@ -1,6 +1,3 @@
-
----
-
 # Release Notes - v1.84.48 (Premium YouTube Video Downloader Integration & Local Anchor Exact Precedence)
 
 **Date**: 2026-05-28
