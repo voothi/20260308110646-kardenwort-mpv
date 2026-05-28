@@ -979,6 +979,19 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     formats = info.get("formats", []) or []
     requested_lang = str(lang).strip()
     requested_base = get_base_language_code(requested_lang).lower()
+
+    # Guard: do not duplicate the video's original/default audio language as a companion track.
+    # If the requested companion language equals the primary language of the source video,
+    # companion audio would usually be the same content as the main track in the MP4.
+    primary_lang = resolve_original_language(info) or str(info.get("language") or "").strip()
+    primary_base = get_base_language_code(primary_lang).lower() if primary_lang else ""
+    if primary_base and requested_base == primary_base:
+        log_skip(
+            f"Companion audio '{lang}' matches the video's primary language "
+            f"('{primary_lang}') — skipping duplicate track."
+        )
+        return True
+
     matched_lang_tag = None
     for f in formats:
         acodec = f.get("acodec", "none")

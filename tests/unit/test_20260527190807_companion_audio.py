@@ -196,6 +196,25 @@ def test_companion_audio_region_match_uses_metadata_tag_in_selector():
     assert "-f" in cmd
     assert cmd[cmd.index("-f") + 1] == "bestaudio[language=ru-RU]/worst[language=ru-RU]/best[language=ru-RU]"
 
+def test_companion_audio_skips_when_requested_matches_primary_audio_language():
+    yd = _load_downloader()
+    # Main/original language is ru; requesting companion ru should be treated as duplicate.
+    info = _make_info(formats=[_audio_only("ru"), _audio_only("en")])
+    info["language"] = "ru"
+    call_count = [0]
+
+    def fake_run(cmd, **kwargs):
+        call_count[0] += 1
+
+    with patch.object(yd, "run_subprocess_streaming", side_effect=fake_run):
+        result = yd.download_companion_audio(
+            "https://youtu.be/test", "20260527000001", "test-video",
+            Path("C:/tmp"), "ru", info, _settings()
+        )
+
+    assert result is True
+    assert call_count[0] == 0, "yt-dlp must not be called for companion audio duplicating primary language"
+
 
 # ---------------------------------------------------------------------------
 # Multi-language: download called once per language
