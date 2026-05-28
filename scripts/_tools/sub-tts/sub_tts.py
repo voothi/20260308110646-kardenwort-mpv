@@ -94,7 +94,6 @@ def make_cue_progress_bar(current, total, label, detail="", bar_width=40, indent
     return line
 
 
-
 # Built-in alias table: subtitle filename postfix → Piper language code
 BUILTIN_LANG_ALIASES = {
     "eng": "en",
@@ -480,9 +479,9 @@ def synthesize_all_cues(cues, lang, temp_dir, piper_root):
     last_pct = -10.0
 
     for i, cue in enumerate(cues, start=1):
-        percent_val = (i / total) * 100.0 if total > 0 else 0
+        percent_val = (i / total) * 100.0 if total > 0 else 0.0
         label = f"Synthesizing cue {cue['index']}"
-        detail = repr(cue['text'][:60])
+        detail = repr(cue['text'][:40])
         
         # Build progress bar string
         bar_line = make_cue_progress_bar(i, total, label, detail=detail)
@@ -493,7 +492,7 @@ def synthesize_all_cues(cues, lang, temp_dir, piper_root):
             sys.stdout.flush()
         else:
             # Non-TTY throttling algorithm (delta-based)
-            if i == 1 or i == total or (percent_val - last_pct >= 10):
+            if i == 1 or i == total or (percent_val - last_pct >= 10.0):
                 sys.stdout.write(bar_line.lstrip("\r") + "\n")
                 sys.stdout.flush()
                 last_pct = percent_val
@@ -660,15 +659,9 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     last_pct = -10.0
 
     for index, item in enumerate(synthesis_results):
-        if not item["ok"] or not item["wav_path"]:
-            adjusted.append(item)
-            continue
-
         cue = item["cue"]
-        current_file = Path(item["wav_path"])
-        
         loop_pos = index + 1
-        percent_val = (loop_pos / total) * 100.0 if total > 0 else 0
+        percent_val = (loop_pos / total) * 100.0 if total > 0 else 0.0
         label = f"Adjusting speed for cue {cue['index']}"
         
         # Build progress bar string
@@ -680,10 +673,16 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
             sys.stdout.flush()
         else:
             # Non-TTY throttling (delta-based)
-            if loop_pos == 1 or loop_pos == total or (percent_val - last_pct >= 10):
+            if loop_pos == 1 or loop_pos == total or (percent_val - last_pct >= 10.0):
                 sys.stdout.write(bar_line.lstrip("\r") + "\n")
                 sys.stdout.flush()
                 last_pct = percent_val
+
+        if not item["ok"] or not item["wav_path"]:
+            adjusted.append(item)
+            continue
+
+        current_file = Path(item["wav_path"])
 
         trim_output = temp_dir / f"trim_{cue['index']:05d}.wav"
         trim_filter = (

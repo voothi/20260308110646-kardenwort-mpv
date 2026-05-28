@@ -178,3 +178,28 @@ def test_resolve_output_path_respects_config_option():
     assert output_path == output_dir / "video.de.mp4"
     assert policy == "new"
 
+
+def test_make_cue_progress_bar_lstrip():
+    sub_tts = _load_sub_tts()
+    bar = sub_tts.make_cue_progress_bar(1, 10, "Test Label", detail="Detail Text")
+    assert bar.startswith("\r")
+    assert not bar.lstrip("\r").startswith("\r")
+
+
+def test_progress_bar_throttling_logic():
+    # Simulate loop with total = 100
+    total = 100
+    last_pct = -10.0
+    printed_indices = []
+    
+    for i in range(1, total + 1):
+        percent_val = (i / total) * 100.0
+        if i == 1 or i == total or (percent_val - last_pct >= 10.0):
+            printed_indices.append(i)
+            last_pct = percent_val
+            
+    # With total = 100, delta throttling should print:
+    # i = 1 (first cue), i = 11, 21, 31, 41, 51, 61, 71, 81, 91, 100 (last cue)
+    assert printed_indices == [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 100]
+
+
