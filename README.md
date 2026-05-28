@@ -42,6 +42,7 @@ A high-performance [mpv](https://mpv.io/) configuration specifically engineered 
   - [Smart Font Scaling](#smart-font-scaling)
   - [Standalone Subtitle Viewer (SendTo Menu)](#standalone-subtitle-viewer-sendto-menu)
   - [Sub-TTS Pipeline Tool](#sub-tts-pipeline-tool)
+  - [YouTube Downloader Integration](#youtube-downloader-integration)
 - [Example Data Structures](#example-data-structures)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
   - [Visual Keyboard Layout (English)](#visual-keyboard-layout-english)
@@ -256,6 +257,7 @@ This suite solves problems that standard video players and generic scripts ignor
 55. **Consistent Dual-Track Copy Routing**: Resolves a routing discrepancy in `Copy Subtitle Mode: B` by consistently extracting from the secondary track for all selection types (Point, Range, Set), aligning manual selections with no-selection fallback.
 56. **Companion Audio Auto-Attach**: Automatically discovers and attaches companion audio files on load for faster multi-track study workflows, with script-opts toggles for strict control.
 57. **Sub-TTS Production Pipeline**: Adds a dedicated subtitle-to-speech generation toolchain under `scripts/_tools/sub-tts` with configurable providers and template-driven runtime settings.
+58. **YouTube Downloader Integration**: Premium Windows "Send to" toolchain under `scripts/_tools/youtube-downloader` to fetch videos, chapters, multi-language subtitles (with post-processing cleanup and sync), and dubbed companion audio tracks.
 
 [Return to Top](#table-of-contents)
 
@@ -451,6 +453,28 @@ A dedicated helper toolchain for generating speech audio from subtitles in repro
 *   **Template-Driven Config**: Uses a generated `config.ini` so provider credentials and runtime behavior can be managed without editing script code.
 *   **Batch-Friendly Workflow**: Designed for production-oriented subtitle processing with configurable export controls and language-aware runs.
 *   **Integration Path**: Complements in-player TTS triggers by supporting offline pre-generation workflows when needed.
+
+[Return to Top](#table-of-contents)
+
+### <span id="youtube-downloader-integration"></span>YouTube Downloader Integration
+A premium Windows "Send to" integration for downloading YouTube videos at configurable resolution, with chapters and subtitle files. It is designed to integrate seamlessly into your language acquisition workflow.
+*   **Location**: `scripts/_tools/youtube-downloader/` (`youtube_downloader.py`, `install.py`, `config.ini.template`).
+*   **Windows "Send to" Integration**: Right-click files or directories containing YouTube URLs in Windows Explorer and select **Send to** -> **Download YouTube Video** to process and download them automatically in strict sequential queue order.
+*   **ZID-Based Filename Generation**: Automatically maps standard YouTube titles into unique, sanitized, chronological filenames: `{ZID}-{sanitized-title}.mp4` matching the `zid_name.py` naming contract.
+*   **Configurable Resolution & MP4 container**: Set target resolutions (e.g. `360p` (default), `720p`, `1080p`, or `best`), remuxing seamlessly into high-fidelity MP4 containers via `yt-dlp` without re-encoding.
+*   **Deduplication & Smart Skip Recovery**:
+    *   `zid-dir`: Places all duplicate files from the same session in a subfolder named after the session ZID.
+    *   `skip`: Skips duplicate downloads, automatically recovering missing dubbed audios or subtitles during re-runs.
+    *   `overwrite`: Replaces existing files directly.
+*   **SRT Subtitle Post-Processing & Sync**:
+    *   Downloads manual subtitles or auto-captions and automatically converts them to SRT (`--convert-subs srt`).
+    *   Cleans leading dialogue hyphens (`clean_hyphens`).
+    *   Unbreaks multi-line subtitles into single lines with word-hyphenation rejoining (`unbreak_lines`), while preserving compositional German conjunctions (`und`, `oder`, `bzw`, etc.).
+    *   Fixes sentence-split artifacts (`fix_sentence_splits`) characteristic of YouTube auto-translation feeds.
+    *   **Secondary Subtitle Sync**: Monotonically aligns secondary/translation subtitle track timestamps to match the primary track using time-based nearest-neighbour matching, neutralizing timestamp drift during A/D seeking.
+*   **Companion Audio Tracks**: Automatically downloads dubbed audio tracks (e.g. `en`, `ru`) next to the main video as audio-only MP4 companion files. mpv automatically loads them as switchable audio tracks (hotkey `1`). Prioritizes correct dubbed streams by allowing fallback to combined video+audio streams when audio-only is unavailable, running best-effort `ffmpeg` video stripping.
+*   **Unstable Connection Resilience**: Features a built-in exponential backoff subprocess wrapper (`run_subprocess_capture_with_retry`) protecting JSON metadata loads, cookie fallback paths, and a streaming watchdog that terminates stalled threads and resumes progress from `.part` files.
+*   **Setup**: Run `python install.py` in `scripts/_tools/youtube-downloader/` once to register it in your Windows shell.
 
 [Return to Top](#table-of-contents)
 

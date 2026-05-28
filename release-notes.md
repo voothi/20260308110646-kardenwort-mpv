@@ -1,3 +1,58 @@
+
+---
+
+# Release Notes - v1.84.48 (Premium YouTube Video Downloader Integration & Local Anchor Exact Precedence)
+
+**Date**: 2026-05-28
+**Version**: v1.84.48
+**Implementation ZIDs**: 20260528042959, 20260528042602, 20260528035602, 20260528033752, 20260528031141, 20260528025457, 20260528023149, 20260528022438, 20260528020937, 20260528015155, 20260528014349, 20260528013606, 20260528012104, 20260528010643, 20260528010051, 20260528005118, 20260528004816, 20260528004149, 20260528004008, 20260528002910, 20260528002518, 20260528002444, 20260528000002, 20260527235852, 20260527234803, 20260527233933, 20260527233853, 20260527232324, 20260527231155, 20260527221159, 20260527215424, 20260527212639, 20260527212320, 20260527212045, 20260527210256, 20260527204556, 20260527203651, 20260527202627, 20260527202120, 20260527193517, 20260527192635, 20260527192359, 20260527191040, 20260527190731, 20260527185818, 20260527185428, 20260527183427, 20260527181521, 20260527175702, 20260527173026, 20260527170146, 20260527165402, 20260527165006, 20260527161755, 20260527160247, 20260527155846, 20260527154628, 20260527154308, 20260527152801, 20260527152027, 20260527151819, 20260527151520, 20260527151325, 20260527151155, 20260527150424, 20260527145654, 20260527144558, 20260527144338, 20260527143943, 20260527143357, 20260527142929, 20260527141926, 20260527141619, 20260527141242, 20260527140058, 20260527134952, 20260527134907, 20260527134552, 20260527133910, 20260527133615, 20260527132545, 20260527130311, 20260527125415, 20260527124920, 20260527124256, 20260527123502, 20260527122234, 20260527121919, 20260527121323, 20260527120903, 20260527115336, 20260527113735, 20260527111844, 20260527105906, 20260527104354, 20260527104120, 20260527103824, 20260527103338, 20260527102415, 20260527101534, 20260527100457, 20260527095210, 20260527003702
+
+## Highlights
+
+### 📥 **Premium YouTube Video Downloader Integration**
+- **Surgical Windows Context Menu Integration**: Delivered `scripts/_tools/youtube-downloader/install.py` to establish a `Download YouTube Video` shortcut inside the native Windows `Send to` context menu, offering zero-touch invocation.
+- **Traceable ZID-Based Naming**: Enforces consistent file naming matching the `zid_name.py` convention. Every media download generates a unique chronological ZID in `YYYYMMDDHHMMSS` format, resolving into `{ZID}-{sanitized-title}.mp4` structures.
+- **Strict FIFO Queue Processing**: Implemented deterministic sequential batch processing for folders and files containing multiple target links, maintaining clean queue integrity.
+- **Flexible Chapters Output modes**: Introduced `youtube_download_chapters_mode` offering `"embedded"` metadata remuxing, separate write-out as `.chapters.txt` files, or `"both"` modes.
+- **Enforced container purity & resolution**: Exposed `youtube_download_resolution` (`360p`, `720p`, `1080p`, `best`). Remuxes all downloaded files directly into standard MP4 containers via `yt-dlp` (`--merge-output-format mp4`) without lossy re-encoding.
+- **Premium Duplicate Handling Modes**:
+  - `zid-dir` (default): Prevents study folder clutter by grouping all same-session duplicate files in a dedicated subfolder named after the active session ZID.
+  - `skip` mode: Skips pre-existing files, and automatically runs targeted recoveries to fetch missing companion audio or subtitle tracks on re-runs.
+  - `overwrite` mode: Overwrites pre-existing files directly.
+- **Subtitle Post-Processing Cleaning suite**:
+  - Auto-converts all incoming manual subtitles and auto-generated captions directly into standard SRT format.
+  - Optional Hyphen Cleaning (`youtube_download_clean_hyphens`) to strip dialogue markers.
+  - Line Unbreaking (`youtube_download_unbreak_lines`) to join multi-line captions into a single line while rejoining hyphenated words.
+  - Sentence-split repairs (`youtube_download_fix_sentence_splits`) that merge trailing/leading punctuation-only blocks from auto-translated captures back into their parent sentences.
+- **Deterministic Secondary Subtitle Sync**: Monotonically aligns secondary/translation subtitle track timestamps to match the primary track using time-based nearest-neighbour matching, neutralizing timestamp drift during player seeks.
+- **Advanced dubbed Companion Audio**:
+  - Downloads dubbed audio tracks (e.g. `en`, `ru`) next to the main video as audio-only MP4 companion files.
+  - Integrates base-to-regional tag matching (`ru` matches `ru-RU`).
+  - Supports dubbed streams that only exist as combined video+audio tracks on YouTube, utilizing best-effort `ffmpeg` video stripping.
+- **Bulletproof Unstable Connection Resilience**:
+  - Injects socket timeout, retries, and sleeping parameters directly into all subprocess streams.
+  - Inbuilt exponential backoff subprocess wrapper (`run_subprocess_capture_with_retry`) protecting JSON metadata queries.
+  - Automates cookie-failure fallback (retrying without cookies if cookie loading fails).
+  - Integrates a watchdog that cancels stalled streams and resumes downloading from partial `.part` progress files.
+
+### 🛡️ **Anki Local Anchor Exact-First Precedence & Boundary Protection**
+- **Boundary Duplication Prevention**: Extended the subtitle highlighting FSM in `scripts/kardenwort/main.lua` to enforce exact-first precedence for local highlights anchored near boundary lines. If the exact logical word slot (`origin + l_off`, `p_idx`) is resolved, neighbor-line (`+/-1` drift) duplication is strictly blocked.
+- **Contiguous & Split Match Symmetrical Protection**: Unified the new boundary check helpers (`has_exact_pivot_slot` and `pivot_line_match`) across both contiguous word matches and split-phrase matching caches.
+- **FSM Diagnostic Hooks**: Added script message `test-calc-highlight-stack` and `test-load-anki-tsv` inside `main.lua` to enable reliable unit-level validation of rendering highlights under dynamic playback states.
+
+### ⌨️ **Keybinding & Configuration Consolidation**
+- **Unified Companion Audio Cycle**: Remapped standard audio track cycling to physical layout-independent key `1` in `input.conf` (previously `Shift+3`), providing seamless, single-key toggling between target and translation dubbed companion tracks.
+
+### 🧪 **Milestone: 993 Passed Tests**
+- **Comprehensive Regression Suite**: Reached **993 green tests** in the python/pytest validation suite, adding massive structural unit and integration coverage.
+- **New Test Files Added**:
+  - `tests/unit/test_20260527132904_youtube_downloader.py`
+  - `tests/unit/test_20260527132904_youtube_downloader_integration.py`
+  - `tests/unit/test_20260527190807_companion_audio.py`
+  - `tests/acceptance/test_20260527101354_local_anchor_exact_precedence.py`
+
+---
+
 # Release Notes - v1.84.42 (Sub-TTS Pipeline & Multi-Track File Switching)
 
 **Date**: 2026-05-27
