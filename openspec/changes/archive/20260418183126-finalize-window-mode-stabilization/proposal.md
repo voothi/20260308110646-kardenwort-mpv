@@ -1,4 +1,4 @@
-﻿# Proposal: Finalize Drum Window Highlighting Stabilization
+# Proposal: Finalize Drum Window Highlighting Stabilization
 
 ## Problem Statement
 Following the hybridization of the highlighting engine to restore index-based tokenization (Lute v3), several visual and behavioral regressions remain. While multi-line selection is functional, the system does not yet fully adhere to the "Ground Truth" specification regarding highlight priorities and semantic punctuation coloring. Specifically:

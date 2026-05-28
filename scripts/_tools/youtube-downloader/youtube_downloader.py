@@ -1791,7 +1791,7 @@ def main():
         display_source = source
         if len(display_source) > 40:
             display_source = display_source[:18] + "..." + display_source[-20:]
-        log_section(f"{_dim(f'[{idx}/{len(queue)}]')} {display_source}")
+        print(f"\n{_dim(f'[{idx}/{len(queue)}]')} {_bold(display_source)}", flush=True)
         try:
             if download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=source_dir):
                 success_count += 1

@@ -1,4 +1,4 @@
-﻿## 1. Refactor Scrolling and Binding Logic
+## 1. Refactor Scrolling and Binding Logic
 
 - [x] 1.1 Update `dw_ensure_visible(line_idx, paged)` to implement "Paged" (jump) vs "Pushed" (incremental) logic.
 - [x] 1.2 Add safety clamping to `dw_ensure_visible` margin calculation.

@@ -1,4 +1,4 @@
-﻿## ADDED Requirements
+## ADDED Requirements
 
 ### Requirement: Stabilization Focus
 This change focuses on strict enforcement of the window-highlighting-spec. No new high-level requirements are added; the goal is alignment with the existing ground truth.

@@ -1,4 +1,4 @@
-﻿# Design: Finalize Drum Window Highlighting Stabilization
+# Design: Finalize Drum Window Highlighting Stabilization
 
 ## Context
 The Drum Window highlighting engine was recently hybridized to restore Lute v3 tokenization while maintaining multi-line selection. While core functionality is restored, the rendering loop still exhibits priority conflicts (e.g., hover color masking persistent selections) and lacks semantic punctuation coloring for phrases.
