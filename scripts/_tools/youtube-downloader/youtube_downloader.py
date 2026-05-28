@@ -1132,6 +1132,67 @@ def resolve_original_language(info):
     # Fallback to the detected language anyway so yt-dlp can try its own matching
     return detected_lang
 
+def _is_equivalent_subtitle_language(lang_a, lang_b):
+    """Returns True when two subtitle language tags refer to the same base track.
+
+    We treat exact matches as duplicates and also treat base-vs-regional variants as duplicates
+    (e.g. `ru` and `ru-RU`). Two different regional variants without an explicit base code
+    (e.g. `zh-CN` vs `zh-TW`) are not treated as duplicates.
+    """
+    a = str(lang_a or "").strip()
+    b = str(lang_b or "").strip()
+    if not a or not b:
+        return False
+    a_l = a.lower()
+    b_l = b.lower()
+    if a_l == b_l:
+        return True
+    a_base = get_base_language_code(a).lower()
+    b_base = get_base_language_code(b).lower()
+    if a_base != b_base:
+        return False
+    return a_l == a_base or b_l == b_base
+
+def resolve_subtitle_languages(pref_langs, info, emit_fallback_logs=True):
+    """Resolves configured subtitle languages into a deduplicated, ordered language list."""
+    raw_list = [l.strip() for l in str(pref_langs or "").split(",") if l.strip()]
+    resolved = []
+
+    def append_if_new(lang):
+        lang = str(lang or "").strip()
+        if not lang:
+            return
+        for existing in resolved:
+            if _is_equivalent_subtitle_language(existing, lang):
+                return
+        resolved.append(lang)
+
+    for l in raw_list:
+        if l == "original":
+            detected_lang = resolve_original_language(info)
+            if detected_lang:
+                append_if_new(detected_lang)
+            else:
+                # Fallback to all manual subtitle languages in metadata
+                meta_subs = info.get("subtitles", {})
+                if meta_subs:
+                    for meta_lang in meta_subs.keys():
+                        append_if_new(meta_lang)
+                    if emit_fallback_logs:
+                        log_info("Language auto-detection fell back to all available subtitles.")
+                else:
+                    # Try to fall back to auto-generated subtitles if available
+                    meta_auto = info.get("automatic_captions", {})
+                    if meta_auto:
+                        for meta_lang in meta_auto.keys():
+                            append_if_new(meta_lang)
+                        if emit_fallback_logs:
+                            log_info("Language auto-detection fell back to all available auto-subtitles.")
+        else:
+            append_if_new(l)
+
+    return resolved
+
 def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
@@ -1223,23 +1284,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             sub_langs_list = []
             if download_subs:
                 pref_langs = settings["youtube_download_subtitle_languages"]
-                raw_list = [l.strip() for l in pref_langs.split(",") if l.strip()]
-                for l in raw_list:
-                    if l == "original":
-                        detected_lang = resolve_original_language(info)
-                        if detected_lang:
-                            sub_langs_list.append(detected_lang)
-                        else:
-                            meta_subs = info.get("subtitles", {})
-                            if meta_subs:
-                                sub_langs_list.extend(meta_subs.keys())
-                            else:
-                                meta_auto = info.get("automatic_captions", {})
-                                if meta_auto:
-                                    sub_langs_list.extend(meta_auto.keys())
-                    else:
-                        sub_langs_list.append(l)
-                sub_langs_list = list(dict.fromkeys(sub_langs_list))
+                sub_langs_list = resolve_subtitle_languages(pref_langs, info, emit_fallback_logs=False)
                 
                 for lang in sub_langs_list:
                     sub_file = out_dir / f"{old_zid}-{sanitized_title}.{lang}.srt"
@@ -1305,32 +1350,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     if download_subs:
         pref_langs = settings["youtube_download_subtitle_languages"]
-        raw_list = [l.strip() for l in pref_langs.split(",") if l.strip()]
-        
-        # Resolve 'original' if present in the list
-        sub_langs_list = []
-        for l in raw_list:
-            if l == "original":
-                detected_lang = resolve_original_language(info)
-                if detected_lang:
-                    sub_langs_list.append(detected_lang)
-                else:
-                    # Fallback to all manual subtitle languages in metadata
-                    meta_subs = info.get("subtitles", {})
-                    if meta_subs:
-                        sub_langs_list.extend(meta_subs.keys())
-                        log_info("Language auto-detection fell back to all available subtitles.")
-                    else:
-                        # Try to fall back to auto-generated subtitles if available
-                        meta_auto = info.get("automatic_captions", {})
-                        if meta_auto:
-                            sub_langs_list.extend(meta_auto.keys())
-                            log_info("Language auto-detection fell back to all available auto-subtitles.")
-            else:
-                sub_langs_list.append(l)
-                
-        # Remove duplicates while preserving order
-        sub_langs_list = list(dict.fromkeys(sub_langs_list))
+        sub_langs_list = resolve_subtitle_languages(pref_langs, info, emit_fallback_logs=True)
 
     output_tmpl = str(target_dir / f"{zid}-{sanitized_title}.%(ext)s")
 
