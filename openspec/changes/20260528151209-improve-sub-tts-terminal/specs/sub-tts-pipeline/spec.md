@@ -30,3 +30,5 @@ Upon completion of each stage or of the entire pipeline, the system SHALL clean 
 - **WHEN** the TTS synthesis stage completes
 - **THEN** the system SHALL call the line-clearing function to remove the carriage-returned synthesis progress bar before printing the synthesis summary message
 - **AND** the system SHALL print the starting section header for the speed adjustment stage cleanly on a new line
+- **AND WHEN** the speed adjustment stage completes
+- **THEN** the system SHALL call the line-clearing function to remove the speed adjustment progress bar before printing the timed audio assembly logs cleanly on a new line
