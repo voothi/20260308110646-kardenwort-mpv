@@ -428,9 +428,24 @@ The companion-audio track selector SHALL support regional language tags and SHAL
 
 #### Scenario: Configured base code matches regional metadata code
 - **WHEN** `youtube_download_companion_audio_languages` contains a base code (for example `ru`)
-- **AND** YouTube metadata exposes a matching audio-only dubbed track under a regional tag (for example `ru-RU`)
+- **AND** YouTube metadata exposes a matching dubbed track under a regional tag (for example `ru-RU`)
 - **THEN** the system SHALL treat the track as a valid match
 - **AND** the yt-dlp `-f` selector SHALL use the actual matched metadata tag (`ru-RU`) rather than the base configured code
+
+### Requirement: Companion Audio Stream Fallback Strategy
+Companion-audio download SHALL prioritize dubbed language correctness over strict container purity, because some dubbed tracks are only exposed by YouTube as combined video+audio streams.
+
+#### Scenario: Only combined streams exist for requested dubbed language
+- **WHEN** a requested companion language exists in metadata
+- **AND** no audio-only stream is available for that language
+- **AND** one or more combined streams with that language tag are available
+- **THEN** the system SHALL still download the dubbed companion track using the matched metadata language tag
+- **AND** the system SHALL not skip the language solely because `vcodec != "none"`
+
+#### Scenario: Best-effort post-download audio extraction
+- **WHEN** a companion file has been downloaded
+- **THEN** the system MAY attempt to strip video (`ffmpeg -vn -c:a copy`) to minimize disk use
+- **AND** if extraction fails or `ffmpeg` is unavailable, the download SHALL still be considered successful
 
 ### Requirement: Pip-Style Output and Fallback Log Accuracy
 Progress rendering and fallback diagnostics SHALL remain accurate across TTY and non-TTY execution contexts.
@@ -446,3 +461,25 @@ Progress rendering and fallback diagnostics SHALL remain accurate across TTY and
 - **AND** neither manual subtitles nor automatic captions are present in metadata
 - **THEN** the system SHALL NOT log that it fell back to all subtitles
 - **AND** the system SHALL NOT log that it fell back to all auto-subtitles
+
+### Requirement: Unstable Connection Resilience
+The downloader SHALL tolerate transient network failures on both metadata and media fetch paths without adding external runtime dependencies.
+
+#### Scenario: Resilience flags are applied to yt-dlp commands
+- **WHEN** the downloader launches yt-dlp for metadata, subtitle, video, or companion-audio operations
+- **THEN** it SHALL pass `--socket-timeout`, `--retries`, `--fragment-retries`, and `--retry-sleep`
+- **AND** values SHALL come from configuration defaults when unset or invalid
+
+#### Scenario: Metadata fetch uses outer retry and timeout
+- **WHEN** `yt-dlp --dump-json` fails or times out due to unstable connectivity
+- **THEN** the downloader SHALL retry with exponential backoff using the configured max attempts
+- **AND** cookie-enabled metadata fetch SHALL retry once more without cookies when cookie loading fails
+
+#### Scenario: Stalled streaming download process is recovered
+- **WHEN** a running yt-dlp download process produces no output for the watchdog threshold
+- **THEN** the process SHALL be terminated
+- **AND** the outer retry loop SHALL relaunch the same command
+
+#### Scenario: Retry preserves partial progress
+- **WHEN** a download attempt is interrupted and then relaunched
+- **THEN** yt-dlp partial files (`.part`) SHALL be reused so progress resumes instead of restarting from zero

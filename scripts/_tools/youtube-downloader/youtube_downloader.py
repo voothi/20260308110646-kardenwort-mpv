@@ -1029,6 +1029,34 @@ def run_with_retry(cmd, max_attempts=3, label="Download", inactivity_timeout=Non
             else:
                 raise
 
+def run_subprocess_capture_with_retry(cmd, max_attempts=3, label="Command", timeout_secs=None, **kwargs):
+    """Runs a subprocess with captured output and outer retry/backoff."""
+    for attempt in range(max_attempts):
+        try:
+            return subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                encoding="utf-8",
+                timeout=timeout_secs,
+                **kwargs
+            )
+        except subprocess.TimeoutExpired:
+            if attempt + 1 < max_attempts:
+                delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
+                log_warn(f"{label} timed out (attempt {attempt + 1}/{max_attempts}), retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                raise
+        except subprocess.CalledProcessError:
+            if attempt + 1 < max_attempts:
+                delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
+                log_warn(f"{label} failed (attempt {attempt + 1}/{max_attempts}), retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                raise
+
 # ==============================================================================
 # COMPANION AUDIO DOWNLOAD (Task 14.3)
 # ==============================================================================
@@ -1043,11 +1071,12 @@ def get_base_language_code(lang):
     return normalized
 
 def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, settings):
-    """Downloads an audio-only companion track for a specific dubbed language.
+    """Downloads a companion track for a specific dubbed language.
 
     Output: {target_dir}/{zid}-{sanitized_title}.{lang}.mp4
-    The MP4 container holds one audio stream only (no video), ~10x smaller than a full video.
-    mpv loads it via audio-add as an external track for the companion_audio hotkey cycle.
+    Preferred source is audio-only streams; if YouTube only exposes combined streams for the
+    dubbed language, those are accepted and the script attempts best-effort ffmpeg stripping.
+    mpv loads the resulting file via audio-add as an external track for the companion_audio hotkey cycle.
 
     Returns True on success or graceful skip (no track for that language).
     Returns False only on an actual download failure.
@@ -1157,12 +1186,24 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
 # ==============================================================================
 # MAIN DOWNLOAD PIPELINE
 # ==============================================================================
-def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="node"):
-    """Runs yt-dlp --dump-json to fetch metadata."""
+def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="node", settings=None):
+    """Runs yt-dlp --dump-json to fetch metadata with retry/timeout resilience."""
+    settings = settings or {}
+    try:
+        socket_timeout = int(settings.get("youtube_download_socket_timeout", "30") or "30")
+    except (ValueError, TypeError):
+        socket_timeout = 30
+    try:
+        max_attempts = int(settings.get("youtube_download_max_attempts", "3") or "3")
+    except (ValueError, TypeError):
+        max_attempts = 3
+    metadata_timeout = socket_timeout * 3 + 60
+
     cmd = ["yt-dlp"]
     js_runtime = str(js_runtime or "").strip()
     if js_runtime and js_runtime.lower() != "none":
         cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+    cmd.extend(_build_resilience_flags(settings))
     cmd.extend(["--dump-json", "--no-warnings"])
     if cookies_file:
         cmd.extend(["--cookies", cookies_file])
@@ -1170,7 +1211,12 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="nod
         cmd.extend(["--cookies-from-browser", cookies_browser])
     cmd.append(url)
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")
+        res = run_subprocess_capture_with_retry(
+            cmd,
+            max_attempts=max_attempts,
+            label="Metadata fetch",
+            timeout_secs=metadata_timeout
+        )
         import json
         return json.loads(res.stdout)
     except Exception as e:
@@ -1178,12 +1224,14 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="nod
             source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
             print(f"    [!] Warning: Failed to load cookies from {source_desc} (might be open, locked, or DPAPI error).", flush=True)
             print("        Retrying metadata fetch without cookies...", flush=True)
-            fallback_cmd = ["yt-dlp"]
-            if js_runtime and js_runtime.lower() != "none":
-                fallback_cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
-            fallback_cmd.extend(["--dump-json", "--no-warnings", url])
+            fallback_cmd = _strip_cookies_from_cmd(cmd)
             try:
-                res = subprocess.run(fallback_cmd, capture_output=True, text=True, check=True, encoding="utf-8")
+                res = run_subprocess_capture_with_retry(
+                    fallback_cmd,
+                    max_attempts=max_attempts,
+                    label="Metadata fetch (no cookies)",
+                    timeout_secs=metadata_timeout
+                )
                 import json
                 return json.loads(res.stdout)
             except Exception as e2:
@@ -1297,7 +1345,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             url,
             cookies_browser=cookies_browser if cookies_browser else None,
             cookies_file=cookies_file if cookies_file else None,
-            js_runtime=settings.get("youtube_download_js_runtime", "node")
+            js_runtime=settings.get("youtube_download_js_runtime", "node"),
+            settings=settings
         )
     except TypeError:
         # Fallback for mocked single-argument lambdas in unit/integration tests

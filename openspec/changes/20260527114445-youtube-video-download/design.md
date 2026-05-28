@@ -149,3 +149,9 @@ The user currently downloads YouTube videos for language learning using external
 ## Open Questions
 
 - None at design level. Remaining uncertainty is implementation-level and tracked in `tasks.md` section 15.
+
+## Post-Review Addendum (ZID: 20260528032723)
+
+- Companion-audio combined-stream fallback is intentional, not a regression. Some dubbed tracks are exposed by YouTube only as combined video+audio formats; strict audio-only gating would miss valid companion languages.
+- The selector contract is language correctness first (metadata tag match), then footprint optimization. After download, the implementation attempts best-effort `ffmpeg -vn -c:a copy` to strip video when possible.
+- Metadata fetch (`yt-dlp --dump-json`) now follows the same unstable-network resilience model as media paths: resilience flags, bounded timeout, and outer retry/backoff.

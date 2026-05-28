@@ -708,3 +708,99 @@ def test_original_language_fallback_logs_nothing_when_no_tracks(monkeypatch):
     assert ok is True
     assert "Language auto-detection fell back to all available subtitles." not in info_logs
     assert "Language auto-detection fell back to all available auto-subtitles." not in info_logs
+
+
+def test_run_subprocess_capture_with_retry_retries_on_timeout(monkeypatch):
+    yd = _load_downloader()
+
+    calls = {"count": 0}
+
+    class _MockResult:
+        stdout = "{}"
+
+    def mock_run(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise yd.subprocess.TimeoutExpired(cmd=args[0], timeout=kwargs.get("timeout"))
+        return _MockResult()
+
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    monkeypatch.setattr(yd.time, "sleep", lambda *_: None)
+
+    res = yd.run_subprocess_capture_with_retry(
+        ["yt-dlp", "--dump-json", "https://youtu.be/test"],
+        max_attempts=2,
+        label="Metadata fetch",
+        timeout_secs=30,
+    )
+
+    assert calls["count"] == 2
+    assert res.stdout == "{}"
+
+
+def test_run_ytdlp_info_includes_resilience_flags(monkeypatch):
+    yd = _load_downloader()
+    captured = {}
+
+    class _MockResult:
+        stdout = '{"title":"Resilient metadata"}'
+
+    def mock_capture(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return _MockResult()
+
+    monkeypatch.setattr(yd, "run_subprocess_capture_with_retry", mock_capture)
+
+    settings = {
+        "youtube_download_socket_timeout": "41",
+        "youtube_download_retries": "17",
+        "youtube_download_max_attempts": "4",
+    }
+
+    info = yd.run_ytdlp_info(
+        "https://youtu.be/test",
+        js_runtime="node",
+        settings=settings,
+    )
+
+    assert info["title"] == "Resilient metadata"
+    cmd = captured["cmd"]
+    assert "--socket-timeout" in cmd and cmd[cmd.index("--socket-timeout") + 1] == "41"
+    assert "--retries" in cmd and cmd[cmd.index("--retries") + 1] == "17"
+    assert "--fragment-retries" in cmd and cmd[cmd.index("--fragment-retries") + 1] == "17"
+    assert "--retry-sleep" in cmd and cmd[cmd.index("--retry-sleep") + 1] == "exp=1:30"
+    assert captured["kwargs"]["max_attempts"] == 4
+    assert captured["kwargs"]["timeout_secs"] == 41 * 3 + 60
+
+
+def test_run_ytdlp_info_retries_without_cookies_after_cookie_failure(monkeypatch):
+    yd = _load_downloader()
+    captured_cmds = []
+
+    class _MockResult:
+        stdout = '{"title":"No-cookie fallback"}'
+
+    def mock_capture(cmd, **kwargs):
+        captured_cmds.append(list(cmd))
+        if len(captured_cmds) == 1:
+            raise yd.subprocess.CalledProcessError(1, cmd)
+        return _MockResult()
+
+    monkeypatch.setattr(yd, "run_subprocess_capture_with_retry", mock_capture)
+
+    info = yd.run_ytdlp_info(
+        "https://youtu.be/test",
+        cookies_file="C:/tmp/cookies.txt",
+        settings={
+            "youtube_download_socket_timeout": "30",
+            "youtube_download_retries": "15",
+            "youtube_download_max_attempts": "3",
+        },
+    )
+
+    assert info["title"] == "No-cookie fallback"
+    assert len(captured_cmds) == 2
+    assert "--cookies" in captured_cmds[0]
+    assert "--cookies" not in captured_cmds[1]
+    assert "--cookies-from-browser" not in captured_cmds[1]

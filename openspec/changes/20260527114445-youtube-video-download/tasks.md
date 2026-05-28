@@ -163,16 +163,17 @@
 
 ## 14. Companion Audio Track Download (ZID: 20260527184334)
 
-Companion audio files are language-dubbed audio-only `.mp4` files sitting alongside the main video, named `{ZID}-{title}.{lang}.mp4`. mpv's `ensure_companion_audio_tracks` auto-loads them as switchable audio tracks (hotkey `1`). The feature mirrors the subtitle language logic: a comma-separated list of BCP-47 codes to download, empty string disables.
+Companion audio files are language-dubbed `.mp4` companions sitting alongside the main video, named `{ZID}-{title}.{lang}.mp4`. mpv's `ensure_companion_audio_tracks` auto-loads them as switchable audio tracks (hotkey `1`). The feature mirrors the subtitle language logic: a comma-separated list of BCP-47 codes to download, empty string disables. Preferred source is audio-only when available; combined video+audio streams are an intentional fallback for languages where YouTube does not expose audio-only dubs.
 
 - [x] 14.1 Add `youtube_download_companion_audio_languages` configuration option — comma-separated BCP-47 codes (e.g., `ru,de`); empty string disables companion audio download (default: `""`)
 - [x] 14.2 Update `load_config()` defaults dict to include `youtube_download_companion_audio_languages = ""` with no bool coercion (string passthrough, same as `youtube_download_subtitle_languages`)
 - [x] 14.3 Implement `download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, settings)` function:
-  - Use `-f "bestaudio[language={lang}]"` (no `/bestaudio` fallback) and `--merge-output-format mp4`; write to `{target_dir}/{zid}-{sanitized_title}.{lang}.mp4`
-  - Before downloading, check `info` metadata: inspect `formats` list for an entry with `acodec != "none"`, `vcodec == "none"` (audio-only), and `language == lang`; if none found, log "No dubbed audio track for language '{lang}' — skipping companion audio" and return True (graceful skip, not an error)
-  - This guard prevents downloading the default audio stream as a companion (which would waste disk space and produce a duplicate, not an alternate track)
-  - Apply cookies options same as video/subtitle commands
-  - The output is an MP4 container with one audio stream only (no video) — ~10× smaller than a full video file; mpv loads it via `audio-add` as an external audio track without affecting the video renderer
+  - Use metadata-driven language matching and region normalization (`ru` matches `ru-RU`)
+  - Use `-f "bestaudio[language={matched}]/worst[language={matched}]/best[language={matched}]"` with matched metadata language tag
+  - Guard against default-audio duplication by skipping when requested companion base language equals primary/original video language
+  - If no dubbed track exists in metadata for the requested language, log skip and return True (graceful skip)
+  - Apply cookies options and resilience flags same as video/subtitle commands
+  - After download, attempt best-effort `ffmpeg -vn -c:a copy` extraction to keep companion audio-only when feasible (without failing the overall download if extraction is unavailable)
 - [x] 14.4 Integrate companion audio download into `download_video_and_metadata` pipeline: after subtitle download and before the summary block — for each language in `youtube_download_companion_audio_languages`, skip (log) if `{target_dir}/{zid}-{sanitized_title}.{lang}.mp4` already exists; otherwise call `download_companion_audio`; collect written companion paths for the summary
 - [x] 14.5 Extend `duplicate_mode = skip` missing-file check to include companion audio files: for each language in `youtube_download_companion_audio_languages`, check if `{old_zid}-{sanitized_title}.{lang}.mp4` is absent in `out_dir`; add missing entries to `missing_files`; the existing recovery path (override ZID + force `youtube_download_mode = subtitles`) already skips video re-download — extend it to also run the companion audio download step for missing tracks
 - [x] 14.6 Update `config.ini` and `config.ini.template` with `youtube_download_companion_audio_languages` option, a comment explaining the naming convention and mpv integration, and an example value
@@ -208,3 +209,11 @@ Three bugs in the `duplicate_mode = skip` recovery path, reviewed at ZID: 202605
 - [x] 17.2 Fix original-language fallback logging to avoid false "auto-subtitles fallback" message when no auto tracks exist
 - [x] 17.3 Add unit test: `test_progress_bar_plain_text_when_not_tty`
 - [x] 17.4 Add unit test: `test_original_language_fallback_logs_nothing_when_no_tracks`
+
+## 18. Post-Review Alignment & Mobile Resilience Closure (ZID: 20260528032723)
+
+- [x] 18.1 Extend metadata fetch (`yt-dlp --dump-json`) with the same resilience profile used for media downloads: resilience flags, outer retry/backoff, and bounded timeout
+- [x] 18.2 Preserve cookie fallback for metadata fetch while routing both cookie and no-cookie paths through resilient capture execution
+- [x] 18.3 Add focused unit tests for resilient metadata execution (`run_subprocess_capture_with_retry`, resilience-flag propagation, and cookie-strip fallback)
+- [x] 18.4 Resolve companion-audio spec/docs drift by codifying intentional combined-stream fallback and best-effort post-download audio-only extraction
+- [x] 18.5 Record coverage provenance: companion-audio regional selector and combined-stream behavior are verified in `tests/unit/test_20260527190807_companion_audio.py`
