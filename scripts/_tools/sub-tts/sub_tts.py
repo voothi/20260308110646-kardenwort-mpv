@@ -659,15 +659,12 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     last_pct = -10.0
 
     for index, item in enumerate(synthesis_results):
-        cue = item.get("cue")
-        if not cue:
-            adjusted.append(item)
-            continue
-
+        cue = item["cue"]
         loop_pos = index + 1
         percent_val = (loop_pos / total) * 100.0 if total > 0 else 0.0
         
-        if not item["ok"] or not item["wav_path"]:
+        skipped = not item["ok"] or not item["wav_path"]
+        if skipped:
             label = f"Skipping cue {cue['index']} (synthesis failed)"
         else:
             label = f"Adjusting speed for cue {cue['index']}"
@@ -686,7 +683,7 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
                 sys.stdout.flush()
                 last_pct = percent_val
 
-        if not item["ok"] or not item["wav_path"]:
+        if skipped:
             adjusted.append(item)
             continue
 
