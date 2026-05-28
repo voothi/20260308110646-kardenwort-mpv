@@ -18,7 +18,6 @@ This design addresses these issues by introducing an in-place, carriage-returned
 
 ## Decisions
 
-
 ### 1. Unified Cue Progress Bar Helper
 To avoid confusing name clashes with `youtube_downloader.py`'s downloader-specific signature, we will introduce a new, cue-specific progress bar function in `sub_tts.py` named `make_cue_progress_bar`:
 ```python
