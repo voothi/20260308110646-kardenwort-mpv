@@ -5783,6 +5783,13 @@ local function dw_anki_export_selection()
         
         local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
         local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
+        -- [20260528132406] No-selection fallback: resolve line from live time-pos at keypress moment
+        -- to bypass DW_CURSOR_LINE staleness (tick-race, Book Mode drift).
+        if al == -1 and cw == -1 then
+            local live_pos = mp.get_property_number("time-pos")
+            local live_idx = live_pos and get_center_index(subs, live_pos) or -1
+            cl = (live_idx ~= -1) and live_idx or (FSM.DW_ACTIVE_LINE ~= -1 and FSM.DW_ACTIVE_LINE or cl)
+        end
         local params = {}
         local term = ""
         local context_line = ""
@@ -6762,16 +6769,15 @@ local function master_tick()
             -- [v1.58.49] Universal Cursor Synchronization
             -- Ensures that the "copy focus" always tracks playback when in follow mode,
             -- even if the Drum Window is closed (e.g., purely in Drum Mode on-screen).
+            -- [20260528132406] Viewport update and cursor sync are now independent:
+            -- cursor tracks on every tick in all modes (including Book Mode) when no selection.
             if FSM.DW_FOLLOW_PLAYER then
-                if not FSM.BOOK_MODE then
-                    if FSM.DW_VIEW_CENTER ~= active_idx then
-                        FSM.DW_VIEW_CENTER = active_idx
-                        if FSM.DW_ANCHOR_LINE == -1 then
-                            FSM.DW_CURSOR_LINE = active_idx
-                            FSM.DW_CURSOR_WORD = -1
-                            FSM.DW_CURSOR_X = nil
-                        end
-                    end
+                if not FSM.BOOK_MODE and FSM.DW_VIEW_CENTER ~= active_idx then
+                    FSM.DW_VIEW_CENTER = active_idx
+                end
+                if FSM.DW_ANCHOR_LINE == -1 and FSM.DW_CURSOR_WORD == -1 then
+                    FSM.DW_CURSOR_LINE = active_idx
+                    FSM.DW_CURSOR_X = nil
                 end
             end
         end
