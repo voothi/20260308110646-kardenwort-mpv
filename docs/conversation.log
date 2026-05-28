@@ -3212,6 +3212,6 @@
 20260528035058 Whatever you can fix, do it.
 20260528035439 49 passed. Three fixes applied to youtube_downloader.py: import json moved to top-level (line 18) — removed two inline imports inside run_ytdlp_info. run_subprocess_capture_with_retry guards max_attempts < 1 — clamps to 1 so the loop always executes and the function always returns or raises. Exception handler in run_ytdlp_info narrowed — now catches CalledProcessError | TimeoutExpired explicitly instead of Exception. Timeout case gets its own message ("timed out with cookies") rather than the misleading "Failed to load cookies" text. A final except Exception still catches JSON decode errors or other unexpected failures and returns None cleanly.
 20260528035457 Clean. The raise RuntimeError(...) after the loop gives Pylance a definite non-None exit on every code path, resolving both reportOptionalMemberAccess errors. The line is genuinely unreachable at runtime (the last iteration always returns or re-raises), but the comment makes that explicit.
-
+20260528042554 ===================================================== 993 passed in 887.79s (0:14:47) ======================================================
 
 
