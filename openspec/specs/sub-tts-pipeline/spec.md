@@ -175,8 +175,8 @@ Upon completion of each stage or of the entire pipeline, the system SHALL clean 
 - **THEN** the system SHALL call the line-clearing function to remove the speed adjustment progress bar before printing the timed audio assembly logs cleanly on a new line
 
 #### Scenario: Completion summary
-- **WHEN** the entire timing pipeline completes
-- **THEN** the system SHALL output the total processing time (e.g., `Completed in 45.2s`)
+- **WHEN** the entire batch processing completes
+- **THEN** the system SHALL output the total conversion summary and elapsed time (e.g., `All 3/3 file(s) converted in 45.2s.`)
 
 ---
 
