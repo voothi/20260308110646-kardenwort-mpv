@@ -139,7 +139,7 @@ On failure, the system SHALL preserve temporary files for debugging and report t
 The system SHALL report processing progress to stdout, including:
 - The detected language and selected voice model.
 - Per-cue progress via the dynamic progress bar (TTY) or throttled lines (non-TTY) described below.
-- Total processing time upon completion.
+- Total elapsed time and batch summary upon completion.
 
 When executing in a TTY environment, the system SHALL output a premium, dynamic, carriage-returned progress bar that updates in-place during both the TTS synthesis stage and the speed adjustment stage.
 The progress bar SHALL show:
