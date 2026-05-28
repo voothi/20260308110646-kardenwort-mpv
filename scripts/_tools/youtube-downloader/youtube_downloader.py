@@ -33,6 +33,10 @@ CONFIG_FILE = SCRIPT_DIR / "config.ini"
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode)
 PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
 
+# Outer retry delays in seconds between attempts when yt-dlp fails (network drop, timeout, etc.)
+# yt-dlp auto-resumes partial .part files on each retry.
+RETRY_DELAYS = [5, 15, 60]
+
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
 
@@ -239,6 +243,9 @@ def load_config():
         "youtube_download_js_runtime": "node",
         "youtube_download_zid_script": "",
         "youtube_download_auto_close_timeout_secs": "15",
+        "youtube_download_socket_timeout": "30",
+        "youtube_download_retries": "15",
+        "youtube_download_max_attempts": "3",
     }
 
     if CONFIG_FILE.exists():
@@ -387,6 +394,39 @@ def setup_backend(auto_update):
         update_ytdlp()
 
     return True
+
+# ==============================================================================
+# RESILIENCE HELPERS
+# ==============================================================================
+def _build_resilience_flags(settings):
+    """Returns yt-dlp flags for stable downloads on unstable connections."""
+    try:
+        socket_timeout = int(settings.get("youtube_download_socket_timeout", "30") or "30")
+    except (ValueError, TypeError):
+        socket_timeout = 30
+    try:
+        retries = int(settings.get("youtube_download_retries", "15") or "15")
+    except (ValueError, TypeError):
+        retries = 15
+    return [
+        "--socket-timeout", str(socket_timeout),
+        "--retries", str(retries),
+        "--fragment-retries", str(retries),
+        "--retry-sleep", "exp=1:30",
+    ]
+
+def _strip_cookies_from_cmd(cmd):
+    """Returns a copy of cmd with --cookies / --cookies-from-browser flags removed."""
+    result, skip_next = [], False
+    for arg in cmd:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in ("--cookies-from-browser", "--cookies"):
+            skip_next = True
+            continue
+        result.append(arg)
+    return result
 
 # ==============================================================================
 # RESOLUTION FORMAT MAPPING (Task 5.1 – 5.2)
@@ -778,8 +818,11 @@ def process_input_paths(paths):
 
 _original_run = subprocess.run
 
-def run_subprocess_streaming(cmd, *args, indent="", **kwargs):
-    """Runs a subprocess and streams stdout and stderr in real-time, preventing mixed lines."""
+def run_subprocess_streaming(cmd, *args, indent="", inactivity_timeout=None, **kwargs):
+    """Runs a subprocess and streams stdout and stderr in real-time, preventing mixed lines.
+
+    inactivity_timeout: seconds of silence before the watchdog kills a frozen process.
+    """
     if subprocess.run is not _original_run:
         return subprocess.run(cmd, *args, **kwargs)
         
@@ -791,6 +834,7 @@ def run_subprocess_streaming(cmd, *args, indent="", **kwargs):
         return indent + line
 
     def process_line(raw_line, is_stderr, is_tty, state):
+        state["last_activity_ts"] = time.time()
         line_content = raw_line.rstrip("\r\n")
         line_clean = strip_ansi(line_content)
         
@@ -933,20 +977,57 @@ def run_subprocess_streaming(cmd, *args, indent="", **kwargs):
         errors="replace"
     )
     
-    state = {"last_char": "\n", "last_percent": -10}
-    
+    state = {"last_char": "\n", "last_percent": -10, "last_activity_ts": time.time()}
+
     t_out = threading.Thread(target=stream_pipe, args=(process.stdout, False, state))
     t_err = threading.Thread(target=stream_pipe, args=(process.stderr, True, state))
-    
+
     t_out.start()
     t_err.start()
-    
+
+    watchdog_stop = None
+    if inactivity_timeout:
+        watchdog_stop = threading.Event()
+        def _watchdog(proc, st, timeout, stop):
+            while not stop.wait(5):
+                elapsed = time.time() - st.get("last_activity_ts", time.time())
+                if elapsed > timeout:
+                    with PRINT_LOCK:
+                        sys.stdout.write(f"\n  {_tag_warn()} No output for {int(elapsed)}s — killing stalled process...\n")
+                        sys.stdout.flush()
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                    break
+        threading.Thread(target=_watchdog, args=(process, state, inactivity_timeout, watchdog_stop), daemon=True).start()
+
     t_out.join()
     t_err.join()
-    
+    if watchdog_stop:
+        watchdog_stop.set()
+
     process.wait()
     if process.returncode != 0:
         raise subprocess.CalledProcessError(process.returncode, cmd)
+
+def run_with_retry(cmd, max_attempts=3, label="Download", inactivity_timeout=None, **kwargs):
+    """Runs a yt-dlp command with outer retry loop on failure.
+
+    yt-dlp resumes partial .part files automatically on each retry,
+    so interrupted downloads continue where they left off.
+    """
+    for attempt in range(max_attempts):
+        try:
+            run_subprocess_streaming(cmd, check=True, inactivity_timeout=inactivity_timeout, **kwargs)
+            return
+        except subprocess.CalledProcessError:
+            if attempt + 1 < max_attempts:
+                delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
+                log_warn(f"{label} failed (attempt {attempt + 1}/{max_attempts}), retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                raise
 
 # ==============================================================================
 # COMPANION AUDIO DOWNLOAD (Task 14.3)
@@ -1020,6 +1101,7 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
     js_runtime = str(settings.get("youtube_download_js_runtime", "node")).strip()
     if js_runtime and js_runtime.lower() != "none":
         cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+    cmd.extend(_build_resilience_flags(settings))
     cmd.extend([
            "--color", "always", "--no-warnings",
            "-f", f"bestaudio[language={matched_lang_tag}]/worst[language={matched_lang_tag}]/best[language={matched_lang_tag}]",
@@ -1031,9 +1113,19 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
         cmd.extend(["--cookies-from-browser", cookies_browser])
     cmd.append(url)
 
+    try:
+        socket_timeout = int(settings.get("youtube_download_socket_timeout", "30") or "30")
+    except (ValueError, TypeError):
+        socket_timeout = 30
+    try:
+        max_attempts = int(settings.get("youtube_download_max_attempts", "3") or "3")
+    except (ValueError, TypeError):
+        max_attempts = 3
+    watchdog_timeout = socket_timeout * 3 + 60
+
     print(f"  Downloading companion audio ({lang})...", flush=True)
     try:
-        run_subprocess_streaming(cmd, check=True)
+        run_with_retry(cmd, max_attempts=max_attempts, label="Companion audio", inactivity_timeout=watchdog_timeout)
         # Strip video stream if the final file contains video, to save disk space
         if output_path.exists():
             try:
@@ -1054,18 +1146,8 @@ def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, 
             source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
             print(f"    WARNING: Companion audio download failed with cookies ({source_desc} might be open/locked).", flush=True)
             print("    Retrying without cookies...", flush=True)
-            fallback_cmd = []
-            skip_next = False
-            for arg in cmd:
-                if skip_next:
-                    skip_next = False
-                    continue
-                if arg in ["--cookies-from-browser", "--cookies"]:
-                    skip_next = True
-                    continue
-                fallback_cmd.append(arg)
             try:
-                run_subprocess_streaming(fallback_cmd, check=True)
+                run_with_retry(_strip_cookies_from_cmd(cmd), max_attempts=max_attempts, label="Companion audio (no cookies)", inactivity_timeout=watchdog_timeout)
                 return True
             except subprocess.CalledProcessError:
                 pass
@@ -1199,6 +1281,17 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     log_section("Fetching video metadata...")
     cookies_browser = settings.get("youtube_download_cookies_browser", "").strip()
     cookies_file = settings.get("youtube_download_cookies_file", "").strip()
+
+    # Resilience settings (outer retry loop + watchdog)
+    try:
+        _max_attempts = int(settings.get("youtube_download_max_attempts", "3") or "3")
+    except (ValueError, TypeError):
+        _max_attempts = 3
+    try:
+        _socket_timeout = int(settings.get("youtube_download_socket_timeout", "30") or "30")
+    except (ValueError, TypeError):
+        _socket_timeout = 30
+    _watchdog_timeout = _socket_timeout * 3 + 60
     try:
         info = run_ytdlp_info(
             url,
@@ -1373,6 +1466,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         js_runtime = str(settings.get("youtube_download_js_runtime", "node")).strip()
         if js_runtime and js_runtime.lower() != "none":
             sub_cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+        sub_cmd.extend(_build_resilience_flags(settings))
         sub_cmd.extend(["--color", "always", "--skip-download", "--no-warnings", "-o", output_tmpl])
         if cookies_file:
             sub_cmd.extend(["--cookies", cookies_file])
@@ -1403,29 +1497,18 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         if has_manual or (has_auto and use_auto_subs):
             log_section(f"SUBTITLES DOWNLOAD ({','.join(sub_langs_list)})")
             try:
-                run_subprocess_streaming(sub_cmd, check=True)
+                run_with_retry(sub_cmd, max_attempts=_max_attempts, label="Subtitle download", inactivity_timeout=_watchdog_timeout)
             except subprocess.CalledProcessError:
                 if cookies_file or cookies_browser:
                     source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
                     log_warn(f"Subtitle download failed with cookies ({source_desc} might be open/locked).")
                     log_info("Retrying subtitle download without cookies...")
-                    fallback_sub_cmd = []
-                    skip_next = False
-                    for arg in sub_cmd:
-                        if skip_next:
-                            skip_next = False
-                            continue
-                        if arg in ["--cookies-from-browser", "--cookies"]:
-                            skip_next = True
-                            continue
-                        fallback_sub_cmd.append(arg)
                     try:
-                        run_subprocess_streaming(fallback_sub_cmd, check=True)
+                        run_with_retry(_strip_cookies_from_cmd(sub_cmd), max_attempts=_max_attempts, label="Subtitle download (no cookies)", inactivity_timeout=_watchdog_timeout)
                     except subprocess.CalledProcessError:
                         log_warn("Subtitle download skipped (network issue or 429 Too Many Requests).")
                         subtitle_download_failed = True
                 else:
-                    # Decoupled error handling: log warning and continue with video download
                     log_warn("Subtitle download skipped (network issue or 429 Too Many Requests).")
                     subtitle_download_failed = True
         else:
@@ -1438,48 +1521,39 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
         js_runtime = str(settings.get("youtube_download_js_runtime", "node")).strip()
         if js_runtime and js_runtime.lower() != "none":
             video_cmd.extend(["--js-runtimes", js_runtime, "--remote-components", "ejs:github"])
+        video_cmd.extend(_build_resilience_flags(settings))
         video_cmd.extend(["--color", "always", "--no-warnings"])
         if cookies_file:
             video_cmd.extend(["--cookies", cookies_file])
         elif cookies_browser:
             video_cmd.extend(["--cookies-from-browser", cookies_browser])
-        
+
         # Resolution format selection
         fmt = get_ytdlp_format(settings["youtube_download_resolution"])
         video_cmd.extend(["-f", fmt])
-        
+
         # Merge output container format to MP4
         video_cmd.extend(["--merge-output-format", "mp4"])
         video_cmd.extend(["-o", output_tmpl])
-        
+
         # Chapter embedding
         if embed_chapters and has_chapters:
             video_cmd.append("--embed-chapters")
         else:
             video_cmd.append("--no-embed-chapters")
-            
+
         video_cmd.append(url)
-        
+
         log_section(f"VIDEO DOWNLOAD ({settings['youtube_download_resolution']})")
         try:
-            run_subprocess_streaming(video_cmd, check=True)
+            run_with_retry(video_cmd, max_attempts=_max_attempts, label="Video download", inactivity_timeout=_watchdog_timeout)
         except subprocess.CalledProcessError:
             if cookies_file or cookies_browser:
                 source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
                 log_warn(f"Video download failed with cookies ({source_desc} might be open/locked).")
                 log_info("Retrying video download without cookies...")
-                fallback_video_cmd = []
-                skip_next = False
-                for arg in video_cmd:
-                    if skip_next:
-                        skip_next = False
-                        continue
-                    if arg in ["--cookies-from-browser", "--cookies"]:
-                        skip_next = True
-                        continue
-                    fallback_video_cmd.append(arg)
                 try:
-                    run_subprocess_streaming(fallback_video_cmd, check=True)
+                    run_with_retry(_strip_cookies_from_cmd(video_cmd), max_attempts=_max_attempts, label="Video download (no cookies)", inactivity_timeout=_watchdog_timeout)
                 except subprocess.CalledProcessError:
                     log_error("yt-dlp video download failed.")
                     return False

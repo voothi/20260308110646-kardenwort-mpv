@@ -104,4 +104,21 @@ youtube_download_chapters_mode = embedded
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
 # Set to 0 to close instantly; ignored on errors so they can be inspected.
 # Default: 15
-# youtube_download_auto_close_timeout_secs = 15 
+# youtube_download_auto_close_timeout_secs = 15
+
+# --- Unstable connection resilience ---
+
+# Seconds yt-dlp waits for socket data before treating it as a connection timeout.
+# Lower values (e.g. 15) recover faster on mobile; higher values (e.g. 60) tolerate slow servers.
+# Default: 30
+# youtube_download_socket_timeout = 30
+
+# Number of retries yt-dlp performs per fragment or request on network errors.
+# Applies to both --retries and --fragment-retries. yt-dlp uses exponential backoff (exp=1:30).
+# Default: 15
+# youtube_download_retries = 15
+
+# Number of times the outer Python wrapper re-launches yt-dlp if the whole download fails.
+# yt-dlp resumes partial .part files automatically on each attempt.
+# Default: 3
+# youtube_download_max_attempts = 3

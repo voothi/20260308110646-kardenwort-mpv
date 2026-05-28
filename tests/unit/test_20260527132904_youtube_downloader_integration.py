@@ -513,7 +513,7 @@ def test_no_subtitle_redownload_when_only_companion_missing(yd, tmp_path, monkey
     monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
 
     seen_cmds = []
-    def mock_stream(cmd, check=True):
+    def mock_stream(cmd, check=True, **kwargs):
         seen_cmds.append(cmd)
         if "--skip-download" in cmd:
             raise AssertionError("Subtitle command must not run when only companion audio is missing.")
@@ -564,7 +564,7 @@ def test_clean_srt_not_called_on_preexisting_subtitle(yd, tmp_path, monkeypatch)
     })
     monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
 
-    def mock_stream(cmd, check=True):
+    def mock_stream(cmd, check=True, **kwargs):
         if "--skip-download" in cmd:
             new_ru.touch()
 
@@ -613,7 +613,7 @@ def test_sync_fires_when_secondary_newly_downloaded_primary_preexisting(yd, tmp_
     })
     monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
 
-    def mock_stream(cmd, check=True):
+    def mock_stream(cmd, check=True, **kwargs):
         if "--skip-download" in cmd:
             ru_path.touch()
 
