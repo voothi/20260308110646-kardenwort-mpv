@@ -77,6 +77,23 @@ def log_detail(msg, indent="  "):
 def log_section(title):
     print(f"\n{_bold(title)}", flush=True)
 
+def clear_line(width=65):
+    """Clears the current console line completely to prevent character leftovers."""
+    sys.stdout.write("\r\x1b[K" + " " * width + "\r")
+    sys.stdout.flush()
+
+def make_cue_progress_bar(current, total, label, detail="", bar_width=40, indent="  "):
+    percent_val = (current / total) * 100.0 if total > 0 else 0
+    filled_width = int(round(bar_width * percent_val / 100.0))
+    bar = _green("━" * filled_width) + _dim("━" * (bar_width - filled_width))
+    tag = _dim(f"[{current}/{total}]")
+    
+    line = f"\r{indent}{bar} {tag} {label}"
+    if detail:
+        line += f": {_dim(detail)}"
+    return line
+
+
 
 # Built-in alias table: subtitle filename postfix → Piper language code
 BUILTIN_LANG_ALIASES = {
@@ -412,13 +429,12 @@ def resolve_output_path(srt_path, output_dir, config, lang, zid_cache, keep_lang
 # PER-CUE TTS SYNTHESIS (tasks 4.1 – 4.4)
 # ==============================================================================
 
-def synthesize_cue(cue, lang, wav_path, piper_root, total, current):
+def synthesize_cue(cue, lang, wav_path, piper_root):
     """
     Call piper_tts.py to synthesize a single subtitle cue to a WAV file.
     Returns True on success, False on error (non-fatal).
     """
     piper_script = piper_root / "piper_tts.py"
-    print(f"  {_dim(f'[{current}/{total}]')} Synthesizing cue {cue['index']}: {_dim(repr(cue['text'][:60]))}", flush=True)
 
     cmd = [
         sys.executable,
@@ -437,13 +453,19 @@ def synthesize_cue(cue, lang, wav_path, piper_root, total, current):
             timeout=120,
         )
         if result.returncode != 0:
+            if _IS_TTY:
+                clear_line()
             log_warn(f"Piper failed for cue {cue['index']}: {result.stderr.strip()}")
             return False
         return True
     except subprocess.TimeoutExpired:
+        if _IS_TTY:
+            clear_line()
         log_warn(f"Piper timed out for cue {cue['index']}.")
         return False
     except Exception as exc:
+        if _IS_TTY:
+            clear_line()
         log_warn(f"Piper error for cue {cue['index']}: {exc}")
         return False
 
@@ -455,11 +477,30 @@ def synthesize_all_cues(cues, lang, temp_dir, piper_root):
     """
     total = len(cues)
     results = []
+    last_pct = -10.0
 
     for i, cue in enumerate(cues, start=1):
+        percent_val = (i / total) * 100.0 if total > 0 else 0
+        label = f"Synthesizing cue {cue['index']}"
+        detail = repr(cue['text'][:60])
+        
+        # Build progress bar string
+        bar_line = make_cue_progress_bar(i, total, label, detail=detail)
+        
+        if _IS_TTY:
+            clear_line()
+            sys.stdout.write(bar_line)
+            sys.stdout.flush()
+        else:
+            # Non-TTY throttling algorithm (delta-based)
+            if i == 1 or i == total or (percent_val - last_pct >= 10):
+                sys.stdout.write(bar_line.lstrip("\r") + "\n")
+                sys.stdout.flush()
+                last_pct = percent_val
+        
         wav_name = f"cue_{cue['index']:05d}.wav"
         wav_path = temp_dir / wav_name
-        ok = synthesize_cue(cue, lang, wav_path, piper_root, total, i)
+        ok = synthesize_cue(cue, lang, wav_path, piper_root)
 
         results.append({
             "cue": cue,
@@ -616,6 +657,7 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     print("  Adjusting speed to fit subtitle timing...", flush=True)
     adjusted = []
     total = len(synthesis_results)
+    last_pct = -10.0
 
     for index, item in enumerate(synthesis_results):
         if not item["ok"] or not item["wav_path"]:
@@ -624,7 +666,24 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
 
         cue = item["cue"]
         current_file = Path(item["wav_path"])
-        print(f"  [{index + 1}/{total}] Adjusting speed for cue {cue['index']}...", flush=True)
+        
+        loop_pos = index + 1
+        percent_val = (loop_pos / total) * 100.0 if total > 0 else 0
+        label = f"Adjusting speed for cue {cue['index']}"
+        
+        # Build progress bar string
+        bar_line = make_cue_progress_bar(loop_pos, total, label)
+        
+        if _IS_TTY:
+            clear_line()
+            sys.stdout.write(bar_line)
+            sys.stdout.flush()
+        else:
+            # Non-TTY throttling (delta-based)
+            if loop_pos == 1 or loop_pos == total or (percent_val - last_pct >= 10):
+                sys.stdout.write(bar_line.lstrip("\r") + "\n")
+                sys.stdout.flush()
+                last_pct = percent_val
 
         trim_output = temp_dir / f"trim_{cue['index']:05d}.wav"
         trim_filter = (
@@ -662,6 +721,8 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
             if change_audio_speed(current_file, speed_output, speed_factor, ffmpeg_path, high_quality):
                 current_file = speed_output
             else:
+                if _IS_TTY:
+                    clear_line()
                 print(f"  [WARN] Speed adjustment failed for cue {cue['index']}; using trimmed audio.", file=sys.stderr)
 
         adjusted_item = dict(item)
@@ -672,6 +733,8 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
         adjusted_item["fit_duration_ms"] = get_wav_duration_ms(current_file, ffmpeg_path)
         adjusted.append(adjusted_item)
 
+    if _IS_TTY:
+        clear_line()
     speedups = [r.get("speed_factor", 1.0) for r in adjusted if r.get("speed_factor", 1.0) > 1.0]
     limited = sum(1 for r in adjusted if r.get("speed_limited"))
     if speedups:
@@ -969,6 +1032,8 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         log_section("TTS SYNTHESIS")
         synthesis_results = synthesize_all_cues(cues, lang, temp_dir, piper_root)
         successful = sum(1 for r in synthesis_results if r["ok"])
+        if _IS_TTY:
+            clear_line()
         if successful == len(cues):
             log_ok(f"Synthesis complete: {successful}/{len(cues)} cues.")
         else:
