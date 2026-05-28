@@ -14,6 +14,7 @@
 
 import argparse
 import configparser
+import json
 import os
 import re
 import shutil
@@ -1029,8 +1030,10 @@ def run_with_retry(cmd, max_attempts=3, label="Download", inactivity_timeout=Non
             else:
                 raise
 
-def run_subprocess_capture_with_retry(cmd, max_attempts=3, label="Command", timeout_secs=None, **kwargs):
+def run_subprocess_capture_with_retry(cmd, max_attempts=3, label="Command", timeout_secs=None, **kwargs) -> subprocess.CompletedProcess:
     """Runs a subprocess with captured output and outer retry/backoff."""
+    if max_attempts < 1:
+        max_attempts = 1
     for attempt in range(max_attempts):
         try:
             return subprocess.run(
@@ -1056,6 +1059,7 @@ def run_subprocess_capture_with_retry(cmd, max_attempts=3, label="Command", time
                 time.sleep(delay)
             else:
                 raise
+    raise RuntimeError(f"{label}: exhausted {max_attempts} attempts")  # unreachable
 
 # ==============================================================================
 # COMPANION AUDIO DOWNLOAD (Task 14.3)
@@ -1217,13 +1221,15 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="nod
             label="Metadata fetch",
             timeout_secs=metadata_timeout
         )
-        import json
         return json.loads(res.stdout)
-    except Exception as e:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         if cookies_file or cookies_browser:
             source_desc = f"file {cookies_file}" if cookies_file else f"browser {cookies_browser}"
-            print(f"    [!] Warning: Failed to load cookies from {source_desc} (might be open, locked, or DPAPI error).", flush=True)
-            print("        Retrying metadata fetch without cookies...", flush=True)
+            if isinstance(e, subprocess.TimeoutExpired):
+                print(f"    [!] Warning: Metadata fetch timed out with cookies ({source_desc}). Retrying without cookies...", flush=True)
+            else:
+                print(f"    [!] Warning: Failed to load cookies from {source_desc} (might be open, locked, or DPAPI error).", flush=True)
+                print("        Retrying metadata fetch without cookies...", flush=True)
             fallback_cmd = _strip_cookies_from_cmd(cmd)
             try:
                 res = run_subprocess_capture_with_retry(
@@ -1232,7 +1238,6 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="nod
                     label="Metadata fetch (no cookies)",
                     timeout_secs=metadata_timeout
                 )
-                import json
                 return json.loads(res.stdout)
             except Exception as e2:
                 print(f"Error: Failed to fetch metadata for {url}: {e2}", file=sys.stderr)
@@ -1240,6 +1245,9 @@ def run_ytdlp_info(url, cookies_browser=None, cookies_file=None, js_runtime="nod
         else:
             print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
             return None
+    except Exception as e:
+        print(f"Error: Failed to fetch metadata for {url}: {e}", file=sys.stderr)
+        return None
 
 def resolve_original_language(info):
     """Resolves the video's main language, with intelligent base-code fallback for regional dialects."""
