@@ -8,10 +8,10 @@ Verifies:
 2. Anki export fallback resolving the target line dynamically using live time-pos when no selection is present.
 """
 
+import os
 import time
 import tempfile
 from pathlib import Path
-import pytest
 from tests.ipc.mpv_ipc import query_kardenwort_state
 
 def test_20260528144410_universal_cursor_sync_in_book_mode(mpv):
@@ -47,6 +47,7 @@ def test_20260528144410_anki_export_fallback_uses_live_pos(mpv):
     
     # Create a temporary TSV file to capture the exported TSV row
     fd, temp_name = tempfile.mkstemp(prefix="kardenwort-export-fallback-", suffix=".tsv")
+    os.close(fd)  # Release handle so mpv can open the file for writing
     try:
         tsv_path = Path(temp_name)
         
@@ -77,3 +78,41 @@ def test_20260528144410_anki_export_fallback_uses_live_pos(mpv):
             Path(temp_name).unlink(missing_ok=True)
         except Exception:
             pass
+
+
+def test_20260528144410_export_fallback_with_stale_cursor(mpv):
+    """Change #1 isolated: live time-pos fallback in dw_anki_export_selection()
+    must export the correct subtitle even when DW_CURSOR_LINE is explicitly stale
+    (-1) and follow player is disabled (so cursor sync cannot intervene)."""
+    ipc = mpv.ipc
+
+    fd, temp_name = tempfile.mkstemp(prefix="kardenwort-stale-cursor-", suffix=".tsv")
+    os.close(fd)
+    try:
+        tsv_path = Path(temp_name)
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'anki_record_file', str(tsv_path)])
+        time.sleep(0.1)
+
+        # Seek to subtitle 2 (4.5s = "This is a test") and let it settle
+        ipc.command(['seek', 4.5, 'absolute+exact'])
+        time.sleep(0.3)
+
+        # Force a stale state: disable follow so master_tick cursor sync is off,
+        # then hard-reset cursor to -1 to simulate the pre-fix condition.
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-follow-player', 'false'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-cursor', '-1', '-1'])
+        time.sleep(0.15)
+
+        state = query_kardenwort_state(ipc)
+        assert state.get('dw_cursor', {}).get('line') == -1, "cursor must be stale for this test to be valid"
+        assert state.get('dw_follow_player') is False
+
+        # Export with stale cursor — must resolve subtitle via live time-pos fallback
+        ipc.command(['script-message-to', 'kardenwort', 'test-export-selection'])
+        time.sleep(0.5)
+
+        content = tsv_path.read_text(encoding='utf-8')
+        assert 'This is a test' in content, "live time-pos fallback must export subtitle 2, not nothing"
+
+    finally:
+        Path(temp_name).unlink(missing_ok=True)
