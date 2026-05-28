@@ -136,7 +136,11 @@ On failure, the system SHALL preserve temporary files for debugging and report t
 ---
 
 ### Requirement: Progress reporting
-The system SHALL report processing progress to stdout.
+The system SHALL report processing progress to stdout, including:
+- The detected language and selected voice model.
+- Per-cue progress via the dynamic progress bar (TTY) or throttled lines (non-TTY) described below.
+- Total processing time upon completion.
+
 When executing in a TTY environment, the system SHALL output a premium, dynamic, carriage-returned progress bar that updates in-place during both the TTS synthesis stage and the speed adjustment stage.
 The progress bar SHALL show:
 - A visual progress meter using green and grey blocks (matching `youtube-downloader`'s pip style).
@@ -169,6 +173,12 @@ Upon completion of each stage or of the entire pipeline, the system SHALL clean 
 #### Scenario: Speed Adjustment to Audio Assembly transition cleanup
 - **WHEN** the speed adjustment stage completes
 - **THEN** the system SHALL call the line-clearing function to remove the speed adjustment progress bar before printing the timed audio assembly logs cleanly on a new line
+
+#### Scenario: Completion summary
+- **WHEN** the entire timing pipeline completes
+- **THEN** the system SHALL output the total processing time (e.g., `Completed in 45.2s`)
+
+---
 
 ### Requirement: Configuration file
 The system SHALL read its configuration from `scripts/_tools/sub-tts/config.ini` with the following sections:
