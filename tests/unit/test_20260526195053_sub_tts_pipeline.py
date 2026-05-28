@@ -186,20 +186,15 @@ def test_make_cue_progress_bar_lstrip():
     assert not bar.lstrip("\r").startswith("\r")
 
 
-def test_progress_bar_throttling_logic():
-    # Simulate loop with total = 100
-    total = 100
-    last_pct = -10.0
-    printed_indices = []
-    
-    for i in range(1, total + 1):
-        percent_val = (i / total) * 100.0
-        if i == 1 or i == total or (percent_val - last_pct >= 10.0):
-            printed_indices.append(i)
-            last_pct = percent_val
-            
-    # With total = 100, delta throttling should print:
-    # i = 1 (first cue), i = 11, 21, 31, 41, 51, 61, 71, 81, 91, 100 (last cue)
-    assert printed_indices == [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 100]
+def test_non_tty_throttle_writes_expected_line_count(monkeypatch, capsys, tmp_path):
+    sub_tts = _load_sub_tts()
+    monkeypatch.setattr(sub_tts, "_IS_TTY", False)
+    monkeypatch.setattr(sub_tts, "synthesize_cue", lambda *a, **kw: True)
+    cues = [{"index": i, "text": "x", "start_ms": 0, "end_ms": 1000} for i in range(1, 101)]
+    sub_tts.synthesize_all_cues(cues, "en", tmp_path, Path("piper_root_stub"))
+    captured = capsys.readouterr()
+    lines = [l for l in captured.out.splitlines() if l.strip()]
+    assert len(lines) == 11  # first + 9 deltas + last
+    assert "\r" not in captured.out
 
 

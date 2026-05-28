@@ -659,10 +659,18 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     last_pct = -10.0
 
     for index, item in enumerate(synthesis_results):
-        cue = item["cue"]
+        cue = item.get("cue")
+        if not cue:
+            adjusted.append(item)
+            continue
+
         loop_pos = index + 1
         percent_val = (loop_pos / total) * 100.0 if total > 0 else 0.0
-        label = f"Adjusting speed for cue {cue['index']}"
+        
+        if not item["ok"] or not item["wav_path"]:
+            label = f"Skipping cue {cue['index']} (synthesis failed)"
+        else:
+            label = f"Adjusting speed for cue {cue['index']}"
         
         # Build progress bar string
         bar_line = make_cue_progress_bar(loop_pos, total, label)
