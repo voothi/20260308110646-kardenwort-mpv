@@ -2,7 +2,7 @@
 # Kardenwort MPV - .gitignore
 # =========================================================================
 
-# --- System & IDE ---
+# --- System, IDE & AI Agents ---
 .agent/
 .claude/
 .cline/
@@ -15,20 +15,31 @@
 .roo/
 *.code-workspace
 
-# --- Python & Build ---
+# --- Python, Build & Test Caches ---
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest_tmp/
+_tmp_pytest/
+.tmp_pytest_subviewer/
+dist/
+scripts/_tools/sub-tts/__pycache__/
 
-# --- Persistent State ---
-resume-session.state
-resume_session.state
+# --- Application Logs & Diagnostic Files ---
+# *.log
+mpv_start_test.log
+mpv_success_test.log
+mpv_test_launch.log
+pytest_out.log
+scripts/_tools/sub-tts/logs/
+scripts/_tools/sub-viewer/logs/mpv_sub_viewer.log
+scripts/_tools/sub-viewer/sub_viewer_launch.log
+tests/mpv_last_run.log
 
-# --- Temporary & Development Artifacts ---
+# --- Temporary & Development Scratchpads ---
 scratch/
 # *.txt
 # *.patch
-# *.log
 # *.bak
 # *.old
 # *temp*
@@ -36,33 +47,22 @@ scratch/
 # test*.lua
 # old.lua
 # parsed_subs*
-tests/mpv_last_run.log
-pytest_out.log
-.pytest_tmp/
-dist/
-scripts/_tools/sub-viewer/logs/mpv_sub_viewer.log
-# scripts/_tools/sub-tts/config.ini
-scripts/_tools/sub-tts/logs/
-scripts/_tools/sub-tts/__pycache__/
 
-# --- Specific Legacy Exclusions ---
+# --- State & Generated Media Assets ---
+docs/assets/
+docs/conversations/assets/
+resume-session.state
+resume_session.state
+# scripts/_tools/sub-viewer/black.mp4
+
+# --- Legacy Reference Exclusions (Disabled) ---
 # scripts/*_old*.lua
 # scripts/test_osd.lua
 # scripts/old_copy_sub.lua
 # scripts/lls_core_good*.lua
 # tests/fixtures/20260502165659-test-fixture.tsv
 
-# --- User Settings (Optional) ---
+# --- Optional User Configuration ---
 # anki-mapping.ini is versioned, but users can untrack it if needed.
 # !anki-mapping.ini
-
-# --- Generated Sub Viewer Media ---
-# scripts/_tools/sub-viewer/black.mp4
-mpv_start_test.log
-mpv_success_test.log
-mpv_test_launch.log
-docs/assets/
-.tmp_pytest_subviewer/
-_tmp_pytest/
-scripts/_tools/sub-viewer/sub_viewer_launch.log
-docs/conversations/assets/
+# scripts/_tools/sub-tts/config.ini
