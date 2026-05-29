@@ -12,8 +12,8 @@
 .github/
 .opencode/
 .roo/
-*.code-workspace
 .history/
+# *.code-workspace
 
 # --- Python, Build & Test Caches ---
 __pycache__/
