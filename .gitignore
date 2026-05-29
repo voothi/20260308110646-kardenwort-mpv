@@ -60,3 +60,4 @@ docs/assets/
 .tmp_pytest_subviewer/
 _tmp_pytest/
 scripts/_tools/sub-viewer/sub_viewer_launch.log
+docs/conversations/assets/
