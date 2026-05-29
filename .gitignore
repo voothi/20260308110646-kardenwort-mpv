@@ -3,17 +3,17 @@
 # =========================================================================
 
 # --- System, IDE & AI Agents ---
-.agent/
-.claude/
-.cline/
-.clinerules
-.codex/
-.git/
-.github/
+# .agent/
+# .claude/
+# .cline/
+# .clinerules
+# .codex/
+# .git/
+# .github/
+# .opencode/
+# .roo/
+# *.code-workspace
 .history/
-.opencode/
-.roo/
-*.code-workspace
 
 # --- Python, Build & Test Caches ---
 __pycache__/
