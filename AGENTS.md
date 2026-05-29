@@ -34,3 +34,8 @@ This dynamically and transparently redirects all OpenSpec operations (such as `/
 
 ---
 *Note: These capabilities are powered by OpenSpec and the specialized `.agent/` configurations.*
+
+## Development Guidelines and Constraints
+
+- **Do not save trial or temporary `.lua` scripts anywhere in this project.** Because MPV or other loaders can automatically scan and load scripts, experimental or trial Lua scripts saved in the workspace can conflict with the productive ones and cause runtime errors. All exploratory or experimental Lua code must be executed outside the workspace or cleaned up immediately, ensuring only stable, productive scripts remain in the repository.
+
