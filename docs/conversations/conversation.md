@@ -1,7 +1,6 @@
 ---
 aliases: 
   - conversation
-up: "[[conversation]]"
 type: 
 status: 
 down: 
@@ -39,9 +38,8 @@ due:
     - [[20260529021516-the-new-look-is|The New Look is Absolutely Gorgeous!]]
 - [[20260529022624-opsx-archive---sync-20260528233703-improve-yt-downloader-terminal|opsx-archive --sync 20260528233703-improve-yt-downloader-terminal]]
     - [[20260529022814-archive-complete|## Archive Complete]]
-
-
-
+- [[20260529104430-make-a-new-parameter|Make a new parameter in the tts tool]]
+    - [[20260529114340-all-four-artifacts-are|All four artifacts are complete.]]
 
 
 

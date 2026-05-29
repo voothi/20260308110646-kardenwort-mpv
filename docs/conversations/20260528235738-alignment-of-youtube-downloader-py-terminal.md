@@ -1,7 +1,7 @@
 ---
 aliases: 
   - Alignment of youtube_downloader.py Terminal Aesthetics.
-up: "[[conversation]]"
+up: "[[20260528235356-opsx-apply-20260528233703-improve-yt-downloader-terminal]]"
 type: 
 status: 
 down: 

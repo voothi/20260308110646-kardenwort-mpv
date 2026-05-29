@@ -1,7 +1,7 @@
 ---
 aliases: 
   - Change 20260528233703-improve-yt-downloader-terminal is created at.
-up: "[[conversation]]"
+up: "[[20260528233522-bring-the-console-view]]"
 type: 
 status: 
 down: 

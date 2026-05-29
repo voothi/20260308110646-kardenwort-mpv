@@ -1,7 +1,7 @@
 ---
 aliases: 
   - ## Archive Complete
-up: "[[conversation]]"
+up: "[[20260529022624-opsx-archive---sync-20260528233703-improve-yt-downloader-terminal]]"
 type: 
 status: 
 down: 
