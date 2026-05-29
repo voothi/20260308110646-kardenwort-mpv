@@ -3,11 +3,16 @@
 # =========================================================================
 
 # --- System & IDE ---
+.agent/
+.claude/
+.cline/
+.clinerules
+.codex/
+.git/
+.github/
 .history/
-# .claude/
-# .cline/
-# .roo/
-# .opencode/
+.opencode/
+.roo/
 *.code-workspace
 
 # --- Python & Build ---

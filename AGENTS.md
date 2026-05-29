@@ -27,20 +27,10 @@ Use these commands in chat to trigger specific agent behaviors:
 ## Crucial OpenSpec Configuration (Multi-Repository Strategy)
 
 To keep the codebase and documentation separate and protect documentation from Git rollbacks:
-- **Do not** initialize OpenSpec or create junctions in the code root.
-- **Do** set the `OPENSPEC_PROJECT_ROOT` environment variable to the Obsidian private vault directory (`U:\voothi.vault\kardenwort-mpv`) when executing any OpenSpec command.
+- **Do not** initialize full OpenSpec artifact directories or create junctions in the code root.
+- The project root includes a redirection config file at `openspec/config.yaml` with the `projectRoot` option pointing directly to the Obsidian private vault directory (`U:\voothi.vault\kardenwort-mpv`).
 
-### PowerShell Command Examples:
-When running OpenSpec commands in PowerShell, always prefix the command with the environment variable:
-```powershell
-$env:OPENSPEC_PROJECT_ROOT="U:\voothi.vault\kardenwort-mpv"; openspec new change "20260529165154-my-change"
-```
-Or set it once for the session:
-```powershell
-$env:OPENSPEC_PROJECT_ROOT="U:\voothi.vault\kardenwort-mpv"
-```
-
-This ensures all proposal, specification, design, and task files are read/written directly inside the private vault, keeping your public code repository clean and binary-free.
+This dynamically and transparently redirects all OpenSpec operations (such as `/opsx:propose`, `openspec new change`, `openspec status`, etc.) to write and read files directly inside the private vault, without requiring environment variables, symlinks, or custom wrappers. Both human developers and AI agents can execute standard OpenSpec commands seamlessly in the workspace root.
 
 ---
 *Note: These capabilities are powered by OpenSpec and the specialized `.agent/` configurations.*
