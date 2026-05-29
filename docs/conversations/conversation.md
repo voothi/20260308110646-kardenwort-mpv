@@ -32,7 +32,7 @@ due:
 - [[20260528235830-do-a-review-last|Do a review last commit.]]
     - [[20260529000131-code-review-commit-d92e6edf|Code Review — Commit d92e6edf (20260528235743).]]
 - [[20260529000203-do-a-review-last|Do a review last commit.]]
-    - [[20260529003631-here-is-a-focused|Here is a focused review of your last code implementation commit (`d92e6edf`).]]
+    - [[20260529003631-here-is-a-focused|Here is a focused review of your last code implementation commit (d92e6edf).]]
 - [[20260529004952-look-is-everything-correct|Look, is everything correct, haven’t we lost anything in comparison with the previous version?]]
     - [[20260529005308-analysis|### 1. Analysis of Your Screenshots & Visual PARITY]]
 - [[20260529020703-check-out-the-new|Check out the new look]]
