@@ -32,7 +32,7 @@ def _srt_payload_lines(srt_text):
 @contextmanager
 def _workspace_scratch_dir():
     repo_root = Path(__file__).resolve().parents[2]
-    base = repo_root / ".tmp_pytest_subviewer"
+    base = repo_root / ".pytest_tmp" / "subviewer"
     base.mkdir(parents=True, exist_ok=True)
     case_dir = base / f"case-{uuid.uuid4().hex}"
     case_dir.mkdir(parents=True, exist_ok=False)

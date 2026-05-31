@@ -658,7 +658,7 @@ def test_progress_bar_plain_text_when_not_tty(monkeypatch):
     assert "eta 00:03" in bar
 
 
-def test_original_language_fallback_logs_nothing_when_no_tracks(monkeypatch):
+def test_original_language_fallback_logs_nothing_when_no_tracks(monkeypatch, tmp_path):
     yd = _load_downloader()
 
     info = {
@@ -675,8 +675,7 @@ def test_original_language_fallback_logs_nothing_when_no_tracks(monkeypatch):
     monkeypatch.setattr(yd, "get_unique_zid", lambda used_zids: "20260528013823")
     monkeypatch.setattr(yd, "log_info", lambda msg, indent="": info_logs.append(msg))
 
-    test_dir = Path(__file__).resolve().parents[2] / "tmp_test_20260528013823"
-    test_dir.mkdir(parents=True, exist_ok=True)
+    test_dir = tmp_path
     settings = {
         "youtube_download_resolution": "360p",
         "youtube_download_directory": str(test_dir),

@@ -257,10 +257,9 @@ def test_download_directory_source(yd, tmp_path, monkeypatch):
     assert download_dir == source_folder
 
 
-def test_subtitle_languages_mixed_original(yd, monkeypatch):
+def test_subtitle_languages_mixed_original(yd, tmp_path, monkeypatch):
     """Verifies that 'original,ru' maps to detected lang (e.g. en) plus additional languages."""
-    target_dir = Path(__file__).resolve().parents[2] / "tmp_test_20260528022742_mixed_original"
-    target_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = tmp_path
     
     settings = {
         "youtube_download_directory": str(target_dir),
@@ -301,10 +300,9 @@ def test_subtitle_languages_mixed_original(yd, monkeypatch):
     # 'original,ru' -> 'en,ru'
     assert sub_langs_passed == "en,ru"
 
-def test_subtitle_languages_original_and_base_do_not_duplicate(yd, monkeypatch):
+def test_subtitle_languages_original_and_base_do_not_duplicate(yd, tmp_path, monkeypatch):
     """Verifies that 'original,ru' does not duplicate when original resolves to ru-RU."""
-    target_dir = Path(__file__).resolve().parents[2] / "tmp_test_20260528022742_original_base"
-    target_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = tmp_path
 
     settings = {
         "youtube_download_directory": str(target_dir),
