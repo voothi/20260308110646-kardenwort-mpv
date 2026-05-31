@@ -127,7 +127,15 @@ class TestOpenSpecComplianceBatch3:
 
     def test_rfc_migration_checklist_dir(self):
         """Verify RFCs directory (rfc-migration-checklist)."""
-        assert os.path.isdir("docs/rfcs")
+        path = "docs/rfcs"
+        if not os.path.isdir(path) and os.path.exists("openspec/config.yaml"):
+            with open("openspec/config.yaml", "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("projectRoot:"):
+                        project_root = line.split(":", 1)[1].strip()
+                        path = os.path.join(project_root, "rfcs")
+                        break
+        assert os.path.isdir(path)
 
     def test_scanner_parser_german(self, mpv):
         """Verify German word tokenization (scanner-parser)."""
