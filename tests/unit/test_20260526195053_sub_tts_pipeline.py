@@ -282,3 +282,33 @@ def test_apply_shift_plan_mismatch_prefix():
     assert shifted[2]["cue"]["start_ms"] == 3000
 
 
+def test_plan_subtitle_shifts_does_not_mutate_input(monkeypatch):
+    sub_tts = _load_sub_tts()
+    monkeypatch.setattr(sub_tts, "get_wav_duration_ms", lambda path, ffmpeg_path: 3000)
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 1500, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 2000, "end_ms": 2500, "text": "b"}},
+    ]
+
+    sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
+
+    assert "wav_duration_ms_cached" not in synthesis_results[0]
+    assert synthesis_results[0]["cue"]["start_ms"] == 1000
+    assert synthesis_results[1]["cue"]["start_ms"] == 2000
+
+
+def test_apply_shift_plan_uses_cue_position_when_synthesis_failed():
+    sub_tts = _load_sub_tts()
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}},
+        {"ok": False, "wav_path": None, "cue": {"index": 2, "start_ms": 2000, "end_ms": 3000, "text": "b"}},
+        {"ok": True, "wav_path": Path("cue_003.wav"), "cue": {"index": 3, "start_ms": 3000, "end_ms": 4000, "text": "c"}},
+    ]
+
+    shifted = sub_tts.apply_shift_plan(synthesis_results, [0, 500, 1000])
+
+    assert shifted[0]["cue"]["start_ms"] == 1000
+    assert shifted[1]["cue"]["start_ms"] == 2500
+    assert shifted[2]["cue"]["start_ms"] == 4000
+
+

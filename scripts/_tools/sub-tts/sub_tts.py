@@ -751,30 +751,41 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     return adjusted
 
 
+class ShiftPlan(list):
+    """List of cue shifts with duration cache metadata for assembly."""
+
+    def __init__(self, shifts=(), wav_durations_ms=None):
+        super().__init__(shifts)
+        self.wav_durations_ms = wav_durations_ms or {}
+
+
 def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
     """
-    Build a cumulative drift plan for successfully synthesized cues.
+    Build a cumulative drift plan by cue position.
     Returns a list[int] where each entry is the total drift (ms) for cue position.
     """
-    valid_items = [item for item in synthesis_results if item["ok"] and item["wav_path"]]
-    if not valid_items:
-        return []
+    if not synthesis_results:
+        return ShiftPlan()
 
-    original_starts = [item["cue"]["start_ms"] for item in valid_items]
+    original_starts = [item["cue"]["start_ms"] for item in synthesis_results]
     durations = []
-    for item in valid_items:
+    duration_cache = {}
+    for idx, item in enumerate(synthesis_results):
         cue = item["cue"]
-        wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
-        if wav_dur_ms <= 0:
-            wav_dur_ms = cue["end_ms"] - cue["start_ms"]
-        item["wav_duration_ms_cached"] = wav_dur_ms
+        if item["ok"] and item["wav_path"]:
+            wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
+            if wav_dur_ms <= 0:
+                wav_dur_ms = cue["end_ms"] - cue["start_ms"]
+            duration_cache[idx] = wav_dur_ms
+        else:
+            wav_dur_ms = 0
         durations.append(wav_dur_ms)
 
     drift = 0
-    shift_plan = []
-    count = len(valid_items)
+    shifts = []
+    count = len(synthesis_results)
     for idx in range(count):
-        shift_plan.append(drift)
+        shifts.append(drift)
         shifted_start = original_starts[idx] + drift
         audio_end = shifted_start + durations[idx]
         if idx + 1 < count:
@@ -783,17 +794,17 @@ def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
             if gap_required > 0:
                 drift += gap_required
 
-    return shift_plan
+    return ShiftPlan(shifts, duration_cache)
 
 
 def apply_shift_plan(synthesis_results, shift_plan):
     """
     Return a new synthesis result list with shifted cue timing copies.
-    Shift entries apply to successfully synthesized cues by position.
+    Shift entries apply by cue position.
     """
     shifted_results = []
-    valid_idx = 0
-    for item in synthesis_results:
+    duration_cache = getattr(shift_plan, "wav_durations_ms", {})
+    for idx, item in enumerate(synthesis_results):
         new_item = dict(item)
         cue = item.get("cue")
         if cue is None:
@@ -801,13 +812,12 @@ def apply_shift_plan(synthesis_results, shift_plan):
             continue
 
         new_cue = dict(cue)
-        if item.get("ok") and item.get("wav_path") and valid_idx < len(shift_plan):
-            drift = shift_plan[valid_idx]
+        if idx < len(shift_plan):
+            drift = shift_plan[idx]
             new_cue["start_ms"] = cue["start_ms"] + drift
             new_cue["end_ms"] = cue["end_ms"] + drift
-            valid_idx += 1
-        elif item.get("ok") and item.get("wav_path"):
-            valid_idx += 1
+        if idx in duration_cache:
+            new_item["wav_duration_ms_cached"] = duration_cache[idx]
 
         new_item["cue"] = new_cue
         shifted_results.append(new_item)
@@ -1135,10 +1145,10 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 synthesis_results = apply_shift_plan(synthesis_results, canonical_shift_plan)
                 if canonical_filename:
                     log_info(f"Applying canonical shift plan from {canonical_filename}")
-                local_valid_count = sum(1 for item in synthesis_results if item["ok"] and item["wav_path"])
-                if local_valid_count != len(canonical_shift_plan):
+                local_cue_count = len(synthesis_results)
+                if local_cue_count != len(canonical_shift_plan):
                     log_warn(
-                        f"{srt_path.name}: cue count {local_valid_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
+                        f"{srt_path.name}: cue count {local_cue_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
                     )
 
         # 6. Assemble timed audio
