@@ -57,6 +57,10 @@ max_extra_gap_ms = 1000
 # natural-sounding speech.
 max_speed_factor = 2.0
 
+# Shift subtitle timings later to follow audio when residual overflow remains
+# after speed fitting. Trade-off: output can become longer, but avoids overlap.
+fit_subtitle_to_audio = false
+
 
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
 # Set to 0 to close instantly; ignored on errors so they can be inspected.

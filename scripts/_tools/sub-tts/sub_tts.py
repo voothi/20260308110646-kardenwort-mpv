@@ -751,6 +751,70 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     return adjusted
 
 
+def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
+    """
+    Build a cumulative drift plan for successfully synthesized cues.
+    Returns a list[int] where each entry is the total drift (ms) for cue position.
+    """
+    valid_items = [item for item in synthesis_results if item["ok"] and item["wav_path"]]
+    if not valid_items:
+        return []
+
+    original_starts = [item["cue"]["start_ms"] for item in valid_items]
+    durations = []
+    for item in valid_items:
+        cue = item["cue"]
+        wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
+        if wav_dur_ms <= 0:
+            wav_dur_ms = cue["end_ms"] - cue["start_ms"]
+        item["wav_duration_ms_cached"] = wav_dur_ms
+        durations.append(wav_dur_ms)
+
+    drift = 0
+    shift_plan = []
+    count = len(valid_items)
+    for idx in range(count):
+        shift_plan.append(drift)
+        shifted_start = original_starts[idx] + drift
+        audio_end = shifted_start + durations[idx]
+        if idx + 1 < count:
+            next_shifted_start = original_starts[idx + 1] + drift
+            gap_required = audio_end - next_shifted_start
+            if gap_required > 0:
+                drift += gap_required
+
+    return shift_plan
+
+
+def apply_shift_plan(synthesis_results, shift_plan):
+    """
+    Return a new synthesis result list with shifted cue timing copies.
+    Shift entries apply to successfully synthesized cues by position.
+    """
+    shifted_results = []
+    valid_idx = 0
+    for item in synthesis_results:
+        new_item = dict(item)
+        cue = item.get("cue")
+        if cue is None:
+            shifted_results.append(new_item)
+            continue
+
+        new_cue = dict(cue)
+        if item.get("ok") and item.get("wav_path") and valid_idx < len(shift_plan):
+            drift = shift_plan[valid_idx]
+            new_cue["start_ms"] = cue["start_ms"] + drift
+            new_cue["end_ms"] = cue["end_ms"] + drift
+            valid_idx += 1
+        elif item.get("ok") and item.get("wav_path"):
+            valid_idx += 1
+
+        new_item["cue"] = new_cue
+        shifted_results.append(new_item)
+
+    return shifted_results
+
+
 # ==============================================================================
 # TIMED AUDIO ASSEMBLY (tasks 5.1 – 5.4)
 # ==============================================================================
@@ -769,7 +833,9 @@ def build_audio_placement_plan(synthesis_results, ffmpeg_path):
         if not item["ok"] or not item["wav_path"]:
             continue
         cue = item["cue"]
-        wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
+        wav_dur_ms = item.get("wav_duration_ms_cached")
+        if wav_dur_ms is None:
+            wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
         if wav_dur_ms <= 0:
             wav_dur_ms = cue["end_ms"] - cue["start_ms"]
 
@@ -977,7 +1043,8 @@ def resolve_ffmpeg(config, cli_override=None):
 
 def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 lang_override=None, output_dir_override=None, zid_cache=None,
-                keep_lang_postfix_override=None):
+                keep_lang_postfix_override=None, fit_subtitle_to_audio_override=None,
+                canonical_shift_plan=None, canonical_filename=None):
     """
     Full pipeline for a single SRT file:
       1. Detect language
@@ -987,7 +1054,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
       5. Mux to MP4
       6. Cleanup
 
-    Returns True on success, False on failure.
+    Returns (success, shift_plan).
     """
     if zid_cache is None:
         zid_cache = {}
@@ -1016,11 +1083,11 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         cues = parse_srt(str(srt_path))
     except Exception as exc:
         log_error(f"Error parsing SRT file: {exc}")
-        return False
+        return False, None
 
     if not cues:
         log_error("No valid subtitle cues found in the SRT file.")
-        return False
+        return False, None
 
     log_detail(f"Found {_bold(str(len(cues)))} cues to synthesize.")
 
@@ -1045,16 +1112,40 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
 
         if successful == 0:
             log_error("All cue synthesis attempts failed. Check Piper TTS setup.")
-            return False
+            return False, None
 
         # 5. Subtitle Edit-style speed fitting
         synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
+
+        fit_subtitle_to_audio = fit_subtitle_to_audio_override
+        if fit_subtitle_to_audio is None:
+            fit_subtitle_to_audio = config_bool(config, "tts_settings", "fit_subtitle_to_audio", False)
+
+        produced_shift_plan = None
+        if fit_subtitle_to_audio:
+            if canonical_shift_plan is None:
+                produced_shift_plan = plan_subtitle_shifts(synthesis_results, ffmpeg_path)
+                synthesis_results = apply_shift_plan(synthesis_results, produced_shift_plan)
+                shifted_count = sum(1 for drift in produced_shift_plan if drift > 0)
+                total_drift_ms = max(produced_shift_plan) if produced_shift_plan else 0
+                log_info(
+                    f"Fitting subtitles to audio: {shifted_count} cue(s) shifted, total drift {total_drift_ms / 1000.0:.2f}s"
+                )
+            else:
+                synthesis_results = apply_shift_plan(synthesis_results, canonical_shift_plan)
+                if canonical_filename:
+                    log_info(f"Applying canonical shift plan from {canonical_filename}")
+                local_valid_count = sum(1 for item in synthesis_results if item["ok"] and item["wav_path"])
+                if local_valid_count != len(canonical_shift_plan):
+                    log_warn(
+                        f"{srt_path.name}: cue count {local_valid_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
+                    )
 
         # 6. Assemble timed audio
         log_section("AUDIO ASSEMBLY")
         assembled_wav = assemble_audio(synthesis_results, temp_dir, ffmpeg_path)
         if assembled_wav is None:
-            return False
+            return False, None
 
         # 7. Output path
         output_mp4, policy = resolve_output_path(
@@ -1068,7 +1159,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         if policy == "skip":
             log_skip(f"Output already exists: {output_mp4}")
             success = True
-            return True
+            return True, produced_shift_plan
 
         output_mp4.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1078,7 +1169,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         if ok:
             log_ok(f"Output: {_cyan(str(output_mp4))}")
             success = True
-        return ok
+        return ok, produced_shift_plan
 
     finally:
         cleanup_temp_dir(temp_dir, success)
@@ -1178,6 +1269,18 @@ def parse_args():
         help="Strip the language postfix from the output MP4 filename (overrides config).",
     )
     parser.add_argument(
+        "--fit-subtitle-to-audio",
+        action="store_true",
+        default=None,
+        help="Shift subtitle timings later to avoid cue overlap when audio overflows.",
+    )
+    parser.add_argument(
+        "--no-fit-subtitle-to-audio",
+        action="store_false",
+        dest="fit_subtitle_to_audio",
+        help="Keep subtitle-locked timing even if audio overflows (overrides config).",
+    )
+    parser.add_argument(
         "--sendto",
         action="store_true",
         help="Windows SendTo mode: treat all positional arguments as selected files.",
@@ -1237,9 +1340,11 @@ def main():
     # Process each file
     zid_cache = {}
     results = []
+    shift_plan = None
+    canonical_filename = None
 
     for srt_path in srt_files:
-        ok = process_srt(
+        ok, generated_shift_plan = process_srt(
             srt_path,
             config=config,
             piper_config=piper_config,
@@ -1249,8 +1354,17 @@ def main():
             output_dir_override=args.output_dir,
             zid_cache=zid_cache,
             keep_lang_postfix_override=args.keep_lang_postfix,
+            fit_subtitle_to_audio_override=args.fit_subtitle_to_audio,
+            canonical_shift_plan=shift_plan,
+            canonical_filename=canonical_filename,
         )
         results.append((srt_path, ok))
+        if shift_plan is None and generated_shift_plan is not None and ok:
+            shift_plan = generated_shift_plan
+            canonical_filename = Path(srt_path).name
+        if args.fit_subtitle_to_audio is False:
+            shift_plan = None
+            canonical_filename = None
 
     # Summary
     elapsed = time.time() - start_time

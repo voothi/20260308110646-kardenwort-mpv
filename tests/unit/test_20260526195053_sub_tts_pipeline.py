@@ -198,3 +198,87 @@ def test_non_tty_throttle_writes_expected_line_count(monkeypatch, capsys, tmp_pa
     assert "\r" not in captured.out
 
 
+def test_plan_subtitle_shifts_no_overflow(monkeypatch):
+    sub_tts = _load_sub_tts()
+    durations = {"cue_001.wav": 800, "cue_002.wav": 700}
+
+    def fake_duration(path, ffmpeg_path):
+        return durations[Path(path).name]
+
+    monkeypatch.setattr(sub_tts, "get_wav_duration_ms", fake_duration)
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 2500, "end_ms": 3500, "text": "b"}},
+    ]
+
+    plan = sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
+    assert plan == [0, 0]
+
+
+def test_plan_subtitle_shifts_single_overflow(monkeypatch):
+    sub_tts = _load_sub_tts()
+    durations = {"cue_001.wav": 3000, "cue_002.wav": 1000}
+
+    def fake_duration(path, ffmpeg_path):
+        return durations[Path(path).name]
+
+    monkeypatch.setattr(sub_tts, "get_wav_duration_ms", fake_duration)
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 1500, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 2000, "end_ms": 2500, "text": "b"}},
+    ]
+
+    plan = sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
+    assert plan == [0, 2000]
+
+
+def test_plan_subtitle_shifts_accumulated_drift(monkeypatch):
+    sub_tts = _load_sub_tts()
+    durations = {"cue_001.wav": 1500, "cue_002.wav": 1500, "cue_003.wav": 900}
+
+    def fake_duration(path, ffmpeg_path):
+        return durations[Path(path).name]
+
+    monkeypatch.setattr(sub_tts, "get_wav_duration_ms", fake_duration)
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 0, "end_ms": 500, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 1000, "end_ms": 1500, "text": "b"}},
+        {"ok": True, "wav_path": Path("cue_003.wav"), "cue": {"index": 3, "start_ms": 2000, "end_ms": 2500, "text": "c"}},
+    ]
+
+    plan = sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
+    assert plan == [0, 500, 1000]
+
+
+def test_plan_subtitle_shifts_never_pulls_earlier(monkeypatch):
+    sub_tts = _load_sub_tts()
+    durations = {"cue_001.wav": 1500, "cue_002.wav": 200, "cue_003.wav": 1100}
+
+    def fake_duration(path, ffmpeg_path):
+        return durations[Path(path).name]
+
+    monkeypatch.setattr(sub_tts, "get_wav_duration_ms", fake_duration)
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 0, "end_ms": 500, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 1000, "end_ms": 1500, "text": "b"}},
+        {"ok": True, "wav_path": Path("cue_003.wav"), "cue": {"index": 3, "start_ms": 1600, "end_ms": 2000, "text": "c"}},
+    ]
+
+    plan = sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
+    assert plan == [0, 500, 500]
+
+
+def test_apply_shift_plan_mismatch_prefix():
+    sub_tts = _load_sub_tts()
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 2000, "end_ms": 3000, "text": "b"}},
+        {"ok": True, "wav_path": Path("cue_003.wav"), "cue": {"index": 3, "start_ms": 3000, "end_ms": 4000, "text": "c"}},
+    ]
+
+    shifted = sub_tts.apply_shift_plan(synthesis_results, [0, 500])
+    assert shifted[0]["cue"]["start_ms"] == 1000
+    assert shifted[1]["cue"]["start_ms"] == 2500
+    assert shifted[2]["cue"]["start_ms"] == 3000
+
+
