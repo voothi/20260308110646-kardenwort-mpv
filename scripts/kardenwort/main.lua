@@ -24,6 +24,63 @@ do
     local raw_register_event = mp.register_event
     local raw_observe_property = mp.observe_property
     local raw_register_script_message = mp.register_script_message
+    local raw_get_property_number = mp.get_property_number
+    local raw_get_property = mp.get_property
+    local raw_commandv = mp.commandv
+    local raw_command = mp.command
+
+    -- [v1.58.55] Subtitle delay adjustment wrappers.
+    -- Intercept time-pos queries and seek commands to respect mpv's sub-delay offset
+    -- so that kardenwort's custom subtitle immersion features sync perfectly.
+    mp.get_property_number = function(name, def)
+        if name == "time-pos" then
+            local val = raw_get_property_number(name)
+            if not val then return def end
+            local sub_delay = raw_get_property_number("sub-delay") or 0.0
+            return val - sub_delay
+        end
+        return raw_get_property_number(name, def)
+    end
+
+    mp.get_property = function(name, def)
+        if name == "time-pos" then
+            local val = raw_get_property(name)
+            if not val then return def end
+            local val_num = tonumber(val)
+            if not val_num then return val end
+            local sub_delay = raw_get_property_number("sub-delay") or 0.0
+            return tostring(val_num - sub_delay)
+        end
+        return raw_get_property(name, def)
+    end
+
+    mp.commandv = function(cmd, ...)
+        if cmd == "seek" then
+            local args = {...}
+            local target = args[1]
+            local mode = args[2]
+            if mode == "absolute+exact" and type(target) == "number" then
+                local sub_delay = raw_get_property_number("sub-delay") or 0.0
+                target = target + sub_delay
+            end
+            return raw_commandv(cmd, target, mode, select(3, ...))
+        end
+        return raw_commandv(cmd, ...)
+    end
+
+    mp.command = function(cmd_str)
+        if type(cmd_str) == "string" and cmd_str:match("^seek%s+") then
+            local target, mode = cmd_str:match("^seek%s+([%d%.%-]+)%s+(%a+)")
+            if target and mode == "absolute" then
+                local target_num = tonumber(target)
+                if target_num then
+                    local sub_delay = raw_get_property_number("sub-delay") or 0.0
+                    return raw_command(string.format("seek %f absolute", target_num + sub_delay))
+                end
+            end
+        end
+        return raw_command(cmd_str)
+    end
 
     local function validate_callback(kind, name, fn)
         if type(fn) == "function" then return true end
