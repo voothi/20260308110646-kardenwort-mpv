@@ -312,7 +312,7 @@ def test_apply_shift_plan_uses_cue_position_when_synthesis_failed():
     assert shifted[2]["cue"]["start_ms"] == 4000
 
 
-def test_apply_shift_plan_does_not_cache_duration_when_flag_false():
+def test_apply_shift_plan_duration_cache_propagation():
     sub_tts = _load_sub_tts()
     plan = sub_tts.ShiftPlan([0, 500], {0: 1500, 1: 1500})
     synthesis_results = [
@@ -320,11 +320,17 @@ def test_apply_shift_plan_does_not_cache_duration_when_flag_false():
         {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 2000, "end_ms": 3000, "text": "b"}},
     ]
 
-    shifted = sub_tts.apply_shift_plan(synthesis_results, plan, use_duration_cache=False)
-    assert "wav_duration_ms_cached" not in shifted[0]
-    assert "wav_duration_ms_cached" not in shifted[1]
-    assert shifted[0]["cue"]["start_ms"] == 1000
-    assert shifted[1]["cue"]["start_ms"] == 2500
+    # Default/True propagation behavior
+    shifted_true = sub_tts.apply_shift_plan(synthesis_results, plan)
+    assert shifted_true[0]["wav_duration_ms_cached"] == 1500
+    assert shifted_true[1]["wav_duration_ms_cached"] == 1500
+
+    # Explicit False propagation behavior
+    shifted_false = sub_tts.apply_shift_plan(synthesis_results, plan, propagate_duration_cache=False)
+    assert "wav_duration_ms_cached" not in shifted_false[0]
+    assert "wav_duration_ms_cached" not in shifted_false[1]
+    assert shifted_false[0]["cue"]["start_ms"] == 1000
+    assert shifted_false[1]["cue"]["start_ms"] == 2500
 
 
 
