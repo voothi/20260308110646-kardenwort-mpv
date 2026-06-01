@@ -99,11 +99,12 @@ class TestImmersionRegressions:
 
         # Seek to next sub
         ipc.command(['script-message-to', 'kardenwort', 'test-seek-delta', '1'])
-        time.sleep(0.5)
-
-        state = query_kardenwort_state(ipc)
-        # Verify active sub index is advanced
-        assert state['active_sub_index'] == 2, f"Expected sub 2, got {state['active_sub_index']}"
+        
+        # Verify active sub index is advanced with robust polling
+        assert wait_for_state(ipc, 'active_sub_index', 2, timeout=3.0), (
+            f"Expected sub 2, got {query_kardenwort_state(ipc).get('active_sub_index')}"
+        )
+        
         # Secondary track should also be at sub 2 (if synced)
         # We check this by verifying the secondary-sid is still active and 
         # (optionally) if the OSD shows the correct text.

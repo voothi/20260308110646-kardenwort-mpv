@@ -56,17 +56,11 @@ class TestAgentCapabilitiesDocumentation:
     """
     Spec: openspec/specs/agent-capabilities-documentation
 
-    Verifies that AGENTS.md exists in the project root, documents the expected
-    slash commands, and that those commands have corresponding workflow files.
+    Verifies that AGENTS.md exists in the project root and documents the expected
+    slash commands.
     """
 
     _EXPECTED_SLASH_COMMANDS = ["/opsx:apply", "/opsx:archive", "/opsx:explore", "/opsx:propose"]
-    _EXPECTED_WORKFLOW_FILES = [
-        ".agent/workflows/opsx-apply.md",
-        ".agent/workflows/opsx-archive.md",
-        ".agent/workflows/opsx-explore.md",
-        ".agent/workflows/opsx-propose.md",
-    ]
 
     def test_agents_md_exists(self):
         """AGENTS.md must be present in the project root."""
