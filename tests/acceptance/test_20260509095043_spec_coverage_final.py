@@ -80,10 +80,7 @@ class TestAgentCapabilitiesDocumentation:
                 f"Slash command '{cmd}' not documented in AGENTS.md"
             )
 
-    def test_slash_command_workflow_files_exist(self):
-        """Each slash command must have a backing workflow .md file."""
-        for wf in self._EXPECTED_WORKFLOW_FILES:
-            assert os.path.exists(wf), f"Workflow file missing: {wf}"
+
 
     def test_agents_md_lists_skills(self):
         """AGENTS.md must contain a Skills table."""

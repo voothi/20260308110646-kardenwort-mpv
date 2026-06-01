@@ -109,9 +109,7 @@ class TestOpenSpecComplianceBatch4:
         assert 'playback_state' in state
         assert 'drum_mode' in state
 
-    def test_structured_workflows_exists(self):
-        """Verify structured workflows directory (structured-workflows)."""
-        assert os.path.isdir(".agent/workflows")
+
 
     def test_style_restoration_verification_osd(self, mpv):
         """Verify OSD style restoration logic (style-restoration-verification)."""

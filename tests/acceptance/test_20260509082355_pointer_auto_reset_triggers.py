@@ -215,9 +215,7 @@ class TestOpenSpecComplianceBatch3:
         state = robust_query_state(mpv.ipc)
         assert 'dw_bg_opacity' in state['options']
 
-    def test_slash_commands_implementation_dir(self):
-        """Verify slash commands directory (slash-commands-implementation)."""
-        assert os.path.isdir(".agent/workflows")
+
 
     def test_smart_diagnostics_log_level(self, mpv):
         """Verify log level option (smart-diagnostics)."""

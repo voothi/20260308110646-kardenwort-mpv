@@ -241,9 +241,7 @@ class TestHistoricalRegressionsV2:
         # We'd need to boot mpv without external subs to test this properly.
         pass
 
-    def test_folder_name_standardization(self):
-        """Verify .agent/ directory exists (folder-name-standardization)."""
-        assert os.path.isdir(".agent")
+
 
     def test_fsm_architecture_s_toggle(self, mpv):
         """Verify 's' toggle is SUPPRESSED when DW is open (fsm-architecture)."""

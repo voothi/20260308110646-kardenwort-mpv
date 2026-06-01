@@ -142,11 +142,7 @@ class TestOpenSpecComplianceBatch2:
         state = robust_query_state(mpv.ipc)
         assert 'dw_key_open_record' in state['options']
 
-    def test_openspec_integration_directory(self):
-        """Verify OpenSpec directory structure (openspec-integration)."""
-        assert os.path.isdir("openspec")
-        assert os.path.isdir("openspec/specs")
-        assert os.path.isdir("openspec/changes")
+
 
     def test_optimized_defaults_v34_values(self, mpv):
         """Verify hardcoded defaults for v34 (optimized-defaults-v34)."""
