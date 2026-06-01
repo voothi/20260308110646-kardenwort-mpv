@@ -797,13 +797,13 @@ def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
     return ShiftPlan(shifts, duration_cache)
 
 
-def apply_shift_plan(synthesis_results, shift_plan):
+def apply_shift_plan(synthesis_results, shift_plan, use_duration_cache=True):
     """
     Return a new synthesis result list with shifted cue timing copies.
     Shift entries apply by cue position.
     """
     shifted_results = []
-    duration_cache = getattr(shift_plan, "wav_durations_ms", {})
+    duration_cache = getattr(shift_plan, "wav_durations_ms", {}) if use_duration_cache else {}
     for idx, item in enumerate(synthesis_results):
         new_item = dict(item)
         cue = item.get("cue")
@@ -1142,7 +1142,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                     f"Fitting subtitles to audio: {shifted_count} cue(s) shifted, total drift {total_drift_ms / 1000.0:.2f}s"
                 )
             else:
-                synthesis_results = apply_shift_plan(synthesis_results, canonical_shift_plan)
+                synthesis_results = apply_shift_plan(synthesis_results, canonical_shift_plan, use_duration_cache=False)
                 if canonical_filename:
                     log_info(f"Applying canonical shift plan from {canonical_filename}")
                 local_cue_count = len(synthesis_results)

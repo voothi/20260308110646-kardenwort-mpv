@@ -312,3 +312,19 @@ def test_apply_shift_plan_uses_cue_position_when_synthesis_failed():
     assert shifted[2]["cue"]["start_ms"] == 4000
 
 
+def test_apply_shift_plan_does_not_cache_duration_when_flag_false():
+    sub_tts = _load_sub_tts()
+    plan = sub_tts.ShiftPlan([0, 500], {0: 1500, 1: 1500})
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_001.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}},
+        {"ok": True, "wav_path": Path("cue_002.wav"), "cue": {"index": 2, "start_ms": 2000, "end_ms": 3000, "text": "b"}},
+    ]
+
+    shifted = sub_tts.apply_shift_plan(synthesis_results, plan, use_duration_cache=False)
+    assert "wav_duration_ms_cached" not in shifted[0]
+    assert "wav_duration_ms_cached" not in shifted[1]
+    assert shifted[0]["cue"]["start_ms"] == 1000
+    assert shifted[1]["cue"]["start_ms"] == 2500
+
+
+
