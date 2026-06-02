@@ -1,4 +1,4 @@
-﻿1
+1
 00:00:02,472 --> 00:00:16,282
 The best prompt in the world cannot compensate for an AI that does not know what you've been working on, what you've already tried, what your constraints are, who the key people in your life are, or what you decided last Tuesday.
 
