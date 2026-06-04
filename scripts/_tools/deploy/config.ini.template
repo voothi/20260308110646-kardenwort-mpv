@@ -10,3 +10,6 @@ with_mpv_distribution = false
 
 # Path to the mpv distribution directory to bundle
 mpv_distribution_path = C:\mpv\mpv-0.39.0-x86_64
+
+# Whether to flatten mpv files into the root of the archive (true) or place in an 'mpv' subfolder (false)
+flatten_mpv_distribution = true

@@ -26,6 +26,7 @@ import tempfile
 
 DEFAULT_ARTIFACT_SUFFIX = "kardenwort-mpv"
 DEFAULT_INCLUDE_MPV_DIST = False
+DEFAULT_FLATTEN_MPV_DIST = True
 DEFAULT_MPV_DISTRIBUTION_PATH = Path(r"C:\mpv\mpv-0.39.0-x86_64")
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.ini")
 DEFAULT_INCLUDE_PATHS = [
@@ -81,6 +82,16 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=r"Path to mpv distribution root (example: C:\mpv\mpv-0.39.0-x86_64)",
     )
+    parser.add_argument(
+        "--flatten-mpv-dist",
+        action="store_true",
+        help="Flatten mpv distribution files into the root of the archive",
+    )
+    parser.add_argument(
+        "--no-flatten-mpv-dist",
+        action="store_true",
+        help="Do not flatten mpv distribution files (place them in an 'mpv' subfolder)",
+    )
     return parser.parse_args()
 
 
@@ -128,13 +139,18 @@ def load_config(config_path: Path) -> dict:
     except ValueError:
         settings["with_mpv_distribution"] = DEFAULT_INCLUDE_MPV_DIST
         
+    try:
+        settings["flatten_mpv_distribution"] = config.getboolean("settings", "flatten_mpv_distribution", fallback=DEFAULT_FLATTEN_MPV_DIST)
+    except ValueError:
+        settings["flatten_mpv_distribution"] = DEFAULT_FLATTEN_MPV_DIST
+
     mpv_path_str = config.get("settings", "mpv_distribution_path", fallback="").strip()
     settings["mpv_distribution_path"] = Path(mpv_path_str) if mpv_path_str else DEFAULT_MPV_DISTRIBUTION_PATH
     
     return settings
 
 
-def resolve_config_and_options(args: argparse.Namespace) -> tuple[dict, bool, Path]:
+def resolve_config_and_options(args: argparse.Namespace) -> tuple[dict, bool, Path, bool]:
     settings = load_config(args.config.resolve())
     
     include_mpv = settings["with_mpv_distribution"]
@@ -145,14 +161,24 @@ def resolve_config_and_options(args: argparse.Namespace) -> tuple[dict, bool, Pa
     if args.mpv_dist_path is not None:
         mpv_dist_path = args.mpv_dist_path
 
-    return settings, include_mpv, mpv_dist_path.resolve()
+    flatten_mpv_dist = settings["flatten_mpv_distribution"]
+    if args.flatten_mpv_dist:
+        flatten_mpv_dist = True
+    elif args.no_flatten_mpv_dist:
+        flatten_mpv_dist = False
+
+    return settings, include_mpv, mpv_dist_path.resolve(), flatten_mpv_dist
 
 
-def copy_mpv_distribution(staging_root: Path, payload_dirname: str, mpv_dist_path: Path) -> None:
+def copy_mpv_distribution(staging_root: Path, payload_dirname: str, mpv_dist_path: Path, flatten: bool) -> None:
     if not mpv_dist_path.exists() or not mpv_dist_path.is_dir():
         raise FileNotFoundError(f"mpv distribution path does not exist or is not a directory: {mpv_dist_path}")
 
-    target = staging_root / payload_dirname / "mpv"
+    if flatten:
+        target = staging_root / payload_dirname
+    else:
+        target = staging_root / payload_dirname / "mpv"
+
     shutil.copytree(mpv_dist_path, target, dirs_exist_ok=True)
 
 
@@ -163,12 +189,13 @@ def build_archive(
     include_mpv_dist: bool,
     mpv_dist_path: Path,
     include_paths: list[str],
+    flatten_mpv_dist: bool,
 ) -> str:
     with tempfile.TemporaryDirectory(prefix="kardenwort-build-") as temp_dir:
         staging_root = Path(temp_dir)
-        copy_payload(project_root, staging_root, artifact_stem, include_paths)
         if include_mpv_dist:
-            copy_mpv_distribution(staging_root, artifact_stem, mpv_dist_path)
+            copy_mpv_distribution(staging_root, artifact_stem, mpv_dist_path, flatten_mpv_dist)
+        copy_payload(project_root, staging_root, artifact_stem, include_paths)
         archive_base = output_dir / artifact_stem
         archive_path = shutil.make_archive(str(archive_base), "zip", root_dir=staging_root)
     return archive_path
@@ -202,7 +229,7 @@ def main() -> int:
     project_root = args.project_root.resolve()
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    settings, _include_mpv_dist, mpv_dist_path = resolve_config_and_options(args)
+    settings, _include_mpv_dist, mpv_dist_path, flatten_mpv_dist = resolve_config_and_options(args)
 
     zid = current_zid()
     artifact_base = args.artifact_name or f"{zid}-{settings['artifact_suffix']}"
@@ -216,6 +243,7 @@ def main() -> int:
         include_mpv_dist=False,
         mpv_dist_path=mpv_dist_path,
         include_paths=settings["include_paths"],
+        flatten_mpv_dist=flatten_mpv_dist,
     )
     full_archive = build_archive(
         project_root=project_root,
@@ -224,6 +252,7 @@ def main() -> int:
         include_mpv_dist=True,
         mpv_dist_path=mpv_dist_path,
         include_paths=settings["include_paths"],
+        flatten_mpv_dist=flatten_mpv_dist,
     )
 
     lite_archive_path = Path(lite_archive)
