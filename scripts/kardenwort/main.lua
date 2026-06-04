@@ -59,9 +59,12 @@ do
             local args = {...}
             local target = args[1]
             local mode = args[2]
-            if mode == "absolute+exact" and type(target) == "number" then
-                local sub_delay = raw_get_property_number("sub-delay") or 0.0
-                target = target + sub_delay
+            if mode == "absolute+exact" or mode == "absolute" then
+                local target_num = tonumber(target)
+                if target_num then
+                    local sub_delay = raw_get_property_number("sub-delay") or 0.0
+                    target = target_num + sub_delay
+                end
             end
             return raw_commandv(cmd, target, mode, select(3, ...))
         end
@@ -70,12 +73,12 @@ do
 
     mp.command = function(cmd_str)
         if type(cmd_str) == "string" and cmd_str:match("^seek%s+") then
-            local target, mode = cmd_str:match("^seek%s+([%d%.%-]+)%s+(%a+)")
-            if target and mode == "absolute" then
+            local target, mode = cmd_str:match("^seek%s+([%d%.%-]+)%s+([%a%+]+)")
+            if target and (mode == "absolute" or mode == "absolute+exact") then
                 local target_num = tonumber(target)
                 if target_num then
                     local sub_delay = raw_get_property_number("sub-delay") or 0.0
-                    return raw_command(string.format("seek %f absolute", target_num + sub_delay))
+                    return raw_command(string.format("seek %f %s", target_num + sub_delay, mode))
                 end
             end
         end
