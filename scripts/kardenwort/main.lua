@@ -8772,11 +8772,13 @@ local HELP_SCHEMA = {
         { desc = "Seek To Selected", cmd = "search%-seek%-selected%-?", fallback_keys = function() return Options.search_key_enter end },
         { desc = "Close Search", cmd = "search%-close%-?", fallback_keys = function() return Options.search_key_esc end },
     }},
-    { category = "Subtitle Position", actions = {
+    { category = "Subtitle Position & Delay", actions = {
         { desc = "Primary Subtitle Up", cmd = "kardenwort%-sub%-pos%-up" },
         { desc = "Primary Subtitle Down", cmd = "kardenwort%-sub%-pos%-down" },
         { desc = "Secondary Subtitle Up", cmd = "kardenwort%-sec%-sub%-pos%-up" },
         { desc = "Secondary Subtitle Down", cmd = "kardenwort%-sec%-sub%-pos%-down" },
+        { desc = "Subtitle Delay Decrease", cmd = "sub%-delay.-%-" },
+        { desc = "Subtitle Delay Increase", cmd = "sub%-delay.-%+" },
     }},
     { category = "Standard Controls", actions = {
         { desc = "Toggle Help HUD", cmd = "kardenwort/toggle-help", whitelist = {["F1"]=true} },
