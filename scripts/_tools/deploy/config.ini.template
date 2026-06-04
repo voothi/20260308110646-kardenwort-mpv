@@ -1,0 +1,12 @@
+[settings]
+# Suffix for the generated artifact archive name (e.g. YYYYMMDDHHMMSS-kardenwort-mpv)
+artifact_suffix = kardenwort-mpv
+
+# Comma-separated list of paths relative to the project root to include in the distribution
+include_paths = mpv.conf, input.conf, fonts.conf, anki-mapping.ini, scripts, LICENSE, README.md, release-notes.md
+
+# Whether to include a bundled mpv distribution in the full archive
+with_mpv_distribution = false
+
+# Path to the mpv distribution directory to bundle
+mpv_distribution_path = C:\mpv\mpv-0.39.0-x86_64
