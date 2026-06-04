@@ -8597,6 +8597,14 @@ local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
     local keys = {}
     local seen = {}
 
+    local active_cmds = {}
+    for _, b in ipairs(bindings) do
+        local k = normalize_key_display(b.key)
+        if k and k ~= "" then
+            active_cmds[k] = b.cmd
+        end
+    end
+
     local function prepare_pattern(raw)
         local p = raw
         if not p:find("%%") and not p:find("%.%*") and not p:find("%.%-") then
@@ -8635,7 +8643,7 @@ local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
             goto continue 
         end
         
-        if cmd_matches(b.cmd) then
+        if cmd_matches(b.cmd) and active_cmds[k] == b.cmd then
             if not seen[k] and k ~= "" and k ~= nil then
                 table.insert(keys, k)
                 seen[k] = true
