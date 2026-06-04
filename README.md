@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.84.42-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.42)
+[![Version](https://img.shields.io/badge/version-v1.84.50-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.50)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
@@ -532,6 +532,7 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 | `b` / `и` | `b` / `и` | **Open Record File** (Active TSV database) |
 | `r` / `t` | `к` / `е` | Adjust **Primary** Position (Up / Down) |
 | `R` / `T` | `К` / `Е` | Adjust **Secondary** Position (Up / Down) |
+| `u` / `U` | `г` / `Г` | Adjust **Subtitle Delay** (-0.1s / +0.1s) |
 | `SPACE` / `LMB` | `SPACE` / `LMB` | **Smart Space**: Hold to Play, Tap to Toggle Pause |
 | `TAB` | `TAB` | Cycle OSC Visibility (**Always ↔ Auto ↔ Never**) |
 | `m` | `ь` | Toggle **Mute** |
@@ -576,8 +577,8 @@ Optimized `input.conf` for rapid review, featuring **dual-layout support** (Engl
 |     |   Volume  |     |     | RESET Spd |
 +-----------------------------------------------------------+
 |  Y  |  U  |  I  |  O  |  P  |  [  |  ]  |    \    |
-|     |     |     |Contr|Brigh| Spd | Spd |         |
-|     |     |     | -/+ | -/+ | Down| Up  |         |
+|     |Delay|     |Contr|Brigh| Spd | Spd |         |
+|     | -/+ |     | -/+ | -/+ | Down| Up  |         |
 +-----------------------------------------------------------+
 |  H  |  J  |  K  |  L  |  ;  |  '  |    ENTER    |
 | Kara|     |Gamma|Satur|     |     |     Seek    |

@@ -1,3 +1,31 @@
+# Release Notes - v1.84.50 (Flattened MPV Distribution Packaging, Subtitle Delay Adjustments & Sub-TTS Pipeline Hardening)
+
+**Date**: 2026-06-04
+**Version**: v1.84.50
+**Implementation ZIDs**: 20260604100027, 20260604095031, 20260604094850, 20260604093320, 20260602204838, 20260601231435, 20260601230938, 20260601203300, 20260601202421, 20260601165014, 20260601154832, 20260601102901, 20260531232125, 20260531210718, 20260531205035, 20260531164055, 20260531130520, 20260529191118, 20260529191112, 20260529181146, 20260529181109, 20260529180702, 20260529180302, 20260529180139, 20260529175020, 20260529120127, 20260529115134, 20260529114433, 20260529101300, 20260529023039, 20260529022832, 20260529022312, 20260529021645, 20260529020525, 20260529011935, 20260529004738, 20260529000149, 20260528235743, 20260528235228, 20260528233208, 20260528161918, 20260528161739, 20260528161646, 20260528161550, 20260528161442, 20260528161300, 20260528161101, 20260528160839, 20260528160215, 20260528160040, 20260528155921, 20260528155558, 20260528155441, 20260528154847, 20260528154653, 20260528154330, 20260528153939, 20260528153834, 20260528153630, 20260528153345, 20260528153053, 20260528152116, 20260528145612, 20260528145011, 20260528144528, 20260528144212, 20260528140138, 20260528133258
+
+## Highlights
+
+### 📦 **Flattened MPV Distribution Packaging & Custom Exclusions**
+- **Flattened Deployment Layout**: Refactored the packaging structure of `build_distribution.py` to copy all code, config, and media assets directly to the target output directory alongside `mpv.exe`. This fixes issues where the player failed to load custom plugins and configurations due to nested subdirectories.
+- **Flexible Config-Driven Deployments**: Supported execution settings via a new `config.ini` in `scripts/_tools/deploy/` instead of hardcoded JSON files, allowing users to configure deployment destinations, modes, and build tags easily.
+- **Dynamic Directory-Level Exclusions**: Implemented robust exclusion filtering to skip development/testing temporary paths recursively (such as `__pycache__`, `.pytest_cache`, and user-defined directories).
+
+### 🎙️ **Sub-TTS Pipeline Optimization & Parity Hardening**
+- **Fit Subtitles to TTS Audio**: Added a configuration parameter to synchronize subtitle cue display durations to match the generated text-to-speech audio files.
+- **Flexible INI-Based Settings**: Replaced legacy configuration code in `sub_tts.py` to load provider options, voice paths, speed/pitch values, and formatting parameters directly from `config.ini`, enhancing runtime customization.
+- **Test Suite Cleanups**: Cleaned up hardcoded temporary files created during testing and stabilized execution in `tests/unit/test_20260526195053_sub_tts_pipeline.py`.
+
+### ⌨️ **Layout-Independent Subtitle Delay Adjustments**
+- **Bilingual Keyboard Bindings**: Added keybindings for subtitle delay adjustments on both English (EN) and Russian (RU) keyboard layouts in `input.conf` (`u` for `-0.1` and `U` for `+0.1`).
+- **Custom Seek/Parsing Loops Support**: Patched `scripts/kardenwort/main.lua` to ensure that Kardenwort's custom subtitle renderer correctly updates seek and display parameters in response to physical layout-independent delay inputs.
+
+### 🛡️ **Repository Hygiene & Specification Relocation**
+- **Workspace Protection Guard**: Documented safety rules in `AGENTS.md` forbidding AI agents from saving temporary or experimental `.lua` files in the workspace (preventing collision with MPV autoloaders).
+- **Vault Relocation & OpenSpec Cleanups**: Configured spec path redirection to Obsidian private vault (`openspec/config.yaml`) to protect spec revisions from git rollbacks. Removed Claude, Cline, Roo, Codex configurations to maintain a clean codebase.
+
+---
+
 # Release Notes - v1.84.48 (Premium YouTube Video Downloader Integration & Local Anchor Exact Precedence)
 
 **Date**: 2026-05-28
