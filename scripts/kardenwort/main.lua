@@ -630,6 +630,7 @@ Options = {
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
+    unescape_hard_spaces = true,
     anki_abbrev_list = "ca. z.B. usw. bzw. etc. t.con d.h. u.a. vgl. ggf. bspw. u.U. i.d.R. bzgl. evtl.",
     anki_abbrev_smart = true,
     anki_sentence_terminators = ".!?",
@@ -1297,9 +1298,16 @@ function normalize_inline_break_markers(text)
     -- Normalize escaped ASS-style break markers that may appear in SRT/TXT content.
     -- Keep boundaries clean so downstream newline->space conversion does not create
     -- synthetic double spaces.
-    text = text:gsub("\\+N", "\n")
-    text = text:gsub("\\+n", "\n")
-    text = text:gsub("\\+h", " ")
+    local rules = {
+        { pat = "\\+N", repl = "\n" },
+        { pat = "\\+n", repl = "\n" },
+        { pat = "\\+h", repl = " ", opt = "unescape_hard_spaces" }
+    }
+    for _, rule in ipairs(rules) do
+        if not rule.opt or Options[rule.opt] then
+            text = text:gsub(rule.pat, rule.repl)
+        end
+    end
     text = text:gsub("[ \t]*\n[ \t]*", "\n")
     return text
 end
