@@ -12,8 +12,27 @@ class TestHelpHudRuntime:
     """Ensures Help HUD toggles ON/OFF through runtime message path."""
 
     def _toggle_help_and_get_state(self, ipc):
+        try:
+            ipc.command(['set_property', 'user-data/kardenwort/test_help_toggle_ok', ''])
+            ipc.command(['set_property', 'user-data/kardenwort/test_help_toggle_error', ''])
+            ipc.command(['set_property', 'user-data/kardenwort/test_help_mode', ''])
+        except Exception:
+            pass
+
         ipc.command(['script-message-to', 'kardenwort', 'test-help-toggle'])
-        time.sleep(0.2)
+        
+        deadline = time.time() + 5.0
+        while time.time() < deadline:
+            try:
+                ok = ipc.get_property('user-data/kardenwort/test_help_toggle_ok')
+                if ok != "":
+                    err = ipc.get_property('user-data/kardenwort/test_help_toggle_error')
+                    state = ipc.get_property('user-data/kardenwort/test_help_mode')
+                    return ok, err, state
+            except Exception:
+                pass
+            time.sleep(0.1)
+            
         ok = ipc.get_property('user-data/kardenwort/test_help_toggle_ok')
         err = ipc.get_property('user-data/kardenwort/test_help_toggle_error')
         state = ipc.get_property('user-data/kardenwort/test_help_mode')

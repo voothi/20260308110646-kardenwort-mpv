@@ -13,10 +13,33 @@ class TestHelpHudEscClose:
 
     def test_help_hud_closes_on_esc(self, mpv):
         ipc = mpv.ipc
+        try:
+            ipc.command(['set_property', 'user-data/kardenwort/test_help_esc_ok', ''])
+            ipc.command(['set_property', 'user-data/kardenwort/test_help_esc_error', ''])
+            ipc.command(['set_property', 'user-data/kardenwort/test_help_mode', ''])
+        except Exception:
+            pass
+
         ipc.command(['script-message-to', 'kardenwort', 'test-help-close-esc'])
-        time.sleep(0.2)
-        ok = ipc.get_property('user-data/kardenwort/test_help_esc_ok')
-        err = ipc.get_property('user-data/kardenwort/test_help_esc_error')
-        state = ipc.get_property('user-data/kardenwort/test_help_mode')
+        
+        ok = ""
+        err = ""
+        state = ""
+        deadline = time.time() + 5.0
+        while time.time() < deadline:
+            try:
+                ok = ipc.get_property('user-data/kardenwort/test_help_esc_ok')
+                if ok != "":
+                    err = ipc.get_property('user-data/kardenwort/test_help_esc_error')
+                    state = ipc.get_property('user-data/kardenwort/test_help_mode')
+                    break
+            except Exception:
+                pass
+            time.sleep(0.1)
+        else:
+            ok = ipc.get_property('user-data/kardenwort/test_help_esc_ok')
+            err = ipc.get_property('user-data/kardenwort/test_help_esc_error')
+            state = ipc.get_property('user-data/kardenwort/test_help_mode')
+
         assert ok == "1", f"ESC close path failed: {err}"
         assert state == "OFF"

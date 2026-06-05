@@ -99,10 +99,21 @@ def test_20260511102747_tooltip_stability_fixed_pos(mpv_fragment2):
     
     # Release RMB
     ipc.command(["script-message-to", "kardenwort", "test-dw-tooltip-pin", '{"event":"up"}'])
-    time.sleep(0.1)
-    ipc.command(["script-message-to", "kardenwort", "test-query-tooltip-state"])
-    state3 = json.loads(ipc.get_property("user-data/test-tooltip-state"))
-    assert state3["holding"] == False
+    
+    # Poll until holding becomes False (resilient to load / timing delays)
+    state3 = None
+    deadline = time.time() + 5.0
+    while time.time() < deadline:
+        ipc.command(["script-message-to", "kardenwort", "test-query-tooltip-state"])
+        time.sleep(0.2)
+        try:
+            val = ipc.get_property("user-data/test-tooltip-state")
+            state3 = json.loads(val)
+            if state3 and state3.get("holding") is False:
+                break
+        except Exception:
+            pass
+    assert state3 and state3["holding"] == False
 
 @pytest.mark.acceptance
 def test_20260511102747_y_rounding_stability(mpv_fragment2):

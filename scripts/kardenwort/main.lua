@@ -6014,8 +6014,7 @@ end
 
 local function cmd_dw_esc()
     if FSM.HELP_MODE then
-        FSM.HELP_MODE = false
-        render_help()
+        cmd_toggle_help()
         return
     end
     -- Stage 1: Clear Pink Set (Purple highlights)
