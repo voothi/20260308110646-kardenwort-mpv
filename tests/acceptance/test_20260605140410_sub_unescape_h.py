@@ -2,9 +2,9 @@
 Feature ZID: 20260605140410
 Feature: Unescape \\h formatting in subtitles
 
-Verifies that any sequence of one or more backslashes followed by 'h' or 'H'
+Verifies that any sequence of one or more backslashes followed by 'h'
 is normalized into a space, and adjacent formatting spaces are handled cleanly,
-and that this behavior can be disabled via the `unescape_hard_spaces` option.
+and that this behavior can be disabled via the `unescape_tags` option.
 """
 import time
 import pytest
