@@ -677,9 +677,9 @@ def test_normalize_inline_break_markers_helper_definition_and_substitutions():
     src = _lua_source()
     body = _function_window(src, "function normalize_inline_break_markers(text)", "function clean_text_srt", span=2000)
 
-    assert 'text:gsub("\\\\N", "\\n")' in body
-    assert 'text:gsub("\\\\n", "\\n")' in body
-    assert 'text:gsub("\\\\h", " ")' in body
+    assert 'text:gsub("\\\\+N", "\\n")' in body
+    assert 'text:gsub("\\\\+n", "\\n")' in body
+    assert 'text:gsub("\\\\+h", " ")' in body
     assert 'text:gsub("[ \\t]*\\n[ \\t]*", "\\n")' in body
     assert "if not text or text == \"\" then return text or \"\" end" in body
 

@@ -1297,9 +1297,9 @@ function normalize_inline_break_markers(text)
     -- Normalize escaped ASS-style break markers that may appear in SRT/TXT content.
     -- Keep boundaries clean so downstream newline->space conversion does not create
     -- synthetic double spaces.
-    text = text:gsub("\\N", "\n")
-    text = text:gsub("\\n", "\n")
-    text = text:gsub("\\h", " ")
+    text = text:gsub("\\+N", "\n")
+    text = text:gsub("\\+n", "\n")
+    text = text:gsub("\\+h", " ")
     text = text:gsub("[ \t]*\n[ \t]*", "\n")
     return text
 end
@@ -10893,6 +10893,14 @@ mp.register_script_message("test-dw-double-click", function(line_str)
         end
     end, debug.traceback)
     if not ok then Diagnostic.error("kardenwort-test-dw-double-click error: " .. tostring(err)) end
+end)
+
+mp.register_script_message("test-get-sub-text", function(track_name, index_str)
+    local idx = tonumber(index_str) or 1
+    local subs = (track_name == "sec") and Tracks.sec.subs or Tracks.pri.subs
+    local sub = subs and subs[idx]
+    FSM.TEST_DATA = FSM.TEST_DATA or {}
+    FSM.TEST_DATA.test_sub_text = sub and sub.text or ""
 end)
 
 mp.register_script_message("test-truncate", function(text, max_chars_str)
