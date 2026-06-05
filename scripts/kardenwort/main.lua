@@ -630,7 +630,7 @@ Options = {
     anki_context_strict = false,
     anki_highlight_bold = false,
     anki_strip_metadata = true,
-    unescape_hard_spaces = true,
+    unescape_tags = "\\N \\n \\h",
     anki_abbrev_list = "ca. z.B. usw. bzw. etc. t.con d.h. u.a. vgl. ggf. bspw. u.U. i.d.R. bzgl. evtl.",
     anki_abbrev_smart = true,
     anki_sentence_terminators = ".!?",
@@ -1299,12 +1299,13 @@ function normalize_inline_break_markers(text)
     -- Keep boundaries clean so downstream newline->space conversion does not create
     -- synthetic double spaces.
     local rules = {
-        { pat = "\\+N", repl = "\n" },
-        { pat = "\\+n", repl = "\n" },
-        { pat = "\\+h", repl = " ", opt = "unescape_hard_spaces" }
+        { pat = "\\+N", repl = "\n", tag = "\\N" },
+        { pat = "\\+n", repl = "\n", tag = "\\n" },
+        { pat = "\\+h", repl = " ", tag = "\\h" }
     }
+    local tags_str = " " .. (Options.unescape_tags or "") .. " "
     for _, rule in ipairs(rules) do
-        if not rule.opt or Options[rule.opt] then
+        if tags_str:find(" " .. rule.tag .. " ", 1, true) then
             text = text:gsub(rule.pat, rule.repl)
         end
     end

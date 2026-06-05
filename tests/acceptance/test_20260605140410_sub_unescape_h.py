@@ -56,7 +56,7 @@ def unescape_disabled_session(tmp_path):
     session = MpvSession(
         video=str(dest_video),
         subtitle=str(dest_srt),
-        extra_args=["--pause", "--script-opts=kardenwort-unescape_hard_spaces=no"]
+        extra_args=["--pause", "--script-opts=kardenwort-unescape_tags=\\N \\n"]
     )
     session.start()
     yield session
