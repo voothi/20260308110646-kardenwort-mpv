@@ -798,6 +798,7 @@ local FSM = {
     DW_SEEKING_MANUALLY = false,
     DW_SEEK_TARGET = -1,
     DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
+    DW_DRAG_IS_PRI = true,
     DW_ESC_NEUTRAL_ARMED = false,    -- Neutral state entered after deselection/no-selection Esc in manual mode
     DW_NEUTRAL_LINE = -1,            -- Last meaningful line before pointer clear
     DW_NEUTRAL_WORD = -1,            -- Last meaningful word before pointer clear
@@ -5392,17 +5393,18 @@ local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
 end
 
 local function kardenwort_hit_test_all(osd_x, osd_y)
-    if not Options.osd_interactivity then return nil, nil end
+    if not Options.osd_interactivity then return nil, nil, nil end
     
     if FSM.DRUM_WINDOW ~= "OFF" then
         if Options.dw_sec_interactivity then
             local l, w = dw_tooltip_hit_test(osd_x, osd_y)
-            if l then return l, w end
+            if l then return l, w, false end
         end
         if Options.dw_pri_interactivity then
-            return dw_hit_test(osd_x, osd_y)
+            local l, w = dw_hit_test(osd_x, osd_y)
+            return l, w, true
         end
-        return nil, nil
+        return nil, nil, nil
     else
         local is_drum = (FSM.DRUM == "ON")
         local pri_enabled = is_drum and Options.drum_pri_interactivity or Options.srt_pri_interactivity
@@ -5410,16 +5412,16 @@ local function kardenwort_hit_test_all(osd_x, osd_y)
         
         if pri_enabled or sec_enabled then
             local line, word, hit_pri = drum_osd_hit_test(osd_x, osd_y)
-            if not line then return nil, nil end
+            if not line then return nil, nil, nil end
             
             -- Simple, flat filtering based on which screen was hit
-            if hit_pri and not pri_enabled then return nil, nil end
-            if not hit_pri and not sec_enabled then return nil, nil end
+            if hit_pri and not pri_enabled then return nil, nil, nil end
+            if not hit_pri and not sec_enabled then return nil, nil, nil end
             
-            return line, word
+            return line, word, hit_pri
         end
     end
-    return nil, nil
+    return nil, nil, nil
 end
 
 
@@ -5535,14 +5537,15 @@ local function dw_mouse_update_selection()
     dw_sync_cursor_to_mouse()
 end
 
-function dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
+function dw_get_auto_scroll_block_zones(hit_zones, dm_mode, is_pri)
     if not hit_zones or #hit_zones == 0 then return nil, nil end
     if not dm_mode then return hit_zones[1], hit_zones[#hit_zones] end
 
+    local target_is_pri = (is_pri ~= false)
     local first_zone = nil
     local last_zone = nil
     for _, zone in ipairs(hit_zones) do
-        if zone.is_pri ~= false and zone.y_top and zone.y_bottom then
+        if zone.is_pri == target_is_pri and zone.y_top and zone.y_bottom then
             if not first_zone or zone.y_top < first_zone.y_top then first_zone = zone end
             if not last_zone or zone.y_bottom > last_zone.y_bottom then last_zone = zone end
         end
@@ -5577,7 +5580,7 @@ local function dw_mouse_auto_scroll()
     local top_scroll_trigger = edge_zone
     local bottom_scroll_trigger = base_h - edge_zone
     local hit_zones = dw_mode and FSM.DW_HIT_ZONES or FSM.DRUM_HIT_ZONES
-    local first_zone, last_zone = dw_get_auto_scroll_block_zones(hit_zones, dm_mode)
+    local first_zone, last_zone = dw_get_auto_scroll_block_zones(hit_zones, dm_mode, FSM.DW_DRAG_IS_PRI)
     if not first_zone or not last_zone then return end
     local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
     if dm_mode then
@@ -6202,10 +6205,11 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
 
             -- Dismiss tooltip on click and lock suppression for the current focus
             local is_tooltip_hit = dw_tooltip_hit_test(osd_x, osd_y)
-            local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
+            local line_idx, word_idx, is_pri = kardenwort_hit_test_all(osd_x, osd_y)
             
             if line_idx then
                 FSM.DW_TOOLTIP_LOCKED_LINE = line_idx
+                FSM.DW_DRAG_IS_PRI = is_pri
 
                 if FSM.DW_TOOLTIP_LINE ~= -1 and not is_tooltip_hit then
                     FSM.DW_TOOLTIP_LINE = -1
