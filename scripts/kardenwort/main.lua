@@ -9906,38 +9906,83 @@ local function cmd_adjust_sec_sub_pos(delta)
     FSM.native_sec_sub_pos = new_pos
 end
 
-local function cmd_cycle_sec_sid()
-    local function extract_lang_from_title_or_path(title, path)
-        local filepath = (path and path ~= "") and path or title
-        if not filepath or filepath == "" then return nil end
-        filepath = filepath:gsub("\\", "/")
-        local filename = filepath:match("([^/]+)$") or filepath
-        
-        -- Check if the whole filename is a 2- or 3-letter language code
-        if #filename == 2 or #filename == 3 then
-            if filename:match("^[%a%-]+$") then
-                return filename:upper()
-            end
-        end
-        
-        local ext = filename:match("%.([^%.]+)$") or ""
-        if ext ~= "" then
-            local filename_no_ext = filename:sub(1, #filename - #ext - 1)
-            
-            -- If the remaining part is exactly 2- or 3-letter language code
-            if #filename_no_ext == 2 or #filename_no_ext == 3 then
-                if filename_no_ext:match("^[%a%-]+$") then
-                    return filename_no_ext:upper()
-                end
-            end
-            
-            local base_prefix, postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
-            if postfix and (#postfix == 2 or #postfix == 3) then
-                return postfix:upper()
-            end
-        end
-        return nil
+function normalize_language_postfix(postfix)
+    if not postfix or postfix == "" then return nil end
+    return postfix:gsub("_", "-")
+end
+
+function is_language_postfix(postfix)
+    local normalized = normalize_language_postfix(postfix)
+    if not normalized or not normalized:match("^[%a%d-]+$") then return false end
+
+    local parts = {}
+    for part in normalized:gmatch("[^-]+") do
+        table.insert(parts, part)
     end
+    if #parts == 0 then return false end
+
+    local primary = parts[1]
+    if not primary:match("^[%a][%a][%a]?$") then
+        return false
+    end
+
+    for idx = 2, #parts do
+        local part = parts[idx]
+        if not (
+            part:match("^%a%a$") or
+            part:match("^%a%a%a$") or
+            part:match("^%a%a%a%a$") or
+            part:match("^%d%d%d$")
+        ) then
+            return false
+        end
+    end
+
+    return true
+end
+
+function split_base_and_language_postfix(stem)
+    if not stem or stem == "" then return nil, nil end
+    local base, postfix = stem:match("^(.+)%.([%w%-_]+)$")
+    if base and is_language_postfix(postfix) then
+        return base, normalize_language_postfix(postfix)
+    end
+    return stem, nil
+end
+
+function format_language_postfix_label(postfix)
+    local normalized = normalize_language_postfix(postfix)
+    if not normalized then return nil end
+    return normalized:upper()
+end
+
+function extract_lang_from_title_or_path(title, path)
+    local filepath = (path and path ~= "") and path or title
+    if not filepath or filepath == "" then return nil end
+    filepath = filepath:gsub("\\", "/")
+    local filename = filepath:match("([^/]+)$") or filepath
+
+    if is_language_postfix(filename) then
+        return format_language_postfix_label(filename)
+    end
+
+    local ext = filename:match("%.([^%.]+)$") or ""
+    if ext ~= "" then
+        local filename_no_ext = filename:sub(1, #filename - #ext - 1)
+        if is_language_postfix(filename_no_ext) then
+            return format_language_postfix_label(filename_no_ext)
+        end
+
+        local _, postfix = split_base_and_language_postfix(filename_no_ext)
+        if postfix then
+            return format_language_postfix_label(postfix)
+        end
+    end
+
+    return nil
+end
+
+local function cmd_cycle_sec_sid()
 
     if FSM.DRUM_WINDOW ~= "OFF" then
         show_osd("X")
@@ -10156,10 +10201,7 @@ function ensure_companion_audio_tracks(path)
     if ext == "" then return end
 
     local filename_no_ext = filename:sub(1, #filename - #ext - 1)
-    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
-    if not (current_postfix and (#current_postfix == 2 or #current_postfix == 3)) then
-        base_prefix = filename_no_ext
-    end
+    local base_prefix = split_base_and_language_postfix(filename_no_ext)
     if not base_prefix or base_prefix == "" then return end
 
     local companions = get_companion_files(dir, base_prefix, ext)
@@ -10293,8 +10335,8 @@ function cmd_cycle_audio()
                         if #ext > 0 then
                             ext_stem = ext_file:sub(1, #ext_file - #ext - 1)
                         end
-                        local base_name, postfix = ext_stem:match("^(.+)%.([%a%-]+)$")
-                        if postfix and (#postfix == 2 or #postfix == 3) and base_name and base_name ~= "" then
+                        local base_name, postfix = split_base_and_language_postfix(ext_stem)
+                        if postfix and base_name and base_name ~= "" then
                             title_lbl = base_name
                         elseif ext_stem ~= "" then
                             title_lbl = ext_stem
@@ -10334,11 +10376,11 @@ function get_companion_files(dir, base_prefix, ext)
                     raw_postfix = ""
                 })
             else
-                local p_base, p_postfix = f_no_ext:match("^(.+)%.([%a%-]+)$")
-                if p_base == base_prefix and p_postfix and (#p_postfix == 2 or #p_postfix == 3) then
+                local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
+                if p_base == base_prefix and p_postfix then
                     table.insert(companions, {
                         path = dir .. f,
-                        postfix = p_postfix:upper(),
+                        postfix = format_language_postfix_label(p_postfix),
                         raw_postfix = p_postfix
                     })
                 end
@@ -10369,11 +10411,11 @@ function get_companion_subtitles(dir, base_prefix)
                     raw_postfix = ""
                 })
             else
-                local p_base, p_postfix = f_no_ext:match("^(.+)%.([%a%-]+)$")
-                if p_base == base_prefix and p_postfix and (#p_postfix == 2 or #p_postfix == 3) then
+                local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
+                if p_base == base_prefix and p_postfix then
                     table.insert(sub_files, {
                         path = dir .. f,
-                        postfix = p_postfix:upper(),
+                        postfix = format_language_postfix_label(p_postfix),
                         raw_postfix = p_postfix
                     })
                 end
@@ -10397,11 +10439,7 @@ function ensure_companion_subtitle_tracks(path)
     if ext == "" then return end
 
     local filename_no_ext = filename:sub(1, #filename - #ext - 1)
-    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
-    if not (current_postfix and (#current_postfix == 2 or #current_postfix == 3)) then
-        base_prefix = filename_no_ext
-        current_postfix = nil
-    end
+    local base_prefix, current_postfix = split_base_and_language_postfix(filename_no_ext)
     if not base_prefix or base_prefix == "" then return end
 
     local sub_files = get_companion_subtitles(dir, base_prefix)
@@ -10451,7 +10489,7 @@ function ensure_companion_subtitle_tracks(path)
                         if p ~= "" then
                             local p_ext = p:match("%.([^%.]+)$") or ""
                             local p_no_ext = p:sub(1, #p - #p_ext - 1)
-                            local _, p_post = p_no_ext:match("^(.+)%.([%a%-]+)$")
+                            local _, p_post = split_base_and_language_postfix(p_no_ext)
                             if p_post and p_post:lower() == target_postfix then
                                 match = true
                             end
@@ -10543,11 +10581,11 @@ function get_companion_video_files(dir, base_prefix)
                     raw_postfix = ""
                 })
             else
-                local p_base, p_postfix = f_no_ext:match("^(.+)%.([%a%-]+)$")
-                if p_base == base_prefix and p_postfix and (#p_postfix == 2 or #p_postfix == 3) then
+                local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
+                if p_base == base_prefix and p_postfix then
                     table.insert(video_files, {
                         path = dir .. f,
-                        postfix = p_postfix:upper(),
+                        postfix = format_language_postfix_label(p_postfix),
                         raw_postfix = p_postfix
                     })
                 end
@@ -10613,10 +10651,7 @@ function ensure_companion_video_track(path)
     end
 
     local filename_no_ext = filename:sub(1, #filename - #ext - 1)
-    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
-    if not (current_postfix and (#current_postfix == 2 or #current_postfix == 3)) then
-        base_prefix = filename_no_ext
-    end
+    local base_prefix = split_base_and_language_postfix(filename_no_ext)
     if not base_prefix or base_prefix == "" then
         print("[kardenwort] ensure_companion_video_track: empty base_prefix, returning")
         return

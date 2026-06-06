@@ -148,3 +148,48 @@ def test_companion_subtitles_de_selected():
     finally:
         session.stop()
         shutil.rmtree(work, ignore_errors=True)
+
+
+def test_companion_subtitles_regional_postfix_selected():
+    work = _new_scratch_dir("companion-subtitles-pt-br")
+    media_pt_br = work / "sample.pt-BR.mp4"
+    sub_pt_br = work / "sample.pt-BR.srt"
+    sub_de = work / "sample.de.srt"
+
+    shutil.copy2(_FIXTURE_VIDEO, media_pt_br)
+    sub_pt_br.write_text(_DUMMY_SRT, encoding="utf-8")
+    sub_de.write_text(_DUMMY_SRT, encoding="utf-8")
+
+    session = MpvSession(video=str(media_pt_br), extra_args=["--pause", "--sub-auto=fuzzy"])
+    _start_or_skip(session)
+    try:
+        def all_subs_loaded():
+            tracks = session.ipc.get_property("track-list") or []
+            subs = _get_subtitle_tracks(tracks)
+            labels = set()
+            for s in subs:
+                if s.get("title"):
+                    labels.add(s["title"].upper())
+                if s.get("lang"):
+                    labels.add(s["lang"].upper())
+            return "PT-BR" in labels and "DE" in labels
+
+        assert _wait_until(all_subs_loaded), "Regional companion subtitle tracks were not loaded"
+
+        def correct_sid_active():
+            sid = session.ipc.get_property("sid")
+            if not sid or sid == "no":
+                return False
+            tracks = session.ipc.get_property("track-list") or []
+            for t in tracks:
+                if t.get("type") == "sub" and t.get("id") == int(sid):
+                    title = (t.get("title") or "").upper()
+                    lang = (t.get("lang") or "").upper()
+                    return title == "PT-BR" or lang == "PT-BR"
+            return False
+
+        assert _wait_until(correct_sid_active), "Subtitle matching the language postfix 'pt-BR' was not selected as primary"
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)
