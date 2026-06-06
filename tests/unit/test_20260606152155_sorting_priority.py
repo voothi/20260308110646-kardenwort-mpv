@@ -813,6 +813,34 @@ def _synced_collision_setup(sub_tts, monkeypatch, tmp_path, duplicate_mode):
     return config, srt_file, original_text, piper_cfg
 
 
+def test_synced_collision_no_op_when_unchanged(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "ru",
+        "timeline_source": "primary_subtitle",
+        "keep_lang_postfix": "true",
+        "duplicate_mode": "zid-dir",
+    }
+    # Source SRT already has exactly the timings the synced SRT would get.
+    srt_file = tmp_path / "video.ru.srt"
+    original_text = "1\n00:00:01,000 --> 00:00:02,000\nПривет\n"
+    srt_file.write_text(original_text, encoding="utf-8")
+
+    # synthesis_results reflect the same timings (no shift applied).
+    synthesis_results = [
+        {"ok": True, "wav_path": None, "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Привет"}},
+    ]
+    zid_cache = {"value": "20260606192447"}
+    output_mp4 = tmp_path / "video.ru.mp4"  # same stem → collision path
+
+    sub_tts.write_synced_subtitle(synthesis_results, output_mp4, srt_file, config, zid_cache)
+
+    # Nothing should have changed: no archive dir, source file intact.
+    assert not (tmp_path / "20260606192447").exists()
+    assert srt_file.read_text(encoding="utf-8") == original_text
+
+
 def test_synced_collision_overwrite_mode_replaces_source(monkeypatch, tmp_path):
     sub_tts = _load_sub_tts()
     config, srt_file, original_text, piper_cfg = _synced_collision_setup(sub_tts, monkeypatch, tmp_path, "overwrite")

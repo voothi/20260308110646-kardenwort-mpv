@@ -333,6 +333,27 @@ def write_synced_srt(synthesis_results, srt_out_path):
     return written
 
 
+def _build_synced_srt_content(synthesis_results):
+    """Return the SRT text that write_synced_srt would produce, without writing it."""
+    lines = []
+    written = 0
+    for item in synthesis_results:
+        cue = item.get("cue")
+        if not cue:
+            continue
+        text = (cue.get("text") or "").strip()
+        if not text:
+            continue
+        written += 1
+        start = format_ms_to_srt_time(cue["start_ms"])
+        end = format_ms_to_srt_time(cue["end_ms"])
+        lines.append(str(written))
+        lines.append(f"{start} --> {end}")
+        lines.append(text)
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
 def save_sidecar(shift_plan, srt_path):
     """Persist a ShiftPlan next to its source SRT as <name>.srt.shift_plan.json."""
     if shift_plan is None:
@@ -352,19 +373,33 @@ def write_synced_subtitle(synthesis_results, output_mp4, srt_path, config, zid_c
     Write a companion subtitle re-timed to the (possibly shifted) audio timeline,
     named to match the output MP4 stem so players auto-load it.
 
-    When the synced path collides with the source SRT, the collision is resolved
-    using the same duplicate_mode policy that governs the MP4 output, so the two
-    artifacts never disagree:
-      - zid-dir (default): archive the original source into <ZID>/ then overwrite
-                           the root path with the synced version.
+    On a name collision with the source SRT, the generated content is first compared
+    to the source. If the content is identical (e.g. primary_subtitle mode with no
+    overflow shift applied), nothing is written or archived — the existing file is
+    already correct.
+
+    When content actually changed, collision is resolved using the same duplicate_mode
+    policy as the MP4 output:
+      - zid-dir (default): archive the original into <ZID>/ then overwrite the root.
       - overwrite:         overwrite the source in place (no archive).
-      - skip:              leave the source untouched; write the synced copy into
-                           <ZID>/ instead so nothing is clobbered.
+      - skip:              leave the source untouched; write synced copy into <ZID>/.
     """
     synced_srt_path = output_mp4.with_suffix(".srt")
     collision = synced_srt_path.resolve() == Path(srt_path).resolve()
 
+    new_content = _build_synced_srt_content(synthesis_results)
+
     if collision:
+        # Compare before touching anything on disk.
+        try:
+            existing = Path(srt_path).read_text(encoding="utf-8")
+        except Exception:
+            existing = None
+
+        if existing is not None and existing == new_content:
+            log_detail(f"Synced subtitle unchanged: {Path(srt_path).name}")
+            return
+
         dup_mode = config.get("tts_settings", "duplicate_mode", fallback="zid-dir").strip()
         if dup_mode == "overwrite":
             pass  # overwrite the source subtitle in place
@@ -387,7 +422,8 @@ def write_synced_subtitle(synthesis_results, output_mp4, srt_path, config, zid_c
                 log_warn(f"Failed to archive source subtitle: {exc}")
 
     try:
-        written = write_synced_srt(synthesis_results, synced_srt_path)
+        synced_srt_path.write_text(new_content, encoding="utf-8")
+        written = new_content.count("\n-->")
         log_detail(f"Saved synced subtitle ({written} cues): {synced_srt_path.name}")
     except Exception as exc:
         log_warn(f"Failed to write synced subtitle '{synced_srt_path.name}': {exc}")
