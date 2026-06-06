@@ -1081,6 +1081,11 @@ def get_base_language_code(lang):
             return normalized.split(sep)[0]
     return normalized
 
+
+def normalize_subtitle_filename_language(lang):
+    """Returns the canonical on-disk subtitle postfix for a language tag."""
+    return get_base_language_code(lang)
+
 def download_companion_audio(url, zid, sanitized_title, target_dir, lang, info, settings):
     """Downloads a companion track for a specific dubbed language.
 
@@ -1344,6 +1349,40 @@ def resolve_subtitle_languages(pref_langs, info, emit_fallback_logs=True):
 
     return resolved
 
+
+def find_downloaded_subtitle_file(target_dir, zid, sanitized_title, requested_lang):
+    """Locate the subtitle yt-dlp wrote for a requested language tag.
+
+    yt-dlp may materialize the exact regional tag (e.g. ru-RU) rather than the
+    canonical base form we want to keep on disk (e.g. ru). Prefer the exact
+    request first, then fall back to any equivalent base/regional variant.
+    """
+    requested_lang = str(requested_lang or "").strip()
+    if not requested_lang:
+        return None
+
+    exact_path = Path(target_dir) / f"{zid}-{sanitized_title}.{requested_lang}.srt"
+    if exact_path.exists():
+        return exact_path
+
+    requested_base = get_base_language_code(requested_lang).lower()
+    prefix = f"{zid}-{sanitized_title}."
+    suffix = ".srt"
+    try:
+        for candidate in Path(target_dir).iterdir():
+            if not candidate.is_file():
+                continue
+            name = candidate.name
+            if not name.startswith(prefix) or not name.endswith(suffix):
+                continue
+            lang_part = name[len(prefix):-len(suffix)]
+            if get_base_language_code(lang_part).lower() == requested_base:
+                return candidate
+    except FileNotFoundError:
+        return None
+
+    return None
+
 def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=None):
     """Downloads video, chapters, and subtitles according to settings."""
     # 1. Fetch metadata
@@ -1467,9 +1506,10 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
                 sub_langs_list = resolve_subtitle_languages(pref_langs, info, emit_fallback_logs=False)
                 
                 for lang in sub_langs_list:
-                    sub_file = out_dir / f"{old_zid}-{sanitized_title}.{lang}.srt"
+                    canonical_lang = normalize_subtitle_filename_language(lang)
+                    sub_file = out_dir / f"{old_zid}-{sanitized_title}.{canonical_lang}.srt"
                     if not sub_file.exists():
-                        missing_files.append(f"{lang}.srt")
+                        missing_files.append(f"{canonical_lang}.srt")
                         any_subs_missing = True
 
             # Check companion audio files
@@ -1538,7 +1578,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     pre_existing_subs = set()
     if download_subs:
         for lang in sub_langs_list:
-            sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
+            canonical_lang = normalize_subtitle_filename_language(lang)
+            sub_file = target_dir / f"{zid}-{sanitized_title}.{canonical_lang}.srt"
             if sub_file.exists():
                 pre_existing_subs.add(sub_file)
 
@@ -1609,6 +1650,13 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
         if _IS_TTY:
             clear_line()
+
+        for lang in sub_langs_list:
+            canonical_lang = normalize_subtitle_filename_language(lang)
+            canonical_path = target_dir / f"{zid}-{sanitized_title}.{canonical_lang}.srt"
+            actual_path = find_downloaded_subtitle_file(target_dir, zid, sanitized_title, lang)
+            if actual_path and actual_path != canonical_path and not canonical_path.exists():
+                actual_path.replace(canonical_path)
 
     # 6. Build and run video download command (if needed)
     skip_video = is_skip_recovery
@@ -1684,7 +1732,8 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     subtitles_all_present = []
     if download_subs:
         for lang in sub_langs_list:
-            sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
+            canonical_lang = normalize_subtitle_filename_language(lang)
+            sub_file = target_dir / f"{zid}-{sanitized_title}.{canonical_lang}.srt"
             if sub_file.exists():
                 subtitles_all_present.append(sub_file)
                 if sub_file not in pre_existing_subs or should_download_subs:
@@ -1707,7 +1756,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             and len(subtitles_all_present) >= 2
             and subtitles_newly_written
         ):
-            expected_primary = target_dir / f"{zid}-{sanitized_title}.{sub_langs_list[0]}.srt"
+            expected_primary = target_dir / f"{zid}-{sanitized_title}.{normalize_subtitle_filename_language(sub_langs_list[0])}.srt"
             if subtitles_all_present[0] == expected_primary:
                 primary_sub = subtitles_all_present[0]
                 for secondary_sub in subtitles_all_present[1:]:

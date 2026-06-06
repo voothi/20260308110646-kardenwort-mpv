@@ -342,6 +342,52 @@ def test_subtitle_languages_original_and_base_do_not_duplicate(yd, tmp_path, mon
     assert sub_langs_passed == "ru-RU"
 
 
+def test_subtitle_download_renames_regional_postfix_to_base(yd, tmp_path, monkeypatch):
+    """Verifies subtitle files are saved with canonical base postfixes even when yt-dlp uses a regional tag."""
+    target_dir = tmp_path
+
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "overwrite",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "original,ru,",
+    }
+
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "ru-RU",
+        "subtitles": {"ru-RU": {}},
+    })
+
+    sub_langs_passed = None
+
+    def mock_run(cmd, *args, **kwargs):
+        nonlocal sub_langs_passed
+        for idx, arg in enumerate(cmd):
+            if arg == "--sub-langs":
+                sub_langs_passed = cmd[idx + 1]
+                break
+        (target_dir / "20260527132904-test-video.ru-RU.srt").touch()
+
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "20260527132904")
+
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+
+    assert success
+    assert sub_langs_passed == "ru-RU"
+    assert (target_dir / "20260527132904-test-video.ru.srt").exists()
+    assert not (target_dir / "20260527132904-test-video.ru-RU.srt").exists()
+
+
 def test_subtitle_download_fails_gracefully(yd, tmp_path, monkeypatch):
     """Verifies that subtitle download failures do not abort video download."""
     target_dir = tmp_path
@@ -449,6 +495,52 @@ def test_duplicate_mode_skip_recovers_missing_subtitles(yd, tmp_path, monkeypatc
     assert (target_dir / "20260527132904-test-video.en.srt").exists()
     # Verify chapters was created with the correct old ZID
     assert (target_dir / "20260527132904-test-video.chapters.txt").exists()
+
+
+def test_duplicate_mode_skip_recovers_regional_subtitle_as_canonical_base(yd, tmp_path, monkeypatch):
+    """Skip recovery must look for canonical subtitle names and rename regional downloads to the base code."""
+    target_dir = tmp_path
+    existing_video = target_dir / "20260527132904-test-video.mp4"
+    existing_video.touch()
+
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "original,ru",
+    }
+
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Video",
+        "language": "ru-RU",
+        "subtitles": {"ru-RU": {}},
+    })
+
+    subtitle_download_called = False
+
+    def mock_run(cmd, *args, **kwargs):
+        nonlocal subtitle_download_called
+        if "--skip-download" in cmd:
+            subtitle_download_called = True
+            (target_dir / "20260527132904-test-video.ru-RU.srt").touch()
+
+    monkeypatch.setattr(yd.subprocess, "run", mock_run)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999")
+
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+
+    assert success
+    assert subtitle_download_called
+    assert (target_dir / "20260527132904-test-video.ru.srt").exists()
+    assert not (target_dir / "20260527132904-test-video.ru-RU.srt").exists()
 
 
 def test_download_mode_subtitles_failure(yd, tmp_path, monkeypatch):
@@ -768,4 +860,3 @@ def test_duplicate_detection_with_postfix(yd, tmp_path, monkeypatch):
     assert subtitle_download_called   # Subtitles are recovered because they were missing!
     assert (target_dir / f"{old_zid}-test-title.en.srt").exists()
     assert (target_dir / f"{old_zid}-test-title.en.chapters.txt").exists()
-
