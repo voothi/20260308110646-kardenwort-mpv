@@ -1624,6 +1624,18 @@ def parse_args():
         help="Disable auto-discovery of primary files.",
     )
     parser.add_argument(
+        "--fallback-to-subtitle-if-output-exists",
+        action="store_true",
+        default=None,
+        help="Fallback to primary_subtitle timeline if primary MP4 output already exists and no sidecar JSON is available.",
+    )
+    parser.add_argument(
+        "--no-fallback-to-subtitle-if-output-exists",
+        action="store_false",
+        dest="fallback_to_subtitle_if_output_exists",
+        help="Disable automatic fallback to primary_subtitle when primary output exists.",
+    )
+    parser.add_argument(
         "--sendto",
         action="store_true",
         help="Windows SendTo mode: treat all positional arguments as selected files.",
@@ -1771,6 +1783,36 @@ def main():
         log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
         timeline_source = "primary_subtitle"
 
+    shift_subtitles_on_overflow = args.shift_subtitles_on_overflow
+    if shift_subtitles_on_overflow is None:
+        shift_subtitles_on_overflow = config_bool(config, "tts_settings", "shift_subtitles_on_overflow", False)
+
+    # Fallback to primary_subtitle if primary output exists and fallback is enabled
+    fallback_to_sub = args.fallback_to_subtitle_if_output_exists
+    if fallback_to_sub is None:
+        fallback_to_sub = config_bool(config, "tts_settings", "fallback_to_subtitle_if_output_exists", False)
+
+    if timeline_source == "primary_audio" and fallback_to_sub and srt_files:
+        primary_srt = Path(srt_files[0])
+        # Find if sidecar exists
+        sidecar_path = primary_srt.with_name(f"{primary_srt.name}.shift_plan.json")
+        if not sidecar_path.exists():
+            # Determine if primary output MP4 exists
+            lang = detect_language(str(primary_srt), config)
+            keep_postfix = args.keep_lang_postfix
+            if keep_postfix is None:
+                keep_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
+            stem = primary_srt.stem
+            if keep_postfix:
+                base = stem
+            else:
+                base = strip_lang_postfix(stem, lang)
+            output_dir = Path(args.output_dir) if args.output_dir else primary_srt.parent
+            primary_mp4 = output_dir / f"{base}.mp4"
+            if primary_mp4.exists():
+                log_info(f"Primary output file '{primary_mp4.name}' exists and no sidecar JSON found. Falling back to 'primary_subtitle' timeline source.")
+                timeline_source = "primary_subtitle"
+
     for srt_path in srt_files:
         is_auto_discovered = str(Path(srt_path).resolve()) in auto_discovered_srt_files
         skip_output = True if is_auto_discovered else args.skip_primary_output
@@ -1785,8 +1827,8 @@ def main():
             output_dir_override=args.output_dir,
             zid_cache=zid_cache,
             keep_lang_postfix_override=args.keep_lang_postfix,
-            timeline_source_override=args.timeline_source,
-            shift_subtitles_on_overflow_override=args.shift_subtitles_on_overflow,
+            timeline_source_override=timeline_source,
+            shift_subtitles_on_overflow_override=shift_subtitles_on_overflow,
             canonical_shift_plan=shift_plan,
             canonical_filename=canonical_filename,
             skip_primary_output_override=skip_output,
@@ -1795,7 +1837,7 @@ def main():
         if shift_plan is None and generated_shift_plan is not None and ok:
             shift_plan = generated_shift_plan
             canonical_filename = Path(srt_path).name
-        if args.shift_subtitles_on_overflow is False and timeline_source != "primary_audio":
+        if shift_subtitles_on_overflow is False and timeline_source != "primary_audio":
             shift_plan = None
             canonical_filename = None
 

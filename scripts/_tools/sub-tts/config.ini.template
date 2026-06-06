@@ -63,6 +63,12 @@ auto_discover_primary = true
 #                      timeline is rebuilt around it, and any secondary translated
 #                      tracks are adjusted (sped up) to fit this new timeline.
 timeline_source = primary_subtitle
+ 
+# (Only applies when timeline_source = primary_audio)
+# If the primary output file already exists but no sidecar JSON is available,
+# automatically fall back to 'primary_subtitle' to avoid synthesizing the primary track.
+# Default: false
+fallback_to_subtitle_if_output_exists = false
 
 # (Only applies when timeline_source = primary_subtitle)
 # If the audio STILL overflows its subtitle slot even after being sped up,

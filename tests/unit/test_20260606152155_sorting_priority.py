@@ -448,3 +448,72 @@ def test_skip_primary_output_conditional_on_existence(monkeypatch, tmp_path):
     
     assert ok2 is True
     assert assemble_called is False  # Respects skip because file exists!
+
+
+def test_fallback_to_subtitle_if_output_exists(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    import sys
+    
+    # 1. Create a dummy primary SRT file
+    primary_srt = tmp_path / "video.en.srt"
+    primary_srt.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello", encoding="utf-8")
+    
+    # 2. Create the target MP4 file
+    primary_mp4 = tmp_path / "video.mp4"
+    primary_mp4.write_text("dummy mp4", encoding="utf-8")
+    
+    # 3. Create a config with timeline_source = primary_audio and fallback_to_subtitle_if_output_exists = true
+    config = configparser.ConfigParser()
+    config["paths"] = {
+        "piper_tts_root": str(tmp_path),
+        "ffmpeg_executable": "ffmpeg",
+    }
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "primary_languages": "en",
+        "timeline_source": "primary_audio",
+        "fallback_to_subtitle_if_output_exists": "true",
+        "keep_lang_postfix": "false",
+    }
+    
+    # Mock parse_args to return srt_files=[str(primary_srt)]
+    class Args:
+        srt_files = [str(primary_srt)]
+        lang = None
+        output_dir = None
+        ffmpeg_path = None
+        keep_lang_postfix = None
+        timeline_source = None
+        shift_subtitles_on_overflow = None
+        skip_primary_output = False
+        auto_discover_primary = False
+        sendto = False
+        pause = False
+        fallback_to_subtitle_if_output_exists = None
+    
+    monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
+    monkeypatch.setattr(sub_tts, "load_config", lambda: config)
+    monkeypatch.setattr(sub_tts, "resolve_ffmpeg", lambda *args, **kw: "ffmpeg")
+    
+    # Mock get_piper_config to avoid loading real configs
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "en"}
+    piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
+    monkeypatch.setattr(sub_tts, "get_piper_config", lambda *args: (piper_cfg, tmp_path))
+    
+    # Track the timeline_source passed to process_srt
+    called_timeline_sources = []
+    def mock_process_srt(srt_path, **kwargs):
+        called_timeline_sources.append(kwargs.get("timeline_source_override"))
+        return True, sub_tts.ShiftPlan([0])
+    monkeypatch.setattr(sub_tts, "process_srt", mock_process_srt)
+    
+    # Mock sys.exit to avoid exiting the test run
+    monkeypatch.setattr(sys, "exit", lambda code: None)
+    
+    # Run main()
+    sub_tts.main()
+    
+    # Verify that process_srt was called with 'primary_subtitle' (due to fallback!)
+    assert len(called_timeline_sources) == 1
+    assert called_timeline_sources[0] == "primary_subtitle"
