@@ -101,3 +101,43 @@ def test_regression_with_flag_off_planning_behavior_unchanged(monkeypatch):
     
     plan = sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
     assert plan == [0, 2000]
+
+def test_timeline_source_validation_invalid_fallback(monkeypatch):
+    # Test that config loading falls back to primary_subtitle and warns on invalid config values
+    sub_tts = _load_sub_tts()
+    config = _config()
+    config["tts_settings"]["timeline_source"] = "invalid_value"
+    
+    warned = []
+    monkeypatch.setattr(sub_tts, "log_warn", lambda msg: warned.append(msg))
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *args: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}])
+    monkeypatch.setattr(
+        sub_tts,
+        "synthesize_all_cues",
+        lambda *args: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}}],
+    )
+    monkeypatch.setattr(sub_tts, "trim_cues_only", lambda *args: [])
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda *args: [])
+    monkeypatch.setattr(sub_tts, "assemble_audio", lambda *args: None)
+    
+    synthesis_results = [
+        {"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}}
+    ]
+    
+    # Process with the invalid config. Should produce a warning and fallback.
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "en"}
+    piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
+    
+    sub_tts.process_srt(
+        Path("test.en.srt"),
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        timeline_source_override=None,
+    )
+    
+    assert len(warned) == 1
+    assert "Unknown timeline_source 'invalid_value'" in warned[0]
+

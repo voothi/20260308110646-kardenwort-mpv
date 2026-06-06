@@ -14,7 +14,6 @@
 
 import argparse
 import configparser
-import os
 import re
 import shutil
 import subprocess
@@ -1299,6 +1298,9 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         timeline_source = timeline_source_override
         if timeline_source is None:
             timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
+        if timeline_source not in ("primary_subtitle", "primary_audio"):
+            log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
+            timeline_source = "primary_subtitle"
 
         produced_shift_plan = None
 
@@ -1565,6 +1567,9 @@ def main():
     timeline_source = args.timeline_source
     if timeline_source is None:
         timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
+    if timeline_source not in ("primary_subtitle", "primary_audio"):
+        log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
+        timeline_source = "primary_subtitle"
 
     for srt_path in srt_files:
         ok, generated_shift_plan = process_srt(
