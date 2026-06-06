@@ -517,3 +517,217 @@ def test_fallback_to_subtitle_if_output_exists(monkeypatch, tmp_path):
     # Verify that process_srt was called with 'primary_subtitle' (due to fallback!)
     assert len(called_timeline_sources) == 1
     assert called_timeline_sources[0] == "primary_subtitle"
+
+
+# ---------------------------------------------------------------------------
+# Synced subtitle writing (ZID 20260606163554)
+# ---------------------------------------------------------------------------
+
+def test_format_ms_to_srt_time():
+    sub_tts = _load_sub_tts()
+    assert sub_tts.format_ms_to_srt_time(0) == "00:00:00,000"
+    assert sub_tts.format_ms_to_srt_time(2440) == "00:00:02,440"
+    assert sub_tts.format_ms_to_srt_time(791416) == "00:13:11,416"
+    assert sub_tts.format_ms_to_srt_time(3_661_001) == "01:01:01,001"
+    # Negative clamps to zero
+    assert sub_tts.format_ms_to_srt_time(-5) == "00:00:00,000"
+
+
+def test_write_synced_srt_uses_shifted_timings(tmp_path):
+    sub_tts = _load_sub_tts()
+    # Two cues whose timings have already been drifted/shifted by the pipeline.
+    synthesis_results = [
+        {"ok": True, "wav_path": None, "cue": {"index": 1, "start_ms": 0, "end_ms": 2440, "text": "Hallo"}},
+        {"ok": True, "wav_path": None, "cue": {"index": 2, "start_ms": 2440, "end_ms": 7870, "text": "Welt"}},
+        # Empty-text cue must be skipped and not break numbering.
+        {"ok": False, "wav_path": None, "cue": {"index": 3, "start_ms": 8000, "end_ms": 9000, "text": ""}},
+    ]
+    out = tmp_path / "video.ru.srt"
+    written = sub_tts.write_synced_srt(synthesis_results, out)
+
+    assert written == 2
+    content = out.read_text(encoding="utf-8")
+    assert "00:00:00,000 --> 00:00:02,440" in content
+    assert "00:00:02,440 --> 00:00:07,870" in content
+    assert "Hallo" in content and "Welt" in content
+    # Re-numbered sequentially, empty cue dropped
+    assert content.strip().splitlines()[0] == "1"
+    assert "\n2\n" in content
+
+
+def test_find_existing_primary_media_no_postfix(tmp_path):
+    sub_tts = _load_sub_tts()
+    # Main-language source exists WITHOUT a language postfix.
+    (tmp_path / "video.mp4").write_text("dummy", encoding="utf-8")
+
+    # keep_postfix=True would historically look only for 'video.de.mp4' and miss this.
+    found = sub_tts.find_existing_primary_media(tmp_path, "video.de", "de", keep_postfix=True)
+    assert found is not None
+    assert found.name == "video.mp4"
+
+
+def test_find_existing_primary_media_postfixed_and_mp3(tmp_path):
+    sub_tts = _load_sub_tts()
+    (tmp_path / "video.de.mp4").write_text("dummy", encoding="utf-8")
+    found = sub_tts.find_existing_primary_media(tmp_path, "video.de", "de", keep_postfix=True)
+    assert found.name == "video.de.mp4"
+
+    # mp3 container is also recognized
+    (tmp_path / "audio.mp3").write_text("dummy", encoding="utf-8")
+    found_mp3 = sub_tts.find_existing_primary_media(tmp_path, "audio.de", "de", keep_postfix=False)
+    assert found_mp3.name == "audio.mp3"
+
+
+def test_find_existing_primary_media_missing(tmp_path):
+    sub_tts = _load_sub_tts()
+    assert sub_tts.find_existing_primary_media(tmp_path, "video.de", "de", keep_postfix=True) is None
+
+
+def test_process_srt_writes_synced_subtitle(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "skip_primary_output": "false",
+        "timeline_source": "primary_subtitle",
+        "keep_lang_postfix": "true",
+    }
+
+    srt_file = tmp_path / "video.ru.srt"
+    srt_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nПривет", encoding="utf-8")
+
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *a: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Привет"}])
+    # Shifted result: the audio timeline moved this cue later than the source SRT.
+    monkeypatch.setattr(
+        sub_tts, "synthesize_all_cues",
+        lambda *a: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 5000, "end_ms": 9000, "text": "Привет"}}],
+    )
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda r, *a: r)
+    monkeypatch.setattr(sub_tts, "assemble_audio", lambda *a: tmp_path / "assembled.wav")
+    monkeypatch.setattr(sub_tts, "mux_to_mp4", lambda *a: True)
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "ru"}
+    piper_cfg["voice_ru"] = {"model": "ru_voice.onnx"}
+
+    # Output to a separate directory so the synced sub takes the MP4's exact stem
+    # (no collision with the source SRT).
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    ok, _ = sub_tts.process_srt(
+        srt_file,
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        output_dir_override=str(out_dir),
+        skip_primary_output_override=False,
+    )
+    assert ok is True
+
+    # Output MP4 is 'video.ru.mp4' (keep_lang_postfix); synced sub sits beside it.
+    synced = out_dir / "video.ru.srt"
+    content = synced.read_text(encoding="utf-8")
+    # Reflects the shifted timeline (5s..9s), NOT the original source (1s..2s).
+    assert "00:00:05,000 --> 00:00:09,000" in content
+    assert "Привет" in content
+
+
+def test_process_srt_synced_subtitle_does_not_clobber_source(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "skip_primary_output": "false",
+        "timeline_source": "primary_subtitle",
+        "keep_lang_postfix": "true",
+    }
+
+    # Input stem equals the output stem (keep_lang_postfix=true) -> would collide.
+    srt_file = tmp_path / "video.ru.srt"
+    original_text = "1\n00:00:01,000 --> 00:00:02,000\nПривет"
+    srt_file.write_text(original_text, encoding="utf-8")
+
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *a: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Привет"}])
+    monkeypatch.setattr(
+        sub_tts, "synthesize_all_cues",
+        lambda *a: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 5000, "end_ms": 9000, "text": "Привет"}}],
+    )
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda r, *a: r)
+    monkeypatch.setattr(sub_tts, "assemble_audio", lambda *a: tmp_path / "assembled.wav")
+    monkeypatch.setattr(sub_tts, "mux_to_mp4", lambda *a: True)
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "ru"}
+    piper_cfg["voice_ru"] = {"model": "ru_voice.onnx"}
+
+    ok, _ = sub_tts.process_srt(
+        srt_file,
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        skip_primary_output_override=False,
+    )
+    assert ok is True
+
+    # Source SRT preserved verbatim (NOT overwritten with shifted timings).
+    assert srt_file.read_text(encoding="utf-8") == original_text
+    # Shifted subtitle written under a distinct, non-clobbering name.
+    synced = tmp_path / "video.ru.synced.srt"
+    assert synced.exists()
+    assert "00:00:05,000 --> 00:00:09,000" in synced.read_text(encoding="utf-8")
+
+
+def test_fallback_triggers_with_no_postfix_primary_media(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    import sys
+
+    # Primary SRT has a postfix; the existing media is the no-postfix main file.
+    primary_srt = tmp_path / "video.de.srt"
+    primary_srt.write_text("1\n00:00:01,000 --> 00:00:02,000\nHallo", encoding="utf-8")
+    (tmp_path / "video.mp4").write_text("dummy mp4", encoding="utf-8")  # no postfix
+
+    config = configparser.ConfigParser()
+    config["paths"] = {"piper_tts_root": str(tmp_path), "ffmpeg_executable": "ffmpeg"}
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "primary_languages": "de",
+        "timeline_source": "primary_audio",
+        "fallback_to_subtitle_if_output_exists": "true",
+        # keep_lang_postfix=true historically searched only for 'video.de.mp4'.
+        "keep_lang_postfix": "true",
+        "auto_discover_primary": "false",
+    }
+
+    class Args:
+        srt_files = [str(primary_srt)]
+        lang = None
+        output_dir = None
+        ffmpeg_path = None
+        keep_lang_postfix = None
+        timeline_source = None
+        shift_subtitles_on_overflow = None
+        skip_primary_output = False
+        auto_discover_primary = False
+        sendto = False
+        pause = False
+        fallback_to_subtitle_if_output_exists = None
+
+    monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
+    monkeypatch.setattr(sub_tts, "load_config", lambda: config)
+    monkeypatch.setattr(sub_tts, "resolve_ffmpeg", lambda *a, **k: "ffmpeg")
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "de"}
+    piper_cfg["voice_de"] = {"model": "de_voice.onnx"}
+    monkeypatch.setattr(sub_tts, "get_piper_config", lambda *a: (piper_cfg, tmp_path))
+
+    called = []
+    monkeypatch.setattr(sub_tts, "process_srt", lambda srt_path, **kw: (called.append(kw.get("timeline_source_override")), (True, sub_tts.ShiftPlan([0])))[1])
+    monkeypatch.setattr(sys, "exit", lambda code: None)
+
+    sub_tts.main()
+
+    assert called == ["primary_subtitle"]

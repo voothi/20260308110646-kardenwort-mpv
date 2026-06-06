@@ -259,6 +259,46 @@ def parse_srt(filepath):
     return cues
 
 
+def format_ms_to_srt_time(ms):
+    """Format a millisecond timestamp as an SRT timecode (HH:MM:SS,mmm)."""
+    ms = max(0, int(round(ms)))
+    hours, ms = divmod(ms, 3_600_000)
+    minutes, ms = divmod(ms, 60_000)
+    seconds, millis = divmod(ms, 1000)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{millis:03d}"
+
+
+def write_synced_srt(synthesis_results, srt_out_path):
+    """
+    Write an SRT file whose cue timings match the (possibly shifted) timeline in
+    synthesis_results. This keeps subtitles in sync with the rebuilt audio when
+    timeline_source='primary_audio' (or shift_subtitles_on_overflow) re-times the
+    audio but leaves the original subtitle file untouched.
+
+    Returns the number of cues written.
+    """
+    lines = []
+    written = 0
+    for item in synthesis_results:
+        cue = item.get("cue")
+        if not cue:
+            continue
+        text = (cue.get("text") or "").strip()
+        if not text:
+            continue
+        written += 1
+        start = format_ms_to_srt_time(cue["start_ms"])
+        end = format_ms_to_srt_time(cue["end_ms"])
+        lines.append(str(written))
+        lines.append(f"{start} --> {end}")
+        lines.append(text)
+        lines.append("")
+
+    content = "\n".join(lines).strip() + "\n"
+    Path(srt_out_path).write_text(content, encoding="utf-8")
+    return written
+
+
 # ==============================================================================
 # LANGUAGE DETECTION (tasks 3.1 – 3.3)
 # ==============================================================================
@@ -428,6 +468,32 @@ def resolve_output_path(srt_path, output_dir, config, lang, zid_cache, keep_lang
         if not c.exists():
             return c, "zid-dir-indexed"
         idx += 1
+
+
+def find_existing_primary_media(output_dir, stem, lang, keep_postfix):
+    """
+    Locate an already-present primary media file in output_dir.
+
+    The primary track may exist under either naming convention:
+      - postfixed:   'video.de.mp4'  (keep_lang_postfix output)
+      - clean stem:  'video.mp4'     (main-language source / no postfix)
+    Both .mp4 and .mp3 containers are recognized.
+
+    Returns the first matching Path, or None if nothing is found.
+    """
+    clean_stem = strip_lang_postfix(stem, lang)
+    candidate_stems = [stem, clean_stem] if keep_postfix else [clean_stem, stem]
+
+    seen = set()
+    for cand_stem in candidate_stems:
+        if cand_stem in seen:
+            continue
+        seen.add(cand_stem)
+        for ext in (".mp4", ".mp3"):
+            candidate = Path(output_dir) / f"{cand_stem}{ext}"
+            if candidate.exists():
+                return candidate
+    return None
 
 
 # ==============================================================================
@@ -1321,18 +1387,15 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             keep_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
         
         stem = Path(srt_path).stem
-        if keep_postfix:
-            base = stem
-        else:
-            base = strip_lang_postfix(stem, lang)
-        
         output_dir = Path(output_dir_override) if output_dir_override else srt_path.parent
-        primary_mp4 = output_dir / f"{base}.mp4"
-        
-        # If output file does not exist, force generation of primary track output!
-        if not primary_mp4.exists():
-            log_info(f"Primary output file '{primary_mp4.name}' does not exist. Forcing generation.")
+        existing_primary = find_existing_primary_media(output_dir, stem, lang, keep_postfix)
+
+        # If no primary media exists (under postfixed or no-postfix name), force generation.
+        if existing_primary is None:
+            log_info("Primary output media does not exist. Forcing generation.")
             skip_primary = False
+        else:
+            log_detail(f"Found existing primary media: {existing_primary.name}")
 
     if is_primary and skip_primary:
         # 1. Check sidecar JSON
@@ -1473,6 +1536,20 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         if ok:
             log_ok(f"Output: {_cyan(str(output_mp4))}")
             success = True
+
+            # Write a companion subtitle re-timed to the (possibly shifted) audio
+            # timeline so subtitles stay in sync with the rebuilt track. Named to
+            # match the output MP4 stem so players auto-load it; never clobber the
+            # source SRT if input and output share a directory.
+            synced_srt_path = output_mp4.with_suffix(".srt")
+            if synced_srt_path.resolve() == srt_path.resolve():
+                synced_srt_path = output_mp4.with_name(f"{output_mp4.stem}.synced.srt")
+            try:
+                written = write_synced_srt(synthesis_results, synced_srt_path)
+                log_detail(f"Saved synced subtitle ({written} cues): {synced_srt_path.name}")
+            except Exception as exc:
+                log_warn(f"Failed to write synced subtitle '{synced_srt_path.name}': {exc}")
+
             if is_primary and produced_shift_plan is not None:
                 sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
                 try:
@@ -1803,14 +1880,10 @@ def main():
             if keep_postfix is None:
                 keep_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
             stem = primary_srt.stem
-            if keep_postfix:
-                base = stem
-            else:
-                base = strip_lang_postfix(stem, lang)
             output_dir = Path(args.output_dir) if args.output_dir else primary_srt.parent
-            primary_mp4 = output_dir / f"{base}.mp4"
-            if primary_mp4.exists():
-                log_info(f"Primary output file '{primary_mp4.name}' exists and no sidecar JSON found. Falling back to 'primary_subtitle' timeline source.")
+            existing_primary = find_existing_primary_media(output_dir, stem, lang, keep_postfix)
+            if existing_primary is not None:
+                log_info(f"Primary output file '{existing_primary.name}' exists and no sidecar JSON found. Falling back to 'primary_subtitle' timeline source.")
                 timeline_source = "primary_subtitle"
 
     for srt_path in srt_files:
