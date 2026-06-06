@@ -685,6 +685,7 @@ Options = {
     help_key_color = "00CCFF",   -- Gold (BGR: 00CCFF | RGB: #FFCC00)
     help_column_width = 40,
     audio_switch_threshold = 1.0,
+    sub_switch_threshold = 1.0,
     companion_audio_enabled = true,
     companion_audio_attach_on_load = true,
     companion_video_enabled = true,
@@ -9986,7 +9987,7 @@ local function cmd_cycle_sec_sid()
 
     local now = mp.get_time()
     local elapsed = now - (FSM.last_sec_sub_cycle_time or 0)
-    local threshold = tonumber(Options.audio_switch_threshold) or 1.0
+    local threshold = tonumber(Options.sub_switch_threshold) or 1.0
 
     local next_sid = 0
     if elapsed > threshold then
