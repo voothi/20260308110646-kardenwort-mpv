@@ -825,10 +825,14 @@ class ShiftPlan(list):
         self.explicit_targets_ms = {}
 
 
-def plan_recording_timeline(synthesis_results, ffmpeg_path, config):
+def plan_recording_timeline(synthesis_results, ffmpeg_path):
     """
     Build a canonical timeline derived from the primary track's recording durations.
     Returns a ShiftPlan with explicit end times and target durations.
+
+    Cues are packed back-to-back with no forced inter-cue gap (mirroring
+    plan_subtitle_shifts): a cue's audio may fill the entire natural gap before
+    the next cue, and later cues are shifted forward only by the residual overlap.
     """
     if not synthesis_results:
         return ShiftPlan()
@@ -1305,7 +1309,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             if canonical_shift_plan is None:
                 # Primary track: derive timeline
                 synthesis_results = trim_cues_only(synthesis_results, temp_dir, ffmpeg_path, config)
-                produced_shift_plan = plan_recording_timeline(synthesis_results, ffmpeg_path, config)
+                produced_shift_plan = plan_recording_timeline(synthesis_results, ffmpeg_path)
                 synthesis_results = apply_shift_plan(synthesis_results, produced_shift_plan)
                 shifted_count = sum(1 for drift in produced_shift_plan if drift > 0)
                 total_drift_ms = max(produced_shift_plan) if produced_shift_plan else 0
@@ -1566,6 +1570,12 @@ def main():
     shift_plan = None
     canonical_filename = None
 
+    # Effective recording mode: its canonical timeline must persist across files,
+    # so it must not be cleared by the legacy fit_subtitle_to_audio reset below.
+    fit_recording_mode = args.fit_subtitle_to_recording
+    if fit_recording_mode is None:
+        fit_recording_mode = config_bool(config, "tts_settings", "fit_subtitle_to_recording", False)
+
     for srt_path in srt_files:
         ok, generated_shift_plan = process_srt(
             srt_path,
@@ -1586,7 +1596,7 @@ def main():
         if shift_plan is None and generated_shift_plan is not None and ok:
             shift_plan = generated_shift_plan
             canonical_filename = Path(srt_path).name
-        if args.fit_subtitle_to_audio is False:
+        if args.fit_subtitle_to_audio is False and not fit_recording_mode:
             shift_plan = None
             canonical_filename = None
 

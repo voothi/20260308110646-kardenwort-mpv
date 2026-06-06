@@ -40,8 +40,7 @@ def test_plan_recording_timeline_expands_and_shifts(monkeypatch):
         {"ok": True, "wav_path": Path("cue_2.wav"), "fit_duration_ms": 1500, "cue": {"index": 2, "start_ms": 2500, "end_ms": 3500, "text": "b"}},
     ]
     
-    config = _config()
-    plan = sub_tts.plan_recording_timeline(synthesis_results, "ffmpeg", config)
+    plan = sub_tts.plan_recording_timeline(synthesis_results, "ffmpeg")
     
     assert plan == [0, 1500]
     assert plan.explicit_ends_ms == {0: 4000, 1: 5500}
