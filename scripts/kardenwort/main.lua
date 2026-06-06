@@ -9962,18 +9962,76 @@ local function cmd_cycle_sec_sid()
         return
     end
 
-    -- Find next sid in the supported list
+    -- Dynamically initialize last_sec_sid and prev_sec_sid history if not set
+    if not FSM.last_sec_sid then
+        local supported_active = {}
+        for _, t in ipairs(tracks) do
+            if t.type == "sub" and t.external then
+                local tid = tonumber(t.id)
+                if tid and tid ~= primary_sid then
+                    table.insert(supported_active, tid)
+                end
+            end
+        end
+        table.sort(supported_active)
+        FSM.last_sec_sid = supported_active[1] or 0
+        FSM.prev_sec_sid = supported_active[2] or supported_active[1] or 0
+    end
+
+    -- Update history if current active track shifted outside of our script actions
+    if current_sid ~= 0 and current_sid ~= FSM.last_sec_sid then
+        FSM.prev_sec_sid = FSM.last_sec_sid
+        FSM.last_sec_sid = current_sid
+    end
+
+    local now = mp.get_time()
+    local elapsed = now - (FSM.last_sec_sub_cycle_time or 0)
+    local threshold = tonumber(Options.audio_switch_threshold) or 1.0
+
     local next_sid = 0
-    local found = false
-    for i = 1, #supported do
-        if supported[i] == current_sid then
-            next_sid = supported[i % #supported + 1]
-            found = true
+    if elapsed > threshold then
+        -- Slow tap: toggle behavior
+        if FSM.prev_sec_sid == 0 or FSM.prev_sec_sid == FSM.last_sec_sid then
+            -- Toggle between active and OFF
+            if current_sid == 0 then
+                next_sid = FSM.last_sec_sid
+            else
+                next_sid = 0
+            end
+        else
+            -- Toggle between the last two active tracks
+            if current_sid == FSM.last_sec_sid then
+                next_sid = FSM.prev_sec_sid
+            else
+                next_sid = FSM.last_sec_sid
+            end
+        end
+    else
+        -- Rapid tap: cycle through all tracks sequentially
+        local found = false
+        for i = 1, #supported do
+            if supported[i] == current_sid then
+                next_sid = supported[i % #supported + 1]
+                found = true
+                break
+            end
+        end
+        if not found then
+            next_sid = supported[2] or 0
+        end
+    end
+
+    FSM.last_sec_sub_cycle_time = now
+
+    -- Validate that chosen next_sid exists in supported list, fallback to supported[2] if not
+    local next_sid_valid = false
+    for _, sid in ipairs(supported) do
+        if sid == next_sid then
+            next_sid_valid = true
             break
         end
     end
-    
-    if not found then
+    if not next_sid_valid then
         next_sid = supported[2] or 0
     end
 
@@ -9981,6 +10039,12 @@ local function cmd_cycle_sec_sid()
         mp.set_property("secondary-sid", "no")
     else
         mp.set_property_number("secondary-sid", next_sid)
+
+        -- Update the last active tracks history
+        if next_sid ~= FSM.last_sec_sid then
+            FSM.prev_sec_sid = FSM.last_sec_sid
+            FSM.last_sec_sid = next_sid
+        end
     end
     
     local label = "OFF"
