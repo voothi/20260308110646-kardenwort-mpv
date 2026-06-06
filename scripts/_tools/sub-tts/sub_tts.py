@@ -1540,10 +1540,16 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             # Write a companion subtitle re-timed to the (possibly shifted) audio
             # timeline so subtitles stay in sync with the rebuilt track. Named to
             # match the output MP4 stem so players auto-load it; never clobber the
-            # source SRT if input and output share a directory.
+            # source SRT if input and output share a directory. On collision, drop
+            # the synced subtitle into a ZID-stamped subdirectory (same convention
+            # as duplicate_mode=zid-dir), reusing this run's ZID.
             synced_srt_path = output_mp4.with_suffix(".srt")
             if synced_srt_path.resolve() == srt_path.resolve():
-                synced_srt_path = output_mp4.with_name(f"{output_mp4.stem}.synced.srt")
+                if not zid_cache.get("value"):
+                    zid_cache["value"] = get_zid(config)
+                zid_dir = output_mp4.parent / zid_cache["value"]
+                zid_dir.mkdir(parents=True, exist_ok=True)
+                synced_srt_path = zid_dir / f"{output_mp4.stem}.srt"
             try:
                 written = write_synced_srt(synthesis_results, synced_srt_path)
                 log_detail(f"Saved synced subtitle ({written} cues): {synced_srt_path.name}")

@@ -662,20 +662,24 @@ def test_process_srt_synced_subtitle_does_not_clobber_source(monkeypatch, tmp_pa
     piper_cfg["tts_settings"] = {"supported_languages": "ru"}
     piper_cfg["voice_ru"] = {"model": "ru_voice.onnx"}
 
+    # Pin the ZID so we know which subdirectory to look in.
+    zid_cache = {"value": "20260606171348"}
     ok, _ = sub_tts.process_srt(
         srt_file,
         config=config,
         piper_config=piper_cfg,
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
+        zid_cache=zid_cache,
         skip_primary_output_override=False,
     )
     assert ok is True
 
     # Source SRT preserved verbatim (NOT overwritten with shifted timings).
     assert srt_file.read_text(encoding="utf-8") == original_text
-    # Shifted subtitle written under a distinct, non-clobbering name.
-    synced = tmp_path / "video.ru.synced.srt"
+    # Shifted subtitle written into a ZID-stamped subdirectory, keeping the
+    # MP4's exact stem so players auto-load it.
+    synced = tmp_path / "20260606171348" / "video.ru.srt"
     assert synced.exists()
     assert "00:00:05,000 --> 00:00:09,000" in synced.read_text(encoding="utf-8")
 
