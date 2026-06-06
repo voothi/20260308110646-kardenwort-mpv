@@ -687,6 +687,8 @@ Options = {
     audio_switch_threshold = 1.0,
     companion_audio_enabled = true,
     companion_audio_attach_on_load = true,
+    companion_video_enabled = true,
+    companion_video_attach_on_load = true,
 }
 options.read_options(Options, "kardenwort")
 
@@ -10347,6 +10349,178 @@ function ensure_companion_subtitle_tracks(path)
     end
 end
 
+function try_next_video_candidate()
+    FSM.current_candidate_idx = FSM.current_candidate_idx + 1
+    local candidate = FSM.video_candidates[FSM.current_candidate_idx]
+    if not candidate then
+        print("[kardenwort] try_next_video_candidate: no more candidates")
+        return
+    end
+
+    -- Check if we already have a video track loaded
+    local tracks = mp.get_property_native("track-list") or {}
+    for _, t in ipairs(tracks) do
+        if t.type == "video" then
+            print("[kardenwort] try_next_video_candidate: already has video, skipping")
+            return
+        end
+    end
+
+    local is_windows = package.config:sub(1,1) == "\\"
+    local load_path = candidate.path
+    if is_windows then
+        load_path = load_path:gsub("/", "\\")
+    end
+
+    print("[kardenwort] try_next_video_candidate: adding candidate path=" .. load_path)
+    mp.commandv("video-add", load_path, "select", candidate.postfix, candidate.raw_postfix)
+
+    -- Wait 0.2 seconds and verify if video track is loaded. If not, try next.
+    mp.add_timeout(0.2, function()
+        local tracks_after = mp.get_property_native("track-list") or {}
+        local found_video = false
+        local video_track_id = nil
+        local selected_video = false
+        for _, t in ipairs(tracks_after) do
+            if t.type == "video" then
+                found_video = true
+                video_track_id = t.id
+                if t.selected then
+                    selected_video = true
+                end
+                print("[kardenwort] found video track id=" .. tostring(t.id) .. " selected=" .. tostring(t.selected))
+            end
+        end
+        if found_video then
+            if not selected_video and video_track_id then
+                print("[kardenwort] attempting to select video track id=" .. tostring(video_track_id))
+                mp.set_property_number("vid", video_track_id)
+                print("[kardenwort] vid property now=" .. tostring(mp.get_property("vid")))
+            else
+                print("[kardenwort] video already selected=" .. tostring(selected_video))
+            end
+        else
+            print("[kardenwort] no video track found, trying next candidate")
+            try_next_video_candidate()
+        end
+    end)
+end
+
+function get_companion_video_files(dir, base_prefix)
+    local files = utils.readdir(dir, "files") or {}
+    local video_files = {}
+    local video_exts = { mp4 = true, mkv = true, avi = true, webm = true, flv = true, mov = true, wmv = true, mpg = true, mpeg = true }
+    
+    for _, f in ipairs(files) do
+        local f_ext = f:match("%.([^%.]+)$")
+        if f_ext and video_exts[f_ext:lower()] then
+            local f_no_ext = f:sub(1, #f - #f_ext - 1)
+            if f_no_ext == base_prefix then
+                table.insert(video_files, {
+                    path = dir .. f,
+                    postfix = "ORIGINAL",
+                    raw_postfix = ""
+                })
+            else
+                local p_base, p_postfix = f_no_ext:match("^(.+)%.([%a%-]+)$")
+                if p_base == base_prefix and p_postfix and (#p_postfix == 2 or #p_postfix == 3) then
+                    table.insert(video_files, {
+                        path = dir .. f,
+                        postfix = p_postfix:upper(),
+                        raw_postfix = p_postfix
+                    })
+                end
+            end
+        end
+    end
+    
+    table.sort(video_files, function(a, b)
+        if a.postfix == "ORIGINAL" then return true end
+        if b.postfix == "ORIGINAL" then return false end
+        return a.postfix < b.postfix
+    end)
+    
+    return video_files
+end
+
+function ensure_companion_video_track(path)
+    print("[kardenwort] ensure_companion_video_track: called with path=" .. tostring(path))
+    if Options.companion_video_enabled == false then
+        print("[kardenwort] ensure_companion_video_track: companion_video_enabled is false, returning")
+        return
+    end
+    if not path or path == "" then
+        print("[kardenwort] ensure_companion_video_track: empty path, returning")
+        return
+    end
+    
+    -- Check if we already have a video track loaded
+    local tracks = mp.get_property_native("track-list") or {}
+    local has_video = false
+    local selected_video = false
+    local first_video_id = nil
+    for _, t in ipairs(tracks) do
+        if t.type == "video" then
+            has_video = true
+            if not first_video_id then
+                first_video_id = t.id
+            end
+            if t.selected then
+                selected_video = true
+            end
+        end
+    end
+    if selected_video then
+        print("[kardenwort] ensure_companion_video_track: video track already selected, returning")
+        return
+    end
+    if has_video then
+        if first_video_id then
+            print("[kardenwort] ensure_companion_video_track: video track exists but not selected. Selecting id=" .. tostring(first_video_id))
+            mp.set_property_number("vid", first_video_id)
+        end
+        return
+    end
+
+    local normalized_path = path:gsub("\\", "/")
+    local dir = normalized_path:match("^(.*/)") or ""
+    local filename = normalized_path:sub(#dir + 1)
+    local ext = filename:match("%.([^%.]+)$") or ""
+    if ext == "" then
+        print("[kardenwort] ensure_companion_video_track: empty ext, returning")
+        return
+    end
+
+    local filename_no_ext = filename:sub(1, #filename - #ext - 1)
+    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
+    if not (current_postfix and (#current_postfix == 2 or #current_postfix == 3)) then
+        base_prefix = filename_no_ext
+    end
+    if not base_prefix or base_prefix == "" then
+        print("[kardenwort] ensure_companion_video_track: empty base_prefix, returning")
+        return
+    end
+
+    print("[kardenwort] ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix)
+    local video_files = get_companion_video_files(dir, base_prefix)
+    print("[kardenwort] ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
+    if #video_files == 0 then return end
+
+    local current_path_norm = canonicalize_local_path(path)
+    
+    -- Prepare candidates
+    FSM.video_candidates = {}
+    FSM.current_candidate_idx = 0
+    for _, candidate in ipairs(video_files) do
+        if canonicalize_local_path(candidate.path) ~= current_path_norm then
+            table.insert(FSM.video_candidates, candidate)
+        end
+    end
+
+    print("[kardenwort] ensure_companion_video_track: #video_candidates after filtering=" .. tostring(#FSM.video_candidates))
+    try_next_video_candidate()
+end
+
 
 local function cmd_toggle_osc()
     FSM.OSC_VIS = (FSM.OSC_VIS + 1) % 3
@@ -10479,6 +10653,9 @@ mp.register_event("file-loaded", function()
         ensure_companion_audio_tracks(mp.get_property("path"))
     end
     ensure_companion_subtitle_tracks(mp.get_property("path"))
+    if Options.companion_video_attach_on_load ~= false then
+        ensure_companion_video_track(mp.get_property("path"))
+    end
 end)
 
 -- =========================================================================
