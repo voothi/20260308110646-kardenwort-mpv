@@ -630,3 +630,142 @@ def test_sync_fires_when_secondary_newly_downloaded_primary_preexisting(yd, tmp_
 
     assert success
     assert sync_calls == [(en_path, ru_path)]
+
+
+def test_video_language_postfix_enabled(yd, tmp_path, monkeypatch):
+    """Verifies that when youtube_download_video_language_postfix is True, the downloaded video has the language postfix."""
+    target_dir = tmp_path
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "overwrite",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "original",
+        "youtube_download_video_language_postfix": True,
+    }
+
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {"title": "Test Title", "language": "en"})
+    
+    video_output_path = None
+    def mock_stream(cmd, check=True, **kwargs):
+        nonlocal video_output_path
+        for idx, arg in enumerate(cmd):
+            if arg == "-o":
+                output_pattern = cmd[idx+1]
+                video_output_path = Path(output_pattern.replace("%(ext)s", "mp4"))
+                video_output_path.touch()
+                break
+
+    monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "20260606210125")
+
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+
+    assert success
+    assert video_output_path == target_dir / "20260606210125-test-title.en.mp4"
+    assert video_output_path.exists()
+
+
+def test_video_language_postfix_disabled(yd, tmp_path, monkeypatch):
+    """Verifies that when youtube_download_video_language_postfix is False, the downloaded video does not have the language postfix."""
+    target_dir = tmp_path
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "overwrite",
+        "youtube_download_chapters_mode": "embedded",
+        "youtube_download_mode": "video",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "original",
+        "youtube_download_video_language_postfix": False,
+    }
+
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {"title": "Test Title", "language": "en"})
+    
+    video_output_path = None
+    def mock_stream(cmd, check=True, **kwargs):
+        nonlocal video_output_path
+        for idx, arg in enumerate(cmd):
+            if arg == "-o":
+                output_pattern = cmd[idx+1]
+                video_output_path = Path(output_pattern.replace("%(ext)s", "mp4"))
+                video_output_path.touch()
+                break
+
+    monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "20260606210125")
+
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+
+    assert success
+    assert video_output_path == target_dir / "20260606210125-test-title.mp4"
+    assert video_output_path.exists()
+
+
+def test_duplicate_detection_with_postfix(yd, tmp_path, monkeypatch):
+    """Verifies that duplicate file detection works for postfixed video files."""
+    target_dir = tmp_path
+    
+    # Touch existing video file with language postfix
+    old_zid = "20260606210125"
+    existing_video = target_dir / f"{old_zid}-test-title.en.mp4"
+    existing_video.touch()
+
+    settings = {
+        "youtube_download_directory": str(target_dir),
+        "youtube_download_duplicate_mode": "skip",
+        "youtube_download_chapters_mode": "separate",
+        "youtube_download_mode": "video+subtitles",
+        "youtube_download_resolution": "360p",
+        "youtube_download_subtitle_auto_fallback": True,
+        "youtube_download_subtitle_languages": "en",
+        "youtube_download_video_language_postfix": True,
+    }
+
+    monkeypatch.setattr(yd, "run_ytdlp_info", lambda url: {
+        "title": "Test Title",
+        "language": "en",
+        "subtitles": {"en": {}},
+        "chapters": [{"start_time": 0.0, "title": "Intro"}],
+    })
+
+    video_download_called = False
+    subtitle_download_called = False
+    
+    def mock_stream(cmd, check=True, **kwargs):
+        nonlocal video_download_called, subtitle_download_called
+        if "--skip-download" in cmd:
+            subtitle_download_called = True
+            # Simulate writing the subtitle file
+            (target_dir / f"{old_zid}-test-title.en.srt").touch()
+        else:
+            video_download_called = True
+
+    monkeypatch.setattr(yd, "run_subprocess_streaming", mock_stream)
+    monkeypatch.setattr(yd, "get_unique_zid", lambda used: "99999999999999") # should be overridden to old_zid
+
+    success = yd.download_video_and_metadata(
+        "https://youtube.com/watch?v=dQw4w9WgXcQ",
+        settings,
+        set(),
+        {}
+    )
+
+    assert success
+    assert not video_download_called  # Skipped because the postfixed video already exists!
+    assert subtitle_download_called   # Subtitles are recovered because they were missing!
+    assert (target_dir / f"{old_zid}-test-title.en.srt").exists()
+    assert (target_dir / f"{old_zid}-test-title.en.chapters.txt").exists()
+

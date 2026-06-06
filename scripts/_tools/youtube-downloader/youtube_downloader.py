@@ -229,6 +229,7 @@ def load_config():
         "youtube_download_duplicate_mode": "zid-dir",
         "youtube_download_subtitle_languages": "original",
         "youtube_download_subtitle_auto_fallback": "true",
+        "youtube_download_video_language_postfix": "false",
         "youtube_download_auto_update": "true",
         "youtube_download_chapters_mode": "embedded",
         "youtube_download_cookies_browser": "",
@@ -1407,7 +1408,16 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     # 2. Resolve target directories based on duplicate_mode
     dup_mode = settings["youtube_download_duplicate_mode"]
-    video_filename = f"{zid}-{sanitized_title}.mp4"
+    
+    primary_lang = resolve_original_language(info) or str(info.get("language") or "").strip()
+    primary_lang = get_base_language_code(primary_lang)
+    
+    use_postfix = settings.get("youtube_download_video_language_postfix")
+    if use_postfix and primary_lang:
+        video_filename = f"{zid}-{sanitized_title}.{primary_lang}.mp4"
+    else:
+        video_filename = f"{zid}-{sanitized_title}.mp4"
+    
     primary_path = out_dir / video_filename
 
     target_dir = out_dir
@@ -1416,13 +1426,17 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
     any_subs_missing = False
     
     # Robust ZID-agnostic duplicate detection: check if any file in the target directory
-    # ends with f"-{sanitized_title}.mp4"
+    # ends with f"-{sanitized_title}.mp4" or f"-{sanitized_title}.{primary_lang}.mp4"
     existing_file = None
     if out_dir.exists():
         for f in out_dir.iterdir():
-            if f.is_file() and f.name.endswith(f"-{sanitized_title}.mp4"):
-                existing_file = f
-                break
+            if f.is_file():
+                if f.name.endswith(f"-{sanitized_title}.mp4"):
+                    existing_file = f
+                    break
+                if primary_lang and f.name.endswith(f"-{sanitized_title}.{primary_lang}.mp4"):
+                    existing_file = f
+                    break
 
     if existing_file:
         old_zid = existing_file.name.split("-")[0]
@@ -1436,7 +1450,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             
             # Check chapter file
             if save_chapters_file and has_chapters:
-                chapters_path = out_dir / f"{old_zid}-{sanitized_title}.chapters.txt"
+                if use_postfix and primary_lang:
+                    chapters_filename = f"{old_zid}-{sanitized_title}.{primary_lang}.chapters.txt"
+                else:
+                    chapters_filename = f"{old_zid}-{sanitized_title}.chapters.txt"
+                chapters_path = out_dir / chapters_filename
                 if not chapters_path.exists():
                     missing_files.append("chapters.txt")
                     
@@ -1612,7 +1630,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
         # Merge output container format to MP4
         video_cmd.extend(["--merge-output-format", "mp4"])
-        video_cmd.extend(["-o", output_tmpl])
+        if use_postfix and primary_lang:
+            video_output_tmpl = str(target_dir / f"{zid}-{sanitized_title}.{primary_lang}.%(ext)s")
+        else:
+            video_output_tmpl = str(target_dir / f"{zid}-{sanitized_title}.%(ext)s")
+        video_cmd.extend(["-o", video_output_tmpl])
 
         # Chapter embedding
         if embed_chapters and has_chapters:
@@ -1650,7 +1672,11 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
 
     # 6. Save separate chapters if configured and present
     if save_chapters_file and has_chapters:
-        chapters_path = target_dir / f"{zid}-{sanitized_title}.chapters.txt"
+        if use_postfix and primary_lang:
+            chapters_filename = f"{zid}-{sanitized_title}.{primary_lang}.chapters.txt"
+        else:
+            chapters_filename = f"{zid}-{sanitized_title}.chapters.txt"
+        chapters_path = target_dir / chapters_filename
         save_separate_chapters(info.get("chapters", []), chapters_path)
 
     # 7. Print download results summary and verify actual file creation

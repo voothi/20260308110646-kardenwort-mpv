@@ -29,6 +29,10 @@ youtube_download_subtitle_languages = original
 # Whether to fall back to auto-generated subtitles if manual ones are not available (true/false)
 youtube_download_subtitle_auto_fallback = true
 
+# Whether to append the primary/original language code as a postfix to the main downloaded video file
+# (e.g. saving as 20260606125105-my-video.en.mp4 instead of 20260606125105-my-video.mp4) (true/false)
+youtube_download_video_language_postfix = false
+
 # Path to the ZID script used to generate Zettelkasten timestamps.
 # Leave empty to fall back to local system time.
 # Example: youtube_download_zid_script = U:\voothi\20241116203211-zid\zid.py
