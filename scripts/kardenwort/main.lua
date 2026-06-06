@@ -3044,19 +3044,19 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local best_dist = math.huge
     local search_from = 1
     
-    print(string.format("[kardenwort] Search Pivot: %.1f | Term: '%s' | Text Len: %d", center, selected_term, #full_line))
+    Diagnostic.debug(string.format("Search Pivot: %.1f | Term: '%s' | Text Len: %d", center, selected_term, #full_line))
     while true do
         local s, e = full_lower:find(term_lower, search_from, true)
         if not s then break end
         local dist = math.abs((s + e) / 2 - center)
-        print(string.format("  - Candidate at %d-%d | Dist: %.1f", s, e, dist))
+        Diagnostic.debug(string.format("Candidate at %d-%d | Dist: %.1f", s, e, dist))
         if dist < best_dist then
             best_dist = dist
             start_pos, end_pos = s, e
         end
         search_from = math.max(search_from + 1, e + 1)
     end
-    if start_pos then print(string.format("  - Selected match at index %d", start_pos)) end
+    if start_pos then Diagnostic.debug(string.format("Selected match at index %d", start_pos)) end
     
     -- Non-contiguous term fallback: the composed term can't be found verbatim
     -- (words were skipped between picks, or picks span sentence boundaries).
@@ -3150,11 +3150,11 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         if b_term_pos then
             sent_start = b_term_pos + 1   -- sentence begins right after the terminator
             has_real_boundary = true
-            print(string.format("[kardenwort] Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
+            Diagnostic.debug(string.format("Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
                 full_line:sub(b_term_pos, b_term_pos), b_term_pos, sent_start))
         else
             sent_start = 1
-            print("[kardenwort] Sent boundary (backward): no terminator found, fallback to block start")
+            Diagnostic.debug("Sent boundary (backward): no terminator found, fallback to block start")
         end
 
         -- === Forward scan: find nearest real sentence terminator after end_pos ===
@@ -3176,11 +3176,11 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         if f_term_pos then
             sent_end = f_term_pos   -- include the terminator character
             has_real_boundary = true
-            print(string.format("[kardenwort] Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
+            Diagnostic.debug(string.format("Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
                 full_line:sub(f_term_pos, f_term_pos), f_term_pos, sent_end))
         else
             sent_end = #full_line
-            print("[kardenwort] Sent boundary (forward): no terminator found, fallback to block end")
+            Diagnostic.debug("Sent boundary (forward): no terminator found, fallback to block end")
         end
 
         local padding_allowed = padding_active and has_real_boundary
@@ -10512,7 +10512,7 @@ function try_next_video_candidate()
     FSM.current_candidate_idx = FSM.current_candidate_idx + 1
     local candidate = FSM.video_candidates[FSM.current_candidate_idx]
     if not candidate then
-        print("[kardenwort] try_next_video_candidate: no more candidates")
+        Diagnostic.debug("try_next_video_candidate: no more candidates")
         return
     end
 
@@ -10520,7 +10520,7 @@ function try_next_video_candidate()
     local tracks = mp.get_property_native("track-list") or {}
     for _, t in ipairs(tracks) do
         if t.type == "video" then
-            print("[kardenwort] try_next_video_candidate: already has video, skipping")
+            Diagnostic.debug("try_next_video_candidate: already has video, skipping")
             return
         end
     end
@@ -10531,7 +10531,7 @@ function try_next_video_candidate()
         load_path = load_path:gsub("/", "\\")
     end
 
-    print("[kardenwort] try_next_video_candidate: adding candidate path=" .. load_path)
+    Diagnostic.debug("try_next_video_candidate: adding candidate path=" .. load_path)
     mp.commandv("video-add", load_path, "select", candidate.postfix, candidate.raw_postfix)
 
     -- Wait 0.2 seconds and verify if video track is loaded. If not, try next.
@@ -10547,19 +10547,19 @@ function try_next_video_candidate()
                 if t.selected then
                     selected_video = true
                 end
-                print("[kardenwort] found video track id=" .. tostring(t.id) .. " selected=" .. tostring(t.selected))
+                Diagnostic.debug("found video track id=" .. tostring(t.id) .. " selected=" .. tostring(t.selected))
             end
         end
         if found_video then
             if not selected_video and video_track_id then
-                print("[kardenwort] attempting to select video track id=" .. tostring(video_track_id))
+                Diagnostic.debug("attempting to select video track id=" .. tostring(video_track_id))
                 mp.set_property_number("vid", video_track_id)
-                print("[kardenwort] vid property now=" .. tostring(mp.get_property("vid")))
+                Diagnostic.debug("vid property now=" .. tostring(mp.get_property("vid")))
             else
-                print("[kardenwort] video already selected=" .. tostring(selected_video))
+                Diagnostic.debug("video already selected=" .. tostring(selected_video))
             end
         else
-            print("[kardenwort] no video track found, trying next candidate")
+            Diagnostic.debug("no video track found, trying next candidate")
             try_next_video_candidate()
         end
     end)
@@ -10603,13 +10603,13 @@ function get_companion_video_files(dir, base_prefix)
 end
 
 function ensure_companion_video_track(path)
-    print("[kardenwort] ensure_companion_video_track: called with path=" .. tostring(path))
+    Diagnostic.debug("ensure_companion_video_track: called with path=" .. tostring(path))
     if Options.companion_video_enabled == false then
-        print("[kardenwort] ensure_companion_video_track: companion_video_enabled is false, returning")
+        Diagnostic.debug("ensure_companion_video_track: companion_video_enabled is false, returning")
         return
     end
     if not path or path == "" then
-        print("[kardenwort] ensure_companion_video_track: empty path, returning")
+        Diagnostic.debug("ensure_companion_video_track: empty path, returning")
         return
     end
     
@@ -10630,12 +10630,12 @@ function ensure_companion_video_track(path)
         end
     end
     if selected_video then
-        print("[kardenwort] ensure_companion_video_track: video track already selected, returning")
+        Diagnostic.debug("ensure_companion_video_track: video track already selected, returning")
         return
     end
     if has_video then
         if first_video_id then
-            print("[kardenwort] ensure_companion_video_track: video track exists but not selected. Selecting id=" .. tostring(first_video_id))
+            Diagnostic.debug("ensure_companion_video_track: video track exists but not selected. Selecting id=" .. tostring(first_video_id))
             mp.set_property_number("vid", first_video_id)
         end
         return
@@ -10646,20 +10646,20 @@ function ensure_companion_video_track(path)
     local filename = normalized_path:sub(#dir + 1)
     local ext = filename:match("%.([^%.]+)$") or ""
     if ext == "" then
-        print("[kardenwort] ensure_companion_video_track: empty ext, returning")
+        Diagnostic.debug("ensure_companion_video_track: empty ext, returning")
         return
     end
 
     local filename_no_ext = filename:sub(1, #filename - #ext - 1)
     local base_prefix = split_base_and_language_postfix(filename_no_ext)
     if not base_prefix or base_prefix == "" then
-        print("[kardenwort] ensure_companion_video_track: empty base_prefix, returning")
+        Diagnostic.debug("ensure_companion_video_track: empty base_prefix, returning")
         return
     end
 
-    print("[kardenwort] ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix)
+    Diagnostic.debug("ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix)
     local video_files = get_companion_video_files(dir, base_prefix)
-    print("[kardenwort] ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
+    Diagnostic.debug("ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
     if #video_files == 0 then return end
 
     local current_path_norm = canonicalize_local_path(path)
@@ -10673,7 +10673,7 @@ function ensure_companion_video_track(path)
         end
     end
 
-    print("[kardenwort] ensure_companion_video_track: #video_candidates after filtering=" .. tostring(#FSM.video_candidates))
+    Diagnostic.debug("ensure_companion_video_track: #video_candidates after filtering=" .. tostring(#FSM.video_candidates))
     try_next_video_candidate()
 end
 
