@@ -99,3 +99,84 @@ def test_subtitle_cycling_toggle_and_cycle():
     finally:
         session.stop()
         shutil.rmtree(work, ignore_errors=True)
+
+
+def test_subtitle_cycling_osd_labels():
+    """
+    Verify that OSD labels for cycled secondary subtitles show the correct language codes,
+    specifically "RU" and "DE" rather than repeating the video filename/base prefix.
+    """
+    work = _new_scratch_dir("sub-cycling-labels")
+    media_ru = work / "RU.mp4"
+    sub_ru = work / "RU.ru.srt"
+    sub_de = work / "RU.de.srt"
+
+    shutil.copy2(_FIXTURE_VIDEO, media_ru)
+    sub_ru.write_text(_DUMMY_SRT, encoding="utf-8")
+    sub_de.write_text(_DUMMY_SRT, encoding="utf-8")
+
+    session = MpvSession(
+        video=str(media_ru.resolve()),
+        # Pass no command line subtitles, let the auto-loader discover them
+        extra_args=["--pause", "--sub-auto=fuzzy"]
+    )
+    try:
+        session.start()
+        ipc = session.ipc
+
+        # Wait until tracks are loaded and active.
+        def tracks_loaded():
+            tracks = ipc.get_property("track-list") or []
+            subs = [t for t in tracks if t.get("type") == "sub"]
+            return len(subs) >= 2
+
+        deadline = time.time() + 5.0
+        while time.time() < deadline:
+            if tracks_loaded():
+                break
+            time.sleep(0.1)
+
+        # Force primary sid to be RU (which matches RU.ru.srt)
+        tracks = ipc.get_property("track-list") or []
+        ru_track_id = None
+        de_track_id = None
+        for t in tracks:
+            if t.get("type") == "sub":
+                lang = (t.get("lang") or "").upper()
+                if lang == "RU":
+                    ru_track_id = t["id"]
+                elif lang == "DE":
+                    de_track_id = t["id"]
+
+        assert ru_track_id is not None
+        assert de_track_id is not None
+
+        # Scenario 1: Primary subtitle is RU (Track 2).
+        # Cycle secondary subtitle: should cycle between OFF and DE.
+        ipc.command(["set_property", "secondary-sid", "no"])
+        ipc.command(["set_property", "sid", ru_track_id])
+        time.sleep(0.5)
+        
+        ipc.command(["script-binding", "kardenwort/cycle-sec-sid"])
+        time.sleep(0.5)
+        
+        osd_msg = ipc.get_property("user-data/kardenwort/last_osd") or ""
+        assert "DE" in osd_msg
+        assert "RU" not in osd_msg
+
+        # Scenario 2: Primary subtitle is DE (Track 1).
+        # Cycle secondary subtitle: should cycle between OFF and RU.
+        ipc.command(["set_property", "secondary-sid", "no"])
+        ipc.command(["set_property", "sid", de_track_id])
+        time.sleep(0.5)
+        
+        ipc.command(["script-binding", "kardenwort/cycle-sec-sid"])
+        time.sleep(0.5)
+        
+        osd_msg = ipc.get_property("user-data/kardenwort/last_osd") or ""
+        assert "RU" in osd_msg
+        assert "DE" not in osd_msg
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)

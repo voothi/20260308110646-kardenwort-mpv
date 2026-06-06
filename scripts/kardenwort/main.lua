@@ -9907,6 +9907,38 @@ local function cmd_adjust_sec_sub_pos(delta)
 end
 
 local function cmd_cycle_sec_sid()
+    local function extract_lang_from_title_or_path(title, path)
+        local filepath = (path and path ~= "") and path or title
+        if not filepath or filepath == "" then return nil end
+        filepath = filepath:gsub("\\", "/")
+        local filename = filepath:match("([^/]+)$") or filepath
+        
+        -- Check if the whole filename is a 2- or 3-letter language code
+        if #filename == 2 or #filename == 3 then
+            if filename:match("^[%a%-]+$") then
+                return filename:upper()
+            end
+        end
+        
+        local ext = filename:match("%.([^%.]+)$") or ""
+        if ext ~= "" then
+            local filename_no_ext = filename:sub(1, #filename - #ext - 1)
+            
+            -- If the remaining part is exactly 2- or 3-letter language code
+            if #filename_no_ext == 2 or #filename_no_ext == 3 then
+                if filename_no_ext:match("^[%a%-]+$") then
+                    return filename_no_ext:upper()
+                end
+            end
+            
+            local base_prefix, postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
+            if postfix and (#postfix == 2 or #postfix == 3) then
+                return postfix:upper()
+            end
+        end
+        return nil
+    end
+
     if FSM.DRUM_WINDOW ~= "OFF" then
         show_osd("X")
         return
@@ -10051,9 +10083,33 @@ local function cmd_cycle_sec_sid()
     local label = "OFF"
     if next_sid ~= 0 then
         for _, t in ipairs(tracks) do
-            if tonumber(t.id) == next_sid then
-                label = t.lang and t.lang:upper() or t.title or "ON"
-                if label:find("%.") then label = label:match("([^%.]+)%.") or label end
+            if t.type == "sub" and tonumber(t.id) == next_sid then
+                local path = t["external-filename"] or t["external_filename"] or ""
+                local lang_detected = nil
+                
+                if path ~= "" then
+                    lang_detected = extract_lang_from_title_or_path(t.title, path)
+                end
+                if not lang_detected and t.title then
+                    lang_detected = extract_lang_from_title_or_path(t.title, nil)
+                end
+                
+                if lang_detected then
+                    label = lang_detected
+                else
+                    local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown") and t.lang:upper() or nil
+                    if lang_lbl then
+                        label = lang_lbl
+                    else
+                        label = t.title or "ON"
+                        if label:find("%.") then
+                            local base_label = label:match("([^%.]+)%.")
+                            if base_label then
+                                label = base_label
+                            end
+                        end
+                    end
+                end
                 break
             end
         end
