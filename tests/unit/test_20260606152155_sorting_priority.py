@@ -52,29 +52,7 @@ def test_file_sorting_priority_exact_matches():
     }
 
     srt_files = ["video.ru.srt", "video.de.srt", "video.en.srt"]
-
-    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages").split(",") if l.strip()]
-
-    def get_sort_key(f):
-        lang = sub_tts.detect_language(f, config)
-        stem = Path(f).stem
-        parts = stem.rsplit(".", 1)
-        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
-        raw_base = re_split_local(raw_postfix)
-        
-        for idx, p_lang in enumerate(primary_langs):
-            p_lang_clean = p_lang.lower()
-            p_lang_base = re_split_local(p_lang_clean)
-            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
-                return idx
-        return len(primary_langs)
-
-    def re_split_local(s):
-        import re
-        return re.split(r"[-_]", s)[0] if s else ""
-
-    srt_files.sort(key=get_sort_key)
-    assert srt_files == ["video.en.srt", "video.de.srt", "video.ru.srt"]
+    assert sub_tts.sort_srt_files(srt_files, config) == ["video.en.srt", "video.de.srt", "video.ru.srt"]
 
 def test_file_sorting_priority_regional_matches():
     sub_tts = _load_sub_tts()
@@ -86,28 +64,7 @@ def test_file_sorting_priority_regional_matches():
 
     # Input has regional postfixes, primary_languages has base languages
     srt_files = ["video.ru-RU.srt", "video.de-DE.srt", "video.en_US.srt"]
-    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages").split(",") if l.strip()]
-
-    def get_sort_key(f):
-        lang = sub_tts.detect_language(f, config)
-        stem = Path(f).stem
-        parts = stem.rsplit(".", 1)
-        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
-        raw_base = re_split_local(raw_postfix)
-        
-        for idx, p_lang in enumerate(primary_langs):
-            p_lang_clean = p_lang.lower()
-            p_lang_base = re_split_local(p_lang_clean)
-            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
-                return idx
-        return len(primary_langs)
-
-    def re_split_local(s):
-        import re
-        return re.split(r"[-_]", s)[0] if s else ""
-
-    srt_files.sort(key=get_sort_key)
-    assert srt_files == ["video.en_US.srt", "video.de-DE.srt", "video.ru-RU.srt"]
+    assert sub_tts.sort_srt_files(srt_files, config) == ["video.en_US.srt", "video.de-DE.srt", "video.ru-RU.srt"]
 
 def test_file_sorting_priority_explicit_regional_in_config():
     sub_tts = _load_sub_tts()
@@ -119,73 +76,26 @@ def test_file_sorting_priority_explicit_regional_in_config():
 
     # Input has regional postfixes, primary_languages also has regional languages
     srt_files = ["video.de-DE.srt", "video.en-US.srt"]
-    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages").split(",") if l.strip()]
-
-    def get_sort_key(f):
-        lang = sub_tts.detect_language(f, config)
-        stem = Path(f).stem
-        parts = stem.rsplit(".", 1)
-        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
-        raw_base = re_split_local(raw_postfix)
-        
-        for idx, p_lang in enumerate(primary_langs):
-            p_lang_clean = p_lang.lower()
-            p_lang_base = re_split_local(p_lang_clean)
-            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
-                return idx
-        return len(primary_langs)
-
-    def re_split_local(s):
-        import re
-        return re.split(r"[-_]", s)[0] if s else ""
-
-    srt_files.sort(key=get_sort_key)
-    assert srt_files == ["video.en-US.srt", "video.de-DE.srt"]
+    assert sub_tts.sort_srt_files(srt_files, config) == ["video.en-US.srt", "video.de-DE.srt"]
 
 def test_file_sorting_priority_fallback_to_default_lang():
     sub_tts = _load_sub_tts()
     config = configparser.ConfigParser()
     config["tts_settings"] = {
-        "default_lang": "de", # default_lang is de, primary_languages is empty
+        "default_lang": "de",  # default_lang is de, primary_languages is empty
     }
 
     srt_files = ["video.ru.srt", "video.de-DE.srt", "video.en.srt"]
-    
-    # Mimic main() fallback logic
-    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages", fallback="").split(",") if l.strip()]
-    if not primary_langs:
-        primary_langs = [config.get("tts_settings", "default_lang", fallback="en").strip().lower()]
-
-    def get_sort_key(f):
-        lang = sub_tts.detect_language(f, config)
-        stem = Path(f).stem
-        parts = stem.rsplit(".", 1)
-        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
-        raw_base = re_split_local(raw_postfix)
-        
-        for idx, p_lang in enumerate(primary_langs):
-            p_lang_clean = p_lang.lower()
-            p_lang_base = re_split_local(p_lang_clean)
-            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
-                return idx
-        return len(primary_langs)
-
-    def re_split_local(s):
-        import re
-        return re.split(r"[-_]", s)[0] if s else ""
-
-    srt_files.sort(key=get_sort_key)
-    assert srt_files == ["video.de-DE.srt", "video.ru.srt", "video.en.srt"]
+    assert sub_tts.sort_srt_files(srt_files, config) == ["video.de-DE.srt", "video.ru.srt", "video.en.srt"]
 
 
-def test_skip_primary_output_in_process_srt(monkeypatch, tmp_path):
+def test_reuse_canonical_output_in_process_srt(monkeypatch, tmp_path):
     sub_tts = _load_sub_tts()
     config = configparser.ConfigParser()
     config["tts_settings"] = {
         "default_lang": "en",
-        "skip_primary_output": "true",
+        "reuse_canonical_output": "true",
         "timeline_source": "primary_subtitle",
-        "shift_subtitles_on_overflow": "false",
     }
     
     srt_file = tmp_path / "test.en.srt"
@@ -221,16 +131,16 @@ def test_skip_primary_output_in_process_srt(monkeypatch, tmp_path):
     piper_cfg["tts_settings"] = {"supported_languages": "en"}
     piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
 
-    # Run process_srt as a primary track (canonical_shift_plan is None)
+    # Run process_srt as a canonical track (canonical_shift_plan is None)
     ok, shift_plan = sub_tts.process_srt(
         srt_file,
         config=config,
         piper_config=piper_cfg,
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
-        skip_primary_output_override=True,
+        reuse_canonical_output_override=True,
     )
-    
+
     assert ok is True
     # Let's verify we skipped synthesis and audio assembly
     assert not synthesis_called
@@ -242,10 +152,10 @@ def test_sidecar_json_loading_and_writing(monkeypatch, tmp_path):
     config = configparser.ConfigParser()
     config["tts_settings"] = {
         "default_lang": "en",
-        "skip_primary_output": "true",
+        "reuse_canonical_output": "true",
         "timeline_source": "primary_audio",
     }
-    
+
     # 1. Test Writing:
     # First, run process_srt where sidecar does NOT exist. It should synthesize cues and write the sidecar JSON.
     srt_file = tmp_path / "test.en.srt"
@@ -278,7 +188,7 @@ def test_sidecar_json_loading_and_writing(monkeypatch, tmp_path):
         piper_config=piper_cfg,
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
-        skip_primary_output_override=True,
+        reuse_canonical_output_override=True,
     )
     
     assert ok is True
@@ -297,7 +207,7 @@ def test_sidecar_json_loading_and_writing(monkeypatch, tmp_path):
         piper_config=piper_cfg,
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
-        skip_primary_output_override=True,
+        reuse_canonical_output_override=True,
     )
     
     assert ok2 is True
@@ -321,74 +231,25 @@ def test_auto_discovery_of_primary_files(tmp_path):
     config["tts_settings"] = {
         "default_lang": "en",
         "primary_languages": "en, de",
-        "auto_discover_primary": "true",
+        "auto_discover_canonical": "true",
     }
-    
-    # Simulate the main() auto-discovery logic
-    srt_files = [str(secondary_file)]
-    
-    auto_discovered_srt_files = set()
-    auto_discover = True
-    primary_langs = ["en", "de"]
 
-    if auto_discover:
-        discovered_candidates = []
-        for f in list(srt_files):
-            lang = sub_tts.detect_language(f, config)
-            try:
-                f_priority = primary_langs.index(lang)
-            except ValueError:
-                f_priority = len(primary_langs)
+    # Exercise the real discovery helper rather than a reimplementation.
+    srt_files, auto_discovered_srt_files = sub_tts.discover_canonical_files([str(secondary_file)], config)
 
-            if f_priority > 0:
-                parent_dir = Path(f).resolve().parent
-                stem = Path(f).stem
-                clean_stem = sub_tts.strip_lang_postfix(stem, lang)
-                
-                try:
-                    for p in parent_dir.glob("*.srt"):
-                        if p.resolve() == Path(f).resolve():
-                            continue
-                        p_lang = sub_tts.detect_language(p, config)
-                        p_stem = p.stem
-                        p_clean_stem = sub_tts.strip_lang_postfix(p_stem, p_lang)
-                        if p_clean_stem.lower() == clean_stem.lower():
-                            try:
-                                p_priority = primary_langs.index(p_lang)
-                            except ValueError:
-                                p_priority = len(primary_langs)
-                            if p_priority < f_priority:
-                                discovered_candidates.append((p, p_priority))
-                except Exception:
-                    pass
-
-        by_stem = {}
-        for p, priority in discovered_candidates:
-            p_lang = sub_tts.detect_language(p, config)
-            clean_stem = sub_tts.strip_lang_postfix(p.stem, p_lang).lower()
-            if clean_stem not in by_stem or priority < by_stem[clean_stem][1]:
-                by_stem[clean_stem] = (p, priority)
-
-        for p, priority in by_stem.values():
-            resolved_p = str(p.resolve())
-            resolved_srt_files = [str(Path(sf).resolve()) for sf in srt_files]
-            if resolved_p not in resolved_srt_files:
-                srt_files.append(str(p))
-                auto_discovered_srt_files.add(str(p.resolve()))
-
-    # Verify that the primary file was auto-discovered, but the unrelated file was not
+    # Verify that the canonical file was auto-discovered, but the unrelated file was not
     assert len(srt_files) == 2
     assert str(primary_file.resolve()) in [str(Path(sf).resolve()) for sf in srt_files]
     assert str(unrelated_file.resolve()) not in [str(Path(sf).resolve()) for sf in srt_files]
     assert str(primary_file.resolve()) in auto_discovered_srt_files
 
 
-def test_skip_primary_output_conditional_on_existence(monkeypatch, tmp_path):
+def test_reuse_canonical_output_conditional_on_existence(monkeypatch, tmp_path):
     sub_tts = _load_sub_tts()
     config = configparser.ConfigParser()
     config["tts_settings"] = {
         "default_lang": "en",
-        "skip_primary_output": "true",
+        "reuse_canonical_output": "true",
         "timeline_source": "primary_subtitle",
     }
     
@@ -425,7 +286,7 @@ def test_skip_primary_output_conditional_on_existence(monkeypatch, tmp_path):
         piper_config=piper_cfg,
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
-        skip_primary_output_override=True,
+        reuse_canonical_output_override=True,
     )
     
     assert ok is True
@@ -443,7 +304,7 @@ def test_skip_primary_output_conditional_on_existence(monkeypatch, tmp_path):
         piper_config=piper_cfg,
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
-        skip_primary_output_override=True,
+        reuse_canonical_output_override=True,
     )
     
     assert ok2 is True
@@ -462,7 +323,7 @@ def test_fallback_to_subtitle_if_output_exists(monkeypatch, tmp_path):
     primary_mp4 = tmp_path / "video.mp4"
     primary_mp4.write_text("dummy mp4", encoding="utf-8")
     
-    # 3. Create a config with timeline_source = primary_audio and fallback_to_subtitle_if_output_exists = true
+    # 3. Create a config using the timeline_source = primary_audio_or_subtitle_fallback mode
     config = configparser.ConfigParser()
     config["paths"] = {
         "piper_tts_root": str(tmp_path),
@@ -471,8 +332,7 @@ def test_fallback_to_subtitle_if_output_exists(monkeypatch, tmp_path):
     config["tts_settings"] = {
         "default_lang": "en",
         "primary_languages": "en",
-        "timeline_source": "primary_audio",
-        "fallback_to_subtitle_if_output_exists": "true",
+        "timeline_source": "primary_audio_or_subtitle_fallback",
         "keep_lang_postfix": "false",
     }
     
@@ -484,12 +344,10 @@ def test_fallback_to_subtitle_if_output_exists(monkeypatch, tmp_path):
         ffmpeg_path = None
         keep_lang_postfix = None
         timeline_source = None
-        shift_subtitles_on_overflow = None
-        skip_primary_output = False
-        auto_discover_primary = False
+        reuse_canonical_output = False
+        auto_discover_canonical = False
         sendto = False
         pause = False
-        fallback_to_subtitle_if_output_exists = None
     
     monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
     monkeypatch.setattr(sub_tts, "load_config", lambda: config)
@@ -555,32 +413,32 @@ def test_write_synced_srt_uses_shifted_timings(tmp_path):
     assert "\n2\n" in content
 
 
-def test_find_existing_primary_media_no_postfix(tmp_path):
+def test_find_existing_canonical_media_no_postfix(tmp_path):
     sub_tts = _load_sub_tts()
     # Main-language source exists WITHOUT a language postfix.
     (tmp_path / "video.mp4").write_text("dummy", encoding="utf-8")
 
     # keep_postfix=True would historically look only for 'video.de.mp4' and miss this.
-    found = sub_tts.find_existing_primary_media(tmp_path, "video.de", "de", keep_postfix=True)
+    found = sub_tts.find_existing_canonical_media(tmp_path, "video.de", "de", keep_postfix=True)
     assert found is not None
     assert found.name == "video.mp4"
 
 
-def test_find_existing_primary_media_postfixed_and_mp3(tmp_path):
+def test_find_existing_canonical_media_postfixed_and_mp3(tmp_path):
     sub_tts = _load_sub_tts()
     (tmp_path / "video.de.mp4").write_text("dummy", encoding="utf-8")
-    found = sub_tts.find_existing_primary_media(tmp_path, "video.de", "de", keep_postfix=True)
+    found = sub_tts.find_existing_canonical_media(tmp_path, "video.de", "de", keep_postfix=True)
     assert found.name == "video.de.mp4"
 
     # mp3 container is also recognized
     (tmp_path / "audio.mp3").write_text("dummy", encoding="utf-8")
-    found_mp3 = sub_tts.find_existing_primary_media(tmp_path, "audio.de", "de", keep_postfix=False)
+    found_mp3 = sub_tts.find_existing_canonical_media(tmp_path, "audio.de", "de", keep_postfix=False)
     assert found_mp3.name == "audio.mp3"
 
 
-def test_find_existing_primary_media_missing(tmp_path):
+def test_find_existing_canonical_media_missing(tmp_path):
     sub_tts = _load_sub_tts()
-    assert sub_tts.find_existing_primary_media(tmp_path, "video.de", "de", keep_postfix=True) is None
+    assert sub_tts.find_existing_canonical_media(tmp_path, "video.de", "de", keep_postfix=True) is None
 
 
 def test_process_srt_writes_synced_subtitle(monkeypatch, tmp_path):
@@ -588,7 +446,7 @@ def test_process_srt_writes_synced_subtitle(monkeypatch, tmp_path):
     config = configparser.ConfigParser()
     config["tts_settings"] = {
         "default_lang": "en",
-        "skip_primary_output": "false",
+        "reuse_canonical_output": "false",
         "timeline_source": "primary_subtitle",
         "keep_lang_postfix": "true",
     }
@@ -622,7 +480,7 @@ def test_process_srt_writes_synced_subtitle(monkeypatch, tmp_path):
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
         output_dir_override=str(out_dir),
-        skip_primary_output_override=False,
+        reuse_canonical_output_override=False,
     )
     assert ok is True
 
@@ -639,7 +497,7 @@ def test_process_srt_synced_subtitle_does_not_clobber_source(monkeypatch, tmp_pa
     config = configparser.ConfigParser()
     config["tts_settings"] = {
         "default_lang": "en",
-        "skip_primary_output": "false",
+        "reuse_canonical_output": "false",
         "timeline_source": "primary_subtitle",
         "keep_lang_postfix": "true",
     }
@@ -671,7 +529,7 @@ def test_process_srt_synced_subtitle_does_not_clobber_source(monkeypatch, tmp_pa
         piper_root=Path(""),
         ffmpeg_path="ffmpeg",
         zid_cache=zid_cache,
-        skip_primary_output_override=False,
+        reuse_canonical_output_override=False,
     )
     assert ok is True
 
@@ -700,7 +558,7 @@ def test_cleanup_sidecar_on_success(monkeypatch, tmp_path):
         "default_lang": "de",
         "primary_languages": "de",
         "timeline_source": "primary_subtitle",
-        "auto_discover_primary": "false",
+        "auto_discover_canonical": "false",
         "cleanup_sidecar_on_success": "true",
     }
 
@@ -711,12 +569,10 @@ def test_cleanup_sidecar_on_success(monkeypatch, tmp_path):
         ffmpeg_path = None
         keep_lang_postfix = None
         timeline_source = None
-        shift_subtitles_on_overflow = None
-        skip_primary_output = False
-        auto_discover_primary = False
+        reuse_canonical_output = False
+        auto_discover_canonical = False
         sendto = False
         pause = False
-        fallback_to_subtitle_if_output_exists = None
 
     monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
     monkeypatch.setattr(sub_tts, "load_config", lambda: config)
@@ -753,7 +609,7 @@ def test_cleanup_sidecar_skipped_on_partial_failure(monkeypatch, tmp_path):
         "default_lang": "de",
         "primary_languages": "de",
         "timeline_source": "primary_subtitle",
-        "auto_discover_primary": "false",
+        "auto_discover_canonical": "false",
         "cleanup_sidecar_on_success": "true",
     }
 
@@ -764,12 +620,10 @@ def test_cleanup_sidecar_skipped_on_partial_failure(monkeypatch, tmp_path):
         ffmpeg_path = None
         keep_lang_postfix = None
         timeline_source = None
-        shift_subtitles_on_overflow = None
-        skip_primary_output = False
-        auto_discover_primary = False
+        reuse_canonical_output = False
+        auto_discover_canonical = False
         sendto = False
         pause = False
-        fallback_to_subtitle_if_output_exists = None
 
     monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
     monkeypatch.setattr(sub_tts, "load_config", lambda: config)
@@ -809,11 +663,10 @@ def test_fallback_triggers_with_no_postfix_primary_media(monkeypatch, tmp_path):
     config["tts_settings"] = {
         "default_lang": "en",
         "primary_languages": "de",
-        "timeline_source": "primary_audio",
-        "fallback_to_subtitle_if_output_exists": "true",
+        "timeline_source": "primary_audio_or_subtitle_fallback",
         # keep_lang_postfix=true historically searched only for 'video.de.mp4'.
         "keep_lang_postfix": "true",
-        "auto_discover_primary": "false",
+        "auto_discover_canonical": "false",
     }
 
     class Args:
@@ -823,12 +676,10 @@ def test_fallback_triggers_with_no_postfix_primary_media(monkeypatch, tmp_path):
         ffmpeg_path = None
         keep_lang_postfix = None
         timeline_source = None
-        shift_subtitles_on_overflow = None
-        skip_primary_output = False
-        auto_discover_primary = False
+        reuse_canonical_output = False
+        auto_discover_canonical = False
         sendto = False
         pause = False
-        fallback_to_subtitle_if_output_exists = None
 
     monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
     monkeypatch.setattr(sub_tts, "load_config", lambda: config)
@@ -846,3 +697,85 @@ def test_fallback_triggers_with_no_postfix_primary_media(monkeypatch, tmp_path):
     sub_tts.main()
 
     assert called == ["primary_subtitle"]
+
+
+# ---------------------------------------------------------------------------
+# Collapsed timeline enum + unified collision policy (ZID 20260606181116)
+# ---------------------------------------------------------------------------
+
+def test_resolve_timeline_mode_all_values():
+    sub_tts = _load_sub_tts()
+    # (base, shift_on_overflow, fallback_to_subtitle, ok)
+    assert sub_tts.resolve_timeline_mode("primary_subtitle") == ("primary_subtitle", False, False, True)
+    assert sub_tts.resolve_timeline_mode("primary_subtitle_shift") == ("primary_subtitle", True, False, True)
+    assert sub_tts.resolve_timeline_mode("primary_audio") == ("primary_audio", False, False, True)
+    assert sub_tts.resolve_timeline_mode("primary_audio_or_subtitle_fallback") == ("primary_audio", False, True, True)
+    # Case/space tolerant
+    assert sub_tts.resolve_timeline_mode("  Primary_Audio  ") == ("primary_audio", False, False, True)
+
+
+def test_resolve_timeline_mode_invalid():
+    sub_tts = _load_sub_tts()
+    base, shift, fallback, ok = sub_tts.resolve_timeline_mode("nonsense")
+    assert ok is False
+    assert (base, shift, fallback) == ("primary_subtitle", False, False)
+    # None is treated as unrecognized, not a crash
+    assert sub_tts.resolve_timeline_mode(None)[3] is False
+
+
+def _synced_collision_setup(sub_tts, monkeypatch, tmp_path, duplicate_mode):
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "timeline_source": "primary_subtitle",
+        "keep_lang_postfix": "true",
+        "duplicate_mode": duplicate_mode,
+    }
+    srt_file = tmp_path / "video.ru.srt"
+    original_text = "1\n00:00:01,000 --> 00:00:02,000\nПривет"
+    srt_file.write_text(original_text, encoding="utf-8")
+
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *a: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Привет"}])
+    monkeypatch.setattr(
+        sub_tts, "synthesize_all_cues",
+        lambda *a: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 5000, "end_ms": 9000, "text": "Привет"}}],
+    )
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda r, *a: r)
+    monkeypatch.setattr(sub_tts, "assemble_audio", lambda *a: tmp_path / "assembled.wav")
+    monkeypatch.setattr(sub_tts, "mux_to_mp4", lambda *a: True)
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "ru"}
+    piper_cfg["voice_ru"] = {"model": "ru_voice.onnx"}
+    return config, srt_file, original_text, piper_cfg
+
+
+def test_synced_collision_overwrite_mode_replaces_source(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config, srt_file, original_text, piper_cfg = _synced_collision_setup(sub_tts, monkeypatch, tmp_path, "overwrite")
+
+    ok, _ = sub_tts.process_srt(
+        srt_file, config=config, piper_config=piper_cfg, piper_root=Path(""),
+        ffmpeg_path="ffmpeg", zid_cache={"value": "20260606181116"},
+        reuse_canonical_output_override=False,
+    )
+    assert ok is True
+    # Source overwritten in place with the synced timeline; no ZID archive created.
+    assert "00:00:05,000 --> 00:00:09,000" in srt_file.read_text(encoding="utf-8")
+    assert not (tmp_path / "20260606181116").exists()
+
+
+def test_synced_collision_skip_mode_preserves_source(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config, srt_file, original_text, piper_cfg = _synced_collision_setup(sub_tts, monkeypatch, tmp_path, "skip")
+
+    ok, _ = sub_tts.process_srt(
+        srt_file, config=config, piper_config=piper_cfg, piper_root=Path(""),
+        ffmpeg_path="ffmpeg", zid_cache={"value": "20260606181116"},
+        reuse_canonical_output_override=False,
+    )
+    assert ok is True
+    # Source left untouched; synced copy lands in the ZID subdirectory instead.
+    assert srt_file.read_text(encoding="utf-8") == original_text
+    synced = tmp_path / "20260606181116" / "video.ru.srt"
+    assert "00:00:05,000 --> 00:00:09,000" in synced.read_text(encoding="utf-8")

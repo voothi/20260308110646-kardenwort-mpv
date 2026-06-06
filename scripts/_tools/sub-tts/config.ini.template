@@ -24,57 +24,64 @@ zid_script = U:/voothi/20241116203211-zid/zid.py
 # Must match a language code supported by the Piper TTS config.ini (e.g., en, de, ru).
 default_lang = en
 
-# How to handle output filename duplicates.
-# zid-dir  : route to a new ZID-named subdirectory (recommended)
-# skip     : skip conversion if the output file already exists
-# overwrite: overwrite the existing output file
+# How to handle output filename duplicates. Applies to both the .mp4 output and,
+# on a name collision, the synced .srt companion (so the two never disagree).
+# zid-dir  : route to a new ZID-named subdirectory (recommended). On an SRT
+#            collision, the original source SRT is archived into <ZID>/ and the
+#            synced version is written to the root path.
+# skip     : skip conversion if the output file already exists. On an SRT
+#            collision, the source SRT is left untouched and the synced copy is
+#            written into <ZID>/ instead.
+# overwrite: overwrite the existing output file (and the source SRT in place).
 duplicate_mode = zid-dir
 
-# Keep the language postfix in the output MP4 filename (e.g. video.de.mp4 instead of video.mp4)
-# in accordance with the postfix in the SRT file.
+# Keep the language postfix in the output MP4 filename (e.g. video.de.mp4 instead
+# of video.mp4) in accordance with the postfix in the SRT file.
 # Note: config.ini (the live config) may differ — check it for the active setting.
 keep_lang_postfix = false
 
 
-# Prioritized list of languages (comma-separated) to treat as the primary/timeline source of truth.
-# When processing multiple files, the file matching the highest priority language present
-# will be processed first to establish the canonical timeline.
+# Defines what dictates the final timeline (the source of truth). A single enum
+# that also encodes the former shift/fallback booleans, so every value is
+# meaningful (no silently-ignored combinations):
+#
+# primary_subtitle                   : the original SRT timing is the absolute
+#                                      truth; generated audio is sped up to fit
+#                                      each subtitle slot.
+# primary_subtitle_shift             : like primary_subtitle, but when audio still
+#                                      overflows after speed-up, shift the later
+#                                      cues later in time to make room (the
+#                                      subtitle yields slightly to the audio).
+# primary_audio                      : the canonical track's native TTS audio is
+#                                      the truth; the timeline is rebuilt around it
+#                                      and secondary tracks are sped up to fit.
+# primary_audio_or_subtitle_fallback : like primary_audio, but if the canonical
+#                                      output already exists and no sidecar JSON is
+#                                      available, fall back to primary_subtitle to
+#                                      avoid re-synthesizing the canonical track.
+timeline_source = primary_subtitle
+
+
+# Prioritized list of languages (comma-separated) to treat as the primary/timeline
+# source of truth. When processing multiple files, the file matching the highest
+# priority language present is processed first to establish the canonical timeline.
 # Supports regional/locale suffixes (e.g. 'en_US' or 'en-US' will match 'en').
 # Fallback: defaults to the 'default_lang' setting if empty.
 primary_languages = en, de
 
 
-# If true, skip the audio assembly and MP4 muxing for the primary (first) track.
-# The primary track's SRT will still be processed to calculate the canonical timeline,
-# but no output file will be written for it.
-skip_primary_output = false
+# Reuse the canonical track's existing output instead of regenerating it: if the
+# canonical media (e.g. video.mp4 / video.de.mp4 / .mp3) already exists, skip its
+# assembly and muxing; if it does NOT exist, generate it anyway. The canonical
+# track's SRT is still processed to establish the timeline either way.
+reuse_canonical_output = false
 
-# If true, when only a secondary language file is passed (e.g. video.ru.srt), the script
-# will search the directory for the corresponding primary language file (e.g. video.en.srt,
-# video.de.srt, or video.srt) to automatically establish the timeline.
-# Output generation for this auto-discovered primary file will be skipped.
-auto_discover_primary = true
+# When only a secondary-language file is passed (e.g. video.ru.srt), search the
+# directory for the corresponding canonical-language file (e.g. video.en.srt,
+# video.de.srt, or video.srt) to establish the timeline. The auto-discovered
+# canonical file's output is reused rather than regenerated.
+auto_discover_canonical = true
 
-
-# Defines what dictates the final timeline (The Source of Truth).
-# 'primary_subtitle' : The original SRT timing is the absolute truth. The generated audio
-#                      is adjusted (sped up) to fit into the original subtitle slots.
-# 'primary_audio'    : The first track's native TTS audio is the absolute truth. The 
-#                      timeline is rebuilt around it, and any secondary translated
-#                      tracks are adjusted (sped up) to fit this new timeline.
-timeline_source = primary_subtitle
- 
-# (Only applies when timeline_source = primary_audio)
-# If the primary output file already exists but no sidecar JSON is available,
-# automatically fall back to 'primary_subtitle' to avoid synthesizing the primary track.
-# Default: false
-fallback_to_subtitle_if_output_exists = false
-
-# (Only applies when timeline_source = primary_subtitle)
-# If the audio STILL overflows its subtitle slot even after being sped up,
-# shift the subsequent subtitles later in time to make room and avoid overlap.
-# In this case, the subtitle yields slightly to the audio.
-shift_subtitles_on_overflow = false
 
 # Optional VAD-like pause compression before tempo adjustment.
 vad_silence_compression = false
@@ -94,9 +101,9 @@ max_speed_factor = 2.0
 
 
 # If true, delete the .shift_plan.json sidecar file(s) after a fully successful run.
-# The sidecar is only needed to skip re-synthesizing the primary track on a separate
-# subsequent invocation (primary_audio mode). If you always process all languages
-# together in a single run, set this to true to keep the output directory clean.
+# The sidecar is only needed to skip re-synthesizing the canonical track on a
+# separate subsequent invocation (primary_audio modes). If you always process all
+# languages together in a single run, set this to true to keep the directory clean.
 # Default: false
 cleanup_sidecar_on_success = false
 

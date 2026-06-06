@@ -173,6 +173,40 @@ def get_supported_languages(piper_config):
 
 
 # ==============================================================================
+# TIMELINE MODE
+# ==============================================================================
+# A single enum encodes the timeline policy. The two formerly separate booleans
+# (shift_subtitles_on_overflow, fallback_to_subtitle_if_output_exists) only ever
+# applied to one base mode each, which made half their combinations silent
+# no-ops. They are now folded into the enum so every value is meaningful.
+TIMELINE_SOURCES = (
+    "primary_subtitle",                    # subtitle timing is truth; audio sped up to fit
+    "primary_subtitle_shift",              #   ...and shift later cues when audio still overflows
+    "primary_audio",                       # canonical track's native audio is truth
+    "primary_audio_or_subtitle_fallback",  #   ...but fall back to subtitle when output already exists
+)
+DEFAULT_TIMELINE_SOURCE = "primary_subtitle"
+
+
+def resolve_timeline_mode(raw):
+    """
+    Normalize a timeline_source value into its component behaviors.
+
+    Returns (base, shift_on_overflow, fallback_to_subtitle, ok) where:
+      - base is 'primary_subtitle' or 'primary_audio'
+      - shift_on_overflow / fallback_to_subtitle are the derived booleans
+      - ok is False for an unrecognized value (caller should warn + use defaults)
+    """
+    value = (raw or "").strip().lower()
+    if value not in TIMELINE_SOURCES:
+        return DEFAULT_TIMELINE_SOURCE, False, False, False
+    base = "primary_audio" if value.startswith("primary_audio") else "primary_subtitle"
+    shift_on_overflow = value == "primary_subtitle_shift"
+    fallback_to_subtitle = value == "primary_audio_or_subtitle_fallback"
+    return base, shift_on_overflow, fallback_to_subtitle, True
+
+
+# ==============================================================================
 # SRT PARSER (tasks 2.1 – 2.3)
 # ==============================================================================
 
@@ -271,9 +305,9 @@ def format_ms_to_srt_time(ms):
 def write_synced_srt(synthesis_results, srt_out_path):
     """
     Write an SRT file whose cue timings match the (possibly shifted) timeline in
-    synthesis_results. This keeps subtitles in sync with the rebuilt audio when
-    timeline_source='primary_audio' (or shift_subtitles_on_overflow) re-times the
-    audio but leaves the original subtitle file untouched.
+    synthesis_results. This keeps subtitles in sync with the rebuilt audio when a
+    timeline_source that re-times audio (primary_audio* or primary_subtitle_shift)
+    leaves the original subtitle file untouched.
 
     Returns the number of cues written.
     """
@@ -297,6 +331,66 @@ def write_synced_srt(synthesis_results, srt_out_path):
     content = "\n".join(lines).strip() + "\n"
     Path(srt_out_path).write_text(content, encoding="utf-8")
     return written
+
+
+def save_sidecar(shift_plan, srt_path):
+    """Persist a ShiftPlan next to its source SRT as <name>.srt.shift_plan.json."""
+    if shift_plan is None:
+        return
+    sidecar_path = Path(srt_path).with_name(f"{Path(srt_path).name}.shift_plan.json")
+    try:
+        import json
+        with open(sidecar_path, "w", encoding="utf-8") as sf:
+            json.dump(shift_plan.to_dict(), sf, indent=2)
+        log_detail(f"Saved timeline sidecar: {sidecar_path.name}")
+    except Exception as exc:
+        log_warn(f"Failed to save sidecar JSON '{sidecar_path.name}': {exc}")
+
+
+def write_synced_subtitle(synthesis_results, output_mp4, srt_path, config, zid_cache):
+    """
+    Write a companion subtitle re-timed to the (possibly shifted) audio timeline,
+    named to match the output MP4 stem so players auto-load it.
+
+    When the synced path collides with the source SRT, the collision is resolved
+    using the same duplicate_mode policy that governs the MP4 output, so the two
+    artifacts never disagree:
+      - zid-dir (default): archive the original source into <ZID>/ then overwrite
+                           the root path with the synced version.
+      - overwrite:         overwrite the source in place (no archive).
+      - skip:              leave the source untouched; write the synced copy into
+                           <ZID>/ instead so nothing is clobbered.
+    """
+    synced_srt_path = output_mp4.with_suffix(".srt")
+    collision = synced_srt_path.resolve() == Path(srt_path).resolve()
+
+    if collision:
+        dup_mode = config.get("tts_settings", "duplicate_mode", fallback="zid-dir").strip()
+        if dup_mode == "overwrite":
+            pass  # overwrite the source subtitle in place
+        elif dup_mode == "skip":
+            if not zid_cache.get("value"):
+                zid_cache["value"] = get_zid(config)
+            zid_dir = output_mp4.parent / zid_cache["value"]
+            zid_dir.mkdir(parents=True, exist_ok=True)
+            synced_srt_path = zid_dir / Path(srt_path).name  # keep source intact
+        else:  # zid-dir (default): archive original, then overwrite root
+            if not zid_cache.get("value"):
+                zid_cache["value"] = get_zid(config)
+            zid_dir = output_mp4.parent / zid_cache["value"]
+            zid_dir.mkdir(parents=True, exist_ok=True)
+            archive_path = zid_dir / Path(srt_path).name
+            try:
+                shutil.copy2(str(srt_path), str(archive_path))
+                log_detail(f"Archived source subtitle: {archive_path.relative_to(output_mp4.parent)}")
+            except Exception as exc:
+                log_warn(f"Failed to archive source subtitle: {exc}")
+
+    try:
+        written = write_synced_srt(synthesis_results, synced_srt_path)
+        log_detail(f"Saved synced subtitle ({written} cues): {synced_srt_path.name}")
+    except Exception as exc:
+        log_warn(f"Failed to write synced subtitle '{synced_srt_path.name}': {exc}")
 
 
 # ==============================================================================
@@ -371,6 +465,108 @@ def validate_language(lang, piper_config, supported_languages):
             file=sys.stderr,
         )
         sys.exit(1)
+
+
+# ==============================================================================
+# FILE SELECTION: PRIORITY, SORTING, AUTO-DISCOVERY
+# ==============================================================================
+
+def get_primary_languages(config):
+    """
+    Return the priority-ordered list of primary language codes from config,
+    falling back to [default_lang] when primary_languages is unset.
+    """
+    primary_langs = [
+        l.strip().lower()
+        for l in config.get("tts_settings", "primary_languages", fallback="").split(",")
+        if l.strip()
+    ]
+    if not primary_langs:
+        primary_langs = [config.get("tts_settings", "default_lang", fallback="en").strip().lower()]
+    return primary_langs
+
+
+def sort_srt_files(srt_files, config):
+    """
+    Return srt_files ordered so the highest-priority primary language comes first
+    (stable sort). Matches exact codes, raw postfixes, and regional bases
+    (e.g. de-DE / de_DE both match a primary of 'de').
+    """
+    primary_langs = get_primary_languages(config)
+
+    def get_sort_key(f):
+        lang = detect_language(f, config)
+        stem = Path(f).stem
+        parts = stem.rsplit(".", 1)
+        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
+        raw_base = re.split(r"[-_]", raw_postfix)[0] if raw_postfix else ""
+        for idx, p_lang in enumerate(primary_langs):
+            p_lang_clean = p_lang.lower()
+            p_lang_base = re.split(r"[-_]", p_lang_clean)[0]
+            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
+                return idx
+        return len(primary_langs)
+
+    return sorted(srt_files, key=get_sort_key)
+
+
+def discover_canonical_files(srt_files, config):
+    """
+    For each given secondary-language SRT, search its directory for a matching
+    higher-priority companion (same clean stem) to act as the canonical track.
+
+    Returns (augmented_srt_files, auto_discovered_set) where auto_discovered_set
+    holds the resolved paths that were added; their output is meant to be reused
+    rather than regenerated.
+    """
+    primary_langs = get_primary_languages(config)
+    srt_files = list(srt_files)
+    auto_discovered = set()
+
+    discovered_candidates = []
+    for f in list(srt_files):
+        lang = detect_language(f, config)
+        try:
+            f_priority = primary_langs.index(lang)
+        except ValueError:
+            f_priority = len(primary_langs)
+
+        if f_priority > 0:  # not already the highest-priority canonical track
+            parent_dir = Path(f).resolve().parent
+            clean_stem = strip_lang_postfix(Path(f).stem, lang)
+            try:
+                for p in parent_dir.glob("*.srt"):
+                    if p.resolve() == Path(f).resolve():
+                        continue
+                    p_lang = detect_language(p, config)
+                    p_clean_stem = strip_lang_postfix(p.stem, p_lang)
+                    if p_clean_stem.lower() == clean_stem.lower():
+                        try:
+                            p_priority = primary_langs.index(p_lang)
+                        except ValueError:
+                            p_priority = len(primary_langs)
+                        if p_priority < f_priority:
+                            discovered_candidates.append((p, p_priority))
+            except Exception:
+                pass
+
+    # Keep the single highest-priority candidate per clean stem.
+    by_stem = {}
+    for p, priority in discovered_candidates:
+        p_lang = detect_language(p, config)
+        clean_stem = strip_lang_postfix(p.stem, p_lang).lower()
+        if clean_stem not in by_stem or priority < by_stem[clean_stem][1]:
+            by_stem[clean_stem] = (p, priority)
+
+    resolved_srt_files = {str(Path(sf).resolve()) for sf in srt_files}
+    for p, _priority in by_stem.values():
+        resolved_p = str(p.resolve())
+        if resolved_p not in resolved_srt_files:
+            srt_files.append(str(p))
+            resolved_srt_files.add(resolved_p)
+            auto_discovered.add(resolved_p)
+
+    return srt_files, auto_discovered
 
 
 # ==============================================================================
@@ -470,11 +666,11 @@ def resolve_output_path(srt_path, output_dir, config, lang, zid_cache, keep_lang
         idx += 1
 
 
-def find_existing_primary_media(output_dir, stem, lang, keep_postfix):
+def find_existing_canonical_media(output_dir, stem, lang, keep_postfix):
     """
-    Locate an already-present primary media file in output_dir.
+    Locate an already-present canonical media file in output_dir.
 
-    The primary track may exist under either naming convention:
+    The canonical track may exist under either naming convention:
       - postfixed:   'video.de.mp4'  (keep_lang_postfix output)
       - clean stem:  'video.mp4'     (main-language source / no postfix)
     Both .mp4 and .mp3 containers are recognized.
@@ -912,14 +1108,20 @@ class ShiftPlan(list):
         return plan
 
 
-def plan_recording_timeline(synthesis_results, ffmpeg_path):
+def _plan_timeline(synthesis_results, ffmpeg_path, record_explicit):
     """
-    Build a canonical timeline derived from the primary track's recording durations.
-    Returns a ShiftPlan with explicit end times and target durations.
+    Shared cumulative-drift packing for both timeline planners.
 
-    Cues are packed back-to-back with no forced inter-cue gap (mirroring
-    plan_subtitle_shifts): a cue's audio may fill the entire natural gap before
-    the next cue, and later cues are shifted forward only by the residual overlap.
+    Cues are packed back-to-back with no forced inter-cue gap: a cue's audio may
+    fill the entire natural gap before the next cue, and later cues are shifted
+    forward only by the residual overlap.
+
+    record_explicit distinguishes the two modes:
+      - True  (recording): prefer the cached fit_duration_ms, treat a failed cue's
+               subtitle window as its duration, and record explicit end/target
+               times so secondary tracks can be fitted to canonical slots.
+      - False (subtitle):  always re-probe duration, treat a failed cue as zero
+               length, and emit only the drift list.
     """
     if not synthesis_results:
         return ShiftPlan()
@@ -927,19 +1129,21 @@ def plan_recording_timeline(synthesis_results, ffmpeg_path):
     original_starts = [item["cue"]["start_ms"] for item in synthesis_results]
     durations = []
     duration_cache = {}
-    
     for idx, item in enumerate(synthesis_results):
         cue = item["cue"]
+        slot_ms = cue["end_ms"] - cue["start_ms"]
         if item["ok"] and item["wav_path"]:
-            wav_dur_ms = item.get("fit_duration_ms")
-            if not wav_dur_ms:
+            if record_explicit:
+                wav_dur_ms = item.get("fit_duration_ms") or get_wav_duration_ms(item["wav_path"], ffmpeg_path)
+            else:
                 wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
             if wav_dur_ms <= 0:
-                wav_dur_ms = cue["end_ms"] - cue["start_ms"]
+                wav_dur_ms = slot_ms
             duration_cache[idx] = wav_dur_ms
         else:
-            wav_dur_ms = cue["end_ms"] - cue["start_ms"]
-            duration_cache[idx] = wav_dur_ms
+            wav_dur_ms = slot_ms if record_explicit else 0
+            if record_explicit:
+                duration_cache[idx] = wav_dur_ms
         durations.append(wav_dur_ms)
 
     drift = 0
@@ -947,64 +1151,40 @@ def plan_recording_timeline(synthesis_results, ffmpeg_path):
     explicit_ends_ms = {}
     explicit_targets_ms = {}
     count = len(synthesis_results)
-    
-    for idx in range(count):
-        shifts.append(drift)
-        shifted_start = original_starts[idx] + drift
-        audio_dur = durations[idx]
-        explicit_ends_ms[idx] = shifted_start + audio_dur
-        explicit_targets_ms[idx] = audio_dur
-        
-        if idx + 1 < count:
-            next_original_start = original_starts[idx + 1]
-            next_shifted_start = next_original_start + drift
-            audio_end = explicit_ends_ms[idx]
-            gap_required = audio_end - next_shifted_start
-            if gap_required > 0:
-                drift += gap_required
-
-    plan = ShiftPlan(shifts, duration_cache)
-    plan.explicit_ends_ms = explicit_ends_ms
-    plan.explicit_targets_ms = explicit_targets_ms
-    return plan
-
-
-def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
-    """
-    Build a cumulative drift plan by cue position.
-    Returns a list[int] where each entry is the total drift (ms) for cue position.
-    """
-    if not synthesis_results:
-        return ShiftPlan()
-
-    original_starts = [item["cue"]["start_ms"] for item in synthesis_results]
-    durations = []
-    duration_cache = {}
-    for idx, item in enumerate(synthesis_results):
-        cue = item["cue"]
-        if item["ok"] and item["wav_path"]:
-            wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
-            if wav_dur_ms <= 0:
-                wav_dur_ms = cue["end_ms"] - cue["start_ms"]
-            duration_cache[idx] = wav_dur_ms
-        else:
-            wav_dur_ms = 0
-        durations.append(wav_dur_ms)
-
-    drift = 0
-    shifts = []
-    count = len(synthesis_results)
     for idx in range(count):
         shifts.append(drift)
         shifted_start = original_starts[idx] + drift
         audio_end = shifted_start + durations[idx]
+        if record_explicit:
+            explicit_ends_ms[idx] = audio_end
+            explicit_targets_ms[idx] = durations[idx]
         if idx + 1 < count:
             next_shifted_start = original_starts[idx + 1] + drift
             gap_required = audio_end - next_shifted_start
             if gap_required > 0:
                 drift += gap_required
 
-    return ShiftPlan(shifts, duration_cache)
+    plan = ShiftPlan(shifts, duration_cache)
+    if record_explicit:
+        plan.explicit_ends_ms = explicit_ends_ms
+        plan.explicit_targets_ms = explicit_targets_ms
+    return plan
+
+
+def plan_recording_timeline(synthesis_results, ffmpeg_path):
+    """
+    Build a canonical timeline derived from the canonical track's recording
+    durations. Returns a ShiftPlan with explicit end times and target durations.
+    """
+    return _plan_timeline(synthesis_results, ffmpeg_path, record_explicit=True)
+
+
+def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
+    """
+    Build a cumulative drift plan by cue position.
+    Returns a ShiftPlan whose entries are the total drift (ms) per cue position.
+    """
+    return _plan_timeline(synthesis_results, ffmpeg_path, record_explicit=False)
 
 
 def apply_shift_plan(synthesis_results, shift_plan, propagate_duration_cache=True):
@@ -1314,9 +1494,8 @@ def resolve_ffmpeg(config, cli_override=None):
 def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 lang_override=None, output_dir_override=None, zid_cache=None,
                 keep_lang_postfix_override=None, timeline_source_override=None,
-                shift_subtitles_on_overflow_override=None,
                 canonical_shift_plan=None, canonical_filename=None,
-                skip_primary_output_override=None):
+                reuse_canonical_output_override=None):
     """
     Full pipeline for a single SRT file:
       1. Detect language
@@ -1363,41 +1542,37 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
 
     log_detail(f"Found {_bold(str(len(cues)))} cues to synthesize.")
 
-    # Resolve timeline settings early
-    timeline_source = timeline_source_override
-    if timeline_source is None:
-        timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
-    if timeline_source not in ("primary_subtitle", "primary_audio"):
-        log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
-        timeline_source = "primary_subtitle"
+    # Resolve the timeline mode early (one enum -> base + derived behaviors).
+    raw_timeline = timeline_source_override
+    if raw_timeline is None:
+        raw_timeline = config.get("tts_settings", "timeline_source", fallback=DEFAULT_TIMELINE_SOURCE)
+    timeline_source, shift_subtitles_on_overflow, _fallback, ok = resolve_timeline_mode(raw_timeline)
+    if not ok:
+        log_warn(f"Unknown timeline_source '{raw_timeline}' in config.ini. Falling back to '{DEFAULT_TIMELINE_SOURCE}'.")
+        timeline_source, shift_subtitles_on_overflow = DEFAULT_TIMELINE_SOURCE, False
 
-    shift_subtitles_on_overflow = shift_subtitles_on_overflow_override
-    if shift_subtitles_on_overflow is None:
-        shift_subtitles_on_overflow = config_bool(config, "tts_settings", "shift_subtitles_on_overflow", False)
+    is_canonical = (canonical_shift_plan is None)
+    reuse_canonical = reuse_canonical_output_override
+    if reuse_canonical is None:
+        reuse_canonical = config_bool(config, "tts_settings", "reuse_canonical_output", False)
 
-    is_primary = (canonical_shift_plan is None)
-    skip_primary = skip_primary_output_override
-    if skip_primary is None:
-        skip_primary = config_bool(config, "tts_settings", "skip_primary_output", False)
-
-    if is_primary and skip_primary:
-        # Determine target primary output path (without ZID subdirectory)
+    if is_canonical and reuse_canonical:
+        # Reuse only if the canonical output media already exists; else generate it.
         keep_postfix = keep_lang_postfix_override
         if keep_postfix is None:
             keep_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
-        
+
         stem = Path(srt_path).stem
         output_dir = Path(output_dir_override) if output_dir_override else srt_path.parent
-        existing_primary = find_existing_primary_media(output_dir, stem, lang, keep_postfix)
+        existing_canonical = find_existing_canonical_media(output_dir, stem, lang, keep_postfix)
 
-        # If no primary media exists (under postfixed or no-postfix name), force generation.
-        if existing_primary is None:
-            log_info("Primary output media does not exist. Forcing generation.")
-            skip_primary = False
+        if existing_canonical is None:
+            log_info("Canonical output media does not exist. Forcing generation.")
+            reuse_canonical = False
         else:
-            log_detail(f"Found existing primary media: {existing_primary.name}")
+            log_detail(f"Found existing canonical media: {existing_canonical.name}")
 
-    if is_primary and skip_primary:
+    if is_canonical and reuse_canonical:
         # 1. Check sidecar JSON
         sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
         if sidecar_path.exists():
@@ -1413,7 +1588,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
 
         # 2. Check if timeline needs no synthesis
         if timeline_source == "primary_subtitle" and not shift_subtitles_on_overflow:
-            log_info(f"Skipping synthesis for primary track (subtitle timings used): {srt_path.name}")
+            log_info(f"Skipping synthesis for canonical track (subtitle timings used): {srt_path.name}")
             return True, ShiftPlan([0] * len(cues))
 
     # 3. Temporary directory
@@ -1444,7 +1619,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
 
         if timeline_source == "primary_audio":
             if canonical_shift_plan is None:
-                # Primary track: derive timeline
+                # Canonical track: derive timeline
                 synthesis_results = trim_cues_only(synthesis_results, temp_dir, ffmpeg_path, config)
                 produced_shift_plan = plan_recording_timeline(synthesis_results, ffmpeg_path)
                 synthesis_results = apply_shift_plan(synthesis_results, produced_shift_plan)
@@ -1467,12 +1642,8 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                         f"{srt_path.name}: cue count {local_cue_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
                     )
         else:
-            # primary_subtitle mode (default legacy behavior)
+            # primary_subtitle mode (default): subtitle timing is the source of truth.
             synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
-
-            shift_subtitles_on_overflow = shift_subtitles_on_overflow_override
-            if shift_subtitles_on_overflow is None:
-                shift_subtitles_on_overflow = config_bool(config, "tts_settings", "shift_subtitles_on_overflow", False)
 
             if shift_subtitles_on_overflow:
                 if canonical_shift_plan is None:
@@ -1494,18 +1665,10 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                         )
 
 
-        if is_primary and skip_primary:
-            log_info(f"Skipping output generation for primary track: {srt_path.name}")
+        if is_canonical and reuse_canonical:
+            log_info(f"Skipping output generation for canonical track: {srt_path.name}")
             success = True
-            if produced_shift_plan is not None:
-                sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
-                try:
-                    import json
-                    with open(sidecar_path, "w", encoding="utf-8") as sf:
-                        json.dump(produced_shift_plan.to_dict(), sf, indent=2)
-                    log_detail(f"Saved timeline sidecar: {sidecar_path.name}")
-                except Exception as exc:
-                    log_warn(f"Failed to save sidecar JSON '{sidecar_path.name}': {exc}")
+            save_sidecar(produced_shift_plan, srt_path)
             return True, produced_shift_plan
 
         # 6. Assemble timed audio
@@ -1537,41 +1700,13 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             log_ok(f"Output: {_cyan(str(output_mp4))}")
             success = True
 
-            # Write a companion subtitle re-timed to the (possibly shifted) audio
-            # timeline so subtitles stay in sync with the rebuilt track. Named to
-            # match the output MP4 stem so players auto-load it.
-            # On collision (source SRT lives at the same path as the synced output):
-            # archive the old source SRT into a ZID-stamped subdirectory first, then
-            # overwrite with the new synced version. The root path always holds the
-            # current, correctly-timed subtitle; the ZID folder keeps the original.
-            synced_srt_path = output_mp4.with_suffix(".srt")
-            if synced_srt_path.resolve() == srt_path.resolve():
-                if not zid_cache.get("value"):
-                    zid_cache["value"] = get_zid(config)
-                zid_dir = output_mp4.parent / zid_cache["value"]
-                zid_dir.mkdir(parents=True, exist_ok=True)
-                archive_path = zid_dir / srt_path.name
-                try:
-                    import shutil as _shutil
-                    _shutil.copy2(str(srt_path), str(archive_path))
-                    log_detail(f"Archived source subtitle: {archive_path.relative_to(output_mp4.parent)}")
-                except Exception as exc:
-                    log_warn(f"Failed to archive source subtitle: {exc}")
-            try:
-                written = write_synced_srt(synthesis_results, synced_srt_path)
-                log_detail(f"Saved synced subtitle ({written} cues): {synced_srt_path.name}")
-            except Exception as exc:
-                log_warn(f"Failed to write synced subtitle '{synced_srt_path.name}': {exc}")
+            # Companion subtitle re-timed to the (possibly shifted) audio timeline,
+            # named to the MP4 stem so players auto-load it. Collisions with the
+            # source SRT follow the same duplicate_mode policy as the MP4 output.
+            write_synced_subtitle(synthesis_results, output_mp4, srt_path, config, zid_cache)
 
-            if is_primary and produced_shift_plan is not None:
-                sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
-                try:
-                    import json
-                    with open(sidecar_path, "w", encoding="utf-8") as sf:
-                        json.dump(produced_shift_plan.to_dict(), sf, indent=2)
-                    log_detail(f"Saved timeline sidecar: {sidecar_path.name}")
-                except Exception as exc:
-                    log_warn(f"Failed to save sidecar JSON '{sidecar_path.name}': {exc}")
+            if is_canonical:
+                save_sidecar(produced_shift_plan, srt_path)
         return ok, produced_shift_plan
 
     finally:
@@ -1673,62 +1808,46 @@ def parse_args():
     )
     parser.add_argument(
         "--timeline-source",
-        choices=["primary_subtitle", "primary_audio"],
+        choices=list(TIMELINE_SOURCES),
         default=None,
-        help="Source of truth for the timeline: 'primary_subtitle' (audio speeds up to fit) or 'primary_audio' (timeline rebuilt around primary track's native audio).",
+        help=(
+            "Source of truth for the timeline:\n"
+            "  primary_subtitle                   - subtitle timing wins; audio is sped up to fit\n"
+            "  primary_subtitle_shift             - ...and shift later cues when audio still overflows\n"
+            "  primary_audio                      - canonical track's native audio wins; timeline rebuilt around it\n"
+            "  primary_audio_or_subtitle_fallback - ...but fall back to subtitle when canonical output already exists"
+        ),
     )
     parser.add_argument(
-        "--shift-subtitles-on-overflow",
+        "--reuse-canonical-output",
         action="store_true",
         default=None,
-        help="When timeline-source is primary_subtitle: shift subtitle timings later to avoid overlap when audio overflows.",
+        help="Reuse the canonical track's existing output if present (skip assembly/muxing); otherwise generate it.",
     )
     parser.add_argument(
-        "--no-shift-subtitles-on-overflow",
+        "--no-reuse-canonical-output",
         action="store_false",
-        dest="shift_subtitles_on_overflow",
-        help="Do not shift subtitle timings on overflow (overrides config).",
+        dest="reuse_canonical_output",
+        help="Always (re)generate the canonical track's output (overrides config).",
     )
     parser.add_argument(
-        "--skip-primary-output",
+        "--auto-discover-canonical",
         action="store_true",
         default=None,
-        help="Skip output generation (assembly and muxing) for the primary track.",
+        help="Auto-discover the canonical (primary-language) file in the same directory if only secondary files are passed.",
     )
     parser.add_argument(
-        "--no-skip-primary-output",
+        "--no-auto-discover-canonical",
         action="store_false",
-        dest="skip_primary_output",
-        help="Do not skip output generation for the primary track.",
+        dest="auto_discover_canonical",
+        help="Disable auto-discovery of the canonical file.",
     )
-    parser.add_argument(
-        "--auto-discover-primary",
-        action="store_true",
-        default=None,
-        help="Auto-discover primary files in the same directory if only secondary files are passed.",
-    )
-    parser.add_argument(
-        "--no-auto-discover-primary",
-        action="store_false",
-        dest="auto_discover_primary",
-        help="Disable auto-discovery of primary files.",
-    )
-    parser.add_argument(
-        "--fallback-to-subtitle-if-output-exists",
-        action="store_true",
-        default=None,
-        help="Fallback to primary_subtitle timeline if primary MP4 output already exists and no sidecar JSON is available.",
-    )
-    parser.add_argument(
-        "--no-fallback-to-subtitle-if-output-exists",
-        action="store_false",
-        dest="fallback_to_subtitle_if_output_exists",
-        help="Disable automatic fallback to primary_subtitle when primary output exists.",
-    )
+    # Accepted for compatibility with the installed Windows SendTo shortcut, which
+    # passes --sendto. It has no behavioral effect (positional args are the files).
     parser.add_argument(
         "--sendto",
         action="store_true",
-        help="Windows SendTo mode: treat all positional arguments as selected files.",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--pause",
@@ -1751,8 +1870,7 @@ def main():
     if not input_files:
         log_error(
             "No SRT files provided.\n"
-            "Usage: python sub_tts.py video.de.srt [video2.ru.srt ...]\n"
-            "   or: python sub_tts.py --sendto <file1> <file2>  (SendTo mode)"
+            "Usage: python sub_tts.py video.de.srt [video2.ru.srt ...]"
         )
         if args.pause:
             pause_console(success=False)
@@ -1761,82 +1879,19 @@ def main():
     # Filter to .srt files only
     srt_files = [f for f in input_files if f.lower().endswith(".srt")]
 
-    # Auto-discovery of primary files
-    auto_discovered_srt_files = set()
-    auto_discover = args.auto_discover_primary
+    # Auto-discover the canonical (primary-language) file when only secondaries
+    # were passed, so a translated track alone can still establish the timeline.
+    auto_discover = args.auto_discover_canonical
     if auto_discover is None:
-        auto_discover = config_bool(config, "tts_settings", "auto_discover_primary", True)
+        auto_discover = config_bool(config, "tts_settings", "auto_discover_canonical", True)
 
-    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages", fallback="").split(",") if l.strip()]
-    if not primary_langs:
-        primary_langs = [config.get("tts_settings", "default_lang", fallback="en").strip().lower()]
-
+    auto_discovered_srt_files = set()
     if auto_discover:
-        discovered_candidates = []
-        for f in list(srt_files):
-            lang = detect_language(f, config)
-            try:
-                f_priority = primary_langs.index(lang)
-            except ValueError:
-                f_priority = len(primary_langs)
+        srt_files, auto_discovered_srt_files = discover_canonical_files(srt_files, config)
 
-            if f_priority > 0:  # Not the highest priority or not in list
-                parent_dir = Path(f).resolve().parent
-                stem = Path(f).stem
-                clean_stem = strip_lang_postfix(stem, lang)
-                
-                try:
-                    for p in parent_dir.glob("*.srt"):
-                        if p.resolve() == Path(f).resolve():
-                            continue
-                        p_lang = detect_language(p, config)
-                        p_stem = p.stem
-                        p_clean_stem = strip_lang_postfix(p_stem, p_lang)
-                        if p_clean_stem.lower() == clean_stem.lower():
-                            try:
-                                p_priority = primary_langs.index(p_lang)
-                            except ValueError:
-                                p_priority = len(primary_langs)
-                            if p_priority < f_priority:
-                                discovered_candidates.append((p, p_priority))
-                except Exception:
-                    pass
+    # Process the highest-priority primary language first.
+    srt_files = sort_srt_files(srt_files, config)
 
-        # Select highest-priority candidate for each clean stem
-        by_stem = {}
-        for p, priority in discovered_candidates:
-            p_lang = detect_language(p, config)
-            clean_stem = strip_lang_postfix(p.stem, p_lang).lower()
-            if clean_stem not in by_stem or priority < by_stem[clean_stem][1]:
-                by_stem[clean_stem] = (p, priority)
-
-        for p, priority in by_stem.values():
-            resolved_p = str(p.resolve())
-            resolved_srt_files = [str(Path(sf).resolve()) for sf in srt_files]
-            if resolved_p not in resolved_srt_files:
-                srt_files.append(str(p))
-                auto_discovered_srt_files.add(str(p.resolve()))
-
-    # Sort files by primary language priority
-    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages", fallback="").split(",") if l.strip()]
-    if not primary_langs:
-        primary_langs = [config.get("tts_settings", "default_lang", fallback="en").strip().lower()]
-
-    def get_sort_key(f):
-        lang = detect_language(f, config)
-        stem = Path(f).stem
-        parts = stem.rsplit(".", 1)
-        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
-        raw_base = re.split(r"[-_]", raw_postfix)[0] if raw_postfix else ""
-        
-        for idx, p_lang in enumerate(primary_langs):
-            p_lang_clean = p_lang.lower()
-            p_lang_base = re.split(r"[-_]", p_lang_clean)[0]
-            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
-                return idx
-        return len(primary_langs)
-
-    srt_files.sort(key=get_sort_key)
     skipped = [f for f in input_files if not f.lower().endswith(".srt")]
     for s in skipped:
         log_skip(f"Not an SRT file: {s}")
@@ -1865,43 +1920,39 @@ def main():
     shift_plan = None
     canonical_filename = None
 
-    # Effective recording mode: its canonical timeline must persist across files.
-    timeline_source = args.timeline_source
-    if timeline_source is None:
-        timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
-    if timeline_source not in ("primary_subtitle", "primary_audio"):
-        log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
-        timeline_source = "primary_subtitle"
+    # Resolve the timeline mode once; the canonical timeline persists across files.
+    raw_timeline = args.timeline_source
+    if raw_timeline is None:
+        raw_timeline = config.get("tts_settings", "timeline_source", fallback=DEFAULT_TIMELINE_SOURCE)
+    timeline_base, shift_subtitles_on_overflow, fallback_to_sub, valid = resolve_timeline_mode(raw_timeline)
+    if not valid:
+        log_warn(f"Unknown timeline_source '{raw_timeline}' in config.ini. Falling back to '{DEFAULT_TIMELINE_SOURCE}'.")
+        timeline_base, shift_subtitles_on_overflow, fallback_to_sub = DEFAULT_TIMELINE_SOURCE, False, False
+    # Full enum string handed to process_srt, which re-derives the same behavior.
+    timeline_source = raw_timeline.strip().lower() if valid else DEFAULT_TIMELINE_SOURCE
 
-    shift_subtitles_on_overflow = args.shift_subtitles_on_overflow
-    if shift_subtitles_on_overflow is None:
-        shift_subtitles_on_overflow = config_bool(config, "tts_settings", "shift_subtitles_on_overflow", False)
-
-    # Fallback to primary_subtitle if primary output exists and fallback is enabled
-    fallback_to_sub = args.fallback_to_subtitle_if_output_exists
-    if fallback_to_sub is None:
-        fallback_to_sub = config_bool(config, "tts_settings", "fallback_to_subtitle_if_output_exists", False)
-
-    if timeline_source == "primary_audio" and fallback_to_sub and srt_files:
-        primary_srt = Path(srt_files[0])
-        # Find if sidecar exists
-        sidecar_path = primary_srt.with_name(f"{primary_srt.name}.shift_plan.json")
+    # primary_audio_or_subtitle_fallback: when the canonical output already exists
+    # and no sidecar is available, downgrade to plain primary_subtitle to avoid
+    # re-synthesizing the canonical track.
+    if timeline_base == "primary_audio" and fallback_to_sub and srt_files:
+        canonical_srt = Path(srt_files[0])
+        sidecar_path = canonical_srt.with_name(f"{canonical_srt.name}.shift_plan.json")
         if not sidecar_path.exists():
-            # Determine if primary output MP4 exists
-            lang = detect_language(str(primary_srt), config)
+            lang = detect_language(str(canonical_srt), config)
             keep_postfix = args.keep_lang_postfix
             if keep_postfix is None:
                 keep_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
-            stem = primary_srt.stem
-            output_dir = Path(args.output_dir) if args.output_dir else primary_srt.parent
-            existing_primary = find_existing_primary_media(output_dir, stem, lang, keep_postfix)
-            if existing_primary is not None:
-                log_info(f"Primary output file '{existing_primary.name}' exists and no sidecar JSON found. Falling back to 'primary_subtitle' timeline source.")
+            output_dir = Path(args.output_dir) if args.output_dir else canonical_srt.parent
+            existing_canonical = find_existing_canonical_media(output_dir, canonical_srt.stem, lang, keep_postfix)
+            if existing_canonical is not None:
+                log_info(f"Canonical output file '{existing_canonical.name}' exists and no sidecar JSON found. Falling back to 'primary_subtitle' timeline source.")
                 timeline_source = "primary_subtitle"
+                timeline_base = "primary_subtitle"
+                shift_subtitles_on_overflow = False
 
     for srt_path in srt_files:
         is_auto_discovered = str(Path(srt_path).resolve()) in auto_discovered_srt_files
-        skip_output = True if is_auto_discovered else args.skip_primary_output
+        reuse_output = True if is_auto_discovered else args.reuse_canonical_output
 
         ok, generated_shift_plan = process_srt(
             srt_path,
@@ -1914,16 +1965,15 @@ def main():
             zid_cache=zid_cache,
             keep_lang_postfix_override=args.keep_lang_postfix,
             timeline_source_override=timeline_source,
-            shift_subtitles_on_overflow_override=shift_subtitles_on_overflow,
             canonical_shift_plan=shift_plan,
             canonical_filename=canonical_filename,
-            skip_primary_output_override=skip_output,
+            reuse_canonical_output_override=reuse_output,
         )
         results.append((srt_path, ok))
         if shift_plan is None and generated_shift_plan is not None and ok:
             shift_plan = generated_shift_plan
             canonical_filename = Path(srt_path).name
-        if shift_subtitles_on_overflow is False and timeline_source != "primary_audio":
+        if not shift_subtitles_on_overflow and timeline_base != "primary_audio":
             shift_plan = None
             canonical_filename = None
 
