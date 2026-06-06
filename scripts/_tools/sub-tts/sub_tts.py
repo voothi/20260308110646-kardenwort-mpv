@@ -1495,7 +1495,7 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 lang_override=None, output_dir_override=None, zid_cache=None,
                 keep_lang_postfix_override=None, timeline_source_override=None,
                 canonical_shift_plan=None, canonical_filename=None,
-                reuse_canonical_output_override=None):
+                reuse_canonical_output_override=None, is_canonical_override=None):
     """
     Full pipeline for a single SRT file:
       1. Detect language
@@ -1551,7 +1551,14 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         log_warn(f"Unknown timeline_source '{raw_timeline}' in config.ini. Falling back to '{DEFAULT_TIMELINE_SOURCE}'.")
         timeline_source, shift_subtitles_on_overflow = DEFAULT_TIMELINE_SOURCE, False
 
-    is_canonical = (canonical_shift_plan is None)
+    # The canonical track is the timeline owner (the first/highest-priority file).
+    # It must be marked explicitly: inferring it from `canonical_shift_plan is None`
+    # breaks in primary_subtitle mode, where the plan is reset each file and would
+    # make every secondary look canonical (so reuse_canonical_output would wrongly
+    # skip secondaries when any matching media — e.g. the source video — exists).
+    is_canonical = is_canonical_override
+    if is_canonical is None:
+        is_canonical = (canonical_shift_plan is None)
     reuse_canonical = reuse_canonical_output_override
     if reuse_canonical is None:
         reuse_canonical = config_bool(config, "tts_settings", "reuse_canonical_output", False)
@@ -1950,9 +1957,12 @@ def main():
                 timeline_base = "primary_subtitle"
                 shift_subtitles_on_overflow = False
 
-    for srt_path in srt_files:
+    for idx, srt_path in enumerate(srt_files):
         is_auto_discovered = str(Path(srt_path).resolve()) in auto_discovered_srt_files
         reuse_output = True if is_auto_discovered else args.reuse_canonical_output
+        # Only the first (highest-priority) file is the canonical timeline owner;
+        # every other file is a secondary track that must always be rendered.
+        is_canonical_track = (idx == 0)
 
         ok, generated_shift_plan = process_srt(
             srt_path,
@@ -1968,6 +1978,7 @@ def main():
             canonical_shift_plan=shift_plan,
             canonical_filename=canonical_filename,
             reuse_canonical_output_override=reuse_output,
+            is_canonical_override=is_canonical_track,
         )
         results.append((srt_path, ok))
         if shift_plan is None and generated_shift_plan is not None and ok:

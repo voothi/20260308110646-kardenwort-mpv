@@ -703,6 +703,69 @@ def test_fallback_triggers_with_no_postfix_primary_media(monkeypatch, tmp_path):
 # Collapsed timeline enum + unified collision policy (ZID 20260606181116)
 # ---------------------------------------------------------------------------
 
+def test_secondary_not_skipped_when_source_video_exists(monkeypatch, tmp_path):
+    # Regression (ZID 20260606191516): selecting only a secondary (.ru) when a
+    # no-postfix SOURCE video exists must still render the secondary. Previously
+    # reuse_canonical_output + the plan-reset made every track look canonical, so
+    # the secondary was skipped as "output already exists".
+    sub_tts = _load_sub_tts()
+    import sys
+
+    (tmp_path / "video.mp4").write_text("source video", encoding="utf-8")  # NOT a TTS output
+    (tmp_path / "video.de.srt").write_text("1\n00:00:01,000 --> 00:00:02,000\nHallo", encoding="utf-8")
+    (tmp_path / "video.ru.srt").write_text("1\n00:00:01,000 --> 00:00:02,000\nПривет", encoding="utf-8")
+
+    config = configparser.ConfigParser()
+    config["paths"] = {"piper_tts_root": str(tmp_path), "ffmpeg_executable": "ffmpeg"}
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "primary_languages": "de",
+        "timeline_source": "primary_audio_or_subtitle_fallback",
+        "reuse_canonical_output": "true",
+        "keep_lang_postfix": "true",
+        "auto_discover_canonical": "false",
+    }
+
+    class Args:
+        srt_files = [str(tmp_path / "video.de.srt"), str(tmp_path / "video.ru.srt")]
+        lang = None
+        output_dir = None
+        ffmpeg_path = None
+        keep_lang_postfix = None
+        timeline_source = None
+        reuse_canonical_output = None
+        auto_discover_canonical = False
+        sendto = False
+        pause = False
+
+    monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
+    monkeypatch.setattr(sub_tts, "load_config", lambda: config)
+    monkeypatch.setattr(sub_tts, "resolve_ffmpeg", lambda *a, **k: "ffmpeg")
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "de,ru"}
+    piper_cfg["voice_de"] = {"model": "de.onnx"}
+    piper_cfg["voice_ru"] = {"model": "ru.onnx"}
+    monkeypatch.setattr(sub_tts, "get_piper_config", lambda *a: (piper_cfg, tmp_path))
+
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *a: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "x"}])
+    monkeypatch.setattr(
+        sub_tts, "synthesize_all_cues",
+        lambda *a: [{"ok": True, "wav_path": Path("c.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "x"}}],
+    )
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda r, *a: r)
+    assembled = []
+    monkeypatch.setattr(sub_tts, "assemble_audio", lambda r, *a: (assembled.append(True), tmp_path / "a.wav")[1])
+    monkeypatch.setattr(sub_tts, "mux_to_mp4", lambda *a: True)
+    monkeypatch.setattr(sub_tts, "write_synced_subtitle", lambda *a, **k: None)
+    monkeypatch.setattr(sys, "exit", lambda code: None)
+
+    sub_tts.main()
+
+    # de (canonical) reuses the source video -> skipped; ru (secondary) is rendered.
+    assert len(assembled) == 1
+
+
 def test_resolve_timeline_mode_all_values():
     sub_tts = _load_sub_tts()
     # (base, shift_on_overflow, fallback_to_subtitle, ok)
