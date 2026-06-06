@@ -93,6 +93,14 @@ max_extra_gap_ms = 1000
 max_speed_factor = 2.0
 
 
+# If true, delete the .shift_plan.json sidecar file(s) after a fully successful run.
+# The sidecar is only needed to skip re-synthesizing the primary track on a separate
+# subsequent invocation (primary_audio mode). If you always process all languages
+# together in a single run, set this to true to keep the output directory clean.
+# Default: false
+cleanup_sidecar_on_success = false
+
+
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
 # Set to 0 to close instantly; ignored on errors so they can be inspected.
 # Default: 15

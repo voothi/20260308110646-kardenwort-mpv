@@ -1935,6 +1935,17 @@ def main():
     print(flush=True)
     if succeeded == total:
         log_ok(f"All {succeeded}/{total} file(s) converted in {elapsed:.1f}s.")
+
+        # Optionally delete sidecar JSON files after a fully successful run.
+        if config_bool(config, "tts_settings", "cleanup_sidecar_on_success", False):
+            for srt_path, ok in results:
+                sidecar = Path(srt_path).with_name(f"{Path(srt_path).name}.shift_plan.json")
+                if sidecar.exists():
+                    try:
+                        sidecar.unlink()
+                        log_detail(f"Cleaned up sidecar: {sidecar.name}")
+                    except Exception as exc:
+                        log_warn(f"Failed to delete sidecar '{sidecar.name}': {exc}")
     else:
         log_warn(f"Converted {succeeded}/{total} file(s) in {elapsed:.1f}s.")
         for path, ok in results:

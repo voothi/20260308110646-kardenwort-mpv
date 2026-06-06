@@ -683,6 +683,118 @@ def test_process_srt_synced_subtitle_does_not_clobber_source(monkeypatch, tmp_pa
     assert "00:00:05,000 --> 00:00:09,000" in srt_file.read_text(encoding="utf-8")
 
 
+def test_cleanup_sidecar_on_success(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    import sys
+
+    srt_file = tmp_path / "video.de.srt"
+    srt_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHallo", encoding="utf-8")
+
+    # Pre-create a sidecar as if a previous run left it behind.
+    sidecar = tmp_path / "video.de.srt.shift_plan.json"
+    sidecar.write_text('{"shifts":[0],"wav_durations_ms":{},"explicit_ends_ms":{},"explicit_targets_ms":{}}', encoding="utf-8")
+
+    config = configparser.ConfigParser()
+    config["paths"] = {"piper_tts_root": str(tmp_path), "ffmpeg_executable": "ffmpeg"}
+    config["tts_settings"] = {
+        "default_lang": "de",
+        "primary_languages": "de",
+        "timeline_source": "primary_subtitle",
+        "auto_discover_primary": "false",
+        "cleanup_sidecar_on_success": "true",
+    }
+
+    class Args:
+        srt_files = [str(srt_file)]
+        lang = None
+        output_dir = None
+        ffmpeg_path = None
+        keep_lang_postfix = None
+        timeline_source = None
+        shift_subtitles_on_overflow = None
+        skip_primary_output = False
+        auto_discover_primary = False
+        sendto = False
+        pause = False
+        fallback_to_subtitle_if_output_exists = None
+
+    monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
+    monkeypatch.setattr(sub_tts, "load_config", lambda: config)
+    monkeypatch.setattr(sub_tts, "resolve_ffmpeg", lambda *a, **k: "ffmpeg")
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "de"}
+    piper_cfg["voice_de"] = {"model": "de_voice.onnx"}
+    monkeypatch.setattr(sub_tts, "get_piper_config", lambda *a: (piper_cfg, tmp_path))
+    monkeypatch.setattr(sub_tts, "process_srt", lambda srt_path, **kw: (True, sub_tts.ShiftPlan([0])))
+    monkeypatch.setattr(sys, "exit", lambda code: None)
+
+    sub_tts.main()
+
+    # Sidecar must be gone after a fully successful run.
+    assert not sidecar.exists()
+
+
+def test_cleanup_sidecar_skipped_on_partial_failure(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    import sys
+
+    srt1 = tmp_path / "video.de.srt"
+    srt2 = tmp_path / "video.ru.srt"
+    srt1.write_text("1\n00:00:01,000 --> 00:00:02,000\nHallo", encoding="utf-8")
+    srt2.write_text("1\n00:00:01,000 --> 00:00:02,000\nПривет", encoding="utf-8")
+
+    sidecar = tmp_path / "video.de.srt.shift_plan.json"
+    sidecar.write_text('{"shifts":[0],"wav_durations_ms":{},"explicit_ends_ms":{},"explicit_targets_ms":{}}', encoding="utf-8")
+
+    config = configparser.ConfigParser()
+    config["paths"] = {"piper_tts_root": str(tmp_path), "ffmpeg_executable": "ffmpeg"}
+    config["tts_settings"] = {
+        "default_lang": "de",
+        "primary_languages": "de",
+        "timeline_source": "primary_subtitle",
+        "auto_discover_primary": "false",
+        "cleanup_sidecar_on_success": "true",
+    }
+
+    class Args:
+        srt_files = [str(srt1), str(srt2)]
+        lang = None
+        output_dir = None
+        ffmpeg_path = None
+        keep_lang_postfix = None
+        timeline_source = None
+        shift_subtitles_on_overflow = None
+        skip_primary_output = False
+        auto_discover_primary = False
+        sendto = False
+        pause = False
+        fallback_to_subtitle_if_output_exists = None
+
+    monkeypatch.setattr(sub_tts, "parse_args", lambda: Args())
+    monkeypatch.setattr(sub_tts, "load_config", lambda: config)
+    monkeypatch.setattr(sub_tts, "resolve_ffmpeg", lambda *a, **k: "ffmpeg")
+
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "de,ru"}
+    piper_cfg["voice_de"] = {"model": "de_voice.onnx"}
+    piper_cfg["voice_ru"] = {"model": "ru_voice.onnx"}
+    monkeypatch.setattr(sub_tts, "get_piper_config", lambda *a: (piper_cfg, tmp_path))
+
+    # de succeeds, ru fails.
+    call_count = [0]
+    def mock_process(srt_path, **kw):
+        call_count[0] += 1
+        return (True, sub_tts.ShiftPlan([0])) if call_count[0] == 1 else (False, None)
+    monkeypatch.setattr(sub_tts, "process_srt", mock_process)
+    monkeypatch.setattr(sys, "exit", lambda code: None)
+
+    sub_tts.main()
+
+    # Partial failure: sidecar must be preserved.
+    assert sidecar.exists()
+
+
 def test_fallback_triggers_with_no_postfix_primary_media(monkeypatch, tmp_path):
     sub_tts = _load_sub_tts()
     import sys
