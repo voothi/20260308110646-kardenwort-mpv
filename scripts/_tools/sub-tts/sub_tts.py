@@ -827,6 +827,24 @@ class ShiftPlan(list):
         self.explicit_ends_ms = {}
         self.explicit_targets_ms = {}
 
+    def to_dict(self):
+        return {
+            "shifts": list(self),
+            "wav_durations_ms": {str(k): v for k, v in self.wav_durations_ms.items()},
+            "explicit_ends_ms": {str(k): v for k, v in self.explicit_ends_ms.items()},
+            "explicit_targets_ms": {str(k): v for k, v in self.explicit_targets_ms.items()},
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        plan = cls(
+            shifts=d.get("shifts", []),
+            wav_durations_ms={int(k): v for k, v in d.get("wav_durations_ms", {}).items()},
+        )
+        plan.explicit_ends_ms = {int(k): v for k, v in d.get("explicit_ends_ms", {}).items()}
+        plan.explicit_targets_ms = {int(k): v for k, v in d.get("explicit_targets_ms", {}).items()}
+        return plan
+
 
 def plan_recording_timeline(synthesis_results, ffmpeg_path):
     """
@@ -1279,6 +1297,42 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
 
     log_detail(f"Found {_bold(str(len(cues)))} cues to synthesize.")
 
+    # Resolve timeline settings early
+    timeline_source = timeline_source_override
+    if timeline_source is None:
+        timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
+    if timeline_source not in ("primary_subtitle", "primary_audio"):
+        log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
+        timeline_source = "primary_subtitle"
+
+    shift_subtitles_on_overflow = shift_subtitles_on_overflow_override
+    if shift_subtitles_on_overflow is None:
+        shift_subtitles_on_overflow = config_bool(config, "tts_settings", "shift_subtitles_on_overflow", False)
+
+    is_primary = (canonical_shift_plan is None)
+    skip_primary = skip_primary_output_override
+    if skip_primary is None:
+        skip_primary = config_bool(config, "tts_settings", "skip_primary_output", False)
+
+    if is_primary and skip_primary:
+        # 1. Check sidecar JSON
+        sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
+        if sidecar_path.exists():
+            try:
+                import json
+                log_info(f"Loading cached timeline from sidecar: {sidecar_path.name}")
+                with open(sidecar_path, "r", encoding="utf-8") as sf:
+                    plan_data = json.load(sf)
+                loaded_plan = ShiftPlan.from_dict(plan_data)
+                return True, loaded_plan
+            except Exception as exc:
+                log_warn(f"Failed to load sidecar JSON '{sidecar_path.name}': {exc}")
+
+        # 2. Check if timeline needs no synthesis
+        if timeline_source == "primary_subtitle" and not shift_subtitles_on_overflow:
+            log_info(f"Skipping synthesis for primary track (subtitle timings used): {srt_path.name}")
+            return True, ShiftPlan([0] * len(cues))
+
     # 3. Temporary directory
     output_dir = Path(output_dir_override) if output_dir_override else srt_path.parent
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1303,13 +1357,6 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             return False, None
 
         # 5. Timeline building and speed fitting
-        timeline_source = timeline_source_override
-        if timeline_source is None:
-            timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
-        if timeline_source not in ("primary_subtitle", "primary_audio"):
-            log_warn(f"Unknown timeline_source '{timeline_source}' in config.ini. Falling back to 'primary_subtitle'.")
-            timeline_source = "primary_subtitle"
-
         produced_shift_plan = None
 
         if timeline_source == "primary_audio":
@@ -1364,15 +1411,18 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                         )
 
 
-        # Determine if this is the primary track
-        is_primary = (canonical_shift_plan is None)
-        skip_primary = skip_primary_output_override
-        if skip_primary is None:
-            skip_primary = config_bool(config, "tts_settings", "skip_primary_output", False)
-
         if is_primary and skip_primary:
             log_info(f"Skipping output generation for primary track: {srt_path.name}")
             success = True
+            if produced_shift_plan is not None:
+                sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
+                try:
+                    import json
+                    with open(sidecar_path, "w", encoding="utf-8") as sf:
+                        json.dump(produced_shift_plan.to_dict(), sf, indent=2)
+                    log_detail(f"Saved timeline sidecar: {sidecar_path.name}")
+                except Exception as exc:
+                    log_warn(f"Failed to save sidecar JSON '{sidecar_path.name}': {exc}")
             return True, produced_shift_plan
 
         # 6. Assemble timed audio
@@ -1403,6 +1453,15 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         if ok:
             log_ok(f"Output: {_cyan(str(output_mp4))}")
             success = True
+            if is_primary and produced_shift_plan is not None:
+                sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
+                try:
+                    import json
+                    with open(sidecar_path, "w", encoding="utf-8") as sf:
+                        json.dump(produced_shift_plan.to_dict(), sf, indent=2)
+                    log_detail(f"Saved timeline sidecar: {sidecar_path.name}")
+                except Exception as exc:
+                    log_warn(f"Failed to save sidecar JSON '{sidecar_path.name}': {exc}")
         return ok, produced_shift_plan
 
     finally:

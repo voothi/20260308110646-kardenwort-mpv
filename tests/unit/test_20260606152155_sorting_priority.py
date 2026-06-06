@@ -184,15 +184,20 @@ def test_skip_primary_output_in_process_srt(monkeypatch):
     config["tts_settings"] = {
         "default_lang": "en",
         "skip_primary_output": "true",
+        "timeline_source": "primary_subtitle",
+        "shift_subtitles_on_overflow": "false",
     }
     
     # Mocking dependencies of process_srt to prevent running actual PIPER / FFmpeg logic
     monkeypatch.setattr(sub_tts, "parse_srt", lambda *args: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}])
-    monkeypatch.setattr(
-        sub_tts,
-        "synthesize_all_cues",
-        lambda *args: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}}],
-    )
+    
+    synthesis_called = False
+    def mock_synthesize(*args):
+        nonlocal synthesis_called
+        synthesis_called = True
+        return [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}}]
+    monkeypatch.setattr(sub_tts, "synthesize_all_cues", mock_synthesize)
+    
     # If the process skips output, it should NOT run assemble_audio
     assemble_called = False
     def mock_assemble(*args):
@@ -220,8 +225,73 @@ def test_skip_primary_output_in_process_srt(monkeypatch):
     )
     
     assert ok is True
-    # Let's verify we skipped audio assembly
+    # Let's verify we skipped synthesis and audio assembly
+    assert not synthesis_called
     assert not assemble_called
+
+
+def test_sidecar_json_loading_and_writing(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "skip_primary_output": "true",
+        "timeline_source": "primary_audio",
+    }
+    
+    # 1. Test Writing:
+    # First, run process_srt where sidecar does NOT exist. It should synthesize cues and write the sidecar JSON.
+    srt_file = tmp_path / "test.en.srt"
+    srt_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello", encoding="utf-8")
+    
+    synthesis_called = False
+    def mock_synthesize(*args):
+        nonlocal synthesis_called
+        synthesis_called = True
+        return [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Hello"}}]
+    monkeypatch.setattr(sub_tts, "synthesize_all_cues", mock_synthesize)
+    
+    # Mock trim/synthesis/timeline calculations
+    monkeypatch.setattr(sub_tts, "trim_cues_only", lambda r, *args: r)
+    monkeypatch.setattr(sub_tts, "plan_recording_timeline", lambda *args: sub_tts.ShiftPlan([0]))
+    monkeypatch.setattr(sub_tts, "apply_shift_plan", lambda r, *args: r)
+    
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "en"}
+    piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
+    
+    # Run process_srt. It should write sidecar JSON on exit.
+    ok, shift_plan = sub_tts.process_srt(
+        srt_file,
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        skip_primary_output_override=True,
+    )
+    
+    assert ok is True
+    assert synthesis_called is True
+    
+    sidecar_file = tmp_path / "test.en.srt.shift_plan.json"
+    assert sidecar_file.exists()
+    
+    # 2. Test Loading:
+    # Reset flag and run again. It should load the sidecar JSON and NOT call synthesis.
+    synthesis_called = False
+    
+    ok2, shift_plan2 = sub_tts.process_srt(
+        srt_file,
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        skip_primary_output_override=True,
+    )
+    
+    assert ok2 is True
+    assert synthesis_called is False  # Verification that synthesis was bypassed!
+    assert shift_plan2 == [0]
 
 
 def test_auto_discovery_of_primary_files(tmp_path):
