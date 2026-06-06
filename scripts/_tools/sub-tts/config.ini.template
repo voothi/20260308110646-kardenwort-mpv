@@ -36,6 +36,14 @@ duplicate_mode = zid-dir
 keep_lang_postfix = false
 
 
+# Prioritized list of languages (comma-separated) to treat as the primary/timeline source of truth.
+# When processing multiple files, the file matching the highest priority language present
+# will be processed first to establish the canonical timeline.
+# Supports regional/locale suffixes (e.g. 'en_US' or 'en-US' will match 'en').
+# Fallback: defaults to the 'default_lang' setting if empty.
+primary_languages = en, de
+
+
 # Defines what dictates the final timeline (The Source of Truth).
 # 'primary_subtitle' : The original SRT timing is the absolute truth. The generated audio
 #                      is adjusted (sped up) to fit into the original subtitle slots.

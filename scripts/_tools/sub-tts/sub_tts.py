@@ -281,6 +281,7 @@ def detect_language(filepath, config):
     """
     Detect language from filename postfix (e.g., video.de.srt → 'de').
     Falls back to config default_lang when no postfix is recognized.
+    Supports regional/locale suffixes (e.g., de-DE or de_DE will resolve to de).
 
     Returns the resolved language code string.
     """
@@ -290,12 +291,18 @@ def detect_language(filepath, config):
 
     if len(parts) == 2:
         candidate = parts[1].lower()
-        # Direct short code?
+        # 1. Exact match (direct short code or alias)
         if candidate in KNOWN_LANG_CODES:
             return candidate
-        # Via alias map?
         if candidate in alias_map:
             return alias_map[candidate]
+        
+        # 2. Base match (strip regional suffix like -DE or _DE)
+        base = re.split(r"[-_]", candidate)[0]
+        if base in KNOWN_LANG_CODES:
+            return base
+        if base in alias_map:
+            return alias_map[base]
 
     # Fallback to default
     default = config.get("tts_settings", "default_lang", fallback="en").strip()
@@ -1535,6 +1542,27 @@ def main():
 
     # Filter to .srt files only
     srt_files = [f for f in input_files if f.lower().endswith(".srt")]
+
+    # Sort files by primary language priority
+    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages", fallback="").split(",") if l.strip()]
+    if not primary_langs:
+        primary_langs = [config.get("tts_settings", "default_lang", fallback="en").strip().lower()]
+
+    def get_sort_key(f):
+        lang = detect_language(f, config)
+        stem = Path(f).stem
+        parts = stem.rsplit(".", 1)
+        raw_postfix = parts[1].lower() if len(parts) == 2 else ""
+        raw_base = re.split(r"[-_]", raw_postfix)[0] if raw_postfix else ""
+        
+        for idx, p_lang in enumerate(primary_langs):
+            p_lang_clean = p_lang.lower()
+            p_lang_base = re.split(r"[-_]", p_lang_clean)[0]
+            if lang == p_lang_clean or raw_postfix == p_lang_clean or raw_base == p_lang_base:
+                return idx
+        return len(primary_langs)
+
+    srt_files.sort(key=get_sort_key)
     skipped = [f for f in input_files if not f.lower().endswith(".srt")]
     for s in skipped:
         log_skip(f"Not an SRT file: {s}")
