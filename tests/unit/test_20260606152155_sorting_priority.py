@@ -178,7 +178,7 @@ def test_file_sorting_priority_fallback_to_default_lang():
     assert srt_files == ["video.de-DE.srt", "video.ru.srt", "video.en.srt"]
 
 
-def test_skip_primary_output_in_process_srt(monkeypatch):
+def test_skip_primary_output_in_process_srt(monkeypatch, tmp_path):
     sub_tts = _load_sub_tts()
     config = configparser.ConfigParser()
     config["tts_settings"] = {
@@ -187,6 +187,13 @@ def test_skip_primary_output_in_process_srt(monkeypatch):
         "timeline_source": "primary_subtitle",
         "shift_subtitles_on_overflow": "false",
     }
+    
+    srt_file = tmp_path / "test.en.srt"
+    srt_file.write_text("1\n00:00:01,000 --> 00:00:02,000\na", encoding="utf-8")
+    
+    # Create the dummy output file so skip is NOT overridden/forced
+    output_mp4 = tmp_path / "test.mp4"
+    output_mp4.write_text("dummy", encoding="utf-8")
     
     # Mocking dependencies of process_srt to prevent running actual PIPER / FFmpeg logic
     monkeypatch.setattr(sub_tts, "parse_srt", lambda *args: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}])
@@ -216,7 +223,7 @@ def test_skip_primary_output_in_process_srt(monkeypatch):
 
     # Run process_srt as a primary track (canonical_shift_plan is None)
     ok, shift_plan = sub_tts.process_srt(
-        Path("test.en.srt"),
+        srt_file,
         config=config,
         piper_config=piper_cfg,
         piper_root=Path(""),
@@ -243,6 +250,10 @@ def test_sidecar_json_loading_and_writing(monkeypatch, tmp_path):
     # First, run process_srt where sidecar does NOT exist. It should synthesize cues and write the sidecar JSON.
     srt_file = tmp_path / "test.en.srt"
     srt_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello", encoding="utf-8")
+    
+    # Create the dummy output file so skip is NOT overridden/forced
+    output_mp4 = tmp_path / "test.mp4"
+    output_mp4.write_text("dummy", encoding="utf-8")
     
     synthesis_called = False
     def mock_synthesize(*args):
@@ -370,3 +381,70 @@ def test_auto_discovery_of_primary_files(tmp_path):
     assert str(primary_file.resolve()) in [str(Path(sf).resolve()) for sf in srt_files]
     assert str(unrelated_file.resolve()) not in [str(Path(sf).resolve()) for sf in srt_files]
     assert str(primary_file.resolve()) in auto_discovered_srt_files
+
+
+def test_skip_primary_output_conditional_on_existence(monkeypatch, tmp_path):
+    sub_tts = _load_sub_tts()
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "skip_primary_output": "true",
+        "timeline_source": "primary_subtitle",
+    }
+    
+    srt_file = tmp_path / "video.en.srt"
+    srt_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello", encoding="utf-8")
+    
+    # Mocking process_srt logic dependencies
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *args: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Hello"}])
+    monkeypatch.setattr(
+        sub_tts,
+        "synthesize_all_cues",
+        lambda *args: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "Hello"}}],
+    )
+    
+    assemble_called = False
+    def mock_assemble(*args):
+        nonlocal assemble_called
+        assemble_called = True
+        return Path("assembled.wav")
+    monkeypatch.setattr(sub_tts, "assemble_audio", mock_assemble)
+    monkeypatch.setattr(sub_tts, "mux_to_mp4", lambda *args: True)
+    monkeypatch.setattr(sub_tts, "trim_cues_only", lambda r, *args: r)
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda r, *args: r)
+    
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "en"}
+    piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
+
+    # Case 1: The primary output file "video.mp4" does NOT exist.
+    # It should FORCE generation (so assemble_audio is called).
+    ok, shift_plan = sub_tts.process_srt(
+        srt_file,
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        skip_primary_output_override=True,
+    )
+    
+    assert ok is True
+    assert assemble_called is True  # Bypassed skip because file is missing!
+    
+    # Case 2: The primary output file "video.mp4" DOES exist.
+    # It should skip output generation (so assemble_audio is NOT called).
+    output_mp4 = tmp_path / "video.mp4"
+    output_mp4.write_text("dummy mp4 content", encoding="utf-8")
+    
+    assemble_called = False
+    ok2, shift_plan2 = sub_tts.process_srt(
+        srt_file,
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        skip_primary_output_override=True,
+    )
+    
+    assert ok2 is True
+    assert assemble_called is False  # Respects skip because file exists!

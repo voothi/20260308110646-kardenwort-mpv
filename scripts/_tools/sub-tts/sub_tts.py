@@ -1315,6 +1315,26 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
         skip_primary = config_bool(config, "tts_settings", "skip_primary_output", False)
 
     if is_primary and skip_primary:
+        # Determine target primary output path (without ZID subdirectory)
+        keep_postfix = keep_lang_postfix_override
+        if keep_postfix is None:
+            keep_postfix = config_bool(config, "tts_settings", "keep_lang_postfix", False)
+        
+        stem = Path(srt_path).stem
+        if keep_postfix:
+            base = stem
+        else:
+            base = strip_lang_postfix(stem, lang)
+        
+        output_dir = Path(output_dir_override) if output_dir_override else srt_path.parent
+        primary_mp4 = output_dir / f"{base}.mp4"
+        
+        # If output file does not exist, force generation of primary track output!
+        if not primary_mp4.exists():
+            log_info(f"Primary output file '{primary_mp4.name}' does not exist. Forcing generation.")
+            skip_primary = False
+
+    if is_primary and skip_primary:
         # 1. Check sidecar JSON
         sidecar_path = srt_path.with_name(f"{srt_path.name}.shift_plan.json")
         if sidecar_path.exists():
