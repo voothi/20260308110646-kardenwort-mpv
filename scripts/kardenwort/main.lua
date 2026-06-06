@@ -10230,6 +10230,123 @@ function get_companion_files(dir, base_prefix, ext)
     return companions
 end
 
+function get_companion_subtitles(dir, base_prefix)
+    local files = utils.readdir(dir, "files") or {}
+    local sub_files = {}
+    local sub_exts = { srt = true, ass = true, ssa = true, vtt = true }
+    
+    for _, f in ipairs(files) do
+        local f_ext = f:match("%.([^%.]+)$")
+        if f_ext and sub_exts[f_ext:lower()] then
+            local f_no_ext = f:sub(1, #f - #f_ext - 1)
+            if f_no_ext == base_prefix then
+                table.insert(sub_files, {
+                    path = dir .. f,
+                    postfix = "ORIGINAL",
+                    raw_postfix = ""
+                })
+            else
+                local p_base, p_postfix = f_no_ext:match("^(.+)%.([%a%-]+)$")
+                if p_base == base_prefix and p_postfix and (#p_postfix == 2 or #p_postfix == 3) then
+                    table.insert(sub_files, {
+                        path = dir .. f,
+                        postfix = p_postfix:upper(),
+                        raw_postfix = p_postfix
+                    })
+                end
+            end
+        end
+    end
+    
+    table.sort(sub_files, function(a, b)
+        return a.postfix < b.postfix
+    end)
+    
+    return sub_files
+end
+
+function ensure_companion_subtitle_tracks(path)
+    if not path or path == "" then return end
+    local normalized_path = path:gsub("\\", "/")
+    local dir = normalized_path:match("^(.*/)") or ""
+    local filename = normalized_path:sub(#dir + 1)
+    local ext = filename:match("%.([^%.]+)$") or ""
+    if ext == "" then return end
+
+    local filename_no_ext = filename:sub(1, #filename - #ext - 1)
+    local base_prefix, current_postfix = filename_no_ext:match("^(.+)%.([%a%-]+)$")
+    if not (current_postfix and (#current_postfix == 2 or #current_postfix == 3)) then
+        base_prefix = filename_no_ext
+        current_postfix = nil
+    end
+    if not base_prefix or base_prefix == "" then return end
+
+    local sub_files = get_companion_subtitles(dir, base_prefix)
+    if #sub_files == 0 then return end
+
+    local existing_subs = {}
+    local tracks = mp.get_property_native("track-list") or {}
+    for _, t in ipairs(tracks) do
+        if t.type == "sub" and t.external then
+            local p = t["external-filename"] or t["external_filename"] or ""
+            if p ~= "" then
+                existing_subs[canonicalize_local_path(p)] = true
+            end
+        end
+    end
+
+    local is_windows = package.config:sub(1,1) == "\\"
+    for _, sub in ipairs(sub_files) do
+        local normalized_sub_path = canonicalize_local_path(sub.path)
+        if not existing_subs[normalized_sub_path] then
+            local load_path = sub.path
+            if is_windows then
+                load_path = load_path:gsub("/", "\\")
+            end
+            
+            local flag = "auto"
+            if current_postfix and sub.raw_postfix:lower() == current_postfix:lower() then
+                flag = "select"
+            end
+            mp.commandv("sub-add", load_path, flag, sub.postfix, sub.raw_postfix)
+        end
+    end
+
+    if current_postfix then
+        local target_postfix = current_postfix:lower()
+        local function select_matching_sub()
+            local current_tracks = mp.get_property_native("track-list") or {}
+            for _, t in ipairs(current_tracks) do
+                if t.type == "sub" then
+                    local match = false
+                    if t.lang and t.lang:lower() == target_postfix then
+                        match = true
+                    elseif t.title and t.title:lower() == target_postfix then
+                        match = true
+                    else
+                        local p = t["external-filename"] or t["external_filename"] or ""
+                        if p ~= "" then
+                            local p_ext = p:match("%.([^%.]+)$") or ""
+                            local p_no_ext = p:sub(1, #p - #p_ext - 1)
+                            local _, p_post = p_no_ext:match("^(.+)%.([%a%-]+)$")
+                            if p_post and p_post:lower() == target_postfix then
+                                match = true
+                            end
+                        end
+                    end
+                    if match then
+                        mp.set_property_number("sid", t.id)
+                        break
+                    end
+                end
+            end
+        end
+        
+        select_matching_sub()
+        mp.add_timeout(0.1, select_matching_sub)
+    end
+end
+
 
 local function cmd_toggle_osc()
     FSM.OSC_VIS = (FSM.OSC_VIS + 1) % 3
@@ -10361,6 +10478,7 @@ mp.register_event("file-loaded", function()
     if Options.companion_audio_attach_on_load ~= false then
         ensure_companion_audio_tracks(mp.get_property("path"))
     end
+    ensure_companion_subtitle_tracks(mp.get_property("path"))
 end)
 
 -- =========================================================================
