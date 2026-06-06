@@ -646,11 +646,13 @@ def strip_lang_postfix(stem, lang):
     if len(parts) == 2:
         candidate = parts[1].lower()
         # Build alias reverse map: lang_code → [postfixes that map to it]
+        lang = lang.lower()
         all_postfixes = {lang}  # include the code itself
         for postfix, code in BUILTIN_LANG_ALIASES.items():
             if code == lang:
                 all_postfixes.add(postfix)
-        if candidate in all_postfixes:
+        base_candidate = re.split(r"[-_]", candidate)[0]
+        if candidate in all_postfixes or base_candidate in all_postfixes:
             return parts[0]
     return stem
 

@@ -92,6 +92,40 @@ def test_resolve_output_path_strips_language_postfix():
     assert policy == "new"
 
 
+def test_resolve_output_path_strips_regional_language_postfix():
+    sub_tts = _load_sub_tts()
+    config = _config()
+    output_dir = Path("C:/kardenwort-test-output")
+
+    output_path, policy = sub_tts.resolve_output_path(
+        output_dir / "video.de-DE.srt",
+        output_dir,
+        config,
+        "de",
+        zid_cache={"zid": "20260606224905"},
+    )
+
+    assert output_path == output_dir / "video.mp4"
+    assert policy == "new"
+
+
+def test_resolve_output_path_strips_aliased_regional_language_postfix():
+    sub_tts = _load_sub_tts()
+    config = _config()
+    output_dir = Path("C:/kardenwort-test-output")
+
+    output_path, policy = sub_tts.resolve_output_path(
+        output_dir / "video.rus-RU.srt",
+        output_dir,
+        config,
+        "ru",
+        zid_cache={"zid": "20260606224905"},
+    )
+
+    assert output_path == output_dir / "video.mp4"
+    assert policy == "new"
+
+
 def test_audio_placement_plan_reports_overflow_without_moving_next_cue(monkeypatch):
     sub_tts = _load_sub_tts()
     durations = {
@@ -331,6 +365,5 @@ def test_apply_shift_plan_duration_cache_propagation():
     assert "wav_duration_ms_cached" not in shifted_false[1]
     assert shifted_false[0]["cue"]["start_ms"] == 1000
     assert shifted_false[1]["cue"]["start_ms"] == 2500
-
 
 
