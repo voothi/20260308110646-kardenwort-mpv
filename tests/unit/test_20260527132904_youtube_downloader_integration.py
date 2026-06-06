@@ -533,8 +533,8 @@ def test_no_subtitle_redownload_when_only_companion_missing(yd, tmp_path, monkey
     assert (tmp_path / f"{old_zid}-test-video.ru.mp4").exists()
 
 
-def test_clean_srt_not_called_on_preexisting_subtitle(yd, tmp_path, monkeypatch):
-    """Skip recovery: clean_srt_file must run only for newly downloaded subtitles."""
+def test_clean_srt_called_on_overwritten_subtitle(yd, tmp_path, monkeypatch):
+    """Skip recovery: clean_srt_file must run for all subtitles overwritten during recovery."""
     old_zid = "20260527132904"
     existing_en = tmp_path / f"{old_zid}-test-video.en.srt"
     new_ru = tmp_path / f"{old_zid}-test-video.ru.srt"
@@ -579,7 +579,7 @@ def test_clean_srt_not_called_on_preexisting_subtitle(yd, tmp_path, monkeypatch)
     )
 
     assert success
-    assert cleaned_paths == [new_ru]
+    assert cleaned_paths == [existing_en, new_ru]
 
 
 def test_sync_fires_when_secondary_newly_downloaded_primary_preexisting(yd, tmp_path, monkeypatch):

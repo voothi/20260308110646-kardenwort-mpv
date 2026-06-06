@@ -1687,7 +1687,7 @@ def download_video_and_metadata(url, settings, used_zids, zid_cache, source_dir=
             sub_file = target_dir / f"{zid}-{sanitized_title}.{lang}.srt"
             if sub_file.exists():
                 subtitles_all_present.append(sub_file)
-                if sub_file not in pre_existing_subs:
+                if sub_file not in pre_existing_subs or should_download_subs:
                     clean_srt_file(
                         sub_file,
                         clean_hyphens=settings.get("youtube_download_clean_hyphens", False),
