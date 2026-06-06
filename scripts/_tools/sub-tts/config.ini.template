@@ -61,6 +61,12 @@ max_speed_factor = 2.0
 # after speed fitting. Trade-off: output can become longer, but avoids overlap.
 fit_subtitle_to_audio = false
 
+# Keep the primary track at native TTS quality (silence-trim only, no tempo change).
+# The timeline is rebuilt from the primary track's recording durations, and any
+# secondary tracks are speed-fit to this derived timeline.
+# Note: When enabled, this takes precedence over fit_subtitle_to_audio for the primary track.
+fit_subtitle_to_recording = false
+
 
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
 # Set to 0 to close instantly; ignored on errors so they can be inspected.

@@ -637,6 +637,88 @@ def change_audio_speed(input_file, output_file, speed_factor, ffmpeg_path, high_
     )
 
 
+def trim_silence_for_cue(cue_index, current_file, temp_dir, ffmpeg_path, vad_enabled, vad_max_silence):
+    """Trim boundary silence and optionally compress internal silence."""
+    trim_output = temp_dir / f"trim_{cue_index:05d}.wav"
+    trim_filter = (
+        "areverse,atrim=start=0.1,"
+        "silenceremove=start_periods=1:start_silence=0.1:start_threshold=0.01,"
+        "areverse,atrim=start=0.1,"
+        "silenceremove=start_periods=1:start_silence=0.1:start_threshold=0.01"
+    )
+    if run_ffmpeg_audio_filter(ffmpeg_path, current_file, trim_output, trim_filter):
+        current_file = trim_output
+
+    if vad_enabled:
+        vad_output = temp_dir / f"vad_{cue_index:05d}.wav"
+        max_silence = max(0.01, vad_max_silence)
+        vad_filter = (
+            "silenceremove=stop_periods=-1:"
+            f"stop_duration={max_silence:.2f}:stop_threshold=-40dB"
+        )
+        if run_ffmpeg_audio_filter(ffmpeg_path, current_file, vad_output, vad_filter):
+            current_file = vad_output
+
+    return current_file
+
+
+def trim_cues_only(synthesis_results, temp_dir, ffmpeg_path, config):
+    """
+    Trim silence for cues without changing speed (used for the primary track in fit-to-recording mode).
+    """
+    vad_enabled = config_bool(config, "tts_settings", "vad_silence_compression", False)
+    vad_max_silence = config_float(config, "tts_settings", "vad_max_silence_seconds", 0.15)
+
+    print("  Trimming silence (no speed adjustment)...", flush=True)
+    adjusted = []
+    total = len(synthesis_results)
+    last_pct = -10.0
+
+    for index, item in enumerate(synthesis_results):
+        cue = item["cue"]
+        loop_pos = index + 1
+        percent_val = (loop_pos / total) * 100.0 if total > 0 else 0.0
+        
+        skipped = not item["ok"] or not item["wav_path"]
+        if skipped:
+            label = f"Skipping cue {cue['index']} (synthesis failed)"
+        else:
+            label = f"Trimming silence for cue {cue['index']}"
+        
+        # Build progress bar string
+        bar_line = make_cue_progress_bar(loop_pos, total, label)
+        
+        if _IS_TTY:
+            clear_line()
+            sys.stdout.write(bar_line)
+            sys.stdout.flush()
+        else:
+            # Non-TTY throttling (delta-based)
+            if loop_pos == 1 or loop_pos == total or (percent_val - last_pct >= 10.0):
+                sys.stdout.write(bar_line.lstrip("\r") + "\n")
+                sys.stdout.flush()
+                last_pct = percent_val
+
+        if skipped:
+            adjusted.append(item)
+            continue
+
+        current_file = Path(item["wav_path"])
+        current_file = trim_silence_for_cue(cue["index"], current_file, temp_dir, ffmpeg_path, vad_enabled, vad_max_silence)
+
+        adjusted_item = dict(item)
+        adjusted_item["wav_path"] = current_file
+        adjusted_item["speed_factor"] = 1.0
+        adjusted_item["speed_limited"] = False
+        adjusted_item["target_ms"] = cue["end_ms"] - cue["start_ms"]
+        adjusted_item["fit_duration_ms"] = get_wav_duration_ms(current_file, ffmpeg_path)
+        adjusted.append(adjusted_item)
+
+    if _IS_TTY:
+        clear_line()
+    return adjusted
+
+
 def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
     """
     Port of Subtitle Edit's FixSpeed stage:
@@ -689,25 +771,7 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
 
         current_file = Path(item["wav_path"])
 
-        trim_output = temp_dir / f"trim_{cue['index']:05d}.wav"
-        trim_filter = (
-            "areverse,atrim=start=0.1,"
-            "silenceremove=start_periods=1:start_silence=0.1:start_threshold=0.01,"
-            "areverse,atrim=start=0.1,"
-            "silenceremove=start_periods=1:start_silence=0.1:start_threshold=0.01"
-        )
-        if run_ffmpeg_audio_filter(ffmpeg_path, current_file, trim_output, trim_filter):
-            current_file = trim_output
-
-        if vad_enabled:
-            vad_output = temp_dir / f"vad_{cue['index']:05d}.wav"
-            max_silence = max(0.01, vad_max_silence)
-            vad_filter = (
-                "silenceremove=stop_periods=-1:"
-                f"stop_duration={max_silence:.2f}:stop_threshold=-40dB"
-            )
-            if run_ffmpeg_audio_filter(ffmpeg_path, current_file, vad_output, vad_filter):
-                current_file = vad_output
+        current_file = trim_silence_for_cue(cue["index"], current_file, temp_dir, ffmpeg_path, vad_enabled, vad_max_silence)
 
         add_duration_ms = 0
         if index + 1 < total:
@@ -757,6 +821,61 @@ class ShiftPlan(list):
     def __init__(self, shifts=(), wav_durations_ms=None):
         super().__init__(shifts)
         self.wav_durations_ms = wav_durations_ms or {}
+        self.explicit_ends_ms = {}
+        self.explicit_targets_ms = {}
+
+
+def plan_recording_timeline(synthesis_results, ffmpeg_path, config):
+    """
+    Build a canonical timeline derived from the primary track's recording durations.
+    Returns a ShiftPlan with explicit end times and target durations.
+    """
+    if not synthesis_results:
+        return ShiftPlan()
+
+    original_starts = [item["cue"]["start_ms"] for item in synthesis_results]
+    durations = []
+    duration_cache = {}
+    
+    for idx, item in enumerate(synthesis_results):
+        cue = item["cue"]
+        if item["ok"] and item["wav_path"]:
+            wav_dur_ms = item.get("fit_duration_ms")
+            if not wav_dur_ms:
+                wav_dur_ms = get_wav_duration_ms(item["wav_path"], ffmpeg_path)
+            if wav_dur_ms <= 0:
+                wav_dur_ms = cue["end_ms"] - cue["start_ms"]
+            duration_cache[idx] = wav_dur_ms
+        else:
+            wav_dur_ms = cue["end_ms"] - cue["start_ms"]
+            duration_cache[idx] = wav_dur_ms
+        durations.append(wav_dur_ms)
+
+    drift = 0
+    shifts = []
+    explicit_ends_ms = {}
+    explicit_targets_ms = {}
+    count = len(synthesis_results)
+    
+    for idx in range(count):
+        shifts.append(drift)
+        shifted_start = original_starts[idx] + drift
+        audio_dur = durations[idx]
+        explicit_ends_ms[idx] = shifted_start + audio_dur
+        explicit_targets_ms[idx] = audio_dur
+        
+        if idx + 1 < count:
+            next_original_start = original_starts[idx + 1]
+            next_shifted_start = next_original_start + drift
+            audio_end = explicit_ends_ms[idx]
+            gap_required = audio_end - next_shifted_start
+            if gap_required > 0:
+                drift += gap_required
+
+    plan = ShiftPlan(shifts, duration_cache)
+    plan.explicit_ends_ms = explicit_ends_ms
+    plan.explicit_targets_ms = explicit_targets_ms
+    return plan
 
 
 def plan_subtitle_shifts(synthesis_results, ffmpeg_path):
@@ -804,6 +923,8 @@ def apply_shift_plan(synthesis_results, shift_plan, propagate_duration_cache=Tru
     """
     shifted_results = []
     duration_cache = getattr(shift_plan, "wav_durations_ms", {}) if propagate_duration_cache else {}
+    explicit_ends_ms = getattr(shift_plan, "explicit_ends_ms", {})
+
     for idx, item in enumerate(synthesis_results):
         new_item = dict(item)
         cue = item.get("cue")
@@ -815,7 +936,10 @@ def apply_shift_plan(synthesis_results, shift_plan, propagate_duration_cache=Tru
         if idx < len(shift_plan):
             drift = shift_plan[idx]
             new_cue["start_ms"] = cue["start_ms"] + drift
-            new_cue["end_ms"] = cue["end_ms"] + drift
+            if idx in explicit_ends_ms:
+                new_cue["end_ms"] = explicit_ends_ms[idx]
+            else:
+                new_cue["end_ms"] = cue["end_ms"] + drift
         if idx in duration_cache:
             new_item["wav_duration_ms_cached"] = duration_cache[idx]
 
@@ -823,6 +947,51 @@ def apply_shift_plan(synthesis_results, shift_plan, propagate_duration_cache=Tru
         shifted_results.append(new_item)
 
     return shifted_results
+
+
+def speed_fit_to_slots(synthesis_results, shift_plan, temp_dir, ffmpeg_path, config):
+    """
+    Speed-fit secondary cues to canonical slot durations defined by the primary track.
+    """
+    high_quality = config_bool(config, "tts_settings", "high_quality_time_stretch", False)
+    max_speed_factor = config_float(config, "tts_settings", "max_speed_factor", 2.0)
+    explicit_targets_ms = getattr(shift_plan, "explicit_targets_ms", {})
+
+    print("  Speed-fitting secondary cues to canonical slots...", flush=True)
+    adjusted = []
+    
+    for idx, item in enumerate(synthesis_results):
+        if not item["ok"] or not item["wav_path"] or idx not in explicit_targets_ms:
+            adjusted.append(item)
+            continue
+            
+        cue = item["cue"]
+        current_file = Path(item["wav_path"])
+        target_ms = explicit_targets_ms[idx]
+        duration_ms = item.get("fit_duration_ms")
+        if not duration_ms:
+            duration_ms = get_wav_duration_ms(current_file, ffmpeg_path)
+        
+        speed_factor = calculate_speed_factor(duration_ms, target_ms, max_speed_factor)
+        speed_limited = duration_ms > 0 and target_ms > 0 and duration_ms / target_ms > max_speed_factor
+        
+        if speed_factor > 1.0:
+            speed_output = temp_dir / f"speed_sec_{cue['index']:05d}.wav"
+            if change_audio_speed(current_file, speed_output, speed_factor, ffmpeg_path, high_quality):
+                current_file = speed_output
+            else:
+                if _IS_TTY: clear_line()
+                print(f"  [WARN] Speed adjustment failed for secondary cue {cue['index']}.", file=sys.stderr)
+
+        new_item = dict(item)
+        new_item["wav_path"] = current_file
+        new_item["speed_factor"] = speed_factor
+        new_item["speed_limited"] = speed_limited
+        new_item["target_ms"] = target_ms
+        new_item["fit_duration_ms"] = get_wav_duration_ms(current_file, ffmpeg_path)
+        adjusted.append(new_item)
+        
+    return adjusted
 
 
 # ==============================================================================
@@ -1054,6 +1223,7 @@ def resolve_ffmpeg(config, cli_override=None):
 def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 lang_override=None, output_dir_override=None, zid_cache=None,
                 keep_lang_postfix_override=None, fit_subtitle_to_audio_override=None,
+                fit_subtitle_to_recording_override=None,
                 canonical_shift_plan=None, canonical_filename=None):
     """
     Full pipeline for a single SRT file:
@@ -1125,32 +1295,62 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             return False, None
 
         # 5. Subtitle Edit-style speed fitting
-        synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
-
-        fit_subtitle_to_audio = fit_subtitle_to_audio_override
-        if fit_subtitle_to_audio is None:
-            fit_subtitle_to_audio = config_bool(config, "tts_settings", "fit_subtitle_to_audio", False)
+        fit_subtitle_to_recording = fit_subtitle_to_recording_override
+        if fit_subtitle_to_recording is None:
+            fit_subtitle_to_recording = config_bool(config, "tts_settings", "fit_subtitle_to_recording", False)
 
         produced_shift_plan = None
-        if fit_subtitle_to_audio:
+
+        if fit_subtitle_to_recording:
             if canonical_shift_plan is None:
-                produced_shift_plan = plan_subtitle_shifts(synthesis_results, ffmpeg_path)
+                # Primary track: derive timeline
+                synthesis_results = trim_cues_only(synthesis_results, temp_dir, ffmpeg_path, config)
+                produced_shift_plan = plan_recording_timeline(synthesis_results, ffmpeg_path, config)
                 synthesis_results = apply_shift_plan(synthesis_results, produced_shift_plan)
                 shifted_count = sum(1 for drift in produced_shift_plan if drift > 0)
                 total_drift_ms = max(produced_shift_plan) if produced_shift_plan else 0
                 log_info(
-                    f"Fitting subtitles to audio: {shifted_count} cue(s) shifted, total drift {total_drift_ms / 1000.0:.2f}s"
+                    f"Built recording-derived timeline: {shifted_count} cue(s) shifted, total drift {total_drift_ms / 1000.0:.2f}s"
                 )
             else:
-                # Sibling WAVs have their own durations; do not propagate canonical duration cache or amix duration=first will truncate them
+                # Secondary track: map to canonical slots
+                synthesis_results = trim_cues_only(synthesis_results, temp_dir, ffmpeg_path, config)
                 synthesis_results = apply_shift_plan(synthesis_results, canonical_shift_plan, propagate_duration_cache=False)
+                if getattr(canonical_shift_plan, "explicit_targets_ms", None):
+                    synthesis_results = speed_fit_to_slots(synthesis_results, canonical_shift_plan, temp_dir, ffmpeg_path, config)
                 if canonical_filename:
-                    log_info(f"Applying canonical shift plan from {canonical_filename}")
+                    log_info(f"Applying canonical recording timeline from {canonical_filename}")
                 local_cue_count = len(synthesis_results)
                 if local_cue_count != len(canonical_shift_plan):
                     log_warn(
                         f"{srt_path.name}: cue count {local_cue_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
                     )
+        else:
+            # Legacy mode
+            synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
+
+            fit_subtitle_to_audio = fit_subtitle_to_audio_override
+            if fit_subtitle_to_audio is None:
+                fit_subtitle_to_audio = config_bool(config, "tts_settings", "fit_subtitle_to_audio", False)
+
+            if fit_subtitle_to_audio:
+                if canonical_shift_plan is None:
+                    produced_shift_plan = plan_subtitle_shifts(synthesis_results, ffmpeg_path)
+                    synthesis_results = apply_shift_plan(synthesis_results, produced_shift_plan)
+                    shifted_count = sum(1 for drift in produced_shift_plan if drift > 0)
+                    total_drift_ms = max(produced_shift_plan) if produced_shift_plan else 0
+                    log_info(
+                        f"Fitting subtitles to audio: {shifted_count} cue(s) shifted, total drift {total_drift_ms / 1000.0:.2f}s"
+                    )
+                else:
+                    synthesis_results = apply_shift_plan(synthesis_results, canonical_shift_plan, propagate_duration_cache=False)
+                    if canonical_filename:
+                        log_info(f"Applying canonical shift plan from {canonical_filename}")
+                    local_cue_count = len(synthesis_results)
+                    if local_cue_count != len(canonical_shift_plan):
+                        log_warn(
+                            f"{srt_path.name}: cue count {local_cue_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
+                        )
 
         # 6. Assemble timed audio
         log_section("AUDIO ASSEMBLY")
@@ -1292,6 +1492,18 @@ def parse_args():
         help="Keep subtitle-locked timing even if audio overflows (overrides config).",
     )
     parser.add_argument(
+        "--fit-subtitle-to-recording",
+        action="store_true",
+        default=None,
+        help="Build timeline from primary recording durations, keep primary native quality.",
+    )
+    parser.add_argument(
+        "--no-fit-subtitle-to-recording",
+        action="store_false",
+        dest="fit_subtitle_to_recording",
+        help="Do not build timeline from primary recording (overrides config).",
+    )
+    parser.add_argument(
         "--sendto",
         action="store_true",
         help="Windows SendTo mode: treat all positional arguments as selected files.",
@@ -1366,6 +1578,7 @@ def main():
             zid_cache=zid_cache,
             keep_lang_postfix_override=args.keep_lang_postfix,
             fit_subtitle_to_audio_override=args.fit_subtitle_to_audio,
+            fit_subtitle_to_recording_override=args.fit_subtitle_to_recording,
             canonical_shift_plan=shift_plan,
             canonical_filename=canonical_filename,
         )
