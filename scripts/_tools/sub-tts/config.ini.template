@@ -44,6 +44,18 @@ keep_lang_postfix = false
 primary_languages = en, de
 
 
+# If true, skip the audio assembly and MP4 muxing for the primary (first) track.
+# The primary track's SRT will still be processed to calculate the canonical timeline,
+# but no output file will be written for it.
+skip_primary_output = false
+
+# If true, when only a secondary language file is passed (e.g. video.ru.srt), the script
+# will search the directory for the corresponding primary language file (e.g. video.en.srt,
+# video.de.srt, or video.srt) to automatically establish the timeline.
+# Output generation for this auto-discovered primary file will be skipped.
+auto_discover_primary = true
+
+
 # Defines what dictates the final timeline (The Source of Truth).
 # 'primary_subtitle' : The original SRT timing is the absolute truth. The generated audio
 #                      is adjusted (sped up) to fit into the original subtitle slots.

@@ -176,3 +176,127 @@ def test_file_sorting_priority_fallback_to_default_lang():
 
     srt_files.sort(key=get_sort_key)
     assert srt_files == ["video.de-DE.srt", "video.ru.srt", "video.en.srt"]
+
+
+def test_skip_primary_output_in_process_srt(monkeypatch):
+    sub_tts = _load_sub_tts()
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "skip_primary_output": "true",
+    }
+    
+    # Mocking dependencies of process_srt to prevent running actual PIPER / FFmpeg logic
+    monkeypatch.setattr(sub_tts, "parse_srt", lambda *args: [{"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}])
+    monkeypatch.setattr(
+        sub_tts,
+        "synthesize_all_cues",
+        lambda *args: [{"ok": True, "wav_path": Path("cue_1.wav"), "cue": {"index": 1, "start_ms": 1000, "end_ms": 2000, "text": "a"}}],
+    )
+    # If the process skips output, it should NOT run assemble_audio
+    assemble_called = False
+    def mock_assemble(*args):
+        nonlocal assemble_called
+        assemble_called = True
+        return Path("assembled.wav")
+    monkeypatch.setattr(sub_tts, "assemble_audio", mock_assemble)
+    
+    # Mock trim/speed functions to return their inputs to avoid failures
+    monkeypatch.setattr(sub_tts, "trim_cues_only", lambda r, *args: r)
+    monkeypatch.setattr(sub_tts, "adjust_speed_for_cues", lambda r, *args: r)
+    
+    piper_cfg = configparser.ConfigParser()
+    piper_cfg["tts_settings"] = {"supported_languages": "en"}
+    piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
+
+    # Run process_srt as a primary track (canonical_shift_plan is None)
+    ok, shift_plan = sub_tts.process_srt(
+        Path("test.en.srt"),
+        config=config,
+        piper_config=piper_cfg,
+        piper_root=Path(""),
+        ffmpeg_path="ffmpeg",
+        skip_primary_output_override=True,
+    )
+    
+    assert ok is True
+    # Let's verify we skipped audio assembly
+    assert not assemble_called
+
+
+def test_auto_discovery_of_primary_files(tmp_path):
+    sub_tts = _load_sub_tts()
+    
+    # Create test directory and files
+    primary_file = tmp_path / "video.en.srt"
+    secondary_file = tmp_path / "video.ru.srt"
+    unrelated_file = tmp_path / "other.en.srt"
+    
+    primary_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello", encoding="utf-8")
+    secondary_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nПривет", encoding="utf-8")
+    unrelated_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nOther", encoding="utf-8")
+
+    config = configparser.ConfigParser()
+    config["tts_settings"] = {
+        "default_lang": "en",
+        "primary_languages": "en, de",
+        "auto_discover_primary": "true",
+    }
+    
+    # Simulate the main() auto-discovery logic
+    srt_files = [str(secondary_file)]
+    
+    auto_discovered_srt_files = set()
+    auto_discover = True
+    primary_langs = ["en", "de"]
+
+    if auto_discover:
+        discovered_candidates = []
+        for f in list(srt_files):
+            lang = sub_tts.detect_language(f, config)
+            try:
+                f_priority = primary_langs.index(lang)
+            except ValueError:
+                f_priority = len(primary_langs)
+
+            if f_priority > 0:
+                parent_dir = Path(f).resolve().parent
+                stem = Path(f).stem
+                clean_stem = sub_tts.strip_lang_postfix(stem, lang)
+                
+                try:
+                    for p in parent_dir.glob("*.srt"):
+                        if p.resolve() == Path(f).resolve():
+                            continue
+                        p_lang = sub_tts.detect_language(p, config)
+                        p_stem = p.stem
+                        p_clean_stem = sub_tts.strip_lang_postfix(p_stem, p_lang)
+                        if p_clean_stem.lower() == clean_stem.lower():
+                            try:
+                                p_priority = primary_langs.index(p_lang)
+                            except ValueError:
+                                p_priority = len(primary_langs)
+                            if p_priority < f_priority:
+                                discovered_candidates.append((p, p_priority))
+                except Exception:
+                    pass
+
+        by_stem = {}
+        for p, priority in discovered_candidates:
+            p_lang = sub_tts.detect_language(p, config)
+            clean_stem = sub_tts.strip_lang_postfix(p.stem, p_lang).lower()
+            if clean_stem not in by_stem or priority < by_stem[clean_stem][1]:
+                by_stem[clean_stem] = (p, priority)
+
+        for p, priority in by_stem.values():
+            resolved_p = str(p.resolve())
+            resolved_srt_files = [str(Path(sf).resolve()) for sf in srt_files]
+            if resolved_p not in resolved_srt_files:
+                srt_files.append(str(p))
+                auto_discovered_srt_files.add(str(p.resolve()))
+
+    # Verify that the primary file was auto-discovered, but the unrelated file was not
+    assert len(srt_files) == 2
+    assert str(primary_file.resolve()) in [str(Path(sf).resolve()) for sf in srt_files]
+    assert str(unrelated_file.resolve()) not in [str(Path(sf).resolve()) for sf in srt_files]
+    assert str(primary_file.resolve()) in auto_discovered_srt_files

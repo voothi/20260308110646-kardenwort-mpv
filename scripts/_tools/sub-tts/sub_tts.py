@@ -1231,7 +1231,8 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 lang_override=None, output_dir_override=None, zid_cache=None,
                 keep_lang_postfix_override=None, timeline_source_override=None,
                 shift_subtitles_on_overflow_override=None,
-                canonical_shift_plan=None, canonical_filename=None):
+                canonical_shift_plan=None, canonical_filename=None,
+                skip_primary_output_override=None):
     """
     Full pipeline for a single SRT file:
       1. Detect language
@@ -1361,6 +1362,18 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                         log_warn(
                             f"{srt_path.name}: cue count {local_cue_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
                         )
+
+
+        # Determine if this is the primary track
+        is_primary = (canonical_shift_plan is None)
+        skip_primary = skip_primary_output_override
+        if skip_primary is None:
+            skip_primary = config_bool(config, "tts_settings", "skip_primary_output", False)
+
+        if is_primary and skip_primary:
+            log_info(f"Skipping output generation for primary track: {srt_path.name}")
+            success = True
+            return True, produced_shift_plan
 
         # 6. Assemble timed audio
         log_section("AUDIO ASSEMBLY")
@@ -1508,6 +1521,30 @@ def parse_args():
         help="Do not shift subtitle timings on overflow (overrides config).",
     )
     parser.add_argument(
+        "--skip-primary-output",
+        action="store_true",
+        default=None,
+        help="Skip output generation (assembly and muxing) for the primary track.",
+    )
+    parser.add_argument(
+        "--no-skip-primary-output",
+        action="store_false",
+        dest="skip_primary_output",
+        help="Do not skip output generation for the primary track.",
+    )
+    parser.add_argument(
+        "--auto-discover-primary",
+        action="store_true",
+        default=None,
+        help="Auto-discover primary files in the same directory if only secondary files are passed.",
+    )
+    parser.add_argument(
+        "--no-auto-discover-primary",
+        action="store_false",
+        dest="auto_discover_primary",
+        help="Disable auto-discovery of primary files.",
+    )
+    parser.add_argument(
         "--sendto",
         action="store_true",
         help="Windows SendTo mode: treat all positional arguments as selected files.",
@@ -1542,6 +1579,62 @@ def main():
 
     # Filter to .srt files only
     srt_files = [f for f in input_files if f.lower().endswith(".srt")]
+
+    # Auto-discovery of primary files
+    auto_discovered_srt_files = set()
+    auto_discover = args.auto_discover_primary
+    if auto_discover is None:
+        auto_discover = config_bool(config, "tts_settings", "auto_discover_primary", True)
+
+    primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages", fallback="").split(",") if l.strip()]
+    if not primary_langs:
+        primary_langs = [config.get("tts_settings", "default_lang", fallback="en").strip().lower()]
+
+    if auto_discover:
+        discovered_candidates = []
+        for f in list(srt_files):
+            lang = detect_language(f, config)
+            try:
+                f_priority = primary_langs.index(lang)
+            except ValueError:
+                f_priority = len(primary_langs)
+
+            if f_priority > 0:  # Not the highest priority or not in list
+                parent_dir = Path(f).resolve().parent
+                stem = Path(f).stem
+                clean_stem = strip_lang_postfix(stem, lang)
+                
+                try:
+                    for p in parent_dir.glob("*.srt"):
+                        if p.resolve() == Path(f).resolve():
+                            continue
+                        p_lang = detect_language(p, config)
+                        p_stem = p.stem
+                        p_clean_stem = strip_lang_postfix(p_stem, p_lang)
+                        if p_clean_stem.lower() == clean_stem.lower():
+                            try:
+                                p_priority = primary_langs.index(p_lang)
+                            except ValueError:
+                                p_priority = len(primary_langs)
+                            if p_priority < f_priority:
+                                discovered_candidates.append((p, p_priority))
+                except Exception:
+                    pass
+
+        # Select highest-priority candidate for each clean stem
+        by_stem = {}
+        for p, priority in discovered_candidates:
+            p_lang = detect_language(p, config)
+            clean_stem = strip_lang_postfix(p.stem, p_lang).lower()
+            if clean_stem not in by_stem or priority < by_stem[clean_stem][1]:
+                by_stem[clean_stem] = (p, priority)
+
+        for p, priority in by_stem.values():
+            resolved_p = str(p.resolve())
+            resolved_srt_files = [str(Path(sf).resolve()) for sf in srt_files]
+            if resolved_p not in resolved_srt_files:
+                srt_files.append(str(p))
+                auto_discovered_srt_files.add(str(p.resolve()))
 
     # Sort files by primary language priority
     primary_langs = [l.strip().lower() for l in config.get("tts_settings", "primary_languages", fallback="").split(",") if l.strip()]
@@ -1600,6 +1693,9 @@ def main():
         timeline_source = "primary_subtitle"
 
     for srt_path in srt_files:
+        is_auto_discovered = str(Path(srt_path).resolve()) in auto_discovered_srt_files
+        skip_output = True if is_auto_discovered else args.skip_primary_output
+
         ok, generated_shift_plan = process_srt(
             srt_path,
             config=config,
@@ -1614,6 +1710,7 @@ def main():
             shift_subtitles_on_overflow_override=args.shift_subtitles_on_overflow,
             canonical_shift_plan=shift_plan,
             canonical_filename=canonical_filename,
+            skip_primary_output_override=skip_output,
         )
         results.append((srt_path, ok))
         if shift_plan is None and generated_shift_plan is not None and ok:
