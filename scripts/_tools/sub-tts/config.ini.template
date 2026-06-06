@@ -36,10 +36,13 @@ duplicate_mode = zid-dir
 keep_lang_postfix = false
 
 
-# Fit generated TTS audio into each subtitle time slot, following Subtitle Edit's
-# "Fix speed" stage: trim boundary silence, optionally compress internal pauses,
-# then speed up only the cues that are still too long.
-fit_to_subtitle = true
+# Defines what dictates the final timeline (The Source of Truth).
+# 'primary_subtitle' : The original SRT timing is the absolute truth. The generated audio
+#                      is adjusted (sped up) to fit into the original subtitle slots.
+# 'primary_audio'    : The first track's native TTS audio is the absolute truth. The 
+#                      timeline is rebuilt around it, and any secondary translated
+#                      tracks are adjusted (sped up) to fit this new timeline.
+timeline_source = primary_subtitle
 
 # Optional VAD-like pause compression before tempo adjustment.
 vad_silence_compression = false
@@ -57,15 +60,11 @@ max_extra_gap_ms = 1000
 # natural-sounding speech.
 max_speed_factor = 2.0
 
-# Shift subtitle timings later to follow audio when residual overflow remains
-# after speed fitting. Trade-off: output can become longer, but avoids overlap.
-fit_subtitle_to_audio = false
-
-# Keep the primary track at native TTS quality (silence-trim only, no tempo change).
-# The timeline is rebuilt from the primary track's recording durations, and any
-# secondary tracks are speed-fit to this derived timeline.
-# Note: When enabled, this takes precedence over fit_subtitle_to_audio for the primary track.
-fit_subtitle_to_recording = false
+# (Only applies when timeline_source = primary_subtitle)
+# If the audio STILL overflows its subtitle slot even after being sped up,
+# shift the subsequent subtitles later in time to make room and avoid overlap.
+# In this case, the subtitle yields slightly to the audio.
+shift_subtitles_on_overflow = false
 
 
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).

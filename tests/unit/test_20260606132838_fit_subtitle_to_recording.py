@@ -25,7 +25,7 @@ def _load_sub_tts():
 def _config():
     config = configparser.ConfigParser()
     config["tts_settings"] = {
-        "fit_subtitle_to_recording": "true",
+        "timeline_source": "primary_audio",
         "max_extra_gap_ms": "1000",
         "vad_silence_compression": "false",
     }
@@ -89,7 +89,7 @@ def test_regression_with_flag_off_planning_behavior_unchanged(monkeypatch):
     # 5.4 Regression test: with the flag off, planning output and pipeline behavior are unchanged
     sub_tts = _load_sub_tts()
     config = _config()
-    config["tts_settings"]["fit_subtitle_to_recording"] = "false"
+    config["tts_settings"]["timeline_source"] = "primary_subtitle"
     
     durations = {"cue_001.wav": 3000, "cue_002.wav": 1000}
     monkeypatch.setattr(sub_tts, "get_wav_duration_ms", lambda p, ff: durations[Path(p).name])

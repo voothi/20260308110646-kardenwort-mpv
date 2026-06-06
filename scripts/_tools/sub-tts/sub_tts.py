@@ -726,9 +726,6 @@ def adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config):
       2. Optionally compress internal silence.
       3. Speed up only cues that still exceed their subtitle window.
     """
-    if not config_bool(config, "tts_settings", "fit_to_subtitle", True):
-        return synthesis_results
-
     vad_enabled = config_bool(config, "tts_settings", "vad_silence_compression", False)
     vad_max_silence = config_float(config, "tts_settings", "vad_max_silence_seconds", 0.15)
     high_quality = config_bool(config, "tts_settings", "high_quality_time_stretch", False)
@@ -1226,8 +1223,8 @@ def resolve_ffmpeg(config, cli_override=None):
 
 def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                 lang_override=None, output_dir_override=None, zid_cache=None,
-                keep_lang_postfix_override=None, fit_subtitle_to_audio_override=None,
-                fit_subtitle_to_recording_override=None,
+                keep_lang_postfix_override=None, timeline_source_override=None,
+                shift_subtitles_on_overflow_override=None,
                 canonical_shift_plan=None, canonical_filename=None):
     """
     Full pipeline for a single SRT file:
@@ -1298,14 +1295,14 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
             log_error("All cue synthesis attempts failed. Check Piper TTS setup.")
             return False, None
 
-        # 5. Subtitle Edit-style speed fitting
-        fit_subtitle_to_recording = fit_subtitle_to_recording_override
-        if fit_subtitle_to_recording is None:
-            fit_subtitle_to_recording = config_bool(config, "tts_settings", "fit_subtitle_to_recording", False)
+        # 5. Timeline building and speed fitting
+        timeline_source = timeline_source_override
+        if timeline_source is None:
+            timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
 
         produced_shift_plan = None
 
-        if fit_subtitle_to_recording:
+        if timeline_source == "primary_audio":
             if canonical_shift_plan is None:
                 # Primary track: derive timeline
                 synthesis_results = trim_cues_only(synthesis_results, temp_dir, ffmpeg_path, config)
@@ -1330,14 +1327,14 @@ def process_srt(srt_path, config, piper_config, piper_root, ffmpeg_path,
                         f"{srt_path.name}: cue count {local_cue_count} differs from canonical {len(canonical_shift_plan)}; shifting overlap only"
                     )
         else:
-            # Legacy mode
+            # primary_subtitle mode (default legacy behavior)
             synthesis_results = adjust_speed_for_cues(synthesis_results, temp_dir, ffmpeg_path, config)
 
-            fit_subtitle_to_audio = fit_subtitle_to_audio_override
-            if fit_subtitle_to_audio is None:
-                fit_subtitle_to_audio = config_bool(config, "tts_settings", "fit_subtitle_to_audio", False)
+            shift_subtitles_on_overflow = shift_subtitles_on_overflow_override
+            if shift_subtitles_on_overflow is None:
+                shift_subtitles_on_overflow = config_bool(config, "tts_settings", "shift_subtitles_on_overflow", False)
 
-            if fit_subtitle_to_audio:
+            if shift_subtitles_on_overflow:
                 if canonical_shift_plan is None:
                     produced_shift_plan = plan_subtitle_shifts(synthesis_results, ffmpeg_path)
                     synthesis_results = apply_shift_plan(synthesis_results, produced_shift_plan)
@@ -1484,28 +1481,22 @@ def parse_args():
         help="Strip the language postfix from the output MP4 filename (overrides config).",
     )
     parser.add_argument(
-        "--fit-subtitle-to-audio",
+        "--timeline-source",
+        choices=["primary_subtitle", "primary_audio"],
+        default=None,
+        help="Source of truth for the timeline: 'primary_subtitle' (audio speeds up to fit) or 'primary_audio' (timeline rebuilt around primary track's native audio).",
+    )
+    parser.add_argument(
+        "--shift-subtitles-on-overflow",
         action="store_true",
         default=None,
-        help="Shift subtitle timings later to avoid cue overlap when audio overflows.",
+        help="When timeline-source is primary_subtitle: shift subtitle timings later to avoid overlap when audio overflows.",
     )
     parser.add_argument(
-        "--no-fit-subtitle-to-audio",
+        "--no-shift-subtitles-on-overflow",
         action="store_false",
-        dest="fit_subtitle_to_audio",
-        help="Keep subtitle-locked timing even if audio overflows (overrides config).",
-    )
-    parser.add_argument(
-        "--fit-subtitle-to-recording",
-        action="store_true",
-        default=None,
-        help="Build timeline from primary recording durations, keep primary native quality.",
-    )
-    parser.add_argument(
-        "--no-fit-subtitle-to-recording",
-        action="store_false",
-        dest="fit_subtitle_to_recording",
-        help="Do not build timeline from primary recording (overrides config).",
+        dest="shift_subtitles_on_overflow",
+        help="Do not shift subtitle timings on overflow (overrides config).",
     )
     parser.add_argument(
         "--sendto",
@@ -1570,11 +1561,10 @@ def main():
     shift_plan = None
     canonical_filename = None
 
-    # Effective recording mode: its canonical timeline must persist across files,
-    # so it must not be cleared by the legacy fit_subtitle_to_audio reset below.
-    fit_recording_mode = args.fit_subtitle_to_recording
-    if fit_recording_mode is None:
-        fit_recording_mode = config_bool(config, "tts_settings", "fit_subtitle_to_recording", False)
+    # Effective recording mode: its canonical timeline must persist across files.
+    timeline_source = args.timeline_source
+    if timeline_source is None:
+        timeline_source = config.get("tts_settings", "timeline_source", fallback="primary_subtitle").strip().lower()
 
     for srt_path in srt_files:
         ok, generated_shift_plan = process_srt(
@@ -1587,8 +1577,8 @@ def main():
             output_dir_override=args.output_dir,
             zid_cache=zid_cache,
             keep_lang_postfix_override=args.keep_lang_postfix,
-            fit_subtitle_to_audio_override=args.fit_subtitle_to_audio,
-            fit_subtitle_to_recording_override=args.fit_subtitle_to_recording,
+            timeline_source_override=args.timeline_source,
+            shift_subtitles_on_overflow_override=args.shift_subtitles_on_overflow,
             canonical_shift_plan=shift_plan,
             canonical_filename=canonical_filename,
         )
@@ -1596,7 +1586,7 @@ def main():
         if shift_plan is None and generated_shift_plan is not None and ok:
             shift_plan = generated_shift_plan
             canonical_filename = Path(srt_path).name
-        if args.fit_subtitle_to_audio is False and not fit_recording_mode:
+        if args.shift_subtitles_on_overflow is False and timeline_source != "primary_audio":
             shift_plan = None
             canonical_filename = None
 
