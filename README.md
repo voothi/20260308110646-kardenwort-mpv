@@ -992,6 +992,7 @@ This project maintains a data-driven approach to development tracking. We use a 
 - **Total Hours Spent**: 589.58h (across 111 work sessions, average session of 5.31h)
 - **Current Maturity**: ~2798 Commits (v1.84.58)
 - **Intensity Profile**: 4.7 Commits/Hour 
+- **Git Structure**: 370 local branches, 253 tags
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
