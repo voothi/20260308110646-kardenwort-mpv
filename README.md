@@ -3,7 +3,10 @@
 [![Version](https://img.shields.io/badge/version-v1.84.50-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.50)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content.
+A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content. It functions as a professional tool for simultaneous translators who need to have two texts synchronized with the media track, with the ability to search by words and make notes.
+
+The suite allows you to prepare for work on the basis of living material. Convenient keys and shortcuts are provided for fast and intuitive work that does not distract. It works entirely offline without the Internet—the materials, like the program, are yours forever.
+
 
 > **Attribution & Source**
 >
