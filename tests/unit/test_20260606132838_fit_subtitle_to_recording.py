@@ -102,7 +102,7 @@ def test_regression_with_flag_off_planning_behavior_unchanged(monkeypatch):
     plan = sub_tts.plan_subtitle_shifts(synthesis_results, "ffmpeg")
     assert plan == [0, 2000]
 
-def test_timeline_source_validation_invalid_fallback(monkeypatch):
+def test_timeline_source_validation_invalid_fallback(monkeypatch, tmp_path):
     # Test that config loading falls back to primary_subtitle and warns on invalid config values
     sub_tts = _load_sub_tts()
     config = _config()
@@ -130,7 +130,7 @@ def test_timeline_source_validation_invalid_fallback(monkeypatch):
     piper_cfg["voice_en"] = {"model": "en_voice.onnx"}
     
     sub_tts.process_srt(
-        Path("test.en.srt"),
+        tmp_path / "test.en.srt",
         config=config,
         piper_config=piper_cfg,
         piper_root=Path(""),
