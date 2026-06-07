@@ -10663,7 +10663,11 @@ function ensure_companion_video_track(path)
     Diagnostic.debug("ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix)
     local video_files = get_companion_video_files(dir, base_prefix)
     Diagnostic.debug("ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
-    if #video_files == 0 then return end
+    if #video_files == 0 then
+        Diagnostic.info("Audio-only media detected with no companion video. Adding virtual black video track.")
+        mp.commandv("video-add", "av://lavfi:color=c=black:s=1280x720:d=86400", "select")
+        return
+    end
 
     local current_path_norm = canonicalize_local_path(path)
     
