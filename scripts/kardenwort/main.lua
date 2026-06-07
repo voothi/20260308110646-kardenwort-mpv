@@ -725,6 +725,7 @@ local FSM = {
     last_paused_sub_end = nil,
     last_time_pos = nil,
     IGNORE_NEXT_JUMP = false,
+    INTERNAL_REPLAY_UNTIL = 0,
     TIMESEEK_INHIBIT_UNTIL = nil, -- Suppress autopause during backward time-seek transit
     REWIND_START_IDX = nil,      -- Starting subtitle index when rewind began (for within-subtitle detection)
     REWIND_TRANSIT_CROSS_CARD = false, -- True only when backward time-seek crosses subtitle card boundary
@@ -6744,6 +6745,12 @@ local function tick_autopause(time_pos)
 
 end
 
+function protect_internal_replay_seek()
+    FSM.IGNORE_NEXT_JUMP = true
+    local replay_seconds = (Options.replay_ms or 0) / 1000
+    FSM.INTERNAL_REPLAY_UNTIL = mp.get_time() + math.max(1.0, replay_seconds + Options.nav_cooldown + 0.5)
+end
+
 local function tick_loop(time_pos)
     if FSM.LOOP_MODE ~= "ON" then return end
     if not FSM.LOOP_START or not FSM.LOOP_END then return end
@@ -6751,7 +6758,7 @@ local function tick_loop(time_pos)
     if time_pos >= FSM.LOOP_END - Options.pause_padding then
         if FSM.LOOP_ARMED then
             FSM.LOOP_ARMED = false
-            FSM.IGNORE_NEXT_JUMP = true
+            protect_internal_replay_seek()
             
             if FSM.REPLAY_REMAINING > 1 then
                 FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
@@ -6789,7 +6796,7 @@ local function tick_scheduled_replay(time_pos)
     if time_pos >= FSM.SCHEDULED_REPLAY_END - Options.pause_padding then
         if FSM.REPLAY_REMAINING > 1 then
             FSM.REPLAY_REMAINING = FSM.REPLAY_REMAINING - 1
-            FSM.IGNORE_NEXT_JUMP = true
+            protect_internal_replay_seek()
             FSM.last_paused_sub_end = nil
             local pri_subs = Tracks.pri.subs
             if pri_subs and #pri_subs > 0 then
@@ -6848,7 +6855,8 @@ local function master_tick()
     -- [v1.58.48] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
     if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
-        if not FSM.IGNORE_NEXT_JUMP then
+        local internal_replay_jump = FSM.INTERNAL_REPLAY_UNTIL and mp.get_time() < FSM.INTERNAL_REPLAY_UNTIL
+        if not FSM.IGNORE_NEXT_JUMP and not internal_replay_jump then
             -- Any manual navigation resets Autopause state so it fires again at the new location.
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
@@ -7740,7 +7748,7 @@ local function cmd_replay_sub()
         FSM.LOOP_START = replay_start
         FSM.LOOP_END = replay_end
         FSM.LOOP_ARMED = false
-        FSM.IGNORE_NEXT_JUMP = true
+        protect_internal_replay_seek()
         FSM.REPLAY_REMAINING = Options.replay_count
         if replay_start_idx ~= -1 then
             FSM.ACTIVE_IDX = replay_start_idx
@@ -7765,7 +7773,7 @@ local function cmd_replay_sub()
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
         FSM.LOOP_MODE = "OFF"
-        FSM.IGNORE_NEXT_JUMP = true
+        protect_internal_replay_seek()
         FSM.last_paused_sub_end = nil
         FSM.REPLAY_REMAINING = Options.replay_count
         FSM.SCHEDULED_REPLAY_START = replay_start
@@ -10527,6 +10535,74 @@ function get_companion_subtitles(dir, base_prefix)
     return sub_files
 end
 
+function subtitle_track_matches_postfix(track, target_postfix)
+    if not track or not target_postfix then return false end
+    local target = target_postfix:lower()
+    if track.lang and track.lang:lower() == target then return true end
+    if track.title and track.title:lower() == target then return true end
+
+    local path = track["external-filename"] or track["external_filename"] or ""
+    if path ~= "" then
+        local normalized_path = path:gsub("\\", "/")
+        local filename = normalized_path:match("([^/]+)$") or normalized_path
+        local ext = filename:match("%.([^%.]+)$") or ""
+        if ext ~= "" then
+            local filename_no_ext = filename:sub(1, #filename - #ext - 1)
+            local _, path_postfix = split_base_and_language_postfix(filename_no_ext)
+            if path_postfix and path_postfix:lower() == target then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+function select_companion_subtitle_tracks(current_postfix)
+    local current_tracks = mp.get_property_native("track-list") or {}
+    local sub_tracks = {}
+    for _, t in ipairs(current_tracks) do
+        if t.type == "sub" and t.external then
+            table.insert(sub_tracks, t)
+        end
+    end
+    if #sub_tracks == 0 then return end
+
+    table.sort(sub_tracks, function(a, b)
+        return (tonumber(a.id) or 0) < (tonumber(b.id) or 0)
+    end)
+
+    local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
+    if current_postfix then
+        for _, t in ipairs(sub_tracks) do
+            local tid = tonumber(t.id)
+            if tid and subtitle_track_matches_postfix(t, current_postfix) then
+                primary_sid = tid
+                mp.set_property_number("sid", tid)
+                break
+            end
+        end
+    elseif primary_sid == 0 and sub_tracks[1] then
+        local tid = tonumber(sub_tracks[1].id)
+        if tid then
+            primary_sid = tid
+            mp.set_property_number("sid", tid)
+        end
+    end
+
+    local secondary_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
+    if secondary_sid == 0 then
+        for _, t in ipairs(sub_tracks) do
+            local tid = tonumber(t.id)
+            if tid and tid ~= primary_sid then
+                mp.set_property_number("secondary-sid", tid)
+                FSM.__auto_track_selected_sec = true
+                break
+            end
+        end
+    end
+end
+
 function ensure_companion_subtitle_tracks(path)
     if Options.companion_subtitle_enabled == false then return end
     if not path or path == "" then return end
@@ -10571,39 +10647,32 @@ function ensure_companion_subtitle_tracks(path)
         end
     end
 
-    if current_postfix then
-        local target_postfix = current_postfix:lower()
-        local function select_matching_sub()
-            local current_tracks = mp.get_property_native("track-list") or {}
-            for _, t in ipairs(current_tracks) do
-                if t.type == "sub" then
-                    local match = false
-                    if t.lang and t.lang:lower() == target_postfix then
-                        match = true
-                    elseif t.title and t.title:lower() == target_postfix then
-                        match = true
-                    else
-                        local p = t["external-filename"] or t["external_filename"] or ""
-                        if p ~= "" then
-                            local p_ext = p:match("%.([^%.]+)$") or ""
-                            local p_no_ext = p:sub(1, #p - #p_ext - 1)
-                            local _, p_post = split_base_and_language_postfix(p_no_ext)
-                            if p_post and p_post:lower() == target_postfix then
-                                match = true
-                            end
-                        end
-                    end
-                    if match then
-                        mp.set_property_number("sid", t.id)
-                        break
-                    end
-                end
-            end
+    select_companion_subtitle_tracks(current_postfix)
+    mp.add_timeout(0.1, function()
+        select_companion_subtitle_tracks(current_postfix)
+    end)
+end
+
+function get_virtual_black_video_source()
+    if script_dir and script_dir ~= "" then
+        local candidate = script_dir:gsub("\\", "/") .. "/../_tools/sub-viewer/black.mp4"
+        local ok, normalized = pcall(mp.command_native, {"normalize-path", candidate})
+        if ok and type(normalized) == "string" and normalized ~= "" and utils.file_info(normalized) then
+            return normalized, "bundled"
         end
-        
-        select_matching_sub()
-        mp.add_timeout(0.1, select_matching_sub)
+        if utils.file_info(candidate) then
+            return candidate, "bundled"
+        end
     end
+
+    return "av://lavfi:color=c=black:s=1280x720:d=86400", "lavfi"
+end
+
+function add_virtual_black_video_track(message)
+    local source, source_type = get_virtual_black_video_source()
+    local detail = (source_type == "bundled") and " Using bundled seekable black video track." or " Using lavfi fallback."
+    Diagnostic.info(message .. detail)
+    mp.commandv("video-add", source, "select")
 end
 
 function try_next_video_candidate()
@@ -10620,8 +10689,7 @@ function try_next_video_candidate()
             end
         end
         if not has_video then
-            Diagnostic.info("All companion video candidates failed to load. Adding virtual black video track.")
-            mp.commandv("video-add", "av://lavfi:color=c=black:s=1280x720:d=86400", "select")
+            add_virtual_black_video_track("All companion video candidates failed to load.")
         end
         return
     end
@@ -10771,8 +10839,7 @@ function ensure_companion_video_track(path)
     local video_files = get_companion_video_files(dir, base_prefix)
     Diagnostic.debug("ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
     if #video_files == 0 then
-        Diagnostic.info("Audio-only media detected with no companion video. Adding virtual black video track.")
-        mp.commandv("video-add", "av://lavfi:color=c=black:s=1280x720:d=86400", "select")
+        add_virtual_black_video_track("Audio-only media detected with no companion video.")
         return
     end
 
