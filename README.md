@@ -446,6 +446,7 @@ A dedicated, distraction-free environment for reading, navigating, and highlight
 *   **Local TSV Highlight Databases**: Automatically creates and manages a `.tsv` highlight database file right next to your subtitles (e.g. `lesson1.tsv` for `lesson1.de.srt`), so your word highlighting and Anki exports save natively.
 *   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
 *   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/_tools/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
+*   **Configurable Reader Settings**: Fine-tune maximum/minimum cue display thresholds, Date format floors, and speed thresholds (WPM/CPS) via the `kardenwort-reader_*` script-opts namespace (e.g., `kardenwort-reader_max_cue_seconds`, `kardenwort-reader_min_date_seconds`) directly from `mpv.conf`.
 *   **Setup**: Run `python scripts/_tools/sub-viewer/install.py` once to register it in your Windows shell.
 
 [Return to Top](#table-of-contents)
@@ -455,6 +456,10 @@ A dedicated helper toolchain for generating speech audio from subtitles in repro
 *   **Location**: `scripts/_tools/sub-tts/` (`sub_tts.py`, `install.py`, `config.ini.template`).
 *   **Template-Driven Config**: Uses a generated `config.ini` so provider credentials and runtime behavior can be managed without editing script code.
 *   **Batch-Friendly Workflow**: Designed for production-oriented subtitle processing with configurable export controls and language-aware runs.
+*   **Timeline Source Customization**: Fully configurable `timeline_source` settings (e.g., `primary_subtitle`, `primary_audio`) to align subtitle and audio track display durations to generated speech files.
+*   **Prioritized Language Selection**: Sorts and selects companion files according to a prioritized list of primary languages with regional tag support (e.g., `de_DE`, `de-DE`, `en_GB`).
+*   **Conditional Skipping & Cleanup**: Automatically skips primary TTS synthesis if output files already exist (`skip_primary_output`), falls back to generating them if absent, and cleans up intermediate `.shift_plan.json` files on job completion.
+*   **Collision Archiving**: Safely copies preexisting subtitle tracks to a ZID archive directory (`<ZID>/video.ru.srt`) before generating fresh synchronized files in the root folder.
 *   **Integration Path**: Complements in-player TTS triggers by supporting offline pre-generation workflows when needed.
 
 [Return to Top](#table-of-contents)
@@ -465,6 +470,7 @@ A premium Windows "Send to" integration for downloading YouTube videos at config
 *   **Windows "Send to" Integration**: Right-click files or directories containing YouTube URLs in Windows Explorer and select **Send to** -> **Download YouTube Video** to process and download them automatically in strict sequential queue order.
 *   **ZID-Based Filename Generation**: Automatically maps standard YouTube titles into unique, sanitized, chronological filenames: `{ZID}-{sanitized-title}.mp4` matching the `zid_name.py` naming contract.
 *   **Configurable Resolution & MP4 container**: Set target resolutions (e.g. `360p` (default), `720p`, `1080p`, or `best`), remuxing seamlessly into high-fidelity MP4 containers via `yt-dlp` without re-encoding.
+*   **Language Postfix Customization**: Configure whether language postfixes (e.g., `.en`) are appended to downloaded video filenames using the `youtube_download_video_language_postfix` parameter.
 *   **Deduplication & Smart Skip Recovery**:
     *   `zid-dir`: Places all duplicate files from the same session in a subfolder named after the session ZID.
     *   `skip`: Skips duplicate downloads, automatically recovering missing dubbed audios or subtitles during re-runs.
