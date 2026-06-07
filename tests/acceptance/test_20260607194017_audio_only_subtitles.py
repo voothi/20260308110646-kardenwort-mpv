@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from tests.ipc.mpv_session import MpvSession
+from tests.ipc.mpv_ipc import query_kardenwort_render
 
 
 _FIXTURE_VIDEO = Path(
@@ -53,6 +54,30 @@ def _start_or_skip(session):
 def _create_mp3_only(src_video, dst_audio):
     cmd = ["ffmpeg", "-y", "-i", str(src_video), "-vn", "-acodec", "libmp3lame", str(dst_audio)]
     subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+
+def _wait_for_rendered_subtitles(ipc):
+    ipc.command(["seek", 2.0, "absolute+exact"])
+    ipc.command(["set_property", "pause", True])
+
+    render = ""
+    def subtitles_rendered():
+        nonlocal render
+        render = query_kardenwort_render(ipc, "drum", timeout=1.0)
+        return "Primary Subtitle Line" in render and "Secondary Subtitle Line" in render
+
+    assert _wait_until(subtitles_rendered, timeout=4.0), (
+        "Styled subtitle overlay did not render primary and secondary subtitles: "
+        f"{render}"
+    )
+    assert "{\\pos(960, 1026)}{\\an2}" in render, (
+        "Primary subtitle overlay was not bottom-positioned at sub-pos=95: "
+        f"{render}"
+    )
+    assert "{\\pos(960, 108)}{\\an8}" in render, (
+        "Secondary subtitle overlay was not top-positioned at secondary-sub-pos=10: "
+        f"{render}"
+    )
 
 
 def test_audio_only_fallback_virtual_video():
@@ -117,6 +142,7 @@ Secondary Subtitle Line
         # Check subtitle positioning properties are respected
         assert session.ipc.get_property("sub-pos") == 95, f"Expected sub-pos to be 95, got {session.ipc.get_property('sub-pos')}"
         assert session.ipc.get_property("secondary-sub-pos") == 10, f"Expected secondary-sub-pos to be 10, got {session.ipc.get_property('secondary-sub-pos')}"
+        _wait_for_rendered_subtitles(session.ipc)
 
     finally:
         session.stop()
@@ -185,6 +211,7 @@ Secondary Subtitle Line
             return sid and sid != "no" and sec_sid and sec_sid != "no"
 
         assert _wait_until(subs_selected, timeout=3.0), "Subtitle tracks were not loaded or selected"
+        _wait_for_rendered_subtitles(session.ipc)
 
     finally:
         session.stop()

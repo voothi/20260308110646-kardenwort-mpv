@@ -6707,35 +6707,23 @@ local function tick_autopause(time_pos)
     local in_rewind_transit = FSM.TIMESEEK_INHIBIT_UNTIL and time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL
     local within_subtitle_rewind = in_rewind_transit and FSM.REWIND_START_IDX and active_idx == FSM.REWIND_START_IDX
 
-    Diagnostic.info(string.format("[DEBUG] tick_autopause: pos=%.3f, active_idx=%d, in_rewind=%s, rewind_start=%s, cross_card=%s, within_sub_rewind=%s",
-        time_pos, active_idx, tostring(in_rewind_transit), tostring(FSM.REWIND_START_IDX), tostring(FSM.REWIND_TRANSIT_CROSS_CARD), tostring(within_subtitle_rewind)))
-
     -- Suppress autopause only during cross-subtitle rewind transit
     if in_rewind_transit and FSM.REWIND_TRANSIT_CROSS_CARD and not within_subtitle_rewind then
-        Diagnostic.info("[DEBUG] tick_autopause: SUPPRESSED due to rewind transit")
         return
     end
 
     local _, sub_end = get_effective_boundaries(subs, subs[active_idx], active_idx)
-    if not sub_end then
-        Diagnostic.info("[DEBUG] tick_autopause: no sub_end")
-        return
-    end
+    if not sub_end then return end
 
     -- Check if we've reached the end of the padded window
     -- Use an inclusive check to ensure we don't skip the pause frame.
     local diff = sub_end - time_pos
-    Diagnostic.info(string.format("[DEBUG] tick_autopause: sub_end=%.3f, diff=%.3f, pause_padding=%.3f, overshoot=%.3f",
-        sub_end, diff, Options.pause_padding, Options.autopause_overshoot))
     if diff > Options.pause_padding or diff < -Options.autopause_overshoot then
         return
     end
 
     -- Prevent re-triggering for the same subtitle segment
-    if FSM.last_paused_sub_end == sub_end then
-        Diagnostic.info("[DEBUG] tick_autopause: already paused for this sub_end")
-        return
-    end
+    if FSM.last_paused_sub_end == sub_end then return end
 
     -- Ensure we are actually on a subtitle (using internal state rather than transient mpv visibility)
     -- This fixes the "Stops stopping" bug when text clears before the audio tail finishes.
