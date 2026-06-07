@@ -1484,7 +1484,7 @@ help_osd_2.z = 103
 function recreate_osd_overlays()
     Diagnostic.debug("recreate_osd_overlays: Re-initializing all OSD overlays.")
     local prev_data = {}
-    
+
     if FSM.notice_osd then prev_data.notice_osd = FSM.notice_osd.data; FSM.notice_osd:remove() end
     if seek_osd then prev_data.seek_osd = seek_osd.data; seek_osd:remove() end
     if drum_osd then prev_data.drum_osd = drum_osd.data; drum_osd:remove() end
@@ -10608,6 +10608,18 @@ function try_next_video_candidate()
     local candidate = FSM.video_candidates[FSM.current_candidate_idx]
     if not candidate then
         Diagnostic.debug("try_next_video_candidate: no more candidates")
+        local tracks = mp.get_property_native("track-list") or {}
+        local has_video = false
+        for _, t in ipairs(tracks) do
+            if t.type == "video" then
+                has_video = true
+                break
+            end
+        end
+        if not has_video then
+            Diagnostic.info("All companion video candidates failed to load. Adding virtual black video track.")
+            mp.commandv("video-add", "av://lavfi:color=c=black:s=1280x720:d=86400", "select")
+        end
         return
     end
 
