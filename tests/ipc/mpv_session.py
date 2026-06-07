@@ -54,9 +54,6 @@ class MpvSession:
             print(f"Warning: Failed to check for mpv instances: {e}")
 
     def start(self):
-        # Check for and kill any running mpv instances before starting
-        self._check_and_kill_mpv_instances()
-        
         cmd = [
             'mpv', '--no-config', '--config-dir=.', '--vo=null', '--ao=null', '--idle=once',
             '--sub-auto=no',

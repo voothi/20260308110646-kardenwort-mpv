@@ -93,7 +93,18 @@ def test_seek_prev_autopause_end_differs_between_phrase_and_movie(mpv_fragment1,
 
     # Start playback and wait for autopause to fire.
     ipc.command(["set_property", "pause", False])
-    deadline = time.time() + 6.5
+    # Wait for the player to actually start playing (pause=False)
+    unpaused = False
+    for _ in range(20):
+        if not ipc.get_property("pause"):
+            unpaused = True
+            break
+        time.sleep(0.05)
+    if not unpaused:
+        ipc.command(["set_property", "pause", False])
+        time.sleep(0.1)
+
+    deadline = time.time() + 6.0
     while time.time() < deadline:
         if ipc.get_property("pause"):
             break

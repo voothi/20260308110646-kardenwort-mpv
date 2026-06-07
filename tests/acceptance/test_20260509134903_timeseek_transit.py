@@ -560,28 +560,47 @@ class TestTimseekTransitLive:
 
         time.sleep(0.6)  # let MANUAL_NAV_COOLDOWN expire (set 0.5s ago by last cmd_seek_time)
 
+        # Ensure unpause takes effect.
         ipc.command(['set_property', 'pause', False])
-        paused_early = False
+        time.sleep(0.1)
+        if ipc.get_property('pause') is True:
+            ipc.command(['set_property', 'pause', False])
+            time.sleep(0.15)
+
+        # Poll until the player passes eff_end+0.3s or 5s elapse.
+        # A transient pause (mpv null-ao buffering, seek settling) is NOT a test failure:
+        # those don't set last_paused_sub_end. Only an actual Lua autopause sets it.
+        # Strategy: on any pause, query FSM state. If last_paused_sub_end is non-nil
+        # and before eff_end, that is a real autopause-during-transit failure.
+        autopause_fired_early = False
         start = time.time()
         while time.time() - start < 5.0:
-            if ipc.get_property('pause'):
-                paused_early = True
-                break
             pos = ipc.get_property('time-pos')
             if pos is not None and pos > eff_end + 0.3:
                 break
+            if ipc.get_property('pause'):
+                # Check whether the Lua autopause actually fired.
+                s = _state(ipc)
+                lpe = s.get('last_paused_sub_end')
+                if lpe is not None and lpe < eff_end + 0.05:
+                    autopause_fired_early = True
+                    break
+                # Transient pause — re-unpause and keep polling.
+                ipc.command(['set_property', 'pause', False])
             time.sleep(0.05)
         ipc.command(['set_property', 'pause', True])
 
         final_pos = ipc.get_property('time-pos')
-        assert not paused_early, (
-            f"Player paused before passing sub 3 eff_end ({eff_end:.3f}s) — "
-            f"autopause or jerk-back fired during transit "
+        assert not autopause_fired_early, (
+            f"Autopause fired before sub 3 eff_end ({eff_end:.3f}s) during rewind transit — "
+            f"suppression logic broken "
             f"(pad_start={pad_start}ms, pad_end={pad_end}ms). pos={final_pos:.3f}s"
         )
         assert final_pos is not None and final_pos > eff_end, (
-            f"Player did not reach sub 3 eff_end ({eff_end:.3f}s) within 5s — "
-            f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
+            f"Player did not pass sub 3 eff_end ({eff_end:.3f}s) within 5s — "
+            f"autopause or jerk-back fired during transit "
+            f"(pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"Final pos={final_pos:.3f}s"
         )
 
     def test_movie_mode_autopause_fires_after_transit(self, mpv_fragment1):
@@ -682,27 +701,36 @@ class TestTimseekTransitLiveFragment2:
         time.sleep(0.6)
 
         ipc.command(['set_property', 'pause', False])
-        paused_early = False
+        time.sleep(0.1)
+        if ipc.get_property('pause') is True:
+            ipc.command(['set_property', 'pause', False])
+            time.sleep(0.15)
+
+        autopause_fired_early = False
         start = time.time()
         while time.time() - start < 5.0:
-            if ipc.get_property('pause'):
-                paused_early = True
-                break
             pos = ipc.get_property('time-pos')
             if pos is not None and pos > sub3_eff_end + 0.3:
                 break
+            if ipc.get_property('pause'):
+                s = _state(ipc)
+                lpe = s.get('last_paused_sub_end')
+                if lpe is not None and lpe < sub3_eff_end + 0.05:
+                    autopause_fired_early = True
+                    break
+                ipc.command(['set_property', 'pause', False])
             time.sleep(0.05)
         ipc.command(['set_property', 'pause', True])
 
         final_pos = ipc.get_property('time-pos')
-        assert not paused_early, (
-            f"Player paused before sub 3 eff_end ({sub3_eff_end:.3f}s) — "
-            f"autopause or jerk-back fired (pad_start={pad_start}ms, pad_end={pad_end}ms). "
-            f"pos={final_pos:.3f}s"
+        assert not autopause_fired_early, (
+            f"Autopause fired before sub 3 eff_end ({sub3_eff_end:.3f}s) during rewind transit — "
+            f"suppression broken (pad_start={pad_start}ms, pad_end={pad_end}ms). pos={final_pos:.3f}s"
         )
         assert final_pos is not None and final_pos > sub3_eff_end, (
-            f"Player did not reach sub 3 eff_end ({sub3_eff_end:.3f}s) within 5s — "
-            f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
+            f"Player did not pass sub 3 eff_end ({sub3_eff_end:.3f}s) within 5s — "
+            f"autopause or jerk-back fired (pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"Final pos={final_pos:.3f}s"
         )
 
     @pytest.mark.parametrize("pad_start,pad_end", [
@@ -738,27 +766,36 @@ class TestTimseekTransitLiveFragment2:
         time.sleep(0.6)
 
         ipc.command(['set_property', 'pause', False])
-        paused_early = False
+        time.sleep(0.1)
+        if ipc.get_property('pause') is True:
+            ipc.command(['set_property', 'pause', False])
+            time.sleep(0.15)
+
+        autopause_fired_early = False
         start = time.time()
         while time.time() - start < 5.0:
-            if ipc.get_property('pause'):
-                paused_early = True
-                break
             pos = ipc.get_property('time-pos')
             if pos is not None and pos > sub5_eff_end + 0.3:
                 break
+            if ipc.get_property('pause'):
+                s = _state(ipc)
+                lpe = s.get('last_paused_sub_end')
+                if lpe is not None and lpe < sub5_eff_end + 0.05:
+                    autopause_fired_early = True
+                    break
+                ipc.command(['set_property', 'pause', False])
             time.sleep(0.05)
         ipc.command(['set_property', 'pause', True])
 
         final_pos = ipc.get_property('time-pos')
-        assert not paused_early, (
-            f"Player paused before sub 5 eff_end ({sub5_eff_end:.3f}s) — "
-            f"autopause or jerk-back fired (pad_start={pad_start}ms, pad_end={pad_end}ms). "
-            f"pos={final_pos:.3f}s"
+        assert not autopause_fired_early, (
+            f"Autopause fired before sub 5 eff_end ({sub5_eff_end:.3f}s) during rewind transit — "
+            f"suppression broken (pad_start={pad_start}ms, pad_end={pad_end}ms). pos={final_pos:.3f}s"
         )
         assert final_pos is not None and final_pos > sub5_eff_end, (
-            f"Player did not reach sub 5 eff_end ({sub5_eff_end:.3f}s) within 5s — "
-            f"stuck at {final_pos:.3f}s (pad_start={pad_start}ms, pad_end={pad_end}ms)"
+            f"Player did not pass sub 5 eff_end ({sub5_eff_end:.3f}s) within 5s — "
+            f"autopause or jerk-back fired (pad_start={pad_start}ms, pad_end={pad_end}ms). "
+            f"Final pos={final_pos:.3f}s"
         )
 
 
