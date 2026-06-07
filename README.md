@@ -993,6 +993,7 @@ This project maintains a data-driven approach to development tracking. We use a 
 - **Current Maturity**: ~2798 Commits (v1.84.58)
 - **Intensity Profile**: 4.7 Commits/Hour 
 - **Git Structure**: 370 local branches, 253 tags
+- **Lines of Code**: 38,764 LOC (12,653 project, 5,390 additions, 20,721 tests)
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
