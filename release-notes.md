@@ -1,3 +1,38 @@
+# Release Notes - v1.84.58 (Dynamic Help Overlay Delays, Drum Edge Selection, ASS Break Tag Rules Sheet, Sub-TTS fit & YouTube Downloader Extensions)
+
+**Date**: 2026-06-07
+**Version**: v1.84.58
+**Implementation ZIDs**: 20260607135720, 20260607135715, 20260607135159, 20260607110514, 20260607093849, 20260606231743, 20260606230404, 20260606225631, 20260606224815, 20260606223113, 20260606221717, 20260606221534, 20260606220626, 20260606214102, 20260606212900, 20260606212428, 20260606210319, 20260606204335, 20260606192909, 20260606191848, 20260606184003, 20260606183802, 20260606175306, 20260606174826, 20260606171623, 20260606164428, 20260606162513, 20260606161321, 20260606154536, 20260606153721, 20260606152541, 20260606144946, 20260606144132, 20260606140819, 20260606135036, 20260606133739, 20260605161404, 20260605150256, 20260605145903, 20260605145441, 20260605144851, 20260605125604, 20260605112437, 20260604101810, 20260604101543, 20260604101114
+
+## Highlights
+
+### 📺 **Bilingual Help HUD & Edge-Selection**
+- **Dynamic Help Overlay Delays**: Integrated layout-independent subtitle delay shortcuts (English and Cyrillic bindings) into the `F1` Dynamic Help overlay schemas. Filtered out redundant bindings (like `z` and `Shift+z`).
+- **Drum Mode Secondary Edge Selection**: Patched upper subtitle selection in Drum Mode (`x` mode) to correctly auto-scroll at boundaries, matching target-language selection characteristics.
+
+### 🎨 **ASS Break Marker Unescaping System**
+- **Refactored Unescaping Engine**: Replaced hardcoded string substitutions in `normalize_inline_break_markers` with a clean, table-driven rules sheet configuration.
+- **Customizable Break Tags**: Exposed `kardenwort-unescape_tags` inside `mpv.conf` and `main.lua` to easily clean raw break tags (e.g., `\h`, `\\h\\h`, `\N`, `\\N`) from subtitles without code alterations.
+
+### 🎙️ **Fit Subtitles to Recording & Sub-TTS Extensions**
+- **Surgical Timeline Synchronization**: Integrated fit subtitle-to-recording options (`timeline_source = primary_subtitle`) to prioritize subtitle timing matching to the generated TTS files.
+- **Prioritized File Sorting**: Supported prioritizing primary languages dynamically in `sub_tts.py` (with full regional subtag support like `de_DE`, `de-DE`, `en_GB`).
+- **Conditional Output Skipping**: Added `skip_primary_output` flag to bypass re-synthesizing files if primary outputs exist, fallback to generating them if missing, and auto-delete intermediate `.shift_plan.json` files on job completion.
+- **Subtitle Archiving on Collision**: In case of root collision, automatically archives previous subtitle drafts into ZID folders (`<ZID>/video.ru.srt`) before compiling synchronized editions to the root directory.
+
+### 📂 **Companion Track Auto-Loading & Explorer Selection**
+- **Explorer Subtitle Load Bridge**: Automatically detects and loads all language-specific companion subtitle tracks when media is launched directly from Windows Explorer.
+- **Bi-Directional Image/Video Track Fallbacks**: Resolves missing picture/video streams in companion files by automatically extracting them from the main media file or any adjacent track.
+- **Subtitle Track Cycle Toggle**: Map `Shift+c` (English/Cyrillic) to cycle subtitle tracks, introducing layout guards to keep track cycles synchronized with the OSD state.
+
+### 📥 **YouTube Downloader Video Postfix Options**
+- **Language Postfix Configuration**: Added `youtube_download_video_language_postfix` parameter to allow choosing whether downloaded video files append primary language codes (e.g. `.en`) to filenames.
+
+### 🧪 **Milestone: 1054 Passed Tests**
+- **Zero-Regression Integrity**: Patched acceptance tests (such as `test_drum_sync_compatibility_guards_sid_0`) and resolved empty directories (`sub_tts_*`) in root after test runs, ensuring a pristine repo environment. Cleaned untracked log artifacts (`mpv_test.log`) from git cache and updated `.gitignore`.
+
+---
+
 # Release Notes - v1.84.50 (Flattened MPV Distribution Packaging, Subtitle Delay Adjustments & Sub-TTS Pipeline Hardening)
 
 **Date**: 2026-06-04
