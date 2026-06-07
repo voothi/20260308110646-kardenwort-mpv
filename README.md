@@ -989,8 +989,8 @@ python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:AP
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Current Maturity**: ~2391 Commits (v1.84.0)
-- **Intensity Profile**: 5.4 Commits/Hour 
+- **Current Maturity**: ~2798 Commits (v1.84.58)
+- **Intensity Profile**: 4.7 Commits/Hour 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
