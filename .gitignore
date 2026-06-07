@@ -29,6 +29,7 @@ scripts/_tools/sub-tts/__pycache__/
 # *.log
 mpv_start_test.log
 mpv_success_test.log
+mpv_test.log
 mpv_test_launch.log
 pytest_out.log
 scripts/_tools/sub-tts/logs/
