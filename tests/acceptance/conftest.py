@@ -36,7 +36,7 @@ def mpv():
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
-        extra_args=['--pause'],
+        extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session
@@ -54,7 +54,7 @@ def mpv_dual():
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260507161504-sync-test/20260507161504-sync-test.en.srt',
         secondary_subtitle='tests/fixtures/20260507161504-sync-test/20260507161504-sync-test.ru.srt',
-        extra_args=['--pause'],
+        extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session
@@ -78,7 +78,7 @@ def mpv_fragment1():
         video='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.mp4',
         subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.de.srt',
         secondary_subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.ru.srt',
-        extra_args=['--pause'],
+        extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session
@@ -94,7 +94,7 @@ def mpv_movie_startup():
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
-        extra_args=['--pause', '--script-opts=kardenwort-immersion_mode_default=MOVIE'],
+        extra_args=['--pause', '--script-opts=kardenwort-immersion_mode_default=MOVIE,kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session
@@ -113,7 +113,7 @@ def mpv_ass():
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260508173706-test-ass/20260508173706-test.ass',
-        extra_args=['--pause'],
+        extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session
@@ -138,7 +138,7 @@ def mpv_fragment2():
         video='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.mp4',
         subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.de.srt',
         secondary_subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.ru.srt',
-        extra_args=['--pause'],
+        extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session
@@ -159,7 +159,7 @@ def mpv_merge_test():
     session = MpvSession(
         video='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.mp4',
         subtitle='tests/fixtures/20260508192831-merge-test/20260508192831-merge-test.en.srt',
-        extra_args=['--pause', '--config-dir=.'],
+        extra_args=['--pause', '--config-dir=.', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
     session.start()
     yield session

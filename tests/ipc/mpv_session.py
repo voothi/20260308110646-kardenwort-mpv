@@ -59,6 +59,7 @@ class MpvSession:
         
         cmd = [
             'mpv', '--no-config', '--config-dir=.', '--vo=null', '--ao=null', '--idle=once',
+            '--sub-auto=no',
             f'--input-ipc-server={self.ipc_path}',
             '--script=scripts/kardenwort',
             self.video,

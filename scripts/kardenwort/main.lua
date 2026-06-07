@@ -690,6 +690,8 @@ Options = {
     companion_audio_attach_on_load = true,
     companion_video_enabled = true,
     companion_video_attach_on_load = true,
+    companion_subtitle_enabled = true,
+    companion_subtitle_attach_on_load = true,
 }
 options.read_options(Options, "kardenwort")
 
@@ -10431,6 +10433,7 @@ function get_companion_subtitles(dir, base_prefix)
 end
 
 function ensure_companion_subtitle_tracks(path)
+    if Options.companion_subtitle_enabled == false then return end
     if not path or path == "" then return end
     local normalized_path = path:gsub("\\", "/")
     local dir = normalized_path:match("^(.*/)") or ""
@@ -10808,7 +10811,9 @@ mp.register_event("file-loaded", function()
     if Options.companion_audio_attach_on_load ~= false then
         ensure_companion_audio_tracks(mp.get_property("path"))
     end
-    ensure_companion_subtitle_tracks(mp.get_property("path"))
+    if Options.companion_subtitle_attach_on_load ~= false then
+        ensure_companion_subtitle_tracks(mp.get_property("path"))
+    end
     if Options.companion_video_attach_on_load ~= false then
         ensure_companion_video_track(mp.get_property("path"))
     end
