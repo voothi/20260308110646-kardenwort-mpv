@@ -79,6 +79,9 @@ ollama_prompt_feedback_template = [Feedback from previous attempt: {last_error}]
 # --- Chunk Validation Settings ---
 # Translate and validate subtitles in chunks of this size (e.g. 5).
 # Set to 0 to disable validation chunking and use standard batching.
+# When subtitle_translator_merge_lines=true, this counts merged translation units,
+# not original subtitle blocks; use 1 for small models to translate one merged unit
+# at a time while still preserving context inside that unit.
 subtitle_translator_chunk_size = 5
 
 # Number of times to retry translating a chunk if validation fails.
