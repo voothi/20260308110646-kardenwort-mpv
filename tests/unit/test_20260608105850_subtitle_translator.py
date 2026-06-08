@@ -1271,6 +1271,14 @@ def test_clean_subtitle_text():
         "Hello REMOVE",
         clean_rules=st.parse_clean_patterns("REMOVE"),
     ) == "Hello"
+    assert st.clean_subtitle_text(
+        "Hello [noise] REMOVE",
+        clean_rules=st.parse_clean_patterns("re:\\s+\\[noise\\],REMOVE"),
+    ) == "Hello"
+    assert st.clean_subtitle_text(
+        "Hello, world",
+        clean_rules=st.parse_clean_patterns("Hello\\,"),
+    ) == "world"
     assert st.clean_subtitle_text("Вы услышите новости всего раз.**") == "Вы услышите новости всего раз.**"
     
     # Test newlines replacement

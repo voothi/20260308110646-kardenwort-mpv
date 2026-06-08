@@ -105,8 +105,9 @@ subtitle_translator_word_count_max_ratio = 3.5
 subtitle_translator_save_partial_on_failure = false
 
 # Remove custom artifacts from subtitle text after translation.
-# Semicolon-separated rules; prefixes: re:<regex>, glob:<wildcard>, or plain text.
-# Example: **;re:\s+\[noise\]$;glob:[[]draft[]]
+# Comma-separated rules; prefixes: re:<regex>, glob:<wildcard>, or plain text.
+# Escape literal commas inside a rule as \,
+# Example: **,re:\s+\[noise\]$,glob:[[]draft[]]
 subtitle_translator_clean_patterns = **
 
 # Merge continuous subtitle lines to translate them together as a single context block.

@@ -494,9 +494,29 @@ def write_srt(blocks: List[dict]) -> str:
     return "\n".join(out)
 
 def parse_clean_patterns(raw_patterns: str) -> List[Tuple[str, str]]:
-    """Parses semicolon-separated cleanup rules: plain text, glob:<pattern>, or re:<regex>."""
+    r"""Parses comma-separated cleanup rules: plain text, glob:<pattern>, or re:<regex>.
+
+    A literal comma inside a rule can be escaped as \,.
+    """
+    raw_rules: List[str] = []
+    current = []
+    i = 0
+    while i < len(raw_patterns):
+        ch = raw_patterns[i]
+        if ch == "\\" and i + 1 < len(raw_patterns) and raw_patterns[i + 1] == ",":
+            current.append(",")
+            i += 2
+            continue
+        if ch == ",":
+            raw_rules.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    raw_rules.append("".join(current))
+
     rules: List[Tuple[str, str]] = []
-    for raw_rule in raw_patterns.split(";"):
+    for raw_rule in raw_rules:
         raw_rule = raw_rule.strip()
         if not raw_rule:
             continue
