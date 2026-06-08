@@ -178,6 +178,8 @@ def load_config():
         "subtitle_translator_word_count_min_ratio": "0.25",
         "subtitle_translator_word_count_max_ratio": "3.5",
         "subtitle_translator_save_partial_on_failure": "false",
+        "subtitle_translator_merge_lines": "false",
+        "subtitle_translator_merge_max_gap_ms": "1000",
         "youtube_download_auto_close_timeout_secs": "15",
     }
 
@@ -460,6 +462,26 @@ def write_srt(blocks: List[dict]) -> str:
             out.append(text)
         out.append("")
     return "\n".join(out)
+
+def clean_subtitle_text(text: str) -> str:
+    """Strips all HTML-like tags, ASS formatting tags, markdown styles, and inner line breaks, keeping only pure text."""
+    if not text:
+        return ""
+    # Remove HTML-like tags (e.g. <i>, <b>, <font...>, </font>, etc.)
+    text = re.sub(r'<[^>]+>', '', text)
+    # Remove ASS formatting tags (e.g. {\an8}, {\pos(100,100)}, etc.)
+    text = re.sub(r'\{[^}]+\}', '', text)
+    # Replace markdown markers (e.g. **bold**, *italic*, __underline__, _italic_)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+    text = re.sub(r'__([^_]+)__', r'\1', text)
+    text = re.sub(r'_([^_]+)_', r'\1', text)
+    # Replace any literal newlines, carriage returns, or tabs with spaces
+    text = text.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    # Normalize multiple consecutive spaces to a single space
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
 
 # ==============================================================================
 # EXCEPTIONS
@@ -1085,6 +1107,13 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     
     if is_srt:
         blocks = parse_srt(content)
+        # Pre-process blocks to merge multiple lines in a single block into a single clean line
+        for block in blocks:
+            cleaned_lines = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
+            if cleaned_lines:
+                block['text_lines'] = [clean_subtitle_text(" ".join(cleaned_lines))]
+            else:
+                block['text_lines'] = []
         lines_to_translate = []
         mapping = [] # list of (block_idx, line_idx)
         for b_idx, block in enumerate(blocks):
@@ -1094,7 +1123,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     else:
         # Txt file line-by-line
         content = content.replace('\r\n', '\n').replace('\r', '\n')
-        lines_to_translate = content.split('\n')
+        raw_lines = content.split('\n')
+        lines_to_translate = [clean_subtitle_text(line) for line in raw_lines]
         mapping = None
 
     # Count non-empty source lines
@@ -1133,10 +1163,19 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 new_blocks = json.loads(json.dumps(blocks)) # Deep copy
                 for trans_idx, trans_text in enumerate(translated_lines):
                     b_idx, l_idx = mapping[trans_idx]
-                    new_blocks[b_idx]['text_lines'][l_idx] = trans_text
+                    new_blocks[b_idx]['text_lines'][l_idx] = clean_subtitle_text(trans_text)
+                
+                # Make sure each block's lines are clean and combined into a single line
+                for block in new_blocks:
+                    cleaned_lines = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
+                    if cleaned_lines:
+                        block['text_lines'] = [clean_subtitle_text(" ".join(cleaned_lines))]
+                    else:
+                        block['text_lines'] = []
                 result_content = write_srt(new_blocks)
             else:
-                result_content = "\n".join(translated_lines)
+                cleaned_lines = [clean_subtitle_text(line) for line in translated_lines]
+                result_content = "\n".join(cleaned_lines)
                 
             # Write translated file
             write_output_file(target_path, result_content, duplicate_mode, session_zid, f"Subtitle for '{tl}'")
@@ -1159,10 +1198,17 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                     partial_blocks = json.loads(json.dumps(blocks))
                     for trans_idx, trans_text in enumerate(partial_translated_lines):
                         b_idx, l_idx = mapping[trans_idx]
-                        partial_blocks[b_idx]['text_lines'][l_idx] = trans_text
+                        partial_blocks[b_idx]['text_lines'][l_idx] = clean_subtitle_text(trans_text)
+                    for block in partial_blocks:
+                        cleaned_lines = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
+                        if cleaned_lines:
+                            block['text_lines'] = [clean_subtitle_text(" ".join(cleaned_lines))]
+                        else:
+                            block['text_lines'] = []
                     partial_content = write_srt(partial_blocks)
                 else:
-                    partial_content = "\n".join(partial_translated_lines)
+                    cleaned_lines = [clean_subtitle_text(line) for line in partial_translated_lines]
+                    partial_content = "\n".join(cleaned_lines)
                 try:
                     write_output_file(target_path, partial_content, duplicate_mode, session_zid, f"Partial subtitle for '{tl}'")
                     log_ok(f"Saved partial translation: {target_name}")

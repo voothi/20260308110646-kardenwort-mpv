@@ -1137,6 +1137,99 @@ def test_ollama_translate_structured_dict_success(monkeypatch):
     assert res == "Привет\nМир"
 
 
+def test_clean_subtitle_text():
+    st = _load_translator()
+    
+    # Test HTML tags removal
+    assert st.clean_subtitle_text("<i>Hello</i> <b>World</b>") == "Hello World"
+    assert st.clean_subtitle_text("<font color=\"#ff0000\">Red</font>") == "Red"
+    
+    # Test ASS formatting tags removal
+    assert st.clean_subtitle_text("{\\an8}Hello {\\pos(100,120)}World") == "Hello World"
+    
+    # Test markdown bold/italic removal
+    assert st.clean_subtitle_text("**bold** and *italic* and __underline__ and _italic_") == "bold and italic and underline and italic"
+    
+    # Test newlines replacement
+    assert st.clean_subtitle_text("Line1\nLine2\r\nLine3\rLine4") == "Line1 Line2 Line3 Line4"
+    
+    # Test whitespace normalization
+    assert st.clean_subtitle_text("   Hello     World   ") == "Hello World"
+    assert st.clean_subtitle_text("") == ""
+    assert st.clean_subtitle_text(None) == ""
+
+
+def test_process_file_cleans_tags_and_breaks(tmp_path, monkeypatch):
+    st = _load_translator()
+    
+    # Create a source SRT file with tags and multi-line text
+    source_content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:04,000\n"
+        "<i>Hello</i>\n"
+        "<b>World</b>\n\n"
+        "2\n"
+        "00:00:05,000 --> 00:00:08,000\n"
+        "{\\an8}This is a {\\pos(1,2)}multiline\n"
+        "subtitle block.\n"
+    )
+    source_file = tmp_path / "test_subs.en.srt"
+    source_file.write_text(source_content, encoding="utf-8")
+    
+    settings = {
+        "subtitle_translator_zid_script": "",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_provider": "google",
+        "subtitle_translator_duplicate_mode": "overwrite",
+        "subtitle_translator_rename_source_with_zid": "false",
+        "subtitle_translator_rename_related_media_with_zid": "false",
+        "google_api_url": "dummy",
+    }
+    
+    # Mock google_translate_v1 to return translation (which might keep or introduce tags/formatting)
+    # E.g. translating "Hello World" to "Привет Мир" (without tags)
+    # and "This is a multiline subtitle block." to "**Привет** {\\an8}мультистрочный\nблок."
+    def mock_google_translate(text, sl, tl, api_url):
+        if "Hello World" in text:
+            return "Привет Мир"
+        if "This is a multiline subtitle block." in text:
+            return "**Привет** {\\an8}мультистрочный\nблок."
+        return text
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_google_translate)
+    
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is True
+    
+    # Read the translated file
+    target_file = tmp_path / "test_subs.ru.srt"
+    assert target_file.exists()
+    translated_content = target_file.read_text(encoding="utf-8")
+    
+    # The output should NOT have:
+    # 1. <i> or <b> tags
+    # 2. ASS formatting tags
+    # 3. Markdown markers
+    # 4. Line breaks inside the subtitle text blocks
+    expected_content = (
+        "1\n"
+        "00:00:01,000 --> 00:00:04,000\n"
+        "Привет Мир\n\n"
+        "2\n"
+        "00:00:05,000 --> 00:00:08,000\n"
+        "Привет мультистрочный блок.\n"
+    )
+
+    
+    # Normalize line endings
+    translated_norm = translated_content.replace("\r\n", "\n")
+    expected_norm = expected_content.replace("\r\n", "\n")
+    assert translated_norm == expected_norm
+
+
+
+
 
 
 
