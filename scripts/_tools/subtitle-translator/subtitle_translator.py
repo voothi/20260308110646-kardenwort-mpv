@@ -31,6 +31,7 @@ from typing import List, Tuple, Optional
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = SCRIPT_DIR / "config.ini"
 PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
+COMPANION_MEDIA_EXTENSIONS = ("mp4", "mp3", "m4a", "wav", "flac", "aac", "ogg", "opus", "mkv", "webm", "mov", "avi")
 
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
@@ -153,6 +154,7 @@ def load_config():
         "subtitle_translator_provider": "google",
         "subtitle_translator_duplicate_mode": "skip",
         "subtitle_translator_rename_source_with_zid": "true",
+        "subtitle_translator_rename_companion_media_with_zid": "",
         "subtitle_translator_rename_companion_mp4_with_zid": "false",
         "google_api_url": "https://translate.googleapis.com/translate_a/single",
         "deepl_api_key": "",
@@ -237,46 +239,67 @@ def parse_filename(file_path: Path) -> Tuple[Optional[str], str, Optional[str], 
 
     return zid, clean_title, lang, ext
 
-def find_companion_mp4(folder: Path, clean_title: str) -> Optional[Path]:
-    """Finds an MP4 in the same folder with the same clean title."""
-    exact_path = folder / f"{clean_title}.mp4"
-    if exact_path.exists():
-        return exact_path
+def normalize_media_title(title: str) -> str:
+    """Normalizes a media title for companion file matching."""
+    return re.sub(r'[^a-z0-9]+', '', title.lower())
+
+def find_companion_media(folder: Path, clean_title: str) -> Optional[Path]:
+    """Finds a media file in the same folder with the same or equivalent clean title."""
+    for ext in COMPANION_MEDIA_EXTENSIONS:
+        exact_path = folder / f"{clean_title}.{ext}"
+        if exact_path.exists():
+            return exact_path
 
     try:
-        for candidate in folder.glob("*.mp4"):
+        candidates = [
+            candidate
+            for ext in COMPANION_MEDIA_EXTENSIONS
+            for candidate in folder.glob(f"*.{ext}")
+        ]
+        normalized_clean_title = normalize_media_title(clean_title)
+
+        for candidate in candidates:
             _zid, candidate_title, _lang, _ext = parse_filename(candidate)
             if candidate_title == clean_title:
                 return candidate
+
+        for candidate in candidates:
+            _zid, candidate_title, _lang, _ext = parse_filename(candidate)
+            if normalize_media_title(candidate_title) == normalized_clean_title:
+                return candidate
+
+        if len(candidates) == 1:
+            log_detail(f"Using the only media file in folder as companion: {candidates[0].name}")
+            return candidates[0]
     except Exception:
         pass
 
     return None
 
-def rename_companion_mp4_with_zid(folder: Path, clean_title: str, zid: str) -> bool:
-    """Adds the given ZID to the matching MP4, unless it already has a ZID."""
-    companion_path = find_companion_mp4(folder, clean_title)
+def rename_companion_media_with_zid(folder: Path, clean_title: str, zid: str) -> bool:
+    """Adds the given ZID to the matching media file, unless it already has a ZID."""
+    companion_path = find_companion_media(folder, clean_title)
     if not companion_path:
-        log_detail(f"No companion MP4 found for: {clean_title}")
+        log_detail(f"No companion media file found for: {clean_title}")
         return True
 
     companion_zid, companion_title, _lang, companion_ext = parse_filename(companion_path)
     if companion_zid:
-        log_info(f"Companion MP4 already has ZID; leaving unchanged: {companion_path.name}")
+        log_info(f"Companion media file already has ZID; leaving unchanged: {companion_path.name}")
         return True
 
     new_name = f"{zid}-{companion_title}.{companion_ext}"
     new_path = companion_path.parent / new_name
     if new_path.exists():
-        log_error(f"Cannot rename companion MP4; target already exists: {new_name}")
+        log_error(f"Cannot rename companion media file; target already exists: {new_name}")
         return False
 
     try:
         companion_path.rename(new_path)
-        log_info(f"Renamed companion MP4 to include ZID: {new_name}")
+        log_info(f"Renamed companion media file to include ZID: {new_name}")
         return True
     except Exception as e:
-        log_error(f"Failed to rename companion MP4 to include ZID: {e}")
+        log_error(f"Failed to rename companion media file to include ZID: {e}")
         return False
 
 # ==============================================================================
@@ -691,7 +714,10 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     # 3. Source ZID renaming logic
     source_had_zid = bool(zid)
     rename_source_with_zid = settings.get("subtitle_translator_rename_source_with_zid", "true").lower() == "true"
-    rename_companion_mp4_with_zid_enabled = settings.get("subtitle_translator_rename_companion_mp4_with_zid", "false").lower() == "true"
+    companion_media_setting = settings.get("subtitle_translator_rename_companion_media_with_zid", "").strip().lower()
+    if not companion_media_setting:
+        companion_media_setting = settings.get("subtitle_translator_rename_companion_mp4_with_zid", "false").strip().lower()
+    rename_companion_media_with_zid_enabled = companion_media_setting == "true"
     if not zid:
         if rename_source_with_zid:
             zid = get_current_zid()
@@ -700,8 +726,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             if new_path.exists():
                 log_error(f"Cannot rename source file; target already exists: {new_name}")
                 return False
-            if rename_companion_mp4_with_zid_enabled:
-                if not rename_companion_mp4_with_zid(file_path.parent, clean_title, zid):
+            if rename_companion_media_with_zid_enabled:
+                if not rename_companion_media_with_zid(file_path.parent, clean_title, zid):
                     return False
             try:
                 file_path.rename(new_path)
@@ -713,8 +739,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 return False
         else:
             log_info("Source file has no ZID; keeping original filename.")
-            if rename_companion_mp4_with_zid_enabled:
-                log_warn("Companion MP4 ZID rename skipped because source ZID generation is disabled.")
+            if rename_companion_media_with_zid_enabled:
+                log_warn("Companion media ZID rename skipped because source ZID generation is disabled.")
     else:
         source_language_target_path: Optional[Path] = None
         source_language_target_name = ""
@@ -724,8 +750,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             if source_language_target_path.exists():
                 log_error(f"Cannot rename source file; target already exists: {source_language_target_name}")
                 return False
-        if rename_companion_mp4_with_zid_enabled:
-            if not rename_companion_mp4_with_zid(file_path.parent, clean_title, zid):
+        if rename_companion_media_with_zid_enabled:
+            if not rename_companion_media_with_zid(file_path.parent, clean_title, zid):
                 return False
         if not lang:
             try:
