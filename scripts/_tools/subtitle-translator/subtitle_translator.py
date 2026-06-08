@@ -297,20 +297,54 @@ def google_translate_v1(text: str, sl: str, tl: str, api_url: str) -> str:
     except Exception as e:
         raise Exception(f"Google Translate request failed: {e}")
 
+def deepl_translate_v2(lines: List[str], sl: str, tl: str, settings: dict) -> List[str]:
+    """DeepL Translation API caller."""
+    api_key = settings.get("deepl_api_key", "").strip()
+    api_url = settings.get("deepl_api_url", "").strip()
+    formality = settings.get("deepl_formality", "default").strip()
+
+    if not api_key:
+        raise ValueError("DeepL API key (deepl_api_key) is not configured in config.ini")
+    if not api_url:
+        raise ValueError("DeepL API URL (deepl_api_url) is not configured in config.ini")
+
+    # Clean BCP-47 language codes for DeepL API compatibility
+    sl_clean = sl.split('-')[0].upper()
+    tl_clean = tl.upper()
+
+    params = [('target_lang', tl_clean), ('source_lang', sl_clean)]
+    if formality and formality.lower() != 'default':
+        params.append(('formality', formality.lower()))
+
+    for line in lines:
+        params.append(('text', line))
+
+    data = urllib.parse.urlencode(params).encode('utf-8')
+    req = urllib.request.Request(api_url, data=data)
+    req.add_header("Authorization", f"DeepL-Auth-Key {api_key}")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    req.add_header("User-Agent", "Mozilla/5.0")
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            body = response.read().decode('utf-8')
+            resp_data = json.loads(body)
+            translations = resp_data.get("translations", [])
+            return [t.get("text", "") for t in translations]
+    except Exception as e:
+        raise Exception(f"DeepL Translate request failed: {e}")
+
 def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[str]:
     """Helper to translate a list of lines with chunking and fallback."""
     provider = settings["subtitle_translator_provider"].lower()
     
-    if provider != "google":
-        if provider == "deepl":
-            raise NotImplementedError("DeepL provider is a stub and is not implemented in this phase.")
-        elif provider == "ollama":
+    if provider not in ("google", "deepl"):
+        if provider == "ollama":
             raise NotImplementedError("Ollama provider is a stub and is not implemented in this phase.")
         else:
             raise ValueError(f"Unknown translation provider: {provider}")
             
-    api_url = settings["google_api_url"]
-    
+    api_url = settings.get("google_api_url", "")
     translated_lines = ["" for _ in lines]
     
     # We group lines to translate in batches/chunks (max 30 lines or 1000 characters)
@@ -341,35 +375,46 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
         
     # Translate each chunk
     for chunk_text_list, indices in chunks:
-        joined_text = "\n".join(chunk_text_list)
-        
         try:
-            # Attempt chunk translation
-            translated_joined = google_translate_v1(joined_text, sl, tl, api_url)
-            # Standardize carriage returns
-            translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
-            translated_chunk_lines = translated_joined.split('\n')
-            
-            # Strip trailing empty item from split if it's there
-            if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
-                translated_chunk_lines.pop()
+            if provider == "google":
+                joined_text = "\n".join(chunk_text_list)
+                translated_joined = google_translate_v1(joined_text, sl, tl, api_url)
+                translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
+                translated_chunk_lines = translated_joined.split('\n')
                 
-            # Verify segment count
-            if len(translated_chunk_lines) == len(chunk_text_list):
-                for list_idx, target_idx in enumerate(indices):
-                    translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
-            else:
-                # Fallback to line-by-line for this chunk
-                for list_idx, target_idx in enumerate(indices):
-                    original_line = chunk_text_list[list_idx]
-                    translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                # Strip trailing empty item from split if it's there
+                if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
+                    translated_chunk_lines.pop()
+                    
+                # Verify segment count
+                if len(translated_chunk_lines) == len(chunk_text_list):
+                    for list_idx, target_idx in enumerate(indices):
+                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                else:
+                    # Fallback to line-by-line for this chunk
+                    for list_idx, target_idx in enumerate(indices):
+                        original_line = chunk_text_list[list_idx]
+                        translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+            elif provider == "deepl":
+                translated_chunk_lines = deepl_translate_v2(chunk_text_list, sl, tl, settings)
+                if len(translated_chunk_lines) == len(chunk_text_list):
+                    for list_idx, target_idx in enumerate(indices):
+                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                else:
+                    # Fallback to line-by-line for this chunk
+                    for list_idx, target_idx in enumerate(indices):
+                        original_line = chunk_text_list[list_idx]
+                        translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
         except Exception as e:
             # Fallback to line-by-line on chunk failure
             log_warn(f"Chunk translation failed ({e}). Falling back to line-by-line...")
             for list_idx, target_idx in enumerate(indices):
                 try:
                     original_line = chunk_text_list[list_idx]
-                    translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                    if provider == "google":
+                        translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                    elif provider == "deepl":
+                        translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
                 except Exception as line_error:
                     log_error(f"Failed to translate line '{original_line}': {line_error}")
                     translated_lines[target_idx] = original_line  # Fallback to original

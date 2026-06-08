@@ -198,3 +198,71 @@ def test_process_file_idempotency_modes(tmp_path, monkeypatch):
     # A new translation should have been created at the original target_file path
     new_content = target_file.read_text(encoding="utf-8")
     assert "Привет" in new_content
+
+
+def test_deepl_translate_v2_mock(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "deepl_api_key": "dummy-key",
+        "deepl_api_url": "https://api-free.deepl.com/v2/translate",
+        "deepl_formality": "default",
+    }
+
+    mock_response_data = {
+        "translations": [
+            {"detected_source_language": "EN", "text": "Привет"},
+            {"detected_source_language": "EN", "text": "Мир"}
+        ]
+    }
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def __init__(self):
+            pass
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        # Verify request parameters
+        assert req.get_header("Authorization") == "DeepL-Auth-Key dummy-key"
+        assert req.get_header("Content-type") == "application/x-www-form-urlencoded"
+        # Decode body and verify keys
+        body = req.data.decode("utf-8")
+        assert "target_lang=RU" in body
+        assert "source_lang=EN" in body
+        assert "text=Hello" in body
+        assert "text=World" in body
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+
+    res = st.deepl_translate_v2(["Hello", "World"], "en", "ru", settings)
+    assert res == ["Привет", "Мир"]
+
+
+def test_translate_lines_deepl(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "deepl",
+        "deepl_api_key": "dummy-key",
+        "deepl_api_url": "https://api-free.deepl.com/v2/translate",
+        "deepl_formality": "default",
+    }
+
+    def mock_deepl(lines, sl, tl, s):
+        assert sl == "en"
+        assert tl == "ru"
+        return [f"RU: {line}" for line in lines]
+
+    monkeypatch.setattr(st, "deepl_translate_v2", mock_deepl)
+
+    lines = ["First line", "", "Second line"]
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["RU: First line", "", "RU: Second line"]
+

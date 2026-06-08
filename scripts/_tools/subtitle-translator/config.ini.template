@@ -10,7 +10,7 @@ subtitle_translator_target_languages = ru,de
 # Default source language code if not detected from the input filename.
 subtitle_translator_source_language = en
 
-# Active translation provider: google (currently implemented), deepl (stub), or ollama (stub)
+# Active translation provider: google (currently implemented), deepl (currently implemented), or ollama (stub)
 subtitle_translator_provider = google
 
 # How to handle files that already exist in the target directory:
@@ -23,7 +23,7 @@ subtitle_translator_duplicate_mode = skip
 # Google Translate API base URL (uses free V1 API client=gtx)
 google_api_url = https://translate.googleapis.com/translate_a/single
 
-# --- DeepL Settings (Stub - Not implemented in this phase) ---
+# --- DeepL Settings ---
 # DeepL Auth Key / API Key
 deepl_api_key = 
 # DeepL API URL
