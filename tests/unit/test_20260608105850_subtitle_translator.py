@@ -1315,6 +1315,7 @@ def test_process_file_cleans_tags_and_breaks(tmp_path, monkeypatch):
         "subtitle_translator_duplicate_mode": "overwrite",
         "subtitle_translator_rename_source_with_zid": "false",
         "subtitle_translator_rename_related_media_with_zid": "false",
+        "subtitle_translator_clean_patterns": "**",
         "google_api_url": "dummy",
     }
     

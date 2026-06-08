@@ -287,7 +287,9 @@ class TestHistoricalRegressions:
         """Verify existence of analyze_repo.py (dev-analytics-automation)."""
         import os
         path = "docs/scripts/analyze_repo.py"
-        if not os.path.exists(path) and os.path.exists("openspec/config.yaml"):
+        if os.path.exists("scripts/_tools/analyze-repo/analyze_repo.py"):
+            path = "scripts/_tools/analyze-repo/analyze_repo.py"
+        elif not os.path.exists(path) and os.path.exists("openspec/config.yaml"):
             with open("openspec/config.yaml", "r", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("projectRoot:"):
