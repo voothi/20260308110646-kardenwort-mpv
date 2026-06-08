@@ -1407,39 +1407,26 @@ def test_parse_timeline():
     assert end == 4500
 
 
-def test_split_by_proportion_single():
+def test_merge_split_markers_exact_round_trip():
     st = _load_translator()
-    assert st.split_by_proportion("Hello World", [5]) == ["Hello World"]
+
+    joined, markers = st.join_merged_group_texts(["First part", "second part", "third part"])
+
+    assert joined == "First part [[KWSPLIT0001]] second part [[KWSPLIT0002]] third part"
+    assert markers == ["[[KWSPLIT0001]]", "[[KWSPLIT0002]]"]
+    assert st.split_merged_text_by_markers(
+        "Первая часть [[KWSPLIT0001]] вторая часть [[KWSPLIT0002]] третья часть",
+        markers,
+    ) == ["Первая часть", "вторая часть", "третья часть"]
 
 
-def test_split_by_proportion_equal():
+def test_merge_split_markers_missing_marker_fails():
     st = _load_translator()
-    parts = st.split_by_proportion("Hello World", [5, 5])
-    assert len(parts) == 2
-    assert parts[0].strip() != ""
-    assert parts[1].strip() != ""
-    # Both parts together should reconstruct the original (modulo spaces)
-    assert " ".join(parts).replace("  ", " ") == "Hello World"
 
+    with pytest.raises(ValueError) as exc_info:
+        st.split_merged_text_by_markers("Первая часть вторая часть", ["[[KWSPLIT0001]]"])
 
-def test_split_by_proportion_proportional():
-    st = _load_translator()
-    # "Short" takes 5 chars, "A much longer segment here" takes 26 chars
-    # So split at ~5/31 of the text
-    text = "Short A much longer segment here"
-    parts = st.split_by_proportion(text, [5, 26])
-    assert len(parts) == 2
-    # First part should be shorter than the second
-    assert len(parts[0]) < len(parts[1])
-
-
-def test_split_by_proportion_three_parts():
-    st = _load_translator()
-    text = "one two three four five six"
-    parts = st.split_by_proportion(text, [3, 3, 3])
-    assert len(parts) == 3
-    for p in parts:
-        assert p.strip() != ""
+    assert "Missing merge split marker" in str(exc_info.value)
 
 
 def test_build_merge_groups_no_merge_on_sentence_ending():
@@ -1532,11 +1519,9 @@ def test_process_file_merge_mode(tmp_path, monkeypatch):
 
     def mock_google_translate(text, sl, tl, api_url):
         translated_calls.append(text)
-        # Simulate: merged group → return a Russian phrase proportional in length
         if "This is the first part" in text:
-            # This is the merged text "This is the first part of a continuous sentence."
-            # Return a plausible Russian translation of similar length
-            return "Это первая часть непрерывного предложения."
+            assert "[[KWSPLIT0001]]" in text
+            return "Это первая часть [[KWSPLIT0001]] непрерывного предложения."
         if "Standalone sentence" in text:
             return "Отдельное предложение."
         return text
@@ -1553,13 +1538,51 @@ def test_process_file_merge_mode(tmp_path, monkeypatch):
     # Block 3 (standalone) must be translated as-is
     assert "Отдельное предложение." in content
 
-    # Blocks 1 and 2 were merged → each must have non-empty text (the split result)
     lines = content.replace("\r\n", "\n").split("\n")
-    # Find the translated text lines (not numbers, not timecodes, not empty)
     text_lines = [l for l in lines if l and not l.isdigit() and "-->" not in l]
-    assert len(text_lines) == 3  # 3 subtitle blocks each get a text line
+    assert text_lines == [
+        "Это первая часть",
+        "непрерывного предложения.",
+        "Отдельное предложение.",
+    ]
 
 
+def test_process_file_merge_mode_missing_marker_fails(tmp_path, monkeypatch):
+    st = _load_translator()
 
+    source_content = (
+        "1\n"
+        "00:00:00,000 --> 00:00:02,000\n"
+        "This is the first part\n\n"
+        "2\n"
+        "00:00:02,300 --> 00:00:04,000\n"
+        "of a continuous sentence.\n"
+    )
+    source_file = tmp_path / "test_merge.en.srt"
+    source_file.write_text(source_content, encoding="utf-8")
+
+    settings = {
+        "subtitle_translator_zid_script": "",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_provider": "google",
+        "subtitle_translator_duplicate_mode": "overwrite",
+        "subtitle_translator_rename_source_with_zid": "false",
+        "subtitle_translator_rename_related_media_with_zid": "false",
+        "subtitle_translator_merge_lines": "true",
+        "subtitle_translator_merge_max_gap_ms": "1000",
+        "google_api_url": "dummy",
+    }
+
+    def mock_google_translate(text, sl, tl, api_url):
+        assert "[[KWSPLIT0001]]" in text
+        return "Это первая часть непрерывного предложения."
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_google_translate)
+
+    ok = st.process_file(source_file, settings, "session-zid")
+
+    assert ok is False
+    assert not (tmp_path / "test_merge.ru.srt").exists()
 
 

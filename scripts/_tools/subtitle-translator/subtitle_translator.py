@@ -33,6 +33,8 @@ CONFIG_FILE = SCRIPT_DIR / "config.ini"
 PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
 RELATED_MEDIA_EXTENSIONS = ("mp4", "mp3", "m4a", "wav", "flac", "aac", "ogg", "opus", "mkv", "webm", "mov", "avi")
 VALID_DUPLICATE_MODES = ("skip", "overwrite", "archive")
+MERGE_SPLIT_MARKER_PREFIX = "[[KWSPLIT"
+MERGE_SPLIT_MARKER_SUFFIX = "]]"
 
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
@@ -578,50 +580,39 @@ def build_merge_groups(blocks: List[dict], max_gap_ms: int) -> List[List[int]]:
         groups.append(current)
     return groups
 
-def split_by_proportion(text: str, lengths: List[int]) -> List[str]:
-    """Splits *text* into len(lengths) parts proportional to each length value.
+def make_merge_split_marker(index: int) -> str:
+    return f"{MERGE_SPLIT_MARKER_PREFIX}{index:04d}{MERGE_SPLIT_MARKER_SUFFIX}"
 
-    The split boundary is snapped to the nearest word boundary (space) within a
-    search window proportional to the shorter segment length.  If no space is
-    found the split is made at the raw proportional index.
-    """
-    if not text or not lengths:
-        return [text.strip()] if text else []
-    if len(lengths) == 1:
-        return [text.strip()]
-    total = sum(lengths)
-    if total == 0:
-        n = len(lengths)
-        equal = len(text) // n
-        return [text[i * equal:(i + 1) * equal].strip() for i in range(n - 1)] + [text[(n - 1) * equal:].strip()]
+def join_merged_group_texts(group_texts: List[str]) -> Tuple[str, List[str]]:
+    """Joins merged subtitle blocks with exact split markers between blocks."""
+    if not group_texts:
+        return "", []
+
     parts: List[str] = []
-    remaining = text.strip()
-    remaining_total = total
-    for i, length in enumerate(lengths):
-        if i == len(lengths) - 1:
-            parts.append(remaining.strip())
-            break
-        if not remaining:
-            parts.extend([''] * (len(lengths) - i))
-            break
-        # Target split index within the remaining text
-        target_idx = int(round(len(remaining) * length / remaining_total))
-        target_idx = max(1, min(target_idx, len(remaining) - 1))
-        # Search outward for the nearest space
-        search_window = max(target_idx, len(remaining) - target_idx)
-        split_idx = None
-        for offset in range(search_window + 1):
-            for candidate in (target_idx - offset, target_idx + offset):
-                if 1 <= candidate < len(remaining) - 1 and remaining[candidate] == ' ':
-                    split_idx = candidate
-                    break
-            if split_idx is not None:
-                break
-        if split_idx is None:
-            split_idx = target_idx
-        parts.append(remaining[:split_idx].strip())
-        remaining = remaining[split_idx:].strip()
-        remaining_total -= length
+    markers: List[str] = []
+    for idx, text in enumerate(group_texts):
+        if idx > 0:
+            marker = make_merge_split_marker(idx)
+            markers.append(marker)
+            parts.append(marker)
+        if text:
+            parts.append(text)
+    return " ".join(parts), markers
+
+def split_merged_text_by_markers(text: str, markers: List[str]) -> List[str]:
+    """Splits translated merge text by exact markers inserted before translation."""
+    if not markers:
+        return [text.strip()]
+
+    parts: List[str] = []
+    remaining = text
+    for marker in markers:
+        marker_idx = remaining.find(marker)
+        if marker_idx < 0:
+            raise ValueError(f"Missing merge split marker in translated text: {marker}")
+        parts.append(remaining[:marker_idx].strip())
+        remaining = remaining[marker_idx + len(marker):]
+    parts.append(remaining.strip())
     return parts
 
 
@@ -886,6 +877,12 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
         source_lang=lang_code_to_name(sl),
         target_lang=lang_code_to_name(tl),
     )
+    if MERGE_SPLIT_MARKER_PREFIX in text:
+        prompt = (
+            f"{prompt}\n"
+            "Preserve every [[KWSPLIT0000]]-style marker exactly as written. "
+            "Do not translate, remove, reorder, or modify these markers."
+        )
     if salt:
         if not prompt.endswith('.'):
             prompt = prompt.rstrip() + "."
@@ -1390,8 +1387,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     max_gap_ms = int(settings.get('subtitle_translator_merge_max_gap_ms', '1000'))
 
     # group_info is populated only in merge mode:
-    # list of (group_block_indices, per_block_char_lengths)
-    group_info: Optional[List[Tuple[List[int], List[int]]]] = None
+    # list of (group_block_indices, per_block_char_lengths, exact_split_markers)
+    group_info: Optional[List[Tuple[List[int], List[int], List[str]]]] = None
 
     if is_srt:
         blocks = parse_srt(content)
@@ -1409,9 +1406,9 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             for group_indices in merge_groups:
                 group_texts = [(blocks[b]['text_lines'][0] if blocks[b]['text_lines'] else '') for b in group_indices]
                 lengths = [len(t) for t in group_texts]
-                combined = ' '.join(t for t in group_texts if t)
+                combined, split_markers = join_merged_group_texts(group_texts)
                 lines_to_translate.append(combined)  # one "line" per group
-                group_info.append((group_indices, lengths))
+                group_info.append((group_indices, lengths, split_markers))
             mapping = None
             log_detail(f"Merge mode: {len(blocks)} blocks grouped into {len(merge_groups)} translation units.")
         else:
@@ -1467,18 +1464,17 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 new_blocks = json.loads(json.dumps(blocks))  # Deep copy
                 if merge_lines_enabled and group_info is not None:
                     # --- MERGE MODE reconstruction: split translated group text back to blocks ---
-                    for group_idx, (group_indices, lengths) in enumerate(group_info):
-                        trans_text = clean_subtitle_text(translated_lines[group_idx])
+                    for group_idx, (group_indices, lengths, split_markers) in enumerate(group_info):
+                        trans_text = translated_lines[group_idx]
                         if len(group_indices) == 1:
                             b_idx = group_indices[0]
+                            trans_text = clean_subtitle_text(trans_text)
                             if new_blocks[b_idx]['text_lines']:
                                 new_blocks[b_idx]['text_lines'][0] = trans_text
                             elif trans_text:
                                 new_blocks[b_idx]['text_lines'] = [trans_text]
                         else:
-                            # Split proportionally to original char lengths
-                            non_zero_lengths = [max(l, 1) for l in lengths]
-                            split_parts = split_by_proportion(trans_text, non_zero_lengths)
+                            split_parts = split_merged_text_by_markers(trans_text, split_markers)
                             for i, b_idx in enumerate(group_indices):
                                 part = clean_subtitle_text(split_parts[i]) if i < len(split_parts) else ''
                                 if new_blocks[b_idx]['text_lines']:
@@ -1520,15 +1516,15 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 if is_srt:
                     partial_blocks = json.loads(json.dumps(blocks))
                     if merge_lines_enabled and group_info is not None:
-                        for group_idx, (group_indices, lengths) in enumerate(group_info):
-                            trans_text = clean_subtitle_text(partial_translated_lines[group_idx]) if group_idx < len(partial_translated_lines) else ''
+                        for group_idx, (group_indices, lengths, split_markers) in enumerate(group_info):
+                            trans_text = partial_translated_lines[group_idx] if group_idx < len(partial_translated_lines) else ''
                             if len(group_indices) == 1:
                                 b_idx = group_indices[0]
+                                trans_text = clean_subtitle_text(trans_text)
                                 if partial_blocks[b_idx]['text_lines']:
                                     partial_blocks[b_idx]['text_lines'][0] = trans_text
                             else:
-                                non_zero_lengths = [max(l, 1) for l in lengths]
-                                split_parts = split_by_proportion(trans_text, non_zero_lengths)
+                                split_parts = split_merged_text_by_markers(trans_text, split_markers) if trans_text.strip() else [''] * len(group_indices)
                                 for i, b_idx in enumerate(group_indices):
                                     part = clean_subtitle_text(split_parts[i]) if i < len(split_parts) else ''
                                     if partial_blocks[b_idx]['text_lines']:
