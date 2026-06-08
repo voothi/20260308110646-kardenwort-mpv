@@ -1254,10 +1254,24 @@ def test_clean_subtitle_text():
     # Test ASS formatting tags removal
     assert st.clean_subtitle_text("{\\an8}Hello {\\pos(100,120)}World") == "Hello World"
     
-    # Test markdown bold/italic removal
-    assert st.clean_subtitle_text("**bold** and *italic* and __underline__ and _italic_") == "bold and italic and underline and italic"
-    assert st.clean_subtitle_text("Вы услышите новости всего раз.**") == "Вы услышите новости всего раз."
-    assert st.clean_subtitle_text("Вы услышите новости всего раз.**", clean_markdown=False) == "Вы услышите новости всего раз.**"
+    # Test custom cleanup patterns
+    assert st.clean_subtitle_text(
+        "Вы услышите новости всего раз.**",
+        clean_rules=st.parse_clean_patterns("**"),
+    ) == "Вы услышите новости всего раз."
+    assert st.clean_subtitle_text(
+        "Hello [noise]",
+        clean_rules=st.parse_clean_patterns("re:\\s+\\[noise\\]$"),
+    ) == "Hello"
+    assert st.clean_subtitle_text(
+        "Hello [draft]",
+        clean_rules=st.parse_clean_patterns("glob:[[]draft[]]"),
+    ) == "Hello"
+    assert st.clean_subtitle_text(
+        "Hello REMOVE",
+        clean_rules=st.parse_clean_patterns("REMOVE"),
+    ) == "Hello"
+    assert st.clean_subtitle_text("Вы услышите новости всего раз.**") == "Вы услышите новости всего раз.**"
     
     # Test newlines replacement
     assert st.clean_subtitle_text("Line1\nLine2\r\nLine3\rLine4") == "Line1 Line2 Line3 Line4"

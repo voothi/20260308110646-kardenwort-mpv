@@ -16,6 +16,7 @@ import configparser
 import json
 import os
 import re
+import fnmatch
 import shutil
 import subprocess
 import sys
@@ -205,7 +206,7 @@ def load_config():
         "subtitle_translator_word_count_min_ratio": "0.25",
         "subtitle_translator_word_count_max_ratio": "3.5",
         "subtitle_translator_save_partial_on_failure": "false",
-        "subtitle_translator_clean_markdown": "true",
+        "subtitle_translator_clean_patterns": "**",
         "subtitle_translator_merge_lines": "false",
         "subtitle_translator_merge_split_mode": "marker",
         "subtitle_translator_merge_max_gap_ms": "1000",
@@ -492,7 +493,37 @@ def write_srt(blocks: List[dict]) -> str:
         out.append("")
     return "\n".join(out)
 
-def clean_subtitle_text(text: str, clean_markdown: bool = True) -> str:
+def parse_clean_patterns(raw_patterns: str) -> List[Tuple[str, str]]:
+    """Parses semicolon-separated cleanup rules: plain text, glob:<pattern>, or re:<regex>."""
+    rules: List[Tuple[str, str]] = []
+    for raw_rule in raw_patterns.split(";"):
+        raw_rule = raw_rule.strip()
+        if not raw_rule:
+            continue
+        if raw_rule.startswith("re:"):
+            rules.append(("re", raw_rule[3:]))
+        elif raw_rule.startswith("glob:"):
+            rules.append(("glob", raw_rule[5:]))
+        else:
+            rules.append(("text", raw_rule))
+    return rules
+
+def apply_clean_patterns(text: str, clean_rules: List[Tuple[str, str]]) -> str:
+    for mode, pattern in clean_rules:
+        if not pattern:
+            continue
+        if mode == "re":
+            text = re.sub(pattern, "", text)
+        elif mode == "glob":
+            regex = fnmatch.translate(pattern)
+            if regex.startswith("(?s:") and regex.endswith(")\\Z"):
+                regex = regex[4:-3]
+            text = re.sub(regex, "", text)
+        else:
+            text = text.replace(pattern, "")
+    return text
+
+def clean_subtitle_text(text: str, clean_rules: Optional[List[Tuple[str, str]]] = None) -> str:
     """Strips all HTML-like tags, ASS formatting tags, markdown styles, and inner line breaks, keeping only pure text."""
     if not text:
         return ""
@@ -500,14 +531,8 @@ def clean_subtitle_text(text: str, clean_markdown: bool = True) -> str:
     text = re.sub(r'<[^>]+>', '', text)
     # Remove ASS formatting tags (e.g. {\an8}, {\pos(100,100)}, etc.)
     text = re.sub(r'\{[^}]+\}', '', text)
-    if clean_markdown:
-        # Replace paired markdown markers, then remove dangling markers commonly
-        # produced by small models (e.g. "translation.**").
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
-        text = re.sub(r'\*([^*]+)\*', r'\1', text)
-        text = re.sub(r'__([^_]+)__', r'\1', text)
-        text = re.sub(r'_([^_]+)_', r'\1', text)
-        text = text.replace('**', '').replace('__', '').replace('*', '').replace('_', '')
+    if clean_rules:
+        text = apply_clean_patterns(text, clean_rules)
     # Replace any literal newlines, carriage returns, or tabs with spaces
     text = text.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
     # Normalize multiple consecutive spaces to a single space
@@ -1438,11 +1463,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     is_srt = (ext.lower() == 'srt')
     merge_lines_enabled = is_srt and settings.get('subtitle_translator_merge_lines', 'false').lower() == 'true'
     merge_split_mode = get_merge_split_mode(settings)
-    clean_markdown = settings.get('subtitle_translator_clean_markdown', 'true').lower() == 'true'
+    clean_rules = parse_clean_patterns(settings.get('subtitle_translator_clean_patterns', ''))
     max_gap_ms = int(settings.get('subtitle_translator_merge_max_gap_ms', '1000'))
 
     def clean_text(text: str) -> str:
-        return clean_subtitle_text(text, clean_markdown=clean_markdown)
+        return clean_subtitle_text(text, clean_rules=clean_rules)
 
     # group_info is populated only in merge mode:
     # list of (group_block_indices, per_block_char_lengths, exact_split_markers)

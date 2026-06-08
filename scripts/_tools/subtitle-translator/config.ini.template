@@ -104,9 +104,10 @@ subtitle_translator_word_count_max_ratio = 3.5
 # (skip/overwrite/archive) when a target file already exists.
 subtitle_translator_save_partial_on_failure = false
 
-# Remove markdown-style artifacts such as **bold**, _italic_, and dangling **.
-# Set to "false" if you intentionally want markdown markers preserved.
-subtitle_translator_clean_markdown = true
+# Remove custom artifacts from subtitle text after translation.
+# Semicolon-separated rules; prefixes: re:<regex>, glob:<wildcard>, or plain text.
+# Example: **;re:\s+\[noise\]$;glob:[[]draft[]]
+subtitle_translator_clean_patterns = **
 
 # Merge continuous subtitle lines to translate them together as a single context block.
 # The split back to subtitle blocks is controlled by subtitle_translator_merge_split_mode.
