@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.84.58-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.58)
+[![Version](https://img.shields.io/badge/version-v1.84.60-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.60)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content. It functions as a professional tool for simultaneous translators who need to have two texts synchronized with the media track, with the ability to search by words and make notes.
@@ -935,7 +935,7 @@ Get-Content .\dist\20260515123456-kardenwort-mpv-sha256.txt
 
 You can also verify the security of the files on VirusTotal:
 - **General Upload**: [VirusTotal Upload](https://www.virustotal.com/gui/home/upload)
-- **Direct Link**: [VirusTotal Analysis (v1.82.2)](https://www.virustotal.com/gui/file/2458615bbe3a9f7303cffcdcd75b79a7cfdec17960b23cdbc70ac3b5047e5dc7) (using the SHA256 hash from the checksum file).
+- **Direct Link**: [VirusTotal Analysis (v1.84.60)](https://www.virustotal.com/gui/file/2458615bbe3a9f7303cffcdcd75b79a7cfdec17960b23cdbc70ac3b5047e5dc7) (using the SHA256 hash from the checksum file).
 
 Optional: bundle an mpv distribution inside the archive.
 - Default config file: `scripts/_tools/deploy/build_distribution.config.json`
@@ -989,12 +989,12 @@ python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:AP
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Total Hours Spent**: 589.58h (across 111 work sessions, average session of 5.31h; human-AI paired, not autonomous)
-- **Current Maturity**: ~2798 Commits (v1.84.58)
-- **Total Requests**: 3,348 human requests (71 in active log, 3,277 in archive)
+- **Total Hours Spent**: 594.50h (across 112 work sessions, average session of 5.31h; human-AI paired, not autonomous)
+- **Current Maturity**: ~2812 Commits (v1.84.60)
+- **Total Requests**: 3,360 human requests (83 in active log, 3,277 in archive)
 - **Intensity Profile**: 4.7 Commits/Hour 
-- **Git Structure**: 370 local branches, 253 tags
-- **Lines of Code**: 38,764 LOC (12,653 project, 5,390 additions, 20,721 tests)
+- **Git Structure**: 371 local branches, 257 tags
+- **Lines of Code**: 43,276 LOC (12,856 project, 9,375 additions, 21,045 tests)
 - **AI Subscriptions Cost**: 150 EUR
 
 To repeat the analysis on your local machine, use the provided Python tool:

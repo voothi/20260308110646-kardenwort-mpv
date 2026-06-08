@@ -1,3 +1,23 @@
+# Release Notes - v1.84.60 (Audio-only MP3 Subtitle Fallbacks & Dynamic Subtitle Positioning)
+
+**Date**: 2026-06-08
+**Version**: v1.84.60
+**Implementation ZIDs**: 20260608011421, 20260607225826, 20260607220903, 20260607215211, 20260607205826, 20260607205214, 20260607201125, 20260607194932
+
+## Highlights
+
+### 📻 **Audio-Only (MP3) Subtitles & Interface Support**
+- **Virtual Video Track Generation**: Enabled loading subtitles and OSD elements on audio-only files (such as MP3) by binding a virtual black video track. The player dynamically queries a bundled seekable black video (`black.mp4` under `_tools/sub-viewer/`) or falls back to a `lavfi` color canvas.
+- **Dynamic Positioning Transitions**: Corrected OSD and subtitle placements when switching to virtual video tracks, ensuring text is properly aligned at the bottom and transient overlays remain visible.
+- **MP3 Companion Loading**: Auto-discovers and loads language-specific companion subtitles under audio-only conditions, allowing full navigational features (such as `a`/`d` seeks) to function without an MP4 in the folder.
+
+### 🧪 **Milestone: 1057 Passed Tests & Regression Protection**
+- **Enhanced Test Suites**: Added new acceptance tests in `tests/acceptance/test_20260607194017_audio_only_subtitles.py` validating MP3 track selection, navigation, and replaying.
+- **OSD/State Alignment**: Resolved collisions between dynamic re-anchoring and transient "Replay" overlay displays.
+- **Navigation Cooldown Stabilization**: Patched navigation cooldown logic (`nav_cooldown = 0.2`) to maintain stable seek intervals under different playback layouts.
+
+---
+
 # Release Notes - v1.84.58 (Dynamic Help Overlay Delays, Drum Edge Selection, ASS Break Tag Rules Sheet, Sub-TTS fit & YouTube Downloader Extensions)
 
 **Date**: 2026-06-07
