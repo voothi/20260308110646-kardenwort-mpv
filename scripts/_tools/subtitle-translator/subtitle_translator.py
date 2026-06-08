@@ -577,7 +577,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
 
     chunk_size = int(settings.get("subtitle_translator_chunk_size", "0"))
     max_retries = int(settings.get("subtitle_translator_max_retries", "3"))
-    word_count_check = settings.get("subtitle_translator_word_count_check", "true").lower() == "true"
+    word_count_check = settings.get("subtitle_translator_word_count_check", "false").lower() == "true"
     min_ratio = float(settings.get("subtitle_translator_word_count_min_ratio", "0.25"))
     max_ratio = float(settings.get("subtitle_translator_word_count_max_ratio", "3.5"))
 
@@ -793,7 +793,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
 
     # 3. Source ZID renaming logic
     source_had_zid = bool(zid)
-    rename_source_with_zid = settings.get("subtitle_translator_rename_source_with_zid", "true").lower() == "true"
+    rename_source_with_zid = settings.get("subtitle_translator_rename_source_with_zid", "false").lower() == "true"
     related_media_setting = settings.get("subtitle_translator_rename_related_media_with_zid", "false").strip().lower()
     rename_related_media_with_zid_enabled = related_media_setting == "true"
     if not zid:
@@ -940,8 +940,16 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                     partial_content = write_srt(partial_blocks)
                 else:
                     partial_content = "\n".join(partial_translated_lines)
-                write_output_file(target_path, partial_content, duplicate_mode, session_zid, f"Partial subtitle for '{tl}'")
-                log_ok(f"Saved partial translation: {target_name}")
+                try:
+                    write_output_file(target_path, partial_content, duplicate_mode, session_zid, f"Partial subtitle for '{tl}'")
+                    log_ok(f"Saved partial translation: {target_name}")
+                except RuntimeError as partial_write_error:
+                    if duplicate_mode == "skip" and target_path.exists():
+                        log_skip(str(partial_write_error))
+                    else:
+                        log_error(f"Failed to save partial translation for '{tl}': {partial_write_error}")
+                except Exception as partial_write_error:
+                    log_error(f"Failed to save partial translation for '{tl}': {partial_write_error}")
             success_status = False
         except NotImplementedError as nie:
             log_error(str(nie))

@@ -527,6 +527,7 @@ def test_process_file_rollback_on_failure(tmp_path, monkeypatch):
         "subtitle_translator_target_languages": "ru",
         "subtitle_translator_provider": "google",
         "google_api_url": "dummy",
+        "subtitle_translator_rename_source_with_zid": "true",
     }
 
     # Execute and check it returns False
@@ -613,6 +614,33 @@ def test_process_file_archive_preserves_existing_on_failure(tmp_path, monkeypatc
     assert target_file.exists()
     assert target_file.read_text(encoding="utf-8") == "existing translation"
     assert not (tmp_path / "session-zid" / "20260608000000-test.ru.srt").exists()
+
+
+def test_process_file_partial_save_skip_preserves_existing_target(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    source_file = tmp_path / "20260608000000-test.en.srt"
+    source_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
+    target_file = tmp_path / "20260608000000-test.ru.srt"
+
+    def mock_translate(lines, sl, tl, settings):
+        target_file.write_text("existing translation", encoding="utf-8")
+        raise st.ChunkValidationError("Chunk validation failed.", [""])
+
+    monkeypatch.setattr(st, "translate_lines", mock_translate)
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_duplicate_mode": "skip",
+        "subtitle_translator_save_partial_on_failure": "true",
+    }
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is False
+    assert target_file.read_text(encoding="utf-8") == "existing translation"
 
 
 def test_process_file_rolls_back_related_media_on_failure(tmp_path, monkeypatch):
