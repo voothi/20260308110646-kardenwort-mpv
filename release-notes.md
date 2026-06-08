@@ -1,8 +1,8 @@
-# Release Notes - v1.84.60 (Audio-only MP3 Subtitle Fallbacks & Dynamic Subtitle Positioning)
+# Release Notes - v1.84.60 (Audio-only MP3 Subtitle Fallbacks, Repository Effort Analytics & Path Relocations)
 
 **Date**: 2026-06-08
 **Version**: v1.84.60
-**Implementation ZIDs**: 20260608011421, 20260607225826, 20260607220903, 20260607215211, 20260607205826, 20260607205214, 20260607201125, 20260607194932
+**Implementation ZIDs**: 20260608095827, 20260608095535, 20260608095310, 20260608094923, 20260608011421, 20260607225826, 20260607220903, 20260607215211, 20260607205826, 20260607205214, 20260607201125, 20260607194932
 
 ## Highlights
 
@@ -10,6 +10,10 @@
 - **Virtual Video Track Generation**: Enabled loading subtitles and OSD elements on audio-only files (such as MP3) by binding a virtual black video track. The player dynamically queries a bundled seekable black video (`black.mp4` under `_tools/sub-viewer/`) or falls back to a `lavfi` color canvas.
 - **Dynamic Positioning Transitions**: Corrected OSD and subtitle placements when switching to virtual video tracks, ensuring text is properly aligned at the bottom and transient overlays remain visible.
 - **MP3 Companion Loading**: Auto-discovers and loads language-specific companion subtitles under audio-only conditions, allowing full navigational features (such as `a`/`d` seeks) to function without an MP4 in the folder.
+
+### 📊 **Developer Tools & Repository Analytics**
+- **Repository Effort Analytics**: Overhauled the [analyze_repo.py](file:///u:/voothi/20260308110646-kardenwort-mpv/scripts/_tools/analyze-repo/analyze_repo.py) script to parse the Obsidian conversation vault, calculate consecutive days streaks (currently a 48-day streak!), compute average breaks between sessions, run Git branch/tag structure subprocesses, scan and count lines of code dynamically across project folders, and output a copy-pasteable README format.
+- **Utility Relocation**: Moved `analyze_repo.py` from the vault (`reports/`) to the codebase under `scripts/_tools/analyze-repo/` for cleaner versioning and distribution.
 
 ### 🧪 **Milestone: 1057 Passed Tests & Regression Protection**
 - **Enhanced Test Suites**: Added new acceptance tests in `tests/acceptance/test_20260607194017_audio_only_subtitles.py` validating MP3 track selection, navigation, and replaying.
