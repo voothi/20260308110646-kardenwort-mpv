@@ -1,0 +1,99 @@
+[paths]
+
+# ==============================================================================
+# External Files
+# ==============================================================================
+
+# Optional explicit mpv executable path. Leave empty to search PATH first.
+# Example: C:\mpv\mpv.exe
+mpv_executable =
+
+# Fallback mpv executable paths checked if mpv is not found in PATH.
+# One path per indented line.
+mpv_fallback_paths =
+    C:\mpv\mpv.exe
+    C:\mpv\mpv-0.39.0-x86_64\mpv.exe
+    C:\Program Files\mpv\mpv.exe
+
+# Seekable black canvas video used as the viewer background.
+# Relative paths are resolved from the sub-viewer directory.
+black_video_file = black.mp4
+
+# Runtime log directory and file names.
+# Relative paths are resolved from the sub-viewer directory.
+log_dir = logs
+mpv_log_file = mpv_sub_viewer.log
+launch_log_file = sub_viewer_launch.log
+
+
+[input]
+
+# ==============================================================================
+# Supported Input Types
+# ==============================================================================
+
+# Subtitle file extensions that can be opened directly.
+subtitle_extensions = .srt,.ass,.vtt
+
+# Plain-text file extensions converted to temporary reader SRT files.
+text_extensions = .txt,.md,.rst,.log
+
+
+[languages]
+
+# ==============================================================================
+# Language Selection
+# ==============================================================================
+
+# Language code suffixes stripped when deriving a shared base name.
+# Example: video.de.srt -> video
+language_suffixes = de,ru,en,eng,ger,rus,uk,es,fr,it
+
+# Priority used when multiple inputs are sent together.
+# Lower numbers win. Format: code:rank,code:rank
+language_selection_priority = en:0,eng:0,de:1,ger:1,ru:2,rus:2
+
+
+[player]
+
+# ==============================================================================
+# MPV Playback
+# ==============================================================================
+
+# Virtual video fallback used when black_video_file is missing.
+virtual_video_color = black
+virtual_video_size = 1280x720
+virtual_video_duration = 36000
+
+# Initial playback state passed to mpv --pause.
+# Common values: yes, no
+pause_on_launch = yes
+
+# mpv window and resume behavior.
+force_window = yes
+resume_playback = no
+
+# Extra seconds appended after the last subtitle cue when clipping playback length.
+end_padding_seconds = 2.0
+
+
+[reader]
+
+# ==============================================================================
+# Text Reader Conversion
+# ==============================================================================
+
+# Convert text files into small timed subtitle cues for A/D navigation.
+max_lines_per_block = 1
+max_chars_per_line = 90
+min_blocks = 2
+
+# Reading-speed estimates used to assign cue durations.
+cps = 15.0
+wpm = 180.0
+min_cue_seconds = 1.2
+max_cue_seconds = 7.0
+min_date_seconds = 2.5
+
+# Keep mpv.conf kardenwort-reader_* settings as final reader overrides.
+mpv_conf_overrides = true

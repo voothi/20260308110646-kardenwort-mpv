@@ -5,12 +5,16 @@ import subprocess
 import re
 import shutil
 import traceback
+import configparser
 from datetime import datetime
 from typing import List, Tuple
 
 # ==============================================================================
-# GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
+# GLOBAL CONFIGURATION DEFAULTS
 # ==============================================================================
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.ini")
+
 # Supported subtitle file extensions to search for primary & secondary tracks
 SUPPORTED_EXTENSIONS = ('.srt', '.ass', '.vtt')
 SUPPORTED_TEXT_EXTENSIONS = ('.txt', '.md', '.rst', '.log')
@@ -30,9 +34,23 @@ LANG_SELECTION_PRIORITY = {
 VIRTUAL_VIDEO_COLOR = 'black'        # Can be black, grey, white, blue, etc.
 VIRTUAL_VIDEO_SIZE = '1280x720'      # Dimensions of the player window
 VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 10 hours)
+END_PADDING_SECONDS = 2.0
 
 # Initial playback state (yes = start paused, no = play immediately)
 PAUSE_ON_LAUNCH = 'yes'
+FORCE_WINDOW = 'yes'
+RESUME_PLAYBACK = 'no'
+BLACK_VIDEO_FILE = 'black.mp4'
+MPV_EXECUTABLE = ''
+MPV_FALLBACK_PATHS = (
+    r"C:\mpv\mpv.exe",
+    r"C:\mpv\mpv-0.39.0-x86_64\mpv.exe",
+    r"C:\Program Files\mpv\mpv.exe",
+)
+LOG_DIR = 'logs'
+MPV_LOG_FILE = 'mpv_sub_viewer.log'
+LAUNCH_LOG_FILE = 'sub_viewer_launch.log'
+MPV_CONF_READER_OVERRIDES = True
 READER_MAX_LINES_PER_BLOCK = 1
 READER_MAX_CHARS_PER_LINE = 90
 READER_MIN_BLOCKS = 2
@@ -57,6 +75,152 @@ _DATE_RE = re.compile(
     r'|\b\d{1,2}[-./]\d{1,2}[-./]\d{4}\b',
     re.IGNORECASE
 )
+
+
+def _split_csv(value):
+    return [item.strip() for item in str(value or "").split(",") if item.strip()]
+
+
+def _parse_extensions(value, fallback):
+    extensions = []
+    for item in _split_csv(value):
+        ext = item.lower()
+        if not ext.startswith("."):
+            ext = "." + ext
+        extensions.append(ext)
+    return tuple(extensions) if extensions else fallback
+
+
+def _parse_priority_map(value, fallback):
+    priority = {}
+    for item in _split_csv(value):
+        if ":" not in item:
+            continue
+        lang, rank = item.split(":", 1)
+        lang = lang.strip().lower()
+        try:
+            priority[lang] = int(rank.strip())
+        except ValueError:
+            continue
+    return priority if priority else dict(fallback)
+
+
+def _parse_path_list(value, fallback):
+    if not value:
+        return fallback
+    paths = []
+    for raw in str(value).splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        paths.append(os.path.expandvars(raw))
+    return tuple(paths) if paths else fallback
+
+
+def _resolve_config_path(path_value):
+    expanded = os.path.expandvars(path_value or "")
+    if not expanded:
+        return expanded
+    if os.path.isabs(expanded):
+        return expanded
+    return os.path.join(SCRIPT_DIR, expanded)
+
+
+def _config_get(config, section, option, fallback):
+    return config.get(section, option, fallback=str(fallback)).strip()
+
+
+def _config_get_int(config, section, option, fallback):
+    try:
+        return config.getint(section, option, fallback=fallback)
+    except ValueError:
+        return fallback
+
+
+def _config_get_float(config, section, option, fallback):
+    try:
+        return config.getfloat(section, option, fallback=fallback)
+    except ValueError:
+        return fallback
+
+
+def _config_get_bool(config, section, option, fallback):
+    try:
+        return config.getboolean(section, option, fallback=fallback)
+    except ValueError:
+        return fallback
+
+
+def load_config():
+    config = configparser.ConfigParser()
+    if os.path.exists(CONFIG_FILE):
+        try:
+            config.read(CONFIG_FILE, encoding="utf-8")
+        except Exception:
+            return config
+    return config
+
+
+def apply_config(config):
+    global SUPPORTED_EXTENSIONS, SUPPORTED_TEXT_EXTENSIONS
+    global LANG_SUFFIXES, LANG_SELECTION_PRIORITY
+    global VIRTUAL_VIDEO_COLOR, VIRTUAL_VIDEO_SIZE, VIRTUAL_VIDEO_DURATION, END_PADDING_SECONDS
+    global PAUSE_ON_LAUNCH, FORCE_WINDOW, RESUME_PLAYBACK
+    global BLACK_VIDEO_FILE, MPV_EXECUTABLE, MPV_FALLBACK_PATHS
+    global LOG_DIR, MPV_LOG_FILE, LAUNCH_LOG_FILE, MPV_CONF_READER_OVERRIDES
+    global READER_MAX_LINES_PER_BLOCK, READER_MAX_CHARS_PER_LINE, READER_MIN_BLOCKS
+    global READER_OPTIMAL_CHARACTERS_PER_SECOND, READER_OPTIMAL_WORDS_PER_MINUTE
+    global READER_MIN_CUE_SECONDS, READER_MAX_CUE_SECONDS, READER_MIN_DATE_SECONDS
+
+    SUPPORTED_EXTENSIONS = _parse_extensions(
+        _config_get(config, "input", "subtitle_extensions", ",".join(SUPPORTED_EXTENSIONS)),
+        SUPPORTED_EXTENSIONS,
+    )
+    SUPPORTED_TEXT_EXTENSIONS = _parse_extensions(
+        _config_get(config, "input", "text_extensions", ",".join(SUPPORTED_TEXT_EXTENSIONS)),
+        SUPPORTED_TEXT_EXTENSIONS,
+    )
+
+    LANG_SUFFIXES = tuple(lang.lower() for lang in _split_csv(
+        _config_get(config, "languages", "language_suffixes", ",".join(LANG_SUFFIXES))
+    )) or LANG_SUFFIXES
+    LANG_SELECTION_PRIORITY = _parse_priority_map(
+        _config_get(
+            config,
+            "languages",
+            "language_selection_priority",
+            ",".join(f"{lang}:{rank}" for lang, rank in LANG_SELECTION_PRIORITY.items()),
+        ),
+        LANG_SELECTION_PRIORITY,
+    )
+
+    MPV_EXECUTABLE = os.path.expandvars(_config_get(config, "paths", "mpv_executable", MPV_EXECUTABLE))
+    MPV_FALLBACK_PATHS = _parse_path_list(
+        config.get("paths", "mpv_fallback_paths", fallback=""),
+        MPV_FALLBACK_PATHS,
+    )
+    BLACK_VIDEO_FILE = _config_get(config, "paths", "black_video_file", BLACK_VIDEO_FILE)
+    LOG_DIR = _config_get(config, "paths", "log_dir", LOG_DIR)
+    MPV_LOG_FILE = _config_get(config, "paths", "mpv_log_file", MPV_LOG_FILE)
+    LAUNCH_LOG_FILE = _config_get(config, "paths", "launch_log_file", LAUNCH_LOG_FILE)
+
+    VIRTUAL_VIDEO_COLOR = _config_get(config, "player", "virtual_video_color", VIRTUAL_VIDEO_COLOR)
+    VIRTUAL_VIDEO_SIZE = _config_get(config, "player", "virtual_video_size", VIRTUAL_VIDEO_SIZE)
+    VIRTUAL_VIDEO_DURATION = _config_get_int(config, "player", "virtual_video_duration", VIRTUAL_VIDEO_DURATION)
+    END_PADDING_SECONDS = _config_get_float(config, "player", "end_padding_seconds", END_PADDING_SECONDS)
+    PAUSE_ON_LAUNCH = _config_get(config, "player", "pause_on_launch", PAUSE_ON_LAUNCH)
+    FORCE_WINDOW = _config_get(config, "player", "force_window", FORCE_WINDOW)
+    RESUME_PLAYBACK = _config_get(config, "player", "resume_playback", RESUME_PLAYBACK)
+
+    READER_MAX_LINES_PER_BLOCK = _config_get_int(config, "reader", "max_lines_per_block", READER_MAX_LINES_PER_BLOCK)
+    READER_MAX_CHARS_PER_LINE = _config_get_int(config, "reader", "max_chars_per_line", READER_MAX_CHARS_PER_LINE)
+    READER_MIN_BLOCKS = _config_get_int(config, "reader", "min_blocks", READER_MIN_BLOCKS)
+    READER_OPTIMAL_CHARACTERS_PER_SECOND = _config_get_float(config, "reader", "cps", READER_OPTIMAL_CHARACTERS_PER_SECOND)
+    READER_OPTIMAL_WORDS_PER_MINUTE = _config_get_float(config, "reader", "wpm", READER_OPTIMAL_WORDS_PER_MINUTE)
+    READER_MIN_CUE_SECONDS = _config_get_float(config, "reader", "min_cue_seconds", READER_MIN_CUE_SECONDS)
+    READER_MAX_CUE_SECONDS = _config_get_float(config, "reader", "max_cue_seconds", READER_MAX_CUE_SECONDS)
+    READER_MIN_DATE_SECONDS = _config_get_float(config, "reader", "min_date_seconds", READER_MIN_DATE_SECONDS)
+    MPV_CONF_READER_OVERRIDES = _config_get_bool(config, "reader", "mpv_conf_overrides", MPV_CONF_READER_OVERRIDES)
 
 
 def _find_mpv_conf():
@@ -133,8 +297,7 @@ def log_error_and_alert(error_msg):
     """
     Logs the error to a local file and displays a Windows MessageBox popup.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    log_path = os.path.join(script_dir, "sub_viewer_launch.log")
+    log_path = _resolve_config_path(LAUNCH_LOG_FILE)
     
     # Write to local log file
     try:
@@ -580,15 +743,33 @@ def get_mpv_log_path():
     """
     Keep mpv runtime logs out of user content folders.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    logs_dir = os.path.join(script_dir, "logs")
+    logs_dir = _resolve_config_path(LOG_DIR)
     os.makedirs(logs_dir, exist_ok=True)
-    return os.path.join(logs_dir, "mpv_sub_viewer.log")
+    return os.path.join(logs_dir, MPV_LOG_FILE)
+
+
+def resolve_mpv_executable():
+    if MPV_EXECUTABLE:
+        configured = _resolve_config_path(MPV_EXECUTABLE)
+        if os.path.exists(configured):
+            return configured
+
+    mpv_exe = shutil.which('mpv')
+    if mpv_exe:
+        return mpv_exe
+
+    for path in MPV_FALLBACK_PATHS:
+        expanded = os.path.expandvars(path)
+        if os.path.exists(expanded):
+            return expanded
+    return None
 
 
 def main():
     try:
-        _apply_reader_opts(_parse_kardenwort_reader_opts(_find_mpv_conf()))
+        apply_config(load_config())
+        if MPV_CONF_READER_OVERRIDES:
+            _apply_reader_opts(_parse_kardenwort_reader_opts(_find_mpv_conf()))
 
         if len(sys.argv) < 2:
             raise ValueError("No file provided. Drag and drop a subtitle/text file onto the script or shortcut.")
@@ -637,29 +818,17 @@ def main():
         # 4. Secondary track is already resolved above.
 
         # 5. Locate mpv executable robustly on the system
-        mpv_exe = shutil.which('mpv')
-        if not mpv_exe:
-            # Check standard fallback installation locations
-            fallback_paths = [
-                r"C:\mpv\mpv.exe",
-                r"C:\mpv\mpv-0.39.0-x86_64\mpv.exe",
-                r"C:\Program Files\mpv\mpv.exe",
-            ]
-            for path in fallback_paths:
-                if os.path.exists(path):
-                    mpv_exe = path
-                    break
+        mpv_exe = resolve_mpv_executable()
 
         if not mpv_exe:
             raise FileNotFoundError(
                 "Could not find the 'mpv' player. Please ensure it is installed\n"
                 "and either added to your system environment variables (PATH) or\n"
-                "installed at 'C:\\mpv\\mpv.exe'."
+                "configured via mpv_executable or mpv_fallback_paths in config.ini."
             )
 
         # 6. Build the mpv command using configuration values
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        black_video = os.path.join(script_dir, "black.mp4")
+        black_video = _resolve_config_path(BLACK_VIDEO_FILE)
         if os.path.exists(black_video):
             video_input = black_video
         else:
@@ -673,9 +842,12 @@ def main():
             f'--script-opts-append=kardenwort-anki_record_file={tsv_path}',
             f'--pause={PAUSE_ON_LAUNCH}',
             f'--log-file={log_path}',
-            '--force-window=yes',
-            '--no-resume-playback'
+            f'--force-window={FORCE_WINDOW}',
         ]
+        if RESUME_PLAYBACK.strip().lower() in ("no", "false", "0"):
+            cmd.append('--no-resume-playback')
+        else:
+            cmd.append(f'--resume-playback={RESUME_PLAYBACK}')
 
         # If secondary subtitles were found, load them as the secondary track
         if secondary_sub:
@@ -691,8 +863,8 @@ def main():
         # 8. Dynamically clip the timeline to match the subtitle length exactly
         last_end = get_last_sub_end(sub_path, VIRTUAL_VIDEO_DURATION)
         if last_end is not None and last_end > 0:
-            # Add a 2.0s padding for comfortable OSD breathing room at the end
-            cmd.append(f'--length={last_end + 2.0}')
+            # Add configured padding for comfortable OSD breathing room at the end
+            cmd.append(f'--length={last_end + END_PADDING_SECONDS}')
 
         # 9. Launch mpv normally so it gains foreground focus and detaches cleanly
         # Use CREATE_NO_WINDOW to prevent Windows Terminal or CMD from spawning a secondary black window
