@@ -1256,6 +1256,8 @@ def test_clean_subtitle_text():
     
     # Test markdown bold/italic removal
     assert st.clean_subtitle_text("**bold** and *italic* and __underline__ and _italic_") == "bold and italic and underline and italic"
+    assert st.clean_subtitle_text("Вы услышите новости всего раз.**") == "Вы услышите новости всего раз."
+    assert st.clean_subtitle_text("Вы услышите новости всего раз.**", clean_markdown=False) == "Вы услышите новости всего раз.**"
     
     # Test newlines replacement
     assert st.clean_subtitle_text("Line1\nLine2\r\nLine3\rLine4") == "Line1 Line2 Line3 Line4"
@@ -1603,4 +1605,3 @@ def test_process_file_merge_mode_missing_marker_fails(tmp_path, monkeypatch):
 
     assert ok is False
     assert not (tmp_path / "test_merge.ru.srt").exists()
-
