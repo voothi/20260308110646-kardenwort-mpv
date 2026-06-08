@@ -1228,13 +1228,15 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                 for list_idx, target_idx in enumerate(indices):
                     original_line = chunk_text_list[list_idx]
                     try:
+                        rescued_line = ""
                         if provider == "google":
-                            translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                            rescued_line = google_translate_v1(original_line, sl, tl, api_url).strip()
                         elif provider == "deepl":
-                            translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+                            rescued_line = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
                         elif provider == "ollama":
-                            translated_lines[target_idx] = ollama_translate(original_line, sl, tl, rescue_settings).strip()
-                        validate_translated_line(original_line, translated_lines[target_idx], list_idx)
+                            rescued_line = ollama_translate(original_line, sl, tl, rescue_settings).strip()
+                        validate_translated_line(original_line, rescued_line, list_idx)
+                        translated_lines[target_idx] = rescued_line
                         log_detail(f"Rescue translated line {target_idx + 1}: {translated_lines[target_idx][:60]!r}")
                     except Exception as rescue_err:
                         rescue_ok = False
