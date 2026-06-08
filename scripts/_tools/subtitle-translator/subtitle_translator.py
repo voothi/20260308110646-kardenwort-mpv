@@ -1037,6 +1037,24 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
     min_ratio = float(settings.get("subtitle_translator_word_count_min_ratio", "0.25"))
     max_ratio = float(settings.get("subtitle_translator_word_count_max_ratio", "3.5"))
 
+    def validate_translated_line(orig_line: str, trans_line: str, line_idx: int) -> None:
+        if not trans_line.strip():
+            raise ValueError(f"Empty line returned for non-empty source at line index {line_idx}")
+
+        if word_count_check:
+            orig_words = len(orig_line.split())
+            trans_words = len(trans_line.split())
+            if orig_words > 0:
+                # Allow an absolute word count difference of up to 5 words,
+                # otherwise verify the ratio is within the limits.
+                if abs(orig_words - trans_words) > 5:
+                    ratio = trans_words / orig_words
+                    if ratio < min_ratio or ratio > max_ratio:
+                        raise ValueError(
+                            f"Word count mismatch at line {line_idx}: original has {orig_words} words, "
+                            f"translated has {trans_words} words (ratio {ratio:.2f} outside [{min_ratio}, {max_ratio}])"
+                        )
+
     chunks = []
     if chunk_size > 0:
         chunk = []
@@ -1177,23 +1195,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
 
                     # Validate empty holes / line integrity and word counts
                     for i, orig_line in enumerate(chunk_text_list):
-                        trans_line = translated_chunk_lines[i]
-                        if not trans_line.strip():
-                            raise ValueError(f"Empty line returned for non-empty source at line index {i}")
-                        
-                        if word_count_check:
-                            orig_words = len(orig_line.split())
-                            trans_words = len(trans_line.split())
-                            if orig_words > 0:
-                                # Allow an absolute word count difference of up to 5 words,
-                                # otherwise verify the ratio is within the limits.
-                                if abs(orig_words - trans_words) > 5:
-                                    ratio = trans_words / orig_words
-                                    if ratio < min_ratio or ratio > max_ratio:
-                                        raise ValueError(
-                                            f"Word count mismatch at line {i}: original has {orig_words} words, "
-                                            f"translated has {trans_words} words (ratio {ratio:.2f} outside [{min_ratio}, {max_ratio}])"
-                                        )
+                        validate_translated_line(orig_line, translated_chunk_lines[i], i)
 
                     # Write results
                     for list_idx, target_idx in enumerate(indices):
@@ -1232,8 +1234,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                             translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
                         elif provider == "ollama":
                             translated_lines[target_idx] = ollama_translate(original_line, sl, tl, rescue_settings).strip()
-                        if not translated_lines[target_idx]:
-                            raise ValueError("Empty result from rescue translation")
+                        validate_translated_line(original_line, translated_lines[target_idx], list_idx)
                         log_detail(f"Rescue translated line {target_idx + 1}: {translated_lines[target_idx][:60]!r}")
                     except Exception as rescue_err:
                         rescue_ok = False

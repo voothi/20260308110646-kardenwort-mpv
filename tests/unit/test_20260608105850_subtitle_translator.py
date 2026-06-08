@@ -529,9 +529,9 @@ def test_translate_lines_word_count_check(monkeypatch):
 
     # "Hello" is 1 word, the mock translation is 17 words. This exceeds absolute diff of 5 and max_ratio of 2.0.
     lines = ["Hello"]
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(st.ChunkValidationError) as exc_info:
         st.translate_lines(lines, "en", "ru", settings)
-    assert "Chunk validation failed" in str(exc_info.value)
+    assert "rescue pass failed" in str(exc_info.value)
 
     # Case 2: Translation is within absolute difference tolerance (<= 5 words diff) even if ratio is high
     # "Hello" is 1 word, mock returns "Привет дорогой друг" (3 words). Absolute diff is 2, which is <= 5, so it should pass.
@@ -1485,7 +1485,6 @@ def test_process_file_merge_mode(tmp_path, monkeypatch):
     # Find the translated text lines (not numbers, not timecodes, not empty)
     text_lines = [l for l in lines if l and not l.isdigit() and "-->" not in l]
     assert len(text_lines) == 3  # 3 subtitle blocks each get a text line
-
 
 
 
