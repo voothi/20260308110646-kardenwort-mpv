@@ -646,10 +646,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     source_lang = lang if lang else settings["subtitle_translator_source_language"]
 
     # 3. ZID archiving renaming logic
+    source_had_zid = bool(zid)
     rename_source_with_zid = settings.get("subtitle_translator_rename_source_with_zid", "true").lower() == "true"
     if not zid:
-        zid = get_current_zid()
         if rename_source_with_zid:
+            zid = get_current_zid()
             new_name = f"{zid}-{clean_title}.{source_lang}.{ext}"
             new_path = file_path.parent / new_name
             try:
@@ -715,7 +716,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             log_skip(f"Target language '{tl}' is the same as source language. Skipping.")
             continue
             
-        target_name = f"{zid}-{clean_title}.{tl}.{ext}"
+        target_prefix = f"{zid}-" if source_had_zid or rename_source_with_zid else ""
+        target_name = f"{target_prefix}{clean_title}.{tl}.{ext}"
         target_path = file_path.parent / target_name
         
         # Idempotency / duplicate check
