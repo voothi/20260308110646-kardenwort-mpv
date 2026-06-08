@@ -242,12 +242,16 @@ def normalize_media_title(title: str) -> str:
     """Normalizes a media title for related-file matching."""
     return re.sub(r'[^a-z0-9]+', '', title.lower())
 
-def find_related_media(folder: Path, clean_title: str) -> Optional[Path]:
-    """Finds a media file in the same folder with the same or equivalent clean title."""
-    for ext in RELATED_MEDIA_EXTENSIONS:
-        exact_path = folder / f"{clean_title}.{ext}"
-        if exact_path.exists():
-            return exact_path
+def find_related_media_files(folder: Path, clean_title: str) -> List[Path]:
+    """Finds related media files in the same folder with the same or equivalent clean title."""
+    matches: List[Path] = []
+    seen = set()
+
+    def add_match(candidate: Path):
+        candidate_key = str(candidate).lower()
+        if candidate_key not in seen:
+            seen.add(candidate_key)
+            matches.append(candidate)
 
     try:
         candidates = [
@@ -260,46 +264,51 @@ def find_related_media(folder: Path, clean_title: str) -> Optional[Path]:
         for candidate in candidates:
             _zid, candidate_title, _lang, _ext = parse_filename(candidate)
             if candidate_title == clean_title:
-                return candidate
+                add_match(candidate)
 
         for candidate in candidates:
             _zid, candidate_title, _lang, _ext = parse_filename(candidate)
             if normalize_media_title(candidate_title) == normalized_clean_title:
-                return candidate
+                add_match(candidate)
 
-        if len(candidates) == 1:
+        if not matches and len(candidates) == 1:
             log_detail(f"Using the only media file in folder as related file: {candidates[0].name}")
-            return candidates[0]
+            add_match(candidates[0])
     except Exception:
         pass
 
-    return None
+    return matches
 
 def rename_related_media_with_zid(folder: Path, clean_title: str, zid: str) -> bool:
-    """Adds the given ZID to the matching media file, unless it already has a ZID."""
-    related_path = find_related_media(folder, clean_title)
-    if not related_path:
+    """Adds the given ZID to matching media files, unless they already have a ZID."""
+    related_paths = find_related_media_files(folder, clean_title)
+    if not related_paths:
         log_detail(f"No related media file found for: {clean_title}")
         return True
 
-    related_zid, related_title, _lang, related_ext = parse_filename(related_path)
-    if related_zid:
-        log_info(f"Related media file already has ZID; leaving unchanged: {related_path.name}")
-        return True
+    for related_path in related_paths:
+        related_zid, related_title, related_lang, related_ext = parse_filename(related_path)
+        if related_zid:
+            log_info(f"Related media file already has ZID; leaving unchanged: {related_path.name}")
+            continue
 
-    new_name = f"{zid}-{related_title}.{related_ext}"
-    new_path = related_path.parent / new_name
-    if new_path.exists():
-        log_error(f"Cannot rename related media file; target already exists: {new_name}")
-        return False
+        related_stem = related_title
+        if related_lang:
+            related_stem = f"{related_stem}.{related_lang}"
+        new_name = f"{zid}-{related_stem}.{related_ext}"
+        new_path = related_path.parent / new_name
+        if new_path.exists():
+            log_error(f"Cannot rename related media file; target already exists: {new_name}")
+            return False
 
-    try:
-        related_path.rename(new_path)
-        log_info(f"Renamed related media file to include ZID: {new_name}")
-        return True
-    except Exception as e:
-        log_error(f"Failed to rename related media file to include ZID: {e}")
-        return False
+        try:
+            related_path.rename(new_path)
+            log_info(f"Renamed related media file to include ZID: {new_name}")
+        except Exception as e:
+            log_error(f"Failed to rename related media file to include ZID: {e}")
+            return False
+
+    return True
 
 # ==============================================================================
 # SRT & TXT PARSERS
