@@ -456,9 +456,9 @@ def test_translate_lines_validation_failure_crash(monkeypatch):
     assert "Chunk validation failed after 3 attempts" in str(exc_info.value)
     # ChunkValidationError must carry partial_lines
     assert hasattr(exc_info.value, "partial_lines")
-    # Lines not translated must fall back to original source text
-    assert exc_info.value.partial_lines[0] == "Hello"
-    assert exc_info.value.partial_lines[1] == "World"
+    # Failed lines must be empty strings, not original source text
+    assert exc_info.value.partial_lines[0] == ""
+    assert exc_info.value.partial_lines[1] == ""
 
 
 def test_translate_lines_word_count_check(monkeypatch):
@@ -544,10 +544,10 @@ def test_process_file_partial_save(tmp_path, monkeypatch):
     source_file.write_text(srt_content, encoding="utf-8")
 
     def mock_translate(lines, sl, tl, settings):
-        """Always raise ChunkValidationError with partial data (first line translated, rest original)."""
+        """First line translated; lines 2-3 failed (empty strings = blank subtitles)."""
         raise st.ChunkValidationError(
             "Chunk validation failed after 3 attempts for lines 2 to 3.",
-            ["Привет", "World", "Goodbye"]  # first translated, rest kept as source
+            ["Привет", "", ""]  # first translated, failed chunks are blank
         )
 
     monkeypatch.setattr(st, "translate_lines", mock_translate)
@@ -568,8 +568,11 @@ def test_process_file_partial_save(tmp_path, monkeypatch):
     target_file = tmp_path / "20260608000000-test.ru.srt"
     assert target_file.exists()
     content = target_file.read_text(encoding="utf-8")
-    # First translated subtitle should be in Russian
+    # First translated subtitle must be in Russian
     assert "Привет" in content
-    # Remaining untranslated subtitles fall back to original English
-    assert "World" in content
-    assert "Goodbye" in content
+    # Failed chunks must NOT contain original English text
+    assert "World" not in content
+    assert "Goodbye" not in content
+    # Timecodes for all blocks must still be present
+    assert "00:00:02,000 --> 00:00:03,000" in content
+    assert "00:00:03,000 --> 00:00:04,000" in content

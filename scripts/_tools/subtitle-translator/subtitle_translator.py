@@ -608,12 +608,8 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                 lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
                 msg = f"Chunk validation failed after {max_retries} attempts for {lines_range_str}."
                 log_error(f"{_bold(msg)} Stopping translation.")
-                # Fill untranslated positions with original source text as fallback
-                partial = list(translated_lines)
-                for idx, orig in enumerate(lines):
-                    if not partial[idx] and orig.strip():
-                        partial[idx] = orig
-                raise ChunkValidationError(msg, partial)
+                # Failed chunks stay as empty strings — blank subtitles in the output
+                raise ChunkValidationError(msg, list(translated_lines))
 
         # Update progress bar
         translated_count = min(translated_count + len(chunk_text_list), total_non_empty)

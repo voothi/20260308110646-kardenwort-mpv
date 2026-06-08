@@ -55,7 +55,7 @@ subtitle_translator_word_count_min_ratio = 0.25
 subtitle_translator_word_count_max_ratio = 3.5
 
 # When enabled, if chunk validation fails after all retries, the completed chunks
-# are saved to the target file (untranslated lines keep their original source text).
-# Respects subtitle_translator_duplicate_mode (skip/overwrite/archive) when a
-# target file already exists.
+# are saved to the target file. Failed chunks produce blank subtitle text (timecodes
+# are preserved, text is empty). Respects subtitle_translator_duplicate_mode
+# (skip/overwrite/archive) when a target file already exists.
 subtitle_translator_save_partial_on_failure = false
