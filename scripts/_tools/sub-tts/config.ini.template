@@ -1,8 +1,11 @@
 [paths]
-# ============================================================================
+
+# ==============================================================================
+# External Tools
+# ==============================================================================
+
 # All paths can be absolute or relative to the sub-tts directory.
 # Use forward slashes (/) for paths, even on Windows.
-# ============================================================================
 
 # Full path to the root of the piper-tts project.
 # This directory must contain piper_tts.py and a valid config.ini.
@@ -20,9 +23,31 @@ zid_script = U:/voothi/20241116203211-zid/zid.py
 
 
 [tts_settings]
+
+# ==============================================================================
+# Language and Output Naming
+# ==============================================================================
+
 # The default language to use when no language postfix is found in the filename.
 # Must match a language code supported by the Piper TTS config.ini (e.g., en, de, ru).
 default_lang = en
+
+# Prioritized list of languages (comma-separated) to treat as the primary/timeline
+# source of truth. When processing multiple files, the file matching the highest
+# priority language present is processed first to establish the canonical timeline.
+# Supports regional/locale suffixes (e.g. 'en_US' or 'en-US' will match 'en').
+# Fallback: defaults to the 'default_lang' setting if empty.
+primary_languages = en, de
+
+# Keep the language postfix in the output MP4 filename (e.g. video.de.mp4 instead
+# of video.mp4) in accordance with the postfix in the SRT file.
+# Note: config.ini (the live config) may differ - check it for the active setting.
+keep_lang_postfix = false
+
+
+# ==============================================================================
+# Duplicate Handling
+# ==============================================================================
 
 # How to handle output filename duplicates. Applies to both the .mp4 output and,
 # on a name collision, the synced .srt companion (so the two never disagree).
@@ -35,11 +60,10 @@ default_lang = en
 # overwrite: overwrite the existing output file (and the source SRT in place).
 duplicate_mode = zid-dir
 
-# Keep the language postfix in the output MP4 filename (e.g. video.de.mp4 instead
-# of video.mp4) in accordance with the postfix in the SRT file.
-# Note: config.ini (the live config) may differ — check it for the active setting.
-keep_lang_postfix = false
 
+# ==============================================================================
+# Timeline Strategy
+# ==============================================================================
 
 # Defines what dictates the final timeline (the source of truth). A single enum
 # that also encodes the former shift/fallback booleans, so every value is
@@ -61,15 +85,6 @@ keep_lang_postfix = false
 #                                      avoid re-synthesizing the canonical track.
 timeline_source = primary_subtitle
 
-
-# Prioritized list of languages (comma-separated) to treat as the primary/timeline
-# source of truth. When processing multiple files, the file matching the highest
-# priority language present is processed first to establish the canonical timeline.
-# Supports regional/locale suffixes (e.g. 'en_US' or 'en-US' will match 'en').
-# Fallback: defaults to the 'default_lang' setting if empty.
-primary_languages = en, de
-
-
 # Reuse the canonical track's existing output instead of regenerating it: if the
 # canonical media (e.g. video.mp4 / video.de.mp4 / .mp3) already exists, skip its
 # assembly and muxing; if it does NOT exist, generate it anyway. The canonical
@@ -82,6 +97,17 @@ reuse_canonical_output = false
 # canonical file's output is reused rather than regenerated.
 auto_discover_canonical = true
 
+# If true, delete the .shift_plan.json sidecar file(s) after a fully successful run.
+# The sidecar is only needed to skip re-synthesizing the canonical track on a
+# separate subsequent invocation (primary_audio modes). If you always process all
+# languages together in a single run, set this to true to keep the directory clean.
+# Default: false
+cleanup_sidecar_on_success = false
+
+
+# ==============================================================================
+# Timing and Audio Quality
+# ==============================================================================
 
 # Optional VAD-like pause compression before tempo adjustment.
 vad_silence_compression = false
@@ -100,13 +126,9 @@ max_extra_gap_ms = 1000
 max_speed_factor = 2.0
 
 
-# If true, delete the .shift_plan.json sidecar file(s) after a fully successful run.
-# The sidecar is only needed to skip re-synthesizing the canonical track on a
-# separate subsequent invocation (primary_audio modes). If you always process all
-# languages together in a single run, set this to true to keep the directory clean.
-# Default: false
-cleanup_sidecar_on_success = false
-
+# ==============================================================================
+# Console
+# ==============================================================================
 
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
 # Set to 0 to close instantly; ignored on errors so they can be inspected.
@@ -115,12 +137,15 @@ cleanup_sidecar_on_success = false
 
 
 [lang_aliases]
-# ============================================================================
+
+# ==============================================================================
+# Language Aliases
+# ==============================================================================
+
 # Optional: Map subtitle filename postfixes to Piper language codes.
 # Format: <postfix> = <language_code>
 # These override the built-in alias table.
 # The built-in table already handles: eng -> en, ger -> de, rus -> ru
-# ============================================================================
 # eng = en
 # ger = de
 # rus = ru
