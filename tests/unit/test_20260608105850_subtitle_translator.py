@@ -853,7 +853,7 @@ def test_translate_lines_ollama_retry_with_salt(monkeypatch):
     }
 
     attempts = []
-    def mock_ollama_translate(text, sl, tl, s, salt=""):
+    def mock_ollama_translate(text, sl, tl, s, salt="", feedback=""):
         attempts.append(salt)
         if len(attempts) < 3:
             return ""
@@ -866,6 +866,40 @@ def test_translate_lines_ollama_retry_with_salt(monkeypatch):
     res = st.translate_lines(lines, "en", "ru", settings)
     assert res == ["Привет", "Мир"]
     assert attempts == ["", "Make it much better", "Make it much, much better"]
+
+
+def test_translate_lines_ollama_retry_with_feedback(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "subtitle_translator_provider": "ollama",
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+        "ollama_prompt_salt": "Make it [much] better",
+        "ollama_prompt_feedback": "true",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "3",
+    }
+
+    calls = []
+    def mock_ollama_translate(text, sl, tl, s, salt="", feedback=""):
+        calls.append((salt, feedback))
+        if len(calls) == 1:
+            return "Привет"  # triggers line count mismatch validation error
+        return "Привет\nМир"
+
+    monkeypatch.setattr(st, "ollama_translate", mock_ollama_translate)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    lines = ["Hello", "World"]
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["Привет", "Мир"]
+    
+    assert len(calls) == 2
+    assert calls[0] == ("", "")
+    assert calls[1][0] == "Make it much better"
+    assert "Line count mismatch" in calls[1][1]
+
 
 
 

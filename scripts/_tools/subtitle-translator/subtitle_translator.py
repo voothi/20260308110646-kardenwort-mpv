@@ -163,7 +163,8 @@ def load_config():
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
-        "ollama_prompt_salt": "Make it [much] better",
+        "ollama_prompt_salt": "false",
+        "ollama_prompt_feedback": "false",
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
         "subtitle_translator_word_count_check": "false",
@@ -527,7 +528,7 @@ def deepl_translate_v2(lines: List[str], sl: str, tl: str, settings: dict) -> Li
     except Exception as e:
         raise Exception(f"DeepL Translate request failed: {e}")
 
-def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = "") -> str:
+def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = "", feedback: str = "") -> str:
     """Ollama API caller."""
     api_url = settings.get("ollama_api_url", "").strip()
     model = settings.get("ollama_model", "").strip()
@@ -542,6 +543,10 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
         if not prompt.endswith('.'):
             prompt = prompt.rstrip() + "."
         prompt = f"{prompt} {salt}."
+    if feedback:
+        if not prompt.endswith('.'):
+            prompt = prompt.rstrip() + "."
+        prompt = f"{prompt} {feedback}."
     full_prompt = f"{prompt}\n\n{text}"
 
     is_chat = ("/v1/chat/completions" in api_url or "/chat" in api_url)
@@ -706,6 +711,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
         else:
             # New validation and retry loop
             success = False
+            last_error = ""
             for attempt in range(1, max_retries + 1):
                 try:
                     translated_chunk_lines = []
@@ -721,7 +727,10 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                     elif provider == "ollama":
                         joined_text = "\n".join(chunk_text_list)
                         salt = get_prompt_salt(settings.get("ollama_prompt_salt", ""), attempt)
-                        translated_joined = ollama_translate(joined_text, sl, tl, settings, salt)
+                        feedback = ""
+                        if last_error and settings.get("ollama_prompt_feedback", "false").lower() == "true":
+                            feedback = f"[Feedback from previous attempt: {last_error}]"
+                        translated_joined = ollama_translate(joined_text, sl, tl, settings, salt, feedback)
                         translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
                         translated_chunk_lines = translated_joined.split('\n')
                         if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
@@ -761,6 +770,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         clear_line()
                     lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
                     log_warn(f"Chunk validation failed for {lines_range_str} on attempt {attempt}/{max_retries}: {e}")
+                    last_error = str(e)
                     if attempt < max_retries:
                         time.sleep(1)
 
@@ -1005,6 +1015,7 @@ def main():
         print(f"  {_dim('·')} Model:          {_cyan(settings.get('ollama_model', ''))}")
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('ollama_api_url', ''))}")
         print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'Make it [much] better'))}")
+        print(f"  {_dim('·')} Prompt Feedback:{_cyan(settings.get('ollama_prompt_feedback', 'true'))}")
     elif provider == "deepl":
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('deepl_api_url', ''))}")
         print(f"  {_dim('·')} Formality:      {_cyan(settings.get('deepl_formality', 'default'))}")
