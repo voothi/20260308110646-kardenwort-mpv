@@ -688,7 +688,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     # 2. Resolve source language
     source_lang = lang if lang else settings["subtitle_translator_source_language"]
 
-    # 3. ZID archiving renaming logic
+    # 3. Source ZID renaming logic
     source_had_zid = bool(zid)
     rename_source_with_zid = settings.get("subtitle_translator_rename_source_with_zid", "true").lower() == "true"
     rename_companion_mp4_with_zid_enabled = settings.get("subtitle_translator_rename_companion_mp4_with_zid", "false").lower() == "true"
@@ -705,7 +705,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                     return False
             try:
                 file_path.rename(new_path)
-                log_info(f"Archived source file to: {new_name}")
+                log_info(f"Renamed source file to include ZID: {new_name}")
                 file_path = new_path
                 renamed_source = True
             except Exception as e:
