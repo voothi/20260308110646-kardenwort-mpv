@@ -66,6 +66,10 @@ ollama_prompt_salt = false
 # Highly recommended for small models (like gemma3:1b) to prevent line count mismatches.
 # Set to "false" to disable.
 ollama_json_format = false
+# JSON prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
+ollama_json_prompt = Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble.
+# Template for error feedback on retries. Must contain the {last_error} placeholder.
+ollama_prompt_feedback_template = [Feedback from previous attempt: {last_error}]
 
 # --- Chunk Validation Settings ---
 # Translate and validate subtitles in chunks of this size (e.g. 5).

@@ -877,6 +877,7 @@ def test_translate_lines_ollama_retry_with_feedback(monkeypatch):
         "ollama_prompt": "Translate {source_lang} to {target_lang}.",
         "ollama_prompt_salt": "Make it [much] better",
         "ollama_prompt_feedback": "true",
+        "ollama_prompt_feedback_template": "Error detail: {last_error}",
         "subtitle_translator_chunk_size": "2",
         "subtitle_translator_max_retries": "3",
     }
@@ -898,7 +899,7 @@ def test_translate_lines_ollama_retry_with_feedback(monkeypatch):
     assert len(calls) == 2
     assert calls[0] == ("", "")
     assert calls[1][0] == "Make it much better"
-    assert "Line count mismatch" in calls[1][1]
+    assert calls[1][1] == "Error detail: Line count mismatch (expected 2, got 1)"
 
 
 def test_ollama_translate_structured_success(monkeypatch):

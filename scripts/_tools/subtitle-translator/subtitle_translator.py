@@ -37,6 +37,9 @@ VALID_DUPLICATE_MODES = ("skip", "overwrite", "archive")
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
 
+DEFAULT_OLLAMA_JSON_PROMPT = "Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble."
+DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE = "[Feedback from previous attempt: {last_error}]"
+
 # ==============================================================================
 # CONSOLE OUTPUT HELPERS (Pip/youtube-downloader style)
 # ==============================================================================
@@ -166,7 +169,8 @@ def load_config():
         "ollama_prompt_salt": "false",
         "ollama_prompt_feedback": "false",
         "ollama_json_format": "false",
-        "ollama_json_prompt": "Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble.",
+        "ollama_json_prompt": DEFAULT_OLLAMA_JSON_PROMPT,
+        "ollama_prompt_feedback_template": DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE,
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
         "subtitle_translator_word_count_check": "false",
@@ -539,10 +543,7 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
     is_chunk = "\n" in text
 
     if json_enabled and is_chunk:
-        prompt_template = settings.get(
-            "ollama_json_prompt",
-            "Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble."
-        ).strip()
+        prompt_template = settings.get("ollama_json_prompt", DEFAULT_OLLAMA_JSON_PROMPT).strip()
         
         lines = text.split("\n")
         input_data = [{"id": idx, "text": line} for idx, line in enumerate(lines, 1)]
@@ -782,7 +783,8 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         salt = get_prompt_salt(settings.get("ollama_prompt_salt", ""), attempt)
                         feedback = ""
                         if last_error and settings.get("ollama_prompt_feedback", "false").lower() == "true":
-                            feedback = f"[Feedback from previous attempt: {last_error}]"
+                            template = settings.get("ollama_prompt_feedback_template", DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE)
+                            feedback = template.format(last_error=last_error)
                         translated_joined = ollama_translate(joined_text, sl, tl, settings, salt, feedback)
                         translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
                         translated_chunk_lines = translated_joined.split('\n')
