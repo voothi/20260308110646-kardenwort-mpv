@@ -909,6 +909,7 @@ def test_ollama_translate_structured_success(monkeypatch):
         "ollama_model": "llama3",
         "ollama_prompt": "Translate {source_lang} to {target_lang}.",
         "ollama_json_format": "true",
+        "ollama_json_schema": "array_of_objects",
         "ollama_json_prompt": "Translate JSON {source_lang} to {target_lang}.",
     }
     mock_response_data = {"response": '[{"id": 1, "text": "Привет"}, {"id": 2, "text": "Мир"}]'}
@@ -987,6 +988,7 @@ def test_ollama_translate_structured_duplicate_keys_regex_fallback(monkeypatch):
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_json_format": "true",
+        "ollama_json_schema": "array_of_objects",
     }
     # Duplicate keys: standard json.loads parses this as a single dict with 1 text item,
     # but the regex fallback correctly finds all 2 items!
@@ -1013,6 +1015,7 @@ def test_ollama_translate_structured_markdown_fences(monkeypatch):
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_json_format": "true",
+        "ollama_json_schema": "array_of_objects",
     }
     # Response wrapped in markdown fences with extra preamble text
     response_payload = (
@@ -1034,6 +1037,102 @@ def test_ollama_translate_structured_markdown_fences(monkeypatch):
             pass
 
     monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: MockResponse())
+    res = st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert res == "Привет\nМир"
+
+
+def test_ollama_translate_structured_strings_success(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_json_format": "true",
+        "ollama_json_schema": "array_of_strings",
+    }
+    mock_response_data = {"response": '["Привет", "Мир"]'}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["format"] == "json"
+        expected_prompt = (
+            "Translate the JSON array of strings from en to ru.\n"
+            "Output format must be a JSON array of strings.\n\n"
+            "Example input:\n"
+            "[\n"
+            "  \"Hello\",\n"
+            "  \"World\"\n"
+            "]\n\n"
+            "Example output:\n"
+            "[\n"
+            "  \"Привет\",\n"
+            "  \"Мир\"\n"
+            "]\n\n"
+            "Input:\n\n"
+            '["Hello", "World"]'
+        )
+        assert body["prompt"] == expected_prompt
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+    res = st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert res == "Привет\nМир"
+
+
+def test_ollama_translate_structured_dict_success(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_json_format": "true",
+        "ollama_json_schema": "dict_of_strings",
+    }
+    mock_response_data = {"response": '{"translations": ["Привет", "Мир"]}'}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["format"] == "json"
+        expected_prompt = (
+            "Translate the JSON array of strings under the 'source' key from en to ru.\n"
+            "Output format must be a JSON object with a single 'translations' key containing the translated JSON array of strings.\n\n"
+            "Example input:\n"
+            "{\n"
+            "  \"source\": [\n"
+            "    \"Hello\",\n"
+            "    \"World\"\n"
+            "  ]\n"
+            "}\n\n"
+            "Example output:\n"
+            "{\n"
+            "  \"translations\": [\n"
+            "    \"Привет\",\n"
+            "    \"Мир\"\n"
+            "  ]\n"
+            "}\n\n"
+            "Input:\n\n"
+            '{"source": ["Hello", "World"]}'
+        )
+        assert body["prompt"] == expected_prompt
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
     res = st.ollama_translate("Hello\nWorld", "en", "ru", settings)
     assert res == "Привет\nМир"
 

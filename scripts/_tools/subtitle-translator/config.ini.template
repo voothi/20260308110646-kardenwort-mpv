@@ -53,7 +53,7 @@ ollama_api_url = http://localhost:11434/api/generate
 # Model name to use
 ollama_model = llama3
 # Prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
-ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
+ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Stick strictly to {target_lang} (Russian) and do not use words from any other language. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
 # Unique prompt addition (salt) template on retry attempts to help models recover.
 # Put the repeating portion in square brackets, e.g., Make it [MUCH] better! or Сделай [НАМНОГО] лучше!.
 # Example: Make it [much] better -> Make it much, much better (on attempt 3).
@@ -66,8 +66,10 @@ ollama_prompt_salt = false
 # Highly recommended for small models (like gemma3:1b) to prevent line count mismatches.
 # Set to "false" to disable.
 ollama_json_format = false
+# Schema format to use for structured JSON: dict_of_strings (recommended, object with array), array_of_strings (simple list) or array_of_objects (legacy id/text format).
+ollama_json_schema = dict_of_strings
 # JSON prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
-ollama_json_prompt = Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble.
+ollama_json_prompt = Translate the JSON array of strings under the 'source' key from {source_lang} to {target_lang}. Output ONLY a JSON object with a single 'translations' key containing the translated JSON array of strings, without any markdown formatting, code block markers, explanations, or preamble.
 # Template for error feedback on retries. Must contain the {last_error} placeholder.
 ollama_prompt_feedback_template = [Feedback from previous attempt: {last_error}]
 

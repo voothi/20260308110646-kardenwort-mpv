@@ -37,7 +37,7 @@ VALID_DUPLICATE_MODES = ("skip", "overwrite", "archive")
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
 
-DEFAULT_OLLAMA_JSON_PROMPT = "Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble."
+DEFAULT_OLLAMA_JSON_PROMPT = "Translate the JSON array of strings from {source_lang} to {target_lang}. Output ONLY the translated JSON array of strings, without any markdown formatting, code block markers, explanations, or preamble."
 DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE = "[Feedback from previous attempt: {last_error}]"
 
 # ==============================================================================
@@ -169,6 +169,7 @@ def load_config():
         "ollama_prompt_salt": "false",
         "ollama_prompt_feedback": "false",
         "ollama_json_format": "false",
+        "ollama_json_schema": "dict_of_strings",
         "ollama_json_prompt": DEFAULT_OLLAMA_JSON_PROMPT,
         "ollama_prompt_feedback_template": DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE,
         "subtitle_translator_chunk_size": "5",
@@ -543,10 +544,71 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
     is_chunk = "\n" in text
 
     if json_enabled and is_chunk:
-        prompt_template = settings.get("ollama_json_prompt", DEFAULT_OLLAMA_JSON_PROMPT).strip()
+        prompt_template = settings.get("ollama_json_prompt", "").strip()
+        schema = settings.get("ollama_json_schema", "dict_of_strings").strip().lower()
         
+        if not prompt_template or prompt_template == DEFAULT_OLLAMA_JSON_PROMPT:
+            if schema == "dict_of_strings":
+                prompt_template = (
+                    "Translate the JSON array of strings under the 'source' key from {source_lang} to {target_lang}.\n"
+                    "Output format must be a JSON object with a single 'translations' key containing the translated JSON array of strings.\n\n"
+                    "Example input:\n"
+                    "{{\n"
+                    "  \"source\": [\n"
+                    "    \"Hello\",\n"
+                    "    \"World\"\n"
+                    "  ]\n"
+                    "}}\n\n"
+                    "Example output:\n"
+                    "{{\n"
+                    "  \"translations\": [\n"
+                    "    \"Привет\",\n"
+                    "    \"Мир\"\n"
+                    "  ]\n"
+                    "}}\n\n"
+                    "Input:"
+                )
+            elif schema == "array_of_objects":
+                prompt_template = (
+                    "Translate the 'text' fields in the JSON array of objects from {source_lang} to {target_lang}.\n"
+                    "Output format must be a JSON array of objects with the same 'id' and 'text' keys.\n\n"
+                    "Example input:\n"
+                    "[\n"
+                    "  {{\"id\": 1, \"text\": \"Hello\"}},\n"
+                    "  {{\"id\": 2, \"text\": \"World\"}}\n"
+                    "]\n\n"
+                    "Example output:\n"
+                    "[\n"
+                    "  {{\"id\": 1, \"text\": \"Привет\"}},\n"
+                    "  {{\"id\": 2, \"text\": \"Мир\"}}\n"
+                    "]\n\n"
+                    "Input:"
+                )
+            else:
+                prompt_template = (
+                    "Translate the JSON array of strings from {source_lang} to {target_lang}.\n"
+                    "Output format must be a JSON array of strings.\n\n"
+                    "Example input:\n"
+                    "[\n"
+                    "  \"Hello\",\n"
+                    "  \"World\"\n"
+                    "]\n\n"
+                    "Example output:\n"
+                    "[\n"
+                    "  \"Привет\",\n"
+                    "  \"Мир\"\n"
+                    "]\n\n"
+                    "Input:"
+                )
+
         lines = text.split("\n")
-        input_data = [{"id": idx, "text": line} for idx, line in enumerate(lines, 1)]
+        use_objects = (schema == "array_of_objects" or "text" in prompt_template.lower() or "id" in prompt_template.lower())
+        if use_objects:
+            input_data = [{"id": idx, "text": line} for idx, line in enumerate(lines, 1)]
+        elif schema == "dict_of_strings":
+            input_data = {"source": lines}
+        else:
+            input_data = lines
         serialized_input = json.dumps(input_data, ensure_ascii=False)
         full_text_to_send = serialized_input
     else:
@@ -603,21 +665,27 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
                 response_text = resp_data.get("response", "").strip()
                 
             if json_enabled and is_chunk:
-                # Extract JSON from potential Markdown formatting
+                # Extract JSON from potential Markdown formatting or conversational text
                 cleaned_response = response_text.strip()
-                match = re.search(r'```json\s*(.*?)\s*```', cleaned_response, re.DOTALL)
-                if match:
-                    cleaned_response = match.group(1).strip()
-                else:
-                    match = re.search(r'```\s*(.*?)\s*```', cleaned_response, re.DOTALL)
-                    if match:
-                        cleaned_response = match.group(1).strip()
-                    else:
-                        if cleaned_response.startswith("```json"):
-                            cleaned_response = cleaned_response[7:]
-                        if cleaned_response.endswith("```"):
-                            cleaned_response = cleaned_response[:-3]
-                        cleaned_response = cleaned_response.strip()
+                
+                # Find the first and last occurrence of curly braces or brackets
+                first_curly = cleaned_response.find('{')
+                last_curly = cleaned_response.rfind('}')
+                first_bracket = cleaned_response.find('[')
+                last_bracket = cleaned_response.rfind(']')
+                
+                start_idx = -1
+                end_idx = -1
+                
+                if first_curly != -1 and (first_bracket == -1 or first_curly < first_bracket):
+                    start_idx = first_curly
+                    end_idx = last_curly
+                elif first_bracket != -1:
+                    start_idx = first_bracket
+                    end_idx = last_bracket
+                    
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    cleaned_response = cleaned_response[start_idx:end_idx + 1].strip()
 
                 translated_lines = []
                 parse_success = False
@@ -669,14 +737,25 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
                 # Strategy 2: Regex extraction fallback (covers duplicate-keyed dicts, NDJSON, malformed lists, etc.)
                 if not parse_success:
                     regex_lines = []
-                    # Try double quotes pattern
-                    matches = re.findall(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned_response)
-                    if len(matches) != len(lines):
-                        # Try single quotes pattern
-                        matches = re.findall(r"'text'\s*:\s*'((?:[^\'\\]|\\.)*)'", cleaned_response)
-                    if len(matches) != len(lines):
-                        # Try mixed/unquoted pattern
-                        matches = re.findall(r'["\']?text["\']?\s*:\s*["\']((?:[^"\'\\]|\\.)*)["\']', cleaned_response)
+                    matches = []
+                    if use_objects:
+                        # Try double quotes pattern
+                        matches = re.findall(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned_response)
+                        if len(matches) != len(lines):
+                            # Try single quotes pattern
+                            matches = re.findall(r"'text'\s*:\s*'((?:[^\'\\]|\\.)*)'", cleaned_response)
+                        if len(matches) != len(lines):
+                            # Try mixed/unquoted pattern
+                            matches = re.findall(r'["\']?text["\']?\s*:\s*["\']((?:[^"\'\\]|\\.)*)["\']', cleaned_response)
+                    else:
+                        # Try to find the bracketed list portion first to exclude dictionary keys
+                        bracket_match = re.search(r'\[\s*(.*)\s*\]', cleaned_response, re.DOTALL)
+                        search_target = bracket_match.group(1) if bracket_match else cleaned_response
+                        # Simple list of strings - match all double quoted strings
+                        matches = re.findall(r'"((?:[^"\\]|\\.)*)"', search_target)
+                        if len(matches) != len(lines):
+                            # Try single quoted strings
+                            matches = re.findall(r"'((?:[^\'\\]|\\.)*)'", search_target)
 
                     for m in matches:
                         m_clean = m.replace('\\"', '"').replace("\\'", "'").replace('\\\\', '\\')
@@ -843,7 +922,8 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         feedback = ""
                         if last_error and settings.get("ollama_prompt_feedback", "false").lower() == "true":
                             template = settings.get("ollama_prompt_feedback_template", DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE)
-                            feedback = template.format(last_error=last_error)
+                            short_error = last_error.split("Response was:")[0].strip() if "Response was:" in last_error else last_error
+                            feedback = template.format(last_error=short_error)
                         translated_joined = ollama_translate(joined_text, sl, tl, settings, salt, feedback)
                         translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
                         translated_chunk_lines = translated_joined.split('\n')
