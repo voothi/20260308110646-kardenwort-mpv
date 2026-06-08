@@ -34,8 +34,6 @@ subtitle_translator_rename_source_with_zid = false
 # Requires subtitle_translator_rename_source_with_zid=true when the source
 # subtitle does not already have a ZID.
 subtitle_translator_rename_companion_media_with_zid = false
-# Backward-compatible alias; ignored when subtitle_translator_rename_companion_media_with_zid is set.
-subtitle_translator_rename_companion_mp4_with_zid = false
 
 # --- Google Translate Settings ---
 # Google Translate API base URL (uses free V1 API client=gtx)
