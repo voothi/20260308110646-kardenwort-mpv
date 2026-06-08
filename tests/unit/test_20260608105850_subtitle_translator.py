@@ -373,4 +373,120 @@ def test_make_translation_progress_bar():
     assert "━" in bar
 
 
+def test_translate_lines_validation_success(monkeypatch):
+    st = _load_translator()
 
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "2",
+        "subtitle_translator_word_count_check": "true",
+        "subtitle_translator_word_count_min_ratio": "0.5",
+        "subtitle_translator_word_count_max_ratio": "2.0",
+    }
+
+    # Successful translation matching line count and word counts
+    def mock_translate(text, sl, tl, api_url):
+        if text == "Hello\nWorld":
+            return "Привет\nМир"
+        return "Перевод"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate)
+
+    lines = ["Hello", "World"]
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["Привет", "Мир"]
+
+
+def test_translate_lines_validation_retry_and_success(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "3",
+        "subtitle_translator_word_count_check": "false",
+    }
+
+    call_count = 0
+
+    def mock_translate(text, sl, tl, api_url):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # Mismatched line count on first attempt
+            return "Mismatched Line"
+        # Correct line count on second attempt
+        return "Привет\nМир"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate)
+    # Patch time.sleep to run quickly
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    lines = ["Hello", "World"]
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["Привет", "Мир"]
+    assert call_count == 2
+
+
+def test_translate_lines_validation_failure_crash(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "3",
+        "subtitle_translator_word_count_check": "false",
+    }
+
+    # Always return invalid translation
+    def mock_translate(text, sl, tl, api_url):
+        return "Mismatch"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    lines = ["Hello", "World"]
+    with pytest.raises(RuntimeError) as exc_info:
+        st.translate_lines(lines, "en", "ru", settings)
+    
+    assert "Chunk validation failed after 3 attempts" in str(exc_info.value)
+
+
+def test_translate_lines_word_count_check(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "1",
+        "subtitle_translator_max_retries": "2",
+        "subtitle_translator_word_count_check": "true",
+        "subtitle_translator_word_count_min_ratio": "0.5",
+        "subtitle_translator_word_count_max_ratio": "2.0",
+    }
+
+    # Case 1: Translation is too long (hallucination)
+    def mock_translate_long(text, sl, tl, api_url):
+        return "This is a very long translation that should definitely fail validation checks because it has many words"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate_long)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    # "Hello" is 1 word, the mock translation is 17 words. This exceeds absolute diff of 5 and max_ratio of 2.0.
+    lines = ["Hello"]
+    with pytest.raises(RuntimeError) as exc_info:
+        st.translate_lines(lines, "en", "ru", settings)
+    assert "Chunk validation failed" in str(exc_info.value)
+
+    # Case 2: Translation is within absolute difference tolerance (<= 5 words diff) even if ratio is high
+    # "Hello" is 1 word, mock returns "Привет дорогой друг" (3 words). Absolute diff is 2, which is <= 5, so it should pass.
+    def mock_translate_short(text, sl, tl, api_url):
+        return "Привет дорогой друг"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate_short)
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["Привет дорогой друг"]

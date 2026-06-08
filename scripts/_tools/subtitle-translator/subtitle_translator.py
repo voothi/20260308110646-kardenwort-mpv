@@ -159,6 +159,11 @@ def load_config():
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
+        "subtitle_translator_chunk_size": "5",
+        "subtitle_translator_max_retries": "3",
+        "subtitle_translator_word_count_check": "true",
+        "subtitle_translator_word_count_min_ratio": "0.25",
+        "subtitle_translator_word_count_max_ratio": "3.5",
     }
 
     if CONFIG_FILE.exists():
@@ -413,99 +418,176 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
     total_non_empty = sum(1 for line in lines if line.strip())
     translated_count = 0
 
-    # We group lines to translate in batches/chunks (max 30 lines or 1000 characters)
-    chunk = []
-    chunk_indices = []
-    chunk_char_count = 0
-    
+    chunk_size = int(settings.get("subtitle_translator_chunk_size", "0"))
+    max_retries = int(settings.get("subtitle_translator_max_retries", "3"))
+    word_count_check = settings.get("subtitle_translator_word_count_check", "true").lower() == "true"
+    min_ratio = float(settings.get("subtitle_translator_word_count_min_ratio", "0.25"))
+    max_ratio = float(settings.get("subtitle_translator_word_count_max_ratio", "3.5"))
+
     chunks = []
-    for idx, line in enumerate(lines):
-        # Treat empty or whitespace lines directly
-        if not line.strip():
-            translated_lines[idx] = ""
-            continue
-            
-        line_len = len(line)
-        if len(chunk) >= 30 or (chunk_char_count + line_len) > 1000:
+    if chunk_size > 0:
+        chunk = []
+        chunk_indices = []
+        for idx, line in enumerate(lines):
+            if not line.strip():
+                translated_lines[idx] = ""
+                continue
+            chunk.append(line)
+            chunk_indices.append(idx)
+            if len(chunk) == chunk_size:
+                chunks.append((chunk, chunk_indices))
+                chunk = []
+                chunk_indices = []
+        if chunk:
             chunks.append((chunk, chunk_indices))
-            chunk = []
-            chunk_indices = []
-            chunk_char_count = 0
+    else:
+        # Standard chunking
+        chunk = []
+        chunk_indices = []
+        chunk_char_count = 0
+        for idx, line in enumerate(lines):
+            if not line.strip():
+                translated_lines[idx] = ""
+                continue
+                
+            line_len = len(line)
+            if len(chunk) >= 30 or (chunk_char_count + line_len) > 1000:
+                chunks.append((chunk, chunk_indices))
+                chunk = []
+                chunk_indices = []
+                chunk_char_count = 0
+                
+            chunk.append(line)
+            chunk_indices.append(idx)
+            chunk_char_count += line_len
             
-        chunk.append(line)
-        chunk_indices.append(idx)
-        chunk_char_count += line_len
-        
-    if chunk:
-        chunks.append((chunk, chunk_indices))
+        if chunk:
+            chunks.append((chunk, chunk_indices))
         
     # Translate each chunk
     for chunk_text_list, indices in chunks:
-        try:
-            if provider == "google":
-                joined_text = "\n".join(chunk_text_list)
-                translated_joined = google_translate_v1(joined_text, sl, tl, api_url)
-                translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
-                translated_chunk_lines = translated_joined.split('\n')
-                
-                # Strip trailing empty item from split if it's there
-                if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
-                    translated_chunk_lines.pop()
+        if chunk_size <= 0:
+            # Original translation block (with standard fallback to line-by-line, no crashing)
+            try:
+                if provider == "google":
+                    joined_text = "\n".join(chunk_text_list)
+                    translated_joined = google_translate_v1(joined_text, sl, tl, api_url)
+                    translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
+                    translated_chunk_lines = translated_joined.split('\n')
                     
-                # Verify segment count
-                if len(translated_chunk_lines) == len(chunk_text_list):
-                    for list_idx, target_idx in enumerate(indices):
-                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
-                else:
-                    # Fallback to line-by-line for this chunk
-                    for list_idx, target_idx in enumerate(indices):
-                        original_line = chunk_text_list[list_idx]
-                        translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
-            elif provider == "deepl":
-                translated_chunk_lines = deepl_translate_v2(chunk_text_list, sl, tl, settings)
-                if len(translated_chunk_lines) == len(chunk_text_list):
-                    for list_idx, target_idx in enumerate(indices):
-                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
-                else:
-                    # Fallback to line-by-line for this chunk
-                    for list_idx, target_idx in enumerate(indices):
-                        original_line = chunk_text_list[list_idx]
-                        translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
-            elif provider == "ollama":
-                joined_text = "\n".join(chunk_text_list)
-                translated_joined = ollama_translate(joined_text, sl, tl, settings)
-                translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
-                translated_chunk_lines = translated_joined.split('\n')
-                
-                # Strip trailing empty item from split if it's there
-                if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
-                    translated_chunk_lines.pop()
+                    if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
+                        translated_chunk_lines.pop()
+                        
+                    if len(translated_chunk_lines) == len(chunk_text_list):
+                        for list_idx, target_idx in enumerate(indices):
+                            translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                    else:
+                        for list_idx, target_idx in enumerate(indices):
+                            original_line = chunk_text_list[list_idx]
+                            translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                elif provider == "deepl":
+                    translated_chunk_lines = deepl_translate_v2(chunk_text_list, sl, tl, settings)
+                    if len(translated_chunk_lines) == len(chunk_text_list):
+                        for list_idx, target_idx in enumerate(indices):
+                            translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                    else:
+                        for list_idx, target_idx in enumerate(indices):
+                            original_line = chunk_text_list[list_idx]
+                            translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+                elif provider == "ollama":
+                    joined_text = "\n".join(chunk_text_list)
+                    translated_joined = ollama_translate(joined_text, sl, tl, settings)
+                    translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
+                    translated_chunk_lines = translated_joined.split('\n')
                     
-                # Verify segment count
-                if len(translated_chunk_lines) == len(chunk_text_list):
-                    for list_idx, target_idx in enumerate(indices):
-                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
-                else:
-                    # Fallback to line-by-line for this chunk
-                    for list_idx, target_idx in enumerate(indices):
+                    if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
+                        translated_chunk_lines.pop()
+                        
+                    if len(translated_chunk_lines) == len(chunk_text_list):
+                        for list_idx, target_idx in enumerate(indices):
+                            translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                    else:
+                        for list_idx, target_idx in enumerate(indices):
+                            original_line = chunk_text_list[list_idx]
+                            translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
+            except Exception as e:
+                log_warn(f"Chunk translation failed ({e}). Falling back to line-by-line...")
+                for list_idx, target_idx in enumerate(indices):
+                    try:
                         original_line = chunk_text_list[list_idx]
-                        translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
-        except Exception as e:
-            # Fallback to line-by-line on chunk failure
-            log_warn(f"Chunk translation failed ({e}). Falling back to line-by-line...")
-            for list_idx, target_idx in enumerate(indices):
+                        if provider == "google":
+                            translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                        elif provider == "deepl":
+                            translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+                        elif provider == "ollama":
+                            translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
+                    except Exception as line_error:
+                        log_error(f"Failed to translate line '{original_line}': {line_error}")
+                        translated_lines[target_idx] = original_line
+        else:
+            # New validation and retry loop
+            success = False
+            for attempt in range(1, max_retries + 1):
                 try:
-                    original_line = chunk_text_list[list_idx]
+                    translated_chunk_lines = []
                     if provider == "google":
-                        translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                        joined_text = "\n".join(chunk_text_list)
+                        translated_joined = google_translate_v1(joined_text, sl, tl, api_url)
+                        translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
+                        translated_chunk_lines = translated_joined.split('\n')
+                        if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
+                            translated_chunk_lines.pop()
                     elif provider == "deepl":
-                        translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+                        translated_chunk_lines = deepl_translate_v2(chunk_text_list, sl, tl, settings)
                     elif provider == "ollama":
-                        translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
-                except Exception as line_error:
-                    log_error(f"Failed to translate line '{original_line}': {line_error}")
-                    translated_lines[target_idx] = original_line  # Fallback to original
-        
+                        joined_text = "\n".join(chunk_text_list)
+                        translated_joined = ollama_translate(joined_text, sl, tl, settings)
+                        translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
+                        translated_chunk_lines = translated_joined.split('\n')
+                        if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
+                            translated_chunk_lines.pop()
+
+                    # Validate returned line count
+                    if len(translated_chunk_lines) != len(chunk_text_list):
+                        raise ValueError(f"Line count mismatch (expected {len(chunk_text_list)}, got {len(translated_chunk_lines)})")
+
+                    # Validate empty holes / line integrity and word counts
+                    for i, orig_line in enumerate(chunk_text_list):
+                        trans_line = translated_chunk_lines[i]
+                        if not trans_line.strip():
+                            raise ValueError(f"Empty line returned for non-empty source at line index {i}")
+                        
+                        if word_count_check:
+                            orig_words = len(orig_line.split())
+                            trans_words = len(trans_line.split())
+                            if orig_words > 0:
+                                # Allow an absolute word count difference of up to 5 words,
+                                # otherwise verify the ratio is within the limits.
+                                if abs(orig_words - trans_words) > 5:
+                                    ratio = trans_words / orig_words
+                                    if ratio < min_ratio or ratio > max_ratio:
+                                        raise ValueError(
+                                            f"Word count mismatch at line {i}: original has {orig_words} words, "
+                                            f"translated has {trans_words} words (ratio {ratio:.2f} outside [{min_ratio}, {max_ratio}])"
+                                        )
+
+                    # Write results
+                    for list_idx, target_idx in enumerate(indices):
+                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                    success = True
+                    break
+                except Exception as e:
+                    lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
+                    log_warn(f"Chunk validation failed for {lines_range_str} on attempt {attempt}/{max_retries}: {e}")
+                    if attempt < max_retries:
+                        time.sleep(1)
+
+            if not success:
+                lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
+                msg = f"Chunk validation failed after {max_retries} attempts for {lines_range_str}."
+                log_error(f"{_bold(msg)} Stopping translation.")
+                raise RuntimeError(msg)
+
         # Update progress bar
         translated_count = min(translated_count + len(chunk_text_list), total_non_empty)
         if _IS_TTY:
