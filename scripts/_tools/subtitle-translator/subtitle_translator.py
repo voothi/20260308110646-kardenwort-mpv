@@ -165,6 +165,7 @@ def load_config():
         "subtitle_translator_word_count_min_ratio": "0.25",
         "subtitle_translator_word_count_max_ratio": "3.5",
         "subtitle_translator_save_partial_on_failure": "false",
+        "youtube_download_auto_close_timeout_secs": "15",
     }
 
     if CONFIG_FILE.exists():
@@ -864,7 +865,16 @@ def main():
         log_warn(f"Processed {success_count}/{total_files} file(s). {total_files - success_count} failed.")
         
     if args.pause:
-        pause_console(success=(success_count == total_files))
+        timeout_val = settings.get("youtube_download_auto_close_timeout_secs", "").strip()
+        timeout: Optional[int]
+        if not timeout_val:
+            timeout = None
+        else:
+            try:
+                timeout = int(timeout_val)
+            except Exception:
+                timeout = PAUSE_AUTO_CLOSE_TIMEOUT_SECS
+        pause_console(success=(success_count == total_files), timeout_secs=timeout)
 
 if __name__ == "__main__":
     main()

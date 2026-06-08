@@ -59,3 +59,9 @@ subtitle_translator_word_count_max_ratio = 3.5
 # are preserved, text is empty). Respects subtitle_translator_duplicate_mode
 # (skip/overwrite/archive) when a target file already exists.
 subtitle_translator_save_partial_on_failure = false
+
+# Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
+# Set to 0 to close instantly; leave empty to disable auto-close.
+# Ignored on errors so they can be inspected.
+# Default: 15
+# youtube_download_auto_close_timeout_secs = 15
