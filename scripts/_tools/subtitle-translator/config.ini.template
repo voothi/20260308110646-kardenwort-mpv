@@ -65,6 +65,8 @@ ollama_prompt_salt = false
 # Use structured JSON input/output for Ollama chunk translation.
 # Highly recommended for small models (like gemma3:1b) to prevent line count mismatches.
 # Set to "false" to disable.
+# If a validated chunk still fails after all retries, the translator automatically
+# rescues that chunk line-by-line with Ollama JSON disabled for the rescue calls only.
 ollama_json_format = false
 # Schema format to use for structured JSON: dict_of_strings (recommended, object with array), array_of_strings (simple list) or array_of_objects (legacy id/text format).
 ollama_json_schema = dict_of_strings
