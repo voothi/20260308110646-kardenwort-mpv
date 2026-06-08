@@ -26,14 +26,14 @@ subtitle_translator_duplicate_mode = skip
 # the generated ZID. Existing source ZIDs are always preserved.
 subtitle_translator_rename_source_with_zid = false
 
-# When enabled, add the same ZID to a companion media file in the same folder.
+# When enabled, add the same ZID to a related media file in the same folder.
 # Supports common audio/video files such as mp3, mp4, m4a, wav, flac, mkv, and webm.
 # The media file should share the subtitle clean title, for example:
 #   movie.en.srt -> movie.mp3 or movie.mp4
 # If the media file already has a ZID, it is left unchanged.
 # Requires subtitle_translator_rename_source_with_zid=true when the source
 # subtitle does not already have a ZID.
-subtitle_translator_rename_companion_media_with_zid = false
+subtitle_translator_rename_related_media_with_zid = false
 
 # --- Google Translate Settings ---
 # Google Translate API base URL (uses free V1 API client=gtx)
