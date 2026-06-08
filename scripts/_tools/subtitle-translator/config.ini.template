@@ -54,10 +54,12 @@ ollama_api_url = http://localhost:11434/api/generate
 ollama_model = llama3
 # Prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
 ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
-# Unique prompt addition (salt) template on retry attempts to help models recover.
-# Put the portion to repeat in parentheses, e.g., Make it (much better) or Сделай (намного лучше).
+# Unique prompt addition (salt) phrase on retry attempts to help models recover.
 # Leave empty or set to "false" to disable.
-ollama_prompt_salt = Make it (much better)
+ollama_prompt_salt = Make it much better
+# The text to append to the base prompt salt for subsequent retry attempts.
+# If empty, the entire base prompt salt is repeated.
+ollama_prompt_salt_repeat = much better
 
 # --- Chunk Validation Settings ---
 # Translate and validate subtitles in chunks of this size (e.g. 5).

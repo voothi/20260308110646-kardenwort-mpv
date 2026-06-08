@@ -163,7 +163,8 @@ def load_config():
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
-        "ollama_prompt_salt": "Make it (much better)",
+        "ollama_prompt_salt": "Make it much better",
+        "ollama_prompt_salt_repeat": "much better",
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
         "subtitle_translator_word_count_check": "false",
@@ -207,18 +208,15 @@ def get_current_zid() -> str:
             pass
     return time.strftime("%Y%m%d%H%M%S")
 
-def get_prompt_salt(phrase: str, attempt: int) -> str:
-    """Generates a unique salt phrase based on the configured template and retry attempt."""
+def get_prompt_salt(phrase: str, repeat_phrase: str, attempt: int) -> str:
+    """Generates a unique salt phrase based on the base phrase, repeat suffix, and retry attempt."""
     if attempt <= 1 or not phrase or phrase.strip().lower() in ("false", "none", "no", "0"):
         return ""
     phrase = phrase.strip()
-    match = re.match(r"^(.*?)\((.*?)\)(.*)$", phrase)
-    if match:
-        prefix = match.group(1)
-        repeat_part = match.group(2)
-        suffix = match.group(3)
-        return prefix + ", ".join([repeat_part] * (attempt - 1)) + suffix
-    return ", ".join([phrase] * (attempt - 1))
+    if attempt == 2:
+        return phrase
+    repeat_part = repeat_phrase.strip() if repeat_phrase else phrase
+    return phrase + (", " + repeat_part) * (attempt - 2)
 
 # ==============================================================================
 # FILENAME PARSING
@@ -720,7 +718,11 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         translated_chunk_lines = deepl_translate_v2(chunk_text_list, sl, tl, settings)
                     elif provider == "ollama":
                         joined_text = "\n".join(chunk_text_list)
-                        salt = get_prompt_salt(settings.get("ollama_prompt_salt", ""), attempt)
+                        salt = get_prompt_salt(
+                            settings.get("ollama_prompt_salt", ""),
+                            settings.get("ollama_prompt_salt_repeat", ""),
+                            attempt
+                        )
                         translated_joined = ollama_translate(joined_text, sl, tl, settings, salt)
                         translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
                         translated_chunk_lines = translated_joined.split('\n')
@@ -1004,7 +1006,7 @@ def main():
     if provider == "ollama":
         print(f"  {_dim('·')} Model:          {_cyan(settings.get('ollama_model', ''))}")
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('ollama_api_url', ''))}")
-        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'Make it (much better)'))}")
+        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'Make it much better'))} (repeat: {settings.get('ollama_prompt_salt_repeat', '')})")
     elif provider == "deepl":
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('deepl_api_url', ''))}")
         print(f"  {_dim('·')} Formality:      {_cyan(settings.get('deepl_formality', 'default'))}")
