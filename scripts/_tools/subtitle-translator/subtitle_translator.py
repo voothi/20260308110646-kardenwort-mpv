@@ -164,6 +164,7 @@ def load_config():
         "subtitle_translator_word_count_check": "true",
         "subtitle_translator_word_count_min_ratio": "0.25",
         "subtitle_translator_word_count_max_ratio": "3.5",
+        "subtitle_translator_save_partial_on_failure": "false",
     }
 
     if CONFIG_FILE.exists():
@@ -295,6 +296,19 @@ def write_srt(blocks: List[dict]) -> str:
             out.append(text)
         out.append("")
     return "\n".join(out)
+
+# ==============================================================================
+# EXCEPTIONS
+# ==============================================================================
+class ChunkValidationError(RuntimeError):
+    """Raised when chunk validation fails after all retries.
+    
+    Carries the partially translated lines built up to the failing chunk.
+    Positions for untranslated lines hold the original source text as fallback.
+    """
+    def __init__(self, message: str, partial_lines: List[str]):
+        super().__init__(message)
+        self.partial_lines = partial_lines
 
 # ==============================================================================
 # TRANSLATION PROVIDERS
@@ -594,7 +608,12 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                 lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
                 msg = f"Chunk validation failed after {max_retries} attempts for {lines_range_str}."
                 log_error(f"{_bold(msg)} Stopping translation.")
-                raise RuntimeError(msg)
+                # Fill untranslated positions with original source text as fallback
+                partial = list(translated_lines)
+                for idx, orig in enumerate(lines):
+                    if not partial[idx] and orig.strip():
+                        partial[idx] = orig
+                raise ChunkValidationError(msg, partial)
 
         # Update progress bar
         translated_count = min(translated_count + len(chunk_text_list), total_non_empty)
@@ -743,6 +762,45 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             else:
                 log_detail(f"Line count verified: {translated_non_empty_count} lines.")
                 
+        except ChunkValidationError as cve:
+            log_error(f"Failed to translate to '{tl}': {cve}")
+            save_partial = settings.get("subtitle_translator_save_partial_on_failure", "false").lower() == "true"
+            if save_partial and cve.partial_lines:
+                log_warn(f"Saving partial translation for '{tl}' (completed chunks only, untranslated lines kept as original)...")
+                partial_translated_lines = cve.partial_lines
+                if is_srt:
+                    partial_blocks = json.loads(json.dumps(blocks))
+                    for trans_idx, trans_text in enumerate(partial_translated_lines):
+                        b_idx, l_idx = mapping[trans_idx]
+                        partial_blocks[b_idx]['text_lines'][l_idx] = trans_text
+                    partial_content = write_srt(partial_blocks)
+                else:
+                    partial_content = "\n".join(partial_translated_lines)
+                # Apply duplicate_mode before writing partial file
+                if target_path.exists():
+                    dup_mode = settings.get("subtitle_translator_duplicate_mode", "skip").lower()
+                    if dup_mode == "skip":
+                        log_skip(f"Partial output skipped — existing file for '{tl}' preserved: {target_name}")
+                    elif dup_mode == "archive":
+                        archive_dir = file_path.parent / session_zid
+                        archive_dir.mkdir(parents=True, exist_ok=True)
+                        archive_target_path = archive_dir / target_name
+                        try:
+                            if archive_target_path.exists():
+                                archive_target_path.unlink()
+                            target_path.rename(archive_target_path)
+                            log_info(f"Archived previous file to: {session_zid}/{target_name}")
+                        except Exception as archive_error:
+                            log_warn(f"Failed to archive old subtitle before partial save: {archive_error}")
+                        target_path.write_text(partial_content, encoding="utf-8", newline="\n")
+                        log_ok(f"Saved partial translation: {target_name}")
+                    elif dup_mode == "overwrite":
+                        target_path.write_text(partial_content, encoding="utf-8", newline="\n")
+                        log_ok(f"Saved partial translation (overwrite): {target_name}")
+                else:
+                    target_path.write_text(partial_content, encoding="utf-8", newline="\n")
+                    log_ok(f"Saved partial translation: {target_name}")
+            success_status = False
         except NotImplementedError as nie:
             log_error(str(nie))
             success_status = False

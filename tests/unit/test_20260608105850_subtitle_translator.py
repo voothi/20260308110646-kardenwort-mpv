@@ -450,10 +450,15 @@ def test_translate_lines_validation_failure_crash(monkeypatch):
     monkeypatch.setattr(st.time, "sleep", lambda x: None)
 
     lines = ["Hello", "World"]
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(st.ChunkValidationError) as exc_info:
         st.translate_lines(lines, "en", "ru", settings)
     
     assert "Chunk validation failed after 3 attempts" in str(exc_info.value)
+    # ChunkValidationError must carry partial_lines
+    assert hasattr(exc_info.value, "partial_lines")
+    # Lines not translated must fall back to original source text
+    assert exc_info.value.partial_lines[0] == "Hello"
+    assert exc_info.value.partial_lines[1] == "World"
 
 
 def test_translate_lines_word_count_check(monkeypatch):
@@ -525,3 +530,46 @@ def test_process_file_rollback_on_failure(tmp_path, monkeypatch):
     zid_files = list(tmp_path.glob("*-telc-eng-b2.en.srt"))
     assert len(zid_files) == 0
 
+
+def test_process_file_partial_save(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    # Three-line SRT with first line already translated, rest fails
+    srt_content = (
+        "1\n00:00:01,000 --> 00:00:02,000\nHello\n\n"
+        "2\n00:00:02,000 --> 00:00:03,000\nWorld\n\n"
+        "3\n00:00:03,000 --> 00:00:04,000\nGoodbye\n"
+    )
+    source_file = tmp_path / "20260608000000-test.en.srt"
+    source_file.write_text(srt_content, encoding="utf-8")
+
+    def mock_translate(lines, sl, tl, settings):
+        """Always raise ChunkValidationError with partial data (first line translated, rest original)."""
+        raise st.ChunkValidationError(
+            "Chunk validation failed after 3 attempts for lines 2 to 3.",
+            ["Привет", "World", "Goodbye"]  # first translated, rest kept as source
+        )
+
+    monkeypatch.setattr(st, "translate_lines", mock_translate)
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_duplicate_mode": "overwrite",
+        "subtitle_translator_save_partial_on_failure": "true",
+    }
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is False  # Overall failure
+
+    # Target file should have been written with partial content
+    target_file = tmp_path / "20260608000000-test.ru.srt"
+    assert target_file.exists()
+    content = target_file.read_text(encoding="utf-8")
+    # First translated subtitle should be in Russian
+    assert "Привет" in content
+    # Remaining untranslated subtitles fall back to original English
+    assert "World" in content
+    assert "Goodbye" in content
