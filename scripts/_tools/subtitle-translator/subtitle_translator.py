@@ -1213,10 +1213,38 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                 if _IS_TTY:
                     clear_line()
                 lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
-                msg = f"Chunk validation failed after {max_retries} attempts for {lines_range_str}."
-                log_error(f"{_bold(msg)} Stopping translation.")
-                # Failed chunks stay as empty strings — blank subtitles in the output
-                raise ChunkValidationError(msg, list(translated_lines))
+                log_warn(
+                    f"Chunk validation failed after {max_retries} attempts for {lines_range_str}. "
+                    f"Falling back to line-by-line rescue for this chunk..."
+                )
+                # --- Line-by-line rescue pass ---
+                # Build a copy of settings with JSON disabled so that single lines go through
+                # the plain text path (small models can usually handle one line at a time).
+                rescue_settings = dict(settings)
+                rescue_settings["ollama_json_format"] = "false"
+                rescue_ok = True
+                for list_idx, target_idx in enumerate(indices):
+                    original_line = chunk_text_list[list_idx]
+                    try:
+                        if provider == "google":
+                            translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
+                        elif provider == "deepl":
+                            translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+                        elif provider == "ollama":
+                            translated_lines[target_idx] = ollama_translate(original_line, sl, tl, rescue_settings).strip()
+                        if not translated_lines[target_idx]:
+                            raise ValueError("Empty result from rescue translation")
+                        log_detail(f"Rescue translated line {target_idx + 1}: {translated_lines[target_idx][:60]!r}")
+                    except Exception as rescue_err:
+                        rescue_ok = False
+                        log_error(f"Rescue translation failed for line {target_idx + 1}: {rescue_err}")
+                        # Leave as empty string — blank subtitle entry
+
+                if not rescue_ok:
+                    msg = f"Chunk validation AND rescue pass failed for {lines_range_str}."
+                    log_error(f"{_bold(msg)} Stopping translation.")
+                    raise ChunkValidationError(msg, list(translated_lines))
+
 
         # Update progress bar
         translated_count = min(translated_count + len(chunk_text_list), total_non_empty)

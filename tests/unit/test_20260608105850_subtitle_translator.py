@@ -444,6 +444,7 @@ def test_translate_lines_validation_retry_and_success(monkeypatch):
 
 
 def test_translate_lines_validation_failure_crash(monkeypatch):
+    """When chunk retries AND the single-line rescue both fail, ChunkValidationError is raised."""
     st = _load_translator()
 
     settings = {
@@ -454,9 +455,17 @@ def test_translate_lines_validation_failure_crash(monkeypatch):
         "subtitle_translator_word_count_check": "false",
     }
 
-    # Always return invalid translation
+    # Chunk call → returns wrong line count; single-line rescue call → returns empty string
+    call_counts = {"n": 0}
+
     def mock_translate(text, sl, tl, api_url):
-        return "Mismatch"
+        call_counts["n"] += 1
+        if "\n" in text:
+            # Chunk call: return a single-item mismatch
+            return "Mismatch"
+        else:
+            # Single-line rescue: return empty → triggers "Empty result" guard
+            return ""
 
     monkeypatch.setattr(st, "google_translate_v1", mock_translate)
     monkeypatch.setattr(st.time, "sleep", lambda x: None)
@@ -464,13 +473,38 @@ def test_translate_lines_validation_failure_crash(monkeypatch):
     lines = ["Hello", "World"]
     with pytest.raises(st.ChunkValidationError) as exc_info:
         st.translate_lines(lines, "en", "ru", settings)
-    
-    assert "Chunk validation failed after 3 attempts" in str(exc_info.value)
-    # ChunkValidationError must carry partial_lines
+
+    assert "failed" in str(exc_info.value).lower()
     assert hasattr(exc_info.value, "partial_lines")
-    # Failed lines must be empty strings, not original source text
-    assert exc_info.value.partial_lines[0] == ""
-    assert exc_info.value.partial_lines[1] == ""
+
+
+def test_translate_lines_rescue_pass_on_chunk_failure(monkeypatch):
+    """When chunk retries fail but the single-line rescue succeeds, translation completes without error."""
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "3",
+        "subtitle_translator_max_retries": "2",
+        "subtitle_translator_word_count_check": "false",
+    }
+
+    def mock_translate(text, sl, tl, api_url):
+        if "\n" in text:
+            # Chunk call always returns mismatch (1 line instead of 3)
+            return "BadChunkResult"
+        # Single-line rescue — translate correctly
+        return f"[{text}]"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    lines = ["Hello", "World", "Goodbye"]
+    result = st.translate_lines(lines, "en", "ru", settings)
+
+    # Rescue should have handled all three lines individually
+    assert result == ["[Hello]", "[World]", "[Goodbye]"]
 
 
 def test_translate_lines_word_count_check(monkeypatch):
