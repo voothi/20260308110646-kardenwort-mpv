@@ -302,7 +302,7 @@ def test_ollama_translate_generate_mock(monkeypatch):
     def mock_urlopen(req, timeout=None):
         body = json.loads(req.data.decode("utf-8"))
         assert body["model"] == "llama3"
-        assert body["prompt"] == "Translate en to ru.\n\nHello"
+        assert body["prompt"] == "Translate English to Russian.\n\nHello"
         assert body["stream"] is False
         return MockResponse()
 
@@ -343,7 +343,7 @@ def test_ollama_translate_chat_mock(monkeypatch):
     def mock_urlopen(req, timeout=None):
         body = json.loads(req.data.decode("utf-8"))
         assert body["model"] == "llama3"
-        assert body["messages"] == [{"role": "user", "content": "Translate en to ru.\n\nWorld"}]
+        assert body["messages"] == [{"role": "user", "content": "Translate English to Russian.\n\nWorld"}]
         assert body["stream"] is False
         return MockResponse()
 
@@ -832,7 +832,7 @@ def test_ollama_translate_with_salt(monkeypatch):
 
     def mock_urlopen(req, timeout=None):
         body = json.loads(req.data.decode("utf-8"))
-        assert body["prompt"] == "Translate en to ru. Make it much better.\n\nHello"
+        assert body["prompt"] == "Translate English to Russian. Make it much better.\n\nHello"
         return MockResponse()
 
     monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
@@ -926,7 +926,7 @@ def test_ollama_translate_structured_success(monkeypatch):
     def mock_urlopen(req, timeout=None):
         body = json.loads(req.data.decode("utf-8"))
         assert body["format"] == "json"
-        assert body["prompt"] == 'Translate JSON en to ru.\n\n[{"id": 1, "text": "Hello"}, {"id": 2, "text": "World"}]'
+        assert body["prompt"] == 'Translate JSON English to Russian.\n\n[{"id": 1, "text": "Hello"}, {"id": 2, "text": "World"}]'
         return MockResponse()
 
     monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
@@ -1064,7 +1064,7 @@ def test_ollama_translate_structured_strings_success(monkeypatch):
         body = json.loads(req.data.decode("utf-8"))
         assert body["format"] == "json"
         expected_prompt = (
-            "Translate the JSON array of strings from en to ru.\n"
+            "Translate the JSON array of strings from English to Russian.\n"
             "Output format must be a JSON array of strings.\n\n"
             "Example input:\n"
             "[\n"
@@ -1110,7 +1110,7 @@ def test_ollama_translate_structured_dict_success(monkeypatch):
         body = json.loads(req.data.decode("utf-8"))
         assert body["format"] == "json"
         expected_prompt = (
-            "Translate the JSON array of strings under the 'source' key from en to ru.\n"
+            "Translate the JSON array of strings under the 'source' key from English to Russian.\n"
             "Output format must be a JSON object with a single 'translations' key containing the translated JSON array of strings.\n\n"
             "Example input:\n"
             "{\n"
@@ -1226,6 +1226,58 @@ def test_process_file_cleans_tags_and_breaks(tmp_path, monkeypatch):
     translated_norm = translated_content.replace("\r\n", "\n")
     expected_norm = expected_content.replace("\r\n", "\n")
     assert translated_norm == expected_norm
+
+
+# ==============================================================================
+# LANGUAGE CODE → NAME LOOKUP
+# ==============================================================================
+
+def test_lang_code_to_name_known():
+    st = _load_translator()
+    assert st.lang_code_to_name("ru") == "Russian"
+    assert st.lang_code_to_name("en") == "English"
+    assert st.lang_code_to_name("de") == "German"
+    assert st.lang_code_to_name("zh-CN") == "Chinese (Simplified)"
+    assert st.lang_code_to_name("pt-BR") == "Brazilian Portuguese"
+
+
+def test_lang_code_to_name_unknown_returns_code():
+    st = _load_translator()
+    assert st.lang_code_to_name("xx") == "xx"
+    assert st.lang_code_to_name("???") == "???"
+
+
+def test_ollama_translate_uses_english_lang_name(monkeypatch):
+    """Verify that ollama_translate builds the prompt with 'Russian', not 'ru'."""
+    st = _load_translator()
+    captured_prompt = {}
+
+    def fake_urlopen(req, timeout):
+        import io, json as _json
+        captured_prompt['value'] = req.data.decode('utf-8')
+        body = _json.dumps({"response": "Привет"}).encode('utf-8')
+        class FakeResp:
+            def read(self): return body
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+        return FakeResp()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "gemma3:1b",
+        "ollama_prompt": "Translate from {source_lang} to {target_lang}.",
+        "ollama_prompt_salt": "false",
+        "ollama_prompt_feedback": "false",
+        "ollama_json_format": "false",
+    }
+    st.ollama_translate("Hello", sl="en", tl="ru", settings=settings)
+
+    payload_str = captured_prompt['value']
+    assert "Russian" in payload_str, "Expected 'Russian' in prompt, got: " + payload_str
+    assert "English" in payload_str, "Expected 'English' in prompt, got: " + payload_str
+    assert '"ru"' not in payload_str or 'target_lang' not in payload_str  # raw code must not appear as lang arg
 
 
 # ==============================================================================

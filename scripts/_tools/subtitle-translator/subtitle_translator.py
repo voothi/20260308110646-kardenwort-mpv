@@ -601,6 +601,104 @@ def split_by_proportion(text: str, lengths: List[int]) -> List[str]:
 
 
 # ==============================================================================
+# LANGUAGE CODE → ENGLISH NAME LOOKUP
+# Source: Subtitle Edit ChatGptTranslate.ListLanguages() — used in LLM prompts
+# so small models receive "Russian" instead of the BCP-47 code "ru".
+# Google/DeepL still use the raw codes for their API parameters.
+# ==============================================================================
+_LANG_CODE_TO_NAME: dict = {
+    "ab": "Abkhaz", "ace": "Acehnese", "ach": "Acholi", "aa": "Afar",
+    "af": "Afrikaans", "ahr": "Ahirani", "sq": "Albanian", "alz": "Alur",
+    "am": "Amharic", "ar": "Arabic", "hy": "Armenian", "as": "Assamese",
+    "aii": "Assyrian Neo-Aramaic", "av": "Avar", "awa": "Awadhi",
+    "az": "Azerbaijani", "ay": "Aymara", "bfq": "Badaga", "bfy": "Bagheli",
+    "bgq": "Bagri", "ban": "Balinese", "bal": "Baluchi", "bm": "Bambara",
+    "bjn": "Banjar", "bjn-Arab": "Banjar (Arabic script)", "bci": "Baoulé",
+    "ba": "Bashkir", "eu": "Basque", "btx": "Batak Karo",
+    "bts": "Batak Simalungun", "bbc": "Batak Toba", "be": "Belarusian",
+    "bem": "Bemba (Zambia)", "bn": "Bengali", "bew": "Betawi",
+    "bho": "Bhojpuri", "bik": "Bikol", "brx": "Bodo (India)", "bs": "Bosnian",
+    "bra": "Braj", "pt-BR": "Brazilian Portuguese", "br": "Breton",
+    "bug": "Buginese", "bg": "Bulgarian", "bns": "Bundeli", "bua": "Buryat",
+    "yue": "Cantonese", "ca": "Catalan", "ckb": "Central Kurdish (Sorani)",
+    "ccp-Latn": "Chakma (Latin script)", "ch": "Chamorro", "ce": "Chechen",
+    "hne": "Chhattisgarhi", "ny": "Chichewa", "zh-CN": "Chinese (Simplified)",
+    "zh-Hant": "Chinese (Traditional)", "zh": "Chinese", "ctg": "Chittagonian",
+    "chk": "Chuukese", "cv": "Chuvash", "crh": "Crimean Tatar",
+    "crh-Latn": "Crimean Tatar (Latin script)", "hr": "Croatian", "cs": "Czech",
+    "da": "Danish", "fa-AF": "Dari", "dv": "Dhivehi", "dhd": "Dhundari",
+    "din": "Dinka", "doi": "Dogri", "dov": "Dombe", "nl": "Dutch",
+    "dyu": "Dyula", "dz": "Dzongkha", "kbd": "East Circassian",
+    "nhe": "Eastern Huasteca Nahuatl", "efi": "Efik", "arz": "Egyptian Arabic",
+    "en": "English", "et": "Estonian", "ee": "Ewe", "fo": "Faroese",
+    "fj": "Fijian", "fi": "Finnish", "fon": "Fon", "fr": "French",
+    "fur": "Friulian", "ff": "Fulani", "gaa": "Ga", "gl": "Galician",
+    "grt-Latn": "Garo (Latin script)", "ka": "Georgian", "de": "German",
+    "gom": "Goan Konkani", "el": "Greek", "gn": "Guarani", "gu": "Gujarati",
+    "cnh": "Hakha Chin", "bgc": "Haryanvi", "ha": "Hausa", "he": "Hebrew",
+    "hil": "Hiligaynon", "hi": "Hindi", "hoc-Wara": "Ho (Warang Chiti script)",
+    "hu": "Hungarian", "hrx": "Hunsrik", "iba": "Iban", "is": "Icelandic",
+    "ig": "Igbo", "ilo": "Ilocano", "id": "Indonesian",
+    "iu": "Inuktut (Syllabics)", "ga": "Irish", "iso": "Isoko", "it": "Italian",
+    "jam": "Jamaican Patois", "ja": "Japanese", "jv": "Javanese",
+    "kac": "Jingpo", "quc": "K'iche'", "kl": "Kalaallisut", "kn": "Kannada",
+    "xnr": "Kangri", "kr": "Kanuri", "pam": "Kapampangan", "kaa": "Karakalpak",
+    "ks": "Kashmiri", "ks-Deva": "Kashmiri (Devanagari script)",
+    "kk": "Kazakh", "meo": "Kedah Malay", "kha": "Khasi", "km": "Khmer",
+    "cgg": "Kiga", "ki": "Kikuyu", "lu": "Kiluba", "rw": "Kinyarwanda",
+    "ktu": "Kituba", "trp": "Kokborok", "kv": "Komi", "kg": "Kongo",
+    "ko": "Korean", "kri": "Krio", "kfy": "Kumaoni", "ku": "Kurdish",
+    "kru": "Kurukh", "ky": "Kyrgyz", "pa-Arab": "Lahnda Punjabi (Pakistan)",
+    "ltg": "Latgalian", "lv": "Latvian", "lep": "Lepcha", "ayl": "Libyan Arabic",
+    "lij": "Ligurian", "lif-Limb": "Limbu", "li": "Limburgish",
+    "ln": "Lingala", "lt": "Lithuanian", "lmo": "Lombard", "lg": "Luganda",
+    "luo": "Luo", "mk": "Macedonian", "mad": "Madurese", "mag": "Magahi",
+    "mai": "Maithili", "mak": "Makassar", "mg": "Malagasy", "ms": "Malay",
+    "ms-Arab": "Malay (Jawi Script)", "mt": "Maltese", "mam": "Mam",
+    "mjl": "Mandeali", "gv": "Manx", "arn": "Mapudungun", "mr": "Marathi",
+    "mh": "Marshallese", "mwr": "Marwari", "mfe": "Mauritian Creole",
+    "chm": "Meadow Mari", "mni-Mtei": "Meiteilon (Manipuri)", "mtr": "Mewari",
+    "nan": "Min Nan", "min": "Minang", "lus": "Mizo", "mn": "Mongolian",
+    "cnr": "Montenegrin", "mos": "Moore", "ar-MA": "Moroccan Arabic",
+    "unr-Deva": "Mundari (Devanagari script)", "my": "Myanmar (Burmese)",
+    "nv": "Navajo", "ndc-ZW": "Ndau", "new": "Nepalbhasa (Newari)",
+    "ne": "Nepali", "pcm": "Nigerian Pidgin", "noe": "Nimadi",
+    "bm-Nkoo": "NKo", "apc": "North Levantine Arabic", "nd": "North Ndebele",
+    "se": "Northern Sami", "no": "Norwegian", "nus": "Nuer", "oc": "Occitan",
+    "or": "Oriya", "om": "Oromo", "os": "Ossetian", "pag": "Pangasinan",
+    "pap": "Papiamento", "ps": "Pashto", "fa": "Persian", "pl": "Polish",
+    "pt": "Portuguese", "pa": "Punjabi", "kek": "Q'eqchi'", "qu": "Quechua",
+    "raj": "Rajasthani", "rhg-Latn": "Rohingya (Latin script)", "rom": "Romani",
+    "ro": "Romanian", "rn": "Rundi", "ru": "Russian", "spv": "Sambalpuri",
+    "sg": "Sango", "sa": "Sanskrit", "sat-Latn": "Santali", "skr": "Saraiki",
+    "nso": "Sepedi", "sr": "Serbian", "st": "Sesotho", "crs": "Seychellois Creole",
+    "shn": "Shan", "xsr-Tibt": "Sherpa (Tibetan script)", "scl": "Shina",
+    "sn": "Shona", "scn": "Sicilian", "szl": "Silesian", "sd": "Sindhi",
+    "sd-Deva": "Sindhi (Devanagari script)", "si": "Sinhala", "sk": "Slovak",
+    "sl": "Slovenian", "so": "Somali", "nr": "South Ndebele", "es": "Spanish",
+    "es-419": "Spanish (Latin America)", "apd": "Sudanese Arabic",
+    "sgj": "Surgujia", "sjp": "Surjapuri", "sus": "Susu", "sw": "Swahili",
+    "ss": "Swati", "sv": "Swedish", "syl": "Sylheti", "ty": "Tahitian",
+    "ber-Latn": "Tamazight (Latin Script)", "ber": "Tamazight (Tifinagh Script)",
+    "tt": "Tatar", "tet": "Tetum", "th": "Thai", "bo": "Tibetan",
+    "ti": "Tigrinya", "tiv": "Tiv", "tpi": "Tok Pisin", "to": "Tonga",
+    "ts": "Tsonga", "tn": "Tswana", "tcy": "Tulu", "tum": "Tumbuka",
+    "aeb": "Tunisian Arabic", "tr": "Turkish", "tyv": "Tuvan", "ak": "Twi",
+    "udm": "Udmurt", "uk": "Ukrainian", "ur": "Urdu", "ug": "Uyghur",
+    "uz": "Uzbek", "ve": "Venda", "vec": "Venetian", "vi": "Vietnamese",
+    "wbr": "Wagdi", "war": "Waray", "cy": "Welsh", "ady": "West Circassian",
+    "wo": "Wolof", "wuu": "Wu Chinese", "xh": "Xhosa", "sah": "Yakut",
+    "yo": "Yoruba", "yua": "Yucatec Maya", "zap": "Zapotec",
+}
+
+def lang_code_to_name(code: str) -> str:
+    """Returns the English language name for a BCP-47 code (e.g. 'ru' → 'Russian').
+    Falls back to the code itself when the code is not in the lookup table.
+    Used to build human-readable prompts for LLM providers."""
+    return _LANG_CODE_TO_NAME.get(code, code)
+
+
+# ==============================================================================
 # EXCEPTIONS
 # ==============================================================================
 class ChunkValidationError(RuntimeError):
@@ -757,8 +855,12 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
     if not api_url:
         raise ValueError("Ollama API URL (ollama_api_url) is not configured in config.ini")
 
-    # Format prompt
-    prompt = prompt_template.format(source_lang=sl, target_lang=tl)
+    # Format prompt — use English language names so small LLMs understand the instruction
+    # (e.g. "Russian" instead of "ru"). Raw codes are kept for API parameters elsewhere.
+    prompt = prompt_template.format(
+        source_lang=lang_code_to_name(sl),
+        target_lang=lang_code_to_name(tl),
+    )
     if salt:
         if not prompt.endswith('.'):
             prompt = prompt.rstrip() + "."
