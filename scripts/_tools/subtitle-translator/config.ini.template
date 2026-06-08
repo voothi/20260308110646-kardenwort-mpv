@@ -56,6 +56,7 @@ ollama_model = llama3
 ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
 # Unique prompt addition (salt) template on retry attempts to help models recover.
 # Put the repeating portion in square brackets, e.g., Make it [much] better or Сделай [намного] лучше.
+# Example: Make it [much] better -> Make it much, much better (on attempt 3).
 # Leave empty or set to "false" to disable.
 ollama_prompt_salt = Make it [much] better
 
