@@ -334,15 +334,61 @@ def deepl_translate_v2(lines: List[str], sl: str, tl: str, settings: dict) -> Li
     except Exception as e:
         raise Exception(f"DeepL Translate request failed: {e}")
 
+def ollama_translate(text: str, sl: str, tl: str, settings: dict) -> str:
+    """Ollama API caller."""
+    api_url = settings.get("ollama_api_url", "").strip()
+    model = settings.get("ollama_model", "").strip()
+    prompt_template = settings.get("ollama_prompt", "").strip()
+
+    if not api_url:
+        raise ValueError("Ollama API URL (ollama_api_url) is not configured in config.ini")
+
+    # Format prompt
+    prompt = prompt_template.format(source_lang=sl, target_lang=tl)
+    full_prompt = f"{prompt}\n\n{text}"
+
+    is_chat = ("/v1/chat/completions" in api_url or "/chat" in api_url)
+
+    if is_chat:
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": full_prompt}],
+            "stream": False
+        }
+    else:
+        payload = {
+            "model": model,
+            "prompt": full_prompt,
+            "stream": False
+        }
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(api_url, data=data)
+    req.add_header("Content-Type", "application/json")
+    req.add_header("User-Agent", "Mozilla/5.0")
+
+    try:
+        with urllib.request.urlopen(req, timeout=120) as response:
+            body = response.read().decode('utf-8')
+            resp_data = json.loads(body)
+            
+            if is_chat:
+                choices = resp_data.get("choices", [])
+                if choices and choices[0].get("message"):
+                    return choices[0]["message"].get("content", "").strip()
+            else:
+                return resp_data.get("response", "").strip()
+            
+            raise ValueError(f"Unexpected response structure: {body}")
+    except Exception as e:
+        raise Exception(f"Ollama request failed: {e}")
+
 def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[str]:
     """Helper to translate a list of lines with chunking and fallback."""
     provider = settings["subtitle_translator_provider"].lower()
     
-    if provider not in ("google", "deepl"):
-        if provider == "ollama":
-            raise NotImplementedError("Ollama provider is a stub and is not implemented in this phase.")
-        else:
-            raise ValueError(f"Unknown translation provider: {provider}")
+    if provider not in ("google", "deepl", "ollama"):
+        raise ValueError(f"Unknown translation provider: {provider}")
             
     api_url = settings.get("google_api_url", "")
     translated_lines = ["" for _ in lines]
@@ -405,6 +451,25 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                     for list_idx, target_idx in enumerate(indices):
                         original_line = chunk_text_list[list_idx]
                         translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+            elif provider == "ollama":
+                joined_text = "\n".join(chunk_text_list)
+                translated_joined = ollama_translate(joined_text, sl, tl, settings)
+                translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
+                translated_chunk_lines = translated_joined.split('\n')
+                
+                # Strip trailing empty item from split if it's there
+                if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
+                    translated_chunk_lines.pop()
+                    
+                # Verify segment count
+                if len(translated_chunk_lines) == len(chunk_text_list):
+                    for list_idx, target_idx in enumerate(indices):
+                        translated_lines[target_idx] = translated_chunk_lines[list_idx].strip()
+                else:
+                    # Fallback to line-by-line for this chunk
+                    for list_idx, target_idx in enumerate(indices):
+                        original_line = chunk_text_list[list_idx]
+                        translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
         except Exception as e:
             # Fallback to line-by-line on chunk failure
             log_warn(f"Chunk translation failed ({e}). Falling back to line-by-line...")
@@ -415,6 +480,8 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         translated_lines[target_idx] = google_translate_v1(original_line, sl, tl, api_url).strip()
                     elif provider == "deepl":
                         translated_lines[target_idx] = deepl_translate_v2([original_line], sl, tl, settings)[0].strip()
+                    elif provider == "ollama":
+                        translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
                 except Exception as line_error:
                     log_error(f"Failed to translate line '{original_line}': {line_error}")
                     translated_lines[target_idx] = original_line  # Fallback to original

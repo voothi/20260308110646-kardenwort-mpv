@@ -266,3 +266,103 @@ def test_translate_lines_deepl(monkeypatch):
     res = st.translate_lines(lines, "en", "ru", settings)
     assert res == ["RU: First line", "", "RU: Second line"]
 
+
+def test_ollama_translate_generate_mock(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+    }
+
+    mock_response_data = {"response": "Привет"}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["model"] == "llama3"
+        assert body["prompt"] == "Translate en to ru.\n\nHello"
+        assert body["stream"] is False
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+
+    res = st.ollama_translate("Hello", "en", "ru", settings)
+    assert res == "Привет"
+
+
+def test_ollama_translate_chat_mock(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "ollama_api_url": "http://localhost:11434/v1/chat/completions",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+    }
+
+    mock_response_data = {
+        "choices": [
+            {
+                "message": {
+                    "content": "Мир"
+                }
+            }
+        ]
+    }
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["model"] == "llama3"
+        assert body["messages"] == [{"role": "user", "content": "Translate en to ru.\n\nWorld"}]
+        assert body["stream"] is False
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+
+    res = st.ollama_translate("World", "en", "ru", settings)
+    assert res == "Мир"
+
+
+def test_translate_lines_ollama(monkeypatch):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "ollama",
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+    }
+
+    def mock_ollama(text, sl, tl, s):
+        assert sl == "en"
+        assert tl == "ru"
+        # Mock translation output returning multiple lines corresponding to input lines
+        if text == "Line one\nLine two":
+            return "RU: Line one\nRU: Line two"
+        return "RU: Single"
+
+    monkeypatch.setattr(st, "ollama_translate", mock_ollama)
+
+    lines = ["Line one", "Line two"]
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["RU: Line one", "RU: Line two"]
+
+
