@@ -533,6 +533,22 @@ class TestTimseekTransitIntegration:
             "Direct IPC seek set rewind_transit_active — only cmd_seek_time should do this"
         )
 
+    def test_manual_seek_clears_inhibit(self, mpv_fragment1):
+        """A manual seek to a lower position must clear an active transit inhibit."""
+        ipc = mpv_fragment1.ipc
+        _setup_phrase_autopause(ipc)
+        _seek(ipc, 14.5)
+        _seek_time(ipc, -1)  # sets inhibit to 14.5
+
+        state_before = _state(ipc)
+        assert state_before.get('rewind_transit_active') is True
+
+        time.sleep(1.0)      # Wait past the settling window (> 0.8s)
+        _seek(ipc, 5.0)      # Manual timeline seek
+
+        state_after = _state(ipc)
+        assert state_after.get('rewind_transit_active') is False
+
 
 # ---------------------------------------------------------------------------
 # 4. Live-playback tests — jerk-back and post-transit autopause

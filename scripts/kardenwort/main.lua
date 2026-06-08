@@ -6861,10 +6861,15 @@ local function master_tick()
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
             FSM.SCHEDULED_REPLAY_END = nil
-            -- TIMESEEK_INHIBIT_UNTIL is NOT cleared here — it is cleared only by
-            -- the explicit inhibit gate (time_pos > TIMESEEK_INHIBIT_UNTIL) below.
-            -- Clearing it in generic jump detection would allow autopause to fire at
-            -- intermediate sub boundaries during rewind transit (ZID 20260509233440).
+            
+            -- Clear timeseek inhibit if this is a true manual seek rather than a settling jump (ZID 20260609010353)
+            local is_settling = FSM.SEEK_LAST_TIME and (mp.get_time() - FSM.SEEK_LAST_TIME < 0.8)
+            if not is_settling then
+                FSM.TIMESEEK_INHIBIT_UNTIL = nil
+                FSM.REWIND_START_IDX = nil
+                FSM.REWIND_TRANSIT_CROSS_CARD = false
+            end
+
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
             if FSM.LOOP_MODE == "ON" then
                 -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
