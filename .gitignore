@@ -67,3 +67,5 @@ resume_session.state
 # anki-mapping.ini is versioned, but users can untrack it if needed.
 # !anki-mapping.ini
 # scripts/_tools/sub-tts/config.ini
+scripts/_tools/subtitle-translator/config.ini
+
