@@ -62,6 +62,7 @@ def _tag_error():   return _c("1;31", "[ERROR]")   # bold red
 def _tag_ok():      return _c("1;32", "[OK]")      # bold green
 def _tag_skip():    return _c("1;35", "[SKIP]")    # bold magenta
 def _tag_sync():    return _c("1;36", "[SYNC]")    # bold cyan
+def _tag_rescue():  return _c("1;35", "[RESCUE]")  # bold magenta
 
 def _dim(text):     return _c("90", text)          # dim grey
 def _bold(text):    return _c("1", text)           # bold white
@@ -83,6 +84,9 @@ def log_ok(msg, indent=""):
 
 def log_skip(msg, indent=""):
     print(f"{indent}{_tag_skip()} {msg}", flush=True)
+
+def log_rescue(msg, indent=""):
+    print(f"{indent}{_tag_rescue()} {msg}", flush=True)
 
 def log_detail(msg, indent="  "):
     print(f"{indent}{_dim('·')} {msg}", flush=True)
@@ -1238,9 +1242,9 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                 if _IS_TTY:
                     clear_line()
                 lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
-                log_warn(
-                    f"Chunk validation failed after {max_retries} attempts for {lines_range_str}. "
-                    f"Falling back to line-by-line rescue for this chunk..."
+                log_rescue(
+                    f"Chunk validation failed after {max_retries} attempts for {lines_range_str}; "
+                    f"switching to line-by-line rescue..."
                 )
                 # --- Line-by-line rescue pass ---
                 # Build a copy of settings with JSON disabled so that single lines go through
