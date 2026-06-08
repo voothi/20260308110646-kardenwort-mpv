@@ -482,6 +482,123 @@ def clean_subtitle_text(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
+_SENTENCE_ENDINGS = frozenset({'.', '?', '!', ':'})
+
+# ==============================================================================
+# SRT TIMECODE HELPERS (for merge-and-split mode)
+# ==============================================================================
+def parse_timecode(tc: str) -> int:
+    """Converts an SRT timestamp string (HH:MM:SS,mmm) to milliseconds."""
+    tc = tc.strip().replace(',', '.')
+    parts = tc.split(':')
+    if len(parts) != 3:
+        raise ValueError(f"Invalid timecode: {tc!r}")
+    hours = int(parts[0])
+    minutes = int(parts[1])
+    sec_parts = parts[2].split('.')
+    seconds = int(sec_parts[0])
+    millis = int(sec_parts[1]) if len(sec_parts) > 1 else 0
+    return hours * 3_600_000 + minutes * 60_000 + seconds * 1_000 + millis
+
+def parse_timeline(timeline: str) -> Tuple[int, int]:
+    """Extracts start and end milliseconds from an SRT timeline string."""
+    parts = timeline.split('-->')
+    if len(parts) != 2:
+        raise ValueError(f"Invalid timeline: {timeline!r}")
+    return parse_timecode(parts[0]), parse_timecode(parts[1])
+
+def build_merge_groups(blocks: List[dict], max_gap_ms: int) -> List[List[int]]:
+    """Groups consecutive block indices that should be merged for translation.
+
+    Two adjacent blocks are merged when ALL of the following hold:
+      1. Both have non-empty text.
+      2. Both have parseable timelines.
+      3. The gap between previous block end and current block start < max_gap_ms.
+      4. The previous block text does NOT end with sentence-ending punctuation (. ? ! :).
+    """
+    if not blocks:
+        return []
+    groups: List[List[int]] = []
+    current: List[int] = [0]
+    for i in range(1, len(blocks)):
+        prev_block = blocks[i - 1]
+        curr_block = blocks[i]
+        prev_text = (prev_block['text_lines'][0] if prev_block['text_lines'] else '').strip()
+        curr_text = (curr_block['text_lines'][0] if curr_block['text_lines'] else '').strip()
+        # Don't merge if either block is empty
+        if not prev_text or not curr_text:
+            groups.append(current)
+            current = [i]
+            continue
+        # Don't merge if timelines are missing or invalid
+        if not prev_block.get('timeline') or not curr_block.get('timeline'):
+            groups.append(current)
+            current = [i]
+            continue
+        try:
+            _, prev_end_ms = parse_timeline(prev_block['timeline'])
+            curr_start_ms, _ = parse_timeline(curr_block['timeline'])
+        except Exception:
+            groups.append(current)
+            current = [i]
+            continue
+        gap_ms = curr_start_ms - prev_end_ms
+        # Merge only when gap is small AND previous text doesn't end a sentence
+        if gap_ms < max_gap_ms and prev_text[-1] not in _SENTENCE_ENDINGS:
+            current.append(i)
+        else:
+            groups.append(current)
+            current = [i]
+    if current:
+        groups.append(current)
+    return groups
+
+def split_by_proportion(text: str, lengths: List[int]) -> List[str]:
+    """Splits *text* into len(lengths) parts proportional to each length value.
+
+    The split boundary is snapped to the nearest word boundary (space) within a
+    search window proportional to the shorter segment length.  If no space is
+    found the split is made at the raw proportional index.
+    """
+    if not text or not lengths:
+        return [text.strip()] if text else []
+    if len(lengths) == 1:
+        return [text.strip()]
+    total = sum(lengths)
+    if total == 0:
+        n = len(lengths)
+        equal = len(text) // n
+        return [text[i * equal:(i + 1) * equal].strip() for i in range(n - 1)] + [text[(n - 1) * equal:].strip()]
+    parts: List[str] = []
+    remaining = text.strip()
+    remaining_total = total
+    for i, length in enumerate(lengths):
+        if i == len(lengths) - 1:
+            parts.append(remaining.strip())
+            break
+        if not remaining:
+            parts.extend([''] * (len(lengths) - i))
+            break
+        # Target split index within the remaining text
+        target_idx = int(round(len(remaining) * length / remaining_total))
+        target_idx = max(1, min(target_idx, len(remaining) - 1))
+        # Search outward for the nearest space
+        search_window = max(target_idx, len(remaining) - target_idx)
+        split_idx = None
+        for offset in range(search_window + 1):
+            for candidate in (target_idx - offset, target_idx + offset):
+                if 1 <= candidate < len(remaining) - 1 and remaining[candidate] == ' ':
+                    split_idx = candidate
+                    break
+            if split_idx is not None:
+                break
+        if split_idx is None:
+            split_idx = target_idx
+        parts.append(remaining[:split_idx].strip())
+        remaining = remaining[split_idx:].strip()
+        remaining_total -= length
+    return parts
+
 
 # ==============================================================================
 # EXCEPTIONS
@@ -1104,22 +1221,42 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
 
     # 5. Extract translatable lines
     is_srt = (ext.lower() == 'srt')
-    
+    merge_lines_enabled = is_srt and settings.get('subtitle_translator_merge_lines', 'false').lower() == 'true'
+    max_gap_ms = int(settings.get('subtitle_translator_merge_max_gap_ms', '1000'))
+
+    # group_info is populated only in merge mode:
+    # list of (group_block_indices, per_block_char_lengths)
+    group_info: Optional[List[Tuple[List[int], List[int]]]] = None
+
     if is_srt:
         blocks = parse_srt(content)
-        # Pre-process blocks to merge multiple lines in a single block into a single clean line
+        # Pre-process: merge any internal multi-line block into one clean line
         for block in blocks:
-            cleaned_lines = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
-            if cleaned_lines:
-                block['text_lines'] = [clean_subtitle_text(" ".join(cleaned_lines))]
-            else:
-                block['text_lines'] = []
-        lines_to_translate = []
-        mapping = [] # list of (block_idx, line_idx)
-        for b_idx, block in enumerate(blocks):
-            for l_idx, text_line in enumerate(block['text_lines']):
-                lines_to_translate.append(text_line)
-                mapping.append((b_idx, l_idx))
+            cleaned = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
+            block['text_lines'] = [clean_subtitle_text(' '.join(cleaned))] if cleaned else []
+
+        if merge_lines_enabled:
+            # --- MERGE MODE ---
+            # Group consecutive compatible blocks; each group is translated as one text unit
+            merge_groups = build_merge_groups(blocks, max_gap_ms)
+            group_info = []
+            lines_to_translate = []
+            for group_indices in merge_groups:
+                group_texts = [(blocks[b]['text_lines'][0] if blocks[b]['text_lines'] else '') for b in group_indices]
+                lengths = [len(t) for t in group_texts]
+                combined = ' '.join(t for t in group_texts if t)
+                lines_to_translate.append(combined)  # one "line" per group
+                group_info.append((group_indices, lengths))
+            mapping = None
+            log_detail(f"Merge mode: {len(blocks)} blocks grouped into {len(merge_groups)} translation units.")
+        else:
+            # --- LINE-BY-LINE MODE ---
+            lines_to_translate = []
+            mapping = []  # list of (block_idx, line_idx)
+            for b_idx, block in enumerate(blocks):
+                for l_idx, text_line in enumerate(block['text_lines']):
+                    lines_to_translate.append(text_line)
+                    mapping.append((b_idx, l_idx))
     else:
         # Txt file line-by-line
         content = content.replace('\r\n', '\n').replace('\r', '\n')
@@ -1127,8 +1264,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
         lines_to_translate = [clean_subtitle_text(line) for line in raw_lines]
         mapping = None
 
-    # Count non-empty source lines
-    source_non_empty_count = sum(1 for line in lines_to_translate if line.strip())
+    # Count non-empty source lines (always reflects original subtitle blocks, not groups)
+    source_non_empty_count = (
+        sum(1 for b in blocks if b['text_lines'] and b['text_lines'][0].strip())
+        if is_srt else sum(1 for line in lines_to_translate if line.strip())
+    )
     log_info(f"Source file contains {source_non_empty_count} non-empty lines.")
 
     # 6. Loop over declarative target languages
@@ -1156,38 +1296,56 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
         
         try:
             translated_lines = translate_lines(lines_to_translate, source_lang, tl, settings)
-            
+
             # Reconstruct content
             if is_srt:
-                # Map back to blocks
-                new_blocks = json.loads(json.dumps(blocks)) # Deep copy
-                for trans_idx, trans_text in enumerate(translated_lines):
-                    b_idx, l_idx = mapping[trans_idx]
-                    new_blocks[b_idx]['text_lines'][l_idx] = clean_subtitle_text(trans_text)
-                
-                # Make sure each block's lines are clean and combined into a single line
-                for block in new_blocks:
-                    cleaned_lines = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
-                    if cleaned_lines:
-                        block['text_lines'] = [clean_subtitle_text(" ".join(cleaned_lines))]
-                    else:
-                        block['text_lines'] = []
+                new_blocks = json.loads(json.dumps(blocks))  # Deep copy
+                if merge_lines_enabled and group_info is not None:
+                    # --- MERGE MODE reconstruction: split translated group text back to blocks ---
+                    for group_idx, (group_indices, lengths) in enumerate(group_info):
+                        trans_text = clean_subtitle_text(translated_lines[group_idx])
+                        if len(group_indices) == 1:
+                            b_idx = group_indices[0]
+                            if new_blocks[b_idx]['text_lines']:
+                                new_blocks[b_idx]['text_lines'][0] = trans_text
+                            elif trans_text:
+                                new_blocks[b_idx]['text_lines'] = [trans_text]
+                        else:
+                            # Split proportionally to original char lengths
+                            non_zero_lengths = [max(l, 1) for l in lengths]
+                            split_parts = split_by_proportion(trans_text, non_zero_lengths)
+                            for i, b_idx in enumerate(group_indices):
+                                part = clean_subtitle_text(split_parts[i]) if i < len(split_parts) else ''
+                                if new_blocks[b_idx]['text_lines']:
+                                    new_blocks[b_idx]['text_lines'][0] = part
+                                elif part:
+                                    new_blocks[b_idx]['text_lines'] = [part]
+                else:
+                    # --- LINE-BY-LINE MODE reconstruction ---
+                    for trans_idx, trans_text in enumerate(translated_lines):
+                        b_idx, l_idx = mapping[trans_idx]
+                        new_blocks[b_idx]['text_lines'][l_idx] = clean_subtitle_text(trans_text)
+                    for block in new_blocks:
+                        cleaned = [clean_subtitle_text(l) for l in block['text_lines'] if l.strip()]
+                        block['text_lines'] = [clean_subtitle_text(' '.join(cleaned))] if cleaned else []
                 result_content = write_srt(new_blocks)
             else:
-                cleaned_lines = [clean_subtitle_text(line) for line in translated_lines]
-                result_content = "\n".join(cleaned_lines)
-                
+                result_content = '\n'.join(clean_subtitle_text(l) for l in translated_lines)
+
             # Write translated file
             write_output_file(target_path, result_content, duplicate_mode, session_zid, f"Subtitle for '{tl}'")
             log_ok(f"Saved translated subtitle: {target_name}")
-            
-            # Check line consistency
-            translated_non_empty_count = sum(1 for line in translated_lines if line.strip())
+
+            # Check line consistency (count filled blocks in merge mode)
+            if is_srt and merge_lines_enabled:
+                translated_non_empty_count = sum(1 for b in new_blocks if b['text_lines'] and b['text_lines'][0].strip())
+            else:
+                translated_non_empty_count = sum(1 for line in translated_lines if line.strip())
             if translated_non_empty_count != source_non_empty_count:
                 log_warn(f"Line count mismatch for '{tl}'! Source: {source_non_empty_count}, Result: {translated_non_empty_count}")
             else:
                 log_detail(f"Line count verified: {translated_non_empty_count} lines.")
-                
+
         except ChunkValidationError as cve:
             log_error(f"Failed to translate to '{tl}': {cve}")
             save_partial = settings.get("subtitle_translator_save_partial_on_failure", "false").lower() == "true"
@@ -1196,19 +1354,30 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 partial_translated_lines = cve.partial_lines
                 if is_srt:
                     partial_blocks = json.loads(json.dumps(blocks))
-                    for trans_idx, trans_text in enumerate(partial_translated_lines):
-                        b_idx, l_idx = mapping[trans_idx]
-                        partial_blocks[b_idx]['text_lines'][l_idx] = clean_subtitle_text(trans_text)
-                    for block in partial_blocks:
-                        cleaned_lines = [clean_subtitle_text(line) for line in block['text_lines'] if line.strip()]
-                        if cleaned_lines:
-                            block['text_lines'] = [clean_subtitle_text(" ".join(cleaned_lines))]
-                        else:
-                            block['text_lines'] = []
+                    if merge_lines_enabled and group_info is not None:
+                        for group_idx, (group_indices, lengths) in enumerate(group_info):
+                            trans_text = clean_subtitle_text(partial_translated_lines[group_idx]) if group_idx < len(partial_translated_lines) else ''
+                            if len(group_indices) == 1:
+                                b_idx = group_indices[0]
+                                if partial_blocks[b_idx]['text_lines']:
+                                    partial_blocks[b_idx]['text_lines'][0] = trans_text
+                            else:
+                                non_zero_lengths = [max(l, 1) for l in lengths]
+                                split_parts = split_by_proportion(trans_text, non_zero_lengths)
+                                for i, b_idx in enumerate(group_indices):
+                                    part = clean_subtitle_text(split_parts[i]) if i < len(split_parts) else ''
+                                    if partial_blocks[b_idx]['text_lines']:
+                                        partial_blocks[b_idx]['text_lines'][0] = part
+                    else:
+                        for trans_idx, trans_text in enumerate(partial_translated_lines):
+                            b_idx, l_idx = mapping[trans_idx]
+                            partial_blocks[b_idx]['text_lines'][l_idx] = clean_subtitle_text(trans_text)
+                        for block in partial_blocks:
+                            cleaned = [clean_subtitle_text(l) for l in block['text_lines'] if l.strip()]
+                            block['text_lines'] = [clean_subtitle_text(' '.join(cleaned))] if cleaned else []
                     partial_content = write_srt(partial_blocks)
                 else:
-                    cleaned_lines = [clean_subtitle_text(line) for line in partial_translated_lines]
-                    partial_content = "\n".join(cleaned_lines)
+                    partial_content = '\n'.join(clean_subtitle_text(l) for l in partial_translated_lines)
                 try:
                     write_output_file(target_path, partial_content, duplicate_mode, session_zid, f"Partial subtitle for '{tl}'")
                     log_ok(f"Saved partial translation: {target_name}")

@@ -94,8 +94,12 @@ subtitle_translator_word_count_max_ratio = 3.5
 # (skip/overwrite/archive) when a target file already exists.
 subtitle_translator_save_partial_on_failure = false
 
-# Merge continuous subtitle lines to translate them together in a single context block,
-# Set to "true" to enable.
+# Merge continuous subtitle lines to translate them together as a single context block,
+# then split the translated text back proportionally by character count.
+# Two adjacent blocks are merged when:
+#   - The gap between their timestamps is less than subtitle_translator_merge_max_gap_ms ms.
+#   - The preceding block text does NOT end with sentence-ending punctuation (. ? ! :).
+# Set to "true" to enable context-aware mode; set to "false" for strict line-by-line mode.
 subtitle_translator_merge_lines = false
 
 # Maximum gap in milliseconds between subtitle timestamps to consider them continuous for merging.

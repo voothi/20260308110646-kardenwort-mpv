@@ -1228,6 +1228,180 @@ def test_process_file_cleans_tags_and_breaks(tmp_path, monkeypatch):
     assert translated_norm == expected_norm
 
 
+# ==============================================================================
+# TIMECODE / MERGE-SPLIT HELPERS
+# ==============================================================================
+
+def test_parse_timecode():
+    st = _load_translator()
+    assert st.parse_timecode("00:00:00,000") == 0
+    assert st.parse_timecode("00:00:01,000") == 1000
+    assert st.parse_timecode("00:01:00,000") == 60_000
+    assert st.parse_timecode("01:00:00,000") == 3_600_000
+    assert st.parse_timecode("01:02:03,456") == 3_600_000 + 2 * 60_000 + 3_000 + 456
+
+
+def test_parse_timeline():
+    st = _load_translator()
+    start, end = st.parse_timeline("00:00:01,000 --> 00:00:04,500")
+    assert start == 1000
+    assert end == 4500
+
+
+def test_split_by_proportion_single():
+    st = _load_translator()
+    assert st.split_by_proportion("Hello World", [5]) == ["Hello World"]
+
+
+def test_split_by_proportion_equal():
+    st = _load_translator()
+    parts = st.split_by_proportion("Hello World", [5, 5])
+    assert len(parts) == 2
+    assert parts[0].strip() != ""
+    assert parts[1].strip() != ""
+    # Both parts together should reconstruct the original (modulo spaces)
+    assert " ".join(parts).replace("  ", " ") == "Hello World"
+
+
+def test_split_by_proportion_proportional():
+    st = _load_translator()
+    # "Short" takes 5 chars, "A much longer segment here" takes 26 chars
+    # So split at ~5/31 of the text
+    text = "Short A much longer segment here"
+    parts = st.split_by_proportion(text, [5, 26])
+    assert len(parts) == 2
+    # First part should be shorter than the second
+    assert len(parts[0]) < len(parts[1])
+
+
+def test_split_by_proportion_three_parts():
+    st = _load_translator()
+    text = "one two three four five six"
+    parts = st.split_by_proportion(text, [3, 3, 3])
+    assert len(parts) == 3
+    for p in parts:
+        assert p.strip() != ""
+
+
+def test_build_merge_groups_no_merge_on_sentence_ending():
+    st = _load_translator()
+    blocks = [
+        {"text_lines": ["Hello world."], "timeline": "00:00:00,000 --> 00:00:02,000"},
+        {"text_lines": ["Next sentence starts here."], "timeline": "00:00:02,500 --> 00:00:05,000"},
+    ]
+    groups = st.build_merge_groups(blocks, max_gap_ms=1000)
+    # Prev text ends with '.', so should NOT be merged
+    assert groups == [[0], [1]]
+
+
+def test_build_merge_groups_merge_on_small_gap_no_ending():
+    st = _load_translator()
+    blocks = [
+        {"text_lines": ["This sentence continues"], "timeline": "00:00:00,000 --> 00:00:02,000"},
+        {"text_lines": ["right here naturally"], "timeline": "00:00:02,300 --> 00:00:04,000"},
+    ]
+    groups = st.build_merge_groups(blocks, max_gap_ms=1000)
+    # Gap = 300ms < 1000ms, no sentence ending → should merge
+    assert groups == [[0, 1]]
+
+
+def test_build_merge_groups_no_merge_on_large_gap():
+    st = _load_translator()
+    blocks = [
+        {"text_lines": ["Sentence one continues"], "timeline": "00:00:00,000 --> 00:00:02,000"},
+        {"text_lines": ["New subtitle here"], "timeline": "00:00:04,000 --> 00:00:06,000"},
+    ]
+    groups = st.build_merge_groups(blocks, max_gap_ms=1000)
+    # Gap = 2000ms > 1000ms → separate groups
+    assert groups == [[0], [1]]
+
+
+def test_build_merge_groups_no_merge_on_empty_block():
+    st = _load_translator()
+    blocks = [
+        {"text_lines": [], "timeline": "00:00:00,000 --> 00:00:02,000"},
+        {"text_lines": ["Some text"], "timeline": "00:00:02,200 --> 00:00:04,000"},
+    ]
+    groups = st.build_merge_groups(blocks, max_gap_ms=1000)
+    # Empty block should break the group
+    assert groups == [[0], [1]]
+
+
+def test_build_merge_groups_three_continuous():
+    st = _load_translator()
+    blocks = [
+        {"text_lines": ["First part without ending"], "timeline": "00:00:00,000 --> 00:00:02,000"},
+        {"text_lines": ["second part continues"], "timeline": "00:00:02,100 --> 00:00:04,000"},
+        {"text_lines": ["and finishes here."], "timeline": "00:00:04,100 --> 00:00:06,000"},
+    ]
+    groups = st.build_merge_groups(blocks, max_gap_ms=1000)
+    # Block 0→1: gap 100ms, no ending → merge; Block 1→2: gap 100ms, no ending → merge
+    assert groups == [[0, 1, 2]]
+
+
+def test_process_file_merge_mode(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    source_content = (
+        "1\n"
+        "00:00:00,000 --> 00:00:02,000\n"
+        "This is the first part\n\n"
+        "2\n"
+        "00:00:02,300 --> 00:00:04,000\n"
+        "of a continuous sentence.\n\n"
+        "3\n"
+        "00:00:10,000 --> 00:00:12,000\n"
+        "Standalone sentence.\n"
+    )
+    source_file = tmp_path / "test_merge.en.srt"
+    source_file.write_text(source_content, encoding="utf-8")
+
+    settings = {
+        "subtitle_translator_zid_script": "",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_provider": "google",
+        "subtitle_translator_duplicate_mode": "overwrite",
+        "subtitle_translator_rename_source_with_zid": "false",
+        "subtitle_translator_rename_related_media_with_zid": "false",
+        "subtitle_translator_merge_lines": "true",
+        "subtitle_translator_merge_max_gap_ms": "1000",
+        "google_api_url": "dummy",
+    }
+
+    translated_calls = []
+
+    def mock_google_translate(text, sl, tl, api_url):
+        translated_calls.append(text)
+        # Simulate: merged group → return a Russian phrase proportional in length
+        if "This is the first part" in text:
+            # This is the merged text "This is the first part of a continuous sentence."
+            # Return a plausible Russian translation of similar length
+            return "Это первая часть непрерывного предложения."
+        if "Standalone sentence" in text:
+            return "Отдельное предложение."
+        return text
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_google_translate)
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is True
+
+    target_file = tmp_path / "test_merge.ru.srt"
+    assert target_file.exists()
+    content = target_file.read_text(encoding="utf-8")
+
+    # Block 3 (standalone) must be translated as-is
+    assert "Отдельное предложение." in content
+
+    # Blocks 1 and 2 were merged → each must have non-empty text (the split result)
+    lines = content.replace("\r\n", "\n").split("\n")
+    # Find the translated text lines (not numbers, not timecodes, not empty)
+    text_lines = [l for l in lines if l and not l.isdigit() and "-->" not in l]
+    assert len(text_lines) == 3  # 3 subtitle blocks each get a text line
+
+
+
 
 
 
