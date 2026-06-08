@@ -366,3 +366,11 @@ def test_translate_lines_ollama(monkeypatch):
     assert res == ["RU: Line one", "RU: Line two"]
 
 
+def test_make_translation_progress_bar():
+    st = _load_translator()
+    bar = st.make_translation_progress_bar(10, 20)
+    assert "10/20 lines (50.0%)" in st.strip_ansi(bar)
+    assert "━" in bar
+
+
+

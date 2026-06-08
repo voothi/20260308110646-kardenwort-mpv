@@ -40,6 +40,13 @@ _ZID_SCRIPT: str = ""
 # ==============================================================================
 _IS_TTY = sys.stdout.isatty()
 
+# ANSI escape sequence remover
+ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+def strip_ansi(text: str) -> str:
+    """Removes all VT100 / ANSI escape sequences from the given text."""
+    return ANSI_ESCAPE.sub('', text)
+
 def _c(code, text):
     """Wraps text in an ANSI escape if stdout is a TTY."""
     return f"\x1b[{code}m{text}\x1b[0m" if _IS_TTY else text
@@ -122,6 +129,16 @@ def pause_console(success: bool = True, timeout_secs: Optional[int] = PAUSE_AUTO
             input("\nPress Enter to exit...")
         except Exception:
             pass
+
+def make_translation_progress_bar(translated_count: int, total_count: int, indent: str = "    ") -> str:
+    """Generates a premium CLI progress bar."""
+    bar_width = 30
+    percent_val = (translated_count / total_count) * 100 if total_count > 0 else 100
+    filled_width = int(round(bar_width * percent_val / 100.0))
+    bar = _green("━" * filled_width) + _dim("━" * (bar_width - filled_width))
+    progress_text = f"{translated_count}/{total_count} lines ({percent_val:.1f}%)"
+    return f"\r{indent}{bar} {_cyan(progress_text)}"
+
 
 # ==============================================================================
 # CONFIGURATION LOADING
@@ -393,6 +410,9 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
     api_url = settings.get("google_api_url", "")
     translated_lines = ["" for _ in lines]
     
+    total_non_empty = sum(1 for line in lines if line.strip())
+    translated_count = 0
+
     # We group lines to translate in batches/chunks (max 30 lines or 1000 characters)
     chunk = []
     chunk_indices = []
@@ -485,7 +505,18 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                 except Exception as line_error:
                     log_error(f"Failed to translate line '{original_line}': {line_error}")
                     translated_lines[target_idx] = original_line  # Fallback to original
-                    
+        
+        # Update progress bar
+        translated_count = min(translated_count + len(chunk_text_list), total_non_empty)
+        if _IS_TTY:
+            sys.stdout.write(make_translation_progress_bar(translated_count, total_non_empty))
+            sys.stdout.flush()
+        else:
+            log_info(f"Translated {translated_count}/{total_non_empty} lines ({(translated_count/total_non_empty)*100:.1f}%)...")
+            
+    if _IS_TTY and total_non_empty > 0:
+        clear_line()
+
     return translated_lines
 
 # ==============================================================================
@@ -642,6 +673,18 @@ def main():
     
     # Load settings
     settings = load_config()
+
+    # Print settings summary
+    provider = settings.get("subtitle_translator_provider", "google").lower()
+    log_info(f"Active Provider: {_bold(provider)}")
+    if provider == "ollama":
+        print(f"  {_dim('·')} Model:          {_cyan(settings.get('ollama_model', ''))}")
+        print(f"  {_dim('·')} API URL:        {_cyan(settings.get('ollama_api_url', ''))}")
+    elif provider == "deepl":
+        print(f"  {_dim('·')} API URL:        {_cyan(settings.get('deepl_api_url', ''))}")
+        print(f"  {_dim('·')} Formality:      {_cyan(settings.get('deepl_formality', 'default'))}")
+    print(f"  {_dim('·')} Duplicate Mode: {_cyan(settings.get('subtitle_translator_duplicate_mode', 'skip'))}")
+    print(f"  {_dim('·')} Target Langs:   {_cyan(settings.get('subtitle_translator_target_languages', ''))}\n")
     
     if not args.inputs:
         log_error("No subtitle files provided.")
