@@ -26,6 +26,14 @@ subtitle_translator_duplicate_mode = skip
 # the generated ZID. Existing source ZIDs are always preserved.
 subtitle_translator_rename_source_with_zid = false
 
+# When enabled, add the same ZID to a companion MP4 in the same folder.
+# The MP4 must share the subtitle clean title, for example:
+#   movie.en.srt -> movie.mp4
+# If the MP4 already has a ZID, it is left unchanged.
+# Requires subtitle_translator_rename_source_with_zid=true when the source
+# subtitle does not already have a ZID.
+subtitle_translator_rename_companion_mp4_with_zid = false
+
 # --- Google Translate Settings ---
 # Google Translate API base URL (uses free V1 API client=gtx)
 google_api_url = https://translate.googleapis.com/translate_a/single
