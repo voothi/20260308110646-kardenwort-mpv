@@ -547,6 +547,7 @@ def test_translate_lines_validation_output_clean_by_default(monkeypatch, capsys)
 
     output = capsys.readouterr().out
     assert "Model response:" not in output
+    assert "[RESCUE] Chunk validation failed after 1 attempts for lines 1 to 2" in output
     assert "Line 1 rescued" in output
     assert "Rescued line 1:" not in output
 
@@ -1557,7 +1558,6 @@ def test_process_file_merge_mode(tmp_path, monkeypatch):
     # Find the translated text lines (not numbers, not timecodes, not empty)
     text_lines = [l for l in lines if l and not l.isdigit() and "-->" not in l]
     assert len(text_lines) == 3  # 3 subtitle blocks each get a text line
-
 
 
 
