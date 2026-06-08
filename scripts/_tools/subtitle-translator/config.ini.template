@@ -19,6 +19,11 @@ subtitle_translator_provider = google
 #   archive   - Move the existing file to a subfolder named after the session ZID, then create a new one
 subtitle_translator_duplicate_mode = skip
 
+# Rename source files that do not already have a ZID into
+# <zid>-<title>.<source_lang>.<ext> before translating.
+# When false, the original source filename is left unchanged.
+subtitle_translator_rename_source_with_zid = false
+
 # --- Google Translate Settings ---
 # Google Translate API base URL (uses free V1 API client=gtx)
 google_api_url = https://translate.googleapis.com/translate_a/single

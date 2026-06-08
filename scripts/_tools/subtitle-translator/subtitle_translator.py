@@ -152,6 +152,7 @@ def load_config():
         "subtitle_translator_source_language": "en",
         "subtitle_translator_provider": "google",
         "subtitle_translator_duplicate_mode": "skip",
+        "subtitle_translator_rename_source_with_zid": "true",
         "google_api_url": "https://translate.googleapis.com/translate_a/single",
         "deepl_api_key": "",
         "deepl_api_url": "https://api-free.deepl.com/v2/translate",
@@ -645,18 +646,22 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     source_lang = lang if lang else settings["subtitle_translator_source_language"]
 
     # 3. ZID archiving renaming logic
+    rename_source_with_zid = settings.get("subtitle_translator_rename_source_with_zid", "true").lower() == "true"
     if not zid:
         zid = get_current_zid()
-        new_name = f"{zid}-{clean_title}.{source_lang}.{ext}"
-        new_path = file_path.parent / new_name
-        try:
-            file_path.rename(new_path)
-            log_info(f"Archived source file to: {new_name}")
-            file_path = new_path
-            renamed_source = True
-        except Exception as e:
-            log_error(f"Failed to rename source file to include ZID: {e}")
-            return False
+        if rename_source_with_zid:
+            new_name = f"{zid}-{clean_title}.{source_lang}.{ext}"
+            new_path = file_path.parent / new_name
+            try:
+                file_path.rename(new_path)
+                log_info(f"Archived source file to: {new_name}")
+                file_path = new_path
+                renamed_source = True
+            except Exception as e:
+                log_error(f"Failed to rename source file to include ZID: {e}")
+                return False
+        else:
+            log_info("Source file has no ZID; keeping original filename.")
     else:
         if not lang:
             new_name = f"{zid}-{clean_title}.{source_lang}.{ext}"
