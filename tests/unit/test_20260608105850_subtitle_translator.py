@@ -721,3 +721,63 @@ def test_main_loads_config_before_generating_session_zid(monkeypatch):
         st.main()
 
     assert call_order[:2] == ["load", "zid"]
+
+
+def test_normalize_media_title():
+    st = _load_translator()
+    assert st.normalize_media_title("Telc-Eng-B2") == "telcengb2"
+    assert st.normalize_media_title("Movie (2026)!") == "movie2026"
+
+
+def test_find_related_media_files(tmp_path):
+    st = _load_translator()
+
+    # Create dummy files
+    (tmp_path / "movie.en.srt").write_text("dummy srt", encoding="utf-8")
+    mp4_file = tmp_path / "movie.mp4"
+    mp4_file.write_text("dummy video", encoding="utf-8")
+
+    # 1. Exact match test
+    matches = st.find_related_media_files(tmp_path, "movie")
+    assert len(matches) == 1
+    assert matches[0] == mp4_file
+
+    # 2. Case-insensitive / normalized match test
+    mp3_file = tmp_path / "MOVIE-AUDIO.mp3"
+    mp3_file.write_text("dummy audio", encoding="utf-8")
+    matches_normalized = st.find_related_media_files(tmp_path, "movie-audio")
+    assert len(matches_normalized) == 1
+    assert matches_normalized[0] == mp3_file
+
+    # 3. Single-file fallback test
+    # Delete movie.mp4 and MOVIE-AUDIO.mp3, leave only one media file
+    mp4_file.unlink()
+    matches_single = st.find_related_media_files(tmp_path, "unrelated-title")
+    assert len(matches_single) == 1
+    assert matches_single[0] == mp3_file
+
+
+def test_process_file_txt_format(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    source_file = tmp_path / "20260608000000-notes.en.txt"
+    source_file.write_text("Hello\nWorld\n", encoding="utf-8")
+
+    monkeypatch.setattr(st, "translate_lines", lambda lines, sl, tl, settings: ["Привет", "Мир"])
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_duplicate_mode": "overwrite",
+    }
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is True
+
+    target_file = tmp_path / "20260608000000-notes.ru.txt"
+    assert target_file.exists()
+    content = target_file.read_text(encoding="utf-8")
+    assert content.replace("\r\n", "\n") == "Привет\nМир"
+
