@@ -198,6 +198,7 @@ def load_config():
         "ollama_prompt_feedback_template": DEFAULT_OLLAMA_PROMPT_FEEDBACK_TEMPLATE,
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
+        "subtitle_translator_verbose_validation_errors": "false",
         "subtitle_translator_word_count_check": "false",
         "subtitle_translator_word_count_min_ratio": "0.25",
         "subtitle_translator_word_count_max_ratio": "3.5",
@@ -1057,6 +1058,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
 
     chunk_size = int(settings.get("subtitle_translator_chunk_size", "0"))
     max_retries = int(settings.get("subtitle_translator_max_retries", "3"))
+    verbose_validation_errors = settings.get("subtitle_translator_verbose_validation_errors", "false").lower() == "true"
     word_count_check = settings.get("subtitle_translator_word_count_check", "false").lower() == "true"
     min_ratio = float(settings.get("subtitle_translator_word_count_min_ratio", "0.25"))
     max_ratio = float(settings.get("subtitle_translator_word_count_max_ratio", "3.5"))
@@ -1232,7 +1234,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                     lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
                     error_summary, response_preview = format_validation_error_for_log(e)
                     log_warn(f"Chunk validation failed for {lines_range_str} ({attempt}/{max_retries}): {error_summary}")
-                    if response_preview:
+                    if verbose_validation_errors and response_preview:
                         log_detail(f"Model response: {response_preview}", indent="    ")
                     last_error = str(e)
                     if attempt < max_retries:
@@ -1264,7 +1266,10 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                             rescued_line = ollama_translate(original_line, sl, tl, rescue_settings).strip()
                         validate_translated_line(original_line, rescued_line, list_idx)
                         translated_lines[target_idx] = rescued_line
-                        log_detail(f"Rescue translated line {target_idx + 1}: {translated_lines[target_idx][:60]!r}")
+                        if verbose_validation_errors:
+                            log_detail(f"Rescued line {target_idx + 1}: {translated_lines[target_idx][:60]!r}")
+                        else:
+                            log_detail(f"Line {target_idx + 1} rescued")
                     except Exception as rescue_err:
                         rescue_ok = False
                         log_error(f"Rescue translation failed for line {target_idx + 1}: {rescue_err}")

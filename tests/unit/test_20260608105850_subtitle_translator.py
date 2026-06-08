@@ -523,6 +523,61 @@ def test_translate_lines_rescue_pass_on_chunk_failure(monkeypatch):
     assert result == ["[Hello]", "[World]", "[Goodbye]"]
 
 
+def test_translate_lines_validation_output_clean_by_default(monkeypatch, capsys):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "1",
+        "subtitle_translator_word_count_check": "false",
+        "subtitle_translator_verbose_validation_errors": "false",
+    }
+
+    def mock_translate(text, sl, tl, api_url):
+        if "\n" in text:
+            raise RuntimeError("Line count mismatch. Response was: {very noisy model response}")
+        return f"[{text}]"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    assert st.translate_lines(["Hello", "World"], "en", "ru", settings) == ["[Hello]", "[World]"]
+
+    output = capsys.readouterr().out
+    assert "Model response:" not in output
+    assert "Line 1 rescued" in output
+    assert "Rescued line 1:" not in output
+
+
+def test_translate_lines_validation_output_verbose(monkeypatch, capsys):
+    st = _load_translator()
+
+    settings = {
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "1",
+        "subtitle_translator_word_count_check": "false",
+        "subtitle_translator_verbose_validation_errors": "true",
+    }
+
+    def mock_translate(text, sl, tl, api_url):
+        if "\n" in text:
+            raise RuntimeError("Line count mismatch. Response was: {very noisy model response}")
+        return f"[{text}]"
+
+    monkeypatch.setattr(st, "google_translate_v1", mock_translate)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    assert st.translate_lines(["Hello", "World"], "en", "ru", settings) == ["[Hello]", "[World]"]
+
+    output = capsys.readouterr().out
+    assert "Model response: {very noisy model response}" in output
+    assert "Rescued line 1:" in output
+
+
 def test_translate_lines_word_count_check(monkeypatch):
     st = _load_translator()
 
@@ -1502,7 +1557,6 @@ def test_process_file_merge_mode(tmp_path, monkeypatch):
     # Find the translated text lines (not numbers, not timecodes, not empty)
     text_lines = [l for l in lines if l and not l.isdigit() and "-->" not in l]
     assert len(text_lines) == 3  # 3 subtitle blocks each get a text line
-
 
 
 

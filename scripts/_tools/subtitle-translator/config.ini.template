@@ -84,6 +84,10 @@ subtitle_translator_chunk_size = 5
 # Number of times to retry translating a chunk if validation fails.
 subtitle_translator_max_retries = 3
 
+# Show compact model response previews for failed validation attempts.
+# Set to "true" when debugging model output; keep "false" for cleaner SendTo output.
+subtitle_translator_verbose_validation_errors = false
+
 # Enable approximate word count validation (helps detect model hallucinations/skips).
 subtitle_translator_word_count_check = false
 
