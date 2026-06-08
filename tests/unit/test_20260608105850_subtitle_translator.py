@@ -981,6 +981,63 @@ def test_ollama_translate_structured_count_mismatch(monkeypatch):
     assert "Line count mismatch in structured JSON" in str(exc_info.value)
 
 
+def test_ollama_translate_structured_duplicate_keys_regex_fallback(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_json_format": "true",
+    }
+    # Duplicate keys: standard json.loads parses this as a single dict with 1 text item,
+    # but the regex fallback correctly finds all 2 items!
+    response_payload = '{"id": 1, "text": "Привет", "id": 2, "text": "Мир"}'
+    mock_response_data = {"response": response_payload}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: MockResponse())
+    res = st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert res == "Привет\nМир"
+
+
+def test_ollama_translate_structured_markdown_fences(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_json_format": "true",
+    }
+    # Response wrapped in markdown fences with extra preamble text
+    response_payload = (
+        "Here is the translated data:\n"
+        "```json\n"
+        '[{"id": 1, "text": "Привет"}, {"id": 2, "text": "Мир"}]\n'
+        "```\n"
+        "Hope this helps!"
+    )
+    mock_response_data = {"response": response_payload}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: MockResponse())
+    res = st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert res == "Привет\nМир"
+
+
 
 
 

@@ -603,36 +603,95 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
                 response_text = resp_data.get("response", "").strip()
                 
             if json_enabled and is_chunk:
-                # Strip markdown code blocks if the model returned them
-                if response_text.startswith("```json"):
-                    response_text = response_text[7:]
-                if response_text.endswith("```"):
-                    response_text = response_text[:-3]
-                response_text = response_text.strip()
-                
-                try:
-                    output_data = json.loads(response_text)
-                except Exception as parse_err:
-                    raise ValueError(f"Ollama returned invalid JSON: {parse_err}. Response was: {response_text}")
-                
+                # Extract JSON from potential Markdown formatting
+                cleaned_response = response_text.strip()
+                match = re.search(r'```json\s*(.*?)\s*```', cleaned_response, re.DOTALL)
+                if match:
+                    cleaned_response = match.group(1).strip()
+                else:
+                    match = re.search(r'```\s*(.*?)\s*```', cleaned_response, re.DOTALL)
+                    if match:
+                        cleaned_response = match.group(1).strip()
+                    else:
+                        if cleaned_response.startswith("```json"):
+                            cleaned_response = cleaned_response[7:]
+                        if cleaned_response.endswith("```"):
+                            cleaned_response = cleaned_response[:-3]
+                        cleaned_response = cleaned_response.strip()
+
                 translated_lines = []
-                if isinstance(output_data, list):
-                    for item in output_data:
-                        if isinstance(item, dict) and "text" in item:
-                            translated_lines.append(item["text"])
-                        elif isinstance(item, str):
-                            translated_lines.append(item)
-                elif isinstance(output_data, dict):
-                    for k in sorted(output_data.keys(), key=lambda x: int(x) if x.isdigit() else 0):
-                        val = output_data[k]
-                        if isinstance(val, dict) and "text" in val:
-                            translated_lines.append(val["text"])
+                parse_success = False
+
+                # Strategy 1: Standard JSON parsing
+                json_parse_err = None
+                try:
+                    output_data = json.loads(cleaned_response)
+                    if isinstance(output_data, list):
+                        for item in output_data:
+                            if isinstance(item, dict) and "text" in item:
+                                translated_lines.append(item["text"])
+                            elif isinstance(item, str):
+                                translated_lines.append(item)
+                    elif isinstance(output_data, dict):
+                        # Check if any value is a list of matching length
+                        for val in output_data.values():
+                            if isinstance(val, list) and len(val) == len(lines):
+                                temp_lines = []
+                                for item in val:
+                                    if isinstance(item, str):
+                                        temp_lines.append(item)
+                                    elif isinstance(item, dict) and "text" in item:
+                                        temp_lines.append(item["text"])
+                                if len(temp_lines) == len(lines):
+                                    translated_lines = temp_lines
+                                    parse_success = True
+                                    break
+                        
+                        # Strategy 1b: Check if it's a single translation object
+                        if not parse_success and "text" in output_data and ("id" in output_data or len(output_data) == 2):
+                            if isinstance(output_data["text"], str):
+                                translated_lines.append(output_data["text"])
+                                
+                        # Strategy 1c: Mapping of IDs to objects/strings
+                        if not parse_success:
+                            for k in sorted(output_data.keys(), key=lambda x: int(x) if x.isdigit() else 0):
+                                val = output_data[k]
+                                if isinstance(val, dict) and "text" in val:
+                                    translated_lines.append(val["text"])
+                                else:
+                                    translated_lines.append(str(val))
+
+                    if len(translated_lines) == len(lines):
+                        parse_success = True
+                except Exception as e:
+                    json_parse_err = e
+
+                # Strategy 2: Regex extraction fallback (covers duplicate-keyed dicts, NDJSON, malformed lists, etc.)
+                if not parse_success:
+                    regex_lines = []
+                    # Try double quotes pattern
+                    matches = re.findall(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned_response)
+                    if len(matches) != len(lines):
+                        # Try single quotes pattern
+                        matches = re.findall(r"'text'\s*:\s*'((?:[^\'\\]|\\.)*)'", cleaned_response)
+                    if len(matches) != len(lines):
+                        # Try mixed/unquoted pattern
+                        matches = re.findall(r'["\']?text["\']?\s*:\s*["\']((?:[^"\'\\]|\\.)*)["\']', cleaned_response)
+
+                    for m in matches:
+                        m_clean = m.replace('\\"', '"').replace("\\'", "'").replace('\\\\', '\\')
+                        regex_lines.append(m_clean)
+
+                    if len(regex_lines) == len(lines):
+                        translated_lines = regex_lines
+                        parse_success = True
+                    else:
+                        got_count = len(translated_lines) if translated_lines else len(regex_lines)
+                        if json_parse_err:
+                            raise ValueError(f"Ollama returned invalid JSON: {json_parse_err}. Response was: {response_text}")
                         else:
-                            translated_lines.append(str(val))
-                            
-                if len(translated_lines) != len(lines):
-                    raise ValueError(f"Line count mismatch in structured JSON (expected {len(lines)}, got {len(translated_lines)}). Response was: {response_text}")
-                
+                            raise ValueError(f"Line count mismatch in structured JSON (expected {len(lines)}, got {got_count}). Response was: {response_text}")
+
                 return "\n".join(translated_lines)
             else:
                 return response_text
