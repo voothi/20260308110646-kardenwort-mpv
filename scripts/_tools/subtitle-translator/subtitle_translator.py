@@ -90,6 +90,26 @@ def log_detail(msg, indent="  "):
 def log_section(title):
     print(f"\n{_bold(title)}", flush=True)
 
+def compact_log_text(text: str, max_chars: int = 220) -> str:
+    """Returns a single-line preview suitable for noisy model responses."""
+    text = text.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n")
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 3].rstrip() + "..."
+
+def format_validation_error_for_log(error: Exception) -> Tuple[str, Optional[str]]:
+    """Splits validation errors into a short cause and optional model response preview."""
+    message = str(error)
+    marker = "Response was:"
+    if marker not in message:
+        return compact_log_text(message), None
+
+    cause, response = message.split(marker, 1)
+    cause = compact_log_text(cause.strip().rstrip("."))
+    response_preview = compact_log_text(response, max_chars=260)
+    return cause, response_preview
+
 def clear_line(width=65):
     sys.stdout.write("\r\x1b[K" + " " * width + "\r")
     sys.stdout.flush()
@@ -1206,7 +1226,10 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                     if _IS_TTY:
                         clear_line()
                     lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
-                    log_warn(f"Chunk validation failed for {lines_range_str} on attempt {attempt}/{max_retries}: {e}")
+                    error_summary, response_preview = format_validation_error_for_log(e)
+                    log_warn(f"Chunk validation failed for {lines_range_str} ({attempt}/{max_retries}): {error_summary}")
+                    if response_preview:
+                        log_detail(f"Model response: {response_preview}", indent="    ")
                     last_error = str(e)
                     if attempt < max_retries:
                         time.sleep(1)

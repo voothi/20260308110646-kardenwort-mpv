@@ -385,6 +385,22 @@ def test_make_translation_progress_bar():
     assert "━" in bar
 
 
+def test_format_validation_error_for_log_compacts_model_response():
+    st = _load_translator()
+
+    error = RuntimeError(
+        "Ollama request failed: Line count mismatch in structured JSON "
+        "(expected 3, got 1). Response was: {\n"
+        '"translations": ["one", "two", "three"]\n'
+        "}"
+    )
+
+    summary, response = st.format_validation_error_for_log(error)
+
+    assert summary == "Ollama request failed: Line count mismatch in structured JSON (expected 3, got 1)"
+    assert response == '{\\n"translations": ["one", "two", "three"]\\n}'
+
+
 def test_translate_lines_validation_success(monkeypatch):
     st = _load_translator()
 
@@ -1486,8 +1502,6 @@ def test_process_file_merge_mode(tmp_path, monkeypatch):
     # Find the translated text lines (not numbers, not timecodes, not empty)
     text_lines = [l for l in lines if l and not l.isdigit() and "-->" not in l]
     assert len(text_lines) == 3  # 3 subtitle blocks each get a text line
-
-
 
 
 
