@@ -511,6 +511,8 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                             original_line = chunk_text_list[list_idx]
                             translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
             except Exception as e:
+                if _IS_TTY:
+                    clear_line()
                 log_warn(f"Chunk translation failed ({e}). Falling back to line-by-line...")
                 for list_idx, target_idx in enumerate(indices):
                     try:
@@ -522,6 +524,8 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         elif provider == "ollama":
                             translated_lines[target_idx] = ollama_translate(original_line, sl, tl, settings).strip()
                     except Exception as line_error:
+                        if _IS_TTY:
+                            clear_line()
                         log_error(f"Failed to translate line '{original_line}': {line_error}")
                         translated_lines[target_idx] = original_line
         else:
@@ -577,12 +581,16 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                     success = True
                     break
                 except Exception as e:
+                    if _IS_TTY:
+                        clear_line()
                     lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
                     log_warn(f"Chunk validation failed for {lines_range_str} on attempt {attempt}/{max_retries}: {e}")
                     if attempt < max_retries:
                         time.sleep(1)
 
             if not success:
+                if _IS_TTY:
+                    clear_line()
                 lines_range_str = f"lines {indices[0] + 1} to {indices[-1] + 1}"
                 msg = f"Chunk validation failed after {max_retries} attempts for {lines_range_str}."
                 log_error(f"{_bold(msg)} Stopping translation.")
@@ -610,6 +618,9 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
         log_error(f"File not found: {file_path}")
         return False
 
+    orig_file_path = file_path
+    renamed_source = False
+
     # 1. Parse filename parameters
     zid, clean_title, lang, ext = parse_filename(file_path)
     
@@ -625,6 +636,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             file_path.rename(new_path)
             log_info(f"Archived source file to: {new_name}")
             file_path = new_path
+            renamed_source = True
         except Exception as e:
             log_error(f"Failed to rename source file to include ZID: {e}")
             return False
@@ -636,6 +648,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 file_path.rename(new_path)
                 log_info(f"Renamed source file to include language: {new_name}")
                 file_path = new_path
+                renamed_source = True
             except Exception as e:
                 log_error(f"Failed to rename source file to include language: {e}")
                 return False
@@ -736,6 +749,13 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
         except Exception as e:
             log_error(f"Failed to translate to '{tl}': {e}")
             success_status = False
+
+    if not success_status and renamed_source:
+        try:
+            file_path.rename(orig_file_path)
+            log_info(f"Rolled back source file name to: {orig_file_path.name}")
+        except Exception as rollback_err:
+            log_warn(f"Failed to rollback source file name: {rollback_err}")
 
     return success_status
 

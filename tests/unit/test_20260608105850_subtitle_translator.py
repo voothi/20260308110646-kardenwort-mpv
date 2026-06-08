@@ -490,3 +490,38 @@ def test_translate_lines_word_count_check(monkeypatch):
     monkeypatch.setattr(st, "google_translate_v1", mock_translate_short)
     res = st.translate_lines(lines, "en", "ru", settings)
     assert res == ["Привет дорогой друг"]
+
+
+def test_process_file_rollback_on_failure(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    # Create dummy subtitle file without ZID
+    source_file = tmp_path / "telc-eng-b2.srt"
+    source_file.write_text("1\n00:00:01,000 --> 00:00:04,000\nHello\n", encoding="utf-8")
+
+    # Mock translation to fail validation
+    def mock_translate_fail(lines, sl, tl, settings):
+        raise RuntimeError("Validation failed")
+
+    monkeypatch.setattr(st, "translate_lines", mock_translate_fail)
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+    }
+
+    # Execute and check it returns False
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is False
+
+    # Check that the source file name has been rolled back to its original name
+    assert source_file.exists()
+    assert (tmp_path / "telc-eng-b2.srt").exists()
+
+    # Verify that the renamed ZID file does not exist anymore
+    # The renamed ZID file should have been cleaned up/rolled back
+    zid_files = list(tmp_path.glob("*-telc-eng-b2.en.srt"))
+    assert len(zid_files) == 0
+
