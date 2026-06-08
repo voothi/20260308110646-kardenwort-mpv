@@ -1,4 +1,9 @@
 [Settings]
+
+# ==============================================================================
+# Core
+# ==============================================================================
+
 # Path to the ZID script used to generate Zettelkasten timestamps.
 # Leave empty to fall back to local system time.
 subtitle_translator_zid_script = U:\voothi\20241116203211-zid\zid.py
@@ -10,8 +15,16 @@ subtitle_translator_target_languages = ru,de
 # Default source language code if not detected from the input filename.
 subtitle_translator_source_language = en
 
-# Active translation provider: google (currently implemented), deepl (currently implemented), or ollama (currently implemented)
+# Active translation provider:
+#   google - Google Translate API
+#   deepl  - DeepL API
+#   ollama - Local Ollama model
 subtitle_translator_provider = google
+
+
+# ==============================================================================
+# File Handling
+# ==============================================================================
 
 # How to handle files that already exist in the target directory:
 #   skip      - Suppress translation and keep the existing file (default)
@@ -35,33 +48,55 @@ subtitle_translator_rename_source_with_zid = false
 # subtitle does not already have a ZID.
 subtitle_translator_rename_related_media_with_zid = false
 
-# --- Google Translate Settings ---
-# Google Translate API base URL (uses free V1 API client=gtx)
+
+# ==============================================================================
+# Google Translate Provider
+# ==============================================================================
+
+# Google Translate API base URL (uses free V1 API client=gtx).
 google_api_url = https://translate.googleapis.com/translate_a/single
 
-# --- DeepL Settings ---
-# DeepL Auth Key / API Key
-deepl_api_key = 
-# DeepL API URL
+
+# ==============================================================================
+# DeepL Provider
+# ==============================================================================
+
+# DeepL Auth Key / API Key.
+deepl_api_key =
+
+# DeepL API URL.
 deepl_api_url = https://api-free.deepl.com/v2/translate
-# Formality setting: default, formal, or informal
+
+# Formality setting: default, formal, or informal.
 deepl_formality = default
 
-# --- Ollama Settings ---
-# Ollama base API URL (e.g. http://localhost:11434/api/generate)
+
+# ==============================================================================
+# Ollama Provider
+# ==============================================================================
+
+# Ollama base API URL (e.g. http://localhost:11434/api/generate).
 ollama_api_url = http://localhost:11434/api/generate
-# Model name to use
+
+# Model name to use.
 ollama_model = llama3
+
 # Prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
 ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Stick strictly to {target_lang} (Russian) and do not use words from any other language. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
-# Unique prompt addition (salt) template on retry attempts to help models recover.
-# Put the repeating portion in square brackets, e.g., Make it [MUCH] better! or Сделай [НАМНОГО] лучше!.
-# Example: Make it [much] better -> Make it much, much better (on attempt 3).
+
 # Add validation feedback (previous retry error) to prompt on retry attempts.
 # Set to "false" to disable.
 ollama_prompt_feedback = false
+
+# Unique prompt addition (salt) template on retry attempts to help models recover.
+# Put the repeating portion in square brackets, e.g., Make it [MUCH] better! or Сделай [НАМНОГО] лучше!.
+# Example: Make it [much] better -> Make it much, much better (on attempt 3).
 # Leave empty or set to "false" to disable.
 ollama_prompt_salt = false
+
+# Template for error feedback on retries. Must contain the {last_error} placeholder.
+ollama_prompt_feedback_template = [Feedback from previous attempt: {last_error}]
+
 # Use structured JSON input/output for Ollama chunk translation.
 # Useful for models that follow structured output; very small models (like gemma3:1b)
 # may still return the wrong item count, which is handled by retries and rescue.
@@ -69,14 +104,21 @@ ollama_prompt_salt = false
 # If a validated chunk still fails after all retries, the translator automatically
 # rescues that chunk line-by-line with Ollama JSON disabled for the rescue calls only.
 ollama_json_format = false
-# Schema format to use for structured JSON: dict_of_strings (recommended, object with array), array_of_strings (simple list) or array_of_objects (legacy id/text format).
+
+# Schema format to use for structured JSON:
+#   dict_of_strings  - Recommended object with array
+#   array_of_strings - Simple list
+#   array_of_objects - Legacy id/text format
 ollama_json_schema = dict_of_strings
+
 # JSON prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
 ollama_json_prompt = Translate the JSON array of strings under the 'source' key from {source_lang} to {target_lang}. Output ONLY a JSON object with a single 'translations' key containing the translated JSON array of strings, without any markdown formatting, code block markers, explanations, or preamble.
-# Template for error feedback on retries. Must contain the {last_error} placeholder.
-ollama_prompt_feedback_template = [Feedback from previous attempt: {last_error}]
 
-# --- Chunk Validation Settings ---
+
+# ==============================================================================
+# Chunk Validation
+# ==============================================================================
+
 # Translate and validate subtitles in chunks of this size (e.g. 5).
 # Set to 0 to disable validation chunking and use standard batching.
 # When subtitle_translator_merge_lines=true, this counts merged translation units,
@@ -104,11 +146,21 @@ subtitle_translator_word_count_max_ratio = 3.5
 # (skip/overwrite/archive) when a target file already exists.
 subtitle_translator_save_partial_on_failure = false
 
+
+# ==============================================================================
+# Subtitle Text Cleanup
+# ==============================================================================
+
 # Remove custom artifacts from subtitle text after translation.
 # Comma-separated rules; prefixes: re:<regex>, glob:<wildcard>, or plain text.
 # Escape literal commas inside a rule as \,
 # Example: **,re:\s+\[noise\]$,glob:[[]draft[]]
 subtitle_translator_clean_patterns = **
+
+
+# ==============================================================================
+# Subtitle Line Merging
+# ==============================================================================
 
 # Merge continuous subtitle lines to translate them together as a single context block.
 # The split back to subtitle blocks is controlled by subtitle_translator_merge_split_mode.
@@ -119,12 +171,17 @@ subtitle_translator_clean_patterns = **
 subtitle_translator_merge_lines = false
 
 # How to split translated merge groups back into subtitle blocks:
-#   marker       - exact split markers are inserted and must survive translation (default)
-#   proportional - old heuristic split by original text lengths; less strict, less exact
+#   marker       - Exact split markers are inserted and must survive translation (default)
+#   proportional - Old heuristic split by original text lengths; less strict, less exact
 subtitle_translator_merge_split_mode = marker
 
 # Maximum gap in milliseconds between subtitle timestamps to consider them continuous for merging.
 subtitle_translator_merge_max_gap_ms = 1000
+
+
+# ==============================================================================
+# Console
+# ==============================================================================
 
 # Console auto-close timeout in seconds (on successful runs in SendTo/pause mode).
 # Set to 0 to close instantly; leave empty to disable auto-close.
