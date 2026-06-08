@@ -989,8 +989,10 @@ python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:AP
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 8, 2026
-- **Total Hours Spent**: 594.50h (across 112 work sessions, average session of 5.31h; human-AI paired, not autonomous)
-- **Current Maturity**: ~2812 Commits (v1.84.60)
+- **Total Hours Spent**: 595.50h (across 114 work sessions, average session of 5.22h; human-AI paired, not autonomous)
+- **Current Maturity**: ~2814 Commits (v1.84.60)
+- **Consecutive Days Streak**: 48 days in a row
+- **Average Break**: 0.62 days between work sessions
 - **Total Requests**: 3,360 human requests (83 in active log, 3,277 in archive)
 - **Intensity Profile**: 4.7 Commits/Hour 
 - **Git Structure**: 371 local branches, 257 tags
@@ -999,7 +1001,7 @@ This project maintains a data-driven approach to development tracking. We use a 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
-git log --pretty=format:"%ad" --date=iso-strict | python docs/scripts/analyze_repo.py
+git log --pretty=format:"%ad" --date=iso-strict | python reports/analyze_repo.py
 ```
 
 [Return to Top](#table-of-contents)
