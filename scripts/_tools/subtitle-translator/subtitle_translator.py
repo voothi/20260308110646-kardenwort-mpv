@@ -304,7 +304,8 @@ class ChunkValidationError(RuntimeError):
     """Raised when chunk validation fails after all retries.
     
     Carries the partially translated lines built up to the failing chunk.
-    Positions for untranslated lines hold the original source text as fallback.
+    Failed/untranslated positions remain as empty strings, producing blank
+    subtitle entries in the output (timecodes are preserved, text is empty).
     """
     def __init__(self, message: str, partial_lines: List[str]):
         super().__init__(message)
@@ -762,7 +763,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             log_error(f"Failed to translate to '{tl}': {cve}")
             save_partial = settings.get("subtitle_translator_save_partial_on_failure", "false").lower() == "true"
             if save_partial and cve.partial_lines:
-                log_warn(f"Saving partial translation for '{tl}' (completed chunks only, untranslated lines kept as original)...")
+                log_warn(f"Saving partial translation for '{tl}' (completed chunks only, failed chunks are blank)...")
                 partial_translated_lines = cve.partial_lines
                 if is_srt:
                     partial_blocks = json.loads(json.dumps(blocks))
