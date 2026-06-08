@@ -1429,6 +1429,25 @@ def test_merge_split_markers_missing_marker_fails():
     assert "Missing merge split marker" in str(exc_info.value)
 
 
+def test_merge_split_mode_validation():
+    st = _load_translator()
+
+    assert st.get_merge_split_mode({}) == "marker"
+    assert st.get_merge_split_mode({"subtitle_translator_merge_split_mode": "proportional"}) == "proportional"
+    with pytest.raises(ValueError) as exc_info:
+        st.get_merge_split_mode({"subtitle_translator_merge_split_mode": "guess"})
+    assert "subtitle_translator_merge_split_mode" in str(exc_info.value)
+
+
+def test_split_by_proportion_compatibility_mode():
+    st = _load_translator()
+
+    parts = st.split_by_proportion("Hello World", [5, 5])
+
+    assert len(parts) == 2
+    assert " ".join(parts).replace("  ", " ") == "Hello World"
+
+
 def test_build_merge_groups_no_merge_on_sentence_ending():
     st = _load_translator()
     blocks = [
@@ -1584,5 +1603,4 @@ def test_process_file_merge_mode_missing_marker_fails(tmp_path, monkeypatch):
 
     assert ok is False
     assert not (tmp_path / "test_merge.ru.srt").exists()
-
 

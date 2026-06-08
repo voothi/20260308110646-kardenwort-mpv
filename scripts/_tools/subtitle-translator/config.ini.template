@@ -112,6 +112,11 @@ subtitle_translator_save_partial_on_failure = false
 # Set to "true" to enable context-aware mode; set to "false" for strict line-by-line mode.
 subtitle_translator_merge_lines = false
 
+# How to split translated merge groups back into subtitle blocks:
+#   marker       - exact split markers are inserted and must survive translation (default)
+#   proportional - old heuristic split by original text lengths; less strict, less exact
+subtitle_translator_merge_split_mode = marker
+
 # Maximum gap in milliseconds between subtitle timestamps to consider them continuous for merging.
 subtitle_translator_merge_max_gap_ms = 1000
 

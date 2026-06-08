@@ -206,6 +206,7 @@ def load_config():
         "subtitle_translator_word_count_max_ratio": "3.5",
         "subtitle_translator_save_partial_on_failure": "false",
         "subtitle_translator_merge_lines": "false",
+        "subtitle_translator_merge_split_mode": "marker",
         "subtitle_translator_merge_max_gap_ms": "1000",
         "youtube_download_auto_close_timeout_secs": "15",
     }
@@ -614,6 +615,54 @@ def split_merged_text_by_markers(text: str, markers: List[str]) -> List[str]:
         remaining = remaining[marker_idx + len(marker):]
     parts.append(remaining.strip())
     return parts
+
+def split_by_proportion(text: str, lengths: List[int]) -> List[str]:
+    """Compatibility splitter for merge mode when exact markers are disabled."""
+    if not text or not lengths:
+        return [text.strip()] if text else []
+    if len(lengths) == 1:
+        return [text.strip()]
+    total = sum(lengths)
+    if total == 0:
+        n = len(lengths)
+        equal = len(text) // n
+        return [text[i * equal:(i + 1) * equal].strip() for i in range(n - 1)] + [text[(n - 1) * equal:].strip()]
+    parts: List[str] = []
+    remaining = text.strip()
+    remaining_total = total
+    for i, length in enumerate(lengths):
+        if i == len(lengths) - 1:
+            parts.append(remaining.strip())
+            break
+        if not remaining:
+            parts.extend([''] * (len(lengths) - i))
+            break
+        target_idx = int(round(len(remaining) * length / remaining_total))
+        target_idx = max(1, min(target_idx, len(remaining) - 1))
+        search_window = max(target_idx, len(remaining) - target_idx)
+        split_idx = None
+        for offset in range(search_window + 1):
+            for candidate in (target_idx - offset, target_idx + offset):
+                if 1 <= candidate < len(remaining) - 1 and remaining[candidate] == ' ':
+                    split_idx = candidate
+                    break
+            if split_idx is not None:
+                break
+        if split_idx is None:
+            split_idx = target_idx
+        parts.append(remaining[:split_idx].strip())
+        remaining = remaining[split_idx:].strip()
+        remaining_total -= length
+    return parts
+
+def get_merge_split_mode(settings: dict) -> str:
+    mode = settings.get("subtitle_translator_merge_split_mode", "marker").strip().lower()
+    if mode not in ("marker", "proportional"):
+        raise ValueError(
+            f"Invalid subtitle_translator_merge_split_mode: {mode}. "
+            "Expected one of: marker, proportional"
+        )
+    return mode
 
 
 # ==============================================================================
@@ -1384,6 +1433,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     # 5. Extract translatable lines
     is_srt = (ext.lower() == 'srt')
     merge_lines_enabled = is_srt and settings.get('subtitle_translator_merge_lines', 'false').lower() == 'true'
+    merge_split_mode = get_merge_split_mode(settings)
     max_gap_ms = int(settings.get('subtitle_translator_merge_max_gap_ms', '1000'))
 
     # group_info is populated only in merge mode:
@@ -1406,7 +1456,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             for group_indices in merge_groups:
                 group_texts = [(blocks[b]['text_lines'][0] if blocks[b]['text_lines'] else '') for b in group_indices]
                 lengths = [len(t) for t in group_texts]
-                combined, split_markers = join_merged_group_texts(group_texts)
+                if merge_split_mode == "marker":
+                    combined, split_markers = join_merged_group_texts(group_texts)
+                else:
+                    combined = ' '.join(t for t in group_texts if t)
+                    split_markers = []
                 lines_to_translate.append(combined)  # one "line" per group
                 group_info.append((group_indices, lengths, split_markers))
             mapping = None
@@ -1474,7 +1528,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                             elif trans_text:
                                 new_blocks[b_idx]['text_lines'] = [trans_text]
                         else:
-                            split_parts = split_merged_text_by_markers(trans_text, split_markers)
+                            if merge_split_mode == "marker":
+                                split_parts = split_merged_text_by_markers(trans_text, split_markers)
+                            else:
+                                non_zero_lengths = [max(l, 1) for l in lengths]
+                                split_parts = split_by_proportion(clean_subtitle_text(trans_text), non_zero_lengths)
                             for i, b_idx in enumerate(group_indices):
                                 part = clean_subtitle_text(split_parts[i]) if i < len(split_parts) else ''
                                 if new_blocks[b_idx]['text_lines']:
@@ -1524,7 +1582,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                                 if partial_blocks[b_idx]['text_lines']:
                                     partial_blocks[b_idx]['text_lines'][0] = trans_text
                             else:
-                                split_parts = split_merged_text_by_markers(trans_text, split_markers) if trans_text.strip() else [''] * len(group_indices)
+                                if merge_split_mode == "marker":
+                                    split_parts = split_merged_text_by_markers(trans_text, split_markers) if trans_text.strip() else [''] * len(group_indices)
+                                else:
+                                    non_zero_lengths = [max(l, 1) for l in lengths]
+                                    split_parts = split_by_proportion(clean_subtitle_text(trans_text), non_zero_lengths)
                                 for i, b_idx in enumerate(group_indices):
                                     part = clean_subtitle_text(split_parts[i]) if i < len(split_parts) else ''
                                     if partial_blocks[b_idx]['text_lines']:
