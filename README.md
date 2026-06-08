@@ -1001,7 +1001,7 @@ This project maintains a data-driven approach to development tracking. We use a 
 
 To repeat the analysis on your local machine, use the provided Python tool:
 ```powershell
-git log --pretty=format:"%ad" --date=iso-strict | python reports/analyze_repo.py
+git log --pretty=format:"%ad" --date=iso-strict | python scripts/_tools/analyze-repo/analyze_repo.py
 ```
 
 [Return to Top](#table-of-contents)
