@@ -134,6 +134,7 @@ def load_config():
         "subtitle_translator_target_languages": "ru,de",
         "subtitle_translator_source_language": "en",
         "subtitle_translator_provider": "google",
+        "subtitle_translator_duplicate_mode": "skip",
         "google_api_url": "https://translate.googleapis.com/translate_a/single",
         "deepl_api_key": "",
         "deepl_api_url": "https://api-free.deepl.com/v2/translate",
@@ -378,7 +379,7 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
 # ==============================================================================
 # PIPELINE PROCESSOR
 # ==============================================================================
-def process_file(file_path: Path, settings: dict) -> bool:
+def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     """Translates the given file to target languages."""
     if not file_path.exists():
         log_error(f"File not found: {file_path}")
@@ -457,10 +458,25 @@ def process_file(file_path: Path, settings: dict) -> bool:
         target_name = f"{zid}-{clean_title}.{tl}.{ext}"
         target_path = file_path.parent / target_name
         
-        # Idempotency check
+        # Idempotency / duplicate check
         if target_path.exists():
-            log_skip(f"Subtitle for '{tl}' already exists: {target_name}")
-            continue
+            dup_mode = settings.get("subtitle_translator_duplicate_mode", "skip").lower()
+            if dup_mode == "skip":
+                log_skip(f"Subtitle for '{tl}' already exists: {target_name}")
+                continue
+            elif dup_mode == "archive":
+                archive_dir = file_path.parent / session_zid
+                archive_dir.mkdir(parents=True, exist_ok=True)
+                archive_target_path = archive_dir / target_name
+                log_warn(f"Subtitle for '{tl}' already exists. Archiving old file to: {session_zid}/{target_name}")
+                try:
+                    if archive_target_path.exists():
+                        archive_target_path.unlink()
+                    target_path.rename(archive_target_path)
+                except Exception as archive_error:
+                    log_warn(f"Failed to archive old subtitle: {archive_error}")
+            elif dup_mode == "overwrite":
+                log_info(f"Subtitle for '{tl}' already exists. Overwriting...")
             
         log_info(f"Translating {source_lang} → {tl}...")
         
@@ -502,7 +518,8 @@ def process_file(file_path: Path, settings: dict) -> bool:
 # MAIN ENTRYPOINT
 # ==============================================================================
 def main():
-    print(f"\n{_bold('Kardenwort Subtitle Translator Engine')} {_dim(f'(ZID: {get_current_zid()})')}\n", flush=True)
+    session_zid = get_current_zid()
+    print(f"\n{_bold('Kardenwort Subtitle Translator Engine')} {_dim(f'(ZID: {session_zid})')}\n", flush=True)
     
     parser = argparse.ArgumentParser(description="Declarative Subtitle Translator")
     parser.add_argument("inputs", nargs="*", help="Subtitle files (.srt or .txt)")
@@ -526,7 +543,7 @@ def main():
     for idx, item in enumerate(args.inputs, 1):
         print(f"\n{_dim(f'[{idx}/{total_files}]')} {_bold(os.path.basename(item))}", flush=True)
         file_path = Path(item)
-        if process_file(file_path, settings):
+        if process_file(file_path, settings, session_zid):
             success_count += 1
             
     if success_count == total_files:
