@@ -784,24 +784,29 @@ def test_process_file_txt_format(tmp_path, monkeypatch):
 
 def test_get_prompt_salt():
     st = _load_translator()
-    # 1. Test "Make it much better"
-    phrase = "Make it much better"
+    # 1. Test "Make it (much better)"
+    phrase = "Make it (much better)"
     assert st.get_prompt_salt(phrase, 1) == ""
     assert st.get_prompt_salt(phrase, 2) == "Make it much better"
     assert st.get_prompt_salt(phrase, 3) == "Make it much better, much better"
     assert st.get_prompt_salt(phrase, 4) == "Make it much better, much better, much better"
 
-    # 2. Test "Make it more precise"
-    phrase2 = "Make it more precise"
-    assert st.get_prompt_salt(phrase2, 2) == "Make it more precise"
-    assert st.get_prompt_salt(phrase2, 3) == "Make it more precise, more precise"
+    # 2. Test "Сделай (намного лучше)"
+    phrase2 = "Сделай (намного лучше)"
+    assert st.get_prompt_salt(phrase2, 2) == "Сделай намного лучше"
+    assert st.get_prompt_salt(phrase2, 3) == "Сделай намного лучше, намного лучше"
 
-    # 3. Test non prefix matching
-    phrase3 = "Be extra careful"
-    assert st.get_prompt_salt(phrase3, 2) == "Be extra careful"
-    assert st.get_prompt_salt(phrase3, 3) == "Be extra careful, Be extra careful"
+    # 3. Test middle parenthesis "Be (careful) now!"
+    phrase3 = "Be (careful) now!"
+    assert st.get_prompt_salt(phrase3, 2) == "Be careful now!"
+    assert st.get_prompt_salt(phrase3, 3) == "Be careful, careful now!"
 
-    # 4. Test disabling settings
+    # 4. Test no parenthesis
+    phrase4 = "Be extra careful"
+    assert st.get_prompt_salt(phrase4, 2) == "Be extra careful"
+    assert st.get_prompt_salt(phrase4, 3) == "Be extra careful, Be extra careful"
+
+    # 5. Test disabling settings
     assert st.get_prompt_salt("false", 2) == ""
     assert st.get_prompt_salt("None", 2) == ""
     assert st.get_prompt_salt("", 2) == ""
@@ -842,7 +847,7 @@ def test_translate_lines_ollama_retry_with_salt(monkeypatch):
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_prompt": "Translate {source_lang} to {target_lang}.",
-        "ollama_prompt_salt": "Make it much better",
+        "ollama_prompt_salt": "Make it (much better)",
         "subtitle_translator_chunk_size": "2",
         "subtitle_translator_max_retries": "3",
     }
@@ -861,6 +866,7 @@ def test_translate_lines_ollama_retry_with_salt(monkeypatch):
     res = st.translate_lines(lines, "en", "ru", settings)
     assert res == ["Привет", "Мир"]
     assert attempts == ["", "Make it much better", "Make it much better, much better"]
+
 
 
 

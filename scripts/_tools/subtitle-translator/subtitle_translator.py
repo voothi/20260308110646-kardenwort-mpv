@@ -163,7 +163,7 @@ def load_config():
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
-        "ollama_prompt_salt": "Make it much better",
+        "ollama_prompt_salt": "Make it (much better)",
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
         "subtitle_translator_word_count_check": "false",
@@ -208,14 +208,16 @@ def get_current_zid() -> str:
     return time.strftime("%Y%m%d%H%M%S")
 
 def get_prompt_salt(phrase: str, attempt: int) -> str:
-    """Generates a unique salt phrase based on the configured phrase and retry attempt."""
+    """Generates a unique salt phrase based on the configured template and retry attempt."""
     if attempt <= 1 or not phrase or phrase.strip().lower() in ("false", "none", "no", "0"):
         return ""
     phrase = phrase.strip()
-    prefix = "Make it "
-    if phrase.lower().startswith(prefix.lower()):
-        adjective = phrase[len(prefix):]
-        return prefix + ", ".join([adjective] * (attempt - 1))
+    match = re.match(r"^(.*?)\((.*?)\)(.*)$", phrase)
+    if match:
+        prefix = match.group(1)
+        repeat_part = match.group(2)
+        suffix = match.group(3)
+        return prefix + ", ".join([repeat_part] * (attempt - 1)) + suffix
     return ", ".join([phrase] * (attempt - 1))
 
 # ==============================================================================
@@ -1002,7 +1004,7 @@ def main():
     if provider == "ollama":
         print(f"  {_dim('·')} Model:          {_cyan(settings.get('ollama_model', ''))}")
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('ollama_api_url', ''))}")
-        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'Make it much better'))}")
+        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'Make it (much better)'))}")
     elif provider == "deepl":
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('deepl_api_url', ''))}")
         print(f"  {_dim('·')} Formality:      {_cyan(settings.get('deepl_formality', 'default'))}")
