@@ -781,3 +781,68 @@ def test_process_file_txt_format(tmp_path, monkeypatch):
     content = target_file.read_text(encoding="utf-8")
     assert content.replace("\r\n", "\n") == "Привет\nМир"
 
+
+def test_get_prompt_salt():
+    st = _load_translator()
+    assert st.get_prompt_salt(1) == ""
+    assert st.get_prompt_salt(2) == "Make it much better"
+    assert st.get_prompt_salt(3) == "Make it much better, much better"
+    assert st.get_prompt_salt(4) == "Make it much better, much better, much better"
+
+
+def test_ollama_translate_with_salt(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+    }
+    mock_response_data = {"response": "Привет"}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["prompt"] == "Translate en to ru. Make it much better.\n\nHello"
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+    res = st.ollama_translate("Hello", "en", "ru", settings, salt="Make it much better")
+    assert res == "Привет"
+
+
+def test_translate_lines_ollama_retry_with_salt(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "subtitle_translator_provider": "ollama",
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+        "ollama_prompt_salt": "true",
+        "subtitle_translator_chunk_size": "2",
+        "subtitle_translator_max_retries": "3",
+    }
+
+    attempts = []
+    def mock_ollama_translate(text, sl, tl, s, salt=""):
+        attempts.append(salt)
+        if len(attempts) < 3:
+            return ""
+        return "Привет\nМир"
+
+    monkeypatch.setattr(st, "ollama_translate", mock_ollama_translate)
+    monkeypatch.setattr(st.time, "sleep", lambda x: None)
+
+    lines = ["Hello", "World"]
+    res = st.translate_lines(lines, "en", "ru", settings)
+    assert res == ["Привет", "Мир"]
+    assert attempts == ["", "Make it much better", "Make it much better, much better"]
+
+

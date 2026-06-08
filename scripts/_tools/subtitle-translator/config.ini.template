@@ -54,6 +54,8 @@ ollama_api_url = http://localhost:11434/api/generate
 ollama_model = llama3
 # Prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
 ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
+# Enable unique prompt additions (salt) on retry attempts to help models recover.
+ollama_prompt_salt = true
 
 # --- Chunk Validation Settings ---
 # Translate and validate subtitles in chunks of this size (e.g. 5).

@@ -163,6 +163,7 @@ def load_config():
         "ollama_api_url": "http://localhost:11434/api/generate",
         "ollama_model": "llama3",
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
+        "ollama_prompt_salt": "true",
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
         "subtitle_translator_word_count_check": "false",
@@ -205,6 +206,12 @@ def get_current_zid() -> str:
         except Exception:
             pass
     return time.strftime("%Y%m%d%H%M%S")
+
+def get_prompt_salt(attempt: int) -> str:
+    """Generates a unique salt phrase to append to the translation prompt on retries."""
+    if attempt <= 1:
+        return ""
+    return "Make it much better" + ", much better" * (attempt - 2)
 
 # ==============================================================================
 # FILENAME PARSING
@@ -513,7 +520,7 @@ def deepl_translate_v2(lines: List[str], sl: str, tl: str, settings: dict) -> Li
     except Exception as e:
         raise Exception(f"DeepL Translate request failed: {e}")
 
-def ollama_translate(text: str, sl: str, tl: str, settings: dict) -> str:
+def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = "") -> str:
     """Ollama API caller."""
     api_url = settings.get("ollama_api_url", "").strip()
     model = settings.get("ollama_model", "").strip()
@@ -524,6 +531,10 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict) -> str:
 
     # Format prompt
     prompt = prompt_template.format(source_lang=sl, target_lang=tl)
+    if salt:
+        if not prompt.endswith('.'):
+            prompt = prompt.rstrip() + "."
+        prompt = f"{prompt} {salt}."
     full_prompt = f"{prompt}\n\n{text}"
 
     is_chat = ("/v1/chat/completions" in api_url or "/chat" in api_url)
@@ -702,7 +713,10 @@ def translate_lines(lines: List[str], sl: str, tl: str, settings: dict) -> List[
                         translated_chunk_lines = deepl_translate_v2(chunk_text_list, sl, tl, settings)
                     elif provider == "ollama":
                         joined_text = "\n".join(chunk_text_list)
-                        translated_joined = ollama_translate(joined_text, sl, tl, settings)
+                        salt = ""
+                        if settings.get("ollama_prompt_salt", "false").lower() == "true":
+                            salt = get_prompt_salt(attempt)
+                        translated_joined = ollama_translate(joined_text, sl, tl, settings, salt)
                         translated_joined = translated_joined.replace('\r\n', '\n').replace('\r', '\n')
                         translated_chunk_lines = translated_joined.split('\n')
                         if len(translated_chunk_lines) > 1 and translated_chunk_lines[-1] == "":
@@ -985,6 +999,7 @@ def main():
     if provider == "ollama":
         print(f"  {_dim('·')} Model:          {_cyan(settings.get('ollama_model', ''))}")
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('ollama_api_url', ''))}")
+        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'true'))}")
     elif provider == "deepl":
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('deepl_api_url', ''))}")
         print(f"  {_dim('·')} Formality:      {_cyan(settings.get('deepl_formality', 'default'))}")
