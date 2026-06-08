@@ -165,6 +165,8 @@ def load_config():
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
         "ollama_prompt_salt": "false",
         "ollama_prompt_feedback": "false",
+        "ollama_json_format": "false",
+        "ollama_json_prompt": "Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble.",
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
         "subtitle_translator_word_count_check": "false",
@@ -529,10 +531,26 @@ def deepl_translate_v2(lines: List[str], sl: str, tl: str, settings: dict) -> Li
         raise Exception(f"DeepL Translate request failed: {e}")
 
 def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = "", feedback: str = "") -> str:
-    """Ollama API caller."""
+    """Ollama API caller with optional structured JSON mode."""
     api_url = settings.get("ollama_api_url", "").strip()
     model = settings.get("ollama_model", "").strip()
-    prompt_template = settings.get("ollama_prompt", "").strip()
+    
+    json_enabled = settings.get("ollama_json_format", "false").lower() == "true"
+    is_chunk = "\n" in text
+
+    if json_enabled and is_chunk:
+        prompt_template = settings.get(
+            "ollama_json_prompt",
+            "Translate the 'text' fields in the following JSON array from {source_lang} to {target_lang}. Output ONLY the translated JSON array of objects with the same 'id' and 'text' keys, without any markdown formatting, code block markers, explanations, or preamble."
+        ).strip()
+        
+        lines = text.split("\n")
+        input_data = [{"id": idx, "text": line} for idx, line in enumerate(lines, 1)]
+        serialized_input = json.dumps(input_data, ensure_ascii=False)
+        full_text_to_send = serialized_input
+    else:
+        prompt_template = settings.get("ollama_prompt", "").strip()
+        full_text_to_send = text
 
     if not api_url:
         raise ValueError("Ollama API URL (ollama_api_url) is not configured in config.ini")
@@ -547,22 +565,22 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
         if not prompt.endswith('.'):
             prompt = prompt.rstrip() + "."
         prompt = f"{prompt} {feedback}."
-    full_prompt = f"{prompt}\n\n{text}"
+    full_prompt = f"{prompt}\n\n{full_text_to_send}"
 
     is_chat = ("/v1/chat/completions" in api_url or "/chat" in api_url)
 
+    payload = {
+        "model": model,
+        "stream": False
+    }
+    
     if is_chat:
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": full_prompt}],
-            "stream": False
-        }
+        payload["messages"] = [{"role": "user", "content": full_prompt}]
     else:
-        payload = {
-            "model": model,
-            "prompt": full_prompt,
-            "stream": False
-        }
+        payload["prompt"] = full_prompt
+
+    if json_enabled and is_chunk:
+        payload["format"] = "json"
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(api_url, data=data)
@@ -577,11 +595,46 @@ def ollama_translate(text: str, sl: str, tl: str, settings: dict, salt: str = ""
             if is_chat:
                 choices = resp_data.get("choices", [])
                 if choices and choices[0].get("message"):
-                    return choices[0]["message"].get("content", "").strip()
+                    response_text = choices[0]["message"].get("content", "").strip()
+                else:
+                    raise ValueError(f"Unexpected response structure: {body}")
             else:
-                return resp_data.get("response", "").strip()
-            
-            raise ValueError(f"Unexpected response structure: {body}")
+                response_text = resp_data.get("response", "").strip()
+                
+            if json_enabled and is_chunk:
+                # Strip markdown code blocks if the model returned them
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                response_text = response_text.strip()
+                
+                try:
+                    output_data = json.loads(response_text)
+                except Exception as parse_err:
+                    raise ValueError(f"Ollama returned invalid JSON: {parse_err}. Response was: {response_text}")
+                
+                translated_lines = []
+                if isinstance(output_data, list):
+                    for item in output_data:
+                        if isinstance(item, dict) and "text" in item:
+                            translated_lines.append(item["text"])
+                        elif isinstance(item, str):
+                            translated_lines.append(item)
+                elif isinstance(output_data, dict):
+                    for k in sorted(output_data.keys(), key=lambda x: int(x) if x.isdigit() else 0):
+                        val = output_data[k]
+                        if isinstance(val, dict) and "text" in val:
+                            translated_lines.append(val["text"])
+                        else:
+                            translated_lines.append(str(val))
+                            
+                if len(translated_lines) != len(lines):
+                    raise ValueError(f"Line count mismatch in structured JSON (expected {len(lines)}, got {len(translated_lines)}). Response was: {response_text}")
+                
+                return "\n".join(translated_lines)
+            else:
+                return response_text
     except Exception as e:
         raise Exception(f"Ollama request failed: {e}")
 
@@ -1014,8 +1067,9 @@ def main():
     if provider == "ollama":
         print(f"  {_dim('·')} Model:          {_cyan(settings.get('ollama_model', ''))}")
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('ollama_api_url', ''))}")
-        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'Make it [much] better'))}")
-        print(f"  {_dim('·')} Prompt Feedback:{_cyan(settings.get('ollama_prompt_feedback', 'true'))}")
+        print(f"  {_dim('·')} Prompt Salt:    {_cyan(settings.get('ollama_prompt_salt', 'false'))}")
+        print(f"  {_dim('·')} Prompt Feedback:{_cyan(settings.get('ollama_prompt_feedback', 'false'))}")
+        print(f"  {_dim('·')} JSON Format:    {_cyan(settings.get('ollama_json_format', 'false'))}")
     elif provider == "deepl":
         print(f"  {_dim('·')} API URL:        {_cyan(settings.get('deepl_api_url', ''))}")
         print(f"  {_dim('·')} Formality:      {_cyan(settings.get('deepl_formality', 'default'))}")

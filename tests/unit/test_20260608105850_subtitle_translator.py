@@ -901,6 +901,86 @@ def test_translate_lines_ollama_retry_with_feedback(monkeypatch):
     assert "Line count mismatch" in calls[1][1]
 
 
+def test_ollama_translate_structured_success(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_prompt": "Translate {source_lang} to {target_lang}.",
+        "ollama_json_format": "true",
+        "ollama_json_prompt": "Translate JSON {source_lang} to {target_lang}.",
+    }
+    mock_response_data = {"response": '[{"id": 1, "text": "Привет"}, {"id": 2, "text": "Мир"}]'}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["format"] == "json"
+        assert body["prompt"] == 'Translate JSON en to ru.\n\n[{"id": 1, "text": "Hello"}, {"id": 2, "text": "World"}]'
+        return MockResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+    res = st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert res == "Привет\nМир"
+
+
+def test_ollama_translate_structured_invalid_json(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_json_format": "true",
+    }
+    mock_response_data = {"response": 'invalid-json'}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: MockResponse())
+    with pytest.raises(Exception) as exc_info:
+        st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert "Ollama returned invalid JSON" in str(exc_info.value)
+
+
+def test_ollama_translate_structured_count_mismatch(monkeypatch):
+    st = _load_translator()
+    settings = {
+        "ollama_api_url": "http://localhost:11434/api/generate",
+        "ollama_model": "llama3",
+        "ollama_json_format": "true",
+    }
+    mock_response_data = {"response": '[{"id": 1, "text": "Привет"}]'}
+    mock_body = json.dumps(mock_response_data).encode("utf-8")
+
+    class MockResponse:
+        def read(self):
+            return mock_body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: MockResponse())
+    with pytest.raises(Exception) as exc_info:
+        st.ollama_translate("Hello\nWorld", "en", "ru", settings)
+    assert "Line count mismatch in structured JSON" in str(exc_info.value)
+
+
+
 
 
 

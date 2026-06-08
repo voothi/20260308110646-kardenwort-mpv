@@ -62,6 +62,10 @@ ollama_prompt = Translate the following text from {source_lang} to {target_lang}
 ollama_prompt_feedback = false
 # Leave empty or set to "false" to disable.
 ollama_prompt_salt = false
+# Use structured JSON input/output for Ollama chunk translation.
+# Highly recommended for small models (like gemma3:1b) to prevent line count mismatches.
+# Set to "false" to disable.
+ollama_json_format = false
 
 # --- Chunk Validation Settings ---
 # Translate and validate subtitles in chunks of this size (e.g. 5).
