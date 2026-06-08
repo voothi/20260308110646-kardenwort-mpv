@@ -32,6 +32,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = SCRIPT_DIR / "config.ini"
 PAUSE_AUTO_CLOSE_TIMEOUT_SECS = 15
 RELATED_MEDIA_EXTENSIONS = ("mp4", "mp3", "m4a", "wav", "flac", "aac", "ogg", "opus", "mkv", "webm", "mov", "avi")
+VALID_DUPLICATE_MODES = ("skip", "overwrite", "archive")
 
 # Path to the ZID script; overridden from config via load_config()
 _ZID_SCRIPT: str = ""
@@ -153,7 +154,7 @@ def load_config():
         "subtitle_translator_source_language": "en",
         "subtitle_translator_provider": "google",
         "subtitle_translator_duplicate_mode": "skip",
-        "subtitle_translator_rename_source_with_zid": "true",
+        "subtitle_translator_rename_source_with_zid": "false",
         "subtitle_translator_rename_related_media_with_zid": "false",
         "google_api_url": "https://translate.googleapis.com/translate_a/single",
         "deepl_api_key": "",
@@ -164,7 +165,7 @@ def load_config():
         "ollama_prompt": "Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.",
         "subtitle_translator_chunk_size": "5",
         "subtitle_translator_max_retries": "3",
-        "subtitle_translator_word_count_check": "true",
+        "subtitle_translator_word_count_check": "false",
         "subtitle_translator_word_count_min_ratio": "0.25",
         "subtitle_translator_word_count_max_ratio": "3.5",
         "subtitle_translator_save_partial_on_failure": "false",
@@ -279,12 +280,28 @@ def find_related_media_files(folder: Path, clean_title: str) -> List[Path]:
 
     return matches
 
-def rename_related_media_with_zid(folder: Path, clean_title: str, zid: str) -> bool:
+def rollback_renamed_paths(renamed_paths: List[Tuple[Path, Path]]):
+    """Restores renamed paths in reverse order."""
+    for current_path, original_path in reversed(renamed_paths):
+        if not current_path.exists():
+            continue
+        if original_path.exists():
+            log_warn(f"Rollback skipped because original path already exists: {original_path.name}")
+            continue
+        try:
+            current_path.rename(original_path)
+            log_info(f"Rolled back renamed file: {original_path.name}")
+        except Exception as rollback_err:
+            log_warn(f"Failed to rollback renamed file '{current_path.name}': {rollback_err}")
+
+def rename_related_media_with_zid(folder: Path, clean_title: str, zid: str) -> Tuple[bool, List[Tuple[Path, Path]]]:
     """Adds the given ZID to matching media files, unless they already have a ZID."""
     related_paths = find_related_media_files(folder, clean_title)
     if not related_paths:
         log_detail(f"No related media file found for: {clean_title}")
-        return True
+        return True, []
+
+    renamed_paths: List[Tuple[Path, Path]] = []
 
     for related_path in related_paths:
         related_zid, related_title, related_lang, related_ext = parse_filename(related_path)
@@ -299,16 +316,65 @@ def rename_related_media_with_zid(folder: Path, clean_title: str, zid: str) -> b
         new_path = related_path.parent / new_name
         if new_path.exists():
             log_error(f"Cannot rename related media file; target already exists: {new_name}")
-            return False
+            rollback_renamed_paths(renamed_paths)
+            return False, []
 
         try:
             related_path.rename(new_path)
             log_info(f"Renamed related media file to include ZID: {new_name}")
+            renamed_paths.append((new_path, related_path))
         except Exception as e:
             log_error(f"Failed to rename related media file to include ZID: {e}")
-            return False
+            rollback_renamed_paths(renamed_paths)
+            return False, []
 
-    return True
+    return True, renamed_paths
+
+def get_duplicate_mode(settings: dict) -> str:
+    """Returns a validated duplicate mode from settings."""
+    duplicate_mode = settings.get("subtitle_translator_duplicate_mode", "skip").strip().lower()
+    if duplicate_mode not in VALID_DUPLICATE_MODES:
+        raise ValueError(
+            f"Invalid subtitle_translator_duplicate_mode: {duplicate_mode}. "
+            f"Expected one of: {', '.join(VALID_DUPLICATE_MODES)}"
+        )
+    return duplicate_mode
+
+def archive_existing_target(target_path: Path, session_zid: str) -> Path:
+    """Moves an existing target file into the session archive directory."""
+    archive_dir = target_path.parent / session_zid
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    archive_target_path = archive_dir / target_path.name
+
+    if archive_target_path.exists():
+        archive_target_path.unlink()
+
+    target_path.rename(archive_target_path)
+    return archive_target_path
+
+def write_output_file(target_path: Path, content: str, duplicate_mode: str, session_zid: str, log_label: str) -> None:
+    """Writes output content while preserving overwrite/archive semantics."""
+    archived_target_path: Optional[Path] = None
+
+    if target_path.exists():
+        if duplicate_mode == "skip":
+            raise RuntimeError(f"{log_label} skipped because target already exists: {target_path.name}")
+        if duplicate_mode == "overwrite":
+            log_info(f"{log_label} already exists. Overwriting...")
+        elif duplicate_mode == "archive":
+            log_warn(f"{log_label} already exists. Archiving old file to: {session_zid}/{target_path.name}")
+            archived_target_path = archive_existing_target(target_path, session_zid)
+
+    try:
+        target_path.write_text(content, encoding="utf-8", newline="\n")
+    except Exception:
+        if archived_target_path and archived_target_path.exists() and not target_path.exists():
+            try:
+                archived_target_path.rename(target_path)
+                log_info(f"Restored archived file after write failure: {target_path.name}")
+            except Exception as restore_err:
+                log_warn(f"Failed to restore archived file after write failure: {restore_err}")
+        raise
 
 # ==============================================================================
 # SRT & TXT PARSERS
@@ -711,7 +777,13 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
         return False
 
     orig_file_path = file_path
-    renamed_source = False
+    renamed_paths: List[Tuple[Path, Path]] = []
+
+    try:
+        duplicate_mode = get_duplicate_mode(settings)
+    except ValueError as mode_error:
+        log_error(str(mode_error))
+        return False
 
     # 1. Parse filename parameters
     zid, clean_title, lang, ext = parse_filename(file_path)
@@ -733,15 +805,18 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 log_error(f"Cannot rename source file; target already exists: {new_name}")
                 return False
             if rename_related_media_with_zid_enabled:
-                if not rename_related_media_with_zid(file_path.parent, clean_title, zid):
+                related_media_ok, related_media_renames = rename_related_media_with_zid(file_path.parent, clean_title, zid)
+                if not related_media_ok:
                     return False
+                renamed_paths.extend(related_media_renames)
             try:
                 file_path.rename(new_path)
                 log_info(f"Renamed source file to include ZID: {new_name}")
+                renamed_paths.append((new_path, file_path))
                 file_path = new_path
-                renamed_source = True
             except Exception as e:
                 log_error(f"Failed to rename source file to include ZID: {e}")
+                rollback_renamed_paths(renamed_paths)
                 return False
         else:
             log_info("Source file has no ZID; keeping original filename.")
@@ -757,16 +832,19 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 log_error(f"Cannot rename source file; target already exists: {source_language_target_name}")
                 return False
         if rename_related_media_with_zid_enabled:
-            if not rename_related_media_with_zid(file_path.parent, clean_title, zid):
+            related_media_ok, related_media_renames = rename_related_media_with_zid(file_path.parent, clean_title, zid)
+            if not related_media_ok:
                 return False
+            renamed_paths.extend(related_media_renames)
         if not lang:
             try:
                 file_path.rename(source_language_target_path)
                 log_info(f"Renamed source file to include language: {source_language_target_name}")
+                renamed_paths.append((source_language_target_path, file_path))
                 file_path = source_language_target_path
-                renamed_source = True
             except Exception as e:
                 log_error(f"Failed to rename source file to include language: {e}")
+                rollback_renamed_paths(renamed_paths)
                 return False
 
     # 4. Read file content
@@ -815,22 +893,10 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
         
         # Idempotency / duplicate check
         if target_path.exists():
-            dup_mode = settings.get("subtitle_translator_duplicate_mode", "skip").lower()
-            if dup_mode == "skip":
+            if duplicate_mode == "skip":
                 log_skip(f"Subtitle for '{tl}' already exists: {target_name}")
                 continue
-            elif dup_mode == "archive":
-                archive_dir = file_path.parent / session_zid
-                archive_dir.mkdir(parents=True, exist_ok=True)
-                archive_target_path = archive_dir / target_name
-                log_warn(f"Subtitle for '{tl}' already exists. Archiving old file to: {session_zid}/{target_name}")
-                try:
-                    if archive_target_path.exists():
-                        archive_target_path.unlink()
-                    target_path.rename(archive_target_path)
-                except Exception as archive_error:
-                    log_warn(f"Failed to archive old subtitle: {archive_error}")
-            elif dup_mode == "overwrite":
+            if duplicate_mode == "overwrite":
                 log_info(f"Subtitle for '{tl}' already exists. Overwriting...")
             
         log_info(f"Translating {source_lang} → {tl}...")
@@ -850,7 +916,7 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                 result_content = "\n".join(translated_lines)
                 
             # Write translated file
-            target_path.write_text(result_content, encoding="utf-8", newline="\n")
+            write_output_file(target_path, result_content, duplicate_mode, session_zid, f"Subtitle for '{tl}'")
             log_ok(f"Saved translated subtitle: {target_name}")
             
             # Check line consistency
@@ -874,30 +940,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
                     partial_content = write_srt(partial_blocks)
                 else:
                     partial_content = "\n".join(partial_translated_lines)
-                # Apply duplicate_mode before writing partial file
-                if target_path.exists():
-                    dup_mode = settings.get("subtitle_translator_duplicate_mode", "skip").lower()
-                    if dup_mode == "skip":
-                        log_skip(f"Partial output skipped — existing file for '{tl}' preserved: {target_name}")
-                    elif dup_mode == "archive":
-                        archive_dir = file_path.parent / session_zid
-                        archive_dir.mkdir(parents=True, exist_ok=True)
-                        archive_target_path = archive_dir / target_name
-                        try:
-                            if archive_target_path.exists():
-                                archive_target_path.unlink()
-                            target_path.rename(archive_target_path)
-                            log_info(f"Archived previous file to: {session_zid}/{target_name}")
-                        except Exception as archive_error:
-                            log_warn(f"Failed to archive old subtitle before partial save: {archive_error}")
-                        target_path.write_text(partial_content, encoding="utf-8", newline="\n")
-                        log_ok(f"Saved partial translation: {target_name}")
-                    elif dup_mode == "overwrite":
-                        target_path.write_text(partial_content, encoding="utf-8", newline="\n")
-                        log_ok(f"Saved partial translation (overwrite): {target_name}")
-                else:
-                    target_path.write_text(partial_content, encoding="utf-8", newline="\n")
-                    log_ok(f"Saved partial translation: {target_name}")
+                write_output_file(target_path, partial_content, duplicate_mode, session_zid, f"Partial subtitle for '{tl}'")
+                log_ok(f"Saved partial translation: {target_name}")
             success_status = False
         except NotImplementedError as nie:
             log_error(str(nie))
@@ -906,12 +950,8 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
             log_error(f"Failed to translate to '{tl}': {e}")
             success_status = False
 
-    if not success_status and renamed_source:
-        try:
-            file_path.rename(orig_file_path)
-            log_info(f"Rolled back source file name to: {orig_file_path.name}")
-        except Exception as rollback_err:
-            log_warn(f"Failed to rollback source file name: {rollback_err}")
+    if not success_status and renamed_paths:
+        rollback_renamed_paths(renamed_paths)
 
     return success_status
 
@@ -919,9 +959,6 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
 # MAIN ENTRYPOINT
 # ==============================================================================
 def main():
-    session_zid = get_current_zid()
-    print(f"\n{_bold('Kardenwort Subtitle Translator Engine')} {_dim(f'(ZID: {session_zid})')}\n", flush=True)
-    
     parser = argparse.ArgumentParser(description="Declarative Subtitle Translator")
     parser.add_argument("inputs", nargs="*", help="Subtitle files (.srt or .txt)")
     parser.add_argument("--sendto", action="store_true", help="Invoked from Windows Explorer SendTo menu")
@@ -931,6 +968,8 @@ def main():
     
     # Load settings
     settings = load_config()
+    session_zid = get_current_zid()
+    print(f"\n{_bold('Kardenwort Subtitle Translator Engine')} {_dim(f'(ZID: {session_zid})')}\n", flush=True)
 
     # Print settings summary
     provider = settings.get("subtitle_translator_provider", "google").lower()

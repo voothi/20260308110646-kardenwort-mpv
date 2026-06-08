@@ -59,6 +59,18 @@ def test_parse_filename():
     assert ext == "srt"
 
 
+def test_load_config_defaults_match_template(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    monkeypatch.setattr(st, "CONFIG_FILE", tmp_path / "missing-config.ini")
+    st._ZID_SCRIPT = ""
+
+    settings = st.load_config()
+
+    assert settings["subtitle_translator_rename_source_with_zid"] == "false"
+    assert settings["subtitle_translator_word_count_check"] == "false"
+
+
 def test_srt_parsing_and_writing():
     st = _load_translator()
 
@@ -576,3 +588,108 @@ def test_process_file_partial_save(tmp_path, monkeypatch):
     # Timecodes for all blocks must still be present
     assert "00:00:02,000 --> 00:00:03,000" in content
     assert "00:00:03,000 --> 00:00:04,000" in content
+
+
+def test_process_file_archive_preserves_existing_on_failure(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    source_file = tmp_path / "20260608000000-test.en.srt"
+    source_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
+    target_file = tmp_path / "20260608000000-test.ru.srt"
+    target_file.write_text("existing translation", encoding="utf-8")
+
+    monkeypatch.setattr(st, "translate_lines", lambda lines, sl, tl, settings: (_ for _ in ()).throw(RuntimeError("boom")))
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_duplicate_mode": "archive",
+    }
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is False
+    assert target_file.exists()
+    assert target_file.read_text(encoding="utf-8") == "existing translation"
+    assert not (tmp_path / "session-zid" / "20260608000000-test.ru.srt").exists()
+
+
+def test_process_file_rolls_back_related_media_on_failure(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    source_file = tmp_path / "movie.srt"
+    media_file = tmp_path / "movie.mp3"
+    source_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
+    media_file.write_text("audio", encoding="utf-8")
+
+    monkeypatch.setattr(st, "get_current_zid", lambda: "20260608160000")
+    monkeypatch.setattr(st, "translate_lines", lambda lines, sl, tl, settings: (_ for _ in ()).throw(RuntimeError("boom")))
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_rename_source_with_zid": "true",
+        "subtitle_translator_rename_related_media_with_zid": "true",
+    }
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is False
+    assert source_file.exists()
+    assert media_file.exists()
+    assert not list(tmp_path.glob("20260608160000-*"))
+
+
+def test_process_file_rejects_invalid_duplicate_mode(tmp_path, monkeypatch):
+    st = _load_translator()
+
+    source_file = tmp_path / "20260608000000-test.en.srt"
+    source_file.write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("translate_lines should not be called for invalid duplicate mode")
+
+    monkeypatch.setattr(st, "translate_lines", fail_if_called)
+
+    settings = {
+        "subtitle_translator_source_language": "en",
+        "subtitle_translator_target_languages": "ru",
+        "subtitle_translator_provider": "google",
+        "google_api_url": "dummy",
+        "subtitle_translator_duplicate_mode": "surprise",
+    }
+
+    ok = st.process_file(source_file, settings, "session-zid")
+    assert ok is False
+    assert not (tmp_path / "20260608000000-test.ru.srt").exists()
+
+
+def test_main_loads_config_before_generating_session_zid(monkeypatch):
+    st = _load_translator()
+    call_order = []
+
+    def fake_load_config():
+        call_order.append("load")
+        st._ZID_SCRIPT = "configured-script"
+        return {
+            "subtitle_translator_provider": "google",
+            "subtitle_translator_duplicate_mode": "skip",
+            "subtitle_translator_target_languages": "ru",
+            "youtube_download_auto_close_timeout_secs": "15",
+        }
+
+    def fake_get_current_zid():
+        call_order.append("zid")
+        assert st._ZID_SCRIPT == "configured-script"
+        return "20260608170000"
+
+    monkeypatch.setattr(st, "load_config", fake_load_config)
+    monkeypatch.setattr(st, "get_current_zid", fake_get_current_zid)
+    monkeypatch.setattr(st.sys, "argv", ["subtitle_translator.py"])
+
+    with pytest.raises(SystemExit):
+        st.main()
+
+    assert call_order[:2] == ["load", "zid"]
