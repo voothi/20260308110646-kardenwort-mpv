@@ -38,3 +38,24 @@ ollama_api_url = http://localhost:11434/api/generate
 ollama_model = llama3
 # Prompt format for translation. Must contain {source_lang} and {target_lang} placeholders.
 ollama_prompt = Translate the following text from {source_lang} to {target_lang}. Output ONLY the raw translation, without any explanations, preamble, introductory remarks, or formatting. Preserve the line breaks.
+
+# --- Chunk Validation Settings ---
+# Translate and validate subtitles in chunks of this size (e.g. 5).
+# Set to 0 to disable validation chunking and use standard batching.
+subtitle_translator_chunk_size = 5
+
+# Number of times to retry translating a chunk if validation fails.
+subtitle_translator_max_retries = 3
+
+# Enable approximate word count validation (helps detect model hallucinations/skips).
+subtitle_translator_word_count_check = false
+
+# Word count ratio tolerance (min, max ratio of translated words / source words).
+subtitle_translator_word_count_min_ratio = 0.25
+subtitle_translator_word_count_max_ratio = 3.5
+
+# When enabled, if chunk validation fails after all retries, the completed chunks
+# are saved to the target file (untranslated lines keep their original source text).
+# Respects subtitle_translator_duplicate_mode (skip/overwrite/archive) when a
+# target file already exists.
+subtitle_translator_save_partial_on_failure = false
