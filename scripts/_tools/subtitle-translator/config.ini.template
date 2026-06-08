@@ -58,7 +58,7 @@ ollama_prompt = Translate the following text from {source_lang} to {target_lang}
 # Put the repeating portion in square brackets, e.g., Make it [much] better or Сделай [намного] лучше.
 # Example: Make it [much] better -> Make it much, much better (on attempt 3).
 # Leave empty or set to "false" to disable.
-ollama_prompt_salt = Make it [much] better
+ollama_prompt_salt = **CRITICAL: Make it [MUCH] better!**
 
 # --- Chunk Validation Settings ---
 # Translate and validate subtitles in chunks of this size (e.g. 5).
