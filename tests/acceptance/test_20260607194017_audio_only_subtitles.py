@@ -168,6 +168,105 @@ Secondary Subtitle Line
         shutil.rmtree(work, ignore_errors=True)
 
 
+def test_audio_only_autopause_on_phrase_stops_at_subtitle_end():
+    """Regression test: Autopause ON + PHRASE mode must stop playback at the
+    effective subtitle end when the media is an audio-only MP3 file backed by
+    the bundled black.mp4 virtual video track (ZID 20260609113802).
+
+    Timeline used:
+      Sub 1: 1.000 – 2.000
+      Sub 2: 3.000 – 4.000
+      Sub 3: 5.000 – 6.000
+
+    With default 200 ms padding (pad_end), PHRASE effective_end for Sub 2 is
+    4.000 + 0.2 = 4.200 s.  The test seeks to Sub 2 start (3.0 s), unpauses,
+    and verifies that autopause fires near 4.2 s.
+    """
+    work = _new_scratch_dir("audio-only-autopause")
+    media_mp3 = work / "sample.mp3"
+    media_srt = work / "sample.en.srt"
+
+    subtitle_content = """1
+00:00:01,000 --> 00:00:02,000
+Line One
+
+2
+00:00:03,000 --> 00:00:04,000
+Line Two
+
+3
+00:00:05,000 --> 00:00:06,000
+Line Three
+"""
+    media_srt.write_text(subtitle_content, encoding="utf-8")
+    _create_silent_mp3(media_mp3, duration=20)
+
+    session = MpvSession(
+        video=str(media_mp3),
+        subtitle=str(media_srt),
+        extra_args=[
+            "--pause",
+            "--script-opts=kardenwort-companion_subtitle_attach_on_load=no",
+        ],
+    )
+    _start_or_skip(session)
+    try:
+        ipc = session.ipc
+
+        # Wait until subtitles are parsed (SINGLE_SRT is fine – we only have one track)
+        def subs_ready():
+            state = query_kardenwort_state(ipc)
+            return (
+                state.get("pri_sub_count") == 3
+                and state.get("playback_state") in ("SINGLE_SRT", "DUAL_SRT")
+            )
+
+        assert _wait_until(subs_ready, timeout=6.0), "Subtitles not loaded"
+
+        # Enable autopause ON + PHRASE mode, zero padding for precision
+        ipc.command(["script-message-to", "kardenwort", "autopause-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "immersion-mode-set", "PHRASE"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "audio_padding_start", "0"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "audio_padding_end", "200"])
+        time.sleep(0.15)
+
+        # Seek to Sub 2 start (3.0 s)
+        ipc.command(["seek", 3.0, "absolute+exact"])
+        time.sleep(0.25)
+
+        # Unpause – let autopause do its job
+        ipc.command(["set_property", "pause", False])
+
+        # Wait for autopause to fire (player should pause near 4.2 s)
+        paused = _wait_until(lambda: ipc.get_property("pause"), timeout=5.0)
+
+        pos = ipc.get_property("time-pos")
+        state = query_kardenwort_state(ipc)
+
+        # Diagnostic dump
+        print(f"DEBUG pos={pos:.3f} paused={paused}")
+        print(f"DEBUG state={state}")
+        print(f"DEBUG sid={ipc.get_property('sid')} vid={ipc.get_property('vid')}")
+        print(f"DEBUG track_list={ipc.get_property('track-list')}")
+
+        assert paused, (
+            f"Autopause ON + PHRASE did NOT stop playback on MP3 + black.mp4 "
+            f"(pos={pos:.3f}, state={state})"
+        )
+
+        lpe = state.get("last_paused_sub_end")
+
+        # Sub 2 raw end = 4.000, pad_end = 200 ms → effective_end = 4.200
+        assert lpe is not None, "last_paused_sub_end was not set (autopause did not fire)"
+        assert abs(lpe - 4.2) < 0.15, (
+            f"Expected last_paused_sub_end ≈ 4.200, got {lpe:.3f} (pos={pos:.3f})"
+        )
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def test_audio_only_bundled_black_video_when_companion_fails():
     work = _new_scratch_dir("audio-only-bundled-black-video-fail")
     media_mp3 = work / "sample.mp3"
