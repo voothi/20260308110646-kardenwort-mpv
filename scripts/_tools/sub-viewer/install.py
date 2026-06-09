@@ -70,7 +70,7 @@ def main():
             except Exception as e:
                 print(f"Warning: Failed to generate black.mp4 dynamically: {e}")
         else:
-            print("Warning: ffmpeg not found. Sub Viewer will fall back to virtual av://lavfi (which is unseekable).")
+            print("Warning: ffmpeg not found. black.mp4 could not be generated; Sub Viewer requires the bundled seekable canvas.")
 
     # 4. Create shortcut using PowerShell and WScript
     ps_script = (
@@ -94,7 +94,7 @@ def main():
         print("\nHow to use:")
         print("1. Locate any subtitle file (.srt, .ass, .vtt) in Windows Explorer.")
         print(f"2. Right-click the file -> Send to -> '{SHORTCUT_DISPLAY_NAME}'.")
-        print("3. mpv will launch with a virtual black background and Kardenwort active!")
+        print("3. mpv will launch with the bundled seekable black background and Kardenwort active!")
         print("4. A matching highlight TSV file will be automatically managed next to the subtitles.")
     except subprocess.CalledProcessError as e:
         print(f"Error: Failed to create shortcut. PowerShell error details:\n{e.stderr}")
@@ -102,4 +102,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -1,6 +1,6 @@
 """
 Feature ZID: 20260607194017
-Feature: Support Audio-only (MP3) Subtitles and Interface Elements via Virtual Video Track
+Feature: Support Audio-only (MP3) Subtitles and Interface Elements via Bundled Black Video Track
 """
 
 import shutil
@@ -44,7 +44,7 @@ def _has_virtual_black_video(track_list):
             video.get("path") or
             ""
         ).lower()
-        if "lavfi" in path or "black.mp4" in path:
+        if "black.mp4" in path:
             return True
     return False
 
@@ -142,7 +142,7 @@ Secondary Subtitle Line
 
         assert _wait_until(video_selected, timeout=6.0), "Virtual video track was not selected automatically"
 
-        # Verify that the loaded video track is the bundled black canvas or lavfi fallback
+        # Verify that the loaded video track is the bundled seekable black canvas
         tracks = session.ipc.get_property("track-list") or []
         vids = _get_video_tracks(tracks)
 
@@ -200,7 +200,7 @@ Secondary Subtitle Line
     )
     _start_or_skip(session)
     try:
-        # Wait until a video track is active (should fall back to lavfi after corrupt candidate fails)
+        # Wait until a video track is active (should fall back to bundled black.mp4 after corrupt candidate fails)
         def video_selected():
             vid = session.ipc.get_property("vid")
             return vid and vid != "no"
@@ -208,7 +208,7 @@ Secondary Subtitle Line
         # Give it a bit more time because it has to fail-load first
         assert _wait_until(video_selected, timeout=8.0), "Virtual video track fallback was not selected after companion failure"
 
-        # Verify that the loaded video track is the bundled black canvas or lavfi fallback
+        # Verify that the loaded video track is the bundled seekable black canvas
         tracks = session.ipc.get_property("track-list") or []
         vids = _get_video_tracks(tracks)
 

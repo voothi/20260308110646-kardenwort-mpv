@@ -10658,20 +10658,23 @@ function get_virtual_black_video_source()
         local candidate = script_dir:gsub("\\", "/") .. "/../_tools/sub-viewer/black.mp4"
         local ok, normalized = pcall(mp.command_native, {"normalize-path", candidate})
         if ok and type(normalized) == "string" and normalized ~= "" and utils.file_info(normalized) then
-            return normalized, "bundled"
+            return normalized
         end
         if utils.file_info(candidate) then
-            return candidate, "bundled"
+            return candidate
         end
     end
 
-    return "av://lavfi:color=c=black:s=1280x720:d=86400", "lavfi"
+    return nil
 end
 
 function add_virtual_black_video_track(message)
-    local source, source_type = get_virtual_black_video_source()
-    local detail = (source_type == "bundled") and " Using bundled seekable black video track." or " Using lavfi fallback."
-    Diagnostic.info(message .. detail)
+    local source = get_virtual_black_video_source()
+    if not source then
+        Diagnostic.error(message .. " Bundled seekable black video track is unavailable: scripts/_tools/sub-viewer/black.mp4")
+        return
+    end
+    Diagnostic.info(message .. " Using bundled seekable black video track.")
     mp.commandv("video-add", source, "select")
 end
 

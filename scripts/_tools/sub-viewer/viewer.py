@@ -829,10 +829,12 @@ def main():
 
         # 6. Build the mpv command using configuration values
         black_video = _resolve_config_path(BLACK_VIDEO_FILE)
-        if os.path.exists(black_video):
-            video_input = black_video
-        else:
-            video_input = f'av://lavfi:color=c={VIRTUAL_VIDEO_COLOR}:s={VIRTUAL_VIDEO_SIZE}:d={VIRTUAL_VIDEO_DURATION}'
+        if not os.path.exists(black_video):
+            raise FileNotFoundError(
+                f"Bundled seekable canvas is missing: {black_video}\n"
+                "Run scripts/_tools/sub-viewer/install.py to generate or restore black.mp4."
+            )
+        video_input = black_video
 
         log_path = get_mpv_log_path()
         cmd = [

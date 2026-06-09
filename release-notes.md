@@ -7,7 +7,7 @@
 ## Highlights
 
 ### 📻 **Audio-Only (MP3) Subtitles & Interface Support**
-- **Virtual Video Track Generation**: Enabled loading subtitles and OSD elements on audio-only files (such as MP3) by binding a virtual black video track. The player dynamically queries a bundled seekable black video (`black.mp4` under `_tools/sub-viewer/`) or falls back to a `lavfi` color canvas.
+- **Bundled Black Video Track**: Enabled loading subtitles and OSD elements on audio-only files (such as MP3) by binding the bundled seekable black video (`black.mp4` under `_tools/sub-viewer/`). The legacy `lavfi` color-canvas fallback has been removed so subtitle timing uses the same seekable mechanism as Sub Viewer.
 - **Dynamic Positioning Transitions**: Corrected OSD and subtitle placements when switching to virtual video tracks, ensuring text is properly aligned at the bottom and transient overlays remain visible.
 - **MP3 Companion Loading**: Auto-discovers and loads language-specific companion subtitles under audio-only conditions, allowing full navigational features (such as `a`/`d` seeks) to function without an MP4 in the folder.
 

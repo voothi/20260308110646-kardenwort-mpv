@@ -445,7 +445,7 @@ A dedicated, distraction-free environment for reading, navigating, and highlight
 *   **Reader Mode for Text Files**: Plain text and Markdown-style files are converted on launch into timed subtitle cues, so you can use mpv + Kardenwort as a seekable text reader.
 *   **Local TSV Highlight Databases**: Automatically creates and manages a `.tsv` highlight database file right next to your subtitles (e.g. `lesson1.tsv` for `lesson1.de.srt`), so your word highlighting and Anki exports save natively.
 *   **Automatic Dual Subtitles**: Intelligently scans the directory for a matching translation track (e.g., finding `lesson1.ru.srt` next to `lesson1.de.srt`) and automatically loads both as active primary and secondary tracks.
-*   **Free Seeking with Seekable Canvas**: Uses a bundled seekable black canvas (`scripts/_tools/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; falls back to virtual `av://lavfi` only when the canvas file is unavailable.
+*   **Free Seeking with Seekable Canvas**: Uses the bundled seekable black canvas (`scripts/_tools/sub-viewer/black.mp4`) for stable timeline navigation and precise seeking; missing canvas files are treated as setup errors instead of falling back to virtual `av://lavfi`.
 *   **Configurable Reader Settings**: Fine-tune maximum/minimum cue display thresholds, Date format floors, and speed thresholds (WPM/CPS) via the `kardenwort-reader_*` script-opts namespace (e.g., `kardenwort-reader_max_cue_seconds`, `kardenwort-reader_min_date_seconds`) directly from `mpv.conf`.
 *   **Setup**: Run `python scripts/_tools/sub-viewer/install.py` once to register it in your Windows shell.
 
@@ -1018,5 +1018,4 @@ The **Full** distribution of this project includes bundled third-party software:
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 [Return to Top](#table-of-contents)
-
 
