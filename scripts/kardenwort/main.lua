@@ -1482,97 +1482,6 @@ help_osd_2.res_y = Options.font_base_height
 help_osd_2.res_x = math.floor(help_osd_2.res_y * 16 / 9)
 help_osd_2.z = 103
 
-function recreate_osd_overlays()
-    Diagnostic.debug("recreate_osd_overlays: Re-initializing all OSD overlays.")
-    local prev_data = {}
-
-    if FSM.notice_osd then prev_data.notice_osd = FSM.notice_osd.data; FSM.notice_osd:remove() end
-    if seek_osd then prev_data.seek_osd = seek_osd.data; seek_osd:remove() end
-    if drum_osd then prev_data.drum_osd = drum_osd.data; drum_osd:remove() end
-    if dw_osd then prev_data.dw_osd = dw_osd.data; dw_osd:remove() end
-    if search_osd then prev_data.search_osd = search_osd.data; search_osd:remove() end
-    if dw_tooltip_osd then prev_data.dw_tooltip_osd = dw_tooltip_osd.data; dw_tooltip_osd:remove() end
-    if help_osd_bg then prev_data.help_osd_bg = help_osd_bg.data; help_osd_bg:remove() end
-    if help_osd_title then prev_data.help_osd_title = help_osd_title.data; help_osd_title:remove() end
-    if help_osd_1 then prev_data.help_osd_1 = help_osd_1.data; help_osd_1:remove() end
-    if help_osd_2 then prev_data.help_osd_2 = help_osd_2.data; help_osd_2:remove() end
-
-    local ry = Options.font_base_height
-    local rx = math.floor(ry * 16 / 9)
-
-    FSM.notice_osd = mp.create_osd_overlay("ass-events")
-    FSM.notice_osd.res_y = ry
-    FSM.notice_osd.res_x = rx
-    FSM.notice_osd.z = Options.notice_osd_layer
-    FSM.notice_osd.data = prev_data.notice_osd or ""
-    if FSM.notice_osd.data ~= "" then FSM.notice_osd:update() end
-
-    seek_osd = mp.create_osd_overlay("ass-events")
-    seek_osd.res_y = ry
-    seek_osd.res_x = rx
-    seek_osd.z = Options.seek_osd_layer
-    seek_osd.data = prev_data.seek_osd or ""
-    if seek_osd.data ~= "" then seek_osd:update() end
-
-    drum_osd = mp.create_osd_overlay("ass-events")
-    drum_osd.res_y = ry
-    drum_osd.res_x = rx
-    drum_osd.z = 10
-    drum_osd.data = prev_data.drum_osd or ""
-    if drum_osd.data ~= "" then drum_osd:update() end
-
-    dw_osd = mp.create_osd_overlay("ass-events")
-    dw_osd.res_y = ry
-    dw_osd.res_x = rx
-    dw_osd.z = 20
-    dw_osd.data = prev_data.dw_osd or ""
-    if dw_osd.data ~= "" then dw_osd:update() end
-
-    search_osd = mp.create_osd_overlay("ass-events")
-    search_osd.res_y = ry
-    search_osd.res_x = rx
-    search_osd.z = 30
-    search_osd.data = prev_data.search_osd or ""
-    if search_osd.data ~= "" then search_osd:update() end
-
-    dw_tooltip_osd = mp.create_osd_overlay("ass-events")
-    dw_tooltip_osd.res_y = ry
-    dw_tooltip_osd.res_x = rx
-    dw_tooltip_osd.z = 25
-    dw_tooltip_osd["data"] = prev_data.dw_tooltip_osd or ""
-    if dw_tooltip_osd.data ~= "" then dw_tooltip_osd:update() end
-
-    help_osd_bg = mp.create_osd_overlay("ass-events")
-    help_osd_bg.res_y = ry
-    help_osd_bg.res_x = rx
-    help_osd_bg.z = 100
-    help_osd_bg.data = prev_data.help_osd_bg or ""
-    if help_osd_bg.data ~= "" then help_osd_bg:update() end
-
-    help_osd_title = mp.create_osd_overlay("ass-events")
-    help_osd_title.res_y = ry
-    help_osd_title.res_x = rx
-    help_osd_title.z = 101
-    help_osd_title.data = prev_data.help_osd_title or ""
-    if help_osd_title.data ~= "" then help_osd_title:update() end
-
-    help_osd_1 = mp.create_osd_overlay("ass-events")
-    help_osd_1.res_y = ry
-    help_osd_1.res_x = rx
-    help_osd_1.z = 102
-    help_osd_1.data = prev_data.help_osd_1 or ""
-    if help_osd_1.data ~= "" then help_osd_1:update() end
-
-    help_osd_2 = mp.create_osd_overlay("ass-events")
-    help_osd_2.res_y = ry
-    help_osd_2.res_x = rx
-    help_osd_2.z = 103
-    help_osd_2.data = prev_data.help_osd_2 or ""
-    if help_osd_2.data ~= "" then help_osd_2:update() end
-
-    FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
-end
-
 local dw_ensure_visible -- forward declaration
 
 function cmd_cycle_copy_mode()
@@ -10913,7 +10822,6 @@ mp.observe_property("vid", "string", function(name, val)
         if val ~= FSM.last_vid then
             local old_vid = FSM.last_vid
             FSM.last_vid = val
-            recreate_osd_overlays()
             if (not old_vid or old_vid == "no") and (val and val ~= "no") then
                 local current_sid = mp.get_property("sid")
                 local current_sec_sid = mp.get_property("secondary-sid")
