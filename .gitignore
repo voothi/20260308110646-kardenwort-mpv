@@ -69,3 +69,4 @@ resume_session.state
 # scripts/_tools/sub-tts/config.ini
 scripts/_tools/subtitle-translator/config.ini
 
+.kilo/kilo.json

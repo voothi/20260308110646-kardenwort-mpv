@@ -6600,23 +6600,15 @@ local function tick_autopause(time_pos)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
-    -- [v1.58.51] Hardened Autopause via Sticky Focus
-    -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
     local active_idx = FSM.ACTIVE_IDX
     if active_idx == -1 or not subs[active_idx] then
-        -- Fallback if sentinel is lost
         active_idx = get_center_index(subs, time_pos)
     end
     if active_idx == -1 then return end
 
-    -- [v1.58.54] Skip autopause while transiting through the rewind zone after Shift+A/D.
-    -- Uses <= so the exact boundary tick is still suppressed; the inhibit is cleared
-    -- only after jerk-back has also been evaluated (see end of main tick function).
-    -- [20260510193230] Special case: within-subtitle rewind should still allow autopause at end.
     local in_rewind_transit = FSM.TIMESEEK_INHIBIT_UNTIL and time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL
     local within_subtitle_rewind = in_rewind_transit and FSM.REWIND_START_IDX and active_idx == FSM.REWIND_START_IDX
 
-    -- Suppress autopause only during cross-subtitle rewind transit
     if in_rewind_transit and FSM.REWIND_TRANSIT_CROSS_CARD and not within_subtitle_rewind then
         return
     end
@@ -6624,24 +6616,29 @@ local function tick_autopause(time_pos)
     local _, sub_end = get_effective_boundaries(subs, subs[active_idx], active_idx)
     if not sub_end then return end
 
-    -- Check if we've reached the end of the padded window
-    -- Use an inclusive check to ensure we don't skip the pause frame.
     local diff = sub_end - time_pos
-    if diff > Options.pause_padding or diff < -Options.autopause_overshoot then
+    if diff > Options.pause_padding then
         return
     end
 
-    -- Prevent re-triggering for the same subtitle segment
+    if diff < -Options.autopause_overshoot then
+        if FSM._prev_time_pos and FSM._prev_time_pos < sub_end then
+            -- Coarse tick step: time_pos jumped past the autopause window in one
+            -- tick (e.g. 1 fps black.mp4 video track on audio-only media).  The
+            -- previous position was still before the boundary, so we just crossed
+            -- it.  Allow autopause to fire instead of returning.
+        else
+            return
+        end
+    end
+
     if FSM.last_paused_sub_end == sub_end then return end
 
-    -- Ensure we are actually on a subtitle (using internal state rather than transient mpv visibility)
-    -- This fixes the "Stops stopping" bug when text clears before the audio tail finishes.
     local raw_text_primary = subs[active_idx].text or ""
     local raw_text_secondary = (Tracks.sec.subs[active_idx] and Tracks.sec.subs[active_idx].text) or ""
     
     if raw_text_primary == "" and raw_text_secondary == "" then return end
 
-    -- Karaoke Mode: Don't pause if we are in the middle of a phrase with highlights
     if FSM.KARAOKE == "PHRASE" then
         local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true)
         if not has_karaoke then has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true) end
@@ -6790,6 +6787,7 @@ local function master_tick()
         end
     end
     FSM.IGNORE_NEXT_JUMP = false
+    FSM._prev_time_pos = FSM.last_time_pos
     FSM.last_time_pos = time_pos
 
     local did_scheduled_replay = tick_scheduled_replay(time_pos)
