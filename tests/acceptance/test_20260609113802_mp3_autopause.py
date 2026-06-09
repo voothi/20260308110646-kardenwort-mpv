@@ -172,3 +172,116 @@ Line Three
     finally:
         session.stop()
         shutil.rmtree(work, ignore_errors=True)
+
+
+def test_mp3_autopause_on_phrase_near_subtitle_boundary():
+    """Regression coverage: starting playback very close to a subtitle end
+    on MP3 + black.mp4 can stress the autopause boundary detection.  Autopause
+    must fire at one of the subtitle ends rather than running past them all.
+
+    Subtitles:
+        Sub 1: 1.000 – 2.000
+        Sub 2: 3.000 – 4.000
+        Sub 3: 5.000 – 20.000
+
+    We seek to 1.90 s (100 ms before Sub 1 end).  With a 1 fps black.mp4
+    track, time-pos may jump in coarse steps, but autopause should still
+    catch a boundary instead of skipping through all subtitles.
+    """
+    work = _new_scratch_dir("audio-only-autopause-near-boundary")
+    media_mp3 = work / "audio.mp3"
+    media_srt = work / "audio.en.srt"
+
+    subtitle_content = """1
+00:00:01,000 --> 00:00:02,000
+Line One
+
+2
+00:00:03,000 --> 00:00:04,000
+Line Two
+
+3
+00:00:05,000 --> 00:00:20,000
+Line Three
+"""
+    media_srt.write_text(subtitle_content, encoding="utf-8")
+    _create_silent_mp3(media_mp3, duration=25)
+
+    session = MpvSession(
+        video=str(media_mp3),
+        subtitle=str(media_srt),
+        extra_args=[
+            "--pause",
+            "--script-opts=kardenwort-companion_subtitle_attach_on_load=no",
+        ],
+    )
+    _start_or_skip(session)
+    try:
+        ipc = session.ipc
+
+        def subs_ready():
+            state = query_kardenwort_state(ipc)
+            return (
+                state.get("pri_sub_count") == 3
+                and state.get("playback_state") in ("SINGLE_SRT", "DUAL_SRT")
+            )
+
+        assert _wait_until(subs_ready, timeout=6.0), (
+            "Subtitles were not loaded - kardenwort did not report 3 primary "
+            "subtitles in SINGLE_SRT/DUAL_SRT state."
+        )
+
+        # Enable Autopause ON + PHRASE, zero padding for a sharp boundary.
+        ipc.command(["script-message-to", "kardenwort", "autopause-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "immersion-mode-set", "PHRASE"])
+        ipc.command(
+            ["script-message-to", "kardenwort", "test-set-option",
+             "audio_padding_start", "0"]
+        )
+        ipc.command(
+            ["script-message-to", "kardenwort", "test-set-option",
+             "audio_padding_end", "0"]
+        )
+        time.sleep(0.15)
+
+        # Seek to 1.90 s – inside Sub 1, only 100 ms before its end at 2.0 s.
+        ipc.command(["seek", 1.9, "absolute+exact"])
+        time.sleep(0.25)
+        ipc.command(["set_property", "pause", False])
+
+        # Wait for autopause to fire (must happen before Sub 3 end at 20 s).
+        paused = _wait_until(lambda: ipc.get_property("pause"), timeout=8.0)
+
+        pos = ipc.get_property("time-pos")
+        state = query_kardenwort_state(ipc)
+
+        # Diagnostic dump on failure paths.
+        print(f"DEBUG pos={pos:.3f} paused={paused}")
+        print(f"DEBUG state={state}")
+        print(f"DEBUG sid={ipc.get_property('sid')} vid={ipc.get_property('vid')}")
+        print(f"DEBUG track_list={ipc.get_property('track-list')}")
+
+        assert paused, (
+            "Autopause ON + PHRASE did NOT stop playback on MP3 + black.mp4 "
+            f"near a coarse tick boundary (pos={pos:.3f}, state={state})"
+        )
+
+        # Accept pause at Sub 1 (2.0 s), Sub 2 (4.0 s) or Sub 3 (20.0 s)
+        # – the coarse 1 fps clock may land on any of them.
+        lpe = state.get("last_paused_sub_end")
+        assert lpe is not None, (
+            "last_paused_sub_end was not set - autopause did not record a "
+            f"subtitle boundary (state={state})"
+        )
+        assert lpe in (2.0, 4.0, 20.0), (
+            f"Expected last_paused_sub_end to be a known subtitle end "
+            "(2.0, 4.0 or 20.0 s), got {lpe:.3f} s (pos={pos:.3f})"
+        )
+        assert abs(pos - lpe) < 0.50, (
+            f"Player pos={pos:.3f} s deviates too far from "
+            f"last_paused_sub_end={lpe:.3f} s"
+        )
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)
