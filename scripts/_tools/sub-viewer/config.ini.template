@@ -60,10 +60,8 @@ language_selection_priority = en:0,eng:0,de:1,ger:1,ru:2,rus:2
 # MPV Playback
 # ==============================================================================
 
-# Legacy timing settings retained for compatibility; playback requires black_video_file.
-virtual_video_color = black
-virtual_video_size = 1280x720
-virtual_video_duration = 36000
+# Duration of the bundled canvas, used as the parser fallback for sparse inputs.
+canvas_duration_seconds = 36000
 
 # Initial playback state passed to mpv --pause.
 # Common values: yes, no

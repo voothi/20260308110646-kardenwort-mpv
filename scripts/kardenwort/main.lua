@@ -10653,7 +10653,7 @@ function ensure_companion_subtitle_tracks(path)
     end)
 end
 
-function get_virtual_black_video_source()
+function get_bundled_black_video_source()
     if script_dir and script_dir ~= "" then
         local candidate = script_dir:gsub("\\", "/") .. "/../_tools/sub-viewer/black.mp4"
         local ok, normalized = pcall(mp.command_native, {"normalize-path", candidate})
@@ -10668,8 +10668,8 @@ function get_virtual_black_video_source()
     return nil
 end
 
-function add_virtual_black_video_track(message)
-    local source = get_virtual_black_video_source()
+function add_bundled_black_video_track(message)
+    local source = get_bundled_black_video_source()
     if not source then
         Diagnostic.error(message .. " Bundled seekable black video track is unavailable: scripts/_tools/sub-viewer/black.mp4")
         return
@@ -10692,7 +10692,7 @@ function try_next_video_candidate()
             end
         end
         if not has_video then
-            add_virtual_black_video_track("All companion video candidates failed to load.")
+            add_bundled_black_video_track("All companion video candidates failed to load.")
         end
         return
     end
@@ -10842,7 +10842,7 @@ function ensure_companion_video_track(path)
     local video_files = get_companion_video_files(dir, base_prefix)
     Diagnostic.debug("ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
     if #video_files == 0 then
-        add_virtual_black_video_track("Audio-only media detected with no companion video.")
+        add_bundled_black_video_track("Audio-only media detected with no companion video.")
         return
     end
 

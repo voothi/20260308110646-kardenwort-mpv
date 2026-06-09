@@ -30,10 +30,7 @@ LANG_SELECTION_PRIORITY = {
     "rus": 2,
 }
 
-# Virtual Video Stream Parameters
-VIRTUAL_VIDEO_COLOR = 'black'        # Can be black, grey, white, blue, etc.
-VIRTUAL_VIDEO_SIZE = '1280x720'      # Dimensions of the player window
-VIRTUAL_VIDEO_DURATION = 36000       # Timeline length in seconds (e.g. 36000 = 10 hours)
+CANVAS_DURATION_SECONDS = 36000
 END_PADDING_SECONDS = 2.0
 
 # Initial playback state (yes = start paused, no = play immediately)
@@ -164,7 +161,7 @@ def load_config():
 def apply_config(config):
     global SUPPORTED_EXTENSIONS, SUPPORTED_TEXT_EXTENSIONS
     global LANG_SUFFIXES, LANG_SELECTION_PRIORITY
-    global VIRTUAL_VIDEO_COLOR, VIRTUAL_VIDEO_SIZE, VIRTUAL_VIDEO_DURATION, END_PADDING_SECONDS
+    global CANVAS_DURATION_SECONDS, END_PADDING_SECONDS
     global PAUSE_ON_LAUNCH, FORCE_WINDOW, RESUME_PLAYBACK
     global BLACK_VIDEO_FILE, MPV_EXECUTABLE, MPV_FALLBACK_PATHS
     global LOG_DIR, MPV_LOG_FILE, LAUNCH_LOG_FILE, MPV_CONF_READER_OVERRIDES
@@ -204,9 +201,7 @@ def apply_config(config):
     MPV_LOG_FILE = _config_get(config, "paths", "mpv_log_file", MPV_LOG_FILE)
     LAUNCH_LOG_FILE = _config_get(config, "paths", "launch_log_file", LAUNCH_LOG_FILE)
 
-    VIRTUAL_VIDEO_COLOR = _config_get(config, "player", "virtual_video_color", VIRTUAL_VIDEO_COLOR)
-    VIRTUAL_VIDEO_SIZE = _config_get(config, "player", "virtual_video_size", VIRTUAL_VIDEO_SIZE)
-    VIRTUAL_VIDEO_DURATION = _config_get_int(config, "player", "virtual_video_duration", VIRTUAL_VIDEO_DURATION)
+    CANVAS_DURATION_SECONDS = _config_get_int(config, "player", "canvas_duration_seconds", CANVAS_DURATION_SECONDS)
     END_PADDING_SECONDS = _config_get_float(config, "player", "end_padding_seconds", END_PADDING_SECONDS)
     PAUSE_ON_LAUNCH = _config_get(config, "player", "pause_on_launch", PAUSE_ON_LAUNCH)
     FORCE_WINDOW = _config_get(config, "player", "force_window", FORCE_WINDOW)
@@ -858,12 +853,12 @@ def main():
             cmd.append('--secondary-sid=2')
 
         # 7. Parse first subtitle start time to auto-seek to the first card on load
-        start_time = get_first_sub_start(sub_path, VIRTUAL_VIDEO_DURATION)
+        start_time = get_first_sub_start(sub_path, CANVAS_DURATION_SECONDS)
         if start_time is not None:
             cmd.append(f'--start={start_time}')
 
         # 8. Dynamically clip the timeline to match the subtitle length exactly
-        last_end = get_last_sub_end(sub_path, VIRTUAL_VIDEO_DURATION)
+        last_end = get_last_sub_end(sub_path, CANVAS_DURATION_SECONDS)
         if last_end is not None and last_end > 0:
             # Add configured padding for comfortable OSD breathing room at the end
             cmd.append(f'--length={last_end + END_PADDING_SECONDS}')

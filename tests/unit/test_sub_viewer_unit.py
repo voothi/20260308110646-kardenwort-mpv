@@ -50,7 +50,7 @@ def test_first_start_parses_over_two_hours():
             "1\n09:00:00,000 --> 09:00:05,000\nLong session\n",
             encoding="utf-8",
         )
-        assert viewer.get_first_sub_start(str(srt), viewer.VIRTUAL_VIDEO_DURATION) == 32400.0
+        assert viewer.get_first_sub_start(str(srt), viewer.CANVAS_DURATION_SECONDS) == 32400.0
 
 
 def test_last_end_parses_over_two_hours():
@@ -61,7 +61,7 @@ def test_last_end_parses_over_two_hours():
             "1\n08:59:58,000 --> 09:00:03,500\nLong session\n",
             encoding="utf-8",
         )
-        assert viewer.get_last_sub_end(str(srt), viewer.VIRTUAL_VIDEO_DURATION) == 32403.5
+        assert viewer.get_last_sub_end(str(srt), viewer.CANVAS_DURATION_SECONDS) == 32403.5
 
 
 def test_secondary_subtitle_selection_is_deterministic():

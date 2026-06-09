@@ -36,7 +36,7 @@ def _get_video_tracks(track_list):
     return videos
 
 
-def _has_virtual_black_video(track_list):
+def _has_bundled_black_video(track_list):
     for video in _get_video_tracks(track_list):
         path = (
             video.get("external-filename") or
@@ -106,8 +106,8 @@ def _wait_for_rendered_subtitles(ipc):
     )
 
 
-def test_audio_only_fallback_virtual_video():
-    work = _new_scratch_dir("audio-only-fallback")
+def test_audio_only_bundled_black_video():
+    work = _new_scratch_dir("audio-only-bundled-black-video")
     media_mp3 = work / "sample.mp3"
     media_srt_pri = work / "sample.srt"
     media_srt_sec = work / "sample.en.srt"
@@ -140,14 +140,14 @@ Secondary Subtitle Line
             vid = session.ipc.get_property("vid")
             return vid and vid != "no"
 
-        assert _wait_until(video_selected, timeout=6.0), "Virtual video track was not selected automatically"
+        assert _wait_until(video_selected, timeout=6.0), "Bundled black video track was not selected automatically"
 
         # Verify that the loaded video track is the bundled seekable black canvas
         tracks = session.ipc.get_property("track-list") or []
         vids = _get_video_tracks(tracks)
 
         assert len(vids) > 0, "No video tracks registered in track-list"
-        assert _has_virtual_black_video(tracks), f"Virtual black video source was not loaded, tracks: {tracks}"
+        assert _has_bundled_black_video(tracks), f"Bundled black video source was not loaded, tracks: {tracks}"
 
         # Verify that subtitles are loaded and selected
         def subs_selected():
@@ -167,8 +167,8 @@ Secondary Subtitle Line
         shutil.rmtree(work, ignore_errors=True)
 
 
-def test_audio_only_fallback_when_companion_fails():
-    work = _new_scratch_dir("audio-only-fallback-fail")
+def test_audio_only_bundled_black_video_when_companion_fails():
+    work = _new_scratch_dir("audio-only-bundled-black-video-fail")
     media_mp3 = work / "sample.mp3"
     media_srt_pri = work / "sample.srt"
     media_srt_sec = work / "sample.en.srt"
@@ -206,14 +206,14 @@ Secondary Subtitle Line
             return vid and vid != "no"
 
         # Give it a bit more time because it has to fail-load first
-        assert _wait_until(video_selected, timeout=8.0), "Virtual video track fallback was not selected after companion failure"
+        assert _wait_until(video_selected, timeout=8.0), "Bundled black video track was not selected after companion failure"
 
         # Verify that the loaded video track is the bundled seekable black canvas
         tracks = session.ipc.get_property("track-list") or []
         vids = _get_video_tracks(tracks)
 
         assert len(vids) > 0, "No video tracks registered in track-list"
-        assert _has_virtual_black_video(tracks), f"Virtual black video source was not loaded, tracks: {tracks}"
+        assert _has_bundled_black_video(tracks), f"Bundled black video source was not loaded, tracks: {tracks}"
 
         # Verify that subtitles are loaded and selected
         def subs_selected():
