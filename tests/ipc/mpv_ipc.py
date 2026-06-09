@@ -29,8 +29,12 @@ if os.name == 'nt':
 
     _GENERIC_READ        = 0x80000000
     _GENERIC_WRITE       = 0x40000000
+    _FILE_SHARE_READ     = 0x00000001
+    _FILE_SHARE_WRITE    = 0x00000002
     _OPEN_EXISTING       = 3
     _FILE_FLAG_OVERLAPPED = 0x40000000
+    _SECURITY_SQOS_PRESENT = 0x00100000
+    _SECURITY_IDENTIFICATION = 0x00010000
     _ERROR_IO_PENDING    = 997
     _INFINITE            = 0xFFFFFFFF
 
@@ -47,8 +51,10 @@ if os.name == 'nt':
         def __init__(self, path):
             h = _k32.CreateFileW(path,
                                  _GENERIC_READ | _GENERIC_WRITE,
-                                 0, None, _OPEN_EXISTING,
-                                 _FILE_FLAG_OVERLAPPED, None)
+                                 _FILE_SHARE_READ | _FILE_SHARE_WRITE,
+                                 None, _OPEN_EXISTING,
+                                 _FILE_FLAG_OVERLAPPED | _SECURITY_SQOS_PRESENT | _SECURITY_IDENTIFICATION,
+                                 None)
             if h is None or h == ctypes.c_void_p(-1).value:
                 raise OSError(ctypes.get_last_error())
             self._h = h
@@ -266,8 +272,6 @@ def query_kardenwort_render(ipc, overlay_name, timeout=2.0):
             pass
         time.sleep(0.05)
     return ""
-
-
 
 
 

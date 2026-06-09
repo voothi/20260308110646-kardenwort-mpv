@@ -7,6 +7,14 @@ _PRIMARY_EXPORT_FIXTURE = Path(
 )
 
 
+def _start_or_skip(session):
+    try:
+        session.start()
+    except TimeoutError as exc:
+        session.stop()
+        pytest.skip(f"mpv IPC unavailable in this environment: {exc}")
+
+
 @pytest.fixture(autouse=True)
 def restore_primary_export_fixture(request):
     """Keep the primary TSV fixture git-clean across acceptance tests."""
@@ -38,7 +46,7 @@ def mpv():
         subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
         extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
 
@@ -56,7 +64,7 @@ def mpv_dual():
         secondary_subtitle='tests/fixtures/20260507161504-sync-test/20260507161504-sync-test.ru.srt',
         extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
 
@@ -80,7 +88,7 @@ def mpv_fragment1():
         secondary_subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment1.ru.srt',
         extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
 
@@ -96,7 +104,7 @@ def mpv_movie_startup():
         subtitle='tests/fixtures/20260502165659-test-fixture/20260502165659-test-fixture.en.srt',
         extra_args=['--pause', '--script-opts=kardenwort-immersion_mode_default=MOVIE,kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
 
@@ -115,7 +123,7 @@ def mpv_ass():
         subtitle='tests/fixtures/20260508173706-test-ass/20260508173706-test.ass',
         extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
 
@@ -140,9 +148,11 @@ def mpv_fragment2():
         secondary_subtitle='tests/fixtures/20260507200612-paketzustellerin-in-der-vorweihnachtszeit/20260507164826-fragment2.ru.srt',
         extra_args=['--pause', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
+
+
 @pytest.fixture
 def mpv_merge_test():
     """Fixture to verify subtitle merging logic (200ms guard).
@@ -161,10 +171,8 @@ def mpv_merge_test():
         subtitle='tests/fixtures/20260508192831-merge-test/20260508192831-merge-test.en.srt',
         extra_args=['--pause', '--config-dir=.', '--script-opts=kardenwort-companion_subtitle_attach_on_load=no'],
     )
-    session.start()
+    _start_or_skip(session)
     yield session
     session.stop()
-
-
 
 

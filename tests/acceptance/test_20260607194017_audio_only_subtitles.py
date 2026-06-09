@@ -61,6 +61,7 @@ def _start_or_skip(session):
     try:
         session.start()
     except TimeoutError as exc:
+        session.stop()
         pytest.skip(f"mpv IPC unavailable in this environment: {exc}")
 
 

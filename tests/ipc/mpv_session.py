@@ -13,6 +13,7 @@ class MpvSession:
         self.ipc_path            = ipc_path or (default_ipc_path() + '-' + uuid.uuid4().hex[:8])
         self.ipc                 = MpvIpc(self.ipc_path)
         self._proc               = None
+        self._log_file           = None
 
     def _check_and_kill_mpv_instances(self):
         """Check for and kill any running mpv instances before starting a new test session."""
@@ -54,6 +55,9 @@ class MpvSession:
             print(f"Warning: Failed to check for mpv instances: {e}")
 
     def start(self):
+        # Keep acceptance sessions isolated from stale mpv instances and named pipes.
+        self._check_and_kill_mpv_instances()
+
         cmd = [
             'mpv', '--no-config', '--config-dir=.', '--vo=null', '--ao=null', '--idle=once',
             '--sub-auto=no',
@@ -72,13 +76,18 @@ class MpvSession:
         log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'tests', 'mpv_last_run.log')
         with open(log_path, 'w') as f:
             f.write(f"Running command: {' '.join(cmd)}\n\n")
+        self._log_file = open(log_path, 'a')
         self._proc = subprocess.Popen(
             cmd,
-            stdout=open(log_path, 'a'),
+            stdout=self._log_file,
             stderr=subprocess.STDOUT,
         )
-        self.ipc.connect(timeout=15.0)
-        time.sleep(0.8)
+        try:
+            self.ipc.connect(timeout=15.0)
+            time.sleep(0.8)
+        except Exception:
+            self.stop()
+            raise
 
     def stop(self):
         try:
@@ -90,9 +99,19 @@ class MpvSession:
             try:
                 self._proc.wait(timeout=5)
             except Exception:
-                pass
+                try:
+                    self._proc.kill()
+                    self._proc.wait(timeout=5)
+                except Exception:
+                    pass
+        self._proc = None
         self.ipc.close()
-
+        if self._log_file:
+            try:
+                self._log_file.close()
+            except Exception:
+                pass
+            self._log_file = None
 
 
 
