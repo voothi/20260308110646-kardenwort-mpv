@@ -688,8 +688,7 @@ Options = {
     sub_switch_threshold = 1.0,
     companion_audio_enabled = true,
     companion_audio_attach_on_load = true,
-    companion_video_enabled = true,
-    companion_video_attach_on_load = true,
+    black_video_attach_on_load = true,
     companion_subtitle_enabled = true,
     companion_subtitle_attach_on_load = true,
 }
@@ -1481,98 +1480,6 @@ local help_osd_2 = mp.create_osd_overlay("ass-events")
 help_osd_2.res_y = Options.font_base_height
 help_osd_2.res_x = math.floor(help_osd_2.res_y * 16 / 9)
 help_osd_2.z = 103
-
-function recreate_osd_overlays()
-    Diagnostic.debug("recreate_osd_overlays: Re-initializing all OSD overlays.")
-    local prev_data = {}
-
-    if FSM.notice_osd then prev_data.notice_osd = FSM.notice_osd.data; FSM.notice_osd:remove() end
-    if seek_osd then prev_data.seek_osd = seek_osd.data; seek_osd:remove() end
-    if drum_osd then prev_data.drum_osd = drum_osd.data; drum_osd:remove() end
-    if dw_osd then prev_data.dw_osd = dw_osd.data; dw_osd:remove() end
-    if search_osd then prev_data.search_osd = search_osd.data; search_osd:remove() end
-    if dw_tooltip_osd then prev_data.dw_tooltip_osd = dw_tooltip_osd.data; dw_tooltip_osd:remove() end
-    if help_osd_bg then prev_data.help_osd_bg = help_osd_bg.data; help_osd_bg:remove() end
-    if help_osd_title then prev_data.help_osd_title = help_osd_title.data; help_osd_title:remove() end
-    if help_osd_1 then prev_data.help_osd_1 = help_osd_1.data; help_osd_1:remove() end
-    if help_osd_2 then prev_data.help_osd_2 = help_osd_2.data; help_osd_2:remove() end
-
-    local ry = Options.font_base_height
-    local rx = math.floor(ry * 16 / 9)
-
-    FSM.notice_osd = mp.create_osd_overlay("ass-events")
-    FSM.notice_osd.res_y = ry
-    FSM.notice_osd.res_x = rx
-    FSM.notice_osd.z = Options.notice_osd_layer
-    FSM.notice_osd.data = prev_data.notice_osd or ""
-    if FSM.notice_osd.data ~= "" then FSM.notice_osd:update() end
-
-    seek_osd = mp.create_osd_overlay("ass-events")
-    seek_osd.res_y = ry
-    seek_osd.res_x = rx
-    seek_osd.z = Options.seek_osd_layer
-    seek_osd.data = prev_data.seek_osd or ""
-    if seek_osd.data ~= "" then seek_osd:update() end
-
-    drum_osd = mp.create_osd_overlay("ass-events")
-    drum_osd.res_y = ry
-    drum_osd.res_x = rx
-    drum_osd.z = 10
-    drum_osd.data = prev_data.drum_osd or ""
-    if drum_osd.data ~= "" then drum_osd:update() end
-
-    dw_osd = mp.create_osd_overlay("ass-events")
-    dw_osd.res_y = ry
-    dw_osd.res_x = rx
-    dw_osd.z = 20
-    dw_osd.data = prev_data.dw_osd or ""
-    if dw_osd.data ~= "" then dw_osd:update() end
-
-    search_osd = mp.create_osd_overlay("ass-events")
-    search_osd.res_y = ry
-    search_osd.res_x = rx
-    search_osd.z = 30
-    search_osd.data = prev_data.search_osd or ""
-    if search_osd.data ~= "" then search_osd:update() end
-
-    dw_tooltip_osd = mp.create_osd_overlay("ass-events")
-    dw_tooltip_osd.res_y = ry
-    dw_tooltip_osd.res_x = rx
-    dw_tooltip_osd.z = 25
-    dw_tooltip_osd["data"] = prev_data.dw_tooltip_osd or ""
-    if dw_tooltip_osd.data ~= "" then dw_tooltip_osd:update() end
-
-    help_osd_bg = mp.create_osd_overlay("ass-events")
-    help_osd_bg.res_y = ry
-    help_osd_bg.res_x = rx
-    help_osd_bg.z = 100
-    help_osd_bg.data = prev_data.help_osd_bg or ""
-    if help_osd_bg.data ~= "" then help_osd_bg:update() end
-
-    help_osd_title = mp.create_osd_overlay("ass-events")
-    help_osd_title.res_y = ry
-    help_osd_title.res_x = rx
-    help_osd_title.z = 101
-    help_osd_title.data = prev_data.help_osd_title or ""
-    if help_osd_title.data ~= "" then help_osd_title:update() end
-
-    help_osd_1 = mp.create_osd_overlay("ass-events")
-    help_osd_1.res_y = ry
-    help_osd_1.res_x = rx
-    help_osd_1.z = 102
-    help_osd_1.data = prev_data.help_osd_1 or ""
-    if help_osd_1.data ~= "" then help_osd_1:update() end
-
-    help_osd_2 = mp.create_osd_overlay("ass-events")
-    help_osd_2.res_y = ry
-    help_osd_2.res_x = rx
-    help_osd_2.z = 103
-    help_osd_2.data = prev_data.help_osd_2 or ""
-    if help_osd_2.data ~= "" then help_osd_2:update() end
-
-    FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
-end
-
 
 local dw_ensure_visible -- forward declaration
 
@@ -10678,123 +10585,13 @@ function add_bundled_black_video_track(message)
     mp.commandv("video-add", source, "select")
 end
 
-function try_next_video_candidate()
-    FSM.current_candidate_idx = FSM.current_candidate_idx + 1
-    local candidate = FSM.video_candidates[FSM.current_candidate_idx]
-    if not candidate then
-        Diagnostic.debug("try_next_video_candidate: no more candidates")
-        local tracks = mp.get_property_native("track-list") or {}
-        local has_video = false
-        for _, t in ipairs(tracks) do
-            if t.type == "video" then
-                has_video = true
-                break
-            end
-        end
-        if not has_video then
-            add_bundled_black_video_track("All companion video candidates failed to load.")
-        end
-        return
-    end
-
-    -- Check if we already have a video track loaded
-    local tracks = mp.get_property_native("track-list") or {}
-    for _, t in ipairs(tracks) do
-        if t.type == "video" then
-            Diagnostic.debug("try_next_video_candidate: already has video, skipping")
-            return
-        end
-    end
-
-    local is_windows = package.config:sub(1,1) == "\\"
-    local load_path = candidate.path
-    if is_windows then
-        load_path = load_path:gsub("/", "\\")
-    end
-
-    Diagnostic.debug("try_next_video_candidate: adding candidate path=" .. load_path)
-    mp.commandv("video-add", load_path, "select", candidate.postfix, candidate.raw_postfix)
-
-    -- Wait 0.2 seconds and verify if video track is loaded. If not, try next.
-    mp.add_timeout(0.2, function()
-        local tracks_after = mp.get_property_native("track-list") or {}
-        local found_video = false
-        local video_track_id = nil
-        local selected_video = false
-        for _, t in ipairs(tracks_after) do
-            if t.type == "video" then
-                found_video = true
-                video_track_id = t.id
-                if t.selected then
-                    selected_video = true
-                end
-                Diagnostic.debug("found video track id=" .. tostring(t.id) .. " selected=" .. tostring(t.selected))
-            end
-        end
-        if found_video then
-            if not selected_video and video_track_id then
-                Diagnostic.debug("attempting to select video track id=" .. tostring(video_track_id))
-                mp.set_property_number("vid", video_track_id)
-                Diagnostic.debug("vid property now=" .. tostring(mp.get_property("vid")))
-            else
-                Diagnostic.debug("video already selected=" .. tostring(selected_video))
-            end
-        else
-            Diagnostic.debug("no video track found, trying next candidate")
-            try_next_video_candidate()
-        end
-    end)
-end
-
-function get_companion_video_files(dir, base_prefix)
-    local files = utils.readdir(dir, "files") or {}
-    local video_files = {}
-    local video_exts = { mp4 = true, mkv = true, avi = true, webm = true, flv = true, mov = true, wmv = true, mpg = true, mpeg = true }
-    
-    for _, f in ipairs(files) do
-        local f_ext = f:match("%.([^%.]+)$")
-        if f_ext and video_exts[f_ext:lower()] then
-            local f_no_ext = f:sub(1, #f - #f_ext - 1)
-            if f_no_ext == base_prefix then
-                table.insert(video_files, {
-                    path = dir .. f,
-                    postfix = "ORIGINAL",
-                    raw_postfix = ""
-                })
-            else
-                local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
-                if p_base == base_prefix and p_postfix then
-                    table.insert(video_files, {
-                        path = dir .. f,
-                        postfix = format_language_postfix_label(p_postfix),
-                        raw_postfix = p_postfix
-                    })
-                end
-            end
-        end
-    end
-    
-    table.sort(video_files, function(a, b)
-        if a.postfix == "ORIGINAL" then return true end
-        if b.postfix == "ORIGINAL" then return false end
-        return a.postfix < b.postfix
-    end)
-    
-    return video_files
-end
-
-function ensure_companion_video_track(path)
-    Diagnostic.debug("ensure_companion_video_track: called with path=" .. tostring(path))
-    if Options.companion_video_enabled == false then
-        Diagnostic.debug("ensure_companion_video_track: companion_video_enabled is false, returning")
-        return
-    end
+function ensure_bundled_black_video_track(path)
+    Diagnostic.debug("ensure_bundled_black_video_track: called with path=" .. tostring(path))
     if not path or path == "" then
-        Diagnostic.debug("ensure_companion_video_track: empty path, returning")
+        Diagnostic.debug("ensure_bundled_black_video_track: empty path, returning")
         return
     end
-    
-    -- Check if we already have a video track loaded
+
     local tracks = mp.get_property_native("track-list") or {}
     local has_video = false
     local selected_video = false
@@ -10811,54 +10608,18 @@ function ensure_companion_video_track(path)
         end
     end
     if selected_video then
-        Diagnostic.debug("ensure_companion_video_track: video track already selected, returning")
+        Diagnostic.debug("ensure_bundled_black_video_track: video track already selected, returning")
         return
     end
     if has_video then
         if first_video_id then
-            Diagnostic.debug("ensure_companion_video_track: video track exists but not selected. Selecting id=" .. tostring(first_video_id))
+            Diagnostic.debug("ensure_bundled_black_video_track: video track exists but not selected. Selecting id=" .. tostring(first_video_id))
             mp.set_property_number("vid", first_video_id)
         end
         return
     end
 
-    local normalized_path = path:gsub("\\", "/")
-    local dir = normalized_path:match("^(.*/)") or ""
-    local filename = normalized_path:sub(#dir + 1)
-    local ext = filename:match("%.([^%.]+)$") or ""
-    if ext == "" then
-        Diagnostic.debug("ensure_companion_video_track: empty ext, returning")
-        return
-    end
-
-    local filename_no_ext = filename:sub(1, #filename - #ext - 1)
-    local base_prefix = split_base_and_language_postfix(filename_no_ext)
-    if not base_prefix or base_prefix == "" then
-        Diagnostic.debug("ensure_companion_video_track: empty base_prefix, returning")
-        return
-    end
-
-    Diagnostic.debug("ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix)
-    local video_files = get_companion_video_files(dir, base_prefix)
-    Diagnostic.debug("ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
-    if #video_files == 0 then
-        add_bundled_black_video_track("Audio-only media detected with no companion video.")
-        return
-    end
-
-    local current_path_norm = canonicalize_local_path(path)
-    
-    -- Prepare candidates
-    FSM.video_candidates = {}
-    FSM.current_candidate_idx = 0
-    for _, candidate in ipairs(video_files) do
-        if canonicalize_local_path(candidate.path) ~= current_path_norm then
-            table.insert(FSM.video_candidates, candidate)
-        end
-    end
-
-    Diagnostic.debug("ensure_companion_video_track: #video_candidates after filtering=" .. tostring(#FSM.video_candidates))
-    try_next_video_candidate()
+    add_bundled_black_video_track("Audio-only media detected.")
 end
 
 
@@ -10912,28 +10673,6 @@ end
 mp.observe_property("sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
     if not ok then Diagnostic.error("sid observer: " .. tostring(err)) end
-end)
-mp.observe_property("vid", "string", function(name, val)
-    local ok, err = xpcall(function()
-        if val ~= FSM.last_vid then
-            local old_vid = FSM.last_vid
-            FSM.last_vid = val
-            recreate_osd_overlays()
-            if (not old_vid or old_vid == "no") and (val and val ~= "no") then
-                local current_sid = mp.get_property("sid")
-                local current_sec_sid = mp.get_property("secondary-sid")
-                if current_sid and current_sid ~= "no" then
-                    mp.set_property("sid", "no")
-                    mp.set_property("sid", current_sid)
-                end
-                if current_sec_sid and current_sec_sid ~= "no" then
-                    mp.set_property("secondary-sid", "no")
-                    mp.set_property("secondary-sid", current_sec_sid)
-                end
-            end
-        end
-    end, debug.traceback)
-    if not ok then Diagnostic.error("vid observer: " .. tostring(err)) end
 end)
 mp.observe_property("secondary-sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
@@ -11017,8 +10756,8 @@ mp.register_event("file-loaded", function()
     if Options.companion_subtitle_attach_on_load ~= false then
         ensure_companion_subtitle_tracks(mp.get_property("path"))
     end
-    if Options.companion_video_attach_on_load ~= false then
-        ensure_companion_video_track(mp.get_property("path"))
+    if Options.black_video_attach_on_load ~= false then
+        ensure_bundled_black_video_track(mp.get_property("path"))
     end
 end)
 
