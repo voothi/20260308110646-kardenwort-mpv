@@ -1483,7 +1483,11 @@ def process_file(file_path: Path, settings: dict, session_zid: str) -> bool:
     is_srt = (ext.lower() == 'srt')
     merge_lines_enabled = is_srt and settings.get('subtitle_translator_merge_lines', 'false').lower() == 'true'
     merge_split_mode = get_merge_split_mode(settings)
-    clean_rules = parse_clean_patterns(settings.get('subtitle_translator_clean_patterns', ''))
+    # NOTE: process_file() takes settings as a parameter and does not call
+    # load_config(). Therefore defaults that differ from an empty string
+    # MUST be inlined here so callers get the documented behavior even when
+    # the setting key is missing from the supplied settings dict.
+    clean_rules = parse_clean_patterns(settings.get('subtitle_translator_clean_patterns', '**'))
     max_gap_ms = int(settings.get('subtitle_translator_merge_max_gap_ms', '1000'))
 
     def clean_text(text: str) -> str:
