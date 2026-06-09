@@ -1,6 +1,8 @@
 """
 Feature ZID: 20260606213539
 Feature: Companion Video/Picture Track Auto-loading and Selection
+
+Validated against openspec spec: audio-only-media
 """
 
 import shutil

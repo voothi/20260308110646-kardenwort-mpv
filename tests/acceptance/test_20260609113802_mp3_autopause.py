@@ -8,6 +8,9 @@ This test is intentionally self-contained: it does NOT import from
 test_20260607194017_audio_only_subtitles.py so the two tests can be moved
 or refactored independently.
 
+Validated against openspec spec: audio-only-media
+(coarse-tick fallback scenario).
+
 Timeline used by the embedded SRT:
     Sub 1: 1.000 - 2.000
     Sub 2: 3.000 - 4.000
@@ -266,16 +269,20 @@ Line Three
             f"near a coarse tick boundary (pos={pos:.3f}, state={state})"
         )
 
-        # Accept pause at Sub 1 (2.0 s), Sub 2 (4.0 s) or Sub 3 (20.0 s)
-        # – the coarse 1 fps clock may land on any of them.
+        # Accept pause at Sub 1 (2.0 s) or Sub 2 (4.0 s) – the coarse 1 fps
+        # clock may skip Sub 1 and land on Sub 2 because the gap between
+        # them (2.0 – 3.0 s) lets the 1 fps tick jump from ~1.95 s straight
+        # into Sub 2's range.  Sub 3 (20.0 s) is intentionally excluded:
+        # accepting it would also pass if the entire autopause mechanism
+        # were broken and the player only paused at the very last subtitle.
         lpe = state.get("last_paused_sub_end")
         assert lpe is not None, (
             "last_paused_sub_end was not set - autopause did not record a "
             f"subtitle boundary (state={state})"
         )
-        assert lpe in (2.0, 4.0, 20.0), (
-            f"Expected last_paused_sub_end to be a known subtitle end "
-            "(2.0, 4.0 or 20.0 s), got {lpe:.3f} s (pos={pos:.3f})"
+        assert lpe in (2.0, 4.0), (
+            f"Expected last_paused_sub_end to be Sub 1 end (2.0 s) or Sub 2 "
+            f"end (4.0 s), got {lpe:.3f} s (pos={pos:.3f})"
         )
         assert abs(pos - lpe) < 0.50, (
             f"Player pos={pos:.3f} s deviates too far from "

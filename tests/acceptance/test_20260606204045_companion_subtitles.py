@@ -1,6 +1,8 @@
 """
 Feature ZID: 20260606204045
 Feature: Companion Subtitle Auto-loading and Selection
+
+Validated against openspec spec: companion-subtitles
 """
 
 import shutil

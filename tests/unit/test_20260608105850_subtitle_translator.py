@@ -1,6 +1,8 @@
 """
 Feature ZID: 20260608105850
 Feature: Subtitle Translator Unit Tests
+
+Validated against openspec spec: subtitle-translator
 """
 
 import json

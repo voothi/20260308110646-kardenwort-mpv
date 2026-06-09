@@ -1,6 +1,8 @@
 """
 Feature ZID: 20260607194017
 Feature: Support Audio-only (MP3) Subtitles and Interface Elements via Bundled Black Video Track
+
+Validated against openspec spec: audio-only-media
 """
 
 import shutil
