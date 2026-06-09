@@ -1315,9 +1315,12 @@ def test_process_file_cleans_tags_and_breaks(tmp_path, monkeypatch):
         "subtitle_translator_duplicate_mode": "overwrite",
         "subtitle_translator_rename_source_with_zid": "false",
         "subtitle_translator_rename_related_media_with_zid": "false",
+        # Default cleanup rule: strip markdown bold markers (**...**)
+        # that LLM translators sometimes add to translated output.
+        "subtitle_translator_clean_patterns": "**",
         "google_api_url": "dummy",
     }
-    
+
     # Mock google_translate_v1 to return translation (which might keep or introduce tags/formatting)
     # E.g. translating "Hello World" to "Привет Мир" (without tags)
     # and "This is a multiline subtitle block." to "**Привет** {\\an8}мультистрочный\nблок."

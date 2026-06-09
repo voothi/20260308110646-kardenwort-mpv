@@ -286,13 +286,28 @@ class TestHistoricalRegressions:
     def test_dev_analytics_automation(self):
         """Verify existence of analyze_repo.py (dev-analytics-automation)."""
         import os
-        path = "docs/scripts/analyze_repo.py"
+        # [20260609161728] analyze_repo.py was moved from reports/ to
+        # scripts/_tools/analyze-repo/ in commit 20260608095642 (per the
+        # tools consolidation done at 20260608095543). Probe both locations
+        # in priority order so the test tracks the post-relocation layout
+        # while still tolerating a future rollback.
+        candidates = [
+            "scripts/_tools/analyze-repo/analyze_repo.py",
+            "docs/scripts/analyze_repo.py",
+        ]
+        path = candidates[0]
+        if not os.path.exists(path):
+            path = candidates[1]
         if not os.path.exists(path) and os.path.exists("openspec/config.yaml"):
             with open("openspec/config.yaml", "r", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("projectRoot:"):
                         project_root = line.split(":", 1)[1].strip()
-                        path = os.path.join(project_root, "reports", "analyze_repo.py")
+                        for rel in candidates:
+                            candidate = os.path.join(project_root, rel)
+                            if os.path.exists(candidate):
+                                path = candidate
+                                break
                         break
         assert os.path.exists(path)
 
