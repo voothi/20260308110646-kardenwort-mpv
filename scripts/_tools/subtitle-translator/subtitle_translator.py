@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # ==============================================================================
-# Kardenwort Subtitle Translator
+# Kardenwort Sub Translator
 # Translates subtitles (.srt or .txt) to declarative target languages.
 #
 # Usage (CLI):
@@ -1695,7 +1695,7 @@ def main():
     # Load settings
     settings = load_config()
     session_zid = get_current_zid()
-    print(f"\n{_bold('Kardenwort Subtitle Translator Engine')} {_dim(f'(ZID: {session_zid})')}\n", flush=True)
+    print(f"\n{_bold('Kardenwort Sub Translator Engine')} {_dim(f'(ZID: {session_zid})')}\n", flush=True)
 
     # Print settings summary
     provider = settings.get("subtitle_translator_provider", "google").lower()

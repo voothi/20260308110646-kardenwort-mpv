@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # ==============================================================================
-# Kardenwort Subtitle Translator — Windows SendTo Shortcut Installer
+# Kardenwort Sub Translator — Windows SendTo Shortcut Installer
 #
-# Creates a "Kardenwort Subtitle Translator" shortcut in the Windows "Send to" folder.
+# Creates a "Kardenwort Sub Translator" shortcut in the Windows "Send to" folder.
 # After installation:
 #   1. Select a subtitle file (.srt or .txt) in Windows Explorer.
-#   2. Right-click → Send to → Kardenwort Subtitle Translator.
+#   2. Right-click → Send to → Kardenwort Sub Translator.
 #   3. The script translates the file to configured languages.
 # ==============================================================================
 
@@ -16,7 +16,7 @@ import sys
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-SHORTCUT_DISPLAY_NAME = "Kardenwort Subtitle Translator"
+SHORTCUT_DISPLAY_NAME = "Kardenwort Sub Translator"
 LEGACY_SHORTCUT_NAMES = ()
 SENDTO_DIRECTORY = r"%APPDATA%\Microsoft\Windows\SendTo"
 # ==============================================================================
