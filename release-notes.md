@@ -1,3 +1,25 @@
+# Release Notes - v1.84.80 (Companion Video Subdirectory Discovery & Tool Rename)
+
+**Date**: 2026-06-10
+**Version**: v1.84.80
+**Implementation ZIDs**: 20260610133918, 20260610131349
+
+## Highlights
+
+### 📂 **Companion Video Subdirectory Discovery**
+- **Depth-1 Subdirectory Scanning**: Extended `get_companion_video_files()` in `main.lua` to also scan immediate subdirectories (depth 1) for companion video files, in addition to the current directory.
+- **Depth-Priority Sorting**: Companion videos are now sorted by depth (current directory first, subdirectories second), then by ORIGINAL priority, then alphabetically.
+- **Audio-Only Media Support**: When playing an audio-only file (e.g. MP3), companion videos located in subdirectories are now correctly discovered and loaded as video tracks.
+- **Acceptance Test**: Added `test_companion_video_found_in_subdirectory` validating MP3 → subdirectory MP4 companion discovery.
+
+### 🏷️ **Subtitle Translator Tool Rename**
+- **Renamed**: "Kardenwort Subtitle Translator" → "Kardenwort Sub Translator" across 6 occurrences in `install.py` and `subtitle_translator.py` (shortcut display name, CLI banner, docstrings).
+
+### 🧪 **Milestone: 1120 Passed Tests**
+- **1120 passing tests** (up from 1119 at v1.84.68).
+
+---
+
 # Release Notes - v1.84.68 (Subtitle Translator Tool, Test Harness Overhaul & Quality Hardening)
 
 **Date**: 2026-06-10
