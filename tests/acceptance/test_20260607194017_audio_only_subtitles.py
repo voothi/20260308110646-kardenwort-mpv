@@ -410,3 +410,97 @@ Secondary Line 3
     finally:
         session.stop()
         shutil.rmtree(work, ignore_errors=True)
+
+
+def test_mp3_phrase_active_idx_freezes_after_autopause():
+    """Regression test: after autopause fires in PHRASE mode on MP3,
+    the ACTIVE_IDX sentinel must stay on the subtitle we stopped on,
+    NOT drift to the next subtitle because of coarse 1 fps ticks.
+    The rendered subtitle must therefore remain the current one.
+    """
+    work = _new_scratch_dir("audio-only-phrase-freeze")
+    media_mp3 = work / "sample.mp3"
+    media_srt = work / "sample.en.srt"
+
+    subtitle_content = """1
+00:00:01,000 --> 00:00:02,000
+Line One
+
+2
+00:00:05,000 --> 00:00:06,000
+Line Two
+
+3
+00:00:09,000 --> 00:00:10,000
+Line Three
+"""
+    media_srt.write_text(subtitle_content, encoding="utf-8")
+    _create_silent_mp3(media_mp3, duration=20)
+
+    session = MpvSession(
+        video=str(media_mp3),
+        subtitle=str(media_srt),
+        extra_args=[
+            "--pause",
+            "--script-opts=kardenwort-companion_subtitle_attach_on_load=no",
+        ],
+    )
+    _start_or_skip(session)
+    try:
+        ipc = session.ipc
+
+        def subs_ready():
+            state = query_kardenwort_state(ipc)
+            return (
+                state.get("pri_sub_count") == 3
+                and state.get("playback_state") in ("SINGLE_SRT", "DUAL_SRT")
+            )
+
+        assert _wait_until(subs_ready, timeout=6.0), "Subtitles not loaded"
+
+        ipc.command(["script-message-to", "kardenwort", "autopause-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "immersion-mode-set", "PHRASE"])
+        ipc.command(
+            ["script-message-to", "kardenwort", "test-set-option",
+             "audio_padding_start", "0"]
+        )
+        ipc.command(
+            ["script-message-to", "kardenwort", "test-set-option",
+             "audio_padding_end", "0"]
+        )
+        ipc.command(
+            ["script-message-to", "kardenwort", "test-set-option",
+             "autopause_overshoot", "0.05"]
+        )
+        time.sleep(0.15)
+
+        ipc.command(["seek", 5.0, "absolute+exact"])
+        time.sleep(0.25)
+        ipc.command(["set_property", "pause", False])
+
+        paused = _wait_until(lambda: ipc.get_property("pause"), timeout=5.0)
+        pos = ipc.get_property("time-pos")
+        state = query_kardenwort_state(ipc)
+
+        print(f"DEBUG pos={pos:.3f} paused={paused}")
+        print(f"DEBUG state={state}")
+
+        assert paused, f"Autopause did NOT fire (pos={pos:.3f})"
+
+        active_idx = state.get("active_sub_index")
+        assert active_idx == 2, (
+            f"ACTIVE_IDX drifted to {active_idx} after autopause; expected 2 "
+            f"(pos={pos:.3f})"
+        )
+
+        render = query_kardenwort_render(ipc, "drum", timeout=1.0)
+        assert "Line Two" in render, (
+            f"Rendered subtitle does NOT contain 'Line Two': {render}"
+        )
+        assert "Line Three" not in render, (
+            f"Rendered subtitle incorrectly contains 'Line Three': {render}"
+        )
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)
