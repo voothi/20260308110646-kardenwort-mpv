@@ -6556,23 +6556,6 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     end
 
     local pri_active_idx = (#Tracks.pri.subs > 0) and get_center_index(Tracks.pri.subs, time_pos) or -1
-    local sec_active_idx = (#Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos) or -1
-
-    -- [v1.58.60] PAUSE GUARD: When the player is paused BY AUTOPAUSE, do NOT let the
-    -- Sticky Sentinel advance to the next subtitle.  Freezing keeps the subtitle display
-    -- and jump-back logic anchored to the subtitle we actually stopped on.  This mirrors
-    -- the autopause + nav-delta gating used in master_tick so that manual pauses and
-    -- initial startup (FSM.SEC_ACTIVE_IDX == -1) are NOT frozen.
-    local is_autopause_paused_drum = mp.get_property_bool("pause", false)
-        and FSM.last_paused_sub_end
-        and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
-        and math.abs(time_pos - (FSM.last_time_pos or time_pos)) < 0.3
-    if is_autopause_paused_drum and FSM.ACTIVE_IDX ~= -1 then
-        pri_active_idx = FSM.ACTIVE_IDX
-    end
-    if is_autopause_paused_drum and FSM.SEC_ACTIVE_IDX ~= -1 then
-        sec_active_idx = FSM.SEC_ACTIVE_IDX
-    end
     local pri_view_center = FSM.DW_VIEW_CENTER
     if FSM.DW_FOLLOW_PLAYER then
         pri_view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or pri_active_idx
@@ -6589,7 +6572,7 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
-        local active_idx = sec_active_idx
+        local active_idx = get_center_index(Tracks.sec.subs, time_pos)
         -- [v1.58.52] Secondary track mirrors primary viewport offset in all follow modes.
         local view_center = active_idx
         if pri_active_idx ~= -1 and pri_view_center ~= -1 then
@@ -6650,10 +6633,11 @@ local function tick_autopause(time_pos)
 
     if diff < -Options.autopause_overshoot then
         if FSM._prev_time_pos and FSM._prev_time_pos < sub_end then
-            -- Coarse tick step: time_pos jumped past the autopause window in one
-            -- tick (e.g. 1 fps black.mp4 video track on audio-only media).  The
-            -- previous position was still before the boundary, so we just crossed
-            -- it.  Allow autopause to fire instead of returning.
+            -- Coarse tick step: time_pos jumped past the autopause window in a
+            -- single tick (any low-fps source, e.g. 1 fps black video on
+            -- audio-only media, or coarse mpv display-sync).  The previous
+            -- position was still before the boundary, so we just crossed it.
+            -- Allow autopause to fire instead of returning.
         else
             return
         end
@@ -6835,21 +6819,6 @@ local function master_tick()
     local active_idx = -1
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
-
-        -- [v1.58.60] PAUSE GUARD: When paused BY AUTOPAUSE, freeze the sentinel so it
-        -- does not drift to the next subtitle due to coarse 1 fps ticks or minor
-        -- time-pos jitter on audio-only media.  We detect an autopause-induced pause
-        -- by checking that last_paused_sub_end is set and time_pos is still near it.
-        local is_autopause_paused = mp.get_property_bool("pause", false)
-            and FSM.last_paused_sub_end
-            and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
-        if is_autopause_paused and FSM.ACTIVE_IDX ~= -1 and active_idx ~= FSM.ACTIVE_IDX then
-            local last_nav_delta = math.abs(time_pos - (FSM.last_time_pos or time_pos))
-            if last_nav_delta < 0.3 then
-                active_idx = FSM.ACTIVE_IDX
-            end
-        end
-
         if active_idx ~= -1 then
             -- [v1.58.51] Phrases Mode "Jerk Back" Logic
             -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
@@ -6920,18 +6889,6 @@ local function master_tick()
     -- During the cooldown window, the secondary sentinel preserves the seek target.
     if #Tracks.sec.subs > 0 and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
         local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
-
-        -- [v1.58.60] PAUSE GUARD: freeze secondary sentinel when paused by autopause.
-        local is_autopause_paused_sec = mp.get_property_bool("pause", false)
-            and FSM.last_paused_sub_end
-            and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
-        if is_autopause_paused_sec and FSM.SEC_ACTIVE_IDX ~= -1 and sec_idx ~= FSM.SEC_ACTIVE_IDX then
-            local last_nav_delta = math.abs(time_pos - (FSM.last_time_pos or time_pos))
-            if last_nav_delta < 0.3 then
-                sec_idx = FSM.SEC_ACTIVE_IDX
-            end
-        end
-
         if sec_idx ~= -1 then
             FSM.SEC_ACTIVE_IDX = sec_idx
         end
