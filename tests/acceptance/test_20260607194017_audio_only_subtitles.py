@@ -504,3 +504,74 @@ Line Three
     finally:
         session.stop()
         shutil.rmtree(work, ignore_errors=True)
+
+
+def test_mp3_phrase_drift_adjacent_subs():
+    """Regression test: after autopause fires in PHRASE mode on MP3,
+    the ACTIVE_IDX sentinel must NOT drift to the next subtitle even if it
+    is immediately adjacent (zero gap).
+    """
+    work = _new_scratch_dir("audio-only-phrase-drift-adjacent")
+    media_mp3 = work / "sample.mp3"
+    media_srt = work / "sample.en.srt"
+
+    subtitle_content = """1
+00:00:01,000 --> 00:00:02,000
+Line One
+
+2
+00:00:02,000 --> 00:00:03,000
+Line Two
+"""
+    media_srt.write_text(subtitle_content, encoding="utf-8")
+    _create_silent_mp3(media_mp3, duration=10)
+
+    session = MpvSession(
+        video=str(media_mp3),
+        subtitle=str(media_srt),
+        extra_args=[
+            "--pause",
+            "--script-opts=kardenwort-companion_subtitle_attach_on_load=no",
+        ],
+    )
+    _start_or_skip(session)
+    try:
+        ipc = session.ipc
+
+        def subs_ready():
+            state = query_kardenwort_state(ipc)
+            return state.get("pri_sub_count") == 2
+
+        assert _wait_until(subs_ready, timeout=6.0), "Subtitles not loaded"
+
+        ipc.command(["script-message-to", "kardenwort", "autopause-set", "ON"])
+        ipc.command(["script-message-to", "kardenwort", "immersion-mode-set", "PHRASE"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "audio_padding_start", "0"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "audio_padding_end", "0"])
+        ipc.command(["script-message-to", "kardenwort", "test-set-option", "autopause_overshoot", "0.1"])
+        time.sleep(0.15)
+
+        ipc.command(["seek", 1.0, "absolute+exact"])
+        time.sleep(0.25)
+        ipc.command(["set_property", "pause", False])
+
+        paused = _wait_until(lambda: ipc.get_property("pause"), timeout=5.0)
+        pos = ipc.get_property("time-pos")
+        state = query_kardenwort_state(ipc)
+
+        print(f"DEBUG pos={pos:.3f} paused={paused}")
+        print(f"DEBUG state={state}")
+
+        assert paused, f"Autopause did NOT fire (pos={pos:.3f})"
+
+        active_idx = state.get("active_sub_index")
+        # With adjacent subs and 0.05 nav_tolerance, any pos >= 1.95 would cause a drift
+        # to sub 2 without the PAUSE GUARD. Autopause happens at 2.0 (or slightly after).
+        assert active_idx == 1, (
+            f"ACTIVE_IDX drifted to {active_idx} after autopause; expected 1 "
+            f"(pos={pos:.3f})"
+        )
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)
