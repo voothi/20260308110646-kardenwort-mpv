@@ -6558,13 +6558,19 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     local pri_active_idx = (#Tracks.pri.subs > 0) and get_center_index(Tracks.pri.subs, time_pos) or -1
     local sec_active_idx = (#Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos) or -1
 
-    -- [v1.58.60] PAUSE GUARD: When the player is paused (autopause fired), do NOT let the
+    -- [v1.58.60] PAUSE GUARD: When the player is paused BY AUTOPAUSE, do NOT let the
     -- Sticky Sentinel advance to the next subtitle.  Freezing keeps the subtitle display
-    -- and jump-back logic anchored to the subtitle we actually stopped on.
-    if mp.get_property_bool("pause", false) and FSM.ACTIVE_IDX ~= -1 then
+    -- and jump-back logic anchored to the subtitle we actually stopped on.  This mirrors
+    -- the autopause + nav-delta gating used in master_tick so that manual pauses and
+    -- initial startup (FSM.SEC_ACTIVE_IDX == -1) are NOT frozen.
+    local is_autopause_paused_drum = mp.get_property_bool("pause", false)
+        and FSM.last_paused_sub_end
+        and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
+        and math.abs(time_pos - (FSM.last_time_pos or time_pos)) < 0.3
+    if is_autopause_paused_drum and FSM.ACTIVE_IDX ~= -1 then
         pri_active_idx = FSM.ACTIVE_IDX
     end
-    if mp.get_property_bool("pause", false) and FSM.SEC_ACTIVE_IDX ~= -1 then
+    if is_autopause_paused_drum and FSM.SEC_ACTIVE_IDX ~= -1 then
         sec_active_idx = FSM.SEC_ACTIVE_IDX
     end
     local pri_view_center = FSM.DW_VIEW_CENTER
