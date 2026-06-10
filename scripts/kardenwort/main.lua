@@ -10665,46 +10665,34 @@ function try_next_video_candidate()
 end
 
 function get_companion_video_files(dir, base_prefix)
+    local files = utils.readdir(dir, "files") or {}
     local video_files = {}
     local video_exts = { mp4 = true, mkv = true, avi = true, webm = true, flv = true, mov = true, wmv = true, mpg = true, mpeg = true }
 
-    local function scan_video_dir(scan_dir, depth)
-        local dir_files = utils.readdir(scan_dir, "files") or {}
-        for _, f in ipairs(dir_files) do
-            local f_ext = f:match("%.([^%.]+)$")
-            if f_ext and video_exts[f_ext:lower()] then
-                local f_no_ext = f:sub(1, #f - #f_ext - 1)
-                if f_no_ext == base_prefix then
+    for _, f in ipairs(files) do
+        local f_ext = f:match("%.([^%.]+)$")
+        if f_ext and video_exts[f_ext:lower()] then
+            local f_no_ext = f:sub(1, #f - #f_ext - 1)
+            if f_no_ext == base_prefix then
+                table.insert(video_files, {
+                    path = dir .. f,
+                    postfix = "ORIGINAL",
+                    raw_postfix = ""
+                })
+            else
+                local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
+                if p_base == base_prefix and p_postfix then
                     table.insert(video_files, {
-                        path = scan_dir .. f,
-                        postfix = "ORIGINAL",
-                        raw_postfix = "",
-                        _depth = depth,
+                        path = dir .. f,
+                        postfix = format_language_postfix_label(p_postfix),
+                        raw_postfix = p_postfix
                     })
-                else
-                    local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
-                    if p_base == base_prefix and p_postfix then
-                        table.insert(video_files, {
-                            path = scan_dir .. f,
-                            postfix = format_language_postfix_label(p_postfix),
-                            raw_postfix = p_postfix,
-                            _depth = depth,
-                        })
-                    end
                 end
             end
         end
     end
 
-    scan_video_dir(dir, 0)
-
-    local subdirs = utils.readdir(dir, "dirs") or {}
-    for _, sub in ipairs(subdirs) do
-        scan_video_dir(dir .. sub .. "/", 1)
-    end
-
     table.sort(video_files, function(a, b)
-        if (a._depth or 0) ~= (b._depth or 0) then return (a._depth or 0) < (b._depth or 0) end
         if a.postfix == "ORIGINAL" then return true end
         if b.postfix == "ORIGINAL" then return false end
         return a.postfix < b.postfix
@@ -10725,28 +10713,37 @@ function ensure_companion_video_track(path)
     end
 
     local tracks = mp.get_property_native("track-list") or {}
-    local has_video = false
-    local selected_video = false
-    local first_video_id = nil
+    local has_real_video = false
+    local selected_real_video = false
+    local first_real_video_id = nil
+    local has_album_art = false
     for _, t in ipairs(tracks) do
         if t.type == "video" then
-            has_video = true
-            if not first_video_id then
-                first_video_id = t.id
-            end
-            if t.selected then
-                selected_video = true
+            if t.albumart or t.image then
+                has_album_art = true
+            else
+                has_real_video = true
+                if not first_real_video_id then
+                    first_real_video_id = t.id
+                end
+                if t.selected then
+                    selected_real_video = true
+                end
             end
         end
     end
-    if selected_video then
-        Diagnostic.debug("ensure_companion_video_track: video track already selected, returning")
+    if has_album_art and not has_real_video then
+        Diagnostic.debug("ensure_companion_video_track: only album art video present, deselecting vid")
+        mp.set_property("vid", "no")
+    end
+    if selected_real_video then
+        Diagnostic.debug("ensure_companion_video_track: real video track already selected, returning")
         return
     end
-    if has_video then
-        if first_video_id then
-            Diagnostic.debug("ensure_companion_video_track: video track exists but not selected. Selecting id=" .. tostring(first_video_id))
-            mp.set_property_number("vid", first_video_id)
+    if has_real_video then
+        if first_real_video_id then
+            Diagnostic.debug("ensure_companion_video_track: real video track exists but not selected. Selecting id=" .. tostring(first_real_video_id))
+            mp.set_property_number("vid", first_real_video_id)
         end
         return
     end
