@@ -53,6 +53,19 @@ def _start_or_skip(session):
         pytest.skip(f"mpv IPC unavailable in this environment: {exc}")
 
 
+def _create_silent_mp3(dst_audio, duration=20):
+    cmd = [
+        "ffmpeg", "-y",
+        "-f", "lavfi",
+        "-i", "anullsrc=channel_layout=mono:sample_rate=44100",
+        "-t", str(duration),
+        "-c:a", "libmp3lame",
+        "-b:a", "128k",
+        str(dst_audio),
+    ]
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+
 def _create_audio_only(src_video, dst_audio):
     cmd = ["ffmpeg", "-y", "-i", str(src_video), "-vn", "-acodec", "copy", str(dst_audio)]
     subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -124,6 +137,46 @@ def test_companion_video_loaded_from_other_companion():
                 found_de = True
                 break
         assert found_de, "Companion video track from DE file was not loaded"
+
+    finally:
+        session.stop()
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def test_companion_video_found_in_subdirectory():
+    work = _new_scratch_dir("companion-video-subdir")
+    subdir = work / "20260609090214"
+    subdir.mkdir(parents=True, exist_ok=False)
+    media_audio = work / "sample.en.mp3"
+    media_video = subdir / "sample.en.mp4"
+
+    _create_silent_mp3(media_audio, duration=10)
+    shutil.copy2(_FIXTURE_VIDEO, media_video)
+
+    session = MpvSession(video=str(media_audio), extra_args=["--pause"])
+    _start_or_skip(session)
+    try:
+
+        def video_selected():
+            vid = session.ipc.get_property("vid")
+            return vid and vid != "no"
+
+        assert _wait_until(video_selected, timeout=6.0), (
+            "Video track from subdirectory companion was not selected"
+        )
+
+        tracks = session.ipc.get_property("track-list") or []
+        vids = _get_video_tracks(tracks)
+        found_sub = False
+        for v in vids:
+            p = v.get("external-filename") or v.get("external_filename") or ""
+            if "sample.en.mp4" in Path(p).name.lower():
+                found_sub = True
+                break
+        assert found_sub, (
+            "Companion video from subdirectory was not loaded. "
+            f"Found tracks: {[v.get('external-filename','') for v in vids]}"
+        )
 
     finally:
         session.stop()

@@ -10665,34 +10665,46 @@ function try_next_video_candidate()
 end
 
 function get_companion_video_files(dir, base_prefix)
-    local files = utils.readdir(dir, "files") or {}
     local video_files = {}
     local video_exts = { mp4 = true, mkv = true, avi = true, webm = true, flv = true, mov = true, wmv = true, mpg = true, mpeg = true }
 
-    for _, f in ipairs(files) do
-        local f_ext = f:match("%.([^%.]+)$")
-        if f_ext and video_exts[f_ext:lower()] then
-            local f_no_ext = f:sub(1, #f - #f_ext - 1)
-            if f_no_ext == base_prefix then
-                table.insert(video_files, {
-                    path = dir .. f,
-                    postfix = "ORIGINAL",
-                    raw_postfix = ""
-                })
-            else
-                local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
-                if p_base == base_prefix and p_postfix then
+    local function scan_video_dir(scan_dir, depth)
+        local dir_files = utils.readdir(scan_dir, "files") or {}
+        for _, f in ipairs(dir_files) do
+            local f_ext = f:match("%.([^%.]+)$")
+            if f_ext and video_exts[f_ext:lower()] then
+                local f_no_ext = f:sub(1, #f - #f_ext - 1)
+                if f_no_ext == base_prefix then
                     table.insert(video_files, {
-                        path = dir .. f,
-                        postfix = format_language_postfix_label(p_postfix),
-                        raw_postfix = p_postfix
+                        path = scan_dir .. f,
+                        postfix = "ORIGINAL",
+                        raw_postfix = "",
+                        _depth = depth,
                     })
+                else
+                    local p_base, p_postfix = split_base_and_language_postfix(f_no_ext)
+                    if p_base == base_prefix and p_postfix then
+                        table.insert(video_files, {
+                            path = scan_dir .. f,
+                            postfix = format_language_postfix_label(p_postfix),
+                            raw_postfix = p_postfix,
+                            _depth = depth,
+                        })
+                    end
                 end
             end
         end
     end
 
+    scan_video_dir(dir, 0)
+
+    local subdirs = utils.readdir(dir, "dirs") or {}
+    for _, sub in ipairs(subdirs) do
+        scan_video_dir(dir .. sub .. "/", 1)
+    end
+
     table.sort(video_files, function(a, b)
+        if (a._depth or 0) ~= (b._depth or 0) then return (a._depth or 0) < (b._depth or 0) end
         if a.postfix == "ORIGINAL" then return true end
         if b.postfix == "ORIGINAL" then return false end
         return a.postfix < b.postfix
