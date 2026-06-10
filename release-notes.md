@@ -1,3 +1,44 @@
+# Release Notes - v1.84.68 (Subtitle Translator Tool, Test Harness Overhaul & Quality Hardening)
+
+**Date**: 2026-06-10
+**Version**: v1.84.68
+**Implementation ZIDs**: 20260610011504, 20260610003427, 20260609224348, 20260609171320, 20260609165019, 20260609163523, 20260609151528, 20260609132325, 20260609105158, 20260609095842, 20260609095134, 20260609092026, 20260609091327, 20260609090025, 20260609010633, 20260609004800, 20260608223437, 20260608221142, 20260608220706, 20260608220128, 20260608214501, 20260608214021, 20260608213457, 20260608212740, 20260608212216, 20260608210152, 20260608204848, 20260608203919, 20260608203522, 20260608202919, 20260608200820, 20260608200618, 20260608200017, 20260608195555, 20260608194929, 20260608194306, 20260608192655, 20260608191858, 20260608180507, 20260608172607, 20260608171602, 20260608171402, 20260608170129, 20260608164735, 20260608163452, 20260608163051, 20260608162628, 20260608162313, 20260608161904, 20260608161508, 20260608160731, 20260608155445, 20260608153714, 20260608151038, 20260608150711, 20260608150310, 20260608150202, 20260608145407, 20260608144924, 20260608144246, 20260608143528, 20260608134546, 20260608133518, 20260608133118, 20260608132040, 20260608131855, 20260608130212, 20260608115403, 20260608114000, 20260608112208, 20260608111512, 20260608110451, 20260608105942, 20260608105755, 20260608104636, 20260608103736, 20260608103408, 20260608102024, 20260608084221
+
+## Highlights
+
+### 🈳 **Subtitle Translator Tool**
+A new standalone Python toolchain under `scripts/_tools/subtitle-translator/` for offline subtitle translation with premium CLI UX and configurable providers.
+- **Translation Providers**:
+  - **DeepL** — production-ready V2 API with configurable `source_lang` / `target_lang`.
+  - **Ollama** — local LLM provider with structured JSON I/O, context-aware merge/split strategy, configurable chunk size, and premium progress bar.
+- **ZID Archiving Mode** (`subtitle_translator_duplicate_mode = archive`) — archives existing translated subtitles into a ZID folder before overwriting, preventing accidental data loss.
+- **Idempotent ZID Injection** — automatically appends ZID to translated filenames; optional `subtitle_translator_rename_source_with_zid` also renames the original subtitle, and `subtitle_translator_rename_related_media_with_zid` renames adjacent media files (mp4, mp3, etc.).
+- **Chunk Validation & Retry** — configurable line-count matching (with hole tolerance), word-count deviation check, automatic retry on validation failure, and `subtitle_translator_crash_on_error` for strict environments.
+- **Rescue Pass** — when JSON/merge mode fails on small models (e.g. `gemma3:1b`), automatically falls back to line-by-line translation.
+- **Unique Prompt Salt on Retries** — injects a configurable, template-driven salt phrase (e.g. `Be creative [1]`) into Ollama retry prompts to help models escape repetitive failure patterns.
+- **Validation Error Feedback** — on retry, the previous validation failure reason is appended to the prompt so the model sees what went wrong.
+- **Premium CLI Progress Bar** — real-time per-chunk progress with provider/model info, settings summary, and compact model-response logging.
+- **Config-Driven Defaults** — all behavior exposed via `config.ini` generated from `config.ini.template`; no code edits required.
+- **Unit Test Coverage** — comprehensive test suite in `tests/unit/test_20260608105850_subtitle_translator.py` covering core logic, chunk validation, retry flow, ZID injection, and archiving.
+
+### 🧪 **Test Harness Overhaul**
+- **black.mp4 Migration** — replaced virtual `lavfi` color-canvas with the bundled `scripts/_tools/sub-viewer/black.mp4` (10-hour looped black video) across the entire test suite and production code. Eliminates platform-dependent `lavfi` availability issues and provides a stable, seekable timeline.
+- **Companion Video Attach on Load** — restored the original logic for attaching companion video tracks on media load (reverting an over-aggressive simplification).
+- **Acceptance Test Harness** — restored live-playback assertions in `tests/acceptance/test_20260509134903_timeseek_transit.py` after regression from the `lavfi` removal.
+- **1119 Passing Tests** — 245 unit + 873 acceptance tests (was 1057 at v1.84.60).
+
+### 🛡️ **Autopause Regression Fix**
+- **State-Leak in ON + PHRASE Mode** — fixed a regression where autopause could fail to stop after the subtitle phrase boundary under certain seek sequences.
+- **Universal Seek Inhibit Restoration** — reinstated the `TIMESEEK_INHIBIT_UNTIL` clearing on manual seeks with a settling guard, preventing stale inhibit values from suppressing future autopause triggers.
+
+### 🧹 **Code Quality & Legacy Cleanup**
+- Removed backward-compatible aliases and duplicate legacy code from the `lavfi` → `black.mp4` migration.
+- Restored `recreate_osd_overlays()` lifecycle guard after confirming it was still needed by the test harness.
+- Hardcoded merge/split separator and JSON format defaults refactored into config-driven parameters.
+- Added three new OpenSpec specifications under `openspec/specs/` documenting subtitle translator requirements.
+
+---
+
 # Release Notes - v1.84.60 (Audio-only MP3 Subtitle Fallbacks, Repository Effort Analytics & Path Relocations)
 
 **Date**: 2026-06-08

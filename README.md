@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.84.60-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.60)
+[![Version](https://img.shields.io/badge/version-v1.84.68-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.68)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content. It functions as a professional tool for simultaneous translators who need to have two texts synchronized with the media track, with the ability to search by words and make notes.
@@ -45,6 +45,7 @@ The suite allows you to prepare for work on the basis of living material. Conven
   - [Smart Font Scaling](#smart-font-scaling)
   - [Standalone Subtitle Viewer (SendTo Menu)](#standalone-subtitle-viewer-sendto-menu)
   - [Sub-TTS Pipeline Tool](#sub-tts-pipeline-tool)
+  - [Subtitle Translator Tool](#subtitle-translator-tool)
   - [YouTube Downloader Integration](#youtube-downloader-integration)
 - [Example Data Structures](#example-data-structures)
 - [Immersion-Centric Keybindings](#immersion-centric-keybindings)
@@ -195,7 +196,7 @@ This project is specifically designed for learners who work with **Dual Subtitle
 
 ### Workflow Integration
 While this project focuses on the **consumption** of material, it is designed to be the final step in a broader acquisition workflow:
-- **Preparation**: For downloading and translating your material, we recommend companion tools like [voothi/subtitles](https://github.com/voothi/20251228104300-subtitles/).
+- **Preparation**: For downloading and translating your material, use the bundled [YouTube Downloader](#youtube-downloader-integration) and [Subtitle Translator](#subtitle-translator-tool) tools, or companion repositories like [voothi/subtitles](https://github.com/voothi/20251228104300-subtitles/).
 - **Consumption**: Use this suite to engage with the prepared Dual-Subtitle content for extensive acquisition.
 
 [Return to Top](#table-of-contents)
@@ -261,6 +262,7 @@ This suite solves problems that standard video players and generic scripts ignor
 56. **Companion Audio Auto-Attach**: Automatically discovers and attaches companion audio files on load for faster multi-track study workflows, with script-opts toggles for strict control.
 57. **Sub-TTS Production Pipeline**: Adds a dedicated subtitle-to-speech generation toolchain under `scripts/_tools/sub-tts` with configurable providers and template-driven runtime settings.
 58. **YouTube Downloader Integration**: Premium Windows "Send to" toolchain under `scripts/_tools/youtube-downloader` to fetch videos, chapters, multi-language subtitles (with post-processing cleanup and sync), and dubbed companion audio tracks.
+59. **Subtitle Translator Tool**: Standalone Python toolchain under `scripts/_tools/subtitle-translator` for offline subtitle translation via DeepL or local Ollama LLMs, featuring chunk validation, ZID archiving, idempotent filename injection, premium CLI progress bar, and rescue fallback for small models.
 
 [Return to Top](#table-of-contents)
 
@@ -461,6 +463,24 @@ A dedicated helper toolchain for generating speech audio from subtitles in repro
 *   **Conditional Skipping & Cleanup**: Automatically skips primary TTS synthesis if output files already exist (`skip_primary_output`), falls back to generating them if absent, and cleans up intermediate `.shift_plan.json` files on job completion.
 *   **Collision Archiving**: Safely copies preexisting subtitle tracks to a ZID archive directory (`<ZID>/video.ru.srt`) before generating fresh synchronized files in the root folder.
 *   **Integration Path**: Complements in-player TTS triggers by supporting offline pre-generation workflows when needed.
+
+[Return to Top](#table-of-contents)
+
+### <span id="subtitle-translator-tool"></span>Subtitle Translator Tool
+A standalone Python toolchain for offline subtitle translation with premium CLI UX, configurable providers, and robust validation.
+*   **Location**: `scripts/_tools/subtitle-translator/` (`subtitle_translator.py`, `install.py`, `config.ini.template`).
+*   **Translation Providers**:
+    *   **DeepL** — production-ready V2 API; configure `source_lang` / `target_lang` in `config.ini`.
+    *   **Ollama** — local LLM provider with structured JSON I/O, context-aware merge/split strategy, configurable `chunk_size`, and premium per-chunk CLI progress bar.
+*   **Chunk Validation & Retry**: configurable line-count matching (with hole tolerance), word-count deviation check, automatic retry on validation failure, and `subtitle_translator_crash_on_error` for strict environments.
+*   **Rescue Pass**: when JSON/merge mode fails on small models (e.g. `gemma3:1b`), automatically falls back to line-by-line translation with `ollama_json_format = false`.
+*   **ZID Archiving Mode**: `subtitle_translator_duplicate_mode = archive` copies existing translated subtitles into a `<ZID>/` folder before overwriting, preventing accidental data loss.
+*   **Idempotent ZID Injection**: automatically appends the ZID to translated filenames; optional `subtitle_translator_rename_source_with_zid` also renames the original subtitle, and `subtitle_translator_rename_related_media_with_zid` renames adjacent media files (mp4, mp3, etc.) so the whole media bundle stays synchronized.
+*   **Unique Prompt Salt on Retries**: injects a configurable, template-driven salt phrase (e.g. `Be creative [1]`) into Ollama retry prompts to help models escape repetitive failure patterns.
+*   **Validation Error Feedback**: on retry, the previous validation failure reason is appended to the prompt so the model sees exactly what went wrong.
+*   **Premium CLI Progress Bar**: real-time per-chunk progress with provider/model info, settings summary, and compact model-response logging.
+*   **Config-Driven Defaults**: all behavior exposed via `config.ini` generated from `config.ini.template`; no code edits required.
+*   **Setup**: Run `python install.py` in `scripts/_tools/subtitle-translator/` once to register it in your Windows shell.
 
 [Return to Top](#table-of-contents)
 
