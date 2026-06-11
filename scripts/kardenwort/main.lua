@@ -717,6 +717,8 @@ local FSM = {
     IMMERSION_MODE = (Options.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
     JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
     MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
+    MANUAL_NAV_TARGET_IDX = nil,
+    SEC_MANUAL_NAV_TARGET_IDX = nil,
     SEEK_ACCUMULATOR = 0,
     SEEK_LAST_TIME = 0,
     SEEK_PRESS_COUNT = 0,
@@ -999,10 +1001,29 @@ function get_center_index(subs, time_pos)
         active_idx = FSM.JUST_JERKED_TO
     end
 
-    -- Ignore sticky focus sentinel after a manual seek to allow progression
-    if mp.get_time() < FSM.MANUAL_NAV_COOLDOWN then
-        active_idx = -1
+    -- If a manual seek has just occurred, and the playhead landed inside the raw window
+    -- of a new subtitle, we must ignore the sticky focus sentinel to allow progression.
+    if mp.get_time() < FSM.MANUAL_NAV_COOLDOWN and active_idx ~= -1 then
+        local is_pri = (subs == Tracks.pri.subs)
+        local target_idx = is_pri and FSM.MANUAL_NAV_TARGET_IDX or FSM.SEC_MANUAL_NAV_TARGET_IDX
+        if active_idx ~= target_idx then
+            local low, high = 1, #subs
+            local best = -1
+            while low <= high do
+                local mid = math.floor((low + high) / 2)
+                if subs[mid].start_time <= time_pos then
+                    best = mid
+                    low = mid + 1
+                else
+                    high = mid - 1
+                end
+            end
+            if best ~= -1 and time_pos <= subs[best].end_time and best ~= active_idx then
+                active_idx = -1
+            end
+        end
     end
+
 
     -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
@@ -6420,7 +6441,12 @@ local function dw_handle_double_click_target(subs, line_idx, word_idx)
         -- [v1.58.51] Intentional Focus Handover
         FSM.IGNORE_NEXT_JUMP = true
         FSM.ACTIVE_IDX = line_idx
-        if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(line_idx, #Tracks.sec.subs) end
+        FSM.MANUAL_NAV_TARGET_IDX = line_idx
+        if #Tracks.sec.subs > 0 then
+            local sec_idx = math.min(line_idx, #Tracks.sec.subs)
+            FSM.SEC_ACTIVE_IDX = sec_idx
+            FSM.SEC_MANUAL_NAV_TARGET_IDX = sec_idx
+        end
         FSM.JUST_JERKED_TO = -1
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
@@ -6629,8 +6655,8 @@ local function tick_autopause(time_pos)
     -- [v1.58.51] Hardened Autopause via Sticky Focus
     -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
     local active_idx = FSM.ACTIVE_IDX
-    if active_idx == -1 or not subs[active_idx] or mp.get_time() < FSM.MANUAL_NAV_COOLDOWN then
-        -- Fallback if sentinel is lost or after manual seek
+    if active_idx == -1 or not subs[active_idx] then
+        -- Fallback if sentinel is lost
         active_idx = get_center_index(subs, time_pos)
     end
     if active_idx == -1 then return end
@@ -6658,7 +6684,7 @@ local function tick_autopause(time_pos)
     end
 
     if diff < -Options.autopause_overshoot then
-        if FSM._prev_time_pos and FSM._prev_time_pos < sub_end then
+        if FSM._prev_time_pos and FSM._prev_time_pos < sub_end and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
             -- Safety net: time_pos jumped past the autopause window in a single
             -- tick but the previous position was still before the boundary, so
             -- we just crossed it.  Allow autopause to fire instead of returning.
@@ -6817,6 +6843,8 @@ local function master_tick()
             -- the explicit inhibit gate (time_pos > TIMESEEK_INHIBIT_UNTIL) below.
             -- Clearing it in generic jump detection would allow autopause to fire at
             -- intermediate sub boundaries during rewind transit (ZID 20260509233440).
+            FSM.MANUAL_NAV_TARGET_IDX = nil
+            FSM.SEC_MANUAL_NAV_TARGET_IDX = nil
             FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
             if FSM.LOOP_MODE == "ON" then
                 -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
@@ -7734,9 +7762,11 @@ local function cmd_replay_sub()
         FSM.REPLAY_REMAINING = Options.replay_count
         if replay_start_idx ~= -1 then
             FSM.ACTIVE_IDX = replay_start_idx
+            FSM.MANUAL_NAV_TARGET_IDX = replay_start_idx
         end
         if sec_replay_start_idx ~= -1 then
             FSM.SEC_ACTIVE_IDX = sec_replay_start_idx
+            FSM.SEC_MANUAL_NAV_TARGET_IDX = sec_replay_start_idx
         end
         
         mp.commandv("seek", replay_start, "absolute+exact")
@@ -7762,9 +7792,11 @@ local function cmd_replay_sub()
         FSM.SCHEDULED_REPLAY_END = replay_end
         if replay_start_idx ~= -1 then
             FSM.ACTIVE_IDX = replay_start_idx
+            FSM.MANUAL_NAV_TARGET_IDX = replay_start_idx
         end
         if sec_replay_start_idx ~= -1 then
             FSM.SEC_ACTIVE_IDX = sec_replay_start_idx
+            FSM.SEC_MANUAL_NAV_TARGET_IDX = sec_replay_start_idx
         end
         
         mp.commandv("seek", replay_start, "absolute+exact")
@@ -7798,7 +7830,12 @@ local function cmd_dw_seek_selected()
             -- [v1.58.51] Intentional Focus Handover
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
-            if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(FSM.DW_CURSOR_LINE, #Tracks.sec.subs) end
+            FSM.MANUAL_NAV_TARGET_IDX = FSM.DW_CURSOR_LINE
+            if #Tracks.sec.subs > 0 then
+                local sec_idx = math.min(FSM.DW_CURSOR_LINE, #Tracks.sec.subs)
+                FSM.SEC_ACTIVE_IDX = sec_idx
+                FSM.SEC_MANUAL_NAV_TARGET_IDX = sec_idx
+            end
             FSM.JUST_JERKED_TO = -1
             FSM.TIMESEEK_INHIBIT_UNTIL = nil
             FSM.REWIND_TRANSIT_CROSS_CARD = false
@@ -7864,7 +7901,12 @@ local function cmd_dw_seek_delta(dir)
         local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, target_idx)
         mp.commandv("seek", math.max(0, s), "absolute+exact")
         FSM.ACTIVE_IDX = target_idx
-        if #Tracks.sec.subs > 0 then FSM.SEC_ACTIVE_IDX = math.min(target_idx, #Tracks.sec.subs) end
+        FSM.MANUAL_NAV_TARGET_IDX = target_idx
+        if #Tracks.sec.subs > 0 then
+            local sec_idx = math.min(target_idx, #Tracks.sec.subs)
+            FSM.SEC_ACTIVE_IDX = sec_idx
+            FSM.SEC_MANUAL_NAV_TARGET_IDX = sec_idx
+        end
         FSM.last_paused_sub_end = nil
         FSM.DW_FOLLOW_PLAYER = true
         FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
@@ -7953,9 +7995,11 @@ local function cmd_seek_time(dir)
     -- before natural sentinel scan catches up after cooldown.
     if target_idx ~= -1 then
         FSM.ACTIVE_IDX = target_idx
+        FSM.MANUAL_NAV_TARGET_IDX = target_idx
     end
     if sec_target_idx ~= -1 then
         FSM.SEC_ACTIVE_IDX = sec_target_idx
+        FSM.SEC_MANUAL_NAV_TARGET_IDX = sec_target_idx
     end
 
     mp.commandv("seek", delta, "relative+exact")
