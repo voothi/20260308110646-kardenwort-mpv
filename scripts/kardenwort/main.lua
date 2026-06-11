@@ -985,6 +985,25 @@ local function get_effective_boundaries(subs, sub, idx)
     return start, stop
 end
 
+-- Find the last sub whose start_time is <= time_pos (raw SRT window lookup).
+-- Returns -1 if time_pos is before the first sub's start_time.
+-- Declared global (not local) to stay within Lua's 200-local-variable limit per chunk.
+function find_sub_containing_start(subs, time_pos)
+    if not subs or #subs == 0 then return -1 end
+    local low, high = 1, #subs
+    local best = -1
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        if subs[mid].start_time <= time_pos then
+            best = mid
+            low = mid + 1
+        else
+            high = mid - 1
+        end
+    end
+    return best
+end
+
 function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
     
@@ -1001,29 +1020,24 @@ function get_center_index(subs, time_pos)
         active_idx = FSM.JUST_JERKED_TO
     end
 
-    -- If a manual seek has just occurred, and the playhead landed inside the raw window
-    -- of a new subtitle, we must ignore the sticky focus sentinel to allow progression.
+    -- Post-manual-seek bypass: if the active index disagrees with the explicit
+    -- seek target (or with the raw sub that contains time_pos), drop the sticky
+    -- sentinel so progression can advance. When active_idx already matches the
+    -- seek target, sticky focus is preserved (e.g. d-seek from sub 2 to sub 3
+    -- should not be pulled back to sub 2 by pad-window overlap).
     if mp.get_time() < FSM.MANUAL_NAV_COOLDOWN and active_idx ~= -1 then
         local is_pri = (subs == Tracks.pri.subs)
         local target_idx = is_pri and FSM.MANUAL_NAV_TARGET_IDX or FSM.SEC_MANUAL_NAV_TARGET_IDX
+        -- target_idx is nil for raw (non-script) seeks; in that case the
+        -- mismatch test below still gates on the raw-window check, so the
+        -- bypass only fires when time_pos is provably inside a different sub.
         if active_idx ~= target_idx then
-            local low, high = 1, #subs
-            local best = -1
-            while low <= high do
-                local mid = math.floor((low + high) / 2)
-                if subs[mid].start_time <= time_pos then
-                    best = mid
-                    low = mid + 1
-                else
-                    high = mid - 1
-                end
-            end
+            local best = find_sub_containing_start(subs, time_pos)
             if best ~= -1 and time_pos <= subs[best].end_time and best ~= active_idx then
                 active_idx = -1
             end
         end
     end
-
 
     -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
@@ -1059,18 +1073,7 @@ function get_center_index(subs, time_pos)
         end
     end
 
-    local low, high = 1, #subs
-    local best = -1
-    while low <= high do
-        local mid = math.floor((low + high) / 2)
-        if subs[mid].start_time <= time_pos then
-            best = mid
-            low = mid + 1
-        else
-            high = mid - 1
-        end
-    end
-    
+    local best = find_sub_containing_start(subs, time_pos)
     if best == -1 then return 1 end
     
     -- [v1.58.52] Absolute Start Guard: If we are at the very beginning, always return first sub
@@ -1121,17 +1124,7 @@ end
 function get_center_index_static(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
 
-    local low, high = 1, #subs
-    local best = -1
-    while low <= high do
-        local mid = math.floor((low + high) / 2)
-        if subs[mid].start_time <= time_pos then
-            best = mid
-            low = mid + 1
-        else
-            high = mid - 1
-        end
-    end
+    local best = find_sub_containing_start(subs, time_pos)
 
     if best == -1 then return 1 end
 
