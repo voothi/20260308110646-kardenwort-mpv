@@ -224,16 +224,26 @@ class TestImmersionRegressions:
         """Focus must transition to next sub if playhead is in its padded zone (20260501005019)."""
         ipc = mpv_dual.ipc
         ipc.command(['set_property', 'script-opts', 'log_level=debug'])
-        
+
+        # Step 0: Match the scenario geometry. The 1fps sync-test fixture has
+        # sub 1 raw 0.0–2.0 and sub 2 raw 2.2–4.4 with a 200ms inter-sub gap.
+        # We need 200ms audio padding on each side so the overlap zone
+        # (2.0–2.2) and the e_current boundary (2.2) match the scenario's
+        # intent. The default 1000ms padding would push e_current to 3.0,
+        # defeating the natural-progression transition at 2.05s.
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'audio_padding_start', '200'])
+        ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'audio_padding_end', '200'])
+        time.sleep(0.15)
+
         # Step 1: Prime at sub 1
         ipc.command(['seek', 1.0, 'absolute+exact'])
         time.sleep(0.3)
         assert query_kardenwort_state(ipc)['active_sub_index'] == 1
-        
+
         # Step 2: Seek to overlap zone (2.05s)
         ipc.command(['seek', 2.05, 'absolute+exact'])
         time.sleep(0.3)
-        
+
         state = query_kardenwort_state(ipc)
         assert state['active_sub_index'] == 2, f"Expected transition to sub 2, got {state['active_sub_index']}"
 

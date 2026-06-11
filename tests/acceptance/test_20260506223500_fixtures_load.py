@@ -28,21 +28,32 @@ def test_20260506223500_fixtures_load(mpv_fragment1):
 def test_20260506223500_natural_progression_skip(mpv_dual):
     """Verify that playhead advances to next sub in overlap zone via Natural Progression logic."""
     ipc = mpv_dual.ipc
-    
+
+    # Step 0: Match the geometry described in the test scenario. The 1fps
+    # sync-test fixture has sub 1 raw 0.0–2.0 and sub 2 raw 2.2–4.4 with a
+    # 200ms inter-sub gap. We need 200ms audio padding on each side so the
+    # overlap zone (2.0–2.2) and the e_current boundary (2.2) match the
+    # scenario's intent. The default 1000ms padding would push e_current to
+    # 3.0, defeating the natural-progression transition at 2.05s.
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'audio_padding_start', '200'])
+    ipc.command(['script-message-to', 'kardenwort', 'test-set-option', 'audio_padding_end', '200'])
+    time.sleep(0.15)
+
     # Step 1: Prime at sub 1
     ipc.command(['seek', 1.0, 'absolute+exact'])
     time.sleep(0.15)
     assert query_kardenwort_state(ipc)['active_sub_index'] == 1
-    
-    # Step 2: Seek to exactly 2.0s (overlap zone)
+
+    # Step 2: Seek to overlap zone (2.05s)
     # Fixture sync-test: sub 1 ends at 2.000, sub 2 starts at 2.200
     # audio_padding_start = 0.200 -> sub 2 padded start = 2.000s
     # audio_padding_end = 0.200 -> sub 1 padded end = 2.200s
-    # At 2.000s, sub 1 is still active (padded), but sub 2's padded start has also begun.
-    # The fix ensures sub 2 is selected.
+    # At 2.050s, sub 1's padded end (2.200) has not yet expired, but sub 2's
+    # padded start (2.000) is already in the past — the natural-progression
+    # block advances focus to sub 2.
     ipc.command(['seek', 2.05, 'absolute+exact'])
     time.sleep(0.15)
-    
+
     state = query_kardenwort_state(ipc)
     assert state['active_sub_index'] == 2, (
         f"Expected Natural Progression to advance to index 2 at 2.05s, "
