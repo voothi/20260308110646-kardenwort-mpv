@@ -724,6 +724,7 @@ local FSM = {
     -- Transients
     last_paused_sub_end = nil,
     last_time_pos = nil,
+    last_wall_time = nil, -- Wall-clock timestamp of last tick (for coarse time-pos detection)
     IGNORE_NEXT_JUMP = false,
     INTERNAL_REPLAY_UNTIL = 0,
     TIMESEEK_INHIBIT_UNTIL = nil, -- Suppress autopause during backward time-seek transit
@@ -6791,9 +6792,15 @@ local function master_tick()
 
     -- [v1.58.48] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
+    -- [v1.58.61] Coarse Time-Pos Filter: On low-fps sources (e.g. 1 fps black.mp4),
+    -- time-pos can jump >0.3s in a single tick even during normal playback.  We
+    -- distinguish real seeks from coarse reporting by also checking wall-clock delta:
+    -- a real seek moves time-pos much faster than wall-clock time advances.
     if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
+        local wall_delta = FSM.last_wall_time and (mp.get_time() - FSM.last_wall_time) or 0
+        local is_coarse_reporting = wall_delta > 0 and (math.abs(time_pos - FSM.last_time_pos) / wall_delta) < 2.0
         local internal_replay_jump = FSM.INTERNAL_REPLAY_UNTIL and mp.get_time() < FSM.INTERNAL_REPLAY_UNTIL
-        if not FSM.IGNORE_NEXT_JUMP and not internal_replay_jump then
+        if not FSM.IGNORE_NEXT_JUMP and not internal_replay_jump and not is_coarse_reporting then
             -- Any manual navigation resets Autopause state so it fires again at the new location.
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
@@ -6821,6 +6828,7 @@ local function master_tick()
     FSM.IGNORE_NEXT_JUMP = false
     FSM._prev_time_pos = FSM.last_time_pos
     FSM.last_time_pos = time_pos
+    FSM.last_wall_time = mp.get_time()
 
     local did_scheduled_replay = tick_scheduled_replay(time_pos)
 
