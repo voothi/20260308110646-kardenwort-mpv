@@ -6827,7 +6827,12 @@ local function master_tick()
         local wall_delta = FSM.last_wall_time and (mp.get_time() - FSM.last_wall_time) or 0
         local is_coarse_reporting = wall_delta > 0 and (math.abs(time_pos - FSM.last_time_pos) / wall_delta) < 2.0
         local internal_replay_jump = FSM.INTERNAL_REPLAY_UNTIL and mp.get_time() < FSM.INTERNAL_REPLAY_UNTIL
-        if not FSM.IGNORE_NEXT_JUMP and not internal_replay_jump and not is_coarse_reporting then
+        local ignore_jump = FSM.IGNORE_NEXT_JUMP or (FSM.IGNORE_NEXT_JUMP_UNTIL and mp.get_time() < FSM.IGNORE_NEXT_JUMP_UNTIL)
+        if ignore_jump then
+            FSM.IGNORE_NEXT_JUMP = false
+            FSM.IGNORE_NEXT_JUMP_UNTIL = nil
+        end
+        if not ignore_jump and not internal_replay_jump and not is_coarse_reporting then
             -- Any manual navigation resets Autopause state so it fires again at the new location.
             FSM.last_paused_sub_end = nil
             FSM.SCHEDULED_REPLAY_START = nil
@@ -6854,7 +6859,10 @@ local function master_tick()
             end
         end
     end
-    FSM.IGNORE_NEXT_JUMP = false
+    if FSM.IGNORE_NEXT_JUMP then
+        FSM.IGNORE_NEXT_JUMP_UNTIL = mp.get_time() + 0.5
+        FSM.IGNORE_NEXT_JUMP = false
+    end
     FSM._prev_time_pos = FSM.last_time_pos
     FSM.last_time_pos = time_pos
     FSM.last_wall_time = mp.get_time()
