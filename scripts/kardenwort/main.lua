@@ -6564,6 +6564,9 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- and jump-back logic anchored to the subtitle we actually stopped on.  This mirrors
     -- the autopause + nav-delta gating used in master_tick so that manual pauses and
     -- initial startup (FSM.SEC_ACTIVE_IDX == -1) are NOT frozen.
+    -- NOTE: With 25 fps black.mp4 (was 1 fps), the nav-delta guard (< 0.3 s) is a
+    -- defensive safety net — normal tick deltas are ~40 ms, so false triggers are
+    -- extremely unlikely.
     local is_autopause_paused_drum = mp.get_property_bool("pause", false)
         and FSM.last_paused_sub_end
         and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
@@ -6651,11 +6654,11 @@ local function tick_autopause(time_pos)
 
     if diff < -Options.autopause_overshoot then
         if FSM._prev_time_pos and FSM._prev_time_pos < sub_end then
-            -- Coarse tick step: time_pos jumped past the autopause window in a
-            -- single tick (any low-fps source, e.g. 1 fps black video on
-            -- audio-only media, or coarse mpv display-sync).  The previous
-            -- position was still before the boundary, so we just crossed it.
-            -- Allow autopause to fire instead of returning.
+            -- Safety net: time_pos jumped past the autopause window in a single
+            -- tick but the previous position was still before the boundary, so
+            -- we just crossed it.  Allow autopause to fire instead of returning.
+            -- With 25 fps black.mp4 this path is a defensive fallback — normal
+            -- tick deltas (~40 ms) never exceed the overshoot threshold (100 ms).
         else
             return
         end
@@ -6792,10 +6795,10 @@ local function master_tick()
 
     -- [v1.58.48] Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
-    -- [v1.58.61] Coarse Time-Pos Filter: On low-fps sources (e.g. 1 fps black.mp4),
-    -- time-pos can jump >0.3s in a single tick even during normal playback.  We
-    -- distinguish real seeks from coarse reporting by also checking wall-clock delta:
-    -- a real seek moves time-pos much faster than wall-clock time advances.
+    -- [v1.58.61] Coarse Time-Pos Filter: Distinguishes real seeks from natural
+    -- time-pos jumps by checking wall-clock delta.  A real seek moves time-pos
+    -- much faster than wall-clock time advances.  With 25 fps black.mp4 the
+    -- >0.3 s threshold is rarely reached during normal playback (~40 ms ticks).
     if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
         local wall_delta = FSM.last_wall_time and (mp.get_time() - FSM.last_wall_time) or 0
         local is_coarse_reporting = wall_delta > 0 and (math.abs(time_pos - FSM.last_time_pos) / wall_delta) < 2.0
@@ -6846,9 +6849,10 @@ local function master_tick()
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
 
         -- [v1.58.60] PAUSE GUARD: When paused BY AUTOPAUSE, freeze the sentinel so it
-        -- does not drift to the next subtitle due to coarse 1 fps ticks or minor
-        -- time-pos jitter on audio-only media.  We detect an autopause-induced pause
-        -- by checking that last_paused_sub_end is set and time_pos is still near it.
+        -- does not drift to the next subtitle due to time-pos jitter.
+        -- We detect an autopause-induced pause by checking that last_paused_sub_end
+        -- is set and time_pos is still near it.  With 25 fps black.mp4, tick deltas
+        -- are ~40 ms so the 0.3 s nav-delta guard is a defensive safety net.
         local is_autopause_paused = mp.get_property_bool("pause", false)
             and FSM.last_paused_sub_end
             and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5

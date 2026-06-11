@@ -8,8 +8,7 @@ This test is intentionally self-contained: it does NOT import from
 test_20260607194017_audio_only_subtitles.py so the two tests can be moved
 or refactored independently.
 
-Validated against openspec spec: audio-only-media
-(coarse-tick fallback scenario).
+Validated against openspec spec: audio-only-media.
 
 Timeline used by the embedded SRT:
     Sub 1: 1.000 - 2.000
@@ -187,9 +186,11 @@ def test_mp3_autopause_on_phrase_near_subtitle_boundary():
         Sub 2: 3.000 – 4.000
         Sub 3: 5.000 – 20.000
 
-    We seek to 1.90 s (100 ms before Sub 1 end).  With a 1 fps black.mp4
-    track, time-pos may jump in coarse steps, but autopause should still
-    catch a boundary instead of skipping through all subtitles.
+    We seek to 1.90 s (inside Sub 1, but closer to Sub 2's center).
+    Because get_center_index picks the subtitle whose midpoint is nearest
+    to the current time-pos, the sentinel may land on either Sub 1 or Sub 2.
+    The key assertion is that autopause fires at a real boundary rather than
+    running past all subtitles.
     """
     work = _new_scratch_dir("audio-only-autopause-near-boundary")
     media_mp3 = work / "audio.mp3"
@@ -266,15 +267,15 @@ Line Three
 
         assert paused, (
             "Autopause ON + PHRASE did NOT stop playback on MP3 + black.mp4 "
-            f"near a coarse tick boundary (pos={pos:.3f}, state={state})"
+            f"near subtitle boundary (pos={pos:.3f}, state={state})"
         )
 
-        # Accept pause at Sub 1 (2.0 s) or Sub 2 (4.0 s) – the coarse 1 fps
-        # clock may skip Sub 1 and land on Sub 2 because the gap between
-        # them (2.0 – 3.0 s) lets the 1 fps tick jump from ~1.95 s straight
-        # into Sub 2's range.  Sub 3 (20.0 s) is intentionally excluded:
-        # accepting it would also pass if the entire autopause mechanism
-        # were broken and the player only paused at the very last subtitle.
+        # get_center_index picks the subtitle whose midpoint is nearest to
+        # time-pos.  At 1.90 s, Sub 2's center (3.5) is closer than Sub 1's
+        # center (1.5), so the sentinel may anchor to either subtitle.
+        # Accept pause at Sub 1 (2.0 s) or Sub 2 (4.0 s).  Sub 3 (20.0 s)
+        # is intentionally excluded: accepting it would also pass if the
+        # entire autopause mechanism were broken.
         lpe = state.get("last_paused_sub_end")
         assert lpe is not None, (
             "last_paused_sub_end was not set - autopause did not record a "

@@ -415,7 +415,7 @@ Secondary Line 3
 def test_mp3_phrase_active_idx_freezes_after_autopause():
     """Regression test: after autopause fires in PHRASE mode on MP3,
     the ACTIVE_IDX sentinel must stay on the subtitle we stopped on,
-    NOT drift to the next subtitle because of coarse 1 fps ticks.
+    NOT drift to the next subtitle because of time-pos jitter.
     The rendered subtitle must therefore remain the current one.
     """
     work = _new_scratch_dir("audio-only-phrase-freeze")
