@@ -999,6 +999,11 @@ function get_center_index(subs, time_pos)
         active_idx = FSM.JUST_JERKED_TO
     end
 
+    -- Ignore sticky focus sentinel after a manual seek to allow progression
+    if mp.get_time() < FSM.MANUAL_NAV_COOLDOWN then
+        active_idx = -1
+    end
+
     -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
     -- transition to `i+1` - never skip intermediate subs even when large
@@ -6624,8 +6629,8 @@ local function tick_autopause(time_pos)
     -- [v1.58.51] Hardened Autopause via Sticky Focus
     -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
     local active_idx = FSM.ACTIVE_IDX
-    if active_idx == -1 or not subs[active_idx] then
-        -- Fallback if sentinel is lost
+    if active_idx == -1 or not subs[active_idx] or mp.get_time() < FSM.MANUAL_NAV_COOLDOWN then
+        -- Fallback if sentinel is lost or after manual seek
         active_idx = get_center_index(subs, time_pos)
     end
     if active_idx == -1 then return end
