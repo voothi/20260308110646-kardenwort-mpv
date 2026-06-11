@@ -6860,7 +6860,7 @@ local function master_tick()
         end
     end
     if FSM.IGNORE_NEXT_JUMP then
-        FSM.IGNORE_NEXT_JUMP_UNTIL = mp.get_time() + 0.5
+        FSM.IGNORE_NEXT_JUMP_UNTIL = mp.get_time() + 2.0
         FSM.IGNORE_NEXT_JUMP = false
     end
     FSM._prev_time_pos = FSM.last_time_pos
