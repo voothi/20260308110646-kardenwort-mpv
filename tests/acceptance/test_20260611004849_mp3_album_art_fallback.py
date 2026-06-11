@@ -1,3 +1,10 @@
+"""
+Feature ZID: 20260611004849
+Feature: Album Art Detection & Black Video Fallback for Audio-Only Media with Embedded Cover Art
+
+Validated against openspec spec: audio-only-media
+"""
+
 import shutil
 import time
 import subprocess

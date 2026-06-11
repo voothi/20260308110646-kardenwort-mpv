@@ -1,3 +1,32 @@
+# Release Notes - v1.84.92 (Autopause Sentinel Hardening, Coarse Time-Pos Filter & Black Video 15 fps)
+
+**Date**: 2026-06-11
+**Version**: v1.84.92
+**Implementation ZIDs**: 20260611043636, 20260611034502, 20260611032208, 20260611030926, 20260611012200, 20260611004605, 20260610230112, 20260610214929, 20260610192407, 20260610173324, 20260610165210
+
+## Highlights
+
+### 🛡️ **PAUSE GUARD — Autopause Sentinel Freeze**
+Prevents the primary and secondary subtitle sentinels (`ACTIVE_IDX`, `SEC_ACTIVE_IDX`) from drifting to the next subtitle when the player is paused by autopause. The guard detects an autopause-induced pause (via `last_paused_sub_end` proximity + nav-delta < 0.3 s) and freezes the sentinel at its current value. Applied in both `tick_drum` (for the drum window display) and `master_tick` (for the autopause state machine).
+
+### 🕰️ **Coarse Time-Pos Filter**
+Added wall-clock-based filtering to distinguish real manual seeks from natural time-pos jumps in `master_tick`. A real seek moves time-pos much faster than wall-clock time advances (ratio < 2.0), while normal playback keeps the ratio near 1.0. The `last_wall_time` FSM field tracks the wall-clock timestamp of each tick. With 15 fps `black.mp4` (~67 ms ticks), this filter prevents false seek detections caused by coarse mpv time-pos reporting.
+
+### 🖼️ **Album Art Detection**
+`ensure_companion_video_track()` now distinguishes album art / embedded image tracks from real seekable video tracks by checking `t.albumart` or `t.image` metadata. When an MP3 has only an album art image track, the system deselects it (`vid = "no"`) and loads the bundled `black.mp4` fallback for a proper seekable timeline.
+
+### 🎞️ **black.mp4 Upgraded to 15 fps**
+The bundled black video canvas (`scripts/_tools/sub-viewer/black.mp4`) was regenerated at 256×144, 15 fps H.264 (was 1 fps). This reduces the tick interval from ~1 s to ~67 ms, improving autopause precision and subtitle positioning accuracy on audio-only media. The PAUSE GUARD and Coarse Time-Pos Filter were designed for this frame rate.
+
+### 🧪 **New Acceptance Tests**
+- `test_20260611004849_mp3_album_art_fallback.py` — validates that MP3s with album art correctly trigger the `black.mp4` fallback, and that depth-1 subdirectory companion videos are discovered.
+- Extended `test_20260607194017_audio_only_subtitles.py` with PAUSE GUARD and drift regression tests.
+
+### 🧪 **Milestone: 1123 Collected Tests**
+- 245 unit + 878 acceptance tests collected (838 acceptance passing in this run).
+
+---
+
 # Release Notes - v1.84.80 (Companion Video Subdirectory Discovery & Tool Rename)
 
 **Date**: 2026-06-10
