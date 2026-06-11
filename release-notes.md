@@ -1,3 +1,31 @@
+# Release Notes - v1.88.0 (Sticky Focus Post-Seek Bypass & FSM Cooldown Improvements)
+
+**Date**: 2026-06-11
+**Version**: v1.88.0
+**Implementation ZIDs**: 20260611193131, 20260611141032, 20260611131731, 20260611123657, 20260611113228, 20260611101439
+
+## Highlights
+
+### 🧠 **Immersion Engine: Sticky Focus Post-Seek Bypass**
+- **Progression Restoration**: When a manual seek occurs and the playhead lands inside the raw window of a new subtitle, Kardenwort now automatically ignores the sticky focus sentinel (`ACTIVE_IDX` / `SEC_ACTIVE_IDX`). This allows the natural immersion-engine progression to take over without getting pulled back to overlap zones by the audio padding of the previous subtitle.
+- **Bypass Safeguards**: The post-seek bypass is gated by a manual navigation target index check (`FSM.MANUAL_NAV_TARGET_IDX` and `FSM.SEC_MANUAL_NAV_TARGET_IDX`) and a temporal cooldown (`FSM.MANUAL_NAV_COOLDOWN`), ensuring it only drops the sticky sentinel when the seek destination is a distinct subtitle.
+- **Global Helper Optimization**: Refactored raw SRT subtitle binary searches into a global `find_sub_containing_start(subs, time_pos)` helper function, avoiding chunk-level local variable limit bounds in Lua's stack environment.
+
+### 🕰️ **FSM Cooldown & Jump Detection Hardening**
+- **Temporal Ignore Gates**: Introduced `FSM.IGNORE_NEXT_JUMP_UNTIL` state inside `master_tick` to prevent duplicate manual-seek resets and false-jump detections during seeking settles.
+- **Auto-reset Mitigation**: Aligned the navigation-cooldown ignore checks inside `get_center_index` and `tick_autopause` to ensure proper behavior when manual seeks bypass the sticky focus guard.
+
+### 🧪 **Acceptance Test Suite Adjustments**
+- **Test Geometry Matching**: Fixed geometry mismatches in `test_20260501160807_dw_esc_staged_reset.py` and `test_20260506223500_fixtures_load.py` by configuring local `audio_padding_start` and `audio_padding_end` overrides to 200 ms to align with the 1fps sync-test fixture bounds.
+
+### ⚙️ **User Configuration Updates**
+- **Record Editor Paths**: Updated the default VS Code location (`record_editor` under `mpv.conf`) to target the user AppData local path: `C:\Users\voothi\AppData\Local\Programs\Microsoft VS Code\Code.exe`.
+
+### 🧪 **Milestone: 1123 Collected Tests**
+- **1123 collected tests** (245 unit + 878 acceptance tests).
+
+---
+
 # Release Notes - v1.84.92 (Autopause Sentinel Hardening, Coarse Time-Pos Filter & Black Video 15 fps)
 
 **Date**: 2026-06-11

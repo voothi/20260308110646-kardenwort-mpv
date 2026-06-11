@@ -1,6 +1,6 @@
 # Kardenwort MPV - Language Acquisition Suite
 
-[![Version](https://img.shields.io/badge/version-v1.84.80-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.84.80)
+[![Version](https://img.shields.io/badge/version-v1.88.0-blue)](https://github.com/voothi/20260308110646-kardenwort-mpv/releases/tag/v1.88.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance [mpv](https://mpv.io/) configuration specifically engineered for immersion-based language acquisition, optimized for the convenient consumption of **Dual-Subtitle** (DualSubs) content. It functions as a professional tool for simultaneous translators who need to have two texts synchronized with the media track, with the ability to search by words and make notes.
@@ -1009,14 +1009,14 @@ python scripts/_tools/deploy/deploy_distribution.py --source . --target "$env:AP
 This project maintains a data-driven approach to development tracking. We use a custom clustering algorithm to estimate human effort from git commitment intervals.
 
 - **Project Inception**: March 08, 2026
-- **Total Hours Spent**: 595.56h (across 114 work sessions, average session of 5.22h; human-AI paired, not autonomous)
-- **Current Maturity**: ~2815 Commits (v1.84.60)
+- **Total Hours Spent**: 604.91h (across 121 work sessions, average session of 5.00h; human-AI paired, not autonomous)
+- **Current Maturity**: ~2821 Commits (v1.88.0)
 - **Consecutive Days Streak**: 48 days in a row
 - **Average Break**: 0.62 days between work sessions
 - **Total Requests**: 3,363 human requests (86 in active log, 3,277 in archive)
 - **Intensity Profile**: 4.7 Commits/Hour
-- **Git Structure**: 371 local branches, 257 tags
-- **Lines of Code**: 43,276 LOC (12,856 project, 9,375 additions, 21,045 tests)
+- **Git Structure**: 371 local branches, 258 tags
+- **Lines of Code**: 43,446 LOC (12,968 project, 9,380 additions, 21,098 tests)
 - **AI Subscriptions Cost**: 150 EUR
 
 To repeat the analysis on your local machine, use the provided Python tool:
