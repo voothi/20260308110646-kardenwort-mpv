@@ -10,6 +10,7 @@
 		}
 	],
 	"settings": {
-		"powershell.cwd": "Code Base"
+		"powershell.cwd": "Code Base",
+		"files.eol": "\n"
 	}
 }
