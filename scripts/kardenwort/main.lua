@@ -7535,14 +7535,18 @@ local function cmd_dw_line_move(dir, shift, evt)
         
         FSM.DW_CURSOR_LINE = line_idx
 
-        if dir < 0 and not snapshot.paused then
-            -- Requirement: UP enters from middle of current subtitle while listening
+        if dir < 0 then
+            -- Requirement: UP enters from middle of current subtitle
             FSM.DW_CURSOR_WORD = dw_pick_middle_word_idx(subs[line_idx])
         else
-            -- Directional entry: DOWN starts at top, UP (paused) starts at bottom
+            -- Directional entry: DOWN starts at top
             local entry = ensure_sub_layout(subs[line_idx])
-            local target_vl = (dir > 0) and 1 or (#entry.vlines)
-            FSM.DW_CURSOR_WORD = dw_closest_word_at_x(subs[line_idx], 960, true, target_vl)
+            local target_vl = 1
+            local w = dw_closest_word_at_x(subs[line_idx], 960, true, target_vl)
+            if w == -1 then
+                w = dw_closest_word_at_x(subs[line_idx], 960, true, nil)
+            end
+            FSM.DW_CURSOR_WORD = w
         end
         
         -- Hard-lock: initial activation DOES NOT MOVE beyond the resolved line
