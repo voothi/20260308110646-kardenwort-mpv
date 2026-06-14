@@ -7397,12 +7397,18 @@ dw_ensure_visible = function(line_idx, paged)
     if not subs or #subs == 0 then return end
 
     local is_drum_mini = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
-    local win_lines = is_drum_mini and (Options.drum_context_lines * 2 + 1) or Options.dw_lines_visible
+    local is_srt = (FSM.DRUM == "OFF" and FSM.DRUM_WINDOW == "OFF")
+    local win_lines = is_srt and 1 or (is_drum_mini and (Options.drum_context_lines * 2 + 1) or Options.dw_lines_visible)
     win_lines = math.max(1, math.floor(win_lines or 1))
     local half_win = math.floor(win_lines / 2)
     local configured_scrolloff = is_drum_mini and Options.drum_scrolloff or Options.dw_scrolloff
     local max_margin = math.max(0, math.floor(win_lines / 2) - 1)
     local margin = math.max(0, math.min(math.floor(configured_scrolloff or 0), max_margin))
+    
+    -- Do not enforce scroll margins during manual cursor navigation or manual scroll
+    if not FSM.DW_FOLLOW_PLAYER then
+        margin = 0
+    end
     
     -- Calculate current viewport bounds
     local view_min = FSM.DW_VIEW_CENTER - half_win
