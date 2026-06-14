@@ -2,32 +2,33 @@
 # Git Attributes - Global LF Normalization & Asset Protection
 # ==============================================================================
 
-# 1. Default Handling: Auto-detect text files and enforce Unix-style LF
-* text=auto eol=lf
+# 1. Default Handling: Auto-detect text files and enforce Unix-style LF with UTF-8 (without BOM)
+* text=auto eol=lf working-tree-encoding=UTF-8
 
 # 2. Plain Text & Markdown (Obsidian Vault Essentials)
-*.md text eol=lf
-*.txt text eol=lf
-*.csv text eol=lf
+*.md text eol=lf working-tree-encoding=UTF-8
+*.txt text eol=lf working-tree-encoding=UTF-8
+*.csv text eol=lf working-tree-encoding=UTF-8
 
 # 3. Development & Scripting Languages
-*.py text eol=lf
-*.sh text eol=lf
-*.bat text eol=crlf
-*.cmd text eol=crlf
-*.ps1 text eol=crlf
+*.py text eol=lf working-tree-encoding=UTF-8
+*.lua text eol=lf working-tree-encoding=UTF-8
+*.sh text eol=lf working-tree-encoding=UTF-8
+*.bat text eol=crlf working-tree-encoding=UTF-8
+*.cmd text eol=crlf working-tree-encoding=UTF-8
+*.ps1 text eol=crlf working-tree-encoding=UTF-8
 
 # 4. Web, Configuration, and Styling
-*.css text eol=lf
-*.js text eol=lf
-*.jsx text eol=lf
-*.ts text eol=lf
-*.tsx text eol=lf
-*.json text eol=lf
-*.yaml text eol=lf
-*.yml text eol=lf
-*.xml text eol=lf
-*.html text eol=lf
+*.css text eol=lf working-tree-encoding=UTF-8
+*.js text eol=lf working-tree-encoding=UTF-8
+*.jsx text eol=lf working-tree-encoding=UTF-8
+*.ts text eol=lf working-tree-encoding=UTF-8
+*.tsx text eol=lf working-tree-encoding=UTF-8
+*.json text eol=lf working-tree-encoding=UTF-8
+*.yaml text eol=lf working-tree-encoding=UTF-8
+*.yml text eol=lf working-tree-encoding=UTF-8
+*.xml text eol=lf working-tree-encoding=UTF-8
+*.html text eol=lf working-tree-encoding=UTF-8
 
 # 5. Binary Assets Protection (Explicitly prevent line-ending corruption)
 *.png binary
