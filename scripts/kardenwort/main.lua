@@ -4341,8 +4341,9 @@ local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
         
         -- Force break on explicit newline
         local has_newline = t.text:find("\n") ~= nil
+        local is_punc = (t.text == "." or t.text == ",")
         
-        if (cur_w + space + ww > max_w and #cur_indices > 0) or has_newline then
+        if ((cur_w + space + ww > max_w and #cur_indices > 0) or has_newline) and not (is_punc and not has_newline) then
             if #cur_indices > 0 then
                 table.insert(vlines, cur_indices)
                 cur_indices = {}

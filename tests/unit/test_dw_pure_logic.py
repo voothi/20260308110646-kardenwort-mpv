@@ -365,3 +365,77 @@ def test_ascii_reference_width_stays_stable():
     fs = 34
     ascii_w = fs * 0.42
     assert ascii_w == 14.28
+
+
+# --- wrap_tokens port and punctuation wrapping prevention tests -----------------
+
+
+def wrap_tokens_py(tokens, max_w, keep_spaces=True):
+    # Mock text width calculation: length of string * 10
+    def mock_get_str_width(text):
+        if not text:
+            return 0
+        return len(text) * 10
+
+    vlines = []
+    cur_indices = []
+    cur_w = 0
+    space_w = mock_get_str_width(" ")
+    
+    for j, t in enumerate(tokens):
+        ww = mock_get_str_width(t["text"])
+        space = space_w if (len(cur_indices) > 0 and not keep_spaces) else 0
+        
+        has_newline = "\n" in t["text"]
+        is_punc = (t["text"] == "." or t["text"] == ",")
+        
+        if ((cur_w + space + ww > max_w and len(cur_indices) > 0) or has_newline) and not (is_punc and not has_newline):
+            if len(cur_indices) > 0:
+                vlines.append(list(cur_indices))
+                cur_indices = []
+                cur_w = 0
+            
+            if not has_newline or t["text"].replace("\n", "") != "":
+                cur_indices.append(j)
+                cur_w = ww
+        else:
+            cur_indices.append(j)
+            cur_w = cur_w + space + ww
+            
+    if len(cur_indices) > 0:
+        vlines.append(list(cur_indices))
+    return vlines
+
+
+def test_wrap_tokens_standard_words():
+    # Word 1: width 40, Word 2: width 40. Limit: 60.
+    # Word 1 + Word 2 = 80 > 60, should wrap Word 2.
+    tokens = [
+        {"text": "word"},
+        {"text": "test"}
+    ]
+    res = wrap_tokens_py(tokens, max_w=60, keep_spaces=True)
+    assert res == [[0], [1]]
+
+
+def test_wrap_tokens_prevents_comma_wrapping():
+    # Word 1: width 40, Comma: width 10. Limit: 45.
+    # 40 + 10 = 50 > 45. Comma should NOT wrap by itself.
+    tokens = [
+        {"text": "word"},
+        {"text": ","}
+    ]
+    res = wrap_tokens_py(tokens, max_w=45, keep_spaces=True)
+    assert res == [[0, 1]]
+
+
+def test_wrap_tokens_prevents_period_wrapping():
+    # Word 1: width 40, Period: width 10. Limit: 45.
+    # 40 + 10 = 50 > 45. Period should NOT wrap by itself.
+    tokens = [
+        {"text": "word"},
+        {"text": "."}
+    ]
+    res = wrap_tokens_py(tokens, max_w=45, keep_spaces=True)
+    assert res == [[0, 1]]
+
