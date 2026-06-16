@@ -1,8 +1,37 @@
+# Release Notes - v1.88.8 (Punctuation Wrapping Prevention, SRT Navigation Jumps Fix & UP Key Cursor Activation)
+
+**Date**: 2026-06-16
+**Version**: v1.88.8
+**Implementation ZIDs**: 20260614225849, 20260614223414, 20260614222944, 20260614214828, 20260614154549, 20260614152221
+
+## Highlights
+
+### 📝 **Punctuation Wrapping Prevention**
+- **Word-Wrap Protection**: Modified `wrap_tokens` in `scripts/kardenwort/main.lua` to prevent periods (`.`) and commas (`,`) from wrapping to a new line by themselves when calculating visual line wraps. If the punctuation is not on a newline, it remains attached to the preceding token.
+- **Unit Tests**: Added robust coverage in `tests/unit/test_dw_pure_logic.py` verifying correct punctuation wrapping behavior under various maximum width and font size conditions.
+
+### 🧭 **SRT Mode & Manual Navigation Stabilization**
+- **Flicker & Jump Prevention**: Disabled scroll margins (`margin = 0`) inside `dw_ensure_visible` when `not FSM.DW_FOLLOW_PLAYER` is active (such as during manual cursor navigation or manual viewport scrolling), eliminating unexpected jumping and layout flickering.
+- **Viewport Constraints**: Adjusted visual line calculation (`win_lines`) under SRT mode (where `FSM.DRUM == "OFF" and FSM.DRUM_WINDOW == "OFF"`) to strictly restrict the window height to `1`, aligning with standard SRT single-line display guidelines.
+- **Acceptance Tests**: Added comprehensive verification in `tests/acceptance/test_20260614154143_srt_nav_jumps.py` validating that seeking, paging, and scrolling do not cause unexpected viewport jumps.
+
+### ⌨️ **Ergonomic Cursor Activation (UP Key)**
+- **Middle-of-Subtitle Activation**: Standardized the cursor activation behavior on pressing the `UP` key to always start from the middle word of the active subtitle block, resolving the previous issue where cursor activation from paused states either failed or snapped to incorrect coordinates.
+- **DOWN Key Navigation Entry**: Aligned the `DOWN` key entry path to snap to the top visual line (`target_vl = 1`) and fall back cleanly if the initial boundary calculation fails.
+- **Acceptance Tests**: Added focused test suite in `tests/acceptance/test_20260614194857_up_null_activation.py` to assert correct activation dynamics during paused and active playback.
+
+### ⚙️ **Repository Configuration & Git Hygiene**
+- **UTF-8 Enforced Encoding**: Updated `.gitattributes` to force standard UTF-8 encoding for working trees to prevent BOM (Byte Order Mark) issues on Windows platforms.
+- **Exclusion Filters**: Cleaned up the git cache and added the `openspec` directory, local development `.code-workspace` files, and `AGENTS.md` to `.gitignore` to prevent committing session/system-specific runtime documents.
+
+---
+
 # Release Notes - v1.88.0 (Sticky Focus Post-Seek Bypass & FSM Cooldown Improvements)
 
 **Date**: 2026-06-11
 **Version**: v1.88.0
 **Implementation ZIDs**: 20260611193131, 20260611141032, 20260611131731, 20260611123657, 20260611113228, 20260611101439
+
 
 ## Highlights
 
