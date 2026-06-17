@@ -3638,6 +3638,13 @@ local function load_anki_tsv(force, quiet)
     local content = safe_read_file(tsv_path)
     if not content then
         FSM.ANKI_HIGHLIGHTS = {}
+        -- Do not auto-create the TSV when no subtitles are loaded for the current media.
+        -- This prevents empty header-only files from appearing next to mp3/mp4 files
+        -- that have no associated subtitle tracks.
+        if FSM.MEDIA_STATE == "NO_SUBS" then
+            Diagnostic.info("TSV auto-creation skipped: no subtitles loaded for current media")
+            return
+        end
         Diagnostic.info("TSV file missing - attempting auto-creation: " .. tostring(tsv_path))
         
         -- Build header from actual config fields; fall back to generic defaults
@@ -3976,7 +3983,6 @@ local function update_font_scale()
 end
 
 local function update_media_state()
-    load_anki_tsv()
     Tracks.pri.id = mp.get_property_number("sid", 0)
     Tracks.sec.id = mp.get_property_number("secondary-sid", 0)
     
@@ -4084,6 +4090,10 @@ local function update_media_state()
             FSM.MEDIA_STATE = "DUAL_MIXED"
         end
     end
+    -- Load TSV after MEDIA_STATE is resolved so the NO_SUBS guard works correctly.
+    -- When no subtitles are found, auto-creation is skipped to avoid creating
+    -- empty .tsv files next to media that has no associated subtitles.
+    load_anki_tsv()
     update_interactive_bindings()
 
     -- ASS gatekeeping: disable custom OSD modes in the same transition cycle.
