@@ -44,6 +44,11 @@ def _tsv_export():
         return f.read()
 
 
+def _search():
+    with open("scripts/kardenwort/search.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _input_conf():
     with open("input.conf", encoding="utf-8") as f:
         return f.read()
@@ -127,7 +132,7 @@ class TestLuaScopingCorrection:
         src = _src()
         tu = _text_utils()
         idx_is_word = tu.find("local function is_word_char")
-        idx_boundary = src.find("local function get_word_boundary")
+        idx_boundary = _search().find("local function get_word_boundary")
         assert idx_is_word != -1, "lua-scoping-correction: is_word_char not found"
         assert idx_boundary != -1, "lua-scoping-correction: get_word_boundary not found"
         # is_word_char now lives in text_utils.lua (extracted); get_word_boundary
@@ -225,13 +230,13 @@ class TestWordBasedDeletionLogic:
 
     def test_get_word_boundary_exists(self):
         """get_word_boundary must exist for word-based cursor deletion (word-based-deletion-logic)."""
-        assert "local function get_word_boundary" in _src(), (
+        assert "local function get_word_boundary" in _search(), (
             "word-based-deletion-logic: get_word_boundary not found in kardenwort.lua"
         )
 
     def test_get_word_boundary_accepts_direction(self):
         """get_word_boundary must accept a direction parameter for bidirectional deletion (word-based-deletion-logic)."""
-        src = _src()
+        src = _search()
         idx = src.find("local function get_word_boundary")
         assert idx != -1
         sig = src[idx:idx + 150]
@@ -369,7 +374,7 @@ class TestVariableDrivenRendering:
 
     def test_draw_search_ui_uses_search_colors(self):
         """draw_search_ui (the actual renderer called by render_search) must use color options (variable-driven-rendering)."""
-        src = _src()
+        src = _search()
         idx = src.find("local function draw_search_ui")
         assert idx != -1, "variable-driven-rendering: draw_search_ui not found in kardenwort.lua"
         body = src[idx:idx + 3000]

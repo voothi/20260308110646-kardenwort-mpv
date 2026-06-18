@@ -37,6 +37,11 @@ def _tsv_export():
         return f.read()
 
 
+def _search():
+    with open("scripts/kardenwort/search.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def robust_state(ipc, retries=5):
     from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
@@ -183,7 +188,7 @@ class TestProximityBasedRelevance:
 
     def test_search_results_have_numeric_relevance(self):
         """Search results must carry a numeric relevance score for sorting (proximity-based-relevance)."""
-        src = _src()
+        src = _search()
         has_score = "score" in src and "SEARCH_RESULTS" in src
         assert has_score, (
             "proximity-based-relevance: No 'score' field found in search results logic"
@@ -191,7 +196,7 @@ class TestProximityBasedRelevance:
 
     def test_score_sorting_logic_exists(self):
         """Search results must be sorted by score descending (proximity-based-relevance)."""
-        src = _src()
+        src = _search()
         idx = src.find("SEARCH_RESULTS")
         assert idx != -1
         has_sort = "table.sort" in src and "score" in src
@@ -209,7 +214,7 @@ class TestSearchRelevanceScoring:
 
     def test_search_results_sorted_by_score(self):
         """SEARCH_RESULTS must be sorted by score — highest relevance first (search-relevance-scoring)."""
-        src = _src()
+        src = _search()
         assert "table.sort" in src, (
             "search-relevance-scoring: table.sort not found — results are not sorted"
         )
@@ -240,14 +245,14 @@ class TestSearchUxOptimization:
 
     def test_get_word_boundary_used_in_search_deletion(self):
         """get_word_boundary must be referenced in search mode deletion (search-ux-optimization)."""
-        src = _src()
+        src = _search()
         assert "get_word_boundary" in src, (
             "search-ux-optimization: get_word_boundary not found — word deletion logic missing"
         )
         # The search deletion path must call get_word_boundary
-        idx = src.find("local function move_search_cursor")
+        idx = _search().find("local function move_search_cursor")
         assert idx != -1, "search-ux-optimization: move_search_cursor not found"
-        body = src[idx:idx + 500]
+        body = _search()[idx:idx + 500]
         assert "get_word_boundary" in body, (
             "search-ux-optimization: move_search_cursor does not use get_word_boundary for ctrl+word-delete"
         )
@@ -479,7 +484,7 @@ class TestWordBasedDeletionLogicExtended:
 
     def test_get_word_boundary_called_in_search_context(self):
         """get_word_boundary must be invoked in search mode for Ctrl+word-delete (word-based-deletion-logic)."""
-        src = _src()
+        src = _search()
         idx = src.find("local function move_search_cursor")
         assert idx != -1, "word-based-deletion-logic: move_search_cursor not found"
         body = src[idx:idx + 500]

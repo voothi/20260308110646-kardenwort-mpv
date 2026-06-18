@@ -28,6 +28,10 @@ def _tsv_export_source() -> str:
     return Path("scripts/kardenwort/tsv_export.lua").read_text(encoding="utf-8")
 
 
+def _search_source() -> str:
+    return Path("scripts/kardenwort/search.lua").read_text(encoding="utf-8")
+
+
 def _function_window(src: str, name: str, next_hint: str, span: int = 5000) -> str:
     start = src.find(name)
     assert start != -1, f"{name} not found"
@@ -76,6 +80,7 @@ def test_prepare_export_text_mode_b_falls_back_to_cached_secondary_subs():
 
 def test_visibility_guards_allow_dw_interaction_when_dw_window_on():
     src = _lua_source()
+    search_src = _search_source()
 
     guards = [
         "local function cmd_dw_tooltip_pin(tbl)",
@@ -85,11 +90,13 @@ def test_visibility_guards_allow_dw_interaction_when_dw_window_on():
         "local function cmd_dw_toggle_pink(tbl, was_mouse)",
         "local function cmd_toggle_anki_global()",
         "local function cmd_toggle_drum()",
-        "function cmd_toggle_search()",
+        "function M.cmd_toggle_search()",
     ]
 
     for fn in guards:
-        body = _slice_from(src, fn, span=1300)
+        # cmd_toggle_search moved to search.lua (Phase 8); read from there.
+        lookup_src = search_src if fn == "function M.cmd_toggle_search()" else src
+        body = _slice_from(lookup_src, fn, span=1300)
         assert 'if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then' in body, (
             f"Expected DW visibility bypass guard in {fn}"
         )
@@ -719,9 +726,10 @@ def test_anki_context_extraction_normalizes_inline_break_markers():
 
 def test_search_in_dm_mode_does_not_take_global_border_override():
     src = _lua_source()
+    search_src = _search_source()
     fsm = _function_window(src, "FSM = {", "-- =========================================================================", span=8000)
-    draw_body = _function_window(src, "local function draw_search_ui()", "-- =========================================================================\n-- HELP HUD FEATURE", span=9000)
-    bindings_body = _function_window(src, "local function manage_search_bindings(enable)", "function cmd_toggle_search", span=9000)
+    draw_body = _function_window(search_src, "local function draw_search_ui()", "local function move_search_cursor", span=9000)
+    bindings_body = _function_window(search_src, "local function manage_search_bindings(enable)", "function M.cmd_toggle_search", span=9000)
 
     assert "SEARCH_BORDER_OVERRIDE = false" in fsm
     assert 'FSM.SEARCH_BORDER_OVERRIDE = (FSM.DRUM_WINDOW ~= "OFF")' in bindings_body

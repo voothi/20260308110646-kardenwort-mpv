@@ -40,6 +40,11 @@ def _tsv_export():
         return f.read()
 
 
+def _search():
+    with open("scripts/kardenwort/search.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _input_conf():
     with open("input.conf", encoding="utf-8") as f:
         return f.read()
@@ -412,7 +417,7 @@ class TestDynamicContrastRendering:
 
     def test_draw_search_ui_generates_ass_color_tags(self):
         """draw_search_ui (called by render_search) must generate ASS color tags (dynamic-contrast-rendering)."""
-        src = _src()
+        src = _search()
         idx = src.find("local function draw_search_ui")
         assert idx != -1, "dynamic-contrast-rendering: draw_search_ui not found"
         body = src[idx:idx + 5000]
@@ -431,8 +436,8 @@ class TestTokenizedFuzzySearch:
 
     def test_render_search_handles_query_tokens(self):
         """render_search must process search query for token-based matching (tokenized-fuzzy-search)."""
-        src = _src()
-        idx = src.find("local function render_search")
+        src = _search()
+        idx = src.find("local function update_search_results")
         assert idx != -1
         body = src[idx:idx + 2000]
         has_token_logic = ("token" in body.lower() or "split" in body.lower() or

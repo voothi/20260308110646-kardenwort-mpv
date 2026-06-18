@@ -50,6 +50,11 @@ def _tsv_export():
         return f.read()
 
 
+def _search():
+    with open("scripts/kardenwort/search.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def robust_state(ipc, retries=5):
     from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
@@ -452,7 +457,7 @@ class TestUiIntegrationHooks:
 
     def test_manage_search_bindings_exists(self):
         """manage_search_bindings must exist for search HUD key-binding lifecycle (ui-integration-hooks)."""
-        assert "local function manage_search_bindings" in _src(), (
+        assert "local function manage_search_bindings" in _search(), (
             "ui-integration-hooks: manage_search_bindings not found in kardenwort.lua"
         )
 

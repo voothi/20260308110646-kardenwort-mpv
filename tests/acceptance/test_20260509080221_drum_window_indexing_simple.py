@@ -270,7 +270,7 @@ class TestHistoricalRegressionsV2:
 
     def test_fuzzy_span_calculation(self):
         """Verify match span calculation logic exists (fuzzy-span-calculation)."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/search.lua", encoding="utf-8") as f:
             content = f.read()
         assert "find_fuzzy_indices" in content, (
             "find_fuzzy_indices not found in kardenwort.lua; fuzzy span calculation missing"
