@@ -1,0 +1,28 @@
+{
+    "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+    "runtime.version": "LuaJIT",
+    "workspace.library": [],
+    "diagnostics.globals": [
+        "mp",
+        "drum_osd",
+        "dw_osd",
+        "search_osd",
+        "dw_tooltip_osd",
+        "help_osd_bg",
+        "help_osd_title",
+        "help_osd_1",
+        "help_osd_2",
+        "dw_ensure_visible",
+        "manage_dw_bindings",
+        "update_interactive_bindings",
+        "render_help",
+        "render_search",
+        "cmd_toggle_help",
+        "manage_ui_border_override",
+        "apply_border_override_state"
+    ],
+    "diagnostics.disable": [
+        "inject-field",
+        "lowercase-global"
+    ]
+}

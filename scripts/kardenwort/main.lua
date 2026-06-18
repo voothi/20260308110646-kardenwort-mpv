@@ -104,11 +104,22 @@ do
         return true
     end
 
+    ---@class MpvTimer
+    ---@field kill fun(self: MpvTimer)
+    ---@field is_active fun(self: MpvTimer): boolean
+    ---@field resume fun(self: MpvTimer)
+
+    ---@param seconds number
+    ---@param fn function
+    ---@return MpvTimer?
     mp.add_timeout = function(seconds, fn)
         if not validate_callback("timeout", seconds, fn) then return nil end
         return raw_add_timeout(seconds, fn)
     end
 
+    ---@param seconds number
+    ---@param fn function
+    ---@return MpvTimer?
     mp.add_periodic_timer = function(seconds, fn)
         if not validate_callback("periodic timer", seconds, fn) then return nil end
         return raw_add_periodic_timer(seconds, fn)
@@ -156,12 +167,9 @@ end
 -- =========================================================================
 
 -- Forward declarations for interactive logic
-local manage_dw_bindings
-local update_interactive_bindings
-local render_help, render_search, cmd_toggle_help
-local manage_ui_border_override
-local apply_border_override_state
 local Options
+local get_first_valid_word_idx
+local manage_ui_border_override
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
@@ -1462,47 +1470,45 @@ end
 
 
 -- UI State pointers for Drum Mode OSD
-local drum_osd = mp.create_osd_overlay("ass-events")
+drum_osd = mp.create_osd_overlay("ass-events")
 drum_osd.res_y = Options.font_base_height
 drum_osd.res_x = math.floor(drum_osd.res_y * 16 / 9)
 drum_osd.z = 10
 
-local dw_osd = mp.create_osd_overlay("ass-events")
+dw_osd = mp.create_osd_overlay("ass-events")
 dw_osd.res_y = Options.font_base_height
 dw_osd.res_x = math.floor(dw_osd.res_y * 16 / 9)
 dw_osd.z = 20
 
-local search_osd = mp.create_osd_overlay("ass-events")
+search_osd = mp.create_osd_overlay("ass-events")
 search_osd.res_y = Options.font_base_height
 search_osd.res_x = math.floor(search_osd.res_y * 16 / 9)
 search_osd.z = 30
 
-local dw_tooltip_osd = mp.create_osd_overlay("ass-events")
+dw_tooltip_osd = mp.create_osd_overlay("ass-events")
 dw_tooltip_osd.res_y = Options.font_base_height
 dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
 
-local help_osd_bg = mp.create_osd_overlay("ass-events")
+help_osd_bg = mp.create_osd_overlay("ass-events")
 help_osd_bg.res_y = Options.font_base_height
 help_osd_bg.res_x = math.floor(help_osd_bg.res_y * 16 / 9)
 help_osd_bg.z = 100
 
-local help_osd_title = mp.create_osd_overlay("ass-events")
+help_osd_title = mp.create_osd_overlay("ass-events")
 help_osd_title.res_y = Options.font_base_height
 help_osd_title.res_x = math.floor(help_osd_title.res_y * 16 / 9)
 help_osd_title.z = 101
 
-local help_osd_1 = mp.create_osd_overlay("ass-events")
+help_osd_1 = mp.create_osd_overlay("ass-events")
 help_osd_1.res_y = Options.font_base_height
 help_osd_1.res_x = math.floor(help_osd_1.res_y * 16 / 9)
 help_osd_1.z = 102
 
-local help_osd_2 = mp.create_osd_overlay("ass-events")
+help_osd_2 = mp.create_osd_overlay("ass-events")
 help_osd_2.res_y = Options.font_base_height
 help_osd_2.res_x = math.floor(help_osd_2.res_y * 16 / 9)
 help_osd_2.z = 103
-
-local dw_ensure_visible -- forward declaration
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
@@ -2228,8 +2234,8 @@ local function prepare_export_text(params, options)
                             has_gap = true
                         else
                             -- Consecutive lines: Check for intermediate words (Requirement 151 Adaptive Gap)
-                            local prev_sub_tokens = get_sub_tokens(subs[last_m.line], true)
-                            local next_sub_tokens = get_sub_tokens(subs[m.line], true)
+                            local prev_sub_tokens = get_sub_tokens(subs[last_m.line], true) or {}
+                            local next_sub_tokens = get_sub_tokens(subs[m.line], true) or {}
                             for _, t in ipairs(prev_sub_tokens) do
                                 if t.logical_idx and t.logical_idx > last_m.word + L_EPSILON and t.is_word then
                                     has_gap = true; break
@@ -2599,6 +2605,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
             local match_found = false
             local term_is_split = false
             local term_is_local_split = false
+            local is_in_footprint = false
             
             -- Performance: Lazy-cache processed term data
             if not data.__term_clean then
@@ -2675,7 +2682,7 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
 
             if Options.anki_global_highlight or in_span or in_window then
                 -- Footprint Check for intersection depth
-                local is_in_footprint = false
+                is_in_footprint = false
                 if t_center ~= -1 and data.__min_l then
                     local t_start = (t_center + data.__min_l) * 1000 + data.__min_w
                     local t_end = (t_center + data.__max_l) * 1000 + data.__max_w
@@ -3340,7 +3347,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     end
     if context_end < last_idx then
         local shift = last_idx - context_end
-        context_end = last_idx
+        context_end = last_idx or context_end
         context_start = math.max(1, context_start - shift)
     end
     
@@ -3604,12 +3611,11 @@ local function load_anki_tsv(force, quiet)
     end
 
     if fingerprint_match and not force and next(FSM.ANKI_HIGHLIGHTS) ~= nil then
-        -- Fingerprint matches and we have data: skip expensive reload
+        -- Skip reload if fingerprint matches
         return 
     end
 
-    -- Load config before attempting file open so the auto-created header
-    -- matches the actual anki_mapping.ini field names, not hardcoded defaults.
+    -- Load mapping config before opening file
     local config = load_anki_mapping_ini()
 
     local term_cols = {}
@@ -3633,14 +3639,11 @@ local function load_anki_tsv(force, quiet)
         term_header_name = config.fields[term_cols[1]]
     end
 
-    -- Use utils.read_file for robust UTF-8 path handling on Windows
-    -- Use safe_read_file for robust path handling and version compatibility
+    -- Read file with safety check
     local content = safe_read_file(tsv_path)
     if not content then
         FSM.ANKI_HIGHLIGHTS = {}
-        -- Do not auto-create the TSV when no subtitles are loaded for the current media.
-        -- This prevents empty header-only files from appearing next to mp3/mp4 files
-        -- that have no associated subtitle tracks.
+        -- Skip auto-creation if no subtitles loaded
         if FSM.MEDIA_STATE == "NO_SUBS" then
             Diagnostic.info("TSV auto-creation skipped: no subtitles loaded for current media")
             return
@@ -3753,8 +3756,8 @@ local function load_anki_tsv(force, quiet)
                             for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
                                 local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
                                 if l_off then
-                                    local r_l = tonumber(l_off)
-                                    local r_w = tonumber(p_idx)
+                                    local r_l = tonumber(l_off) or 0
+                                    local r_w = tonumber(p_idx) or 0
                                     table.insert(data.__pivots, {l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos)})
                                     
                                     if r_l < min_l then min_l = r_l; min_w = r_w
@@ -3867,9 +3870,10 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     end
 
     local f_check = io.open(tsv_path, "r")
-    local exists = (f_check ~= nil)
+    local exists = false
     local is_empty = true
-    if exists then 
+    if f_check then 
+        exists = true
         local content = f_check:read(1)
         if content then is_empty = false end
         f_check:close() 
@@ -4702,7 +4706,7 @@ local function dw_build_layout(subs, view_center)
         end
 
         if not entry then
-            local tokens = get_sub_tokens(s)
+            local tokens = get_sub_tokens(s) or {}
             if #tokens == 0 then tokens = {{text=""}} end
 
             local logical_words = {}
@@ -5047,7 +5051,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     
     for i = start_idx, end_idx do
         local sub = tooltip_sec_subs[i]
-        local tokens = get_sub_tokens(sub, true) -- Task 2.1
+        local tokens = get_sub_tokens(sub, true) or {} -- Task 2.1
         
         -- Task 2.2 / 2.4: Wrap tokens
         local vline_indices = wrap_tokens(tokens, max_text_w, fs, font_name, true)
@@ -5092,7 +5096,7 @@ local function draw_dw_tooltip(subs, target_line_idx, osd_y)
                 
                 local final_bold = (tm.priority == 3) and Options.anki_highlight_bold or Options.tooltip_highlight_bold
                 local is_man = (tm.priority == 1 or tm.priority == 2)
-                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, style_ctx.bg_color, bg_alpha, style_ctx.bord)
+                line_text = line_text .. format_highlighted_word(t, tm.color, base_color, tm.is_phrase, bold_state, true, final_bold, is_man, style_ctx.bg_color, style_ctx.bg_alpha, style_ctx.bord)
                 line_w = line_w + ww
             end
             local line_prefix = string.format("{\\fn%s}{\\fs%d}{\\b%s}{\\1c&H%s&}", font_name, fs, bold_state, base_color)
@@ -5259,7 +5263,7 @@ local function dw_hit_test(osd_x, osd_y)
         else
             local last_sub = subs[last_zone.sub_idx]
             if last_sub then
-                local tokens = get_sub_tokens(last_sub)
+                local tokens = get_sub_tokens(last_sub) or {}
                 local cnt = 0
                 for _, t in ipairs(tokens) do
                     if is_word_token(t) then cnt = cnt + 1 end
@@ -5305,7 +5309,7 @@ local function dw_hit_test(osd_x, osd_y)
         else
             local sub = subs[best_zone.sub_idx]
             if sub then
-                local tokens = get_sub_tokens(sub)
+                local tokens = get_sub_tokens(sub) or {}
                 local cnt = 0
                 for _, t in ipairs(tokens) do
                     if is_word_token(t) then cnt = cnt + 1 end
@@ -7223,7 +7227,7 @@ local function ensure_sub_layout(sub)
         return sub.layout_cache.entry
     end
 
-    local tokens = get_sub_tokens(sub)
+    local tokens = get_sub_tokens(sub) or {}
     if #tokens == 0 then tokens = {{text=""}} end
     local font_size = Options.dw_font_size
     local font_name = Options.dw_font_name
@@ -7288,7 +7292,7 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
     local entry = ensure_sub_layout(sub)
     if not entry then return -1 end
     
-    local words = entry.words
+    local words = entry.words or {}
     local vlines = entry.vlines
     local visual_to_logical = {}
     for j, t in ipairs(words or {}) do
@@ -7594,11 +7598,13 @@ local function cmd_dw_line_move(dir, shift, evt)
     -- Cross-subtitle Vertical Navigation
     for l = line_idx + dir, (dir > 0 and #subs or 1), dir do
         local entry = ensure_sub_layout(subs[l])
-        local target_vl = (dir > 0) and 1 or #entry.vlines
-        local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true, target_vl)
-        if w ~= -1 then
-            FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
-            break
+        if entry then
+            local target_vl = (dir > 0) and 1 or #entry.vlines
+            local w = dw_closest_word_at_x(subs[l], FSM.DW_CURSOR_X, true, target_vl)
+            if w ~= -1 then
+                FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD = l, w
+                break
+            end
         end
     end
 
@@ -7627,7 +7633,7 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
         
         FSM.DW_CURSOR_LINE = line_idx
         local raw_sub = subs[line_idx]
-        local tokens = get_sub_tokens(raw_sub, true)
+        local tokens = get_sub_tokens(raw_sub, true) or {}
         local logical_tokens = {}
         for _, t in ipairs(tokens) do
             if t.logical_idx and not t.text:match("^%s*$") then
@@ -7656,7 +7662,7 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
     local raw_sub = subs[line_idx]
     if not raw_sub then return end
     
-    local tokens = get_sub_tokens(raw_sub, true)
+    local tokens = get_sub_tokens(raw_sub, true) or {}
     local logical_tokens = {}
     for i, t in ipairs(tokens) do
         if t.logical_idx and not t.text:match("^%s*$") then
@@ -7717,7 +7723,7 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
         local next_line = line_idx + (dir > 0 and 1 or -1)
         if next_line >= 1 and next_line <= #subs then
             FSM.DW_CURSOR_LINE = next_line
-            local next_tokens = get_sub_tokens(subs[next_line], true)
+            local next_tokens = get_sub_tokens(subs[next_line], true) or {}
             local next_logical = {}
             for _, t in ipairs(next_tokens) do
                 if t.logical_idx and not t.text:match("^%s*$") then
@@ -11453,7 +11459,7 @@ mp.register_script_message("test-dw-export-pink", function()
 end)
 
 mp.register_script_message("test-dw-export-yellow", function()
-    cmd_dw_anki_export_selection()
+    dw_anki_export_selection()
 end)
 
 mp.register_script_message("test-prepare-export", function(type, p1_l, p1_w, p2_l, p2_w)
@@ -11608,9 +11614,9 @@ mp.register_script_message("test-dw-key", function(key)
         FSM.DW_TOOLTIP_FORCE = not FSM.DW_TOOLTIP_FORCE
         if FSM.DW_TOOLTIP_FORCE then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end
     elseif key == "r" then
-        cmd_dw_pair_word()
+        cmd_dw_toggle_pink()
     elseif key == "o" then
-        cmd_dw_open_record()
+        cmd_open_record_file()
     end
 end)
 
