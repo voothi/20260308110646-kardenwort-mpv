@@ -170,6 +170,7 @@ end
 local Options
 local get_first_valid_word_idx
 local manage_ui_border_override
+local has_cyrillic
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
@@ -956,11 +957,6 @@ function show_seek_osd(msg, alignment)
         end)
         return
     end
-end
-
-function has_cyrillic(str)
-    if not str then return false end
-    return str:match("[\208-\209][\128-\191]") ~= nil
 end
 
 local function get_effective_boundaries(subs, sub, idx)
@@ -1961,7 +1957,7 @@ local function utf8_to_lower(str)
     return (res:gsub("[%z\1-\127\194-\244][\128-\191]*", CYRILLIC_MAP))
 end
 
-local function has_cyrillic(str)
+has_cyrillic = function(str)
     if not str then return false end
     return str:find("[\208\209]") ~= nil
 end
