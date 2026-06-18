@@ -16,10 +16,16 @@ import re
 
 
 LUA = "scripts/kardenwort/main.lua"
+TEXT_UTILS = "scripts/kardenwort/text_utils.lua"
 
 
 def _lua():
     with open(LUA, encoding="utf-8") as f:
+        return f.read()
+
+
+def _text_utils():
+    with open(TEXT_UTILS, encoding="utf-8") as f:
         return f.read()
 
 
@@ -143,7 +149,7 @@ def test_is_abbrev_function_exists_and_uses_list():
     Spec: Abbreviation-Aware Sentence Boundary Detection
     Spec: Configurable Abbreviation Allowlist
     """
-    content = _lua()
+    content = _text_utils()
     assert "local function is_abbrev" in content, (
         "is_abbrev function not found in main.lua"
     )
@@ -245,7 +251,7 @@ def test_anki_abbrev_list_includes_german_defaults():
 def test_is_abbrev_accepts_lookahead_argument():
     """is_abbrev must accept a second lookahead argument so callers can disambiguate
     a real sentence end ("work. Microsoft") from a mid-sentence abbreviation ("ca. 3 km")."""
-    content = _lua()
+    content = _text_utils()
     assert re.search(r"local function is_abbrev\(w,\s*lookahead\)", content), (
         "is_abbrev must accept an optional lookahead character argument"
     )
@@ -255,7 +261,7 @@ def test_is_abbrev_suppresses_lowercase_heuristic_on_uppercase_lookahead():
     """The 1-4 lowercase letter heuristic must be suppressed when the look-ahead
     character is uppercase — otherwise common English/German words such as
     "work.", "view.", "many.", "this." misfire as abbreviations."""
-    content = _lua()
+    content = _text_utils()
     idx = content.find("local function is_abbrev(w, lookahead)")
     assert idx != -1, "Patched is_abbrev signature not found"
     body = content[idx:idx + 1200]

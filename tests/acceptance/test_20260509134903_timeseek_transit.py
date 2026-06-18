@@ -51,6 +51,11 @@ def _src():
         return f.read()
 
 
+def _subtitle_parser():
+    with open("scripts/kardenwort/subtitle_parser.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _state(ipc, retries=6):
     for _ in range(retries):
         s = query_kardenwort_state(ipc)
@@ -269,14 +274,14 @@ class TestTimseekTransitStructural:
 
     def test_get_effective_boundaries_cross_card_gate_present(self):
         """get_effective_boundaries must apply PHRASE transit seam only for cross-card transit."""
-        body = _func_body(_src(), "get_effective_boundaries")
+        body = _func_body(_subtitle_parser(), "get_effective_boundaries")
         assert "FSM.REWIND_TRANSIT_CROSS_CARD" in body, (
             "get_effective_boundaries missing REWIND_TRANSIT_CROSS_CARD gate"
         )
 
     def test_get_effective_boundaries_has_space_hold_phrase_movie_override(self):
         """Holding Space in Autopause ON + PHRASE must force MOVIE-like boundaries only after tap window."""
-        body = _func_body(_src(), "get_effective_boundaries")
+        body = _func_body(_subtitle_parser(), "get_effective_boundaries")
         assert (
             "FSM.AUTOPAUSE == \"ON\"" in body
             and "FSM.PHYSICAL_SPACE_HOLD" in body

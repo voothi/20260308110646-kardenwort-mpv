@@ -111,7 +111,7 @@ class TestArchitecturalRemediation:
 
     def test_word_char_map_is_unified_tokenizer(self):
         """WORD_CHAR_MAP must be present as the single O(1) word-char lookup table."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/text_utils.lua", encoding="utf-8") as f:
             content = f.read()
         assert "WORD_CHAR_MAP" in content, (
             "WORD_CHAR_MAP not found; unified O(1) tokenizer is missing"

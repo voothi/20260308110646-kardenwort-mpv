@@ -11,6 +11,8 @@ if script_dir then
     package.path = script_dir .. "/?.lua;" .. package.path
 end
 
+local text_utils = require 'text_utils'
+local subtitle_parser = require 'subtitle_parser'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
@@ -170,9 +172,37 @@ end
 local Options
 local get_first_valid_word_idx
 local manage_ui_border_override
-local has_cyrillic
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
+
+-- text_utils aliases (Phase 2): keep existing call sites resolving to module fns.
+local utf8_to_table = text_utils.utf8_to_table
+local utf8_to_lower = text_utils.utf8_to_lower
+local utf8_truncate = text_utils.utf8_truncate
+local is_word_char = text_utils.is_word_char
+local is_abbrev = text_utils.is_abbrev
+local logical_cmp = text_utils.logical_cmp
+local build_word_list_internal = text_utils.build_word_list_internal
+local build_word_list = text_utils.build_word_list
+local get_sub_tokens = text_utils.get_sub_tokens
+local is_word_token = text_utils.is_word_token
+local clean_text_srt = text_utils.clean_text_srt
+local normalize_inline_break_markers = text_utils.normalize_inline_break_markers
+local calculate_ass_alpha = text_utils.calculate_ass_alpha
+local build_copy_preview = text_utils.build_copy_preview
+has_cyrillic = text_utils.has_cyrillic
+
+-- Shared numeric epsilon retained for main.lua call sites (logical_cmp moved
+-- to text_utils but L_EPSILON is still referenced directly by range checks here).
+local L_EPSILON = 0.0001
+
+-- subtitle_parser aliases (Phase 3): keep existing call sites resolving to module fns.
+local parse_time = subtitle_parser.parse_time
+local load_sub = subtitle_parser.load_sub
+local find_sub_containing_start = subtitle_parser.find_sub_containing_start
+local get_center_index = subtitle_parser.get_center_index
+local get_center_index_static = subtitle_parser.get_center_index_static
+local get_effective_boundaries = subtitle_parser.get_effective_boundaries
 
 
 -- =========================================================================
@@ -850,6 +880,12 @@ FSM.notice_osd.res_x = math.floor(FSM.notice_osd.res_y * 16 / 9)
 FSM.notice_osd.z = Options.notice_osd_layer
 FSM.notice_timer = nil
 
+-- Phase 2: inject singletons into extracted text_utils module.
+text_utils.init(FSM, Options)
+
+-- Phase 3: inject singletons + safe_read_file into extracted subtitle_parser module.
+subtitle_parser.init(FSM, Options, Tracks, Diagnostic, safe_read_file)
+
 function show_osd(msg, dur)
     local text = tostring(msg or "")
     -- IPC diagnostics contract used by acceptance tests
@@ -957,198 +993,6 @@ function show_seek_osd(msg, alignment)
         end)
         return
     end
-end
-
-local function get_effective_boundaries(subs, sub, idx)
-    if not sub then return nil, nil end
-    local pad_start = (Options.audio_padding_start or 0) / 1000
-    local pad_end = (Options.audio_padding_end or 0) / 1000
-    
-    local start = sub.start_time - pad_start
-    local stop = sub.end_time + pad_end
-    
-    -- [v1.58.51] Movie Mode: Seamless handover at the next subtitle's padded start.
-    -- This prevents overlapping audio loops while still ensuring the pre-roll is heard.
-    -- [20260510193230] PHRASE Mode: Seamless handover during rewind transit to prevent overlay/jerking.
-    local hold_elapsed = mp.get_time() - (FSM.space_down_time or 0)
-    local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
-        and FSM.IMMERSION_MODE == "PHRASE"
-        and FSM.PHYSICAL_SPACE_HOLD
-        and hold_elapsed > Options.space_tap_delay
-
-    if FSM.IMMERSION_MODE == "MOVIE"
-       or phrase_space_movie_override
-       or (FSM.IMMERSION_MODE == "PHRASE" and FSM.TIMESEEK_INHIBIT_UNTIL and FSM.REWIND_TRANSIT_CROSS_CARD) then
-        if idx and subs and idx < #subs then
-            stop = subs[idx + 1].start_time - pad_start
-            -- Guard: never pause before SRT end_time (short gaps shrink the handover boundary)
-            if stop < sub.end_time then stop = sub.end_time end
-        end
-    end
-    
-    return start, stop
-end
-
--- Find the last sub whose start_time is <= time_pos (raw SRT window lookup).
--- Returns -1 if time_pos is before the first sub's start_time.
--- Declared global (not local) to stay within Lua's 200-local-variable limit per chunk.
-function find_sub_containing_start(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
-    local low, high = 1, #subs
-    local best = -1
-    while low <= high do
-        local mid = math.floor((low + high) / 2)
-        if subs[mid].start_time <= time_pos then
-            best = mid
-            low = mid + 1
-        else
-            high = mid - 1
-        end
-    end
-    return best
-end
-
-function get_center_index(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
-    
-    -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
-    -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
-    -- [20260507154518] Extended to secondary track via FSM.SEC_ACTIVE_IDX to prevent desync when
-    -- padded windows overlap (audio_padding_end + audio_padding_start > inter-subtitle gap).
-    local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX or
-                       (subs == Tracks.sec.subs and FSM.SEC_ACTIVE_IDX or -1)
-
-    -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
-    -- don't let the sticky logic pull us back to the previous one during the overlap.
-    if FSM.IMMERSION_MODE == "PHRASE" and FSM.JUST_JERKED_TO ~= -1 then
-        active_idx = FSM.JUST_JERKED_TO
-    end
-
-    -- Post-manual-seek bypass: if the active index disagrees with the explicit
-    -- seek target (or with the raw sub that contains time_pos), drop the sticky
-    -- sentinel so progression can advance. When active_idx already matches the
-    -- seek target, sticky focus is preserved (e.g. d-seek from sub 2 to sub 3
-    -- should not be pulled back to sub 2 by pad-window overlap).
-    if mp.get_time() < FSM.MANUAL_NAV_COOLDOWN and active_idx ~= -1 then
-        local is_pri = (subs == Tracks.pri.subs)
-        local target_idx = is_pri and FSM.MANUAL_NAV_TARGET_IDX or FSM.SEC_MANUAL_NAV_TARGET_IDX
-        -- target_idx is nil for raw (non-script) seeks; in that case the
-        -- mismatch test below still gates on the raw-window check, so the
-        -- bypass only fires when time_pos is provably inside a different sub.
-        if active_idx ~= target_idx then
-            local best = find_sub_containing_start(subs, time_pos)
-            if best ~= -1 and time_pos <= subs[best].end_time and best ~= active_idx then
-                active_idx = -1
-            end
-        end
-    end
-
-    -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
-    -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
-    -- transition to `i+1` - never skip intermediate subs even when large
-    -- audio_padding values cause multiple subs' padded zones to overlap time_pos.
-    -- [202605091854] Priority Fix: Check for forward progression BEFORE sticky focus
-    -- to ensure we don't get stuck in the overlap zone (e.g. 2.05s when sub1 ends
-    -- at 2.0 and sub2 starts at 2.2 with 200ms padding).
-    -- [20260509192327] Expiry Fix: Use padded end (e_current) in both PHRASE and MOVIE
-    -- modes. PHRASE mode previously used raw SRT end_time, which caused premature
-    -- transitions when padded windows overlapped (large padding). The sentinel should
-    -- hold until the full audio window of sub i expires, regardless of immersion mode.
-    if active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
-        local next_idx = active_idx + 1
-        local s_next, e_next = get_effective_boundaries(subs, subs[next_idx], next_idx)
-        if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
-            local _, e_current = get_effective_boundaries(subs, subs[active_idx], active_idx)
-
-            -- Natural Progression: transition only after the current sub's padded window expires.
-            if time_pos >= e_current - Options.nav_tolerance then
-                return next_idx
-            end
-        end
-    end
-
-    if active_idx and active_idx ~= -1 and subs[active_idx] then
-        local s, e = get_effective_boundaries(subs, subs[active_idx], active_idx)
-        -- Tolerate sub-frame seek rounding around exact padded boundaries.
-        -- Without this, manual `d` can land a few milliseconds before `s`,
-        -- causing fallback to previous raw SRT index and apparent "stuck next".
-        if time_pos >= (s - Options.nav_tolerance) and time_pos <= (e + Options.nav_tolerance) then
-            return active_idx
-        end
-    end
-
-    local best = find_sub_containing_start(subs, time_pos)
-    if best == -1 then return 1 end
-    
-    -- [v1.58.52] Absolute Start Guard: If we are at the very beginning, always return first sub
-    if time_pos <= 0 then return 1 end
-
-    -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's
-    -- padded start has begun, the next sub wins immediately.
-    -- The Sticky Sentinel check above ensures we don't switch until the
-    -- previous sub's padded end is finished.
-    -- [20260509192327] Guard: Only apply Overlap Priority when we are past the
-    -- current best sub's actual SRT end_time (i.e., in a true gap). When the
-    -- playhead is inside subs[best]'s raw SRT window, that sub has hard priority
-    -- and no padding-induced overlap from the next sub should override it.
-    if best < #subs and time_pos > subs[best].end_time then
-        local next_sub = subs[best + 1]
-        local s_next, _ = get_effective_boundaries(subs, next_sub, best + 1)
-        if time_pos >= s_next - Options.nav_tolerance then
-            return best + 1
-        end
-    end
-    
-    if time_pos <= subs[best].end_time then
-        return best
-    end
-    
-    -- If we are in a gap, check the next subtitle's padded start
-    if best < #subs then
-        local next_sub = subs[best + 1]
-        local s_next, _ = get_effective_boundaries(subs, next_sub)
-        if time_pos >= s_next then
-            return best + 1
-        end
-
-        -- Proximity fallback
-        if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
-            return best
-        else
-            return best + 1
-        end
-    end
-    
-    return best
-end
-
--- Playback-independent resolver for static grounding (TSV anchors, probes).
--- Unlike get_center_index(), this must not depend on ACTIVE_IDX sticky state.
--- Declared global (not local) to stay within Lua's 200-local-variable limit per chunk.
-function get_center_index_static(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
-
-    local best = find_sub_containing_start(subs, time_pos)
-
-    if best == -1 then return 1 end
-
-    if time_pos <= subs[best].end_time then
-        return best
-    end
-
-    if best < #subs then
-        local next_sub = subs[best + 1]
-        if time_pos >= next_sub.start_time then
-            return best + 1
-        end
-        if (time_pos - subs[best].end_time) < (next_sub.start_time - time_pos) then
-            return best
-        else
-            return best + 1
-        end
-    end
-
-    return best
 end
 
 
@@ -1307,165 +1151,6 @@ local function dw_apply_post_transition_selection(target_word)
         local pointer_active = (FSM.DW_CURSOR_WORD and FSM.DW_CURSOR_WORD ~= -1)
         FSM.DW_FOLLOW_PLAYER = follow_after_transition and not pointer_active
     end
-end
-
-function parse_time(time_str)
-    local h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+),(%d+)")
-    if h and m and s and ms then
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + tonumber(ms) / 1000
-    end
-    h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
-    if h and m and s and ms then
-        local ms_val = tonumber(ms)
-        if #ms == 2 then ms_val = ms_val * 10 end -- Centiseconds to milliseconds
-        return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + ms_val / 1000
-    end
-    return 0
-end
-
-function normalize_inline_break_markers(text)
-    if not text or text == "" then return text or "" end
-    -- Normalize escaped ASS-style break markers that may appear in SRT/TXT content.
-    -- Keep boundaries clean so downstream newline->space conversion does not create
-    -- synthetic double spaces.
-    local rules = {
-        { pat = "\\+N", repl = "\n", tag = "\\N" },
-        { pat = "\\+n", repl = "\n", tag = "\\n" },
-        { pat = "\\+h", repl = " ", tag = "\\h" }
-    }
-    local tags_str = " " .. (Options.unescape_tags or "") .. " "
-    for _, rule in ipairs(rules) do
-        if tags_str:find(" " .. rule.tag .. " ", 1, true) then
-            text = text:gsub(rule.pat, rule.repl)
-        end
-    end
-    text = text:gsub("[ \t]*\n[ \t]*", "\n")
-    return text
-end
-
-function clean_text_srt(line)
-    if not line then return "" end
-    line = line:gsub("^\xEF\xBB\xBF", "")
-    line = line:gsub("\r", ""):gsub("<[^>]+>", ""):gsub("%z", "")
-    line = normalize_inline_break_markers(line)
-    return line:gsub("^%s*(.-)%s*$", "%1")
-end
-
-function load_sub(path, is_ass)
-    if not path or path == "" then return {} end
-    Diagnostic.info("Loading subtitle file: " .. tostring(path))
-    local content = safe_read_file(path)
-    if not content then 
-        Diagnostic.error("Failed to read subtitle file: " .. tostring(path))
-        return {} 
-    end
-    
-    local subs = {}
-    local current_sub = nil
-    
-    if is_ass then
-        for line in (content .. "\n"):gmatch("(.-)\r?\n") do
-            if line:match("^Dialogue:") then
-                local first_colon = line:find(":")
-                if first_colon then
-                    local line_content = line:sub(first_colon + 1)
-                    line_content = line_content:gsub("^%s+", "")
-                    local parts = {}
-                    local last_pos = 1
-                    for i = 1, 9 do
-                        local comma_pos = line_content:find(",", last_pos)
-                        if not comma_pos then break end
-                        table.insert(parts, line_content:sub(last_pos, comma_pos - 1))
-                        last_pos = comma_pos + 1
-                    end
-                    if #parts == 9 then
-                        local text = line_content:sub(last_pos)
-                        local start_str = parts[2]:match("^%s*(.-)%s*$")
-                        local end_str = parts[3]:match("^%s*(.-)%s*$")
-                        if start_str and end_str and text then
-                            local raw_text = normalize_inline_break_markers(text):gsub("{[^}]+}", "")
-                            raw_text = raw_text:gsub("%z", ""):match("^%s*(.-)%s*$")
-                            if raw_text ~= "" then
-                                local parsed_start = parse_time(start_str)
-                                local parsed_end = parse_time(end_str)
-                                local merged = false
-                                local prev = subs[#subs]
-                                if prev and prev.raw_text == raw_text then
-                                    if parsed_start <= prev.end_time + 0.2 then
-                                        prev.end_time = math.max(prev.end_time, parsed_end)
-                                        merged = true
-                                    end
-                                end
-                                if not merged then
-                                    table.insert(subs, {
-                                        start_time = parsed_start,
-                                        end_time = parsed_end,
-                                        text = raw_text,
-                                        raw_text = raw_text
-                                    })
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        table.sort(subs, function(a, b) return a.start_time < b.start_time end)
-    else
-        local state = "ID"
-        for raw_line in (content .. "\n"):gmatch("(.-)\r?\n") do
-            local line = clean_text_srt(raw_line)
-            if line == "" then
-                if current_sub and current_sub.text ~= "" then
-                    current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-                    local merged = false
-                    local prev = subs[#subs]
-                    if prev and prev.raw_text == current_sub.raw_text then
-                        if current_sub.start_time <= prev.end_time + 0.2 then
-                            prev.end_time = math.max(prev.end_time, current_sub.end_time)
-                            merged = true
-                        end
-                    end
-                    if not merged then
-                        table.insert(subs, current_sub)
-                    end
-                end
-                current_sub = nil
-                state = "ID"
-            elseif state == "ID" then
-                if line:match("^%d+$") then
-                    current_sub = {text = ""}
-                    state = "TIME"
-                end
-            elseif state == "TIME" then
-                local s, e = line:match("^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>%s*(%d%d:%d%d:%d%d[,.]%d%d%d)")
-                if s and e then
-                    if current_sub then
-                        current_sub.start_time = parse_time(s)
-                        current_sub.end_time = parse_time(e)
-                    end
-                    state = "TEXT"
-                end
-            elseif state == "TEXT" then
-                if current_sub then
-                    if current_sub.text == "" then
-                        current_sub.text = line
-                    else
-                        current_sub.text = current_sub.text .. "\n" .. line
-                    end
-                end
-            end
-        end
-        if current_sub and current_sub.text ~= "" then
-            current_sub.raw_text = current_sub.text:match("^%s*(.-)%s*$")
-            table.insert(subs, current_sub)
-        end
-    end
-    
-    if subs and #subs > 0 then
-        Diagnostic.info(string.format("Parsed %d subtitles from %s", #subs, path))
-    end
-    return subs
 end
 
 
@@ -1892,233 +1577,11 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
     return escape_tsv(source)
 end
 
-local function calculate_ass_alpha(val)
-    if type(val) == "string" and #val == 2 and val:match("%x%x") then
-        return val:upper()
-    end
-    local num = tonumber(val)
-    if not num then return "00" end
-    -- Legacy numeric values are transparency percentages, not CSS-style opacity.
-    -- Prefer explicit ASS alpha values: 00 is opaque, FF is fully transparent.
-    -- If value is 0-1 (decimal opacity), convert to transparency percentage
-    if num >= 0 and num <= 1 then
-        num = (1.0 - num) * 100
-    end
-    -- Clamp to 0-100
-    num = math.max(0, math.min(100, num))
-    -- Convert 0-100 transparency to 00-FF hex
-    local hex = string.format("%02X", math.floor((num / 100) * 255 + 0.5))
-    return hex
-end
-
-
-
-
-
-local function utf8_to_table(str)
-    local t = {}
-    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
-        table.insert(t, ch)
-    end
-    return t
-end
-
-local function utf8_truncate(str, max_chars)
-    if not str or str == "" then return "" end
-    local chars = utf8_to_table(str)
-    if #chars <= max_chars then return str end
-    local out = {}
-    for i = 1, max_chars do
-        out[#out + 1] = chars[i]
-    end
-    return table.concat(out, "") .. "..."
-end
-
-local function build_copy_preview(label, text, max_chars)
-    return tostring(label or "DW") .. " Copied: " .. utf8_truncate(text or "", max_chars or 40)
-end
-
--- Module-scope Cyrillic case-mapping tables (created once at load time).
--- Hoisted from utf8_to_lower() to eliminate per-call allocation overhead.
-local CYRILLIC_UPPER = utf8_to_table("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯÄÖÜẞ")
-local CYRILLIC_LOWER = utf8_to_table("абвгдеёжзийклмнопрстуфхцчшщъыьэюяäöüß")
-
-local CYRILLIC_MAP = {}
-for i = 1, #CYRILLIC_UPPER do
-    CYRILLIC_MAP[CYRILLIC_UPPER[i]] = CYRILLIC_LOWER[i]
-end
-
-local WORD_CHAR_MAP = {}
-for _, ch in ipairs(CYRILLIC_UPPER) do WORD_CHAR_MAP[ch] = true end
-for _, ch in ipairs(CYRILLIC_LOWER) do WORD_CHAR_MAP[ch] = true end
-
-local function utf8_to_lower(str)
-    local res = str:lower()
-    return (res:gsub("[%z\1-\127\194-\244][\128-\191]*", CYRILLIC_MAP))
-end
-
-has_cyrillic = function(str)
-    if not str then return false end
-    return str:find("[\208\209]") ~= nil
-end
-
-local function is_word_char(c)
-    if not c or #c == 0 then return false end
-    -- ASCII alphanumeric + apostrophe
-    if c:match("^[%w']$") then return true end
-    -- German/Russian/Cyrillic support via O(1) lookup map
-    return WORD_CHAR_MAP[c] == true
-end
-
-
-
-
-
-local function is_abbrev(w, lookahead)
-    if not w then return false end
-    local l_word = w:lower()
-    local abbrev_list = " " .. (Options.anki_abbrev_list or ""):lower() .. " "
-    if abbrev_list:find(" " .. l_word .. " ", 1, true) then return true end
-    if Options.anki_abbrev_smart then
-        -- The 1-4 lowercase letter heuristic catches German shorts like ca./usw./vgl.,
-        -- but also misfires on common 3-5 char English/German words at sentence end
-        -- ("work.", "view.", "use.", "way."). Real sentence terminators are almost
-        -- always followed by an uppercase letter; when the look-ahead is uppercase
-        -- we suppress the heuristic so the explicit list stays authoritative.
-        local heuristic_suppressed = lookahead and lookahead:match("^%u$") ~= nil
-        if not heuristic_suppressed and w:match("^%l+%.$") and #w <= 5 then return true end
-        if w:match("^%u%.$") then return true end
-        if w:match("^%u%.%u%.$") then return true end
-    end
-    return false
-end
-
 local function clean_anki_term(term)
     if not term or term == "" then return "" end
     term = term:gsub("{[^}]+}", "")
     term = term:match("^%s*(.-)%s*$")
     return term or ""
-end
-
-local L_EPSILON = 0.0001
-
-local function logical_cmp(a, b)
-    if not a or not b then return false end
-    return math.abs(a - b) < L_EPSILON
-end
-
-
-local function build_word_list_internal(text, keep_spaces)
-    local tokens = {}
-    if not text then return tokens end
-    
-    local chars = utf8_to_table(text)
-    local i = 1
-    local n = #chars
-    local curr_logical_idx = 1
-    local curr_sub_idx = 0.1
-    local curr_visual_idx = 1
-    
-    while i <= n do
-        local c = chars[i]
-        local token = { text = "", is_word = false, logical_idx = nil, visual_idx = curr_visual_idx }
-        
-        -- 1. Handle ASS Tags (Atomize)
-        if c == "{" then
-            local start = i
-            while i <= n and chars[i] ~= "}" do i = i + 1 end
-            token.text = table.concat(chars, "", start, math.min(i, n))
-            i = i + 1
-            
-        -- 2. (Metadata brackets now handled by is_word_char/is_word logic)
-            
-        -- 3. Handle Whitespace
-        elseif c:match("^%s$") or c == "\194\160" then
-            local start = i
-            while i <= n and (chars[i]:match("^%s$") or chars[i] == "\194\160") do i = i + 1 end
-            if keep_spaces then
-                token.text = table.concat(chars, "", start, i - 1)
-                token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
-                curr_sub_idx = curr_sub_idx + 0.1
-            else
-                token = nil
-            end
-            
-        -- 4. Handle Word Characters (Scanning contiguous blocks)
-        elseif is_word_char(c) then
-            local start = i
-            while i <= n and is_word_char(chars[i]) do i = i + 1 end
-            token.text = table.concat(chars, "", start, i - 1)
-            token.is_word = true
-            -- Optimization: Pre-calculate normalized lowercase for hot-path matching
-            token.lower_clean = utf8_to_lower(token.text:gsub("[%p%s]", ""))
-            token.logical_idx = curr_logical_idx
-            curr_logical_idx = curr_logical_idx + 1
-            curr_sub_idx = 0.1
-
-        -- 5. Handle Line Breaks (Atomize \N, \n, \h)
-        elseif c == "\\" and i < n and (chars[i+1] == "N" or chars[i+1] == "n" or chars[i+1] == "h") then
-            token.text = c .. chars[i+1]
-            token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
-            curr_sub_idx = curr_sub_idx + 0.1
-            i = i + 2
-            
-        -- 6. Handle Punctuation/Misc (Atomic Separator)
-        else
-            token.text = c
-            token.logical_idx = (curr_logical_idx - 1) + curr_sub_idx
-            curr_sub_idx = curr_sub_idx + 0.1
-            i = i + 1
-        end
-
-        if token then
-            table.insert(tokens, token)
-            curr_visual_idx = curr_visual_idx + 1
-        end
-    end
-    return tokens
-end
-
-local function build_word_list(text)
-    local tokens = build_word_list_internal(text, false)
-    local words = {}
-    for _, t in ipairs(tokens) do
-        if t.is_word then
-            table.insert(words, t.text)
-        end
-    end
-    return words
-end
-
-local function get_sub_tokens(s, force_rich)
-    if not s then return nil end
-    local use_rich = force_rich or Options.dw_original_spacing
-    
-    if use_rich then
-        if not s.tokens_rich then
-            local raw_text = normalize_inline_break_markers(s.text):gsub("\n", " ")
-            s.tokens_rich = build_word_list_internal(raw_text, true)
-        end
-        return s.tokens_rich
-    else
-        if not s.tokens then
-            local raw_text = normalize_inline_break_markers(s.text):gsub("\n", " ")
-            s.tokens = build_word_list_internal(raw_text, false)
-            local wc = 0
-            for _, t in ipairs(s.tokens) do if t.is_word then wc = wc + 1 end end
-            s.word_count = wc
-        end
-        return s.tokens
-    end
-end
-
-
-local function is_word_token(t)
-    if not t then return false end
-    if type(t) == "table" then return t.is_word == true end
-    -- Fallback for string tokens (if any)
-    if #t == 0 then return false end
-    return not t:match("^%s+$")
 end
 
 local function compose_term_smart(words)

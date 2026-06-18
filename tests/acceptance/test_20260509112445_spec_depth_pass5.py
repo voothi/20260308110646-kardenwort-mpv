@@ -35,6 +35,16 @@ def _src():
         return f.read()
 
 
+def _text_utils():
+    with open("scripts/kardenwort/text_utils.lua", encoding="utf-8") as f:
+        return f.read()
+
+
+def _subtitle_parser():
+    with open("scripts/kardenwort/subtitle_parser.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def robust_state(ipc, retries=5):
     from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
@@ -369,13 +379,13 @@ class TestTargetedContentFiltering:
 
     def test_cyrillic_char_set_defined(self):
         """CYRILLIC character sets must be defined for content filtering (targeted-content-filtering)."""
-        assert "CYRILLIC" in _src(), (
+        assert "CYRILLIC" in _text_utils(), (
             "targeted-content-filtering: CYRILLIC character set not defined in kardenwort.lua"
         )
 
     def test_word_char_map_enables_language_filtering(self):
         """WORD_CHAR_MAP must enable character-level language detection for filtering (targeted-content-filtering)."""
-        src = _src()
+        src = _text_utils()
         assert "WORD_CHAR_MAP" in src and "CYRILLIC" in src, (
             "targeted-content-filtering: WORD_CHAR_MAP + CYRILLIC not both present"
         )
@@ -563,7 +573,7 @@ class TestScriptStabilityHardening:
 
     def test_parse_time_handles_centiseconds(self):
         """parse_time must normalize 2-digit centiseconds to milliseconds (script-stability-hardening)."""
-        src = _src()
+        src = _subtitle_parser()
         assert "function parse_time" in src, (
             "script-stability-hardening: parse_time not found in kardenwort.lua"
         )

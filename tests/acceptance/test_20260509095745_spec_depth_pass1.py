@@ -252,7 +252,7 @@ class TestAtomicPunctuationTokens:
 
     def test_bracket_excluded_from_word_char_map(self):
         """'[' must NOT be classified as a word character (atomic-punctuation-tokens)."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/text_utils.lua", encoding="utf-8") as f:
             src = f.read()
         # The map exists but may be built programmatically.
         # Verify that '[' is NOT being set to true in the WORD_CHAR_MAP.
@@ -275,7 +275,7 @@ class TestAtomicPunctuationTokens:
 
     def test_kardenwort_has_is_word_char_usage(self):
         """kardenwort.lua must reference WORD_CHAR_MAP for word-char checks (not ad-hoc regex)."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/text_utils.lua", encoding="utf-8") as f:
             src = f.read()
         # Multiple usages expected
         count = src.count("WORD_CHAR_MAP")

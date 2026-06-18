@@ -34,6 +34,11 @@ def _src():
         return f.read()
 
 
+def _text_utils():
+    with open("scripts/kardenwort/text_utils.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _input_conf():
     with open("input.conf", encoding="utf-8") as f:
         return f.read()
@@ -115,20 +120,19 @@ class TestLuaScopingCorrection:
     def test_is_word_char_defined_before_get_word_boundary(self):
         """is_word_char must be defined before get_word_boundary to avoid forward-reference errors."""
         src = _src()
-        idx_is_word = src.find("local function is_word_char")
+        tu = _text_utils()
+        idx_is_word = tu.find("local function is_word_char")
         idx_boundary = src.find("local function get_word_boundary")
         assert idx_is_word != -1, "lua-scoping-correction: is_word_char not found"
         assert idx_boundary != -1, "lua-scoping-correction: get_word_boundary not found"
-        assert idx_is_word < idx_boundary, (
-            f"lua-scoping-correction: is_word_char (line ~{src[:idx_is_word].count(chr(10))}) "
-            f"defined AFTER get_word_boundary (line ~{src[:idx_boundary].count(chr(10))})"
-        )
+        # is_word_char now lives in text_utils.lua (extracted); get_word_boundary
+        # remains in main.lua. Cross-file ordering is handled by require + init.
 
     def test_word_char_map_defined_before_is_word_char(self):
         """WORD_CHAR_MAP must be defined before is_word_char references it."""
-        src = _src()
-        idx_map = src.find("local WORD_CHAR_MAP")
-        idx_fn = src.find("local function is_word_char")
+        tu = _text_utils()
+        idx_map = tu.find("local WORD_CHAR_MAP")
+        idx_fn = tu.find("local function is_word_char")
         assert idx_map != -1, "lua-scoping-correction: WORD_CHAR_MAP not found"
         assert idx_map < idx_fn, (
             "lua-scoping-correction: WORD_CHAR_MAP must be declared before is_word_char"
@@ -144,19 +148,19 @@ class TestScannerParser:
 
     def test_build_word_list_internal_exists(self):
         """build_word_list_internal must exist as the core tokenizer (scanner-parser)."""
-        assert "local function build_word_list_internal" in _src(), (
+        assert "local function build_word_list_internal" in _text_utils(), (
             "scanner-parser: build_word_list_internal not found in kardenwort.lua"
         )
 
     def test_build_word_list_exists(self):
         """build_word_list must exist as the public scanner API (scanner-parser)."""
-        assert "local function build_word_list" in _src(), (
+        assert "local function build_word_list" in _text_utils(), (
             "scanner-parser: build_word_list not found in kardenwort.lua"
         )
 
     def test_word_char_map_covers_cyrillic(self):
         """WORD_CHAR_MAP must include Cyrillic characters for Russian text support (scanner-parser)."""
-        src = _src()
+        src = _text_utils()
         assert "WORD_CHAR_MAP" in src, "scanner-parser: WORD_CHAR_MAP not found"
         assert "CYRILLIC" in src, (
             "scanner-parser: No Cyrillic character set found — scanner can't handle Cyrillic text"
@@ -164,11 +168,12 @@ class TestScannerParser:
 
     def test_word_char_map_covers_latin(self):
         """WORD_CHAR_MAP must include Latin letters for English/German support (scanner-parser)."""
-        src = _src()
+        src = _text_utils()
         idx = src.find("local WORD_CHAR_MAP")
         assert idx != -1
-        # The map is built by iterating CYRILLIC + ASCII — check ASCII coverage exists
-        assert "string.byte" in src or "\"a\"" in src or "97" in src, (
+        # Latin/ASCII coverage is provided by is_word_char's %w class match.
+        # Check ASCII coverage exists in the tokenizer.
+        assert "string.byte" in src or "\"a\"" in src or "97" in src or "%w" in src, (
             "scanner-parser: No ASCII/Latin character mapping found in WORD_CHAR_MAP construction"
         )
 
@@ -182,14 +187,14 @@ class TestTextProcessingHardening:
 
     def test_build_word_list_handles_empty_string(self):
         """build_word_list must be defined to handle empty/nil input without error (text-processing-hardening)."""
-        src = _src()
+        src = _text_utils()
         assert "local function build_word_list" in src, (
             "text-processing-hardening: build_word_list not found"
         )
 
     def test_build_word_list_internal_guards_nil_text(self):
         """build_word_list_internal must guard against nil text input (text-processing-hardening)."""
-        src = _src()
+        src = _text_utils()
         idx = src.find("local function build_word_list_internal")
         assert idx != -1
         body = src[idx:idx + 300]
@@ -201,7 +206,7 @@ class TestTextProcessingHardening:
 
     def test_word_char_map_declared_with_local_keyword(self):
         """WORD_CHAR_MAP must be declared with 'local' at module scope (text-processing-hardening)."""
-        assert "local WORD_CHAR_MAP" in _src(), (
+        assert "local WORD_CHAR_MAP" in _text_utils(), (
             "text-processing-hardening: WORD_CHAR_MAP not declared as a local module-level variable"
         )
 

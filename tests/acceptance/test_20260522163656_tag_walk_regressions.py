@@ -16,6 +16,10 @@ def _lua_source() -> str:
     return Path("scripts/kardenwort/main.lua").read_text(encoding="utf-8")
 
 
+def _text_utils_source() -> str:
+    return Path("scripts/kardenwort/text_utils.lua").read_text(encoding="utf-8")
+
+
 def _function_window(src: str, name: str, next_hint: str, span: int = 5000) -> str:
     start = src.find(name)
     assert start != -1, f"{name} not found"
@@ -674,8 +678,8 @@ def test_tooltip_activation_paths_only_publish_non_empty_ass():
 
 
 def test_normalize_inline_break_markers_helper_definition_and_substitutions():
-    src = _lua_source()
-    body = _function_window(src, "function normalize_inline_break_markers(text)", "function clean_text_srt", span=2000)
+    src = _text_utils_source()
+    body = _function_window(src, "local function normalize_inline_break_markers(text)", "local function get_sub_tokens", span=2000)
 
     assert '{ pat = "\\\\+N", repl = "\\n", tag = "\\\\N" }' in body
     assert '{ pat = "\\\\+n", repl = "\\n", tag = "\\\\n" }' in body
