@@ -1444,15 +1444,19 @@ function load_sub(path, is_ass)
             elseif state == "TIME" then
                 local s, e = line:match("^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>%s*(%d%d:%d%d:%d%d[,.]%d%d%d)")
                 if s and e then
-                    current_sub.start_time = parse_time(s)
-                    current_sub.end_time = parse_time(e)
+                    if current_sub then
+                        current_sub.start_time = parse_time(s)
+                        current_sub.end_time = parse_time(e)
+                    end
                     state = "TEXT"
                 end
             elseif state == "TEXT" then
-                if current_sub.text == "" then
-                    current_sub.text = line
-                else
-                    current_sub.text = current_sub.text .. "\n" .. line
+                if current_sub then
+                    if current_sub.text == "" then
+                        current_sub.text = line
+                    else
+                        current_sub.text = current_sub.text .. "\n" .. line
+                    end
                 end
             end
         end
