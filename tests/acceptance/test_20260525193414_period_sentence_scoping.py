@@ -29,6 +29,11 @@ def _text_utils():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _scoping_block(content):
     """Extract the sentence scoping block from extract_anki_context."""
     start = content.find("=== Backward scan: find nearest real sentence terminator")
@@ -48,7 +53,7 @@ def test_backward_scan_uses_terminator_chars():
     Spec: Punctuation-Anchored Sentence Scoping — backward scan stops at real [.!?]
     Scenario: Sentence spanning multiple subtitle lines
     """
-    content = _lua()
+    content = _tsv_export()
     block = _scoping_block(content)
     assert block, "Sentence scoping block not found in extract_anki_context"
     # Must call is_terminator_char (or equivalent) instead of looking for \0
@@ -67,7 +72,7 @@ def test_forward_scan_uses_terminator_chars():
     Spec: Punctuation-Anchored Sentence Scoping — forward scan stops at real [.!?]
     Scenario: Forward scan includes the terminating punctuation
     """
-    content = _lua()
+    content = _tsv_export()
     block = _scoping_block(content)
     assert block, "Sentence scoping block not found in extract_anki_context"
     assert "f_term_pos" in block, (
@@ -95,7 +100,7 @@ def test_backward_boundary_excludes_prior_sentence():
     For 'Autofahrer ... rechnen', result must NOT start with 'bleiben.'
     The sent_start is set to b_term_pos + 1 (right after the period).
     """
-    content = _lua()
+    content = _tsv_export()
     block = _scoping_block(content)
     assert "b_term_pos + 1" in block or "b_term_pos+1" in block, (
         "sent_start must be set to b_term_pos + 1 to exclude the boundary terminator from the result"
@@ -108,7 +113,7 @@ def test_no_terminator_fallback_uses_full_block():
     Spec: No-Terminator Fallback to Full Joined Context
     Scenario: Unpunctuated auto-subtitle block
     """
-    content = _lua()
+    content = _tsv_export()
     block = _scoping_block(content)
     # Fallback: sent_start = 1, sent_end = #full_line
     assert "sent_start = 1" in block, (
@@ -133,7 +138,7 @@ def test_abbreviation_skip_in_scoping_block():
     Spec: Abbreviation-Aware Sentence Boundary Detection
     Scenario: Heuristic catches short German abbreviation (ca., usw., d.h.)
     """
-    content = _lua()
+    content = _tsv_export()
     block = _scoping_block(content)
     assert "is_abbrev" in block, (
         "is_abbrev not called inside sentence scoping block; abbreviation skip is missing"
@@ -166,7 +171,7 @@ def test_token_ending_at_helper_exists():
 
     Spec: Abbreviation-Aware Sentence Boundary Detection
     """
-    content = _lua()
+    content = _tsv_export()
     assert "local function token_ending_at" in content, (
         "token_ending_at helper function not found in main.lua"
     )
@@ -181,7 +186,7 @@ def test_no_terminator_fallback_trace_message():
 
     Spec: No-Terminator Fallback to Full Joined Context
     """
-    content = _lua()
+    content = _tsv_export()
     assert "fallback to block" in content, (
         "Diagnostic trace for no-terminator fallback ('fallback to block') not found"
     )
@@ -212,7 +217,7 @@ def test_is_terminator_char_helper_exists():
     Spec: Configurable Sentence Terminators
     Scenario: User adds terminator characters
     """
-    content = _lua()
+    content = _tsv_export()
     assert "local function is_terminator_char" in content, (
         "is_terminator_char helper function not found in main.lua"
     )
@@ -282,7 +287,7 @@ def test_is_abbrev_suppresses_lowercase_heuristic_on_uppercase_lookahead():
 def test_extract_anki_context_passes_lookahead_to_is_abbrev():
     """Both the backward and forward scans must compute the next visible
     character past the candidate period and pass it to is_abbrev."""
-    content = _lua()
+    content = _tsv_export()
     # Helper that walks past whitespace/\0 to the next visible character
     assert "local function lookahead_after" in content, (
         "lookahead_after helper not defined inside extract_anki_context"
@@ -304,7 +309,7 @@ def test_spaced_initialism_periods_do_not_split_sentence():
 
     Regression anchor: 20260526131237
     """
-    content = _lua()
+    content = _tsv_export()
     assert "local function is_spaced_initialism_period_at" in content, (
         "spaced initialism guard missing; 'z. B.' can split at the first period"
     )

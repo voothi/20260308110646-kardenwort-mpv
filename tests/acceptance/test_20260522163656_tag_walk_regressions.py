@@ -24,6 +24,10 @@ def _osd_cards_source() -> str:
     return Path("scripts/kardenwort/osd_cards.lua").read_text(encoding="utf-8")
 
 
+def _tsv_export_source() -> str:
+    return Path("scripts/kardenwort/tsv_export.lua").read_text(encoding="utf-8")
+
+
 def _function_window(src: str, name: str, next_hint: str, span: int = 5000) -> str:
     start = src.find(name)
     assert start != -1, f"{name} not found"
@@ -40,7 +44,7 @@ def _slice_from(src: str, marker: str, span: int = 1600) -> str:
 
 def test_cycle_copy_mode_requires_real_secondary_or_cached_secondary():
     src = _lua_source()
-    body = _function_window(src, "function cmd_cycle_copy_mode()", "local function get_copy_context_text")
+    body = _function_window(src, "function cmd_cycle_copy_mode()", "function cmd_toggle_copy_ctx")
 
     assert "local has_sec =" in body
     assert "Tracks.sec.id ~= 0" in body
@@ -50,8 +54,8 @@ def test_cycle_copy_mode_requires_real_secondary_or_cached_secondary():
 
 
 def test_copy_context_falls_back_to_cached_secondary_subs_when_track_missing():
-    src = _lua_source()
-    body = _function_window(src, "function get_copy_context_text", "local function cmd_copy_sub")
+    src = _tsv_export_source()
+    body = _function_window(src, "local function get_copy_context_text", "local function load_anki_mapping_ini")
 
     assert "local function append(path, is_ass, explicit_idx, provided_subs)" in body
     assert "if not path and not provided_subs then return end" in body
@@ -61,8 +65,8 @@ def test_copy_context_falls_back_to_cached_secondary_subs_when_track_missing():
 
 
 def test_prepare_export_text_mode_b_falls_back_to_cached_secondary_subs():
-    src = _lua_source()
-    body = _function_window(src, "local function prepare_export_text(params, options)", "local function build_target_time_anchors")
+    src = _tsv_export_source()
+    body = _function_window(src, "local function prepare_export_text(params, options)", "local function extract_anki_context")
 
     assert 'if options.copy_mode == "B" then' in body
     assert "if Tracks.sec.subs and #Tracks.sec.subs > 0 then" in body
@@ -543,7 +547,7 @@ def test_tooltip_target_line_resolves_secondary_dm_hits_to_primary_timeline():
 
 def test_get_tooltip_line_y_falls_back_to_non_primary_zone_when_needed():
     src = _lua_source()
-    body = _function_window(src, "local function get_tooltip_line_y(line_idx, fallback_y)", "local function load_anki_tsv")
+    body = _function_window(src, "local function get_tooltip_line_y(line_idx, fallback_y)", "local function update_font_scale")
 
     assert "local fallback_zone_y = nil" in body
     assert "local zone_center_y = (zone.y_top + zone.y_bottom) / 2" in body

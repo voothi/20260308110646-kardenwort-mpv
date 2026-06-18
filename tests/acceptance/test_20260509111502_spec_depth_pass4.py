@@ -35,6 +35,11 @@ def _src():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _input_conf():
     with open("input.conf", encoding="utf-8") as f:
         return f.read()
@@ -59,13 +64,13 @@ class TestTsvStateRecovery:
 
     def test_load_anki_tsv_exists(self):
         """load_anki_tsv must exist to load highlight data from TSV (tsv-state-recovery)."""
-        assert "local function load_anki_tsv" in _src(), (
+        assert "local function load_anki_tsv" in _tsv_export(), (
             "tsv-state-recovery: load_anki_tsv not found in kardenwort.lua"
         )
 
     def test_load_anki_tsv_uses_safe_read(self):
         """load_anki_tsv must use safe_read_file for robust error-safe TSV loading (tsv-state-recovery)."""
-        src = _src()
+        src = _tsv_export()
         idx = src.find("local function load_anki_tsv")
         assert idx != -1
         body = src[idx:idx + 2000]

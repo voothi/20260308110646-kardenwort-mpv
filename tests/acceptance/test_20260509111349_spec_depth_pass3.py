@@ -39,6 +39,11 @@ def _text_utils():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _input_conf():
     with open("input.conf", encoding="utf-8") as f:
         return f.read()
@@ -53,7 +58,7 @@ class TestContextCopyFsmRepair:
 
     def test_get_copy_context_text_exists(self):
         """get_copy_context_text must exist as the pivot-aware copy context extractor."""
-        assert "function get_copy_context_text" in _src(), (
+        assert "local function get_copy_context_text" in _tsv_export(), (
             "context-copy-fsm-repair: get_copy_context_text not found in kardenwort.lua"
         )
 
@@ -65,8 +70,8 @@ class TestContextCopyFsmRepair:
 
     def test_copy_context_traversal_uses_pri_subs(self):
         """Context traversal must reference Tracks.pri.subs for pivot-aware subtitle access."""
-        src = _src()
-        idx = src.find("function get_copy_context_text")
+        src = _tsv_export()
+        idx = src.find("local function get_copy_context_text")
         assert idx != -1
         body = src[idx:idx + 1000]
         assert "Tracks.pri.subs" in body or "pri.subs" in body, (

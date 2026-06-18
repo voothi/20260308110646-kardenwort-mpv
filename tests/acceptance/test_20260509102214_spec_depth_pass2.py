@@ -36,6 +36,11 @@ def _lua_source():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def _input_conf():
     with open("input.conf", encoding="utf-8") as f:
         return f.read()
@@ -60,7 +65,7 @@ class TestAdaptiveContextTruncation:
 
     def test_extract_anki_context_function_exists(self):
         """extract_anki_context must exist and accept word-count override (adaptive-context-truncation)."""
-        src = _lua_source()
+        src = _tsv_export()
         assert "adaptive-context-truncation" or True  # spec anchor
         assert "local function extract_anki_context" in src, (
             "extract_anki_context function not found in kardenwort.lua (adaptive-context-truncation)"
@@ -68,7 +73,7 @@ class TestAdaptiveContextTruncation:
 
     def test_extract_anki_context_accepts_max_words_override(self):
         """extract_anki_context must accept max_words_override for dynamic word-count (adaptive-context-truncation)."""
-        src = _lua_source()
+        src = _tsv_export()
         idx = src.find("local function extract_anki_context")
         assert idx != -1
         sig = src[idx:idx+200]
@@ -78,7 +83,7 @@ class TestAdaptiveContextTruncation:
 
     def test_extract_anki_context_uses_coord_map(self):
         """extract_anki_context must accept coord_map for character-level offset mapping (adaptive-context-truncation)."""
-        src = _lua_source()
+        src = _tsv_export()
         idx = src.find("local function extract_anki_context")
         assert idx != -1
         sig = src[idx:idx+200]
@@ -96,14 +101,14 @@ class TestAnkiExportMapping:
 
     def test_load_anki_mapping_ini_exists(self):
         """load_anki_mapping_ini must exist for profile-based TSV field mapping (anki-export-mapping)."""
-        src = _lua_source()
+        src = _tsv_export()
         assert "local function load_anki_mapping_ini" in src, (
             "anki-export-mapping: load_anki_mapping_ini not found in kardenwort.lua"
         )
 
     def test_resolve_anki_field_exists(self):
         """resolve_anki_field must exist to map template placeholders to export values (anki-export-mapping)."""
-        src = _lua_source()
+        src = _tsv_export()
         assert "local function resolve_anki_field" in src, (
             "anki-export-mapping: resolve_anki_field not found in kardenwort.lua"
         )
@@ -117,7 +122,7 @@ class TestAnkiExportMapping:
 
     def test_resolve_anki_field_accepts_deck_and_lang(self):
         """resolve_anki_field must accept deck_name and language codes (anki-export-mapping)."""
-        src = _lua_source()
+        src = _tsv_export()
         idx = src.find("local function resolve_anki_field")
         assert idx != -1
         sig = src[idx:idx+200]
@@ -272,7 +277,7 @@ class TestHighlightTimeIndex:
 
     def test_save_anki_tsv_row_exists(self):
         """save_anki_tsv_row must exist for incremental sorted insertion (highlight-time-index)."""
-        src = _lua_source()
+        src = _tsv_export()
         assert "local function save_anki_tsv_row" in src, (
             "highlight-time-index: save_anki_tsv_row not found in kardenwort.lua"
         )
@@ -575,7 +580,7 @@ class TestInterSegmentHighlighter:
 
     def test_load_anki_tsv_exists_for_multi_segment(self):
         """load_anki_tsv must exist to feed inter-segment highlight data (inter-segment-highlighter)."""
-        src = _lua_source()
+        src = _tsv_export()
         assert "local function load_anki_tsv" in src, (
             "inter-segment-highlighter: load_anki_tsv not found in kardenwort.lua"
         )

@@ -19,9 +19,14 @@ def _lua():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def test_anki_context_verbatim():
     """extract_anki_context must exist with the correct five-argument signature."""
-    content = _lua()
+    content = _tsv_export()
     assert "extract_anki_context" in content, (
         "extract_anki_context function not found in kardenwort.lua"
     )
@@ -39,7 +44,7 @@ def test_anki_context_verbatim():
 
 def test_anki_context_non_contiguous():
     """Non-contiguous multi-word selections must be resolved via sequential word search."""
-    content = _lua()
+    content = _tsv_export()
     # The sequential forward search loop handles words that aren't a single substring
     assert "first_word_found" in content, (
         "first_word_found flag not found; non-contiguous term fallback path is missing"
@@ -51,7 +56,7 @@ def test_anki_context_non_contiguous():
 
 def test_anki_context_pivot_selection():
     """When a term appears multiple times, the occurrence closest to the pivot must be chosen."""
-    content = _lua()
+    content = _tsv_export()
     # Pivot is used as 'center' to compute distance to each candidate
     assert re.search(r"center\s*=\s*pivot_pos\s*or", content), (
         "Pivot fallback (center = pivot_pos or …) not found in extract_anki_context"
@@ -70,7 +75,7 @@ def test_anki_context_pivot_selection():
 
 def test_anki_context_truncation():
     """Context exceeding max_words must be truncated, keeping the selected term centred."""
-    content = _lua()
+    content = _tsv_export()
     assert "max_words_override" in content, (
         "max_words_override parameter not found in extract_anki_context"
     )
@@ -86,7 +91,7 @@ def test_anki_context_truncation():
 
 def test_anki_context_wide_span():
     """When the selected span itself exceeds the word limit, the full sentence must be kept."""
-    content = _lua()
+    content = _tsv_export()
     # Wide-span guard: if span >= limit, return the full sentence
     assert re.search(r"span\s*>=\s*limit", content), (
         "Wide-span guard (span >= limit → return full sentence) not found"

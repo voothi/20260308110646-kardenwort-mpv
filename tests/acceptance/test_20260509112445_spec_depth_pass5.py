@@ -45,6 +45,11 @@ def _subtitle_parser():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def robust_state(ipc, retries=5):
     from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
@@ -412,7 +417,7 @@ class TestTsvLoadOptimization:
 
     def test_fingerprint_match_skips_reload(self):
         """load_anki_tsv must compare fingerprint before reloading (tsv-load-optimization)."""
-        src = _src()
+        src = _tsv_export()
         idx = src.find("local function load_anki_tsv")
         assert idx != -1
         body = src[idx:idx + 1000]

@@ -32,6 +32,11 @@ def _src():
         return f.read()
 
 
+def _tsv_export():
+    with open("scripts/kardenwort/tsv_export.lua", encoding="utf-8") as f:
+        return f.read()
+
+
 def robust_state(ipc, retries=5):
     from tests.ipc.mpv_ipc import query_kardenwort_state
     for _ in range(retries):
@@ -325,13 +330,13 @@ class TestSourceUrlDiscovery:
 
     def test_find_source_url_exists(self):
         """find_source_url must exist for sidecar URL file discovery (source-url-discovery)."""
-        assert "local function find_source_url" in _src(), (
+        assert "local function find_source_url" in _tsv_export(), (
             "source-url-discovery: find_source_url not found in kardenwort.lua"
         )
 
     def test_source_url_mapped_in_anki_export(self):
         """source_url must be resolvable in Anki export field mapping (source-url-discovery)."""
-        assert "source_url" in _src(), (
+        assert "source_url" in _tsv_export(), (
             "source-url-discovery: source_url not found in field resolution logic"
         )
 
@@ -366,7 +371,7 @@ class TestStabilityErrorHandling:
 
     def test_tsv_auto_creation_on_missing_file(self):
         """load_anki_tsv must auto-create the TSV file when it's missing (stability-error-handling)."""
-        src = _src()
+        src = _tsv_export()
         idx = src.find("local function load_anki_tsv")
         assert idx != -1
         body = src[idx:idx + 2000]
@@ -378,7 +383,7 @@ class TestStabilityErrorHandling:
 
     def test_anki_highlights_reset_on_file_missing(self):
         """ANKI_HIGHLIGHTS must be reset to {} when TSV file is missing (stability-error-handling)."""
-        src = _src()
+        src = _tsv_export()
         idx = src.find("local function load_anki_tsv")
         assert idx != -1
         body = src[idx:idx + 2000]

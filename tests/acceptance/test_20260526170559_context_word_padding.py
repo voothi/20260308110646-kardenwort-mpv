@@ -7,10 +7,16 @@ Focused acceptance tests for sentence-scoped context word padding.
 """
 
 LUA = "scripts/kardenwort/main.lua"
+TSV_EXPORT = "scripts/kardenwort/tsv_export.lua"
 
 
 def _lua():
     with open(LUA, encoding="utf-8") as f:
+        return f.read()
+
+
+def _tsv_export():
+    with open(TSV_EXPORT, encoding="utf-8") as f:
         return f.read()
 
 
@@ -27,7 +33,7 @@ def test_padding_options_are_normalized():
 
 
 def test_padding_applies_after_sentence_scoping():
-    content = _lua()
+    content = _tsv_export()
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
@@ -38,7 +44,7 @@ def test_padding_applies_after_sentence_scoping():
 
 
 def test_padding_requires_real_sentence_boundary():
-    content = _lua()
+    content = _tsv_export()
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
@@ -48,7 +54,7 @@ def test_padding_requires_real_sentence_boundary():
 
 
 def test_default_sentence_path_is_preserved():
-    content = _lua()
+    content = _tsv_export()
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
@@ -56,7 +62,7 @@ def test_default_sentence_path_is_preserved():
 
 
 def test_padding_limit_adjustment_and_wide_span_override():
-    content = _lua()
+    content = _tsv_export()
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
