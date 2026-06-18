@@ -20,6 +20,10 @@ def _text_utils_source() -> str:
     return Path("scripts/kardenwort/text_utils.lua").read_text(encoding="utf-8")
 
 
+def _osd_cards_source() -> str:
+    return Path("scripts/kardenwort/osd_cards.lua").read_text(encoding="utf-8")
+
+
 def _function_window(src: str, name: str, next_hint: str, span: int = 5000) -> str:
     start = src.find(name)
     assert start != -1, f"{name} not found"
@@ -440,8 +444,8 @@ def test_manage_ui_border_override_is_forward_declared():
 
 
 def test_show_osd_uses_single_neutralized_card_renderer():
-    src = _lua_source()
-    body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+    src = _osd_cards_source()
+    body = _function_window(src, "local function show_osd(msg, dur)", "local function setup_seek_osd")
 
     assert 'Options.seek_bg_color' in body
     assert 'Options.seek_bg_opacity' in body
@@ -457,9 +461,9 @@ def test_show_osd_uses_single_neutralized_card_renderer():
 
 
 def test_notice_and_seek_cards_neutralize_background_box_on_shape_and_text():
-    src = _lua_source()
-    show_body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
-    seek_body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
+    src = _osd_cards_source()
+    show_body = _function_window(src, "local function show_osd(msg, dur)", "local function setup_seek_osd")
+    seek_body = _function_window(src, "local function show_seek_osd(msg, alignment)", "function M.setup")
 
     for name, body in {
         "show_osd": show_body,
@@ -485,8 +489,8 @@ def test_notice_and_seek_cards_neutralize_background_box_on_shape_and_text():
 
 
 def test_show_seek_osd_uses_single_compact_card_renderer():
-    src = _lua_source()
-    body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
+    src = _osd_cards_source()
+    body = _function_window(src, "local function show_seek_osd(msg, alignment)", "function M.setup")
 
     assert 'Options.seek_bg_color' in body
     assert 'Options.seek_bg_opacity' in body
@@ -741,12 +745,12 @@ def test_console_and_osd_frame_suspension_in_dw_mode():
     assert "FSM.notice_osd_active" not in apply_body
 
     # 3. Assert show_osd has no notice_osd_active dynamic suspension flags (to protect DW card frame rendering stability)
-    show_osd_body = _function_window(src, "function show_osd(msg, dur)", "local seek_osd")
+    show_osd_body = _function_window(_osd_cards_source(), "local function show_osd(msg, dur)", "local function setup_seek_osd")
     assert "FSM.notice_osd_active = true" not in show_osd_body
     assert "FSM.notice_osd_active = false" not in show_osd_body
 
     # 4. Assert show_seek_osd has no seek_osd_active dynamic suspension flags
-    seek_osd_body = _function_window(src, "function show_seek_osd(msg, alignment)", "function has_cyrillic")
+    seek_osd_body = _function_window(_osd_cards_source(), "local function show_seek_osd(msg, alignment)", "function M.setup")
     assert "FSM.seek_osd_active = true" not in seek_osd_body
     assert "FSM.seek_osd_active = false" not in seek_osd_body
 

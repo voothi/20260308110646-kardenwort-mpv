@@ -419,7 +419,7 @@ class TestCleanOsd:
 
     def test_middle_left_an4_tag_in_lua(self):
         """kardenwort.lua must use {\\an4} for status OSD positioning (clean-osd)."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
+        with open("scripts/kardenwort/osd_cards.lua", encoding="utf-8") as f:
             src = f.read()
         assert r"\an4" in src or r"\\an4" in src, (
             r"{\an4} (middle-left) tag not found in kardenwort.lua OSD messages"

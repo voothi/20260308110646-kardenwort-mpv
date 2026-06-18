@@ -13,6 +13,8 @@ end
 
 local text_utils = require 'text_utils'
 local subtitle_parser = require 'subtitle_parser'
+local keybinding_utils = require 'keybinding_utils'
+local osd_cards = require 'osd_cards'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
@@ -204,6 +206,15 @@ local get_center_index = subtitle_parser.get_center_index
 local get_center_index_static = subtitle_parser.get_center_index_static
 local get_effective_boundaries = subtitle_parser.get_effective_boundaries
 
+-- keybinding_utils aliases (Phase 4): keep existing call sites resolving to module fns.
+local is_valid_mpv_key = keybinding_utils.is_valid_mpv_key
+local expand_ru_keys = keybinding_utils.expand_ru_keys
+
+-- osd_cards aliases (Phase 5): keep existing call sites resolving to module fns.
+local show_osd = osd_cards.show_osd
+local show_seek_osd = osd_cards.show_seek_osd
+local seek_osd  -- forward-declared; assigned from osd_cards.seek_osd after setup()
+
 
 -- =========================================================================
 -- DIAGNOSTIC & LOGGING SYSTEM
@@ -252,82 +263,6 @@ mp.set_property("user-data/kardenwort/last_export", "")
 mp.set_property("user-data/kardenwort/last_osd", "")
 mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
-
-function is_valid_mpv_key(k_str)
-    if not k_str or k_str == "" then return false end
-    local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
-    local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
-    if count > 1 and base:match("[%z\128-\255]") then return false end
-    return true
-end
-
--- [v1.58.40] Automatic Russian Layout Expansion
-local EN_RU_MAP = {
-    ["a"]="ф", ["b"]="и", ["c"]="с", ["d"]="в", ["e"]="у", ["f"]="а", ["g"]="п", ["h"]="р",
-    ["i"]="ш", ["j"]="о", ["k"]="л", ["l"]="д", ["m"]="ь", ["n"]="т", ["o"]="щ", ["p"]="з",
-    ["q"]="й", ["r"]="к", ["s"]="ы", ["t"]="е", ["u"]="г", ["v"]="м", ["w"]="ц", ["x"]="ч",
-    ["y"]="н", ["z"]="я", ["["]="х", ["]"]="ъ", [";"]="ж", ["'"]="э", [","]="б", ["."]="ю", ["`"]="ё"
-}
-
-function expand_ru_keys(key_string, opt_name)
-    if not key_string or key_string == "" then return {} end
-    local results = {}
-    local seen = {}
-    
-    local function add(k)
-        if k and k ~= "" and not seen[k] then
-            table.insert(results, k)
-            seen[k] = true
-        end
-    end
-
-    for key in key_string:gmatch("[^%s,;]+") do
-        add(key)
-        
-        -- Attempt to find RU equivalent
-        local mods = key:match("^(.*%+)") or ""
-        local base = key:sub(#mods + 1)
-        
-        -- Detect Shift states
-        local is_explicit_shift = mods:lower():find("shift")
-        local is_implicit_shift = (#base == 1 and base:match("%u"))
-        
-        local ru_base = EN_RU_MAP[base:lower()]
-        if ru_base then
-            local ru_upper = {
-                ["ф"]="Ф", ["и"]="И", ["с"]="С", ["в"]="В", ["у"]="У", ["а"]="А", ["п"]="П", ["р"]="Р",
-                ["ш"]="Ш", ["о"]="О", ["л"]="Л", ["д"]="Д", ["ь"]="Ь", ["т"]="Т", ["щ"]="Щ", ["з"]="З",
-                ["й"]="Й", ["к"]="К", ["ы"]="Ы", ["е"]="Е", ["г"]="Г", ["м"]="М", ["ц"]="Ц", ["ч"]="Ч",
-                ["н"]="Н", ["я"]="Я", ["х"]="Х", ["ъ"]="Ъ", ["ж"]="Ж", ["э"]="Э", ["б"]="Б", ["ю"]="Ю", ["ё"]="Ё"
-            }
-            
-            if is_explicit_shift then
-                -- [v1.58.42 FIX] Shift+e -> "У" only (uppercase Cyrillic, no Shift+ prefix).
-                -- Rationale: mpv on Windows normalizes Shift+CyrillicLower == CyrillicUpper.
-                -- Registering "Shift+у" is equivalent to "У" in mpv's input table, BUT
-                -- some Windows mpv builds also match "Shift+у" against the bare key "у",
-                -- creating a false positive. The correct and unambiguous form is the uppercase
-                -- character alone (stripped of the Shift+ modifier for the RU variant).
-                -- Non-Shift modifiers (Ctrl, Alt) are preserved.
-                local other_mods = mods:gsub("[Ss]hift%+", "")
-                if ru_upper[ru_base] then add(other_mods .. ru_upper[ru_base]) end
-            elseif is_implicit_shift then
-                -- E -> У (Only) — implicit shift via uppercase EN letter
-                if ru_upper[ru_base] then add(mods .. ru_upper[ru_base]) end
-            else
-                -- e -> у (Only) — strict lowercase, no bleed into shifted variants
-                add(mods .. ru_base)
-            end
-        end
-    end
-    
-    if opt_name and Options.log_level == "debug" then
-        local list = table.concat(results, ", ")
-
-    end
-    
-    return results
-end
 
 function validate_config()
     Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))
@@ -886,115 +821,14 @@ text_utils.init(FSM, Options)
 -- Phase 3: inject singletons + safe_read_file into extracted subtitle_parser module.
 subtitle_parser.init(FSM, Options, Tracks, Diagnostic, safe_read_file)
 
-function show_osd(msg, dur)
-    local text = tostring(msg or "")
-    -- IPC diagnostics contract used by acceptance tests
-    mp.set_property("user-data/kardenwort/last_osd", text)
-    local duration = dur or Options.osd_duration
+-- Phase 4: inject Options into extracted keybinding_utils module.
+keybinding_utils.init(Options)
 
-    do
-        -- Unified renderer for DW/DM/SRT: compact boxed card on a dedicated ass-events overlay.
-        -- mp.osd_message is a single OSD-bar event and can't host \p1 shapes
-        -- + dual \pos blocks, so the card has to live on its own overlay.
-        -- Stored on FSM to stay inside Lua's 200-local cap for this chunk.
-        local ry = Options.font_base_height
-        local fs = Options.seek_font_size
-        local pad_x = math.max(16, math.floor(fs * 0.4))
-        local pad_y = math.max(8, math.floor(fs * 0.2))
-
-        local char_count = 0
-        for _ in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-            char_count = char_count + 1
-        end
-        local box_w = math.max(160, math.floor(char_count * fs * 0.55 + 2 * pad_x))
-        local box_h = fs + 2 * pad_y
-
-        local center_y = math.floor(ry / 2)
-        local left_x = 40
-        local top_y = center_y - math.floor(box_h / 2)
-        local text_x = left_x + pad_x
-
-        local bg_rect = string.format(
-            "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
-            left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
-        )
-        local text_event = string.format(
-            "{\\an4}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}%s",
-            text_x, center_y,
-            Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
-            Options.seek_color, text
-        )
-        FSM.notice_osd.data = bg_rect .. "\n" .. text_event
-        FSM.notice_osd:update()
-
-        if FSM.notice_timer then FSM.notice_timer:kill() end
-        FSM.notice_timer = mp.add_timeout(duration, function()
-            FSM.notice_osd.data = ""
-            FSM.notice_osd:update()
-        end)
-        return
-    end
-end
-
-
-local seek_osd = mp.create_osd_overlay("ass-events")
-seek_osd.res_y = Options.font_base_height
-seek_osd.res_x = math.floor(seek_osd.res_y * 16 / 9)
-seek_osd.z = Options.seek_osd_layer
-local seek_timer = nil
-
-function show_seek_osd(msg, alignment)
-    do
-        -- Unified renderer for DW/DM/SRT: compact seek card on dedicated seek_osd overlay.
-        local ry = Options.font_base_height
-        local rx = math.floor(ry * 16 / 9)
-        local fs = Options.seek_font_size
-        local pad_x = math.max(16, math.floor(fs * 0.4))
-        local pad_y = math.max(8, math.floor(fs * 0.2))
-
-        local char_count = 0
-        for _ in msg:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-            char_count = char_count + 1
-        end
-        local box_w = math.max(160, math.floor(char_count * fs * 0.55 + 2 * pad_x))
-        local box_h = fs + 2 * pad_y
-
-        local center_y = math.floor(ry / 2)
-        local top_y = center_y - math.floor(box_h / 2)
-        
-        local left_x, text_x, text_align
-        if alignment == 4 then
-            left_x = 40
-            text_x = left_x + pad_x
-            text_align = 4
-        else
-            left_x = rx - 40 - box_w
-            text_x = rx - 40 - pad_x
-            text_align = 6
-        end
-
-        local bg_rect = string.format(
-            "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
-            left_x, top_y, Options.seek_bg_color, Options.seek_bg_opacity, box_w, box_w, box_h, box_h
-        )
-        local text_event = string.format(
-            "{\\an%d}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b%d}{\\1c&H%s&}{\\3a&HFF&}{\\4a&HFF&}{\\bord0}{\\shad0}%s",
-            text_align, text_x, center_y,
-            Options.seek_font_name, Options.seek_font_size, (Options.seek_font_bold and 1 or 0),
-            Options.seek_color, msg
-        )
-        seek_osd.data = bg_rect .. "\n" .. text_event
-        seek_osd:update()
-
-        if seek_timer then seek_timer:kill() end
-        seek_timer = mp.add_timeout(Options.seek_osd_duration, function()
-            seek_osd.data = ""
-            seek_osd:update()
-        end)
-        return
-    end
-end
-
+-- Phase 5: inject singletons into extracted osd_cards module, then set up the
+-- seek_osd overlay (reads Options at creation time) and expose it to main.lua.
+osd_cards.init(FSM, Options, Tracks, Diagnostic)
+osd_cards.setup()
+seek_osd = osd_cards.seek_osd
 
 local function sync_ctrl_pending_list()
     local members = {}
@@ -10586,29 +10420,17 @@ mp.add_key_binding(nil, "copy-subtitle-tts-8", function() cmd_copy_sub("tts_8") 
 
 -- [v1.58.40] Global Ctrl+Alt+C binding for main GoldenDict window
 local function register_global_copy_keys()
-    local function bind(opt, name, fn)
-        if not opt or opt == "" then return end
-        local i = 1
-        local expanded_keys = expand_ru_keys(opt, name)
-        for _, key in ipairs(expanded_keys) do
-            local wrapped_fn = function(t)
-
-                return fn(t)
-            end
-            mp.add_key_binding(key, name .. "-" .. i, wrapped_fn)
-            i = i + 1
-        end
-    end
-    bind(Options.key_copy_popup, "kardenwort-global-copy-side", function() cmd_copy_sub("side") end)
-    bind(Options.key_copy_main, "kardenwort-global-copy-main", function() cmd_copy_sub("main") end)
-    bind(Options.key_tts_1, "kardenwort-global-copy-tts-1", function() cmd_copy_sub("tts_1") end)
-    bind(Options.key_tts_2, "kardenwort-global-copy-tts-2", function() cmd_copy_sub("tts_2") end)
-    bind(Options.key_tts_3, "kardenwort-global-copy-tts-3", function() cmd_copy_sub("tts_3") end)
-    bind(Options.key_tts_4, "kardenwort-global-copy-tts-4", function() cmd_copy_sub("tts_4") end)
-    bind(Options.key_tts_5, "kardenwort-global-copy-tts-5", function() cmd_copy_sub("tts_5") end)
-    bind(Options.key_tts_6, "kardenwort-global-copy-tts-6", function() cmd_copy_sub("tts_6") end)
-    bind(Options.key_tts_7, "kardenwort-global-copy-tts-7", function() cmd_copy_sub("tts_7") end)
-    bind(Options.key_tts_8, "kardenwort-global-copy-tts-8", function() cmd_copy_sub("tts_8") end)
+    local bind = keybinding_utils.bind
+    bind(Options.key_copy_popup, "kardenwort-global-copy-side", function() cmd_copy_sub("side") end, {wrap=true})
+    bind(Options.key_copy_main, "kardenwort-global-copy-main", function() cmd_copy_sub("main") end, {wrap=true})
+    bind(Options.key_tts_1, "kardenwort-global-copy-tts-1", function() cmd_copy_sub("tts_1") end, {wrap=true})
+    bind(Options.key_tts_2, "kardenwort-global-copy-tts-2", function() cmd_copy_sub("tts_2") end, {wrap=true})
+    bind(Options.key_tts_3, "kardenwort-global-copy-tts-3", function() cmd_copy_sub("tts_3") end, {wrap=true})
+    bind(Options.key_tts_4, "kardenwort-global-copy-tts-4", function() cmd_copy_sub("tts_4") end, {wrap=true})
+    bind(Options.key_tts_5, "kardenwort-global-copy-tts-5", function() cmd_copy_sub("tts_5") end, {wrap=true})
+    bind(Options.key_tts_6, "kardenwort-global-copy-tts-6", function() cmd_copy_sub("tts_6") end, {wrap=true})
+    bind(Options.key_tts_7, "kardenwort-global-copy-tts-7", function() cmd_copy_sub("tts_7") end, {wrap=true})
+    bind(Options.key_tts_8, "kardenwort-global-copy-tts-8", function() cmd_copy_sub("tts_8") end, {wrap=true})
 end
 register_global_copy_keys()
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
@@ -10629,36 +10451,16 @@ mp.add_key_binding(nil, "toggle-help", cmd_toggle_help)
 mp.add_key_binding(nil, "cycle-audio", cmd_cycle_audio)
 
 local function register_global_position_keys()
-    local function bind(opt, name, fn)
-        if not opt or opt == "" then return end
-        local i = 1
-        local expanded_keys = expand_ru_keys(opt, name)
-        for _, key in ipairs(expanded_keys) do
-            local wrapped_fn = function(t)
-
-                return fn(t)
-            end
-            mp.add_forced_key_binding(key, name .. "-" .. i, wrapped_fn)
-            i = i + 1
-        end
-    end
-    bind(Options.key_sub_pos_up, "kardenwort-sub-pos-up", function() cmd_adjust_sub_pos(-1) end)
-    bind(Options.key_sub_pos_down, "kardenwort-sub-pos-down", function() cmd_adjust_sub_pos(1) end)
-    bind(Options.key_sec_sub_pos_up, "kardenwort-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end)
-    bind(Options.key_sec_sub_pos_down, "kardenwort-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end)
+    local bind = keybinding_utils.bind
+    bind(Options.key_sub_pos_up, "kardenwort-sub-pos-up", function() cmd_adjust_sub_pos(-1) end, {forced=true, wrap=true})
+    bind(Options.key_sub_pos_down, "kardenwort-sub-pos-down", function() cmd_adjust_sub_pos(1) end, {forced=true, wrap=true})
+    bind(Options.key_sec_sub_pos_up, "kardenwort-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end, {forced=true, wrap=true})
+    bind(Options.key_sec_sub_pos_down, "kardenwort-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end, {forced=true, wrap=true})
 end
 register_global_position_keys()
 
 local function register_global_playback_keys()
-    local function bind(opt, name, fn)
-        if not opt or opt == "" then return end
-        local i = 1
-        local expanded_keys = expand_ru_keys(opt, name)
-        for _, key in ipairs(expanded_keys) do
-            mp.add_key_binding(key, name .. "-" .. i, fn)
-            i = i + 1
-        end
-    end
+    local bind = keybinding_utils.bind
     -- Note: replay-subtitle is handled globally via the named binding in input.conf.
     -- No direct key binding needed here to avoid double-fire collision.
 end
