@@ -1,9 +1,30 @@
--- =========================================================================
+-- ============================================================================
 -- KARDENWORT Language Acquisition Suite (LAS) Core
--- Version: v1.58.54
 -- Purpose: Language Acquisition through Subtitle-Driven Immersion
 -- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
--- =========================================================================
+-- ============================================================================
+--
+-- Module map (scripts/kardenwort/):
+--   main.lua            — orchestrator: requires, boot, init, binding registration,
+--                        event observers, and subsystem wiring.
+--   config.lua           — Options table + configuration validation.
+--   state.lua            — FSM (finite state machine) + Tracks (subtitle track state).
+--   text_utils.lua       — UTF-8/tokenization/copy-preview helpers.
+--   subtitle_parser.lua  — subtitle loading, parsing, time/index resolution.
+--   keybinding_utils.lua— mpv key validation + Cyrillic layout expansion.
+--   osd_cards.lua        — transient OSD popups (status/seek notices).
+--   render_utils.lua     — shared ASS rendering: measurement, layout, highlight.
+--   subtitle_window.lua  — draw_drum / draw_dw / draw_dw_tooltip renderers.
+--   tsv_export.lua       — Anki/TSV mining, highlight grounding, context extraction.
+--   companion.lua        — companion audio/subtitle/video track discovery.
+--   search.lua          — Universal Subtitle Search HUD.
+--   help_hud.lua         — Dynamic Help HUD (F1).
+--   resume.lua           — session resumption on blank launch.
+--
+-- Alias block invariant: the `alias()` locals below MUST stay in sync with each
+-- module's public `M.*` exports. Init order matters — modules read injected
+-- singletons at call time, but helper tables are populated after their defs.
+-- ============================================================================
 
 local mp = require 'mp'
 local script_dir = mp.get_script_directory()
@@ -41,7 +62,7 @@ do
     local raw_commandv = mp.commandv
     local raw_command = mp.command
 
-    -- [v1.58.55] Subtitle delay adjustment wrappers.
+    -- Subtitle delay adjustment wrappers.
     -- Intercept time-pos queries and seek commands to respect mpv's sub-delay offset
     -- so that kardenwort's custom subtitle immersion features sync perfectly.
     mp.get_property_number = function(name, def)
@@ -159,7 +180,7 @@ end
 require 'resume'
 
 -- Fallback for older mpv versions missing utils.read_file
-function safe_read_file(path)
+local function safe_read_file(path)
     if not path or path == "" then return nil end
     if utils and utils.read_file then
         return utils.read_file(path)
@@ -174,9 +195,9 @@ function safe_read_file(path)
 end
 
 
--- =========================================================================
+-- ============================================================================
 -- KARDENWORT CORE CONFIGURATION
--- =========================================================================
+-- ============================================================================
 
 -- Forward declarations for interactive logic
 local Options = config.Options
@@ -223,7 +244,7 @@ local is_valid_mpv_key, expand_ru_keys
 local show_osd, show_seek_osd
     = alias(osd_cards, {"show_osd", "show_seek_osd"})
 local seek_osd  -- forward-declared; assigned from osd_cards.seek_osd after setup()
-local tsv_helpers  -- populated at Phase 6 init; flush_rendering_caches added later
+local tsv_helpers  -- populated at tsv_export init; flush_rendering_caches added later
 
 -- tsv_export aliases
 local get_copy_context_text, prepare_export_text, extract_anki_context,
@@ -343,32 +364,35 @@ FSM.notice_osd.res_x = math.floor(FSM.notice_osd.res_y * 16 / 9)
 FSM.notice_osd.z = Options.notice_osd_layer
 FSM.notice_timer = nil
 
--- Phase 2: inject singletons into extracted text_utils module.
+-- Init order matters: modules read injected singletons at call time, but some
+-- helper tables are populated after their definitions (see notes below).
+
+-- text_utils — pure text/tokenization helpers (reads Options at call time).
 text_utils.init(FSM, Options)
 
--- Phase 3: inject singletons + safe_read_file into extracted subtitle_parser module.
+-- subtitle_parser — subtitle loading/parsing (needs safe_read_file).
 subtitle_parser.init(FSM, Options, Tracks, Diagnostic, safe_read_file)
 
--- Phase 4: inject Options into extracted keybinding_utils module.
+-- keybinding_utils — key validation (reads Options at call time).
 keybinding_utils.init(Options)
 
--- Phase 5: inject singletons into extracted osd_cards module, then set up the
--- seek_osd overlay (reads Options at creation time) and expose it to main.lua.
+-- osd_cards — transient OSD popups; setup() creates the seek_osd overlay
+-- (reads Options at creation time) and exposes it to main.lua.
 osd_cards.init(FSM, Options, Tracks, Diagnostic)
 osd_cards.setup()
 seek_osd = osd_cards.seek_osd
 
--- Phase 6: inject singletons + helpers into extracted tsv_export module.
--- safe_read_file is a global (defined above); flush_rendering_caches is a
--- main.lua local defined later, so it is populated into the helpers table
--- after that definition (see tsv_helpers.flush_rendering_caches assignment).
+-- tsv_export — Anki/TSV mining. safe_read_file is injected now;
+-- flush_rendering_caches is a main.lua local defined later, so it is
+-- populated into the helpers table after that definition
+-- (see tsv_helpers.flush_rendering_caches assignment below).
 tsv_helpers = { safe_read_file = safe_read_file }
 tsv_export.init(FSM, Options, Tracks, Diagnostic, tsv_helpers)
 
--- Phase 7: inject singletons into extracted companion module.
+-- companion — companion track discovery.
 companion.init(FSM, Options, Diagnostic)
 
--- Phase 8: inject singletons + helpers into extracted search module.
+-- search — Universal Subtitle Search HUD.
 -- Helpers (wrap_tokens, dw_get_mouse_osd, manage_ui_border_override,
 -- manage_dw_bindings, update_interactive_bindings, render_search, show_osd)
 -- are populated into search_helpers after their definitions in main.lua.
@@ -377,7 +401,7 @@ search.init(FSM, Options, Tracks, Diagnostic, search_helpers)
 cmd_toggle_search = search.cmd_toggle_search
 update_search_results = search.update_search_results
 
--- Phase 9: inject singletons + helpers into extracted help_hud module.
+-- help_hud — Dynamic Help HUD (F1).
 -- help_helpers (help_osd_* overlays, render_search) populated after their defs.
 help_helpers = {}
 help_hud.init(FSM, Options, help_helpers)
@@ -385,7 +409,7 @@ cmd_toggle_help = help_hud.cmd_toggle_help
 -- Load @help overrides from input.conf into HELP_SCHEMA (module-internal).
 help_hud.load_overrides()
 
--- Phase 11A: inject singletons + helpers into extracted render_utils module.
+-- render_utils — shared ASS rendering helpers.
 -- is_inside_dw_selection stays in main.lua (DW nav) — injected via render_helpers.
 render_helpers = {}
 render_utils.init(FSM, Options, Diagnostic, render_helpers)
@@ -490,7 +514,7 @@ end
 local function dw_reset_selection()
     dw_capture_neutral_marker()
     FSM.DW_ESC_NEUTRAL_ARMED = dw_is_neutral_policy_enabled()
-    -- [v1.80.29] Synchronize active line to live playback to prevent stale jumps during reset
+    -- Synchronize active line to live playback to prevent stale jumps during reset
     local time_pos = mp.get_property_number("time-pos") or 0
     local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)
     if live_active_idx and live_active_idx ~= -1 then
@@ -589,7 +613,7 @@ help_osd_2.res_y = Options.font_base_height
 help_osd_2.res_x = math.floor(help_osd_2.res_y * 16 / 9)
 help_osd_2.z = 103
 
--- Phase 9: expose help overlays to the help_hud module.
+-- Expose help overlays to the help_hud module.
 help_helpers.help_osd_bg = help_osd_bg
 help_helpers.help_osd_title = help_osd_title
 help_helpers.help_osd_1 = help_osd_1
@@ -666,8 +690,6 @@ function cmd_toggle_copy_ctx()
     show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
 end
 
--- compose_term_smart and calculate_highlight_stack moved to render_utils.lua (Phase 11A).
-
 local function cmd_open_record_file()
     local path = get_tsv_path()
     if not path then
@@ -738,7 +760,7 @@ local function flush_rendering_caches()
     end
 end
 
--- Phase 6: tsv_export calls flush_rendering_caches after TSV load/save; expose
+-- tsv_export calls flush_rendering_caches after TSV load/save; expose
 -- it via the helpers table (read at call time by the module).
 tsv_helpers.flush_rendering_caches = flush_rendering_caches
 
@@ -1093,10 +1115,10 @@ local function is_inside_dw_selection(l, w)
     return true
 end
 
--- Phase 11A: populate render_helpers now that is_inside_dw_selection is defined.
+-- Populate render_helpers now that is_inside_dw_selection is defined.
 render_helpers.is_inside_dw_selection = is_inside_dw_selection
 
--- Phase 11B: inject singletons + helpers into extracted subtitle_window module.
+-- subtitle_window — draw_drum / draw_dw / draw_dw_tooltip renderers.
 -- Draw caches stay in main.lua (referenced by flush_rendering_caches) and
 -- are injected via sw_helpers.caches. build_tooltip_style_context and
 -- get_tooltip_parent_mode are injected via sw_helpers.
@@ -1115,10 +1137,6 @@ draw_drum = subtitle_window.draw_drum
 draw_dw = subtitle_window.draw_dw
 draw_dw_tooltip = subtitle_window.draw_dw_tooltip
 
--- populate_token_meta, format_highlighted_word, dw_get_str_width_proportional,
--- dw_get_str_width, calculate_sub_gap, wrap_tokens, calculate_osd_line_meta
--- moved to render_utils.lua (Phase 11A).
-
 -- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
 -- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
 DRUM_DRAW_CACHE = {
@@ -1127,10 +1145,6 @@ DRUM_DRAW_CACHE = {
     pending_version = 0, layout_version = 0, result = "",
     hit_zones = nil -- Cached geometry
 }
-
--- draw_drum moved to subtitle_window.lua (Phase 11B).
-
--- dw_build_layout moved to render_utils.lua (Phase 11A).
 
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
@@ -1141,14 +1155,9 @@ DW_DRAW_CACHE = {
     pending_version = 0, result = ""
 }
 
--- draw_dw moved to subtitle_window.lua (Phase 11B).
-
--- format_tooltip_card_event, format_tooltip_text_event moved to render_utils.lua (Phase 11A).
--- draw_dw_tooltip moved to subtitle_window.lua (Phase 11B).
-
--- =========================================================================
+-- ============================================================================
 -- DRUM WINDOW MOUSE SELECTION
--- =========================================================================
+-- ============================================================================
 
 local function dw_get_mouse_osd()
     local mouse = mp.get_property_native("mouse-pos")
@@ -1446,8 +1455,6 @@ local function dw_sync_cursor_to_mouse()
     end
 
 end
-
--- dw_vline_height moved to render_utils.lua (Phase 11A).
 
 function get_dw_drag_threshold_px()
     local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
@@ -2198,10 +2205,10 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     apply_tooltip_ass("")
                 end
 
-                -- Phase 1: Custom Actions (Tooltips, Pins, etc.)
+                -- Custom Actions (Tooltips, Pins, etc.)
                 if on_down_callback then on_down_callback(tbl) end
 
-                -- Phase 2: Selection Logic (Only for words, if enabled)
+                -- Selection Logic (Only for words, if enabled)
                 if word_idx and updates_selection then
                     local is_inside = on_up_callback and is_inside_dw_selection(line_idx, word_idx)
                     FSM.DW_PROTECTED_SELECTION = is_inside and not is_shift
@@ -2379,7 +2386,7 @@ local function dw_handle_double_click_target(subs, line_idx, word_idx)
     if not subs or #subs == 0 then return false end
     local sub = subs[line_idx]
     if sub and sub.start_time then
-        -- [v1.58.51] Intentional Focus Handover
+        -- Intentional Focus Handover
         FSM.IGNORE_NEXT_JUMP = true
         FSM.ACTIVE_IDX = line_idx
         FSM.MANUAL_NAV_TARGET_IDX = line_idx
@@ -2531,7 +2538,7 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     local pri_active_idx = (#Tracks.pri.subs > 0) and get_center_index(Tracks.pri.subs, time_pos) or -1
     local sec_active_idx = (#Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos) or -1
 
-    -- [v1.58.60] PAUSE GUARD: When the player is paused BY AUTOPAUSE, do NOT let the
+    -- PAUSE GUARD: When the player is paused BY AUTOPAUSE, do NOT let the
     -- Sticky Sentinel advance to the next subtitle.  Freezing keeps the subtitle display
     -- and jump-back logic anchored to the subtitle we actually stopped on.  This mirrors
     -- the autopause + nav-delta gating used in master_tick so that manual pauses and
@@ -2566,7 +2573,7 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
         local active_idx = sec_active_idx
-        -- [v1.58.52] Secondary track mirrors primary viewport offset in all follow modes.
+        -- Secondary track mirrors primary viewport offset in all follow modes.
         local view_center = active_idx
         if pri_active_idx ~= -1 and pri_view_center ~= -1 then
             local offset = pri_view_center - pri_active_idx
@@ -2593,7 +2600,7 @@ local function tick_autopause(time_pos)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
 
-    -- [v1.58.51] Hardened Autopause via Sticky Focus
+    -- Hardened Autopause via Sticky Focus
     -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
     local active_idx = FSM.ACTIVE_IDX
     if active_idx == -1 or not subs[active_idx] then
@@ -2602,7 +2609,7 @@ local function tick_autopause(time_pos)
     end
     if active_idx == -1 then return end
 
-    -- [v1.58.54] Skip autopause while transiting through the rewind zone after Shift+A/D.
+    -- Skip autopause while transiting through the rewind zone after Shift+A/D.
     -- Uses <= so the exact boundary tick is still suppressed; the inhibit is cleared
     -- only after jerk-back has also been evaluated (see end of main tick function).
     -- [20260510193230] Special case: within-subtitle rewind should still allow autopause at end.
@@ -2691,7 +2698,7 @@ local function tick_loop(time_pos)
                 FSM.LOOP_MODE = "OFF"
             end
             
-            -- [v1.58.48] Spacebar Override: If holding Space, break the loop
+            -- Spacebar Override: If holding Space, break the loop
             -- so it repeats once and then continues over the subtitle border.
             if FSM.SPACEBAR == "HOLDING" then
                 FSM.LOOP_MODE = "OFF"
@@ -2755,7 +2762,7 @@ local function master_tick()
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
 
-    -- [v1.58.48] Ghost Hold Recovery
+    -- Ghost Hold Recovery
     -- If Space is 'HOLDING' due to a suspected ghost event at 's' press,
     -- but no physical 'DOWN' event has refreshed it within 2 seconds, revert to IDLE.
     if FSM.SPACEBAR == "HOLDING" and FSM.GHOST_HOLD_EXPIRY and mp.get_time() > FSM.GHOST_HOLD_EXPIRY then
@@ -2765,9 +2772,9 @@ local function master_tick()
 
     end
 
-    -- [v1.58.48] Universal Manual Seek Detection
+    -- Universal Manual Seek Detection
     -- Detects any significant jump (native keys, script keys, or mouse)
-    -- [v1.58.61] Coarse Time-Pos Filter: Distinguishes real seeks from natural
+    -- Coarse Time-Pos Filter: Distinguishes real seeks from natural
     -- time-pos jumps by checking wall-clock delta.  A real seek moves time-pos
     -- much faster than wall-clock time advances.  With 15 fps black.mp4 the
     -- >0.3 s threshold is rarely reached during normal playback (~67 ms ticks).
@@ -2830,7 +2837,7 @@ local function master_tick()
     if #Tracks.pri.subs > 0 then
         active_idx = get_center_index(Tracks.pri.subs, time_pos)
 
-        -- [v1.58.60] PAUSE GUARD: When paused BY AUTOPAUSE, freeze the sentinel so it
+        -- PAUSE GUARD: When paused BY AUTOPAUSE, freeze the sentinel so it
         -- does not drift to the next subtitle due to time-pos jitter.
         -- We detect an autopause-induced pause by checking that last_paused_sub_end
         -- is set and time_pos is still near it.  With 15 fps black.mp4, tick deltas
@@ -2846,7 +2853,7 @@ local function master_tick()
         end
 
         if active_idx ~= -1 then
-            -- [v1.58.51] Phrases Mode "Jerk Back" Logic
+            -- Phrases Mode "Jerk Back" Logic
             -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
             -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
             -- is expected: no jerking, no overlap-driven snaps.
@@ -2868,7 +2875,7 @@ local function master_tick()
                 end
             end
 
-            -- [v1.58.54] Clear rewind-transit inhibit AFTER jerk-back has been evaluated,
+            -- Clear rewind-transit inhibit AFTER jerk-back has been evaluated,
             -- using strict > so both autopause and jerk-back are suppressed on the boundary tick.
             -- [20260510193230] Also clear rewind start index when transit ends.
             if FSM.TIMESEEK_INHIBIT_UNTIL and time_pos > FSM.TIMESEEK_INHIBIT_UNTIL then
@@ -2892,7 +2899,7 @@ local function master_tick()
             FSM.ACTIVE_IDX = active_idx
             FSM.DW_ACTIVE_LINE = active_idx
             
-            -- [v1.58.49] Universal Cursor Synchronization
+            -- Universal Cursor Synchronization
             -- Ensures that the "copy focus" always tracks playback when in follow mode,
             -- even if the Drum Window is closed (e.g., purely in Drum Mode on-screen).
             -- [20260528132406] Viewport update and cursor sync are now independent:
@@ -2916,7 +2923,7 @@ local function master_tick()
     if #Tracks.sec.subs > 0 and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
         local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
 
-        -- [v1.58.60] PAUSE GUARD: freeze secondary sentinel when paused by autopause.
+        -- PAUSE GUARD: freeze secondary sentinel when paused by autopause.
         local is_autopause_paused_sec = mp.get_property_bool("pause", false)
             and FSM.last_paused_sub_end
             and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
@@ -3123,7 +3130,7 @@ end
 local function cmd_dw_scroll(dir)
     local subs = Tracks.pri.subs
     if not subs or #subs == 0 then return end
-    -- [v1.58.52] Bootstrap: If the viewport hasn't been explicitly set yet,
+    -- Bootstrap: If the viewport hasn't been explicitly set yet,
     -- anchor it to the current active index before applying the scroll delta.
     if FSM.DW_VIEW_CENTER == -1 then
         local time_pos = mp.get_property_number("time-pos") or 0
@@ -3686,7 +3693,7 @@ local function cmd_replay_sub()
     
     local is_paused = mp.get_property_bool("pause")
 
-    -- [v1.58.48] Sticky Hold Workaround for Hardware Ghosting
+    -- Sticky Hold Workaround for Hardware Ghosting
     -- If 's' is pressed, the keyboard matrix might send a fake 'Space UP' event just before 's' DOWN.
     -- If Space was held, or released within the last 300ms, we assume they are still intending to hold it.
     local was_holding_space = (FSM.SPACEBAR == "HOLDING") or 
@@ -3697,7 +3704,7 @@ local function cmd_replay_sub()
         FSM.GHOST_HOLD_EXPIRY = mp.get_time() + 2.0 -- 2 second safety window for desync recovery
     end
 
-    -- [v1.58.49] Fixed Window Replay (Subtitle Independent)
+    -- Fixed Window Replay (Subtitle Independent)
     -- As per user request: "get rid of the boundaries of subtitles altogether and leave only the range of the track"
     local replay_start = math.max(0, time_pos - Options.replay_ms/1000)
     local replay_end = time_pos
@@ -3788,7 +3795,7 @@ local function cmd_dw_seek_selected()
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
-            -- [v1.58.51] Intentional Focus Handover
+            -- Intentional Focus Handover
             FSM.IGNORE_NEXT_JUMP = true
             FSM.ACTIVE_IDX = FSM.DW_CURSOR_LINE
             FSM.MANUAL_NAV_TARGET_IDX = FSM.DW_CURSOR_LINE
@@ -3826,7 +3833,7 @@ local function cmd_dw_seek_delta(dir)
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then return end
     
-    -- [v1.58.51] Intentional Focus Handover
+    -- Intentional Focus Handover
     -- When manually seeking, we MUST ignore the padding boundaries of the current index
     -- to prevent "Magnetic Snapping" back to the previous line.
     FSM.IGNORE_NEXT_JUMP = true
@@ -3919,7 +3926,7 @@ local function cmd_seek_time(dir)
     FSM.JUST_JERKED_TO = -1
     FSM.MANUAL_NAV_COOLDOWN = now + Options.nav_cooldown
 
-    -- [v1.58.54] Time-based seek (Shift+A/D) overrides repeat/loop state.
+    -- Time-based seek (Shift+A/D) overrides repeat/loop state.
     -- The user is manually scrubbing the tape; active loops/replays should not survive the seek.
     FSM.LOOP_MODE = "OFF"
     FSM.REPLAY_REMAINING = 0
@@ -3927,7 +3934,7 @@ local function cmd_seek_time(dir)
     FSM.SCHEDULED_REPLAY_END = nil
     FSM.last_paused_sub_end = nil  -- Allow autopause to re-arm at the correct boundary after rewind.
 
-    -- [v1.58.54] Suppress autopause at subtitles encountered during backward rewind transit.
+    -- Suppress autopause at subtitles encountered during backward rewind transit.
     -- Autopause is inhibited until playback naturally returns past the pre-seek position.
     -- [20260510193230] Track rewind start index to distinguish within-subtitle vs cross-subtitle rewind.
     local current_pos = mp.get_property_number("time-pos") or 0
@@ -4217,7 +4224,7 @@ local function set_clipboard(text, mode)
     if text and text ~= "" then
         mp.set_property("user-data/kardenwort/last_clipboard", text)
     end
-    -- [v1.58.32] Native property is unreliable on some Windows MPV builds for system-wide sync.
+    -- Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
     local platform = package.config:sub(1,1)
     if platform ~= "\\" then
@@ -4254,10 +4261,10 @@ local function set_clipboard(text, mode)
         end
     end
 
-    -- [v1.58.32] Optional explicit trigger for GoldenDict scan popup.
+    -- Optional explicit trigger for GoldenDict scan popup.
     -- This bypasses AHK polling latency by directly notifying the dictionary tool.
-    -- [v1.58.36] Robust GoldenDict trigger (Improved layout/modifier stability)
-    -- [v1.58.38] Professional Layout-Independent Trigger (VK-based)
+    -- Robust GoldenDict trigger (Improved layout/modifier stability)
+    -- Professional Layout-Independent Trigger (VK-based)
     local user_hotkey = nil
     if Options.gd_trigger_enabled == "yes" and platform == "\\" and (mode == "side" or mode == "main") then
         user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
@@ -4265,7 +4272,7 @@ local function set_clipboard(text, mode)
         user_hotkey = Options["tts_hotkey_" .. mode:match("([1-8])$")]
     end
     if user_hotkey and user_hotkey ~= "" then
-        -- [v1.58.40] Expanded VK mapping for layout-independent triggers
+        -- Expanded VK mapping for layout-independent triggers
         local vk_codes = {
             ctrl = 0x11, alt = 0x12, shift = 0x10, win = 0x5B,
             a = 0x41, b = 0x42, c = 0x43, d = 0x44, e = 0x45, f = 0x46, g = 0x47, h = 0x48, i = 0x49,
@@ -4287,7 +4294,7 @@ local function set_clipboard(text, mode)
             local events = {}
             local modifiers = { "ctrl", "alt", "shift", "win" }
             
-            -- [v1.58.42] Handle implicit shift from uppercase keys (e.g. "Ctrl+Alt+Q")
+            -- Handle implicit shift from uppercase keys (e.g. "Ctrl+Alt+Q")
             local main_key = hotkey:match("[^+]+$")
             local needs_shift = (main_key and #main_key == 1 and main_key:match("%u")) or primary:find("shift")
 
@@ -4316,7 +4323,7 @@ local function set_clipboard(text, mode)
         if #all_events == 0 then return end
 
         
-        -- [v1.58.48] Configurable Trigger Lock (Prevent AHK Recursion)
+        -- Configurable Trigger Lock (Prevent AHK Recursion)
         local now = mp.get_time()
         if (now - (FSM.LAST_TRIGGER_TIME or 0)) < Options.gd_trigger_lock_duration then
             -- A trigger was recently fired, likely by the user.
@@ -4325,7 +4332,7 @@ local function set_clipboard(text, mode)
         end
         FSM.LAST_TRIGGER_TIME = now
         
-        -- [v1.58.48] Independent Mode Delays (Popup/Main)
+        -- Independent Mode Delays (Popup/Main)
         if Options.gd_trigger_method == "python" then
             local delay = (mode == "main") and Options.python_trigger_delay_main or Options.python_trigger_delay_popup
             local py_cmd = string.format("import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ", delay)
@@ -4370,7 +4377,7 @@ render_search = function()
     search_osd:update()
 end
 
--- Phase 9: expose render_search to help_hud (help toggle clears search overlay).
+-- Expose render_search to help_hud (help toggle clears search overlay).
 help_helpers.render_search = render_search
 
 
@@ -4432,7 +4439,7 @@ local function trigger_volume_suspension()
     end)
 end
 
--- Phase 8: populate search_helpers now that all injected functions are defined.
+-- Populate search_helpers now that all injected functions are defined.
 search_helpers.wrap_tokens = wrap_tokens
 search_helpers.dw_get_mouse_osd = dw_get_mouse_osd
 search_helpers.manage_ui_border_override = manage_ui_border_override
@@ -4614,7 +4621,7 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     if cl == -1 then return nil, false end
 
     -- 1. Selection Priority (Pink Set > Yellow Range > Yellow Pointer)
-    -- [v1.58.51] Explicit priority allows user to regulate behavior via Esc stages.
+    -- Explicit priority allows user to regulate behavior via Esc stages.
     
     -- Stage 1: Pink Set (Multi-word Selection via Ctrl+Click)
     if has_pink_set then
@@ -5178,13 +5185,9 @@ local function cmd_toggle_osc()
     show_osd("OSC Visibility: " .. lbl)
 end
 
--- =========================================================================
+-- ============================================================================
 -- SYSTEM EVENTS
--- =========================================================================
-
--- =========================================================================
--- SYSTEM EVENTS
--- =========================================================================
+-- ============================================================================
 
 local function cmd_copy_sub(mode)
     local time_pos = mp.get_property_number("time-pos")
@@ -5210,11 +5213,6 @@ local function cmd_copy_sub(mode)
         show_osd("No subtitle to copy")
     end
 end
-
-
--- =========================================================================
--- SYSTEM EVENTS
--- =========================================================================
 
 mp.observe_property("sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
@@ -5357,7 +5355,7 @@ mp.add_key_binding(nil, "copy-subtitle-tts-6", function() cmd_copy_sub("tts_6") 
 mp.add_key_binding(nil, "copy-subtitle-tts-7", function() cmd_copy_sub("tts_7") end)
 mp.add_key_binding(nil, "copy-subtitle-tts-8", function() cmd_copy_sub("tts_8") end)
 
--- [v1.58.40] Global Ctrl+Alt+C binding for main GoldenDict window
+-- Global Ctrl+Alt+C binding for main GoldenDict window
 local function register_global_copy_keys()
     local bind = keybinding_utils.bind
     bind(Options.key_copy_popup, "kardenwort-global-copy-side", function() cmd_copy_sub("side") end, {wrap=true})
@@ -5418,10 +5416,7 @@ if Options.anki_sync_period > 0 then
 end
 Diagnostic.info("SCRIPT LOADED SUCCESSFULLY")
 
-
----------------------------------------------------------------------------
 -- Safety Net: Recover stuck OSD properties from previous crashes
----------------------------------------------------------------------------
 local function recover_native_osd_style()
     local opt_style = mp.get_property("options/osd-border-style")
     local cur_style = mp.get_property("osd-border-style")
@@ -5431,7 +5426,7 @@ local function recover_native_osd_style()
 end
 recover_native_osd_style()
 
--- [v1.58.51] Global Immersion Mode Toggle (Shift+o / O Щ)
+-- Global Immersion Mode Toggle (Shift+o / O Щ)
 -- Parameterized to allow user overrides via mpv.conf
 for k in string.gmatch(Options.key_cycle_immersion_mode, "%S+") do
     mp.add_forced_key_binding(k, "kardenwort-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
