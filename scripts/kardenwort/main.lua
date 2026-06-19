@@ -1,8 +1,8 @@
--- ============================================================================
+-- ================================================================================
 -- KARDENWORT Language Acquisition Suite (LAS) Core
 -- Purpose: Language Acquisition through Subtitle-Driven Immersion
 -- Features: Autopause, Karaoke Drill, Flashback Replay, Sticky Hold.
--- ============================================================================
+-- ================================================================================
 --
 -- Module map (scripts/kardenwort/):
 --   main.lua            — orchestrator: requires, boot, init, binding registration,
@@ -24,7 +24,7 @@
 -- Alias block invariant: the `alias()` locals below MUST stay in sync with each
 -- module's public `M.*` exports. Init order matters — modules read injected
 -- singletons at call time, but helper tables are populated after their defs.
--- ============================================================================
+-- ================================================================================
 
 local mp = require 'mp'
 local script_dir = mp.get_script_directory()
@@ -196,9 +196,9 @@ local function safe_read_file(path)
 end
 
 
--- ============================================================================
+-- ================================================================================
 -- KARDENWORT CORE CONFIGURATION
--- ============================================================================
+-- ================================================================================
 
 -- Forward declarations for interactive logic
 local Options = config.Options
@@ -297,9 +297,9 @@ local draw_dw_tooltip
 local sw_helpers
 
 
--- =========================================================================
+-- =============================================================================
 -- DIAGNOSTIC & LOGGING SYSTEM
--- =========================================================================
+-- =============================================================================
 local Diagnostic = {
     ERROR = 0, WARN = 1, INFO = 2, DEBUG = 3, TRACE = 4,
     LEVEL_MAP = { ["error"] = 0, ["warn"] = 1, ["info"] = 2, ["debug"] = 3, ["trace"] = 4 },
@@ -352,9 +352,9 @@ end
 options.read_options(Options, "kardenwort")
 state.init(Options)
 
--- =========================================================================
+-- =============================================================================
 -- STATE MACHINE
--- =========================================================================
+-- =============================================================================
 
 local FSM = state.FSM
 local Tracks = state.Tracks
@@ -912,9 +912,9 @@ local function get_tooltip_line_y(line_idx, fallback_y)
 end
 
 
--- =========================================================================
+-- =============================================================================
 -- FSM INTERNAL LOGIC
--- =========================================================================
+-- =============================================================================
 
 local function update_font_scale()
     local dim = mp.get_property_native("osd-dimensions")
@@ -1086,9 +1086,9 @@ local function update_media_state()
     end
 end
 
--- =========================================================================
+-- =============================================================================
 -- HIGHLIGHT RENDERING UTILS
--- =========================================================================
+-- =============================================================================
 
 local function is_ignorable_for_semantic_pass(text)
     if not text then return true end
@@ -1156,9 +1156,9 @@ DW_DRAW_CACHE = {
     pending_version = 0, result = ""
 }
 
--- ============================================================================
+-- ================================================================================
 -- DRUM WINDOW MOUSE SELECTION
--- ============================================================================
+-- ================================================================================
 
 local function dw_get_mouse_osd()
     local mouse = mp.get_property_native("mouse-pos")
@@ -1457,6 +1457,7 @@ local function dw_sync_cursor_to_mouse()
 
 end
 
+-- Mouse drag threshold, auto-scroll, and neighbor word resolution
 function get_dw_drag_threshold_px()
     local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
     if threshold < 0 then return 0 end
@@ -1616,6 +1617,7 @@ local function dw_mouse_auto_scroll()
     end
 end
 
+-- Tooltip pin / hover / toggle commands
 local function cmd_dw_tooltip_pin(tbl)
     if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
         show_osd("X")
@@ -1829,7 +1831,7 @@ local function dw_tooltip_mouse_update()
 end
 
 
-
+-- Anki export, selection bounds, and Esc staged reset
 local function dw_anki_export_selection()
     local ok, err = pcall(function()
         local subs = Tracks.pri.subs
@@ -2076,7 +2078,7 @@ local function cmd_dw_esc()
     end
 end
 
-
+-- Set operations: toggle/commit/discard, mouse handler factory, smart callbacks
 local function ctrl_toggle_word(line_idx, word_idx, no_sync)
     if line_idx < 1 or word_idx < 0 then return end
     
@@ -2450,6 +2452,7 @@ local function cmd_dw_double_click()
     dw_handle_double_click_target(subs, line_idx, word_idx)
 end
 
+-- Tick renderers: Drum Window and Drum Mode per-frame rendering
 local function tick_dw(time_pos, active_idx)
     if FSM.DRUM_WINDOW == "OFF" then
         if dw_osd.data ~= "" then
@@ -2589,9 +2592,9 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     drum_osd:update()
 end
 
--- =========================================================================
+-- =============================================================================
 -- AUTOPAUSE CONTROLLER
--- =========================================================================
+-- =============================================================================
 
 local function tick_autopause(time_pos)
     if FSM.AUTOPAUSE ~= "ON" or FSM.SPACEBAR ~= "IDLE" then return end
@@ -2744,9 +2747,9 @@ local function tick_scheduled_replay(time_pos)
     return false
 end
 
--- =========================================================================
+-- =============================================================================
 -- MASTER TICK LOOP
--- =========================================================================
+-- =============================================================================
 
 update_interactive_bindings = function()
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
@@ -3017,9 +3020,9 @@ local function master_tick()
 end
 mp.add_periodic_timer(Options.tick_rate, master_tick)
 
--- =========================================================================
+-- =============================================================================
 -- ACTION BINDINGS
--- =========================================================================
+-- =============================================================================
 
 local function cmd_toggle_autopause()
     FSM.AUTOPAUSE = (FSM.AUTOPAUSE == "ON") and "OFF" or "ON"
@@ -4216,9 +4219,9 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     FSM.DW_KEY_OVERRIDE = enable_kb
 end
 
--- =========================================================================
+-- =============================================================================
 -- GLOBAL SEARCH FEATURE
--- =========================================================================
+-- =============================================================================
 
 
 local function set_clipboard(text, mode)
@@ -5186,9 +5189,9 @@ local function cmd_toggle_osc()
     show_osd("OSC Visibility: " .. lbl)
 end
 
--- ============================================================================
+-- ================================================================================
 -- SYSTEM EVENTS
--- ============================================================================
+-- ================================================================================
 
 local function cmd_copy_sub(mode)
     local time_pos = mp.get_property_number("time-pos")
@@ -5327,9 +5330,9 @@ mp.register_event("file-loaded", function()
     end
 end)
 
--- =========================================================================
+-- =============================================================================
 -- INITIALIZATION
--- =========================================================================
+-- =============================================================================
 options.read_options(Options, "kardenwort")
 validate_config()
 
@@ -5434,10 +5437,10 @@ for k in string.gmatch(Options.key_cycle_immersion_mode, "%S+") do
 end
 
 
--- ============================================================================
+-- ================================================================================
 -- TEST INSTRUMENTATION (test_hooks.lua)
 -- Dormant in production. Activated by IPC script-message-to kardenwort ...
--- ============================================================================
+-- ================================================================================
 test_hooks.init(FSM, Options, Tracks, Diagnostic, {
     drum_osd = drum_osd,
     dw_osd = dw_osd,
