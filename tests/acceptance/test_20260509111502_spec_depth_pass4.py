@@ -478,7 +478,7 @@ class TestFuzzySearchOptimization:
 
     def test_render_search_exists_for_optimized_rendering(self):
         """render_search must be a dedicated function, not inline code (fuzzy-search-optimization)."""
-        assert "local function render_search" in _src(), (
+        assert "render_search = function()" in _src(), (
             "fuzzy-search-optimization: render_search not a dedicated function"
         )
 

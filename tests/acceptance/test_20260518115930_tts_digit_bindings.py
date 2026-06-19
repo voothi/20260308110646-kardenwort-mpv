@@ -16,7 +16,8 @@ class TestTtsDigitBindings:
 
     def test_main_lua_has_tts_trigger_options_and_bindings(self):
         src = _read("scripts/kardenwort/main.lua")
-        required = [
+        help_src = _read("scripts/kardenwort/help_hud.lua")
+        required_in_main = [
             'tts_trigger_enabled = "no"',
             'tts_hotkey_2 = "Ctrl+Alt+Shift+2"',
             'tts_hotkey_3 = "Ctrl+Alt+Shift+3"',
@@ -32,13 +33,17 @@ class TestTtsDigitBindings:
             'cmd_copy_sub("tts_5")',
             'mode:match("^tts_[1-8]$")',
             'Options["tts_hotkey_" .. mode:match("([1-8])$")]',
+        ]
+        # HELP_SCHEMA TTS entries moved to help_hud.lua (Phase 9 extraction).
+        required_in_help = [
             'cmd = "kardenwort/copy-subtitle-tts-2", fallback_keys = function() return Options.key_tts_2 end',
             'cmd = "kardenwort/copy-subtitle-tts-3", fallback_keys = function() return Options.key_tts_3 end',
             'cmd = "kardenwort/copy-subtitle-tts-4", fallback_keys = function() return Options.key_tts_4 end',
             'cmd = "kardenwort/copy-subtitle-tts-5", fallback_keys = function() return Options.key_tts_5 end',
         ]
-        missing = [item for item in required if item not in src]
-        assert not missing, f"TTS integration markers missing in main.lua: {missing}"
+        missing = [item for item in required_in_main if item not in src]
+        missing += [item for item in required_in_help if item not in help_src]
+        assert not missing, f"TTS integration markers missing: {missing}"
 
     def test_mpv_conf_declares_tts_keys_and_hotkeys(self):
         conf = _read("mpv.conf")

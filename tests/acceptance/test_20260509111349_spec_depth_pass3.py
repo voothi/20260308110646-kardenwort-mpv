@@ -329,7 +329,7 @@ class TestSearchSystemStructural:
 
     def test_render_search_exists(self):
         """render_search must exist as the search HUD render function (search-system)."""
-        assert "local function render_search" in _src(), (
+        assert "render_search = function()" in _src(), (
             "search-system: render_search not found in kardenwort.lua"
         )
 
