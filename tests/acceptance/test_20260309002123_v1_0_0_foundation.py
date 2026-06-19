@@ -21,6 +21,16 @@ def robust_query_state(ipc, retries=3):
         time.sleep(0.5)
     return query_kardenwort_state(ipc)
 
+def wait_for_condition(ipc, condition_fn, timeout=5.0, poll_interval=0.2):
+    """Wait up to timeout seconds for a condition on the kardenwort state to be met."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        state = robust_query_state(ipc)
+        if state and condition_fn(state):
+            return state
+        time.sleep(poll_interval)
+    return robust_query_state(ipc)
+
 class TestMarchEarlyRegressions:
     """Tests for archived changes in early March 2026."""
 
@@ -52,17 +62,16 @@ class TestMarchEarlyRegressions:
         
         # Open Drum Window
         ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
-        time.sleep(1.0)
+        wait_for_condition(ipc, lambda s: s.get('drum_window') != 'OFF')
         
         # Open Search
         ipc.command(['script-message-to', 'kardenwort', 'toggle-drum-search'])
-        time.sleep(0.5)
+        wait_for_condition(ipc, lambda s: s.get('search_mode') is True)
         
         # v1.25.0 Decision: Multi-keyword AND logic.
         ipc.command(['script-message-to', 'kardenwort', 'test-search-input', 'Paket Ende'])
-        time.sleep(0.8) # Allow time for scoring logic
         
-        state = robust_query_state(ipc)
+        state = wait_for_condition(ipc, lambda s: s.get('search_query') == 'Paket Ende')
         assert state.get('search_query') == 'Paket Ende'
         
         # Verification that results are filtered
@@ -83,8 +92,7 @@ class TestMarchEarlyRegressions:
         
         # Toggle Drum Window
         ipc.command(['script-message-to', 'kardenwort', 'drum-window-toggle'])
-        time.sleep(1.0)
-        state = robust_query_state(ipc)
+        state = wait_for_condition(ipc, lambda s: s.get('drum_window') != 'OFF')
         assert state['drum_window'] != 'OFF'
 
     def test_20260314000819_v1_26_8_ass_gatekeeping(self, mpv_ass):
@@ -102,6 +110,7 @@ class TestMarchEarlyRegressions:
         
         state = robust_query_state(ipc)
         assert state['drum_mode'] == 'OFF', "Drum Mode should be inhibited on ASS tracks"
+
 
 
 
