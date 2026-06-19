@@ -1,12 +1,11 @@
--- =========================================================================
+-- ===============================================================================
 -- render_utils.lua — Shared ASS-rendering helpers for kardenwort
--- Extracted from main.lua (Phase 11A of refactor 20260618120822).
 -- Contains the rendering helper layer used by all four render modes
 -- (drum/srt/dw/tooltip): measurement, layout, highlight, formatting.
 -- Reads FSM/Options/Diagnostic at call time via injected references.
 -- Requires text_utils and subtitle_parser for pure helpers.
 -- is_inside_dw_selection stays in main.lua (DW nav) — injected via helpers.
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 local text_utils = require 'text_utils'

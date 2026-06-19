@@ -1,8 +1,7 @@
--- =========================================================================
+-- ===============================================================================
 -- text_utils.lua — Pure text / tokenization helpers for kardenwort
--- Extracted from main.lua (Phase 2 of refactor 20260618120822).
 -- Reads Options at call time via the injected `opts` reference (never copied).
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 

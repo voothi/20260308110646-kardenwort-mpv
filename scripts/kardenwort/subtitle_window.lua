@@ -1,12 +1,11 @@
--- =========================================================================
+-- ===============================================================================
 -- subtitle_window.lua — Unified subtitle window renderer for kardenwort
--- Extracted from main.lua (Phase 11B of refactor 20260618120822).
 -- Contains draw_drum, draw_dw, draw_dw_tooltip, their draw caches,
 -- option-profile tables, and the make_draw_cache factory.
 -- Requires render_utils, text_utils, subtitle_parser for helpers.
 -- build_tooltip_style_context / get_tooltip_parent_mode stay in main.lua
 -- (tooltip subsystem) — injected via helpers.
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 local render_utils = require 'render_utils'

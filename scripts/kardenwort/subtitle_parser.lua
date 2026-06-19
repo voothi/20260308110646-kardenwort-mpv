@@ -1,8 +1,7 @@
-﻿-- =========================================================================
+-- ===============================================================================
 -- subtitle_parser.lua — Subtitle file parsing & position matching for kardenwort
--- Extracted from main.lua (Phase 3 of refactor 20260618120822).
 -- Reads FSM/Options/Tracks/Diagnostic at call time via injected references.
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 local text_utils = require 'text_utils'
@@ -177,7 +176,7 @@ local function get_effective_boundaries(subs, sub, idx)
     local start = sub.start_time - pad_start
     local stop = sub.end_time + pad_end
 
-    -- [v1.58.51] Movie Mode: Seamless handover at the next subtitle's padded start.
+    -- Movie Mode: Seamless handover at the next subtitle's padded start.
     -- This prevents overlapping audio loops while still ensuring the pre-roll is heard.
     -- [20260510193230] PHRASE Mode: Seamless handover during rewind transit to prevent overlay/jerking.
     local hold_elapsed = mp.get_time() - (FSM.space_down_time or 0)
@@ -202,14 +201,14 @@ end
 local function get_center_index(subs, time_pos)
     if not subs or #subs == 0 then return -1 end
 
-    -- [v1.58.51] Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
+    -- Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
     -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
     -- [20260507154518] Extended to secondary track via FSM.SEC_ACTIVE_IDX to prevent desync when
     -- padded windows overlap (audio_padding_end + audio_padding_start > inter-subtitle gap).
     local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX or
                        (subs == Tracks.sec.subs and FSM.SEC_ACTIVE_IDX or -1)
 
-    -- [v1.58.51] Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
+    -- Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
     -- don't let the sticky logic pull us back to the previous one during the overlap.
     if FSM.IMMERSION_MODE == "PHRASE" and FSM.JUST_JERKED_TO ~= -1 then
         active_idx = FSM.JUST_JERKED_TO
@@ -234,7 +233,7 @@ local function get_center_index(subs, time_pos)
         end
     end
 
-    -- [v1.58.53] One-step Natural Progression (per immersion-engine spec).
+    -- One-step Natural Progression (per immersion-engine spec).
     -- When focus on sub `i` expires and sub `i+1`'s padded zone is active,
     -- transition to `i+1` - never skip intermediate subs even when large
     -- audio_padding values cause multiple subs' padded zones to overlap time_pos.
@@ -271,10 +270,10 @@ local function get_center_index(subs, time_pos)
     local best = find_sub_containing_start(subs, time_pos)
     if best == -1 then return 1 end
 
-    -- [v1.58.52] Absolute Start Guard: If we are at the very beginning, always return first sub
+    -- Absolute Start Guard: If we are at the very beginning, always return first sub
     if time_pos <= 0 then return 1 end
 
-    -- [v1.58.51] Overlap Priority: If we are in a gap where the next sub's
+    -- Overlap Priority: If we are in a gap where the next sub's
     -- padded start has begun, the next sub wins immediately.
     -- The Sticky Sentinel check above ensures we don't switch until the
     -- previous sub's padded end is finished.

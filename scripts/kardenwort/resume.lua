@@ -1,12 +1,12 @@
--- =========================================================================
+-- ===============================================================================
 -- resume.lua — Session resume for kardenwort
 -- Automatically saves the last played file and resumes it if MPV is started
 -- without arguments.
--- =========================================================================
+-- ===============================================================================
 
--- =========================================================================
+-- ===============================================================================
 -- OPTIONS
--- =========================================================================
+-- ===============================================================================
 local mp = require 'mp'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
@@ -55,7 +55,7 @@ mp.register_event("shutdown", save_last_file)
 mp.add_timeout(opts.startup_delay, function()
     local path = mp.get_property("path")
     local playlist_count = tonumber(mp.get_property("playlist-count") or 0)
-    
+
     -- If no file is currently loaded and the playlist is empty
     if (not path or path == "") and playlist_count == 0 then
         local f = io.open(state_path, "r")
@@ -69,12 +69,12 @@ mp.add_timeout(opts.startup_delay, function()
                 if info then
                     local filename = last_path:match("([^/\\]+)$")
                     local msg = opts.msg_prefix .. filename
-                    
+
                     if opts.show_filename then
                         local osd = mp.create_osd_overlay("ass-events")
                         osd.res_x = 1920
                         osd.res_y = 1080
-                        
+
                         if opts.show_subtitles then
                             local dir, name = utils.split_path(last_path)
                             local base_name = name:gsub("%.%w+$", "")
@@ -100,16 +100,16 @@ mp.add_timeout(opts.startup_delay, function()
                             end
                         end
 
-                        local ass_msg = string.format("{\\an7}{\\pos(20,20)}{\\fs%d}{\\fn%s}{\\bord1.5}{\\shad1.0}%s", 
+                        local ass_msg = string.format("{\\an7}{\\pos(20,20)}{\\fs%d}{\\fn%s}{\\bord1.5}{\\shad1.0}%s",
                             opts.osd_font_size, opts.osd_font_name, msg:gsub("\n", "\\N"))
                         osd.data = ass_msg
                         osd:update()
-                        
+
                         mp.add_timeout(opts.osd_duration, function()
                             osd:remove()
                         end)
                     end
-                    
+
                     mp.msg.info("Resuming last session: " .. last_path)
                     mp.commandv("loadfile", last_path)
                 else

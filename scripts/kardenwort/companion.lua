@@ -1,12 +1,11 @@
--- =========================================================================
+-- ===============================================================================
 -- companion.lua — Companion audio/subtitle/video track selection for kardenwort
--- Extracted from main.lua (Phase 7 of refactor 20260618120822).
 -- Contains the language-postfix family, path canonicalization, and the
 -- ensure_companion_* / get_companion_* / select_companion_* functions.
 -- cmd_cycle_audio and cmd_cycle_sec_sid stay in main.lua (carve-out: they are
 -- general playback commands, not companion-internal).
 -- Reads FSM/Options/Diagnostic at call time via injected references.
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 local utils = require 'mp.utils'

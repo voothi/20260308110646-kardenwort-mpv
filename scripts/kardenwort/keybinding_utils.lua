@@ -1,8 +1,7 @@
--- =========================================================================
+-- ===============================================================================
 -- keybinding_utils.lua — Key expansion/validation + consolidated bind helper
--- Extracted from main.lua (Phase 4 of refactor 20260618120822).
 -- Reads Options at call time via the injected `opts` reference (never copied).
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 
@@ -22,7 +21,7 @@ function M.is_valid_mpv_key(k_str)
     return true
 end
 
--- [v1.58.40] Automatic Russian Layout Expansion
+-- Automatic Russian Layout Expansion
 local EN_RU_MAP = {
     ["a"]="ф", ["b"]="и", ["c"]="с", ["d"]="в", ["e"]="у", ["f"]="а", ["g"]="п", ["h"]="р",
     ["i"]="ш", ["j"]="о", ["k"]="л", ["l"]="д", ["m"]="ь", ["n"]="т", ["o"]="щ", ["p"]="з",
@@ -63,7 +62,7 @@ function M.expand_ru_keys(key_string, opt_name)
             }
 
             if is_explicit_shift then
-                -- [v1.58.42 FIX] Shift+e -> "У" only (uppercase Cyrillic, no Shift+ prefix).
+                -- Shift+e -> "У" only (uppercase Cyrillic, no Shift+ prefix).
                 -- Rationale: mpv on Windows normalizes Shift+CyrillicLower == CyrillicUpper.
                 -- Registering "Shift+у" is equivalent to "У" in mpv's input table, BUT
                 -- some Windows mpv builds also match "Shift+у" against the bare key "у",

@@ -1,13 +1,12 @@
--- =========================================================================
+-- ===============================================================================
 -- tsv_export.lua — TSV/Anki export & copy pipeline for kardenwort
--- Extracted from main.lua (Phase 6 of refactor 20260618120822).
 -- Contains the text-extraction mechanisms that feed TSV saving
 -- (prepare_export_text, extract_anki_context, clean_anki_term), TSV I/O
 -- (load_anki_tsv, save_anki_tsv_row), and Anki field-mapping
 -- (resolve_anki_field, load_anki_mapping_ini). ~22 functions, ~600 lines.
 -- Reads FSM/Options/Tracks/Diagnostic at call time via injected references.
 -- Requires text_utils for pure text helpers (no circular dependency).
--- =========================================================================
+-- ===============================================================================
 
 local mp = require 'mp'
 local utils = require 'mp.utils'
