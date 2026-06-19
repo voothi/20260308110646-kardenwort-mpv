@@ -272,5 +272,6 @@ M.normalize_inline_break_markers = normalize_inline_break_markers
 M.clean_text_srt = clean_text_srt
 M.calculate_ass_alpha = calculate_ass_alpha
 M.build_copy_preview = build_copy_preview
+M.L_EPSILON = L_EPSILON
 
 return M

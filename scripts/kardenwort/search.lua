@@ -28,12 +28,7 @@ function M.init(fsm, opts, tracks, diagnostic, helpers)
 end
 
 -- Helpers read at call time (defined later in main.lua than init()).
-local function wrap_tokens(...) return _helpers.wrap_tokens(...) end
-local function dw_get_mouse_osd(...) return _helpers.dw_get_mouse_osd(...) end
-local function manage_ui_border_override(enable) if _helpers.manage_ui_border_override then _helpers.manage_ui_border_override(enable) end end
-local function manage_dw_bindings(enable) if _helpers.manage_dw_bindings then _helpers.manage_dw_bindings(enable) end end
-local function update_interactive_bindings() if _helpers.update_interactive_bindings then _helpers.update_interactive_bindings() end end
-local function render_search() if _helpers.render_search then _helpers.render_search() end end
+-- Referenced directly via _helpers table — no wrapper call frames needed.
 
 local function utf8_to_table(s) return text_utils.utf8_to_table(s) end
 local function normalize_inline_break_markers(s) return text_utils.normalize_inline_break_markers(s) end
@@ -352,7 +347,7 @@ local function draw_search_ui()
         table.insert(query_char_tokens, {text = c})
     end
 
-    local query_vlines = wrap_tokens(query_char_tokens, box_w - padding_x * 2, font_size, font_name, true)
+    local query_vlines = _helpers.wrap_tokens(query_char_tokens, box_w - padding_x * 2, font_size, font_name, true)
     local query_line_count = math.max(1, #query_vlines)
 
     local input_box_h = query_line_count * line_height + padding_y * 2
@@ -401,7 +396,7 @@ local function draw_search_ui()
             end
 
             local res_tokens = build_word_list_internal(sub_text, true)
-            local res_vlines = wrap_tokens(res_tokens, box_w - padding_x * 2, r_font_size, font_name, true)
+            local res_vlines = _helpers.wrap_tokens(res_tokens, box_w - padding_x * 2, r_font_size, font_name, true)
 
             table.insert(results_layout, {
                 data = result_data,
@@ -500,7 +495,7 @@ local function move_search_cursor(direction, ctrl, shift)
 
     FSM.SEARCH_CURSOR = new_pos
     if shift and FSM.SEARCH_ANCHOR == FSM.SEARCH_CURSOR then FSM.SEARCH_ANCHOR = -1 end
-    render_search()
+    _helpers.render_search()
 end
 
 -- --- search input bindings ----------------------------------------------
@@ -554,7 +549,7 @@ local function manage_search_bindings(enable)
 
         FSM.SEARCH_BORDER_OVERRIDE = (FSM.DRUM_WINDOW ~= "OFF")
         if FSM.SEARCH_BORDER_OVERRIDE then
-            manage_ui_border_override(true)
+            _helpers.manage_ui_border_override(true)
         end
 
         if Tracks.pri.path and #Tracks.pri.subs == 0 then
@@ -562,7 +557,7 @@ local function manage_search_bindings(enable)
         end
 
         if FSM.DRUM_WINDOW == "DOCKED" then
-            manage_dw_bindings(false)
+            _helpers.manage_dw_bindings(false)
         end
 
         FSM.SEARCH_CHAR_BINDINGS = {}
@@ -589,7 +584,7 @@ local function manage_search_bindings(enable)
                 FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + 1
 
                 update_search_results()
-                render_search()
+                _helpers.render_search()
             end, "repeatable")
         end
         for _, ch in ipairs(SEARCH_GERMAN_CHARS) do
@@ -612,14 +607,14 @@ local function manage_search_bindings(enable)
                 FSM.SEARCH_ANCHOR = -1
 
                 update_search_results()
-                render_search()
+                _helpers.render_search()
             elseif FSM.SEARCH_CURSOR > 0 then
                 table.remove(q_table, FSM.SEARCH_CURSOR)
                 FSM.SEARCH_QUERY = table.concat(q_table)
                 FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR - 1
 
                 update_search_results()
-                render_search()
+                _helpers.render_search()
             end
         end, "repeatable")
 
@@ -636,13 +631,13 @@ local function manage_search_bindings(enable)
                 FSM.SEARCH_ANCHOR = -1
 
                 update_search_results()
-                render_search()
+                _helpers.render_search()
             elseif FSM.SEARCH_CURSOR < #q_table then
                 table.remove(q_table, FSM.SEARCH_CURSOR + 1)
                 FSM.SEARCH_QUERY = table.concat(q_table)
 
                 update_search_results()
-                render_search()
+                _helpers.render_search()
             end
         end, "repeatable")
 
@@ -659,25 +654,25 @@ local function manage_search_bindings(enable)
         bind(Options.search_key_home, "home", function()
             FSM.SEARCH_CURSOR = 0
             FSM.SEARCH_ANCHOR = -1
-            render_search()
+            _helpers.render_search()
         end)
         bind(Options.search_key_end, "end", function()
             FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
             FSM.SEARCH_ANCHOR = -1
-            render_search()
+            _helpers.render_search()
         end)
 
         mp.add_forced_key_binding("UP", "search-up", function()
             if #FSM.SEARCH_RESULTS > 0 then
                 FSM.SEARCH_SEL_IDX = math.max(1, FSM.SEARCH_SEL_IDX - 1)
-                render_search()
+                _helpers.render_search()
             end
         end, "repeatable")
 
         mp.add_forced_key_binding("DOWN", "search-down", function()
             if #FSM.SEARCH_RESULTS > 0 then
                 FSM.SEARCH_SEL_IDX = math.min(#FSM.SEARCH_RESULTS, FSM.SEARCH_SEL_IDX + 1)
-                render_search()
+                _helpers.render_search()
             end
         end, "repeatable")
 
@@ -710,13 +705,13 @@ local function manage_search_bindings(enable)
         mp.add_forced_key_binding("WHEEL_UP", "search-wheel-up", function()
             if #FSM.SEARCH_RESULTS > 0 then
                 FSM.SEARCH_SEL_IDX = math.max(1, FSM.SEARCH_SEL_IDX - 1)
-                render_search()
+                _helpers.render_search()
             end
         end)
         mp.add_forced_key_binding("WHEEL_DOWN", "search-wheel-down", function()
             if #FSM.SEARCH_RESULTS > 0 then
                 FSM.SEARCH_SEL_IDX = math.min(#FSM.SEARCH_RESULTS, FSM.SEARCH_SEL_IDX + 1)
-                render_search()
+                _helpers.render_search()
             end
         end)
 
@@ -746,7 +741,7 @@ local function manage_search_bindings(enable)
                     FSM.SEARCH_CURSOR = FSM.SEARCH_CURSOR + #p_table
 
                     update_search_results()
-                    render_search()
+                    _helpers.render_search()
                 end
             end
         end
@@ -755,7 +750,7 @@ local function manage_search_bindings(enable)
         local function select_all()
             FSM.SEARCH_ANCHOR = 0
             FSM.SEARCH_CURSOR = #utf8_to_table(FSM.SEARCH_QUERY)
-            render_search()
+            _helpers.render_search()
         end
         bind(Options.search_key_select_all, "select-all", select_all)
 
@@ -782,7 +777,7 @@ local function manage_search_bindings(enable)
 
             FSM.SEARCH_QUERY = table.concat(q_table)
             update_search_results()
-            render_search()
+            _helpers.render_search()
         end
         bind(Options.search_key_delete_word, "delete-word", delete_word_before_cursor, "repeatable")
 
@@ -792,7 +787,7 @@ local function manage_search_bindings(enable)
 
                 if #FSM.SEARCH_RESULTS == 0 or not FSM.SEARCH_HIT_ZONES then return end
 
-                local osd_x, osd_y = dw_get_mouse_osd()
+                local osd_x, osd_y = _helpers.dw_get_mouse_osd()
 
                 local box_w = 1200
                 local box_x = 960 - (box_w / 2)
@@ -831,11 +826,11 @@ local function manage_search_bindings(enable)
         end
         bind(Options.search_key_click, "mouse-click", search_mouse_click, {complex = true})
 
-        render_search()
+        _helpers.render_search()
     else
         FSM.SEARCH_MODE = false
         if FSM.SEARCH_BORDER_OVERRIDE then
-            manage_ui_border_override(false)
+            _helpers.manage_ui_border_override(false)
             FSM.SEARCH_BORDER_OVERRIDE = false
         end
 
@@ -870,9 +865,9 @@ local function manage_search_bindings(enable)
         unbind(Options.search_key_delete_word, "delete-word")
         unbind(Options.search_key_click, "mouse-click")
 
-        render_search()
+        _helpers.render_search()
 
-        update_interactive_bindings()
+        _helpers.update_interactive_bindings()
     end
 end
 

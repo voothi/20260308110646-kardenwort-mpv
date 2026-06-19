@@ -23,11 +23,7 @@ function M.init(fsm, opts, helpers)
 end
 
 -- Helpers read at call time (defined/assigned in main.lua).
-local function help_osd_bg() return _helpers.help_osd_bg end
-local function help_osd_title() return _helpers.help_osd_title end
-local function help_osd_1() return _helpers.help_osd_1 end
-local function help_osd_2() return _helpers.help_osd_2 end
-local function render_search() if _helpers.render_search then _helpers.render_search() end end
+-- Referenced directly via _helpers table — no wrapper call frames needed.
 local function expand_ru_keys(raw, name) return keybinding_utils.expand_ru_keys(raw, name) end
 
 -- --- key display normalization -------------------------------------------
@@ -315,10 +311,10 @@ end
 
 render_help = function()
     if not FSM.HELP_MODE then
-        local bg = help_osd_bg()
-        local title = help_osd_title()
-        local o1 = help_osd_1()
-        local o2 = help_osd_2()
+        local bg = _helpers.help_osd_bg
+        local title = _helpers.help_osd_title
+        local o1 = _helpers.help_osd_1
+        local o2 = _helpers.help_osd_2
         if bg then bg.data = ""; bg:update() end
         if title then title.data = ""; title:update() end
         if o1 then o1.data = ""; o1:update() end
@@ -336,14 +332,14 @@ render_help = function()
     ass_bg = ass_bg .. string.format("{\\an7}{\\pos(%d,%d)}", box_left, box_top)
     ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
     ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
-    local bg = help_osd_bg()
+    local bg = _helpers.help_osd_bg
     bg.data = ass_bg
     bg:update()
 
     local ass_title = ""
     ass_title = ass_title .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\bord0}{\\shad0}{\\4a&HFF&}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}",
         rx/2, ry/2 - box_h/2 + 40, Options.help_font_name, Options.help_font_size * 1.2, Options.help_title_color)
-    local title = help_osd_title()
+    local title = _helpers.help_osd_title
     title.data = ass_title
     title:update()
 
@@ -416,8 +412,8 @@ render_help = function()
     local col1_text = string.format("{\\pos(%d,%d)}%s%s", col1_x, start_y, base_tags, col1_block)
     local col2_text = string.format("{\\pos(%d,%d)}%s%s", col2_x, start_y, base_tags, col2_block)
 
-    local o1 = help_osd_1()
-    local o2 = help_osd_2()
+    local o1 = _helpers.help_osd_1
+    local o2 = _helpers.help_osd_2
     o1.data = col1_text
     o2.data = col2_text
     o1:update()
@@ -447,7 +443,7 @@ function M.cmd_toggle_help()
     if FSM.HELP_MODE then
         FSM.SEARCH_MODE = false
         FSM.HELP_SCROLL_OFFSET = 0
-        render_search()
+        _helpers.render_search()
         bind_help_keymap()
     else
         unbind_help_keymap()

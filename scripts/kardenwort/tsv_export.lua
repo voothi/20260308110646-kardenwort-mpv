@@ -30,15 +30,9 @@ end
 -- safe_read_file and flush_rendering_caches are read at call time from the
 -- helpers table so main.lua can populate them after this init() runs (they
 -- are defined later in main.lua than the init() call site).
-local function safe_read_file(path)
-    return _helpers.safe_read_file(path)
-end
+-- Referenced directly via _helpers table — no wrapper call frames needed.
 
-local function flush_rendering_caches()
-    if _helpers.flush_rendering_caches then _helpers.flush_rendering_caches() end
-end
-
-local L_EPSILON = 0.0001
+local L_EPSILON = text_utils.L_EPSILON
 
 -- Module-local caches (moved from main.lua).
 local ANKI_MAPPING_CACHE = nil
@@ -932,7 +926,7 @@ local function load_anki_tsv(force, quiet)
     end
 
     -- Read file with safety check
-    local content = safe_read_file(tsv_path)
+    local content = _helpers.safe_read_file(tsv_path)
     if not content then
         FSM.ANKI_HIGHLIGHTS = {}
         -- Skip auto-creation if no subtitles loaded
@@ -961,7 +955,7 @@ local function load_anki_tsv(force, quiet)
             if deck_col > 0 then f:write(string.format("#deck column:%d\n", deck_col)) end
             f:write(header_line .. "\n")
             f:close()
-            content = safe_read_file(tsv_path)
+            content = _helpers.safe_read_file(tsv_path)
             if not content then
                 Diagnostic.error("TSV creation failed - could not read back file")
                 return
@@ -1102,7 +1096,7 @@ local function load_anki_tsv(force, quiet)
     FSM.ANKI_DB_MTIME = info and info.mtime or 0
     FSM.ANKI_DB_SIZE = info and info.size or 0
 
-    flush_rendering_caches()
+    _helpers.flush_rendering_caches()
     local msg_text = string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE))
     local dedupe_key = "tsv-load-" .. tostring(FSM.ANKI_DB_MTIME) .. "-" .. tostring(FSM.ANKI_DB_SIZE)
 
@@ -1230,7 +1224,7 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
         table.insert(sorted, ins_pos, { time = time_pos, idx = new_h_idx })
     end
 
-    flush_rendering_caches()
+    _helpers.flush_rendering_caches()
 
     -- Performance Optimization: Update fingerprints so the next periodic sync
     -- doesn't trigger a redundant re-parse for this local change.

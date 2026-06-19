@@ -21,6 +21,8 @@ local search = require 'search'
 local help_hud = require 'help_hud'
 local render_utils = require 'render_utils'
 local subtitle_window = require 'subtitle_window'
+local config = require 'config'
+local state = require 'state'
 local utils = require 'mp.utils'
 local options = require 'mp.options'
 local msg = require 'mp.msg'
@@ -177,110 +179,100 @@ end
 -- =========================================================================
 
 -- Forward declarations for interactive logic
-local Options
+local Options = config.Options
 local get_first_valid_word_idx
 local manage_ui_border_override
 local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
 DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
--- text_utils aliases (Phase 2): keep existing call sites resolving to module fns.
-local utf8_to_table = text_utils.utf8_to_table
-local utf8_to_lower = text_utils.utf8_to_lower
-local utf8_truncate = text_utils.utf8_truncate
-local is_word_char = text_utils.is_word_char
-local is_abbrev = text_utils.is_abbrev
-local logical_cmp = text_utils.logical_cmp
-local build_word_list_internal = text_utils.build_word_list_internal
-local build_word_list = text_utils.build_word_list
-local get_sub_tokens = text_utils.get_sub_tokens
-local is_word_token = text_utils.is_word_token
-local clean_text_srt = text_utils.clean_text_srt
-local normalize_inline_break_markers = text_utils.normalize_inline_break_markers
-local calculate_ass_alpha = text_utils.calculate_ass_alpha
-local build_copy_preview = text_utils.build_copy_preview
-has_cyrillic = text_utils.has_cyrillic
+local function alias(mod, names)
+    local vals = {}
+    for _, name in ipairs(names) do
+        vals[#vals + 1] = mod[name]
+    end
+    return table.unpack(vals)
+end
 
--- Shared numeric epsilon retained for main.lua call sites (logical_cmp moved
--- to text_utils but L_EPSILON is still referenced directly by range checks here).
-local L_EPSILON = 0.0001
+-- text_utils aliases
+local utf8_to_table, utf8_to_lower, utf8_truncate, is_word_char, is_abbrev,
+      logical_cmp, build_word_list_internal, build_word_list, get_sub_tokens,
+      is_word_token, clean_text_srt, normalize_inline_break_markers,
+      calculate_ass_alpha, build_copy_preview, has_cyrillic
+    = alias(text_utils, {
+        "utf8_to_table", "utf8_to_lower", "utf8_truncate", "is_word_char", "is_abbrev",
+        "logical_cmp", "build_word_list_internal", "build_word_list", "get_sub_tokens",
+        "is_word_token", "clean_text_srt", "normalize_inline_break_markers",
+        "calculate_ass_alpha", "build_copy_preview", "has_cyrillic"
+    })
 
--- subtitle_parser aliases (Phase 3): keep existing call sites resolving to module fns.
-local parse_time = subtitle_parser.parse_time
-local load_sub = subtitle_parser.load_sub
-local find_sub_containing_start = subtitle_parser.find_sub_containing_start
-local get_center_index = subtitle_parser.get_center_index
-local get_center_index_static = subtitle_parser.get_center_index_static
-local get_effective_boundaries = subtitle_parser.get_effective_boundaries
+local L_EPSILON = text_utils.L_EPSILON
 
--- keybinding_utils aliases (Phase 4): keep existing call sites resolving to module fns.
-local is_valid_mpv_key = keybinding_utils.is_valid_mpv_key
-local expand_ru_keys = keybinding_utils.expand_ru_keys
+-- subtitle_parser aliases
+local parse_time, load_sub, find_sub_containing_start, get_center_index,
+      get_center_index_static, get_effective_boundaries
+    = alias(subtitle_parser, {
+        "parse_time", "load_sub", "find_sub_containing_start", "get_center_index",
+        "get_center_index_static", "get_effective_boundaries"
+    })
 
--- osd_cards aliases (Phase 5): keep existing call sites resolving to module fns.
-local show_osd = osd_cards.show_osd
-local show_seek_osd = osd_cards.show_seek_osd
+-- keybinding_utils aliases
+local is_valid_mpv_key, expand_ru_keys
+    = alias(keybinding_utils, {"is_valid_mpv_key", "expand_ru_keys"})
+
+-- osd_cards aliases
+local show_osd, show_seek_osd
+    = alias(osd_cards, {"show_osd", "show_seek_osd"})
 local seek_osd  -- forward-declared; assigned from osd_cards.seek_osd after setup()
 local tsv_helpers  -- populated at Phase 6 init; flush_rendering_caches added later
 
--- tsv_export aliases (Phase 6): keep existing call sites resolving to module fns.
-local get_copy_context_text = tsv_export.get_copy_context_text
-local prepare_export_text = tsv_export.prepare_export_text
-local extract_anki_context = tsv_export.extract_anki_context
-local load_anki_tsv = tsv_export.load_anki_tsv
-local save_anki_tsv_row = tsv_export.save_anki_tsv_row
-local find_source_url = tsv_export.find_source_url
-local get_tsv_path = tsv_export.get_tsv_path
+-- tsv_export aliases
+local get_copy_context_text, prepare_export_text, extract_anki_context,
+      load_anki_tsv, save_anki_tsv_row, find_source_url, get_tsv_path
+    = alias(tsv_export, {
+        "get_copy_context_text", "prepare_export_text", "extract_anki_context",
+        "load_anki_tsv", "save_anki_tsv_row", "find_source_url", "get_tsv_path"
+    })
 
--- companion aliases (Phase 7): only alias functions referenced by main.lua
--- code that stays (cmd_cycle_audio, cmd_cycle_sec_sid, file-load handlers).
--- Other companion functions are called only within companion.lua itself, so
--- they need no alias here (keeps main.lua under the 200-local chunk limit).
-local split_base_and_language_postfix = companion.split_base_and_language_postfix
-local extract_lang_from_title_or_path = companion.extract_lang_from_title_or_path
-local ensure_companion_audio_tracks = companion.ensure_companion_audio_tracks
-local ensure_companion_subtitle_tracks = companion.ensure_companion_subtitle_tracks
-local ensure_companion_video_track = companion.ensure_companion_video_track
+-- companion aliases
+local split_base_and_language_postfix, extract_lang_from_title_or_path,
+      ensure_companion_audio_tracks, ensure_companion_subtitle_tracks,
+      ensure_companion_video_track
+    = alias(companion, {
+        "split_base_and_language_postfix", "extract_lang_from_title_or_path",
+        "ensure_companion_audio_tracks", "ensure_companion_subtitle_tracks",
+        "ensure_companion_video_track"
+    })
 
--- search aliases (Phase 8): only alias functions referenced by main.lua code
--- that stays (keymap, IPC probes, render_search). Other search functions are
--- called only within search.lua itself.
-local search_helpers  -- populated at Phase 8 init; helpers added after their defs
-local cmd_toggle_search  -- forward-declared; assigned from search module
-local update_search_results  -- forward-declared; assigned from search module
+-- search aliases (forward-declared)
+local search_helpers
+local cmd_toggle_search
+local update_search_results
 
--- help_hud aliases (Phase 9): only alias functions referenced by main.lua code
--- that stays (cmd_dw_esc, keymap, IPC probes). render_help is module-internal.
-local cmd_toggle_help  -- forward-declared; assigned from help_hud module
+-- help_hud aliases
 local normalize_key_display = help_hud.normalize_key_display
-local help_helpers  -- populated at Phase 9 init; overlays/render_search added later
+local cmd_toggle_help  -- forward-declared
+local help_helpers
 
--- render_utils aliases (Phase 11A): keep existing call sites resolving to module fns.
--- dw_get_str_width is used by DW nav/mouse code staying in main.lua.
--- wrap_tokens is injected into search.lua via search_helpers.
--- format_tooltip_card_event / format_tooltip_text_event are used by draw_dw_tooltip.
-local compose_term_smart = render_utils.compose_term_smart
-local calculate_highlight_stack = render_utils.calculate_highlight_stack
-local populate_token_meta = render_utils.populate_token_meta
-local format_highlighted_word = render_utils.format_highlighted_word
-local dw_get_str_width_proportional = render_utils.dw_get_str_width_proportional
-local dw_get_str_width = render_utils.dw_get_str_width
-local calculate_sub_gap = render_utils.calculate_sub_gap
-local wrap_tokens = render_utils.wrap_tokens
-local calculate_osd_line_meta = render_utils.calculate_osd_line_meta
-local dw_vline_height = render_utils.dw_vline_height
-local dw_build_layout = render_utils.dw_build_layout
-local dw_calculate_block_top = render_utils.dw_calculate_block_top
-local format_tooltip_card_event = render_utils.format_tooltip_card_event
-local format_tooltip_text_event = render_utils.format_tooltip_text_event
-local render_helpers  -- populated at Phase 11A init; is_inside_dw_selection added later
+-- render_utils aliases
+local compose_term_smart, calculate_highlight_stack, populate_token_meta,
+      format_highlighted_word, dw_get_str_width_proportional, dw_get_str_width,
+      calculate_sub_gap, wrap_tokens, calculate_osd_line_meta, dw_vline_height,
+      dw_build_layout, dw_calculate_block_top, format_tooltip_card_event,
+      format_tooltip_text_event
+    = alias(render_utils, {
+        "compose_term_smart", "calculate_highlight_stack", "populate_token_meta",
+        "format_highlighted_word", "dw_get_str_width_proportional", "dw_get_str_width",
+        "calculate_sub_gap", "wrap_tokens", "calculate_osd_line_meta", "dw_vline_height",
+        "dw_build_layout", "dw_calculate_block_top", "format_tooltip_card_event",
+        "format_tooltip_text_event"
+    })
+local render_helpers
 
--- subtitle_window aliases (Phase 11B): draw functions moved to module.
--- Draw caches stay in main.lua (referenced by flush_rendering_caches) and
--- are injected into subtitle_window via sw_helpers.
-local draw_drum  -- forward-declared; assigned from subtitle_window module
-local draw_dw  -- forward-declared; assigned from subtitle_window module
-local draw_dw_tooltip  -- forward-declared; assigned from subtitle_window module
-local sw_helpers  -- populated at Phase 11B init; caches + tooltip helpers added later
+-- subtitle_window aliases (forward-declared)
+local draw_drum
+local draw_dw
+local draw_dw_tooltip
+local sw_helpers
 
 
 -- =========================================================================
@@ -332,549 +324,18 @@ mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
 
 function validate_config()
-    Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))
-    Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))
-    local errors = {}
-    local function check_keys(opt_val, opt_name)
-        if not opt_val or opt_val == "" then return end
-        for key in opt_val:gmatch("[^%s,;]+") do
-            if not is_valid_mpv_key(key) then
-                table.insert(errors, string.format("Invalid key name in '%s': '%s' (multicharacter non-ASCII names are not supported).", opt_name, key))
-            end
-        end
-    end
-    
-    local key_opts = {
-        "dw_key_add", "dw_key_pair", "dw_key_select", "dw_key_seek_prev", "dw_key_seek_next",
-        "dw_key_search", "dw_key_copy", "dw_key_seek", "dw_key_esc", "dw_key_jump_left",
-        "dw_key_jump_right", "dw_key_jump_select_left", "dw_key_jump_select_right",
-        "dw_key_scroll_up", "dw_key_scroll_down", "dw_key_jump_select_up",
-        "dw_key_jump_select_down", "dw_key_select_left", "dw_key_select_right",
-        "dw_key_select_up", "dw_key_select_down", "dw_key_open_record",
-        "dw_key_cycle_copy_mode", "dw_key_toggle_copy_context", "dw_key_tooltip_pin",
-        "dw_key_tooltip_hover", "dw_key_tooltip_toggle", "key_sub_pos_up", "key_sub_pos_down",
-        "key_sec_sub_pos_up", "key_sec_sub_pos_down"
-    }
-    
-    for _, opt in ipairs(key_opts) do check_keys(Options[opt], "kardenwort-" .. opt) end
-    
-    if #errors > 0 then
-        local summary = "CONFIGURATION HEALTH CHECK FAILED:\n"
-        for _, err in ipairs(errors) do summary = summary .. "  - " .. err .. "\n" end
-        summary = summary .. "Please correct these in your mpv.conf to avoid unexpected behavior."
-        Diagnostic.warn(summary, "startup-health-check")
-    else
-
-    end
+    config.validate_config(Options, Diagnostic, is_valid_mpv_key)
 end
 
-
-Options = {
-    -- AutoPause
-    autopause_default = true,
-    karaoke_every_word = false,
-    pause_padding = 0.15,
-    karaoke_token = "{\\c}",
-    space_tap_delay = 0.2,
-
-    -- Drum Mode
-    drum_font_size = 34,
-    drum_font_name = "Consolas",
-    drum_font_bold = false,
-    drum_context_lines = 3,
-    drum_context_opacity = "30",
-    drum_context_color = "CCCCCC",
-    drum_context_bold = false,
-    drum_context_size_mul = 1.0,
-    drum_active_opacity = "00",
-    drum_active_color = "FFFFFF",   -- White (BGR: FFFFFF | RGB: #FFFFFF)
-    drum_active_bold = false,
-    drum_active_size_mul = 1.0,
-    drum_line_height_mul = 0.87,
-    drum_bg_color = "000000",       -- Black (BGR: 000000 | RGB: #000000)
-    drum_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
-    drum_border_size = 1.5,
-    drum_shadow_offset = 1.0,
-    drum_double_gap = true,
-    drum_vsp = 0,
-    drum_block_gap_mul = -0.27,
-    drum_gap_adj = 6,
-    drum_track_gap = 5.0,         -- Extra spacing between dual tracks (%)
-    drum_scrolloff = 0,           -- margin lines for Drum Mode mini viewport (0 = no reserved margin)
-    drum_pri_highlight_color = "00CCFF", -- Gold (BGR: 00CCFF | RGB: #FFCC00)
-    drum_sec_highlight_color = "00CCFF",
-    drum_pri_ctrl_select_color = "FF88FF", -- Pink (BGR: FF88FF | RGB: #FF88FF)
-    drum_sec_ctrl_select_color = "FF88FF",
-    drum_pri_highlight_bold = false,
-    drum_sec_highlight_bold = false,
-    -- Interactivity Toggles (Per-Screen, Per-Mode)
-    osd_interactivity = true,       -- Master toggle
-    dw_pri_interactivity = true,    -- Drum Window: Main Text
-    dw_sec_interactivity = true,    -- Drum Window: Tooltip (E)
-    drum_pri_interactivity = true,  -- Drum Mode: Primary Track
-    drum_sec_interactivity = true,  -- Drum Mode: Secondary Track
-    srt_pri_interactivity = true,   -- Regular SRT: Primary Track
-    srt_sec_interactivity = true,   -- Regular SRT: Secondary Track
-
-    -- Highlighting Toggles (Per-Screen, Per-Mode)
-    dw_pri_highlighting = true,     -- Drum Window: Main Text
-    dw_sec_highlighting = true,     -- Drum Window: Tooltip (E)
-    drum_pri_highlighting = true,   -- Drum Mode: Primary Track
-    drum_sec_highlighting = true,   -- Drum Mode: Secondary Track
-    srt_pri_highlighting = true,    -- Regular SRT: Primary Track
-    srt_sec_highlighting = true,    -- Regular SRT: Secondary Track
-
-    -- SRT Style (Regular Mode)
-    srt_font_size = 34,
-    srt_font_name = "Consolas",
-    srt_font_bold = false,
-    srt_active_color = "FFFFFF",   -- White (BGR: FFFFFF | RGB: #FFFFFF)
-    srt_context_color = "CCCCCC",  -- Surrounding lines color
-    srt_active_opacity = "00",     -- Transparency for active line
-    srt_context_opacity = "30",    -- Transparency for context lines
-    srt_bg_color = "000000",       -- Black (BGR: 000000 | RGB: #000000)
-    srt_bg_opacity = "60",         -- Shadow/Frame transparency
-    srt_border_size = 1.5,
-    srt_shadow_offset = 1.0,
-    srt_double_gap = true,
-    srt_vsp = 0,
-    srt_block_gap_mul = -0.27,
-    srt_line_height_mul = 0.87,     -- Vertical spacing multiplier
-    srt_pri_highlight_color = "00CCFF", -- Gold (BGR: 00CCFF | RGB: #FFCC00)
-    srt_sec_highlight_color = "00CCFF",
-    srt_pri_ctrl_select_color = "FF88FF", -- Pink (BGR: FF88FF | RGB: #FF88FF)
-    srt_sec_ctrl_select_color = "FF88FF",
-    srt_pri_highlight_bold = false,
-    srt_sec_highlight_bold = false,
-
-    -- Copy Mode
-    copy_default_mode = "A",
-    copy_filter_russian = true,
-    copy_context_lines = 2,
-    copy_word_limit = 3,
-    copy_osd_cooldown = 3.0,
-    key_copy_popup = "Shift+C",
-    key_copy_main = "Alt+c",
-
-    -- Toggle Positions
-    -- [NOTE] sec_pos_bottom should be ~5% LESS than sub-pos in mpv.conf 
-    -- to prevent primary and secondary subtitles from overlapping at the bottom.
-    sec_pos_top = 10,
-    sec_pos_bottom = 90,
-
-    -- System
-    tick_rate = 0.05,
-    osd_duration = 0.5,
-    win_clipboard_retries = 5,
-    win_clipboard_retry_delay = 50, -- milliseconds
-    gd_trigger_enabled = "no",
-    gd_hotkey_popup = "Ctrl+Alt+Shift+Q",
-    gd_hotkey_main = "Ctrl+Alt+Shift+1",
-    tts_trigger_enabled = "no",
-    tts_hotkey_1 = "Ctrl+Alt+Shift+1",
-    tts_hotkey_2 = "Ctrl+Alt+Shift+2",
-    tts_hotkey_3 = "Ctrl+Alt+Shift+3",
-    tts_hotkey_4 = "Ctrl+Alt+Shift+4",
-    tts_hotkey_5 = "Ctrl+Alt+Shift+5",
-    tts_hotkey_6 = "Ctrl+Alt+Shift+6",
-    tts_hotkey_7 = "Ctrl+Alt+Shift+7",
-    tts_hotkey_8 = "Ctrl+Alt+Shift+8",
-    key_tts_1 = "",
-    key_tts_2 = "",
-    key_tts_3 = "",
-    key_tts_4 = "",
-    key_tts_5 = "",
-    key_tts_6 = "",
-    key_tts_7 = "",
-    key_tts_8 = "",
-    gd_trigger_method = "powershell", -- "powershell" or "python"
-    python_path = "python",
-    python_trigger_delay_popup = 0.1,
-    python_trigger_delay_main = 0.5,
-    gd_trigger_lock_duration = 2.0,
-
-    -- Drum Window
-    dw_font_size = 34,
-    dw_key_copy = "Ctrl+c Ctrl+с",
-    dw_lines_visible = 15,        -- how many lines visible in the window
-    dw_scrolloff = 3,             -- margin lines at top/bottom before scrolling
-    dw_bg_color = "000000",       -- Black (BGR: 000000 | RGB: #000000)
-    dw_bg_opacity = "60",         -- background opacity (00-FF, 00 is opaque)
-    dw_context_color = "CCCCCC",  -- light text
-    dw_active_color = "FFFFFF",   -- White (BGR: FFFFFF | RGB: #FFFFFF)
-    dw_active_bold = false,
-    dw_context_bold = false,
-    dw_active_opacity = "00",     -- text alpha for active playback line
-    dw_context_opacity = "30",    -- text alpha for context lines
-    dw_active_size_mul = 1.0,
-    dw_context_size_mul = 1.0,
-    dw_highlight_color = "00CCFF",-- Gold (BGR: 00CCFF | RGB: #FFCC00)
-    dw_ctrl_select_color = "FF88FF",-- Pink (BGR: FF88FF | RGB: #FF88FF)
-    dw_highlight_bold = false,
-    dw_font_name = "Consolas",    -- monospace font for perfect hit-testing
-    dw_char_width = 0.5,          -- char width multiplier (0.5 is exact for Consolas)
-    dw_line_height_mul = 0.87,    -- visual line height = dw_font_size * this (calibrated for font 34, use 0.9 for font 30)
-    dw_wrap_line_height_mul = 1.05, -- intra-subtitle wrapped line spacing = dw_font_size * this (keeps descenders clear of next line)
-    dw_block_gap_mul = -0.27,      -- gap between subtitles = dw_font_size * this (calibrated for font 34, use 0.6 for font 30)
-    dw_double_gap = true,         -- Use double newline (\N\N) between subtitles
-    dw_vsp = 0,                   -- Vertical spacing adjustment (pixels)
-    dw_edge_margin = 24,          -- Top/bottom safe padding (px) when scroll is clamped at file ends
-    dw_border_size = 1.5,
-    dw_shadow_offset = 1.0,
-    dw_original_spacing = true,
-    dw_jump_words = 5,            -- Words to jump on Ctrl+Left/Right
-    dw_jump_lines = 5,            -- Lines to jump on Ctrl+Shift+Up/Down
-
-    -- Search HUD Styling
-    search_font_name = "Consolas",
-    search_font_size = 34,
-    search_results_font_size = 0,    -- 0 = 100%, -1 = 80%, >0 = fixed size
-    search_bg_color = "000000",      -- black in BGR hex for ASS
-    search_bg_opacity = "60",        -- background opacity (00-FF, 00 is opaque)
-    search_text_color = "CCCCCC",
-    search_border_size = 1.5,
-    search_shadow_offset = 1.0,
-    search_line_height_mul = 1.2,
-    search_hit_color = "0088FF",       -- Orange (BGR: 0088FF | RGB: #FF8800)
-    search_hit_bold = false,            -- Bold matches?
-    search_sel_color = "FFFFFF",       -- Selected line color (White)
-    search_sel_bold = false,           -- Bold selected line?
-    search_query_hit_color = "0088FF", -- Search bar text hits (Select All/Selection)
-    search_query_hit_bold = false,      -- Bold search bar hits?
-
-    -- Font Scaling (Ported from fixed_font.lua)
-    font_scaling_enabled = true,
-    font_base_height = 1080,
-    font_base_scale = 1.0,
-    font_scale_strength = 0.5,
-
-    -- Tooltip Style (Unified Schema)
-    tooltip_font_size = 34,
-    tooltip_font_name = "Consolas",
-    tooltip_font_bold = false,
-    tooltip_context_lines = 3,
-    tooltip_active_color = "FFFFFF",   -- Active translation line color
-    tooltip_context_color = "CCCCCC",  -- Surrounding lines color
-    tooltip_active_opacity = "00",     -- Transparency for active line
-    tooltip_context_opacity = "30",    -- Transparency for context lines
-    tooltip_bg_color = "000000",       -- Background color (BGR hex)
-    tooltip_bg_alpha = "",             -- Preferred tooltip card ASS alpha; empty uses legacy tooltip_bg_opacity
-    tooltip_bg_opacity = "60",         -- Legacy card transparency alias; 00/0 opaque, FF/100 transparent
-    tooltip_dw_bg_alpha = "",          -- DW card ASS alpha; empty uses tooltip_bg_alpha/opacity
-    tooltip_dm_bg_alpha = "FF",        -- Drum Mode card ASS alpha; FF hides the extra card by default
-    tooltip_srt_bg_alpha = "FF",       -- SRT card ASS alpha; FF hides the extra card by default
-    tooltip_border_size = 1.2,
-    tooltip_shadow_offset = 1.0,
-    tooltip_top_pad_extra = 10,       -- Extra top padding for tooltip background card
-    tooltip_line_height_mul = 0.87,     -- Vertical spacing multiplier
-    tooltip_block_gap_mul = -0.27,
-    tooltip_double_gap = true,         -- Use double newline (\N\N) between context lines
-    tooltip_vsp = 0,                   -- Vertical spacing adjustment (pixels)
-    tooltip_y_offset_lines = 0,        -- Vertical shift in number of lines (positive = down, negative = up)
-    tooltip_highlight_color = "00CCFF",-- Gold (BGR: 00CCFF | RGB: #FFCC00)
-    tooltip_ctrl_select_color = "FF88FF",-- Pink (BGR: FF88FF | RGB: #FF88FF)
-    tooltip_active_bold = false,
-    tooltip_context_bold = false,
-    tooltip_highlight_bold = false,
-    tooltip_native_box_policy = "auto", -- auto | neutralize | override
-
-    -- Navigation Repeat
-    seek_hold_delay = 0.5,
-    seek_hold_rate = 10,
-
-    -- Anki Highlighter
-    dw_key_add = "g MBTN_MID Ctrl+MBTN_MID",
-    dw_key_pair = "f Ctrl+MBTN_LEFT",
-    dw_key_select = "MBTN_LEFT",
-    dw_key_pair_mod = "Ctrl",
-    dw_key_tooltip_pin = "MBTN_RIGHT",
-    dw_key_tooltip_hover = "n",
-    dw_key_tooltip_toggle = "e",
-    dw_key_seek_prev = "a",
-    dw_key_seek_next = "d",
-    dw_key_search = "Ctrl+f",
-
-    dw_key_seek = "ENTER KP_ENTER",
-    dw_key_replay = "s",
-    dw_key_esc = "ESC",
-    -- When true, Enter/double-click transition clears active word/range selection.
-    -- When false, the selection is preserved.
-    dw_clear_selection_after_transition = true,
-    dw_key_select_extend = "Shift+MBTN_LEFT",
-    dw_key_mouse_seek = "MBTN_LEFT_DBL",
-    dw_key_jump_left = "Ctrl+LEFT",
-    dw_key_jump_right = "Ctrl+RIGHT",
-    dw_key_jump_select_left = "Ctrl+Shift+LEFT",
-    dw_key_jump_select_right = "Ctrl+Shift+RIGHT",
-    dw_key_scroll_up = "Ctrl+UP",
-    dw_key_scroll_down = "Ctrl+DOWN",
-    -- Unified Esc mode:
-    -- auto_follow_current      = Esc restores follow to current subtitle immediately
-    -- neutral_last_selection   = Esc enters neutral first; activation resumes from last selection line
-    -- neutral_current_subtitle = Esc enters neutral first; activation resumes from current subtitle line
-    dw_esc_mode = "auto_follow_current",
-    -- Legacy aliases (optional): dw_esc_policy + dw_neutral_cursor_source
-    dw_esc_policy = "",
-    dw_neutral_cursor_source = "",
-    dw_key_jump_select_up = "Ctrl+Shift+UP",
-    dw_key_jump_select_down = "Ctrl+Shift+DOWN",
-    dw_key_select_left = "Shift+LEFT",
-    dw_key_select_right = "Shift+RIGHT",
-    dw_key_select_up = "Shift+UP",
-    dw_key_select_down = "Shift+DOWN",
-    dw_key_cycle_esc_mode = "n",
-    dw_key_cycle_copy_mode = "z я",
-    dw_key_toggle_copy_context = "x ч",
-    -- Search Mode (Drum Window)
-    search_key_bs = "BS",
-    search_key_del = "DEL",
-    search_key_select_left = "Shift+LEFT",
-    search_key_select_right = "Shift+RIGHT",
-    search_key_jump_left = "Ctrl+LEFT",
-    search_key_jump_right = "Ctrl+RIGHT",
-    search_key_home = "HOME",
-    search_key_end = "END",
-    search_key_enter = "ENTER",
-    search_key_esc = "ESC",
-    search_key_paste = "Ctrl+v",
-    search_key_select_all = "Ctrl+a",
-    search_key_delete_word = "Ctrl+w",
-    search_key_click = "MBTN_LEFT",
-    dw_key_open_record = "o",
-    key_sub_pos_up = "r",
-    key_sub_pos_down = "t",
-    key_sec_sub_pos_up = "R",
-    key_sec_sub_pos_down = "T",
-
-    anki_context_max_words = 40,
-    anki_context_words_before = 0,
-    anki_context_words_after = 0,
-    anki_context_span_pad = 3,        -- Extra words added before/after a wide paired selection
-    anki_highlight_depth_1 = "0075D1",    -- Orange (BGR: 0075D1 | RGB: #D17500)
-    anki_highlight_depth_2 = "005DAE",
-    anki_highlight_depth_3 = "003C88",
-    anki_split_depth_1 = "FF88B0",        -- Purple (BGR: FF88B0 | RGB: #B088FF)
-    anki_split_depth_2 = "D10069",
-    anki_split_depth_3 = "A30052",
-    anki_mix_depth_1 = "4A4AD3",          -- Brick (BGR: 4A4AD3 | RGB: #D34A4A)
-    anki_mix_depth_2 = "3636A8",
-    anki_mix_depth_3 = "151578",
-    anki_global_highlight = false,
-    anki_record_file = "",
-    log_level = "info",
-    anki_sync_period = 5,
-    anki_context_lines = 6,
-    anki_local_fuzzy_window = 10.0,
-    anki_split_search_window = 35,      -- Line search window for paired words (+/- segments)
-    anki_split_gap_limit = 60.0,        -- Max temporal gap between paired words (seconds)
-    anki_neighbor_window = 5,           -- Context window for neighbor identification (+/- segments)
-    anki_context_strict = false,
-    anki_highlight_bold = false,
-    anki_strip_metadata = true,
-    unescape_tags = "\\N \\n \\h",
-    anki_abbrev_list = "ca. z.B. usw. bzw. etc. t.con d.h. u.a. vgl. ggf. bspw. u.U. i.d.R. bzgl. evtl.",
-    anki_abbrev_smart = true,
-    anki_sentence_terminators = ".!?",
-    book_mode = false,
-
-    -- Record File
-    record_editor = "C:\\Program Files\\Microsoft VS Code\\Code.exe",
-    
-    -- Colors
-    dw_split_select_color = "FF88B0",
-    dw_mouse_shield_ms = 50,       -- Interaction Shield window (ms)
-    dw_mouse_drag_threshold_px = 5, -- Min pointer movement (px) before click becomes drag
-    dw_mouse_auto_scroll_interval = 0.05, -- Timer interval for drag edge auto-scroll (sec)
-    dw_mouse_edge_scroll_ratio = 0.15, -- Screen-height ratio used as top/bottom edge scroll zones
-    sentence_word_threshold = 3,
-    replay_ms = 2000,              -- Fixed window for adaptive replay (ms)
-    replay_count = 2,              -- Number of iterations for the replay command
-    replay_autostop = true,        -- Whether to pause after iterations (Autopause ON only)
-    audio_padding_start = 1000,    -- Pre-roll buffer in ms
-    audio_padding_end = 1000,      -- Post-roll buffer in ms
-    -- [v1.58.51] Behavioral Parameters
-    nav_cooldown = 0.2,           -- Settle period after manual seek (sec)
-    nav_tolerance = 0.05,         -- Overlap priority threshold (sec)
-    autopause_overshoot = 0.1,     -- Permitted overshoot past boundary (sec)
-    key_cycle_immersion_mode = "O Щ", -- Hotkey to cycle Phrase/Movie modes
-    immersion_mode_default = "PHRASE", -- Default mode at startup ("PHRASE" or "MOVIE")
-    seek_time_delta = 2,           -- Amount to seek in seconds for relative time navigation
-    seek_osd_duration = 2.0,       -- Duration of the centered seek OSD message (sec)
-    seek_osd_layer = 5,            -- Layer for directional seek OSD cards (lower renders behind subtitle overlays)
-    notice_osd_layer = 5,          -- Layer for generic notice OSD cards (lower renders behind subtitle overlays)
-    seek_font_size = 60,
-    seek_font_name = "Consolas",
-    seek_font_bold = false,
-    seek_color = "FFFFFF",
-    seek_bg_color = "000000",
-    seek_bg_opacity = "60",
-    seek_border_size = 1.5,
-    seek_shadow_offset = 1.0,
-    seek_show_accumulator = true,
-    seek_msg_format = "%p%v",
-    seek_msg_cumulative_format = "%P%V",
-    replay_msg_format = "Replay: %mms%x",
-    replay_on_msg_format = "Replaying segment: %mms%x",
-
-    -- Help HUD Styling
-    help_font_name = "Consolas",
-    help_font_size = 34,
-    help_bg_color = "000000",
-    help_bg_opacity = "60",
-    help_title_color = "00CCFF", -- Gold (BGR: 00CCFF | RGB: #FFCC00)
-    help_text_color = "CCCCCC",  -- Gray
-    help_key_color = "00CCFF",   -- Gold (BGR: 00CCFF | RGB: #FFCC00)
-    help_column_width = 40,
-    audio_switch_threshold = 1.0,
-    sub_switch_threshold = 1.0,
-    companion_audio_enabled = true,
-    companion_audio_attach_on_load = true,
-    companion_video_enabled = true,
-    companion_video_attach_on_load = true,
-    companion_subtitle_enabled = true,
-    companion_subtitle_attach_on_load = true,
-}
 options.read_options(Options, "kardenwort")
+state.init(Options)
 
 -- =========================================================================
 -- STATE MACHINE
 -- =========================================================================
 
-local FSM = {
-    -- Media Context
-    MEDIA_STATE = "NO_SUBS", -- NO_SUBS, SINGLE_SRT, SINGLE_ASS, DUAL_SRT, DUAL_ASS, DUAL_MIXED
-    
-    -- Feature States
-    AUTOPAUSE = Options.autopause_default and "ON" or "OFF",
-    KARAOKE = Options.karaoke_every_word and "WORD" or "PHRASE",
-    SPACEBAR = "IDLE",
-    DRUM = "OFF",
-    COPY_MODE = "A",
-    COPY_CONTEXT = "OFF",
-    BOOK_MODE = Options.book_mode or false,
-    OSC_VIS = 0, -- 0=auto, 1=always, 2=never
-    ACTIVE_IDX = -1, -- The "Sentinel" source of truth for active subtitle context
-    SEC_ACTIVE_IDX = -1, -- Secondary-track Sticky Sentinel (mirrors ACTIVE_IDX logic for translation track)
-    IMMERSION_MODE = (Options.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE", -- "PHRASE" (Padded boundaries) or "MOVIE" (Gapless focus)
-    JUST_JERKED_TO = -1, -- Flag to prevent loop during Phrase overlap jerk-back
-    MANUAL_NAV_COOLDOWN = 0, -- Cooldown timestamp to suspend smart logic after seek
-    MANUAL_NAV_TARGET_IDX = nil,
-    SEC_MANUAL_NAV_TARGET_IDX = nil,
-    SEEK_ACCUMULATOR = 0,
-    SEEK_LAST_TIME = 0,
-    SEEK_PRESS_COUNT = 0,
-
-    -- Transients
-    last_paused_sub_end = nil,
-    last_time_pos = nil,
-    last_wall_time = nil, -- Wall-clock timestamp of last tick (for coarse time-pos detection)
-    IGNORE_NEXT_JUMP = false,
-    INTERNAL_REPLAY_UNTIL = 0,
-    TIMESEEK_INHIBIT_UNTIL = nil, -- Suppress autopause during backward time-seek transit
-    REWIND_START_IDX = nil,      -- Starting subtitle index when rewind began (for within-subtitle detection)
-    REWIND_TRANSIT_CROSS_CARD = false, -- True only when backward time-seek crosses subtitle card boundary
-    LOOP_MODE = "OFF",
-    SEC_ONLY_MODE = false,
-    LOOP_ARMED = false,
-    LOOP_START = nil,
-    LOOP_END = nil,
-    SCHEDULED_REPLAY_START = nil,
-    SCHEDULED_REPLAY_END = nil,
-    REPLAY_REMAINING = 0,
-    GHOST_HOLD_EXPIRY = nil,
-    PHYSICAL_SPACE_HOLD = false,
-    space_down_time = 0,
-    space_up_time = 0,
-    initial_pause_state = true,
-    native_sub_vis = mp.get_property_bool("sub-visibility", true),
-    native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true),
-    native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10),
-    SUB_VIS_COMBO_BEFORE_OFF = "both", -- "both" | "bottom" | "top"
-
-    -- Drum Window State
-    DRUM_WINDOW = "OFF",       -- OFF, DOCKED, DETACHED
-    DW_CURSOR_LINE = -1,       -- Current line focused by word nav
-    DW_CURSOR_WORD = -1,       -- Word index in the current line
-    DW_CURSOR_X = nil,         -- Sticky horizontal position for up/down nav (OSD x, nil = use line midpoint)
-    DW_ANCHOR_LINE = -1,       -- Shift-anchor line index
-    DW_ANCHOR_WORD = -1,       -- Shift-anchor word index
-    DW_POINTER_FSM = "POINTER_NULL_FOLLOW", -- POINTER_NULL_FOLLOW | POINTER_ACTIVE_MANUAL | POINTER_RANGE_ACTIVE
-    DW_VIEW_CENTER = -1,       -- Viewport center line index
-    DW_FOLLOW_PLAYER = true,   -- Follow active playback line?
-    DW_KEY_OVERRIDE = false,   -- Are we overriding arrow keys?
-    DW_MOUSE_DRAGGING = false, -- True while LMB is held and dragging
-    DW_MOUSE_PENDING_DRAG = false, -- True while LMB is down and waiting for drag threshold
-    DW_MOUSE_DOWN_X = nil,     -- OSD X at mouse-down (for drag threshold / release sync)
-    DW_MOUSE_DOWN_Y = nil,     -- OSD Y at mouse-down (for drag threshold / release sync)
-    DW_CTRL_HELD = false,      -- True while Ctrl key is held in DW
-    DW_CTRL_PENDING_SET = {},  -- Non-contiguous word selection map {line -> {word -> {line, word}}}
-    DW_CTRL_PENDING_LIST = {}, -- Sorted list of members for sequential export
-    DW_MOUSE_SCROLL_TIMER = nil, -- Timer for auto-scroll while dragging at edges
-
-    -- Performance Caches
-    DW_LAYOUT_CACHE = nil,     -- Cached layout for the current viewport
-    LAYOUT_VERSION = 0,        -- Incremented when font/spacing options change
-    -- Global Search State
-    SEARCH_MODE = false,
-    SEARCH_QUERY = "",
-    SEARCH_RESULTS = {},
-    SEARCH_SEL_IDX = 1,
-    SEARCH_CURSOR = 0,
-    SEARCH_ANCHOR = -1,
-    SEARCH_CHAR_BINDINGS = {},
-    SEARCH_BORDER_OVERRIDE = false,
-
-    -- Transient UI State
-    saved_osd_border_style = nil,
-    ui_border_override_depth = 0,
-    osd_border_style = mp.get_property("osd-border-style"),
-    DRUM_HIT_ZONES = nil,      -- Hit-zone metadata for active Drum/SRT OSD
-    DW_HIT_ZONES = nil,        -- Hit-zone metadata for active Drum Window OSD
-
-    -- Tooltip State
-    DW_TOOLTIP_LINE = -1,
-    DW_TOOLTIP_MODE = "CLICK",
-    DW_TOOLTIP_HOLDING = false,
-    DW_TOOLTIP_LOCKED_LINE = -1,
-    DW_TOOLTIP_FORCE = false,   -- Manual keyboard toggle state
-    DW_LINE_Y_MAP = {},         -- Map of {sub_idx = osd_y} for active tooltip tracking
-    DW_TOOLTIP_HIT_ZONES = nil, -- Hit-zone metadata for active tooltip interaction
-    DW_ACTIVE_LINE = -1,        -- Currently playing subtitle index
-    DW_TOOLTIP_TARGET_MODE = "ACTIVE", -- Target switching for forced tooltip ("ACTIVE" or "CURSOR")
-    DW_TOOLTIP_BORDER_OVERRIDE = false, -- True only when tooltip itself owns a global border-style override
-    DW_TOOLTIP_SEC_SUBS = {},   -- Cached secondary subtitles for tooltip fallback when secondary track is hidden
-    DW_TOOLTIP_SEC_PATH = nil,  -- Source path for DW_TOOLTIP_SEC_SUBS
-    DW_BLOCK_TOP = 0,           -- Current Drum Window top offset (for diagnostics/tests)
-    DW_TOTAL_HEIGHT = 0,        -- Current Drum Window total visual block height
-    DW_SEEKING_MANUALLY = false,
-    DW_SEEK_TARGET = -1,
-    DW_MOUSE_LOCK_UNTIL = 0,         -- Timestamp to ignore mouse events (shielding)
-    DW_DRAG_IS_PRI = true,
-    DW_ESC_NEUTRAL_ARMED = false,    -- Neutral state entered after deselection/no-selection Esc in manual mode
-    DW_NEUTRAL_LINE = -1,            -- Last meaningful line before pointer clear
-    DW_NEUTRAL_WORD = -1,            -- Last meaningful word before pointer clear
-
-    -- Repeat Timer
-    SEEK_REPEAT_TIMER = nil,
-
-    -- Anki Highlighter State
-    ANKI_HIGHLIGHTS = {},
-    ANKI_HIGHLIGHTS_SORTED = {},
-    ANKI_VERSION = 0,             -- Version counter for cache invalidation
-    ANKI_DB_PATH = nil,
-    ANKI_DB_MTIME = 0,
-    ANKI_DB_SIZE = 0,
-
-    -- Help State
-    HELP_MODE = false,
-    HELP_SCROLL_OFFSET = 0,
-    HELP_SCROLL_MAX = 0
-}
-
-local Tracks = {
-    pri = { id = 0, is_ass = false, path = nil, subs = {} },
-    sec = { id = 0, is_ass = false, path = nil, subs = {} }
-}
+local FSM = state.FSM
+local Tracks = state.Tracks
 
 FSM.notice_osd = mp.create_osd_overlay("ass-events")
 FSM.notice_osd.res_y = Options.font_base_height

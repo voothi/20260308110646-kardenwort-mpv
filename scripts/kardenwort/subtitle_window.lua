@@ -27,16 +27,27 @@ function M.init(fsm, opts, tracks, diagnostic, helpers)
 end
 
 -- Helpers read at call time (defined in main.lua, injected via helpers).
-local function build_tooltip_style_context(parent_mode)
-    return _helpers.build_tooltip_style_context(parent_mode)
-end
-local function get_tooltip_parent_mode()
-    return _helpers.get_tooltip_parent_mode()
-end
+-- Referenced directly via _helpers table — no wrapper call frames needed.
 
--- Draw caches injected from main.lua (referenced by flush_rendering_caches).
--- Stored as module-locals at init time (tables passed by reference).
-local DRUM_DRAW_CACHE, DW_DRAW_CACHE, DW_TOOLTIP_DRAW_CACHE
+-- --- draw caches ----------------------------------------------------------
+-- Initialized with defaults; set_caches() replaces them with main.lua's
+-- shared cache tables so flush_rendering_caches can reset them.
+
+local DRUM_DRAW_CACHE = {
+    subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
+    al = -1, aw = -1, cl = -1, cw = -1,
+    pending_version = 0, layout_version = 0, result = "",
+    hit_zones = nil
+}
+
+local DW_DRAW_CACHE = {
+    view_center = -1, active_idx = -1, highlight_count = 0,
+    subs_ptr = nil, layout_version = 0,
+    cl = -1, cw = -1, al = -1, aw = -1,
+    pending_version = 0, result = ""
+}
+
+local DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
 function M.set_caches(caches)
     DRUM_DRAW_CACHE = caches.DRUM_DRAW_CACHE
@@ -107,27 +118,6 @@ function M.build_profiles()
         end
     end
 end
-
--- --- draw caches ----------------------------------------------------------
-
--- DRUM_DRAW_CACHE
-local DRUM_DRAW_CACHE = {
-    subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
-    al = -1, aw = -1, cl = -1, cw = -1,
-    pending_version = 0, layout_version = 0, result = "",
-    hit_zones = nil
-}
-
--- DW_DRAW_CACHE
-local DW_DRAW_CACHE = {
-    view_center = -1, active_idx = -1, highlight_count = 0,
-    subs_ptr = nil, layout_version = 0,
-    cl = -1, cw = -1, al = -1, aw = -1,
-    pending_version = 0, result = ""
-}
-
--- DW_TOOLTIP_DRAW_CACHE
-local DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw = -1, av = -1 }
 
 -- --- draw_drum ------------------------------------------------------------
 
@@ -510,7 +500,7 @@ function M.draw_dw_tooltip(subs, target_line_idx, osd_y)
     local base_h = Options.font_base_height or 1080
     local base_w = math.floor(base_h * 16 / 9)
     local anchor_x = base_w - math.floor((120 * base_h / 1080) + 0.5)
-    local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())
+    local style_ctx = _helpers.build_tooltip_style_context(_helpers.get_tooltip_parent_mode())
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end

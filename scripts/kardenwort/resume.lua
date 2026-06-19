@@ -1,5 +1,8 @@
--- resume_last_file.lua
--- Automatically saves the last played file and resumes it if MPV is started without arguments.
+-- =========================================================================
+-- resume.lua — Session resume for kardenwort
+-- Automatically saves the last played file and resumes it if MPV is started
+-- without arguments.
+-- =========================================================================
 
 -- =========================================================================
 -- OPTIONS
