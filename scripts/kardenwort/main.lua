@@ -1005,6 +1005,26 @@ end
 -- Populate render_helpers now that is_inside_dw_selection is defined.
 render_helpers.is_inside_dw_selection = is_inside_dw_selection
 
+-- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
+-- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
+-- Must be defined BEFORE sw_helpers.caches captures it, so subtitle_window
+-- receives the same table main.lua and flush_rendering_caches operate on.
+DRUM_DRAW_CACHE = {
+    subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
+    al = -1, aw = -1, cl = -1, cw = -1,
+    pending_version = 0, layout_version = 0, result = "",
+    hit_zones = nil -- Cached geometry
+}
+
+-- draw_dw: view_center = which line is in the center of the viewport
+--          active_idx = which line is currently playing (colored blue, may be off-screen)
+DW_DRAW_CACHE = {
+    view_center = -1, active_idx = -1, highlight_count = 0,
+    subs_ptr = nil, layout_version = 0,
+    cl = -1, cw = -1, al = -1, aw = -1,
+    pending_version = 0, result = ""
+}
+
 -- subtitle_window — draw_drum / draw_dw / draw_dw_tooltip renderers.
 -- Draw caches stay in main.lua (referenced by flush_rendering_caches) and
 -- are injected via sw_helpers.caches. build_tooltip_style_context and
@@ -1023,24 +1043,6 @@ subtitle_window.set_caches(sw_helpers.caches)
 draw_drum = subtitle_window.draw_drum
 draw_dw = subtitle_window.draw_dw
 draw_dw_tooltip = subtitle_window.draw_dw_tooltip
-
--- Result cache for draw_drum: skip full ASS rebuild when state is unchanged.
--- Mirrors the DW_DRAW_CACHE pattern used by draw_dw().
-DRUM_DRAW_CACHE = {
-    subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
-    al = -1, aw = -1, cl = -1, cw = -1,
-    pending_version = 0, layout_version = 0, result = "",
-    hit_zones = nil -- Cached geometry
-}
-
--- draw_dw: view_center = which line is in the center of the viewport
---          active_idx = which line is currently playing (colored blue, may be off-screen)
-DW_DRAW_CACHE = {
-    view_center = -1, active_idx = -1, highlight_count = 0,
-    subs_ptr = nil, layout_version = 0,
-    cl = -1, cw = -1, al = -1, aw = -1,
-    pending_version = 0, result = ""
-}
 
 -- ===============================================================================
 -- DRUM WINDOW: HIT-TESTING, MOUSE, TOOLTIP, SELECTION, AND RENDER TICK
