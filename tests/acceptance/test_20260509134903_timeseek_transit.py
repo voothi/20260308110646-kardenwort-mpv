@@ -48,7 +48,9 @@ from tests.ipc.mpv_ipc import query_kardenwort_state
 
 def _src():
     with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-        return f.read()
+        main = f.read()
+    with open("scripts/kardenwort/test_hooks.lua", encoding="utf-8") as f:
+        return main + f.read()
 
 
 def _subtitle_parser():

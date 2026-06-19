@@ -379,6 +379,8 @@ class TestCharacterLevelHitHighlighting:
         """kardenwort.lua must contain fuzzy match index tracking logic."""
         with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
             src = f.read()
+        with open("scripts/kardenwort/test_hooks.lua", encoding="utf-8") as f:
+            src += f.read()
         # fuzzy span / indices tracking
         has_fuzzy = "fuzzy" in src.lower() or "match_indices" in src or "char_idx" in src
         assert has_fuzzy, (
