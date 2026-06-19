@@ -84,7 +84,7 @@ function M.resolve_neutral_cursor_line()
     return FSM.DW_CURSOR_LINE
 end
 
-function M.resolve_null_activation_line(ctx, dir, subs)
+local function resolve_null_activation_line(ctx, dir, subs)
     -- Neutral-source policy applies ONLY while neutral mode is armed.
     -- Outside neutral mode, keep legacy free-mode activation behavior.
     if M.is_neutral_policy_enabled() and FSM.DW_ESC_NEUTRAL_ARMED then
@@ -115,7 +115,7 @@ function M.resolve_null_activation_line(ctx, dir, subs)
     return (dir > 0 and 1 or #subs)
 end
 
-function M.reset_selection()
+local function reset_selection()
     M.capture_neutral_marker()
     FSM.DW_ESC_NEUTRAL_ARMED = M.is_neutral_policy_enabled()
     -- Synchronize active line to live playback to prevent stale jumps during reset
@@ -174,5 +174,7 @@ function M.apply_post_transition_selection(target_word)
         FSM.DW_FOLLOW_PLAYER = follow_after_transition and not pointer_active
     end
 end
+M.resolve_null_activation_line = resolve_null_activation_line
+M.reset_selection = reset_selection
 
 return M

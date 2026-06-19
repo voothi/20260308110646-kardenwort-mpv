@@ -24,7 +24,14 @@ VIDEO_FIXTURE = Path("tests/fixtures/20260502165659-test-fixture/20260502165659-
 
 
 def _lua_source():
-    return LUA_SOURCE.read_text(encoding="utf-8")
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _read_anki_fields():

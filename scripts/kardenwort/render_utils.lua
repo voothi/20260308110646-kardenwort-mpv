@@ -820,7 +820,7 @@ end
 
 -- --- dw_vline_height ------------------------------------------------------
 
-function M.dw_vline_height()
+local function dw_vline_height()
     local wrap_mul = Options.dw_wrap_line_height_mul or Options.dw_line_height_mul
     return (Options.dw_font_size * wrap_mul) + (Options.dw_vsp or 0)
 end
@@ -991,7 +991,7 @@ end
 
 -- --- format_tooltip_card_event --------------------------------------------
 
-function M.format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)
+local function format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)
     return string.format("{\\pos(%g, %g)}{\\an7}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %g 0 l %g %g l 0 %g{\\p0}",
         rect_left, rect_top, style_ctx.bord, style_ctx.shad, style_ctx.bg_color, style_ctx.bg_color,
         style_ctx.bg_alpha, style_ctx.bg_alpha, style_ctx.bg_color, rect_bg_alpha, rect_w, rect_w, rect_h, rect_h)
@@ -999,7 +999,7 @@ end
 
 -- --- format_tooltip_text_event --------------------------------------------
 
-function M.format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)
+local function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)
     local neutralize_bgbox = style_ctx.neutralize_inband and "{\\3a&HFF&}{\\4a&HFF&}" or ""
     return string.format("{\\pos(%g, %g)}{\\an6}{\\bord%g}{\\shad%g}{\\3c&H%s&}{\\4c&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\q2}%s%s",
         anchor_x, line_center_y, style_ctx.bord, style_ctx.shad, style_ctx.bg_color, style_ctx.bg_color,
@@ -1019,5 +1019,8 @@ M.wrap_tokens = wrap_tokens
 M.calculate_osd_line_meta = calculate_osd_line_meta
 M.dw_build_layout = dw_build_layout
 M.dw_calculate_block_top = dw_calculate_block_top
+M.dw_vline_height = dw_vline_height
+M.format_tooltip_card_event = format_tooltip_card_event
+M.format_tooltip_text_event = format_tooltip_text_event
 
 return M

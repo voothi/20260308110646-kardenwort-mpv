@@ -115,7 +115,14 @@ def test_cycle_audio_never_attaches_current_file_as_external_track():
 
 
 def test_companion_audio_configuration_and_file_loaded_hook_are_declared():
-    src = Path("scripts/kardenwort/main.lua").read_text(encoding="utf-8")
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    src = "\n".join(contents)
     conf = Path("mpv.conf").read_text(encoding="utf-8")
 
     assert "companion_audio_enabled = true" in src

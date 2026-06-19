@@ -20,8 +20,14 @@ TEXT_UTILS = "scripts/kardenwort/text_utils.lua"
 
 
 def _lua():
-    with open(LUA, encoding="utf-8") as f:
-        return f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _text_utils():

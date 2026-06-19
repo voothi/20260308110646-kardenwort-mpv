@@ -10,8 +10,14 @@ Regression coverage for format_highlighted_word bold handling:
 
 
 def _lua_source():
-    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-        return f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    return "\n".join(contents)
 
 
 def test_manual_selection_enforces_regular_weight_structural():

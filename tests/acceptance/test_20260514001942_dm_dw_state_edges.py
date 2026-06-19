@@ -10,10 +10,18 @@ from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 def _src():
-    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-        main = f.read()
-    with open("scripts/kardenwort/test_hooks.lua", encoding="utf-8") as f:
-        return main + f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua") and filename not in ("main.lua", "test_hooks.lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    with open(os.path.join(base_dir, "main.lua"), encoding="utf-8") as f:
+        contents.append(f.read())
+    with open(os.path.join(base_dir, "test_hooks.lua"), encoding="utf-8") as f:
+        contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _fn_body(src: str, fn_name: str) -> str:
@@ -36,8 +44,10 @@ def test_esc_stage3_live_anchor_structural():
     body_esc = _fn_body(_src(), "cmd_dw_esc")
     assert "dw_reset_selection()" in body_esc
 
-    body_reset = _fn_body(_src(), "dw_reset_selection")
-    assert "local live_active_idx = get_center_index(Tracks.pri.subs, time_pos)" in body_reset
+    with open("scripts/kardenwort/dw_esc.lua", encoding="utf-8") as f:
+        esc_src = f.read()
+    body_reset = _fn_body(esc_src, "reset_selection")
+    assert "local live_active_idx = _helpers.get_center_index(Tracks.pri.subs, time_pos)" in body_reset
     assert "FSM.DW_ACTIVE_LINE = live_active_idx" in body_reset
     assert "FSM.DW_FOLLOW_PLAYER = true" in body_reset
 
@@ -160,7 +170,9 @@ def test_null_activation_prefers_stable_active_line_over_lookahead_context_struc
     Boundary guard: null activation must prefer synchronized active subtitle ownership
     (DW_ACTIVE_LINE/ACTIVE_IDX) before snapshot lookahead-derived context.
     """
-    body = _fn_body(_src(), "dw_resolve_null_activation_line")
+    with open("scripts/kardenwort/dw_esc.lua", encoding="utf-8") as f:
+        esc_src = f.read()
+    body = _fn_body(esc_src, "resolve_null_activation_line")
     stable_pos = body.find("local stable_active_line = (FSM.DW_ACTIVE_LINE ~= -1) and FSM.DW_ACTIVE_LINE or FSM.ACTIVE_IDX")
     ctx_pos = body.rfind("if ctx and ctx.active_line and ctx.active_line ~= -1 then")
     assert stable_pos != -1

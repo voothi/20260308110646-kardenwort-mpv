@@ -13,7 +13,18 @@ from pathlib import Path
 
 
 def _lua_source() -> str:
-    return Path("scripts/kardenwort/main.lua").read_text(encoding="utf-8")
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua") and filename not in ("main.lua", "test_hooks.lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    with open(os.path.join(base_dir, "main.lua"), encoding="utf-8") as f:
+        contents.append(f.read())
+    with open(os.path.join(base_dir, "test_hooks.lua"), encoding="utf-8") as f:
+        contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _text_utils_source() -> str:

@@ -163,7 +163,7 @@ local function format_sub_wrapped(meta, is_active, t_pos, is_drum, font_name, fo
         font_name, opacity, bold_state, base_color, size, result_text)
 end
 
-function M.draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain, is_pri)
+local function draw_drum(subs, view_center, active_idx, y_pos_percent, time_pos, font_size, hit_zones, force_plain, is_pri)
     if view_center == -1 then return "" end
 
     if DRUM_DRAW_CACHE.subs_ptr == subs and
@@ -315,7 +315,7 @@ end
 
 -- --- draw_dw --------------------------------------------------------------
 
-function M.draw_dw(subs, view_center, active_idx)
+local function draw_dw(subs, view_center, active_idx)
     if not subs or #subs == 0 then return "" end
 
     if DW_DRAW_CACHE.view_center    == view_center and
@@ -471,9 +471,16 @@ function M.draw_dw(subs, view_center, active_idx)
     return final_ass
 end
 
+local build_tooltip_style_context = function(mode)
+    return _helpers.build_tooltip_style_context(mode)
+end
+local get_tooltip_parent_mode = function()
+    return _helpers.get_tooltip_parent_mode()
+end
+
 -- --- draw_dw_tooltip ------------------------------------------------------
 
-function M.draw_dw_tooltip(subs, target_line_idx, osd_y)
+local function draw_dw_tooltip(subs, target_line_idx, osd_y)
     local tooltip_sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
     if target_line_idx == -1 or not tooltip_sec_subs or #tooltip_sec_subs == 0 then return "" end
 
@@ -499,7 +506,7 @@ function M.draw_dw_tooltip(subs, target_line_idx, osd_y)
     local base_h = Options.font_base_height or 1080
     local base_w = math.floor(base_h * 16 / 9)
     local anchor_x = base_w - math.floor((120 * base_h / 1080) + 0.5)
-    local style_ctx = _helpers.build_tooltip_style_context(_helpers.get_tooltip_parent_mode())
+    local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())
     local midpoint = (primary_sub.start_time + primary_sub.end_time) / 2
     local center_idx = get_center_index(tooltip_sec_subs, midpoint)
     if center_idx == -1 then return "" end
@@ -661,5 +668,8 @@ end
 -- --- module exports --------------------------------------------------------
 
 M.format_sub_wrapped = format_sub_wrapped
+M.draw_drum = draw_drum
+M.draw_dw = draw_dw
+M.draw_dw_tooltip = draw_dw_tooltip
 
 return M

@@ -15,7 +15,7 @@ class TestTtsDigitBindings:
     """Regression guards for one-press TTS digit integration."""
 
     def test_main_lua_has_tts_trigger_options_and_bindings(self):
-        src = _read("scripts/kardenwort/main.lua")
+        src = _read("scripts/kardenwort/main.lua") + "\n" + _read("scripts/kardenwort/config.lua")
         help_src = _read("scripts/kardenwort/help_hud.lua")
         required_in_main = [
             'tts_trigger_enabled = "no"',

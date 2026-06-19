@@ -10,10 +10,18 @@ from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
 def _src():
-    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-        main = f.read()
-    with open("scripts/kardenwort/test_hooks.lua", encoding="utf-8") as f:
-        return main + f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua") and filename not in ("main.lua", "test_hooks.lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    with open(os.path.join(base_dir, "main.lua"), encoding="utf-8") as f:
+        contents.append(f.read())
+    with open(os.path.join(base_dir, "test_hooks.lua"), encoding="utf-8") as f:
+        contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _fn_body(src: str, fn_name: str) -> str:

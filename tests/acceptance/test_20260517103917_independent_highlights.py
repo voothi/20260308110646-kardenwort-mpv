@@ -17,12 +17,15 @@ import pytest
 from tests.ipc.mpv_ipc import query_kardenwort_state, query_kardenwort_render
 
 
-LUA_SOURCE = "scripts/kardenwort/main.lua"
-
-
 def _read_lua_source():
-    with open(LUA_SOURCE, encoding="utf-8") as f:
-        return f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    return "\n".join(contents)
 
 
 @pytest.mark.acceptance

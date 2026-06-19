@@ -112,11 +112,11 @@ function M.register_all()
 
     mp.register_script_message("render-query", function(overlay_name)
         local map = {
-            drum    = refs.drum_osd,
-            dw      = refs.dw_osd,
-            tooltip = refs.dw_tooltip_osd,
-            search  = refs.search_osd,
-            seek    = refs.seek_osd,
+            drum    = refs.drum_osd, -- drum    = drum_osd
+            dw      = refs.dw_osd, -- dw      = dw_osd
+            tooltip = refs.dw_tooltip_osd, -- tooltip = dw_tooltip_osd
+            search  = refs.search_osd, -- search  = search_osd
+            seek    = refs.seek_osd, -- seek    = seek_osd
         }
         local osd = map[overlay_name]
         local data = (osd and osd.data) or ""

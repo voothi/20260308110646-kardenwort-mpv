@@ -11,8 +11,14 @@ TSV_EXPORT = "scripts/kardenwort/tsv_export.lua"
 
 
 def _lua():
-    with open(LUA, encoding="utf-8") as f:
-        return f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _tsv_export():
@@ -28,8 +34,14 @@ def test_padding_options_exist_with_defaults():
 
 def test_padding_options_are_normalized():
     content = _lua()
-    assert "Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))" in content
-    assert "Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))" in content
+    assert (
+        "Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))" in content or
+        "opts.anki_context_words_before = math.max(0, math.floor(tonumber(opts.anki_context_words_before) or 0))" in content
+    )
+    assert (
+        "Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))" in content or
+        "opts.anki_context_words_after = math.max(0, math.floor(tonumber(opts.anki_context_words_after) or 0))" in content
+    )
 
 
 def test_padding_applies_after_sentence_scoping():

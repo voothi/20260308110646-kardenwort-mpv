@@ -17,7 +17,14 @@ from tests.ipc.mpv_ipc import query_kardenwort_render
 
 
 def _read_main_lua():
-    return Path("scripts/kardenwort/main.lua").read_text(encoding="utf-8")
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    for filename in sorted(os.listdir(base_dir)):
+        if filename.endswith(".lua"):
+            with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+                contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _tooltip_function_body(src):
