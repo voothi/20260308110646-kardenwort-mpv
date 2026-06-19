@@ -36,6 +36,23 @@ _VIDEO = os.path.abspath(f"{_FIXTURE_DIR}/20260502165659-test-fixture.mp4")
 _SRT = os.path.abspath(f"{_FIXTURE_DIR}/20260502165659-test-fixture.en.srt")
 
 
+def _read_all_lua():
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    filenames = sorted(os.listdir(base_dir))
+    ordered_filenames = [f for f in filenames if f not in ("main.lua", "test_hooks.lua") and f.endswith(".lua")]
+    if "main.lua" in filenames:
+        ordered_filenames.append("main.lua")
+    if "test_hooks.lua" in filenames:
+        ordered_filenames.append("test_hooks.lua")
+    for filename in ordered_filenames:
+        with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+            contents.append(f.read())
+    return "\n".join(contents)
+
+
+
 def _robust_state(ipc, attempts: int = 6) -> dict:
     """Retry wrapper around query_kardenwort_state to handle async property-change races."""
     last_exc = None
@@ -103,8 +120,7 @@ class TestArchitecturalRemediation:
 
     def test_flush_rendering_caches_exists(self):
         """kardenwort.lua must define flush_rendering_caches (centralized invalidation)."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         assert "flush_rendering_caches" in content, (
             "flush_rendering_caches function not found in kardenwort.lua"
         )
@@ -124,8 +140,7 @@ class TestArchitecturalRemediation:
 
     def test_layout_version_sentinel_exists(self):
         """LAYOUT_VERSION must exist to drive cache invalidation on config change."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         assert "LAYOUT_VERSION" in content, (
             "LAYOUT_VERSION sentinel not found in kardenwort.lua"
         )
@@ -236,8 +251,7 @@ class TestCacheHardening:
 
     def test_cache_tables_are_defined(self):
         """DRUM_DRAW_CACHE and DW_DRAW_CACHE must be defined in kardenwort.lua."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         assert "DRUM_DRAW_CACHE" in content, "DRUM_DRAW_CACHE missing from kardenwort.lua"
         assert "DW_DRAW_CACHE" in content, "DW_DRAW_CACHE missing from kardenwort.lua"
 
@@ -262,8 +276,7 @@ class TestCacheHardening:
 
     def test_layout_version_is_integer(self):
         """LAYOUT_VERSION must be initialized to an integer (0 or 1) in kardenwort.lua."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         match = re.search(r"LAYOUT_VERSION\s*=\s*(\d+)", content)
         assert match, "LAYOUT_VERSION not initialized to an integer"
         assert int(match.group(1)) >= 0
@@ -328,8 +341,7 @@ class TestCentralizedScriptOptions:
 
     def test_kardenwort_uses_mp_options(self):
         """kardenwort.lua must call mp.options to read script-opts."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         assert "mp.options" in content, (
             "kardenwort.lua does not reference mp.options; centralized config not wired"
         )
@@ -427,8 +439,7 @@ class TestDisplay:
         kardenwort.lua must contain logic that identifies whitespace tokens
         separately from word tokens (required for original-spacing-preservation).
         """
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         # The scanner must reference 'dw_original_spacing' or equivalent
         assert "original_spacing" in content or "ws_token" in content or (
             "is_space" in content
@@ -480,8 +491,7 @@ class TestKeybindingConsolidation:
         mp.add_key_binding calls in kardenwort.lua must use nil as the default key,
         deferring all physical key assignments to input.conf.
         """
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-            content = f.read()
+        content = _read_all_lua()
         assert "mp.add_key_binding(nil," in content, (
             "kardenwort.lua must use mp.add_key_binding(nil, ...) for user-configurable commands"
         )

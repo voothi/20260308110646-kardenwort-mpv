@@ -16,12 +16,20 @@ import time
 from tests.ipc.mpv_ipc import query_kardenwort_state
 
 
-LUA = "scripts/kardenwort/main.lua"
-
-
 def _lua():
-    with open(LUA, encoding="utf-8") as f:
-        return f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    filenames = sorted(os.listdir(base_dir))
+    ordered_filenames = [f for f in filenames if f not in ("main.lua", "test_hooks.lua") and f.endswith(".lua")]
+    if "main.lua" in filenames:
+        ordered_filenames.append("main.lua")
+    if "test_hooks.lua" in filenames:
+        ordered_filenames.append("test_hooks.lua")
+    for filename in ordered_filenames:
+        with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+            contents.append(f.read())
+    return "\n".join(contents)
 
 
 def test_mouse_isotropic_scaling():

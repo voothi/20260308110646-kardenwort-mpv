@@ -32,8 +32,19 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _lua_source():
-    with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
-        return f.read()
+    import os
+    contents = []
+    base_dir = "scripts/kardenwort"
+    filenames = sorted(os.listdir(base_dir))
+    ordered_filenames = [f for f in filenames if f not in ("main.lua", "test_hooks.lua") and f.endswith(".lua")]
+    if "main.lua" in filenames:
+        ordered_filenames.append("main.lua")
+    if "test_hooks.lua" in filenames:
+        ordered_filenames.append("test_hooks.lua")
+    for filename in ordered_filenames:
+        with open(os.path.join(base_dir, filename), encoding="utf-8") as f:
+            contents.append(f.read())
+    return "\n".join(contents)
 
 
 def _tsv_export():

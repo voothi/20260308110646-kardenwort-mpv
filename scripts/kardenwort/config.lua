@@ -93,6 +93,7 @@ M.Options = {
 
     -- Toggle Positions
     sec_pos_top = 10,
+    -- Warning: Ensure a 5% gap between sec_pos_bottom and sub-pos/sub_pos
     sec_pos_bottom = 90,
 
     -- System
