@@ -1,9 +1,9 @@
--- ===============================================================================
+-- ============================================================================
 -- osd_cards.lua — OSD card rendering (show_osd + show_seek_osd)
 -- show_osd and show_seek_osd are kept DISTINCT (do NOT merge — they differ in
 -- overlay target and test-contract side effects; see design / task 1.3).
 -- Reads FSM/Options at call time via injected references (never copied).
--- ===============================================================================
+-- ============================================================================
 
 local mp = require 'mp'
 

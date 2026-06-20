@@ -1,4 +1,4 @@
--- ===============================================================================
+-- ============================================================================
 -- search.lua — Search HUD feature for kardenwort
 -- Deepest DI phase: the module receives main.lua-local helpers
 -- (wrap_tokens, dw_get_mouse_osd, manage_ui_border_override,
@@ -6,7 +6,7 @@
 -- helpers table read at call time, because those are defined after init().
 -- Carve-out (stay in main.lua): apply_border_override_state,
 -- manage_ui_border_override, trigger_volume_suspension.
--- ===============================================================================
+-- ============================================================================
 
 local mp = require 'mp'
 local utils = require 'mp.utils'

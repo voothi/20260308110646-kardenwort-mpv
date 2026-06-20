@@ -1,7 +1,7 @@
--- ===============================================================================
+-- ============================================================================
 -- subtitle_parser.lua — Subtitle file parsing & position matching for kardenwort
 -- Reads FSM/Options/Tracks/Diagnostic at call time via injected references.
--- ===============================================================================
+-- ============================================================================
 
 local mp = require 'mp'
 local text_utils = require 'text_utils'

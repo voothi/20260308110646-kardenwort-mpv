@@ -1,11 +1,11 @@
--- ===============================================================================
+-- ============================================================================
 -- help_hud.lua — F1 Help HUD feature for kardenwort
 -- Contains HELP_SCHEMA, key-display normalization, key-discovery, the
 -- render_help renderer, scroll/keymap lifecycle, and cmd_toggle_help.
 -- The help_osd_* overlays are created in main.lua and injected via helpers
 -- (read at call time). render_search is also injected (cross-feature: help
 -- toggle clears the search overlay).
--- ===============================================================================
+-- ============================================================================
 
 local mp = require 'mp'
 local keybinding_utils = require 'keybinding_utils'

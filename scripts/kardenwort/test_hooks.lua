@@ -1,9 +1,9 @@
--- ===============================================================================
+-- ============================================================================
 -- test_hooks.lua — Test instrumentation IPC surface for kardenwort
 -- Dormant in production. Activated by IPC `script-message-to kardenwort ...`.
 -- Loaded unconditionally at boot (preserves original behavior).
 -- All function references are injected via M.init(refs) so no new globals.
--- ===============================================================================
+-- ============================================================================
 
 local mp = require 'mp'
 local utils = require 'mp.utils'
