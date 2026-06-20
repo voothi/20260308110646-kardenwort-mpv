@@ -311,6 +311,10 @@ local is_valid_mpv_key, expand_ru_keys =
 local show_osd, show_seek_osd = alias(osd_cards, { "show_osd", "show_seek_osd" })
 local seek_osd -- forward-declared; assigned from osd_cards.seek_osd after setup()
 local tsv_helpers -- populated at tsv_export init; flush_rendering_caches added later
+local apply_tooltip_ass
+local is_inside_dw_selection
+local ctrl_commit_set
+local dw_anki_export_selection
 
 -- tsv_export aliases
 local get_copy_context_text, prepare_export_text, extract_anki_context, load_anki_tsv, save_anki_tsv_row, find_source_url, get_tsv_path =
@@ -770,10 +774,6 @@ end
 -- INVARIANT: DRUM_DRAW_CACHE and DW_DRAW_CACHE are captured by upvalue.
 -- They MUST be defined at module scope before this function is called at runtime,
 -- otherwise the cache flushing will silently fail.
-local apply_tooltip_ass
-local is_inside_dw_selection
-local ctrl_commit_set
-local dw_anki_export_selection
 local function flush_rendering_caches()
     FSM.ANKI_VERSION = (FSM.ANKI_VERSION or 0) + 1
     FSM.LAYOUT_VERSION = (FSM.LAYOUT_VERSION or 0) + 1
@@ -1954,6 +1954,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         FSM.DW_MOUSE_PENDING_DRAG = false
         mp.remove_key_binding("dw-mouse-drag")
         if FSM.DW_MOUSE_SCROLL_TIMER then
+            ---@diagnostic disable-next-line: undefined-field
             FSM.DW_MOUSE_SCROLL_TIMER:kill()
             FSM.DW_MOUSE_SCROLL_TIMER = nil
         end
