@@ -44,6 +44,7 @@ local render_utils = require("render_utils")
 local subtitle_window = require("subtitle_window")
 local test_hooks = require("test_hooks")
 local dw_esc = require("dw_esc")
+local tooltip = require("tooltip")
 local config = require("config")
 local state = require("state")
 local utils = require("mp.utils")
@@ -562,6 +563,16 @@ dw_tooltip_osd.res_y = Options.font_base_height
 dw_tooltip_osd.res_x = math.floor(dw_tooltip_osd.res_y * 16 / 9)
 dw_tooltip_osd.z = 25
 
+-- tooltip — Drum/SRT/DW Tooltip styling and overlay helpers.
+local tooltip_helpers = {
+    dw_tooltip_osd = dw_tooltip_osd,
+    manage_ui_border_override = function(enable)
+        return manage_ui_border_override(enable)
+    end,
+    DW_TOOLTIP_DRAW_CACHE = DW_TOOLTIP_DRAW_CACHE,
+}
+tooltip.init(FSM, Options, Tracks, Diagnostic, tooltip_helpers)
+
 help_osd_bg = mp.create_osd_overlay("ass-events")
 help_osd_bg.res_y = Options.font_base_height
 help_osd_bg.res_x = math.floor(help_osd_bg.res_y * 16 / 9)
@@ -735,174 +746,15 @@ end
 -- it via the helpers table (read at call time by the module).
 tsv_helpers.flush_rendering_caches = flush_rendering_caches
 
-local function invalidate_dw_tooltip_cache()
-    if not DW_TOOLTIP_DRAW_CACHE then
-        return
-    end
-    DW_TOOLTIP_DRAW_CACHE.target_idx = -1
-    DW_TOOLTIP_DRAW_CACHE.osd_y = -1
-    DW_TOOLTIP_DRAW_CACHE.version = -1
-    DW_TOOLTIP_DRAW_CACHE.cl = -1
-    DW_TOOLTIP_DRAW_CACHE.cw = -1
-    DW_TOOLTIP_DRAW_CACHE.av = -1
-    DW_TOOLTIP_DRAW_CACHE.result = ""
-    DW_TOOLTIP_DRAW_CACHE.hit_zones = nil
-end
+local get_tooltip_line_y = tooltip.get_tooltip_line_y
+local clear_tooltip_overlay = tooltip.clear_tooltip_overlay
+local is_osd_tooltip_mode_eligible = tooltip.is_osd_tooltip_mode_eligible
+local invalidate_dw_tooltip_cache = tooltip.invalidate_dw_tooltip_cache
 
-function normalize_tooltip_native_box_policy()
-    local policy = tostring(Options.tooltip_native_box_policy or "auto"):lower()
-    if policy ~= "auto" and policy ~= "neutralize" and policy ~= "override" then
-        return "auto"
-    end
-    return policy
-end
-
-function get_tooltip_parent_mode()
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        return "dw"
-    end
-    if FSM.DRUM == "ON" then
-        return "dm"
-    end
-    return "srt"
-end
-
-function build_tooltip_style_context(parent_mode)
-    parent_mode = parent_mode or get_tooltip_parent_mode()
-    local policy = normalize_tooltip_native_box_policy()
-    local style_is_bgbox = (FSM.osd_border_style == "background-box")
-    local needs_override = false
-    local neutralize_inband = false
-
-    if policy == "override" then
-        needs_override = true
-    elseif policy == "neutralize" then
-        neutralize_inband = style_is_bgbox
-    else
-        if parent_mode == "dw" then
-            needs_override = true
-        elseif style_is_bgbox then
-            neutralize_inband = true
-        end
-    end
-
-    if needs_override then
-        neutralize_inband = false
-    end
-
-    local base_alpha = Options.tooltip_bg_alpha
-    if not base_alpha or base_alpha == "" then
-        base_alpha = Options.tooltip_bg_opacity
-    end
-
-    local card_alpha = base_alpha
-    if parent_mode == "dw" then
-        card_alpha = (
-            Options.tooltip_dw_bg_alpha
-            and Options.tooltip_dw_bg_alpha ~= ""
-            and Options.tooltip_dw_bg_alpha
-        ) or card_alpha
-    elseif parent_mode == "dm" then
-        card_alpha = (
-            Options.tooltip_dm_bg_alpha
-            and Options.tooltip_dm_bg_alpha ~= ""
-            and Options.tooltip_dm_bg_alpha
-        ) or card_alpha
-    elseif parent_mode == "srt" then
-        card_alpha = (
-            Options.tooltip_srt_bg_alpha
-            and Options.tooltip_srt_bg_alpha ~= ""
-            and Options.tooltip_srt_bg_alpha
-        ) or card_alpha
-    end
-
-    return {
-        parent_mode = parent_mode,
-        policy = policy,
-        is_bgbox = style_is_bgbox,
-        needs_override = needs_override,
-        neutralize_inband = neutralize_inband,
-        bg_color = Options.tooltip_bg_color,
-        bg_alpha = calculate_ass_alpha(base_alpha),
-        card_alpha = calculate_ass_alpha(card_alpha),
-        bord = Options.tooltip_border_size,
-        shad = Options.tooltip_shadow_offset,
-    }
-end
-
-apply_tooltip_ass = function(ass)
-    if not dw_tooltip_osd then
-        return
-    end
-    ass = ass or ""
-    local will_visible = (ass ~= "")
-    local wants_override = false
-    if will_visible then
-        local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())
-        wants_override = style_ctx.needs_override
-    end
-    local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)
-    if wants_override and not has_override then
-        manage_ui_border_override(true)
-        has_override = true
-    elseif not wants_override and has_override then
-        manage_ui_border_override(false)
-        has_override = false
-    end
-    FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override
-    if ass ~= dw_tooltip_osd.data then
-        dw_tooltip_osd.data = ass
-        dw_tooltip_osd:update()
-    end
-end
-
-local function clear_tooltip_overlay(reason)
-    if reason then
-        Diagnostic.debug("TOOLTIP CLEAR: " .. reason)
-    end
-    FSM.DW_TOOLTIP_LINE = -1
-    FSM.DW_TOOLTIP_HIT_ZONES = nil
-    FSM.DW_TOOLTIP_LOCKED_LINE = -1
-    invalidate_dw_tooltip_cache()
-    apply_tooltip_ass("")
-end
-
-local function is_osd_tooltip_mode_eligible()
-    local use_osd_for_srt = (
-        Options.srt_font_name ~= ""
-        or Options.srt_font_bold
-        or Options.srt_font_size > 0
-    )
-    local srt_active = (FSM.DRUM == "OFF" and use_osd_for_srt)
-
-    return (FSM.DRUM == "ON" or srt_active)
-        and FSM.DRUM_WINDOW == "OFF"
-        and FSM.native_sub_vis
-        and not FSM.MEDIA_STATE:match("ASS")
-        and Options.osd_interactivity
-end
-
-local function get_tooltip_line_y(line_idx, fallback_y)
-    if not line_idx or line_idx == -1 then
-        return nil
-    end
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
-    end
-    local fallback_zone_y = nil
-    for _, zone in ipairs(FSM.DRUM_HIT_ZONES or {}) do
-        if zone.sub_idx == line_idx then
-            local zone_center_y = (zone.y_top + zone.y_bottom) / 2
-            if zone.is_pri then
-                return zone_center_y
-            end
-            if fallback_zone_y == nil then
-                fallback_zone_y = zone_center_y
-            end
-        end
-    end
-    return fallback_zone_y or fallback_y
-end
+normalize_tooltip_native_box_policy = tooltip.normalize_tooltip_native_box_policy
+get_tooltip_parent_mode = tooltip.get_tooltip_parent_mode
+build_tooltip_style_context = tooltip.build_tooltip_style_context
+apply_tooltip_ass = tooltip.apply_tooltip_ass
 
 -- ===============================================================================
 -- FONT SCALING AND MEDIA STATE MANAGEMENT
