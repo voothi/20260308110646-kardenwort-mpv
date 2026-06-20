@@ -1974,6 +1974,17 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     FSM.DW_KEY_OVERRIDE = enable_kb
 end
 
+function update_interactive_bindings()
+    local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
+    local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0))
+        and Options.osd_interactivity
+
+    local need_mouse = dw_on or osd_on
+    local need_kb = dw_on or osd_on
+
+    manage_dw_bindings(need_mouse, need_kb)
+end
+
 -- ===============================================================================
 -- CLIPBOARD, OSD OVERRIDES, AND MODE TOGGLES
 -- ===============================================================================
