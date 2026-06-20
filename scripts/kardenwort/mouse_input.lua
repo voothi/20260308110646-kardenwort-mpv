@@ -799,7 +799,8 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 end
 
                 if word_idx and updates_selection then
-                    local is_inside = on_up_callback and _helpers.is_inside_dw_selection(line_idx, word_idx)
+                    local is_inside = on_up_callback
+                        and _helpers.is_inside_dw_selection(line_idx, word_idx)
                     FSM.DW_PROTECTED_SELECTION = is_inside and not is_shift
 
                     if not is_shift and not is_inside then

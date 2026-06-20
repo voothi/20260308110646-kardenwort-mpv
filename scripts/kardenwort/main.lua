@@ -243,20 +243,12 @@ DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw
 local set_clipboard
 local dw_get_mouse_osd, kardenwort_hit_test_all, dw_sync_cursor_to_mouse
 
-
-
-
-
-
-
 local seek_osd -- forward-declared; assigned from osd_cards.seek_osd after setup()
 local tsv_helpers -- populated at tsv_export init; flush_rendering_caches added later
 local apply_tooltip_ass
 local is_inside_dw_selection
 local ctrl_commit_set
 local dw_anki_export_selection
-
-
 
 -- search aliases (forward-declared)
 local search_helpers
@@ -900,7 +892,10 @@ local function update_media_state()
         update_interactive_bindings()
 
         if had_drum or had_dw then
-            osd_cards.show_osd("Custom OSD: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
+            osd_cards.show_osd(
+                "Custom OSD: AUTO-DISABLED (ASS Track Loaded)",
+                Options.osd_duration + 1.0
+            )
         end
     end
 end
@@ -1011,7 +1006,6 @@ get_dw_drag_threshold_px = mouse_input.get_dw_drag_threshold_px
 get_dw_mouse_auto_scroll_interval = mouse_input.get_dw_mouse_auto_scroll_interval
 dw_pointer_exceeded_drag_threshold = mouse_input.dw_pointer_exceeded_drag_threshold
 
-
 -- Anki export, selection bounds, and Esc staged reset
 -- local function dw_anki_export_selection
 dw_anki_export_selection = dw_navigation.dw_anki_export_selection
@@ -1042,7 +1036,6 @@ local MOUSE_HANDLERS = mouse_input.MOUSE_HANDLERS
 local cmd_dw_mouse_select = mouse_input.cmd_dw_mouse_select
 local cmd_dw_mouse_select_shift = mouse_input.cmd_dw_mouse_select_shift
 local cmd_dw_export_anki = mouse_input.cmd_dw_export_anki
-
 
 -- local function cmd_dw_add_smart
 local cmd_dw_add_smart = dw_navigation.cmd_dw_add_smart
@@ -1148,7 +1141,9 @@ local function cmd_toggle_anki_global()
         return
     end
     Options.anki_global_highlight = not Options.anki_global_highlight
-    osd_cards.show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
+    osd_cards.show_osd(
+        "Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF")
+    )
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then
@@ -1297,10 +1292,13 @@ local function cmd_seek_time(dir)
     local current_pos = mp.get_property_number("time-pos") or 0
     local target_pos = math.max(0, current_pos + delta)
     local subs = Tracks.pri.subs
-    local current_idx = (subs and #subs > 0) and subtitle_parser.get_center_index(subs, current_pos) or -1
-    local target_idx = (subs and #subs > 0) and subtitle_parser.get_center_index(subs, target_pos) or -1
+    local current_idx = (subs and #subs > 0) and subtitle_parser.get_center_index(subs, current_pos)
+        or -1
+    local target_idx = (subs and #subs > 0) and subtitle_parser.get_center_index(subs, target_pos)
+        or -1
     local sec_subs = Tracks.sec.subs
-    local sec_target_idx = (sec_subs and #sec_subs > 0) and subtitle_parser.get_center_index(sec_subs, target_pos)
+    local sec_target_idx = (sec_subs and #sec_subs > 0)
+            and subtitle_parser.get_center_index(sec_subs, target_pos)
         or -1
     local is_cross_card_seek = (
         current_idx ~= -1
@@ -1823,7 +1821,12 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb) or k.always_on
-        if active and k.key and keybinding_utils.is_valid_mpv_key(k.key) and type(k.fn) == "function" then
+        if
+            active
+            and k.key
+            and keybinding_utils.is_valid_mpv_key(k.key)
+            and type(k.fn) == "function"
+        then
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
                     return k.fn(t)
@@ -2555,7 +2558,9 @@ local function cmd_cycle_sec_pos()
         FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom
             or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
-        osd_cards.show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
+        osd_cards.show_osd(
+            "Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM")
+        )
     else
         local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
         local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
@@ -2892,7 +2897,8 @@ function cmd_cycle_audio()
                         if #ext > 0 then
                             ext_stem = ext_file:sub(1, #ext_file - #ext - 1)
                         end
-                        local base_name, postfix = companion.split_base_and_language_postfix(ext_stem)
+                        local base_name, postfix =
+                            companion.split_base_and_language_postfix(ext_stem)
                         if postfix and base_name and base_name ~= "" then
                             title_lbl = base_name
                         elseif ext_stem ~= "" then

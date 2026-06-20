@@ -23,7 +23,10 @@ function M.init(fsm, opts, tracks, diag, helpers)
     assert(helpers, "FATAL: helpers dependency missing")
     assert(helpers.dw_osd, "FATAL: helper 'dw_osd' missing")
     assert(helpers.drum_osd, "FATAL: helper 'drum_osd' missing")
-    assert(helpers.protect_internal_replay_seek, "FATAL: helper 'protect_internal_replay_seek' missing")
+    assert(
+        helpers.protect_internal_replay_seek,
+        "FATAL: helper 'protect_internal_replay_seek' missing"
+    )
     assert(helpers.show_osd, "FATAL: helper 'show_osd' missing")
 
     FSM = fsm

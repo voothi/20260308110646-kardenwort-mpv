@@ -28,7 +28,10 @@ function M.init(fsm, opts, tracks, diag, helpers)
     assert(helpers.show_osd, "FATAL: helper 'show_osd' missing")
     assert(helpers.dw_get_mouse_osd, "FATAL: helper 'dw_get_mouse_osd' missing")
     assert(helpers.kardenwort_hit_test_all, "FATAL: helper 'kardenwort_hit_test_all' missing")
-    assert(helpers.protect_internal_replay_seek, "FATAL: helper 'protect_internal_replay_seek' missing")
+    assert(
+        helpers.protect_internal_replay_seek,
+        "FATAL: helper 'protect_internal_replay_seek' missing"
+    )
     assert(helpers.dw_sync_cursor_to_mouse, "FATAL: helper 'dw_sync_cursor_to_mouse' missing")
 
     FSM = fsm
