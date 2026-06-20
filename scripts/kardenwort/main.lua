@@ -1980,7 +1980,9 @@ function update_interactive_bindings()
         and Options.osd_interactivity
 
     local need_mouse = dw_on or osd_on
-    local need_kb = dw_on or osd_on
+    -- The tooltip keys must remain active to allow toggling it dynamically,
+    -- even when Drum Mode is OFF and native ASS is playing.
+    local need_kb = true
 
     manage_dw_bindings(need_mouse, need_kb)
 end
