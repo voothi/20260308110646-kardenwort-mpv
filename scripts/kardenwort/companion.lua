@@ -7,8 +7,8 @@
 -- Reads FSM/Options/Diagnostic at call time via injected references.
 -- ============================================================================
 
-local mp = require 'mp'
-local utils = require 'mp.utils'
+local mp = require("mp")
+local utils = require("mp.utils")
 
 local M = {}
 
@@ -26,19 +26,25 @@ end
 -- --- language-postfix family (zero external callers) ----------------------
 
 function M.normalize_language_postfix(postfix)
-    if not postfix or postfix == "" then return nil end
+    if not postfix or postfix == "" then
+        return nil
+    end
     return postfix:gsub("_", "-")
 end
 
 function M.is_language_postfix(postfix)
     local normalized = M.normalize_language_postfix(postfix)
-    if not normalized or not normalized:match("^[%a%d-]+$") then return false end
+    if not normalized or not normalized:match("^[%a%d-]+$") then
+        return false
+    end
 
     local parts = {}
     for part in normalized:gmatch("[^-]+") do
         table.insert(parts, part)
     end
-    if #parts == 0 then return false end
+    if #parts == 0 then
+        return false
+    end
 
     local primary = parts[1]
     if not primary:match("^[%a][%a][%a]?$") then
@@ -47,12 +53,14 @@ function M.is_language_postfix(postfix)
 
     for idx = 2, #parts do
         local part = parts[idx]
-        if not (
-            part:match("^%a%a$") or
-            part:match("^%a%a%a$") or
-            part:match("^%a%a%a%a$") or
-            part:match("^%d%d%d$")
-        ) then
+        if
+            not (
+                part:match("^%a%a$")
+                or part:match("^%a%a%a$")
+                or part:match("^%a%a%a%a$")
+                or part:match("^%d%d%d$")
+            )
+        then
             return false
         end
     end
@@ -61,7 +69,9 @@ function M.is_language_postfix(postfix)
 end
 
 function M.split_base_and_language_postfix(stem)
-    if not stem or stem == "" then return nil, nil end
+    if not stem or stem == "" then
+        return nil, nil
+    end
     local base, postfix = stem:match("^(.+)%.([%w%-_]+)$")
     if base and M.is_language_postfix(postfix) then
         return base, M.normalize_language_postfix(postfix)
@@ -71,13 +81,17 @@ end
 
 function M.format_language_postfix_label(postfix)
     local normalized = M.normalize_language_postfix(postfix)
-    if not normalized then return nil end
+    if not normalized then
+        return nil
+    end
     return normalized:upper()
 end
 
 function M.extract_lang_from_title_or_path(title, path)
     local filepath = (path and path ~= "") and path or title
-    if not filepath or filepath == "" then return nil end
+    if not filepath or filepath == "" then
+        return nil
+    end
     filepath = filepath:gsub("\\", "/")
     local filename = filepath:match("([^/]+)$") or filepath
 
@@ -104,22 +118,26 @@ end
 -- --- path canonicalization -------------------------------------------------
 
 function M.normalize_path_for_compare(path)
-    if not path or path == "" then return "" end
+    if not path or path == "" then
+        return ""
+    end
     local normalized = path:gsub("\\", "/")
-    if package.config:sub(1,1) == "\\" then
+    if package.config:sub(1, 1) == "\\" then
         normalized = normalized:lower()
     end
     return normalized
 end
 
 function M.canonicalize_local_path(path)
-    if not path or path == "" then return "" end
+    if not path or path == "" then
+        return ""
+    end
     local normalized = path
-    local ok, expanded = pcall(mp.command_native, {"expand-path", path})
+    local ok, expanded = pcall(mp.command_native, { "expand-path", path })
     if ok and type(expanded) == "string" and expanded ~= "" then
         normalized = expanded
     end
-    local ok2, canonical = pcall(mp.command_native, {"normalize-path", normalized})
+    local ok2, canonical = pcall(mp.command_native, { "normalize-path", normalized })
     if ok2 and type(canonical) == "string" and canonical ~= "" then
         normalized = canonical
     end
@@ -129,20 +147,30 @@ end
 -- --- companion audio -------------------------------------------------------
 
 function M.ensure_companion_audio_tracks(path)
-    if Options.companion_audio_enabled == false then return end
-    if not path or path == "" then return end
+    if Options.companion_audio_enabled == false then
+        return
+    end
+    if not path or path == "" then
+        return
+    end
     local normalized_path = path:gsub("\\", "/")
     local dir = normalized_path:match("^(.*/)") or ""
     local filename = normalized_path:sub(#dir + 1)
     local ext = filename:match("%.([^%.]+)$") or ""
-    if ext == "" then return end
+    if ext == "" then
+        return
+    end
 
     local filename_no_ext = filename:sub(1, #filename - #ext - 1)
     local base_prefix = M.split_base_and_language_postfix(filename_no_ext)
-    if not base_prefix or base_prefix == "" then return end
+    if not base_prefix or base_prefix == "" then
+        return
+    end
 
     local companions = M.get_companion_files(dir, base_prefix, ext)
-    if #companions <= 1 then return end
+    if #companions <= 1 then
+        return
+    end
 
     local current_path_norm = M.canonicalize_local_path(path)
     local existing_audio = {}
@@ -154,20 +182,28 @@ function M.ensure_companion_audio_tracks(path)
         end
     end
 
-    local is_windows = package.config:sub(1,1) == "\\"
+    local is_windows = package.config:sub(1, 1) == "\\"
     for _, companion in ipairs(companions) do
         if companion.postfix ~= "ORIGINAL" then
             local normalized_companion_path = M.canonicalize_local_path(companion.path)
-            if normalized_companion_path ~= current_path_norm and not existing_audio[normalized_companion_path] then
+            if
+                normalized_companion_path ~= current_path_norm
+                and not existing_audio[normalized_companion_path]
+            then
                 local load_path = companion.path
                 if is_windows then
                     load_path = load_path:gsub("/", "\\")
                 end
-                mp.commandv("audio-add", load_path, "auto", companion.postfix, companion.raw_postfix)
+                mp.commandv(
+                    "audio-add",
+                    load_path,
+                    "auto",
+                    companion.postfix,
+                    companion.raw_postfix
+                )
             end
         end
     end
-
 end
 
 -- --- companion files / subtitles ------------------------------------------
@@ -184,7 +220,7 @@ function M.get_companion_files(dir, base_prefix, ext)
                 table.insert(companions, {
                     path = dir .. f,
                     postfix = "ORIGINAL",
-                    raw_postfix = ""
+                    raw_postfix = "",
                 })
             else
                 local p_base, p_postfix = M.split_base_and_language_postfix(f_no_ext)
@@ -192,7 +228,7 @@ function M.get_companion_files(dir, base_prefix, ext)
                     table.insert(companions, {
                         path = dir .. f,
                         postfix = M.format_language_postfix_label(p_postfix),
-                        raw_postfix = p_postfix
+                        raw_postfix = p_postfix,
                     })
                 end
             end
@@ -219,7 +255,7 @@ function M.get_companion_subtitles(dir, base_prefix)
                 table.insert(sub_files, {
                     path = dir .. f,
                     postfix = "ORIGINAL",
-                    raw_postfix = ""
+                    raw_postfix = "",
                 })
             else
                 local p_base, p_postfix = M.split_base_and_language_postfix(f_no_ext)
@@ -227,7 +263,7 @@ function M.get_companion_subtitles(dir, base_prefix)
                     table.insert(sub_files, {
                         path = dir .. f,
                         postfix = M.format_language_postfix_label(p_postfix),
-                        raw_postfix = p_postfix
+                        raw_postfix = p_postfix,
                     })
                 end
             end
@@ -242,10 +278,16 @@ function M.get_companion_subtitles(dir, base_prefix)
 end
 
 function M.subtitle_track_matches_postfix(track, target_postfix)
-    if not track or not target_postfix then return false end
+    if not track or not target_postfix then
+        return false
+    end
     local target = target_postfix:lower()
-    if track.lang and track.lang:lower() == target then return true end
-    if track.title and track.title:lower() == target then return true end
+    if track.lang and track.lang:lower() == target then
+        return true
+    end
+    if track.title and track.title:lower() == target then
+        return true
+    end
 
     local path = track["external-filename"] or track["external_filename"] or ""
     if path ~= "" then
@@ -272,7 +314,9 @@ function M.select_companion_subtitle_tracks(current_postfix)
             table.insert(sub_tracks, t)
         end
     end
-    if #sub_tracks == 0 then return end
+    if #sub_tracks == 0 then
+        return
+    end
 
     table.sort(sub_tracks, function(a, b)
         return (tonumber(a.id) or 0) < (tonumber(b.id) or 0)
@@ -310,20 +354,30 @@ function M.select_companion_subtitle_tracks(current_postfix)
 end
 
 function M.ensure_companion_subtitle_tracks(path)
-    if Options.companion_subtitle_enabled == false then return end
-    if not path or path == "" then return end
+    if Options.companion_subtitle_enabled == false then
+        return
+    end
+    if not path or path == "" then
+        return
+    end
     local normalized_path = path:gsub("\\", "/")
     local dir = normalized_path:match("^(.*/)") or ""
     local filename = normalized_path:sub(#dir + 1)
     local ext = filename:match("%.([^%.]+)$") or ""
-    if ext == "" then return end
+    if ext == "" then
+        return
+    end
 
     local filename_no_ext = filename:sub(1, #filename - #ext - 1)
     local base_prefix, current_postfix = M.split_base_and_language_postfix(filename_no_ext)
-    if not base_prefix or base_prefix == "" then return end
+    if not base_prefix or base_prefix == "" then
+        return
+    end
 
     local sub_files = M.get_companion_subtitles(dir, base_prefix)
-    if #sub_files == 0 then return end
+    if #sub_files == 0 then
+        return
+    end
 
     local existing_subs = {}
     local tracks = mp.get_property_native("track-list") or {}
@@ -336,7 +390,7 @@ function M.ensure_companion_subtitle_tracks(path)
         end
     end
 
-    local is_windows = package.config:sub(1,1) == "\\"
+    local is_windows = package.config:sub(1, 1) == "\\"
     for _, sub in ipairs(sub_files) do
         local normalized_sub_path = M.canonicalize_local_path(sub.path)
         if not existing_subs[normalized_sub_path] then
@@ -365,8 +419,13 @@ function M.get_bundled_black_video_source()
     local script_dir = mp.get_script_directory()
     if script_dir and script_dir ~= "" then
         local candidate = script_dir:gsub("\\", "/") .. "/../_tools/sub-viewer/black.mp4"
-        local ok, normalized = pcall(mp.command_native, {"normalize-path", candidate})
-        if ok and type(normalized) == "string" and normalized ~= "" and utils.file_info(normalized) then
+        local ok, normalized = pcall(mp.command_native, { "normalize-path", candidate })
+        if
+            ok
+            and type(normalized) == "string"
+            and normalized ~= ""
+            and utils.file_info(normalized)
+        then
             return normalized
         end
         if utils.file_info(candidate) then
@@ -380,7 +439,10 @@ end
 function M.add_bundled_black_video_track(message)
     local source = M.get_bundled_black_video_source()
     if not source then
-        Diagnostic.error(message .. " Bundled seekable black video track is unavailable: scripts/_tools/sub-viewer/black.mp4")
+        Diagnostic.error(
+            message
+                .. " Bundled seekable black video track is unavailable: scripts/_tools/sub-viewer/black.mp4"
+        )
         return
     end
     Diagnostic.info(message .. " Using bundled seekable black video track.")
@@ -414,7 +476,7 @@ function M.try_next_video_candidate()
         end
     end
 
-    local is_windows = package.config:sub(1,1) == "\\"
+    local is_windows = package.config:sub(1, 1) == "\\"
     local load_path = candidate.path
     if is_windows then
         load_path = load_path:gsub("/", "\\")
@@ -435,7 +497,12 @@ function M.try_next_video_candidate()
                 if t.selected then
                     selected_video = true
                 end
-                Diagnostic.debug("found video track id=" .. tostring(t.id) .. " selected=" .. tostring(t.selected))
+                Diagnostic.debug(
+                    "found video track id="
+                        .. tostring(t.id)
+                        .. " selected="
+                        .. tostring(t.selected)
+                )
             end
         end
         if found_video then
@@ -455,7 +522,17 @@ end
 
 function M.get_companion_video_files(dir, base_prefix)
     local video_files = {}
-    local video_exts = { mp4 = true, mkv = true, avi = true, webm = true, flv = true, mov = true, wmv = true, mpg = true, mpeg = true }
+    local video_exts = {
+        mp4 = true,
+        mkv = true,
+        avi = true,
+        webm = true,
+        flv = true,
+        mov = true,
+        wmv = true,
+        mpg = true,
+        mpeg = true,
+    }
 
     local function scan_video_dir(scan_dir, depth)
         local dir_files = utils.readdir(scan_dir, "files") or {}
@@ -493,9 +570,15 @@ function M.get_companion_video_files(dir, base_prefix)
     end
 
     table.sort(video_files, function(a, b)
-        if (a._depth or 0) ~= (b._depth or 0) then return (a._depth or 0) < (b._depth or 0) end
-        if a.postfix == "ORIGINAL" then return true end
-        if b.postfix == "ORIGINAL" then return false end
+        if (a._depth or 0) ~= (b._depth or 0) then
+            return (a._depth or 0) < (b._depth or 0)
+        end
+        if a.postfix == "ORIGINAL" then
+            return true
+        end
+        if b.postfix == "ORIGINAL" then
+            return false
+        end
         return a.postfix < b.postfix
     end)
 
@@ -505,7 +588,9 @@ end
 function M.ensure_companion_video_track(path)
     Diagnostic.debug("ensure_companion_video_track: called with path=" .. tostring(path))
     if Options.companion_video_enabled == false then
-        Diagnostic.debug("ensure_companion_video_track: companion_video_enabled is false, returning")
+        Diagnostic.debug(
+            "ensure_companion_video_track: companion_video_enabled is false, returning"
+        )
         return
     end
     if not path or path == "" then
@@ -534,16 +619,23 @@ function M.ensure_companion_video_track(path)
         end
     end
     if has_album_art and not has_real_video then
-        Diagnostic.debug("ensure_companion_video_track: only album art video present, deselecting vid")
+        Diagnostic.debug(
+            "ensure_companion_video_track: only album art video present, deselecting vid"
+        )
         mp.set_property("vid", "no")
     end
     if selected_real_video then
-        Diagnostic.debug("ensure_companion_video_track: real video track already selected, returning")
+        Diagnostic.debug(
+            "ensure_companion_video_track: real video track already selected, returning"
+        )
         return
     end
     if has_real_video then
         if first_real_video_id then
-            Diagnostic.debug("ensure_companion_video_track: real video track exists but not selected. Selecting id=" .. tostring(first_real_video_id))
+            Diagnostic.debug(
+                "ensure_companion_video_track: real video track exists but not selected. Selecting id="
+                    .. tostring(first_real_video_id)
+            )
             mp.set_property_number("vid", first_real_video_id)
         end
         return
@@ -565,7 +657,9 @@ function M.ensure_companion_video_track(path)
         return
     end
 
-    Diagnostic.debug("ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix)
+    Diagnostic.debug(
+        "ensure_companion_video_track: searching in dir=" .. dir .. " base_prefix=" .. base_prefix
+    )
     local video_files = M.get_companion_video_files(dir, base_prefix)
     Diagnostic.debug("ensure_companion_video_track: found #video_files=" .. tostring(#video_files))
     if #video_files == 0 then
@@ -583,7 +677,10 @@ function M.ensure_companion_video_track(path)
         end
     end
 
-    Diagnostic.debug("ensure_companion_video_track: #video_candidates after filtering=" .. tostring(#FSM.video_candidates))
+    Diagnostic.debug(
+        "ensure_companion_video_track: #video_candidates after filtering="
+            .. tostring(#FSM.video_candidates)
+    )
     M.try_next_video_candidate()
 end
 

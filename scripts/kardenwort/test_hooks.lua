@@ -5,8 +5,8 @@
 -- All function references are injected via M.init(refs) so no new globals.
 -- ============================================================================
 
-local mp = require 'mp'
-local utils = require 'mp.utils'
+local mp = require("mp")
+local utils = require("mp.utils")
 
 local M = {}
 
@@ -28,7 +28,7 @@ function M.init(fsm, opts, tracks, diagnostic, r)
     refs = setmetatable(r or {}, {
         __index = function(t, k)
             error("FATAL: Missing injected helper function: " .. tostring(k), 2)
-        end
+        end,
     })
 end
 
@@ -37,7 +37,7 @@ function kardenwortProbe._snapshot()
     for _, r in ipairs(FSM.SEARCH_RESULTS or {}) do
         table.insert(safe_search_results, {
             idx = r.idx,
-            text = r.text
+            text = r.text,
         })
     end
 
@@ -46,65 +46,65 @@ function kardenwortProbe._snapshot()
             id = Tracks.pri.id,
             is_ass = Tracks.pri.is_ass,
             path = Tracks.pri.path,
-            count = #(Tracks.pri.subs or {})
+            count = #(Tracks.pri.subs or {}),
         },
         sec = {
             id = Tracks.sec.id,
             is_ass = Tracks.sec.is_ass,
             path = Tracks.sec.path,
-            count = #(Tracks.sec.subs or {})
-        }
+            count = #(Tracks.sec.subs or {}),
+        },
     }
 
     return {
-        options            = Options,
-        autopause          = FSM.AUTOPAUSE,
-        drum_mode          = FSM.DRUM,
-        drum_window        = FSM.DRUM_WINDOW,
-        active_sub_index     = FSM.ACTIVE_IDX,
+        options = Options,
+        autopause = FSM.AUTOPAUSE,
+        drum_mode = FSM.DRUM,
+        drum_window = FSM.DRUM_WINDOW,
+        active_sub_index = FSM.ACTIVE_IDX,
         sec_active_sub_index = FSM.SEC_ACTIVE_IDX,
-        playback_state     = FSM.MEDIA_STATE,
-        pri_sub_count      = #(Tracks.pri.subs or {}),
-        sec_sub_count      = #(Tracks.sec.subs or {}),
-        dw_cursor          = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
-        dw_active_line     = FSM.DW_ACTIVE_LINE,
-        dw_anchor          = { line = FSM.DW_ANCHOR_LINE, word = FSM.DW_ANCHOR_WORD },
+        playback_state = FSM.MEDIA_STATE,
+        pri_sub_count = #(Tracks.pri.subs or {}),
+        sec_sub_count = #(Tracks.sec.subs or {}),
+        dw_cursor = { line = FSM.DW_CURSOR_LINE, word = FSM.DW_CURSOR_WORD },
+        dw_active_line = FSM.DW_ACTIVE_LINE,
+        dw_anchor = { line = FSM.DW_ANCHOR_LINE, word = FSM.DW_ANCHOR_WORD },
         dw_selection_count = #(FSM.DW_CTRL_PENDING_LIST or {}),
-        dw_view_center     = FSM.DW_VIEW_CENTER,
-        dw_follow_player   = FSM.DW_FOLLOW_PLAYER,
-        dw_block_top       = FSM.DW_BLOCK_TOP or 0,
-        dw_total_height    = FSM.DW_TOTAL_HEIGHT or 0,
+        dw_view_center = FSM.DW_VIEW_CENTER,
+        dw_follow_player = FSM.DW_FOLLOW_PLAYER,
+        dw_block_top = FSM.DW_BLOCK_TOP or 0,
+        dw_total_height = FSM.DW_TOTAL_HEIGHT or 0,
         dw_esc_neutral_armed = FSM.DW_ESC_NEUTRAL_ARMED,
-        dw_neutral_cursor  = { line = FSM.DW_NEUTRAL_LINE, word = FSM.DW_NEUTRAL_WORD },
+        dw_neutral_cursor = { line = FSM.DW_NEUTRAL_LINE, word = FSM.DW_NEUTRAL_WORD },
         dw_seeking_manually = FSM.DW_SEEKING_MANUALLY,
-        immersion_mode     = FSM.IMMERSION_MODE,
-        copy_mode          = FSM.COPY_MODE,
-        loop_mode          = FSM.LOOP_MODE,
-        book_mode          = FSM.BOOK_MODE,
-        native_sub_vis     = FSM.native_sub_vis,
+        immersion_mode = FSM.IMMERSION_MODE,
+        copy_mode = FSM.COPY_MODE,
+        loop_mode = FSM.LOOP_MODE,
+        book_mode = FSM.BOOK_MODE,
+        native_sub_vis = FSM.native_sub_vis,
         native_sec_sub_vis = FSM.native_sec_sub_vis,
-        sec_only_mode      = FSM.SEC_ONLY_MODE,
+        sec_only_mode = FSM.SEC_ONLY_MODE,
         native_sec_sub_pos = FSM.native_sec_sub_pos,
-        replay_remaining      = FSM.REPLAY_REMAINING or 0,
+        replay_remaining = FSM.REPLAY_REMAINING or 0,
         rewind_transit_active = FSM.TIMESEEK_INHIBIT_UNTIL ~= nil,
-        rewind_transit_until  = FSM.TIMESEEK_INHIBIT_UNTIL or 0,
+        rewind_transit_until = FSM.TIMESEEK_INHIBIT_UNTIL or 0,
         rewind_transit_cross_card = FSM.REWIND_TRANSIT_CROSS_CARD == true,
-        last_paused_sub_end   = FSM.last_paused_sub_end,
-        karaoke_mode          = FSM.KARAOKE,
-        search_mode           = FSM.SEARCH_MODE,
-        search_query       = FSM.SEARCH_QUERY,
-        search_results     = safe_search_results,
-        dw_tooltip_mode    = FSM.DW_TOOLTIP_MODE,
-        tracks             = tracks_summary,
-        fsm_state          = FSM.MEDIA_STATE,
-        test_data          = FSM.TEST_DATA or {},
-        layout_version     = FSM.LAYOUT_VERSION or 0,
-        tooltip_forced     = FSM.DW_TOOLTIP_FORCE,
+        last_paused_sub_end = FSM.last_paused_sub_end,
+        karaoke_mode = FSM.KARAOKE,
+        search_mode = FSM.SEARCH_MODE,
+        search_query = FSM.SEARCH_QUERY,
+        search_results = safe_search_results,
+        dw_tooltip_mode = FSM.DW_TOOLTIP_MODE,
+        tracks = tracks_summary,
+        fsm_state = FSM.MEDIA_STATE,
+        test_data = FSM.TEST_DATA or {},
+        layout_version = FSM.LAYOUT_VERSION or 0,
+        tooltip_forced = FSM.DW_TOOLTIP_FORCE,
         tooltip_cache_size = #(FSM.DW_TOOLTIP_SEC_SUBS or {}),
-        dw_sticky_x        = FSM.DW_CURSOR_X,
-        anki_db_mtime      = FSM.ANKI_DB_MTIME or 0,
-        anki_db_size       = FSM.ANKI_DB_SIZE or 0,
-        platform           = package.config:sub(1,1) == "\\" and "windows" or "unix"
+        dw_sticky_x = FSM.DW_CURSOR_X,
+        anki_db_mtime = FSM.ANKI_DB_MTIME or 0,
+        anki_db_size = FSM.ANKI_DB_SIZE or 0,
+        platform = package.config:sub(1, 1) == "\\" and "windows" or "unix",
     }
 end
 
@@ -120,11 +120,11 @@ function M.register_all()
 
     mp.register_script_message("render-query", function(overlay_name)
         local map = {
-            drum    = refs.drum_osd, -- drum    = drum_osd
-            dw      = refs.dw_osd, -- dw      = dw_osd
+            drum = refs.drum_osd, -- drum    = drum_osd
+            dw = refs.dw_osd, -- dw      = dw_osd
             tooltip = refs.dw_tooltip_osd, -- tooltip = dw_tooltip_osd
-            search  = refs.search_osd, -- search  = search_osd
-            seek    = refs.seek_osd, -- seek    = seek_osd
+            search = refs.search_osd, -- search  = search_osd
+            seek = refs.seek_osd, -- seek    = seek_osd
         }
         local osd = map[overlay_name]
         local data = (osd and osd.data) or ""
@@ -166,18 +166,26 @@ function M.register_all()
     end)
 
     mp.register_script_message("test-bind-seek", function()
-        mp.add_forced_key_binding("KP0", "kardenwort-seek_time_forward", function() refs.cmd_seek_time(1) end, {repeatable = true})
-        mp.add_forced_key_binding("KP1", "kardenwort-seek_time_backward", function() refs.cmd_seek_time(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("KP0", "kardenwort-seek_time_forward", function()
+            refs.cmd_seek_time(1)
+        end, { repeatable = true })
+        mp.add_forced_key_binding("KP1", "kardenwort-seek_time_backward", function()
+            refs.cmd_seek_time(-1)
+        end, { repeatable = true })
     end)
 
     mp.register_script_message("test-dw-word-move", function(dir, shift)
-        Diagnostic.info("RECEIVED kardenwort-test-dw-word-move: " .. tostring(dir) .. " " .. tostring(shift))
+        Diagnostic.info(
+            "RECEIVED kardenwort-test-dw-word-move: " .. tostring(dir) .. " " .. tostring(shift)
+        )
         refs.cmd_dw_word_move(tonumber(dir), shift == "yes" or shift == "true")
     end)
 
     mp.register_script_message("test-ctrl-toggle-word", function(line_str, word_str)
         local line, word = tonumber(line_str), tonumber(word_str)
-        if line and word then refs.ctrl_toggle_word(line, word, false) end
+        if line and word then
+            refs.ctrl_toggle_word(line, word, false)
+        end
     end)
 
     mp.register_script_message("test-dw-esc", function()
@@ -190,12 +198,16 @@ function M.register_all()
 
     mp.register_script_message("test-dw-line-move", function(dir_str, shift)
         local dir = tonumber(dir_str)
-        if dir then refs.cmd_dw_line_move(dir, shift == "yes" or shift == "true") end
+        if dir then
+            refs.cmd_dw_line_move(dir, shift == "yes" or shift == "true")
+        end
     end)
 
     mp.register_script_message("test-dw-scroll", function(dir_str)
         local dir = tonumber(dir_str)
-        if dir then refs.cmd_dw_scroll(dir) end
+        if dir then
+            refs.cmd_dw_scroll(dir)
+        end
     end)
 
     mp.register_script_message("test-replay", function()
@@ -204,7 +216,9 @@ function M.register_all()
 
     mp.register_script_message("test-seek-time", function(dir_str)
         local dir = tonumber(dir_str)
-        if dir then refs.cmd_seek_time(dir) end
+        if dir then
+            refs.cmd_seek_time(dir)
+        end
     end)
 
     mp.register_script_message("test-set-cursor", function(line_str, word_str)
@@ -222,11 +236,17 @@ function M.register_all()
 
     mp.register_script_message("test-seek-delta", function(dir_str)
         local dir = tonumber(dir_str)
-        if dir then refs.cmd_dw_seek_delta(dir) end
+        if dir then
+            refs.cmd_dw_seek_delta(dir)
+        end
     end)
 
-    mp.register_script_message("seek_next", function() refs.cmd_seek_with_repeat(1, nil) end)
-    mp.register_script_message("seek_prev", function() refs.cmd_seek_with_repeat(-1, nil) end)
+    mp.register_script_message("seek_next", function()
+        refs.cmd_seek_with_repeat(1, nil)
+    end)
+    mp.register_script_message("seek_prev", function()
+        refs.cmd_seek_with_repeat(-1, nil)
+    end)
     mp.register_script_message("test-cycle-sec-sid", function()
         refs.cmd_cycle_sec_sid()
     end)
@@ -258,7 +278,13 @@ function M.register_all()
     mp.register_script_message("test-prepare-export", function(type, p1_l, p1_w, p2_l, p2_w)
         local params
         if type == "RANGE" then
-            params = { type = "RANGE", p1_l = tonumber(p1_l), p1_w = tonumber(p1_w), p2_l = tonumber(p2_l), p2_w = tonumber(p2_w) }
+            params = {
+                type = "RANGE",
+                p1_l = tonumber(p1_l),
+                p1_w = tonumber(p1_w),
+                p2_l = tonumber(p2_l),
+                p2_w = tonumber(p2_w),
+            }
         elseif type == "SET" then
             params = { type = "SET", members = FSM.DW_CTRL_PENDING_LIST }
         else
@@ -337,11 +363,17 @@ function M.register_all()
     end)
 
     mp.register_script_message("test-set-option", function(name, val)
-        if val == "yes" or val == "true" then val = true
-        elseif val == "no" or val == "false" then val = false
-        elseif tonumber(val) then val = tonumber(val) end
+        if val == "yes" or val == "true" then
+            val = true
+        elseif val == "no" or val == "false" then
+            val = false
+        elseif tonumber(val) then
+            val = tonumber(val)
+        end
         Options[name] = val
-        if name == "book_mode" then FSM.BOOK_MODE = val end
+        if name == "book_mode" then
+            FSM.BOOK_MODE = val
+        end
         refs.flush_rendering_caches()
     end)
 
@@ -355,35 +387,47 @@ function M.register_all()
 
     mp.register_script_message("test-dw-tooltip-pin", function(arg1)
         local tbl = { event = "down" }
-        if arg1 and arg1:sub(1,1) == "{" then
+        if arg1 and arg1:sub(1, 1) == "{" then
             local ok, parsed = pcall(utils.parse_json, arg1)
-            if ok and parsed then tbl = parsed end
+            if ok and parsed then
+                tbl = parsed
+            end
         end
         refs.cmd_dw_tooltip_pin(tbl)
     end)
 
     mp.register_script_message("test-dw-tooltip-pin-at", function(x_str, y_str, arg3)
         local x, y = tonumber(x_str), tonumber(y_str)
-        if not x or not y then return end
+        if not x or not y then
+            return
+        end
         local tbl = { event = "down" }
-        if arg3 and arg3:sub(1,1) == "{" then
+        if arg3 and arg3:sub(1, 1) == "{" then
             local ok, parsed = pcall(utils.parse_json, arg3)
-            if ok and parsed then tbl = parsed end
+            if ok and parsed then
+                tbl = parsed
+            end
         end
         local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
         local drum_mode = refs.is_osd_tooltip_mode_eligible()
-        if not dw_mode and not drum_mode then return end
+        if not dw_mode and not drum_mode then
+            return
+        end
         if tbl.event == "down" then
             FSM.DW_TOOLTIP_FORCE = false
             FSM.DW_TOOLTIP_HOLDING = true
             local subs = Tracks.pri.subs
-            if not subs or #subs == 0 then return end
+            if not subs or #subs == 0 then
+                return
+            end
             local line_idx = refs.resolve_tooltip_target_line(subs, x, y, dw_mode)
             if line_idx then
                 FSM.DW_TOOLTIP_LOCKED_LINE = -1
                 FSM.DW_TOOLTIP_LINE = line_idx
                 local py = refs.get_tooltip_line_y(line_idx, y)
-                if py then py = math.floor(py + 0.5) end
+                if py then
+                    py = math.floor(py + 0.5)
+                end
                 local ass = refs.draw_dw_tooltip(subs, line_idx, py)
                 refs.apply_tooltip_ass(ass)
             end
@@ -397,13 +441,19 @@ function M.register_all()
         local ctrl = key:find("Ctrl%+") ~= nil
         local base = key:gsub("Shift%+", ""):gsub("Ctrl%+", "")
 
-        if base == "DOWN" then refs.cmd_dw_line_move(1, shift)
-        elseif base == "UP" then refs.cmd_dw_line_move(-1, shift)
-        elseif base == "LEFT" then refs.cmd_dw_word_move(-1, shift, ctrl)
-        elseif base == "RIGHT" then refs.cmd_dw_word_move(1, shift, ctrl)
+        if base == "DOWN" then
+            refs.cmd_dw_line_move(1, shift)
+        elseif base == "UP" then
+            refs.cmd_dw_line_move(-1, shift)
+        elseif base == "LEFT" then
+            refs.cmd_dw_word_move(-1, shift, ctrl)
+        elseif base == "RIGHT" then
+            refs.cmd_dw_word_move(1, shift, ctrl)
         elseif key == "e" then
             FSM.DW_TOOLTIP_FORCE = not FSM.DW_TOOLTIP_FORCE
-            if FSM.DW_TOOLTIP_FORCE then FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR" end
+            if FSM.DW_TOOLTIP_FORCE then
+                FSM.DW_TOOLTIP_TARGET_MODE = "CURSOR"
+            end
         elseif key == "r" then
             refs.cmd_dw_toggle_pink()
         elseif key == "o" then
@@ -415,13 +465,17 @@ function M.register_all()
         local ok, err = xpcall(function()
             local line = tonumber(line_str)
             if line and Tracks and Tracks.pri and Tracks.pri.subs then
-                if refs.dw_handle_double_click_target(Tracks.pri.subs, line, FSM.DW_CURSOR_WORD) then
+                if
+                    refs.dw_handle_double_click_target(Tracks.pri.subs, line, FSM.DW_CURSOR_WORD)
+                then
                     refs.master_tick()
                     refs.flush_rendering_caches()
                 end
             end
         end, debug.traceback)
-        if not ok then Diagnostic.error("kardenwort-test-dw-double-click error: " .. tostring(err)) end
+        if not ok then
+            Diagnostic.error("kardenwort-test-dw-double-click error: " .. tostring(err))
+        end
     end)
 
     mp.register_script_message("test-get-sub-text", function(track_name, index_str)
@@ -442,7 +496,8 @@ function M.register_all()
     mp.register_script_message("test-build-copy-preview", function(label, text, max_chars_str)
         local max_chars = tonumber(max_chars_str) or 40
         FSM.TEST_DATA = FSM.TEST_DATA or {}
-        FSM.TEST_DATA.test_copy_preview = refs.build_copy_preview(label or "DW", text or "", max_chars)
+        FSM.TEST_DATA.test_copy_preview =
+            refs.build_copy_preview(label or "DW", text or "", max_chars)
     end)
 
     mp.register_script_message("test-validate-term", function(term)
@@ -473,14 +528,14 @@ function M.register_all()
             data = refs.dw_tooltip_osd.data,
             line = FSM.DW_TOOLTIP_LINE,
             holding = FSM.DW_TOOLTIP_HOLDING,
-            force = FSM.DW_TOOLTIP_FORCE
+            force = FSM.DW_TOOLTIP_FORCE,
         }
         mp.set_property("user-data/test-tooltip-state", utils.format_json(res))
     end)
 
     mp.register_script_message("test-query-tooltip-style-contract", function()
         local result = {}
-        for _, mode in ipairs({"dw", "dm", "srt"}) do
+        for _, mode in ipairs({ "dw", "dm", "srt" }) do
             local ctx = refs.build_tooltip_style_context(mode)
             result[mode] = {
                 parent_mode = ctx.parent_mode,
@@ -509,7 +564,9 @@ function M.register_all()
         for i = 1, #t do
             if t:sub(i, i) == q:sub(q_idx, q_idx) then
                 q_idx = q_idx + 1
-                if q_idx > #q then break end
+                if q_idx > #q then
+                    break
+                end
             end
         end
         FSM.TEST_DATA = FSM.TEST_DATA or {}
@@ -535,7 +592,9 @@ function M.register_all()
 
     mp.register_script_message("test-search-delete-word", function()
         local before = FSM.SEARCH_QUERY or ""
-        if before == "" then return end
+        if before == "" then
+            return
+        end
         local trimmed = before:gsub("%s*%S+$", "")
         if trimmed ~= "" and not trimmed:match("%s$") then
             trimmed = trimmed .. " "
@@ -564,8 +623,14 @@ function M.register_all()
     mp.register_script_message("test-help-toggle", function()
         local ok, err = pcall(refs.cmd_toggle_help)
         mp.set_property_native("user-data/kardenwort/test_help_toggle_ok", ok and "1" or "0")
-        mp.set_property_native("user-data/kardenwort/test_help_toggle_error", ok and "" or tostring(err))
-        mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+        mp.set_property_native(
+            "user-data/kardenwort/test_help_toggle_error",
+            ok and "" or tostring(err)
+        )
+        mp.set_property_native(
+            "user-data/kardenwort/test_help_mode",
+            FSM.HELP_MODE and "ON" or "OFF"
+        )
     end)
 
     mp.register_script_message("test-help-close-esc", function()
@@ -573,15 +638,27 @@ function M.register_all()
             local ok_open = pcall(refs.cmd_toggle_help)
             if not ok_open then
                 mp.set_property_native("user-data/kardenwort/test_help_esc_ok", "0")
-                mp.set_property_native("user-data/kardenwort/test_help_esc_error", "failed to open help before ESC test")
-                mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+                mp.set_property_native(
+                    "user-data/kardenwort/test_help_esc_error",
+                    "failed to open help before ESC test"
+                )
+                mp.set_property_native(
+                    "user-data/kardenwort/test_help_mode",
+                    FSM.HELP_MODE and "ON" or "OFF"
+                )
                 return
             end
         end
         local ok, err = pcall(refs.cmd_dw_esc)
         mp.set_property_native("user-data/kardenwort/test_help_esc_ok", ok and "1" or "0")
-        mp.set_property_native("user-data/kardenwort/test_help_esc_error", ok and "" or tostring(err))
-        mp.set_property_native("user-data/kardenwort/test_help_mode", FSM.HELP_MODE and "ON" or "OFF")
+        mp.set_property_native(
+            "user-data/kardenwort/test_help_esc_error",
+            ok and "" or tostring(err)
+        )
+        mp.set_property_native(
+            "user-data/kardenwort/test_help_mode",
+            FSM.HELP_MODE and "ON" or "OFF"
+        )
     end)
 end
 

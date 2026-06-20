@@ -3,8 +3,8 @@
 -- Reads FSM/Options/Tracks/Diagnostic at call time via injected references.
 -- ============================================================================
 
-local mp = require 'mp'
-local text_utils = require 'text_utils'
+local mp = require("mp")
+local text_utils = require("text_utils")
 
 local M = {}
 
@@ -32,14 +32,18 @@ local function parse_time(time_str)
     h, m, s, ms = string.match(time_str, "(%d+):(%d+):(%d+)%.(%d+)")
     if h and m and s and ms then
         local ms_val = tonumber(ms)
-        if #ms == 2 then ms_val = ms_val * 10 end -- Centiseconds to milliseconds
+        if #ms == 2 then
+            ms_val = ms_val * 10
+        end -- Centiseconds to milliseconds
         return tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s) + ms_val / 1000
     end
     return 0
 end
 
 local function load_sub(path, is_ass)
-    if not path or path == "" then return {} end
+    if not path or path == "" then
+        return {}
+    end
     Diagnostic.info("Loading subtitle file: " .. tostring(path))
     local content = safe_read_file(path)
     if not content then
@@ -61,7 +65,9 @@ local function load_sub(path, is_ass)
                     local last_pos = 1
                     for i = 1, 9 do
                         local comma_pos = line_content:find(",", last_pos)
-                        if not comma_pos then break end
+                        if not comma_pos then
+                            break
+                        end
                         table.insert(parts, line_content:sub(last_pos, comma_pos - 1))
                         last_pos = comma_pos + 1
                     end
@@ -70,7 +76,8 @@ local function load_sub(path, is_ass)
                         local start_str = parts[2]:match("^%s*(.-)%s*$")
                         local end_str = parts[3]:match("^%s*(.-)%s*$")
                         if start_str and end_str and text then
-                            local raw_text = text_utils.normalize_inline_break_markers(text):gsub("{[^}]+}", "")
+                            local raw_text =
+                                text_utils.normalize_inline_break_markers(text):gsub("{[^}]+}", "")
                             raw_text = raw_text:gsub("%z", ""):match("^%s*(.-)%s*$")
                             if raw_text ~= "" then
                                 local parsed_start = parse_time(start_str)
@@ -88,7 +95,7 @@ local function load_sub(path, is_ass)
                                         start_time = parsed_start,
                                         end_time = parsed_end,
                                         text = raw_text,
-                                        raw_text = raw_text
+                                        raw_text = raw_text,
                                     })
                                 end
                             end
@@ -97,7 +104,9 @@ local function load_sub(path, is_ass)
                 end
             end
         end
-        table.sort(subs, function(a, b) return a.start_time < b.start_time end)
+        table.sort(subs, function(a, b)
+            return a.start_time < b.start_time
+        end)
     else
         local state = "ID"
         for raw_line in (content .. "\n"):gmatch("(.-)\r?\n") do
@@ -121,11 +130,13 @@ local function load_sub(path, is_ass)
                 state = "ID"
             elseif state == "ID" then
                 if line:match("^%d+$") then
-                    current_sub = {text = ""}
+                    current_sub = { text = "" }
                     state = "TIME"
                 end
             elseif state == "TIME" then
-                local s, e = line:match("^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>%s*(%d%d:%d%d:%d%d[,.]%d%d%d)")
+                local s, e = line:match(
+                    "^(%d%d:%d%d:%d%d[,.]%d%d%d)%s*[-][-]%s*>%s*(%d%d:%d%d:%d%d[,.]%d%d%d)"
+                )
                 if s and e then
                     if current_sub then
                         current_sub.start_time = parse_time(s)
@@ -158,7 +169,9 @@ end
 -- Find the last sub whose start_time is <= time_pos (raw SRT window lookup).
 -- Returns -1 if time_pos is before the first sub's start_time.
 local function find_sub_containing_start(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
+    if not subs or #subs == 0 then
+        return -1
+    end
     local low, high = 1, #subs
     local best = -1
     while low <= high do
@@ -174,7 +187,9 @@ local function find_sub_containing_start(subs, time_pos)
 end
 
 local function get_effective_boundaries(subs, sub, idx)
-    if not sub then return nil, nil end
+    if not sub then
+        return nil, nil
+    end
     local pad_start = (Options.audio_padding_start or 0) / 1000
     local pad_end = (Options.audio_padding_end or 0) / 1000
 
@@ -190,13 +205,21 @@ local function get_effective_boundaries(subs, sub, idx)
         and FSM.PHYSICAL_SPACE_HOLD
         and hold_elapsed > Options.space_tap_delay
 
-    if FSM.IMMERSION_MODE == "MOVIE"
-       or phrase_space_movie_override
-       or (FSM.IMMERSION_MODE == "PHRASE" and FSM.TIMESEEK_INHIBIT_UNTIL and FSM.REWIND_TRANSIT_CROSS_CARD) then
+    if
+        FSM.IMMERSION_MODE == "MOVIE"
+        or phrase_space_movie_override
+        or (
+            FSM.IMMERSION_MODE == "PHRASE"
+            and FSM.TIMESEEK_INHIBIT_UNTIL
+            and FSM.REWIND_TRANSIT_CROSS_CARD
+        )
+    then
         if idx and subs and idx < #subs then
             stop = subs[idx + 1].start_time - pad_start
             -- Guard: never pause before SRT end_time (short gaps shrink the handover boundary)
-            if stop < sub.end_time then stop = sub.end_time end
+            if stop < sub.end_time then
+                stop = sub.end_time
+            end
         end
     end
 
@@ -204,14 +227,16 @@ local function get_effective_boundaries(subs, sub, idx)
 end
 
 local function get_center_index(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
+    if not subs or #subs == 0 then
+        return -1
+    end
 
     -- Sticky Focus Sentinel: Prioritize the active index if we are within its padded window.
     -- This prevents "Magnetic Snapping" to adjacent subtitles when the playhead is in the padding gap.
     -- [20260507154518] Extended to secondary track via FSM.SEC_ACTIVE_IDX to prevent desync when
     -- padded windows overlap (audio_padding_end + audio_padding_start > inter-subtitle gap).
-    local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX or
-                       (subs == Tracks.sec.subs and FSM.SEC_ACTIVE_IDX or -1)
+    local active_idx = (subs == Tracks.pri.subs) and FSM.ACTIVE_IDX
+        or (subs == Tracks.sec.subs and FSM.SEC_ACTIVE_IDX or -1)
 
     -- Jerk-Back Loop Prevention: If we just jumped to a new index in Phrases mode,
     -- don't let the sticky logic pull us back to the previous one during the overlap.
@@ -252,7 +277,12 @@ local function get_center_index(subs, time_pos)
     if active_idx and active_idx ~= -1 and active_idx + 1 <= #subs and subs[active_idx + 1] then
         local next_idx = active_idx + 1
         local s_next, e_next = get_effective_boundaries(subs, subs[next_idx], next_idx)
-        if s_next and e_next and time_pos >= s_next - Options.nav_tolerance and time_pos <= e_next then
+        if
+            s_next
+            and e_next
+            and time_pos >= s_next - Options.nav_tolerance
+            and time_pos <= e_next
+        then
             local _, e_current = get_effective_boundaries(subs, subs[active_idx], active_idx)
 
             -- Natural Progression: transition only after the current sub's padded window expires.
@@ -273,10 +303,14 @@ local function get_center_index(subs, time_pos)
     end
 
     local best = find_sub_containing_start(subs, time_pos)
-    if best == -1 then return 1 end
+    if best == -1 then
+        return 1
+    end
 
     -- Absolute Start Guard: If we are at the very beginning, always return first sub
-    if time_pos <= 0 then return 1 end
+    if time_pos <= 0 then
+        return 1
+    end
 
     -- Overlap Priority: If we are in a gap where the next sub's
     -- padded start has begun, the next sub wins immediately.
@@ -320,11 +354,15 @@ end
 -- Playback-independent resolver for static grounding (TSV anchors, probes).
 -- Unlike get_center_index(), this must not depend on ACTIVE_IDX sticky state.
 local function get_center_index_static(subs, time_pos)
-    if not subs or #subs == 0 then return -1 end
+    if not subs or #subs == 0 then
+        return -1
+    end
 
     local best = find_sub_containing_start(subs, time_pos)
 
-    if best == -1 then return 1 end
+    if best == -1 then
+        return 1
+    end
 
     if time_pos <= subs[best].end_time then
         return best

@@ -5,7 +5,7 @@
 -- Reads FSM/Options/Tracks at call time via injected references.
 -- ============================================================================
 
-local mp = require 'mp'
+local mp = require("mp")
 
 local M = {}
 
@@ -22,7 +22,7 @@ function M.init(fsm, opts, tracks, helpers)
     _helpers = setmetatable(helpers or {}, {
         __index = function(t, k)
             error("FATAL: Missing injected helper function: " .. tostring(k), 2)
-        end
+        end,
     })
 end
 
@@ -35,7 +35,9 @@ function M.sync_ctrl_pending_list()
     end
     if #members > 0 then
         table.sort(members, function(a, b)
-            if a.line ~= b.line then return a.line < b.line end
+            if a.line ~= b.line then
+                return a.line < b.line
+            end
             return a.word < b.word
         end)
     end
@@ -53,7 +55,11 @@ end
 
 function M.get_esc_mode()
     local mode = tostring(Options.dw_esc_mode or ""):lower()
-    if mode == "auto_follow_current" or mode == "neutral_last_selection" or mode == "neutral_current_subtitle" then
+    if
+        mode == "auto_follow_current"
+        or mode == "neutral_last_selection"
+        or mode == "neutral_current_subtitle"
+    then
         return mode
     end
 
@@ -152,9 +158,13 @@ local function reset_selection()
     FSM.DW_SEEK_TARGET = -1
 
     if FSM.DRUM_WINDOW ~= "OFF" then
-        if _helpers.dw_osd then _helpers.dw_osd:update() end
+        if _helpers.dw_osd then
+            _helpers.dw_osd:update()
+        end
     elseif FSM.DRUM == "ON" then
-        if _helpers.drum_osd then _helpers.drum_osd:update() end
+        if _helpers.drum_osd then
+            _helpers.drum_osd:update()
+        end
     end
 end
 

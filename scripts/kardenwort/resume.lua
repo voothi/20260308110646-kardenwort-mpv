@@ -7,9 +7,9 @@
 -- ============================================================================
 -- OPTIONS
 -- ============================================================================
-local mp = require 'mp'
-local utils = require 'mp.utils'
-local options = require 'mp.options'
+local mp = require("mp")
+local utils = require("mp.utils")
+local options = require("mp.options")
 
 local opts = {
     -- Duration of the OSD resume message in seconds (0.5 = 500ms)
@@ -27,12 +27,12 @@ local opts = {
     -- Whether to show the OSD message with the filename
     show_filename = false,
     -- Whether to include information about connected subtitles in the OSD
-    show_subtitles = false
+    show_subtitles = false,
 }
 
 options.read_options(opts, "resume_last_file")
 
-local state_path = mp.command_native({"expand-path", opts.state_file})
+local state_path = mp.command_native({ "expand-path", opts.state_file })
 
 -- Function to save the current file path
 local function save_last_file()
@@ -82,7 +82,16 @@ mp.add_timeout(opts.startup_delay, function()
                             local subs_found = {}
                             if files then
                                 for _, f in ipairs(files) do
-                                    if f:match("^" .. base_name:gsub("[%%()%.%+%-%*%?%[%]%^%$]", "%%%1") .. ".*%.[as][rs]t$") then
+                                    if
+                                        f:match(
+                                            "^"
+                                                .. base_name:gsub(
+                                                    "[%%()%.%+%-%*%?%[%]%^%$]",
+                                                    "%%%1"
+                                                )
+                                                .. ".*%.[as][rs]t$"
+                                        )
+                                    then
                                         table.insert(subs_found, f)
                                     end
                                 end
@@ -92,16 +101,24 @@ mp.add_timeout(opts.startup_delay, function()
                                     -- Priority: push .ru to the end
                                     local a_ru = a:lower():match("%.ru%.")
                                     local b_ru = b:lower():match("%.ru%.")
-                                    if a_ru and not b_ru then return false end
-                                    if b_ru and not a_ru then return true end
+                                    if a_ru and not b_ru then
+                                        return false
+                                    end
+                                    if b_ru and not a_ru then
+                                        return true
+                                    end
                                     return a:lower() < b:lower()
                                 end)
                                 msg = msg .. "\n" .. table.concat(subs_found, "\n")
                             end
                         end
 
-                        local ass_msg = string.format("{\\an7}{\\pos(20,20)}{\\fs%d}{\\fn%s}{\\bord1.5}{\\shad1.0}%s",
-                            opts.osd_font_size, opts.osd_font_name, msg:gsub("\n", "\\N"))
+                        local ass_msg = string.format(
+                            "{\\an7}{\\pos(20,20)}{\\fs%d}{\\fn%s}{\\bord1.5}{\\shad1.0}%s",
+                            opts.osd_font_size,
+                            opts.osd_font_name,
+                            msg:gsub("\n", "\\N")
+                        )
                         osd.data = ass_msg
                         osd:update()
 

@@ -3,7 +3,7 @@
 -- Reads Options at call time via the injected `opts` reference (never copied).
 -- ============================================================================
 
-local mp = require 'mp'
+local mp = require("mp")
 
 local M = {}
 
@@ -15,23 +15,58 @@ function M.init(opts)
 end
 
 function M.is_valid_mpv_key(k_str)
-    if not k_str or k_str == "" then return false end
+    if not k_str or k_str == "" then
+        return false
+    end
     local base = k_str:gsub("Ctrl%+", ""):gsub("Shift%+", ""):gsub("Alt%+", ""):gsub("Meta%+", "")
     local _, count = base:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
-    if count > 1 and base:match("[%z\128-\255]") then return false end
+    if count > 1 and base:match("[%z\128-\255]") then
+        return false
+    end
     return true
 end
 
 -- Automatic Russian Layout Expansion
 local EN_RU_MAP = {
-    ["a"]="ф", ["b"]="и", ["c"]="с", ["d"]="в", ["e"]="у", ["f"]="а", ["g"]="п", ["h"]="р",
-    ["i"]="ш", ["j"]="о", ["k"]="л", ["l"]="д", ["m"]="ь", ["n"]="т", ["o"]="щ", ["p"]="з",
-    ["q"]="й", ["r"]="к", ["s"]="ы", ["t"]="е", ["u"]="г", ["v"]="м", ["w"]="ц", ["x"]="ч",
-    ["y"]="н", ["z"]="я", ["["]="х", ["]"]="ъ", [";"]="ж", ["'"]="э", [","]="б", ["."]="ю", ["`"]="ё"
+    ["a"] = "ф",
+    ["b"] = "и",
+    ["c"] = "с",
+    ["d"] = "в",
+    ["e"] = "у",
+    ["f"] = "а",
+    ["g"] = "п",
+    ["h"] = "р",
+    ["i"] = "ш",
+    ["j"] = "о",
+    ["k"] = "л",
+    ["l"] = "д",
+    ["m"] = "ь",
+    ["n"] = "т",
+    ["o"] = "щ",
+    ["p"] = "з",
+    ["q"] = "й",
+    ["r"] = "к",
+    ["s"] = "ы",
+    ["t"] = "е",
+    ["u"] = "г",
+    ["v"] = "м",
+    ["w"] = "ц",
+    ["x"] = "ч",
+    ["y"] = "н",
+    ["z"] = "я",
+    ["["] = "х",
+    ["]"] = "ъ",
+    [";"] = "ж",
+    ["'"] = "э",
+    [","] = "б",
+    ["."] = "ю",
+    ["`"] = "ё",
 }
 
 function M.expand_ru_keys(key_string, opt_name)
-    if not key_string or key_string == "" then return {} end
+    if not key_string or key_string == "" then
+        return {}
+    end
     local results = {}
     local seen = {}
 
@@ -56,10 +91,39 @@ function M.expand_ru_keys(key_string, opt_name)
         local ru_base = EN_RU_MAP[base:lower()]
         if ru_base then
             local ru_upper = {
-                ["ф"]="Ф", ["и"]="И", ["с"]="С", ["в"]="В", ["у"]="У", ["а"]="А", ["п"]="П", ["р"]="Р",
-                ["ш"]="Ш", ["о"]="О", ["л"]="Л", ["д"]="Д", ["ь"]="Ь", ["т"]="Т", ["щ"]="Щ", ["з"]="З",
-                ["й"]="Й", ["к"]="К", ["ы"]="Ы", ["е"]="Е", ["г"]="Г", ["м"]="М", ["ц"]="Ц", ["ч"]="Ч",
-                ["н"]="Н", ["я"]="Я", ["х"]="Х", ["ъ"]="Ъ", ["ж"]="Ж", ["э"]="Э", ["б"]="Б", ["ю"]="Ю", ["ё"]="Ё"
+                ["ф"] = "Ф",
+                ["и"] = "И",
+                ["с"] = "С",
+                ["в"] = "В",
+                ["у"] = "У",
+                ["а"] = "А",
+                ["п"] = "П",
+                ["р"] = "Р",
+                ["ш"] = "Ш",
+                ["о"] = "О",
+                ["л"] = "Л",
+                ["д"] = "Д",
+                ["ь"] = "Ь",
+                ["т"] = "Т",
+                ["щ"] = "Щ",
+                ["з"] = "З",
+                ["й"] = "Й",
+                ["к"] = "К",
+                ["ы"] = "Ы",
+                ["е"] = "Е",
+                ["г"] = "Г",
+                ["м"] = "М",
+                ["ц"] = "Ц",
+                ["ч"] = "Ч",
+                ["н"] = "Н",
+                ["я"] = "Я",
+                ["х"] = "Х",
+                ["ъ"] = "Ъ",
+                ["ж"] = "Ж",
+                ["э"] = "Э",
+                ["б"] = "Б",
+                ["ю"] = "Ю",
+                ["ё"] = "Ё",
             }
 
             if is_explicit_shift then
@@ -71,10 +135,14 @@ function M.expand_ru_keys(key_string, opt_name)
                 -- character alone (stripped of the Shift+ modifier for the RU variant).
                 -- Non-Shift modifiers (Ctrl, Alt) are preserved.
                 local other_mods = mods:gsub("[Ss]hift%+", "")
-                if ru_upper[ru_base] then add(other_mods .. ru_upper[ru_base]) end
+                if ru_upper[ru_base] then
+                    add(other_mods .. ru_upper[ru_base])
+                end
             elseif is_implicit_shift then
                 -- E -> У (Only) — implicit shift via uppercase EN letter
-                if ru_upper[ru_base] then add(mods .. ru_upper[ru_base]) end
+                if ru_upper[ru_base] then
+                    add(mods .. ru_upper[ru_base])
+                end
             else
                 -- e -> у (Only) — strict lowercase, no bleed into shifted variants
                 add(mods .. ru_base)
@@ -84,7 +152,6 @@ function M.expand_ru_keys(key_string, opt_name)
 
     if opt_name and Options.log_level == "debug" then
         local list = table.concat(results, ", ")
-
     end
 
     return results
@@ -97,7 +164,9 @@ end
 -- Does NOT replace the search bind() at L8736 (different signature: settings arg,
 -- search- prefix, paired with unbind).
 function M.bind(opt, name, fn, flags)
-    if not opt or opt == "" then return end
+    if not opt or opt == "" then
+        return
+    end
     flags = flags or {}
     local i = 1
     local expanded_keys = M.expand_ru_keys(opt, name)

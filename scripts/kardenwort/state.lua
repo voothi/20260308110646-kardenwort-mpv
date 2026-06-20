@@ -2,7 +2,7 @@
 -- state.lua — Kardenwort FSM + Tracks tables
 -- ============================================================================
 
-local mp = require 'mp'
+local mp = require("mp")
 
 local M = {}
 
@@ -155,7 +155,7 @@ M.FSM = {
 
 M.Tracks = {
     pri = { id = 0, is_ass = false, path = nil, subs = {} },
-    sec = { id = 0, is_ass = false, path = nil, subs = {} }
+    sec = { id = 0, is_ass = false, path = nil, subs = {} },
 }
 
 return M

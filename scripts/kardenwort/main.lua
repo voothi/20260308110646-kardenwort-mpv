@@ -26,29 +26,29 @@
 -- singletons at call time, but helper tables are populated after their defs.
 -- ===============================================================================
 
-local mp = require 'mp'
+local mp = require("mp")
 local script_dir = mp.get_script_directory()
 if script_dir then
     package.path = script_dir .. "/?.lua;" .. package.path
 end
 
-local text_utils = require 'text_utils'
-local subtitle_parser = require 'subtitle_parser'
-local keybinding_utils = require 'keybinding_utils'
-local osd_cards = require 'osd_cards'
-local tsv_export = require 'tsv_export'
-local companion = require 'companion'
-local search = require 'search'
-local help_hud = require 'help_hud'
-local render_utils = require 'render_utils'
-local subtitle_window = require 'subtitle_window'
-local test_hooks = require 'test_hooks'
-local dw_esc = require 'dw_esc'
-local config = require 'config'
-local state = require 'state'
-local utils = require 'mp.utils'
-local options = require 'mp.options'
-local msg = require 'mp.msg'
+local text_utils = require("text_utils")
+local subtitle_parser = require("subtitle_parser")
+local keybinding_utils = require("keybinding_utils")
+local osd_cards = require("osd_cards")
+local tsv_export = require("tsv_export")
+local companion = require("companion")
+local search = require("search")
+local help_hud = require("help_hud")
+local render_utils = require("render_utils")
+local subtitle_window = require("subtitle_window")
+local test_hooks = require("test_hooks")
+local dw_esc = require("dw_esc")
+local config = require("config")
+local state = require("state")
+local utils = require("mp.utils")
+local options = require("mp.options")
+local msg = require("mp.msg")
 
 -- Callback registration hardening (must run before loading auxiliary modules).
 do
@@ -70,7 +70,9 @@ do
     mp.get_property_number = function(name, def)
         if name == "time-pos" then
             local val = raw_get_property_number(name)
-            if not val then return def end
+            if not val then
+                return def
+            end
             local sub_delay = raw_get_property_number("sub-delay") or 0.0
             return val - sub_delay
         end
@@ -80,9 +82,13 @@ do
     mp.get_property = function(name, def)
         if name == "time-pos" then
             local val = raw_get_property(name)
-            if not val then return def end
+            if not val then
+                return def
+            end
             local val_num = tonumber(val)
-            if not val_num then return val end
+            if not val_num then
+                return val
+            end
             local sub_delay = raw_get_property_number("sub-delay") or 0.0
             return tostring(val_num - sub_delay)
         end
@@ -91,7 +97,7 @@ do
 
     mp.commandv = function(cmd, ...)
         if cmd == "seek" then
-            local args = {...}
+            local args = { ... }
             local target = args[1]
             local mode = args[2]
             if mode == "absolute+exact" or mode == "absolute" then
@@ -121,20 +127,32 @@ do
     end
 
     local function validate_callback(kind, name, fn)
-        if type(fn) == "function" then return true end
-        msg.error(string.format("[kardenwort] Skipping invalid %s '%s': callback is %s",
-            tostring(kind), tostring(name), type(fn)))
+        if type(fn) == "function" then
+            return true
+        end
+        msg.error(
+            string.format(
+                "[kardenwort] Skipping invalid %s '%s': callback is %s",
+                tostring(kind),
+                tostring(name),
+                type(fn)
+            )
+        )
         return false
     end
 
     mp.add_key_binding = function(key, name, fn, flags)
-        if not validate_callback("binding", name or key, fn) then return false end
+        if not validate_callback("binding", name or key, fn) then
+            return false
+        end
         raw_add_key_binding(key, name, fn, flags)
         return true
     end
 
     mp.add_forced_key_binding = function(key, name, fn, flags)
-        if not validate_callback("forced binding", name or key, fn) then return false end
+        if not validate_callback("forced binding", name or key, fn) then
+            return false
+        end
         raw_add_forced_key_binding(key, name, fn, flags)
         return true
     end
@@ -148,7 +166,9 @@ do
     ---@param fn function
     ---@return MpvTimer?
     mp.add_timeout = function(seconds, fn)
-        if not validate_callback("timeout", seconds, fn) then return nil end
+        if not validate_callback("timeout", seconds, fn) then
+            return nil
+        end
         return raw_add_timeout(seconds, fn)
     end
 
@@ -156,34 +176,44 @@ do
     ---@param fn function
     ---@return MpvTimer?
     mp.add_periodic_timer = function(seconds, fn)
-        if not validate_callback("periodic timer", seconds, fn) then return nil end
+        if not validate_callback("periodic timer", seconds, fn) then
+            return nil
+        end
         return raw_add_periodic_timer(seconds, fn)
     end
 
     mp.register_event = function(name, fn)
-        if not validate_callback("event handler", name, fn) then return false end
+        if not validate_callback("event handler", name, fn) then
+            return false
+        end
         raw_register_event(name, fn)
         return true
     end
 
     mp.observe_property = function(name, ty, fn)
-        if not validate_callback("property observer", name, fn) then return false end
+        if not validate_callback("property observer", name, fn) then
+            return false
+        end
         raw_observe_property(name, ty, fn)
         return true
     end
 
     mp.register_script_message = function(name, fn)
-        if not validate_callback("script message", name, fn) then return false end
+        if not validate_callback("script message", name, fn) then
+            return false
+        end
         raw_register_script_message(name, fn)
         return true
     end
 end
 
-require 'resume'
+require("resume")
 
 -- Fallback for older mpv versions missing utils.read_file
 local function safe_read_file(path)
-    if not path or path == "" then return nil end
+    if not path or path == "" then
+        return nil
+    end
     if utils and utils.read_file then
         return utils.read_file(path)
     end
@@ -195,7 +225,6 @@ local function safe_read_file(path)
     end
     return nil
 end
-
 
 -- ===============================================================================
 -- KARDENWORT CORE CONFIGURATION
@@ -211,22 +240,33 @@ DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw
 local function alias(mod, names)
     local vals = {}
     for _, name in ipairs(names) do
-        assert(mod[name] ~= nil, "FATAL: function '" .. tostring(name) .. "' is missing from module!")
+        assert(
+            mod[name] ~= nil,
+            "FATAL: function '" .. tostring(name) .. "' is missing from module!"
+        )
         vals[#vals + 1] = mod[name]
     end
     return table.unpack(vals)
 end
 
 -- text_utils aliases
-local utf8_to_table, utf8_to_lower, utf8_truncate, is_word_char, is_abbrev,
-      logical_cmp, build_word_list_internal, build_word_list, get_sub_tokens,
-      is_word_token, clean_text_srt, normalize_inline_break_markers,
-      calculate_ass_alpha, build_copy_preview, has_cyrillic
-    = alias(text_utils, {
-        "utf8_to_table", "utf8_to_lower", "utf8_truncate", "is_word_char", "is_abbrev",
-        "logical_cmp", "build_word_list_internal", "build_word_list", "get_sub_tokens",
-        "is_word_token", "clean_text_srt", "normalize_inline_break_markers",
-        "calculate_ass_alpha", "build_copy_preview", "has_cyrillic"
+local utf8_to_table, utf8_to_lower, utf8_truncate, is_word_char, is_abbrev, logical_cmp, build_word_list_internal, build_word_list, get_sub_tokens, is_word_token, clean_text_srt, normalize_inline_break_markers, calculate_ass_alpha, build_copy_preview, has_cyrillic =
+    alias(text_utils, {
+        "utf8_to_table",
+        "utf8_to_lower",
+        "utf8_truncate",
+        "is_word_char",
+        "is_abbrev",
+        "logical_cmp",
+        "build_word_list_internal",
+        "build_word_list",
+        "get_sub_tokens",
+        "is_word_token",
+        "clean_text_srt",
+        "normalize_inline_break_markers",
+        "calculate_ass_alpha",
+        "build_copy_preview",
+        "has_cyrillic",
     })
 ---@cast utf8_to_table fun(str: string): string[]
 ---@cast utf8_to_lower fun(str: string): string
@@ -247,39 +287,45 @@ local utf8_to_table, utf8_to_lower, utf8_truncate, is_word_char, is_abbrev,
 local L_EPSILON = text_utils.L_EPSILON
 
 -- subtitle_parser aliases
-local parse_time, load_sub, find_sub_containing_start, get_center_index,
-      get_center_index_static, get_effective_boundaries
-    = alias(subtitle_parser, {
-        "parse_time", "load_sub", "find_sub_containing_start", "get_center_index",
-        "get_center_index_static", "get_effective_boundaries"
+local parse_time, load_sub, find_sub_containing_start, get_center_index, get_center_index_static, get_effective_boundaries =
+    alias(subtitle_parser, {
+        "parse_time",
+        "load_sub",
+        "find_sub_containing_start",
+        "get_center_index",
+        "get_center_index_static",
+        "get_effective_boundaries",
     })
 
 -- keybinding_utils aliases
-local is_valid_mpv_key, expand_ru_keys
-    = alias(keybinding_utils, {"is_valid_mpv_key", "expand_ru_keys"})
+local is_valid_mpv_key, expand_ru_keys =
+    alias(keybinding_utils, { "is_valid_mpv_key", "expand_ru_keys" })
 
 -- osd_cards aliases
-local show_osd, show_seek_osd
-    = alias(osd_cards, {"show_osd", "show_seek_osd"})
-local seek_osd  -- forward-declared; assigned from osd_cards.seek_osd after setup()
-local tsv_helpers  -- populated at tsv_export init; flush_rendering_caches added later
+local show_osd, show_seek_osd = alias(osd_cards, { "show_osd", "show_seek_osd" })
+local seek_osd -- forward-declared; assigned from osd_cards.seek_osd after setup()
+local tsv_helpers -- populated at tsv_export init; flush_rendering_caches added later
 
 -- tsv_export aliases
-local get_copy_context_text, prepare_export_text, extract_anki_context,
-      load_anki_tsv, save_anki_tsv_row, find_source_url, get_tsv_path
-    = alias(tsv_export, {
-        "get_copy_context_text", "prepare_export_text", "extract_anki_context",
-        "load_anki_tsv", "save_anki_tsv_row", "find_source_url", "get_tsv_path"
+local get_copy_context_text, prepare_export_text, extract_anki_context, load_anki_tsv, save_anki_tsv_row, find_source_url, get_tsv_path =
+    alias(tsv_export, {
+        "get_copy_context_text",
+        "prepare_export_text",
+        "extract_anki_context",
+        "load_anki_tsv",
+        "save_anki_tsv_row",
+        "find_source_url",
+        "get_tsv_path",
     })
 
 -- companion aliases
-local split_base_and_language_postfix, extract_lang_from_title_or_path,
-      ensure_companion_audio_tracks, ensure_companion_subtitle_tracks,
-      ensure_companion_video_track
-    = alias(companion, {
-        "split_base_and_language_postfix", "extract_lang_from_title_or_path",
-        "ensure_companion_audio_tracks", "ensure_companion_subtitle_tracks",
-        "ensure_companion_video_track"
+local split_base_and_language_postfix, extract_lang_from_title_or_path, ensure_companion_audio_tracks, ensure_companion_subtitle_tracks, ensure_companion_video_track =
+    alias(companion, {
+        "split_base_and_language_postfix",
+        "extract_lang_from_title_or_path",
+        "ensure_companion_audio_tracks",
+        "ensure_companion_subtitle_tracks",
+        "ensure_companion_video_track",
     })
 
 -- search aliases (forward-declared)
@@ -289,21 +335,26 @@ local update_search_results
 
 -- help_hud aliases
 local normalize_key_display = help_hud.normalize_key_display
-local cmd_toggle_help  -- forward-declared
+local cmd_toggle_help -- forward-declared
 local help_helpers
 
 -- render_utils aliases
-local compose_term_smart, calculate_highlight_stack, populate_token_meta,
-      format_highlighted_word, dw_get_str_width_proportional, dw_get_str_width,
-      calculate_sub_gap, wrap_tokens, calculate_osd_line_meta, dw_vline_height,
-      dw_build_layout, dw_calculate_block_top, format_tooltip_card_event,
-      format_tooltip_text_event
-    = alias(render_utils, {
-        "compose_term_smart", "calculate_highlight_stack", "populate_token_meta",
-        "format_highlighted_word", "dw_get_str_width_proportional", "dw_get_str_width",
-        "calculate_sub_gap", "wrap_tokens", "calculate_osd_line_meta", "dw_vline_height",
-        "dw_build_layout", "dw_calculate_block_top", "format_tooltip_card_event",
-        "format_tooltip_text_event"
+local compose_term_smart, calculate_highlight_stack, populate_token_meta, format_highlighted_word, dw_get_str_width_proportional, dw_get_str_width, calculate_sub_gap, wrap_tokens, calculate_osd_line_meta, dw_vline_height, dw_build_layout, dw_calculate_block_top, format_tooltip_card_event, format_tooltip_text_event =
+    alias(render_utils, {
+        "compose_term_smart",
+        "calculate_highlight_stack",
+        "populate_token_meta",
+        "format_highlighted_word",
+        "dw_get_str_width_proportional",
+        "dw_get_str_width",
+        "calculate_sub_gap",
+        "wrap_tokens",
+        "calculate_osd_line_meta",
+        "dw_vline_height",
+        "dw_build_layout",
+        "dw_calculate_block_top",
+        "format_tooltip_card_event",
+        "format_tooltip_text_event",
     })
 local render_helpers
 
@@ -313,23 +364,30 @@ local draw_dw
 local draw_dw_tooltip
 local sw_helpers
 
-
 -- ===============================================================================
 -- DIAGNOSTIC & LOGGING SYSTEM
 -- ===============================================================================
 local Diagnostic = {
-    ERROR = 0, WARN = 1, INFO = 2, DEBUG = 3, TRACE = 4,
+    ERROR = 0,
+    WARN = 1,
+    INFO = 2,
+    DEBUG = 3,
+    TRACE = 4,
     LEVEL_MAP = { ["error"] = 0, ["warn"] = 1, ["info"] = 2, ["debug"] = 3, ["trace"] = 4 },
-    SEEN = {}
+    SEEN = {},
 }
 
 Diagnostic.log = function(level, text, dedupe_key)
     local log_level_str = (Options and Options.log_level) or "info"
     local current_level = Diagnostic.LEVEL_MAP[log_level_str:lower()] or Diagnostic.INFO
-    if level > current_level then return end
+    if level > current_level then
+        return
+    end
 
     if dedupe_key then
-        if Diagnostic.SEEN[dedupe_key] then return end
+        if Diagnostic.SEEN[dedupe_key] then
+            return
+        end
         Diagnostic.SEEN[dedupe_key] = true
     end
 
@@ -347,11 +405,21 @@ Diagnostic.log = function(level, text, dedupe_key)
     end
 end
 
-Diagnostic.error = function(text, key) Diagnostic.log(Diagnostic.ERROR, text, key) end
-Diagnostic.warn  = function(text, key) Diagnostic.log(Diagnostic.WARN, text, key) end
-Diagnostic.info  = function(text, key) Diagnostic.log(Diagnostic.INFO, text, key) end
-Diagnostic.debug = function(text, key) Diagnostic.log(Diagnostic.DEBUG, text, key) end
-Diagnostic.trace = function(text, key) Diagnostic.log(Diagnostic.TRACE, text, key) end
+Diagnostic.error = function(text, key)
+    Diagnostic.log(Diagnostic.ERROR, text, key)
+end
+Diagnostic.warn = function(text, key)
+    Diagnostic.log(Diagnostic.WARN, text, key)
+end
+Diagnostic.info = function(text, key)
+    Diagnostic.log(Diagnostic.INFO, text, key)
+end
+Diagnostic.debug = function(text, key)
+    Diagnostic.log(Diagnostic.DEBUG, text, key)
+end
+Diagnostic.trace = function(text, key)
+    Diagnostic.log(Diagnostic.TRACE, text, key)
+end
 
 Diagnostic.info("SCRIPT INITIALIZING: " .. (script_dir or mp.get_script_name() or "kardenwort"))
 
@@ -469,7 +537,6 @@ local function dw_apply_post_transition_selection(target_word)
     dw_esc.apply_post_transition_selection(target_word)
 end
 
-
 -- UI State pointers for Drum Mode OSD
 drum_osd = mp.create_osd_overlay("ass-events")
 drum_osd.res_y = Options.font_base_height
@@ -526,8 +593,8 @@ function cmd_cycle_copy_mode()
         show_osd("Copy Mode: No subtitles loaded")
         return
     end
-    local has_sec = (Tracks.sec.id ~= 0 and Tracks.sec.subs and #Tracks.sec.subs > 0) or
-                    (FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0)
+    local has_sec = (Tracks.sec.id ~= 0 and Tracks.sec.subs and #Tracks.sec.subs > 0)
+        or (FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0)
     if not has_sec then
         show_osd("Copy Mode: Fixed to Primary (Single Track)")
         return
@@ -617,11 +684,13 @@ local function cmd_open_record_file()
     mp.msg.info("OPEN-RECORD: launching [" .. editor .. "] with [" .. path .. "]")
     mp.command_native_async({
         name = "subprocess",
-        args = {editor, path},
+        args = { editor, path },
         playback_only = false,
-        detach = true
+        detach = true,
     }, function(success, result, err)
-        if err then mp.msg.warn("OPEN-RECORD error: " .. tostring(err)) end
+        if err then
+            mp.msg.warn("OPEN-RECORD error: " .. tostring(err))
+        end
     end)
 end
 -- Centralized cache invalidation for all rendering layers.
@@ -667,7 +736,9 @@ end
 tsv_helpers.flush_rendering_caches = flush_rendering_caches
 
 local function invalidate_dw_tooltip_cache()
-    if not DW_TOOLTIP_DRAW_CACHE then return end
+    if not DW_TOOLTIP_DRAW_CACHE then
+        return
+    end
     DW_TOOLTIP_DRAW_CACHE.target_idx = -1
     DW_TOOLTIP_DRAW_CACHE.osd_y = -1
     DW_TOOLTIP_DRAW_CACHE.version = -1
@@ -687,8 +758,12 @@ function normalize_tooltip_native_box_policy()
 end
 
 function get_tooltip_parent_mode()
-    if FSM.DRUM_WINDOW ~= "OFF" then return "dw" end
-    if FSM.DRUM == "ON" then return "dm" end
+    if FSM.DRUM_WINDOW ~= "OFF" then
+        return "dw"
+    end
+    if FSM.DRUM == "ON" then
+        return "dm"
+    end
     return "srt"
 end
 
@@ -722,14 +797,23 @@ function build_tooltip_style_context(parent_mode)
 
     local card_alpha = base_alpha
     if parent_mode == "dw" then
-        card_alpha = (Options.tooltip_dw_bg_alpha and Options.tooltip_dw_bg_alpha ~= "" and Options.tooltip_dw_bg_alpha)
-            or card_alpha
+        card_alpha = (
+            Options.tooltip_dw_bg_alpha
+            and Options.tooltip_dw_bg_alpha ~= ""
+            and Options.tooltip_dw_bg_alpha
+        ) or card_alpha
     elseif parent_mode == "dm" then
-        card_alpha = (Options.tooltip_dm_bg_alpha and Options.tooltip_dm_bg_alpha ~= "" and Options.tooltip_dm_bg_alpha)
-            or card_alpha
+        card_alpha = (
+            Options.tooltip_dm_bg_alpha
+            and Options.tooltip_dm_bg_alpha ~= ""
+            and Options.tooltip_dm_bg_alpha
+        ) or card_alpha
     elseif parent_mode == "srt" then
-        card_alpha = (Options.tooltip_srt_bg_alpha and Options.tooltip_srt_bg_alpha ~= "" and Options.tooltip_srt_bg_alpha)
-            or card_alpha
+        card_alpha = (
+            Options.tooltip_srt_bg_alpha
+            and Options.tooltip_srt_bg_alpha ~= ""
+            and Options.tooltip_srt_bg_alpha
+        ) or card_alpha
     end
 
     return {
@@ -747,7 +831,9 @@ function build_tooltip_style_context(parent_mode)
 end
 
 apply_tooltip_ass = function(ass)
-    if not dw_tooltip_osd then return end
+    if not dw_tooltip_osd then
+        return
+    end
     ass = ass or ""
     local will_visible = (ass ~= "")
     local wants_override = false
@@ -782,7 +868,11 @@ local function clear_tooltip_overlay(reason)
 end
 
 local function is_osd_tooltip_mode_eligible()
-    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local use_osd_for_srt = (
+        Options.srt_font_name ~= ""
+        or Options.srt_font_bold
+        or Options.srt_font_size > 0
+    )
     local srt_active = (FSM.DRUM == "OFF" and use_osd_for_srt)
 
     return (FSM.DRUM == "ON" or srt_active)
@@ -793,7 +883,9 @@ local function is_osd_tooltip_mode_eligible()
 end
 
 local function get_tooltip_line_y(line_idx, fallback_y)
-    if not line_idx or line_idx == -1 then return nil end
+    if not line_idx or line_idx == -1 then
+        return nil
+    end
     if FSM.DRUM_WINDOW ~= "OFF" then
         return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
     end
@@ -812,7 +904,6 @@ local function get_tooltip_line_y(line_idx, fallback_y)
     return fallback_zone_y or fallback_y
 end
 
-
 -- ===============================================================================
 -- FONT SCALING AND MEDIA STATE MANAGEMENT
 -- ===============================================================================
@@ -820,7 +911,9 @@ end
 -- Dynamic font scaling: adjusts sub-scale for SRT, bypasses for ASS
 local function update_font_scale()
     local dim = mp.get_property_native("osd-dimensions")
-    if not dim or dim.h == 0 then return end
+    if not dim or dim.h == 0 then
+        return
+    end
 
     local is_ass = false
     local track_list = mp.get_property_native("track-list")
@@ -925,10 +1018,16 @@ local function update_media_state()
     -- subtitle as tooltip source so Drum Mode tooltip works without enabling secondary subs first.
     if Tracks.sec.id == 0 and #FSM.DW_TOOLTIP_SEC_SUBS == 0 then
         for _, t in ipairs(track_list) do
-            if t.type == "sub" and t.external and t["external-filename"] and t.id ~= Tracks.pri.id then
+            if
+                t.type == "sub"
+                and t.external
+                and t["external-filename"]
+                and t.id ~= Tracks.pri.id
+            then
                 local cpath = t["external-filename"]
-                local cis_ass = cpath:lower():match("%.ass$") or cpath:lower():match("%.ssa$") or
-                                (t.codec == "ass" or t.codec == "ssa")
+                local cis_ass = cpath:lower():match("%.ass$")
+                    or cpath:lower():match("%.ssa$")
+                    or (t.codec == "ass" or t.codec == "ssa")
                 local loaded = load_sub(cpath, cis_ass)
                 if loaded and #loaded > 0 then
                     FSM.DW_TOOLTIP_SEC_SUBS = loaded
@@ -993,17 +1092,27 @@ end
 -- ===============================================================================
 
 local function is_ignorable_for_semantic_pass(text)
-    if not text then return true end
-    if text:match("^%s*$") then return true end -- Whitespace
-    if text:match("^{") then return true end    -- ASS Tag
-    if text == "\\N" or text == "\\n" or text == "\\h" then return true end -- Line breaks
+    if not text then
+        return true
+    end
+    if text:match("^%s*$") then
+        return true
+    end -- Whitespace
+    if text:match("^{") then
+        return true
+    end -- ASS Tag
+    if text == "\\N" or text == "\\n" or text == "\\h" then
+        return true
+    end -- Line breaks
     return false
 end
 
 local function is_inside_dw_selection(l, w)
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
-    if al == -1 or cl == -1 or aw == -1 or cw == -1 then return false end
+    if al == -1 or cl == -1 or aw == -1 or cw == -1 then
+        return false
+    end
 
     local p1_l, p1_w, p2_l, p2_w
     if al < cl or (al == cl and aw <= cw) then
@@ -1012,9 +1121,15 @@ local function is_inside_dw_selection(l, w)
         p1_l, p1_w, p2_l, p2_w = cl, cw, al, aw
     end
 
-    if l < p1_l or l > p2_l then return false end
-    if l == p1_l and w < p1_w - L_EPSILON then return false end
-    if l == p2_l and w > p2_w + L_EPSILON then return false end
+    if l < p1_l or l > p2_l then
+        return false
+    end
+    if l == p1_l and w < p1_w - L_EPSILON then
+        return false
+    end
+    if l == p2_l and w > p2_w + L_EPSILON then
+        return false
+    end
     return true
 end
 
@@ -1026,19 +1141,34 @@ render_helpers.is_inside_dw_selection = is_inside_dw_selection
 -- Must be defined BEFORE sw_helpers.caches captures it, so subtitle_window
 -- receives the same table main.lua and flush_rendering_caches operate on.
 DRUM_DRAW_CACHE = {
-    subs_ptr = nil, center_idx = -1, highlight_count = 0, is_drum = false,
-    al = -1, aw = -1, cl = -1, cw = -1,
-    pending_version = 0, layout_version = 0, result = "",
-    hit_zones = nil -- Cached geometry
+    subs_ptr = nil,
+    center_idx = -1,
+    highlight_count = 0,
+    is_drum = false,
+    al = -1,
+    aw = -1,
+    cl = -1,
+    cw = -1,
+    pending_version = 0,
+    layout_version = 0,
+    result = "",
+    hit_zones = nil, -- Cached geometry
 }
 
 -- draw_dw: view_center = which line is in the center of the viewport
 --          active_idx = which line is currently playing (colored blue, may be off-screen)
 DW_DRAW_CACHE = {
-    view_center = -1, active_idx = -1, highlight_count = 0,
-    subs_ptr = nil, layout_version = 0,
-    cl = -1, cw = -1, al = -1, aw = -1,
-    pending_version = 0, result = ""
+    view_center = -1,
+    active_idx = -1,
+    highlight_count = 0,
+    subs_ptr = nil,
+    layout_version = 0,
+    cl = -1,
+    cw = -1,
+    al = -1,
+    aw = -1,
+    pending_version = 0,
+    result = "",
 }
 
 -- subtitle_window — draw_drum / draw_dw / draw_dw_tooltip renderers.
@@ -1066,14 +1196,20 @@ draw_dw_tooltip = subtitle_window.draw_dw_tooltip
 -- Hit-testing: OSD coordinate to subtitle line/word resolution
 local function dw_get_mouse_osd()
     local mouse = mp.get_property_native("mouse-pos")
-    if not mouse then return 960, 540 end
+    if not mouse then
+        return 960, 540
+    end
     local mx = mouse.x or 0
     local my = mouse.y or 0
     local osd = mp.get_property_native("osd-dimensions")
     local ow = osd and osd.w or 1920
     local oh = osd and osd.h or 1080
-    if ow == 0 then ow = 1920 end
-    if oh == 0 then oh = 1080 end
+    if ow == 0 then
+        ow = 1920
+    end
+    if oh == 0 then
+        oh = 1080
+    end
 
     -- ASS text preserves its aspect ratio by scaling isotropically based on window height.
     -- X coordinate scaling must match the Y scaling (oh / 1080) rather than the window width (ow / 1920),
@@ -1087,7 +1223,9 @@ end
 
 local function dw_hit_test(osd_x, osd_y)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return nil, nil end
+    if not subs or #subs == 0 then
+        return nil, nil
+    end
 
     -- Ensure hit zones are populated. If not, invoke draw_dw to build them.
     if not FSM.DW_HIT_ZONES or #FSM.DW_HIT_ZONES == 0 then
@@ -1118,7 +1256,9 @@ local function dw_hit_test(osd_x, osd_y)
                 local tokens = get_sub_tokens(last_sub) or {}
                 local cnt = 0
                 for _, t in ipairs(tokens) do
-                    if is_word_token(t) then cnt = cnt + 1 end
+                    if is_word_token(t) then
+                        cnt = cnt + 1
+                    end
                 end
                 word_idx = math.max(1, cnt)
             end
@@ -1164,7 +1304,9 @@ local function dw_hit_test(osd_x, osd_y)
                 local tokens = get_sub_tokens(sub) or {}
                 local cnt = 0
                 for _, t in ipairs(tokens) do
-                    if is_word_token(t) then cnt = cnt + 1 end
+                    if is_word_token(t) then
+                        cnt = cnt + 1
+                    end
                 end
                 word_idx = math.max(1, cnt)
             end
@@ -1190,8 +1332,8 @@ local function dw_hit_test(osd_x, osd_y)
 
     -- Fallback: best_zone has no selectable words (e.g. line of only spacers).
     -- Pick the closest word in the same subtitle by (vertical dist, horizontal dist).
-    local neighbor = dw_resolve_neighbor_word(
-        FSM.DW_HIT_ZONES, best_zone.sub_idx, best_zone.y_top, osd_x)
+    local neighbor =
+        dw_resolve_neighbor_word(FSM.DW_HIT_ZONES, best_zone.sub_idx, best_zone.y_top, osd_x)
     return best_zone.sub_idx, neighbor or 1
 end
 
@@ -1199,10 +1341,18 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
     local tooltip_active = (FSM.DW_TOOLTIP_LINE ~= -1)
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local drum_mode = is_osd_tooltip_mode_eligible()
-    if not tooltip_active or not FSM.DW_TOOLTIP_HIT_ZONES then return nil, nil end
-    if not dw_mode and not drum_mode then return nil, nil end
-    if dw_mode and not Options.dw_sec_interactivity then return nil, nil end
-    if not dw_mode and not Options.drum_sec_interactivity then return nil, nil end
+    if not tooltip_active or not FSM.DW_TOOLTIP_HIT_ZONES then
+        return nil, nil
+    end
+    if not dw_mode and not drum_mode then
+        return nil, nil
+    end
+    if dw_mode and not Options.dw_sec_interactivity then
+        return nil, nil
+    end
+    if not dw_mode and not Options.drum_sec_interactivity then
+        return nil, nil
+    end
 
     for _, line in ipairs(FSM.DW_TOOLTIP_HIT_ZONES) do
         if osd_y >= line.y_top and osd_y <= line.y_bottom then
@@ -1227,7 +1377,9 @@ local function dw_tooltip_hit_test(osd_x, osd_y)
 end
 
 local function drum_osd_hit_test(osd_x, osd_y)
-    if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then return nil, nil, nil end
+    if not FSM.DRUM_HIT_ZONES or not Options.osd_interactivity then
+        return nil, nil, nil
+    end
 
     local best_line = nil
     local min_y_dist = 60 -- Snapping threshold (pixels)
@@ -1248,7 +1400,9 @@ local function drum_osd_hit_test(osd_x, osd_y)
             if dist_y < min_y_dist then
                 min_y_dist = dist_y
                 best_line = line
-                if dist_y == 0 then break end -- Early exit on direct hit
+                if dist_y == 0 then
+                    break
+                end -- Early exit on direct hit
             end
         end
     end
@@ -1278,10 +1432,15 @@ local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
     end
 
     local line_idx, _, hit_pri = drum_osd_hit_test(osd_x, osd_y)
-    if not line_idx then return nil end
-    if hit_pri then return line_idx end
+    if not line_idx then
+        return nil
+    end
+    if hit_pri then
+        return line_idx
+    end
 
-    local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS
+    local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs
+        or FSM.DW_TOOLTIP_SEC_SUBS
     local sec_sub = sec_subs and sec_subs[line_idx]
     if sec_sub then
         local midpoint = (sec_sub.start_time + sec_sub.end_time) / 2
@@ -1295,12 +1454,16 @@ local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
 end
 
 local function kardenwort_hit_test_all(osd_x, osd_y)
-    if not Options.osd_interactivity then return nil, nil, nil end
+    if not Options.osd_interactivity then
+        return nil, nil, nil
+    end
 
     if FSM.DRUM_WINDOW ~= "OFF" then
         if Options.dw_sec_interactivity then
             local l, w = dw_tooltip_hit_test(osd_x, osd_y)
-            if l then return l, w, false end
+            if l then
+                return l, w, false
+            end
         end
         if Options.dw_pri_interactivity then
             local l, w = dw_hit_test(osd_x, osd_y)
@@ -1309,16 +1472,24 @@ local function kardenwort_hit_test_all(osd_x, osd_y)
         return nil, nil, nil
     else
         local is_drum = (FSM.DRUM == "ON")
-        local pri_enabled = is_drum and Options.drum_pri_interactivity or Options.srt_pri_interactivity
-        local sec_enabled = is_drum and Options.drum_sec_interactivity or Options.srt_sec_interactivity
+        local pri_enabled = is_drum and Options.drum_pri_interactivity
+            or Options.srt_pri_interactivity
+        local sec_enabled = is_drum and Options.drum_sec_interactivity
+            or Options.srt_sec_interactivity
 
         if pri_enabled or sec_enabled then
             local line, word, hit_pri = drum_osd_hit_test(osd_x, osd_y)
-            if not line then return nil, nil, nil end
+            if not line then
+                return nil, nil, nil
+            end
 
             -- Simple, flat filtering based on which screen was hit
-            if hit_pri and not pri_enabled then return nil, nil, nil end
-            if not hit_pri and not sec_enabled then return nil, nil, nil end
+            if hit_pri and not pri_enabled then
+                return nil, nil, nil
+            end
+            if not hit_pri and not sec_enabled then
+                return nil, nil, nil
+            end
 
             return line, word, hit_pri
         end
@@ -1326,13 +1497,16 @@ local function kardenwort_hit_test_all(osd_x, osd_y)
     return nil, nil, nil
 end
 
-
 local function dw_sync_cursor_to_mouse()
     -- Shield logic: ignore mouse events if a keyboard command or double-click was just triggered
-    if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
+    if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then
+        return
+    end
 
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, word_idx
@@ -1358,19 +1532,22 @@ local function dw_sync_cursor_to_mouse()
             drum_osd:update()
         end
     end
-
 end
 
 -- Mouse drag threshold, auto-scroll, and neighbor word resolution
 function get_dw_drag_threshold_px()
     local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
-    if threshold < 0 then return 0 end
+    if threshold < 0 then
+        return 0
+    end
     return threshold
 end
 
 function get_dw_mouse_auto_scroll_interval()
     local interval = tonumber(Options.dw_mouse_auto_scroll_interval) or 0.05
-    if interval <= 0 then return 0.05 end
+    if interval <= 0 then
+        return 0.05
+    end
     return interval
 end
 
@@ -1402,7 +1579,9 @@ function dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x)
             end
         end
     end
-    if not best_zone then return nil end
+    if not best_zone then
+        return nil
+    end
 
     local rel_x = osd_x - (best_zone.x_start or 0)
     local best_word = nil
@@ -1421,10 +1600,14 @@ end
 
 local function dw_mouse_update_selection()
     if not FSM.DW_MOUSE_DRAGGING then
-        if not FSM.DW_MOUSE_PENDING_DRAG then return end
+        if not FSM.DW_MOUSE_PENDING_DRAG then
+            return
+        end
 
         local osd_x, osd_y = dw_get_mouse_osd()
-        if not dw_pointer_exceeded_drag_threshold(osd_x, osd_y) then return end
+        if not dw_pointer_exceeded_drag_threshold(osd_x, osd_y) then
+            return
+        end
 
         FSM.DW_MOUSE_PENDING_DRAG = false
         FSM.DW_MOUSE_DRAGGING = true
@@ -1434,34 +1617,47 @@ local function dw_mouse_update_selection()
 end
 
 function dw_get_auto_scroll_block_zones(hit_zones, dm_mode, is_pri)
-    if not hit_zones or #hit_zones == 0 then return nil, nil end
-    if not dm_mode then return hit_zones[1], hit_zones[#hit_zones] end
+    if not hit_zones or #hit_zones == 0 then
+        return nil, nil
+    end
+    if not dm_mode then
+        return hit_zones[1], hit_zones[#hit_zones]
+    end
 
     local target_is_pri = (is_pri ~= false)
     local first_zone = nil
     local last_zone = nil
     for _, zone in ipairs(hit_zones) do
         if zone.is_pri == target_is_pri and zone.y_top and zone.y_bottom then
-            if not first_zone or zone.y_top < first_zone.y_top then first_zone = zone end
-            if not last_zone or zone.y_bottom > last_zone.y_bottom then last_zone = zone end
+            if not first_zone or zone.y_top < first_zone.y_top then
+                first_zone = zone
+            end
+            if not last_zone or zone.y_bottom > last_zone.y_bottom then
+                last_zone = zone
+            end
         end
     end
     return first_zone, last_zone
 end
 
-
 local function dw_mouse_auto_scroll()
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local dm_mode = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
-    if not dw_mode and not dm_mode then return end
+    if not dw_mode and not dm_mode then
+        return
+    end
 
     -- Keep selection following the pointer even if OS/driver drops mouse_move events.
     -- This restores continuous drag behavior while preserving click-vs-drag thresholding.
     dw_mouse_update_selection()
 
-    if not FSM.DW_MOUSE_DRAGGING then return end
+    if not FSM.DW_MOUSE_DRAGGING then
+        return
+    end
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local _, osd_y = dw_get_mouse_osd()
 
@@ -1470,14 +1666,21 @@ local function dw_mouse_auto_scroll()
     local DW_EDGE_SCROLL_RATIO_MAX = 0.49
     local base_h = Options.font_base_height or 1080
     local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15
-    if edge_ratio < 0 then edge_ratio = 0 end
-    if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then edge_ratio = DW_EDGE_SCROLL_RATIO_MAX end
+    if edge_ratio < 0 then
+        edge_ratio = 0
+    end
+    if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then
+        edge_ratio = DW_EDGE_SCROLL_RATIO_MAX
+    end
     local edge_zone = base_h * edge_ratio
     local top_scroll_trigger = edge_zone
     local bottom_scroll_trigger = base_h - edge_zone
     local hit_zones = dw_mode and FSM.DW_HIT_ZONES or FSM.DRUM_HIT_ZONES
-    local first_zone, last_zone = dw_get_auto_scroll_block_zones(hit_zones, dm_mode, FSM.DW_DRAG_IS_PRI)
-    if not first_zone or not last_zone then return end
+    local first_zone, last_zone =
+        dw_get_auto_scroll_block_zones(hit_zones, dm_mode, FSM.DW_DRAG_IS_PRI)
+    if not first_zone or not last_zone then
+        return
+    end
     local edge_activation_pad = math.max(2, math.floor(get_dw_drag_threshold_px() / 2))
     if dm_mode then
         if first_zone and first_zone.y_top then
@@ -1488,7 +1691,8 @@ local function dw_mouse_auto_scroll()
         end
     else
         local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad
-        local dw_overflows_bottom = last_zone.y_bottom and last_zone.y_bottom >= (base_h - edge_activation_pad)
+        local dw_overflows_bottom = last_zone.y_bottom
+            and last_zone.y_bottom >= (base_h - edge_activation_pad)
         if dw_overflows_top then
             top_scroll_trigger = edge_zone
         elseif first_zone and first_zone.y_top then
@@ -1504,13 +1708,17 @@ local function dw_mouse_auto_scroll()
     if osd_y < (top_scroll_trigger - edge_activation_pad) then
         if FSM.DW_VIEW_CENTER > 1 then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER - 1
-            if FSM.DW_CURSOR_LINE > 1 then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1 end
+            if FSM.DW_CURSOR_LINE > 1 then
+                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE - 1
+            end
             scrolled = true
         end
     elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then
         if FSM.DW_VIEW_CENTER < #subs then
             FSM.DW_VIEW_CENTER = FSM.DW_VIEW_CENTER + 1
-            if FSM.DW_CURSOR_LINE < #subs then FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1 end
+            if FSM.DW_CURSOR_LINE < #subs then
+                FSM.DW_CURSOR_LINE = FSM.DW_CURSOR_LINE + 1
+            end
             scrolled = true
         end
     end
@@ -1530,13 +1738,17 @@ local function cmd_dw_tooltip_pin(tbl)
     Diagnostic.debug("TOOLTIP PIN: event=" .. tostring(tbl.event))
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local drum_mode = is_osd_tooltip_mode_eligible()
-    if not dw_mode and not drum_mode then return end
+    if not dw_mode and not drum_mode then
+        return
+    end
 
     if tbl.event == "down" then
         FSM.DW_TOOLTIP_FORCE = false
         FSM.DW_TOOLTIP_HOLDING = true
         local subs = Tracks.pri.subs
-        if not subs or #subs == 0 then return end
+        if not subs or #subs == 0 then
+            return
+        end
 
         local osd_x, osd_y = dw_get_mouse_osd()
         local line_idx = resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)
@@ -1545,12 +1757,19 @@ local function cmd_dw_tooltip_pin(tbl)
             FSM.DW_TOOLTIP_LOCKED_LINE = -1
             FSM.DW_TOOLTIP_LINE = line_idx
             local y = get_tooltip_line_y(line_idx, osd_y)
-            if y then y = math.floor(y + 0.5) end
+            if y then
+                y = math.floor(y + 0.5)
+            end
             local ass = draw_dw_tooltip(subs, line_idx, y)
             if ass ~= "" then
                 apply_tooltip_ass(ass)
             end
-            Diagnostic.debug("TOOLTIP ROUTE: PIN->" .. (dw_mode and "DW" or "DRUM") .. " line=" .. tostring(line_idx))
+            Diagnostic.debug(
+                "TOOLTIP ROUTE: PIN->"
+                    .. (dw_mode and "DW" or "DRUM")
+                    .. " line="
+                    .. tostring(line_idx)
+            )
         end
     elseif tbl.event == "up" then
         FSM.DW_TOOLTIP_HOLDING = false
@@ -1577,7 +1796,9 @@ local function cmd_dw_tooltip_toggle()
     end
     local dw_mode = (FSM.DRUM_WINDOW ~= "OFF")
     local drum_mode = is_osd_tooltip_mode_eligible()
-    if not dw_mode and not drum_mode then return end
+    if not dw_mode and not drum_mode then
+        return
+    end
 
     -- If already forced ON, always toggle OFF regardless of current target match
     if FSM.DW_TOOLTIP_FORCE then
@@ -1588,16 +1809,21 @@ local function cmd_dw_tooltip_toggle()
     end
 
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     -- Determine initial target based on playback/interaction state
     local is_paused = mp.get_property_bool("pause", true)
     local line_idx = -1
 
     if is_paused then
-        line_idx = (FSM.DW_TOOLTIP_TARGET_MODE == "CURSOR") and FSM.DW_CURSOR_LINE or FSM.DW_ACTIVE_LINE
+        line_idx = (FSM.DW_TOOLTIP_TARGET_MODE == "CURSOR") and FSM.DW_CURSOR_LINE
+            or FSM.DW_ACTIVE_LINE
         -- Fallback if preferred target is invalid
-        if line_idx == -1 then line_idx = FSM.DW_CURSOR_LINE end
+        if line_idx == -1 then
+            line_idx = FSM.DW_CURSOR_LINE
+        end
     else
         line_idx = FSM.DW_ACTIVE_LINE
     end
@@ -1628,7 +1854,9 @@ local function dw_tooltip_mouse_update()
         return
     end
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local osd_x, osd_y = dw_get_mouse_osd()
     -- Use primary-track resolution in both DW and DM paths.
@@ -1642,7 +1870,8 @@ local function dw_tooltip_mouse_update()
         if not is_paused then
             target_l = FSM.DW_ACTIVE_LINE
         else
-            target_l = (FSM.DW_TOOLTIP_TARGET_MODE == "ACTIVE") and FSM.DW_ACTIVE_LINE or FSM.DW_CURSOR_LINE
+            target_l = (FSM.DW_TOOLTIP_TARGET_MODE == "ACTIVE") and FSM.DW_ACTIVE_LINE
+                or FSM.DW_CURSOR_LINE
         end
 
         if target_l ~= -1 then
@@ -1734,12 +1963,13 @@ local function dw_tooltip_mouse_update()
     end
 end
 
-
 -- Anki export, selection bounds, and Esc staged reset
 local function dw_anki_export_selection()
     local ok, err = pcall(function()
         local subs = Tracks.pri.subs
-        if not subs or #subs == 0 then return end
+        if not subs or #subs == 0 then
+            return
+        end
 
         local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
         local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
@@ -1748,7 +1978,8 @@ local function dw_anki_export_selection()
         if al == -1 and cw == -1 then
             local live_pos = mp.get_property_number("time-pos")
             local live_idx = live_pos and get_center_index(subs, live_pos) or -1
-            cl = (live_idx ~= -1) and live_idx or (FSM.DW_ACTIVE_LINE ~= -1 and FSM.DW_ACTIVE_LINE or cl)
+            cl = (live_idx ~= -1) and live_idx
+                or (FSM.DW_ACTIVE_LINE ~= -1 and FSM.DW_ACTIVE_LINE or cl)
         end
         local params = {}
         local term = ""
@@ -1779,10 +2010,17 @@ local function dw_anki_export_selection()
                     for _, t in ipairs(tokens) do
                         if t.is_word then
                             local in_range = true
-                            if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
-                            if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                            if i == p1_l and t.logical_idx < p1_w - L_EPSILON then
+                                in_range = false
+                            end
+                            if i == p2_l and t.logical_idx > p2_w + L_EPSILON then
+                                in_range = false
+                            end
                             if in_range then
-                                table.insert(indices, string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx))
+                                table.insert(
+                                    indices,
+                                    string.format("%d:%g:%d", i - p1_l, t.logical_idx, pivot_idx)
+                                )
                                 pivot_idx = pivot_idx + 1
                             end
                         end
@@ -1815,7 +2053,9 @@ local function dw_anki_export_selection()
                     char_offset = char_offset + #text + 1
                 end
             end
-            if pivot_pos == -1 then pivot_pos = char_offset / 2 end
+            if pivot_pos == -1 then
+                pivot_pos = char_offset / 2
+            end
             context_line = table.concat(ctx_parts, "\0")
             time_pos = subs[p1_l].start_time + 0.001
         elseif cl ~= -1 and subs[cl] then
@@ -1848,18 +2088,20 @@ local function dw_anki_export_selection()
                     char_offset = char_offset + #text + 1
                 end
             end
-            if pivot_pos == -1 then pivot_pos = char_offset / 2 end
+            if pivot_pos == -1 then
+                pivot_pos = char_offset / 2
+            end
             context_line = table.concat(ctx_parts, "\0")
             time_pos = subs[cl].start_time + 0.001
         end
-
 
         if term and term ~= "" then
             -- Clean context: remove ASS tags
             context_line = context_line:gsub("{[^}]+}", "")
             local term_words = build_word_list(term)
             local effective_limit = math.max(Options.anki_context_max_words, #term_words + 20)
-            local extracted_context = extract_anki_context(context_line, term, effective_limit, pivot_pos, advanced_index)
+            local extracted_context =
+                extract_anki_context(context_line, term, effective_limit, pivot_pos, advanced_index)
             -- Use the multi-index generated above
             save_anki_tsv_row(term, extracted_context, time_pos, advanced_index)
             show_osd("Anki Highlight Saved: " .. term)
@@ -1867,7 +2109,9 @@ local function dw_anki_export_selection()
             -- In-memory update was already performed by save_anki_tsv_row.
             -- Removing redundant full-file reload to prevent UI stuttering.
             dw_reset_selection()
-            if dw_tooltip_osd then dw_tooltip_osd:update() end
+            if dw_tooltip_osd then
+                dw_tooltip_osd:update()
+            end
         end
     end)
 
@@ -1875,7 +2119,6 @@ local function dw_anki_export_selection()
         show_osd("Anki Export Error: " .. tostring(err), 5)
     end
 end
-
 
 local function ctrl_discard_set()
     -- Reset both the persistent pending set (Pink) and any active selection range anchors (Gold)
@@ -1893,8 +2136,12 @@ local function get_dw_selection_bounds()
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
     local cl, cw = FSM.DW_CURSOR_LINE, FSM.DW_CURSOR_WORD
 
-    if al == -1 or aw == -1 or cl == -1 or cw == -1 then return nil end
-    if al == cl and logical_cmp(aw, cw) then return nil end -- Single word is not a "range selection" in this context
+    if al == -1 or aw == -1 or cl == -1 or cw == -1 then
+        return nil
+    end
+    if al == cl and logical_cmp(aw, cw) then
+        return nil
+    end -- Single word is not a "range selection" in this context
 
     if al < cl or (al == cl and aw < cw + L_EPSILON) then
         return al, aw, cl, cw
@@ -1919,8 +2166,11 @@ local function cmd_dw_esc()
         FSM.DW_CTRL_PENDING_SET = {}
         FSM.DW_CTRL_PENDING_LIST = {}
         FSM.DW_CTRL_PENDING_VERSION = (FSM.DW_CTRL_PENDING_VERSION or 0) + 1
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
-        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
+        end
         return
     end
 
@@ -1929,8 +2179,11 @@ local function cmd_dw_esc()
     if get_dw_selection_bounds() then
         FSM.DW_ANCHOR_LINE = -1
         FSM.DW_ANCHOR_WORD = -1
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
-        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
+        end
         return
     end
 
@@ -1951,8 +2204,11 @@ local function cmd_dw_esc()
                 FSM.DW_CURSOR_LINE = neutral_line
             end
         end
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
-        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
+        end
         return
     end
     if dw_is_neutral_policy_enabled() and not FSM.DW_FOLLOW_PLAYER then
@@ -1962,8 +2218,11 @@ local function cmd_dw_esc()
             FSM.DW_CURSOR_LINE = neutral_line
         end
         FSM.DW_ESC_NEUTRAL_ARMED = true
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
-        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
+        end
         return
     end
 
@@ -1976,15 +2235,20 @@ local function cmd_dw_esc()
             FSM.DW_CURSOR_LINE = live_idx
         end
         FSM.DW_FOLLOW_PLAYER = true
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update()
-        elseif FSM.DRUM == "ON" then drum_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        elseif FSM.DRUM == "ON" then
+            drum_osd:update()
+        end
         return
     end
 end
 
 -- Set operations: toggle/commit/discard, mouse handler factory, smart callbacks
 local function ctrl_toggle_word(line_idx, word_idx, no_sync)
-    if line_idx < 1 or word_idx < 0 then return end
+    if line_idx < 1 or word_idx < 0 then
+        return
+    end
 
     if not FSM.DW_CTRL_PENDING_SET[line_idx] then
         FSM.DW_CTRL_PENDING_SET[line_idx] = {}
@@ -1995,10 +2259,15 @@ local function ctrl_toggle_word(line_idx, word_idx, no_sync)
         line_set[word_idx] = nil
         -- Clean up empty line tables to keep iteration fast
         local has_any = false
-        for _ in pairs(line_set) do has_any = true break end
-        if not has_any then FSM.DW_CTRL_PENDING_SET[line_idx] = nil end
+        for _ in pairs(line_set) do
+            has_any = true
+            break
+        end
+        if not has_any then
+            FSM.DW_CTRL_PENDING_SET[line_idx] = nil
+        end
     else
-        line_set[word_idx] = {line = line_idx, word = word_idx}
+        line_set[word_idx] = { line = line_idx, word = word_idx }
     end
     if not no_sync then
         sync_ctrl_pending_list()
@@ -2012,7 +2281,9 @@ local function ctrl_toggle_word(line_idx, word_idx, no_sync)
 end
 
 local function ctrl_commit_set(line_idx, word_idx)
-    Diagnostic.info(string.format("ctrl_commit_set(line=%s, word=%s)", tostring(line_idx), tostring(word_idx)))
+    Diagnostic.info(
+        string.format("ctrl_commit_set(line=%s, word=%s)", tostring(line_idx), tostring(word_idx))
+    )
     -- Check if cursor word is in set
     local line_set = FSM.DW_CTRL_PENDING_SET[line_idx]
     if not line_set or not line_set[word_idx] then
@@ -2024,11 +2295,15 @@ local function ctrl_commit_set(line_idx, word_idx)
 
     -- Use pre-sorted list from FSM
     local members = FSM.DW_CTRL_PENDING_LIST
-    if #members == 0 then return end
-
+    if #members == 0 then
+        return
+    end
 
     -- Requirement: Unified Paired Export
-    local term = prepare_export_text({ type = "SET", members = members }, { clean = true, restore_sentence = true })
+    local term = prepare_export_text(
+        { type = "SET", members = members },
+        { clean = true, restore_sentence = true }
+    )
 
     local subs = Tracks.pri.subs
     local p1_l = members[1].line
@@ -2058,7 +2333,9 @@ local function ctrl_commit_set(line_idx, word_idx)
             char_offset = char_offset + #text + 1
         end
     end
-    if pivot_pos == -1 then pivot_pos = char_offset / 2 end
+    if pivot_pos == -1 then
+        pivot_pos = char_offset / 2
+    end
     local context_line = table.concat(ctx_parts, "\0")
 
     -- Build advanced index string
@@ -2068,23 +2345,36 @@ local function ctrl_commit_set(line_idx, word_idx)
     end
     local advanced_index = table.concat(indices, ",")
 
-    save_anki_tsv_row(term, extract_anki_context(context_line, term, Options.anki_context_max_words, pivot_pos, advanced_index), subs[p1_l].start_time + 0.001, advanced_index)
+    save_anki_tsv_row(
+        term,
+        extract_anki_context(
+            context_line,
+            term,
+            Options.anki_context_max_words,
+            pivot_pos,
+            advanced_index
+        ),
+        subs[p1_l].start_time + 0.001,
+        advanced_index
+    )
     show_osd("Anki Paired Saved: " .. term)
-
 
     dw_reset_selection()
 
     dw_osd:update()
 end
 
-
 local MOUSE_HANDLERS = {}
 
 local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)
-    if updates_selection == nil then updates_selection = true end
+    if updates_selection == nil then
+        updates_selection = true
+    end
     local handler = function(tbl)
         -- Shield logic: ignore mouse events if a keyboard command was just triggered
-        if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then return end
+        if mp.get_time() < (FSM.DW_MOUSE_LOCK_UNTIL or 0) then
+            return
+        end
 
         if tbl.event == "down" then
             FSM.DW_FOLLOW_PLAYER = false
@@ -2113,7 +2403,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 end
 
                 -- Custom Actions (Tooltips, Pins, etc.)
-                if on_down_callback then on_down_callback(tbl) end
+                if on_down_callback then
+                    on_down_callback(tbl)
+                end
 
                 -- Selection Logic (Only for words, if enabled)
                 if word_idx and updates_selection then
@@ -2143,11 +2435,20 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                     -- Drag/edge auto-scroll activates only after real mouse movement.
                     FSM.DW_MOUSE_PENDING_DRAG = true
                     FSM.DW_MOUSE_DRAGGING = false
-                    mp.add_forced_key_binding("mouse_move", "dw-mouse-drag", dw_mouse_update_selection)
-                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(get_dw_mouse_auto_scroll_interval(), dw_mouse_auto_scroll)
+                    mp.add_forced_key_binding(
+                        "mouse_move",
+                        "dw-mouse-drag",
+                        dw_mouse_update_selection
+                    )
+                    FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(
+                        get_dw_mouse_auto_scroll_interval(),
+                        dw_mouse_auto_scroll
+                    )
 
                     drum_osd:update()
-                    if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
+                    if FSM.DRUM_WINDOW ~= "OFF" then
+                        dw_osd:update()
+                    end
                 end
             end
         elseif tbl.event == "up" then
@@ -2179,7 +2480,9 @@ local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, up
                 FSM.DW_MOUSE_SCROLL_TIMER = nil
             end
 
-            if on_up_callback then on_up_callback(tbl) end
+            if on_up_callback then
+                on_up_callback(tbl)
+            end
         end
     end
     MOUSE_HANDLERS[handler] = true
@@ -2192,12 +2495,16 @@ MOUSE_HANDLERS[cmd_dw_tooltip_pin] = true
 
 local function dw_anki_export_smart_callback(tbl)
     -- Only trigger on release (Standard export behavior)
-    if tbl and tbl.event ~= "up" then return end
+    if tbl and tbl.event ~= "up" then
+        return
+    end
 
     local starts_pink = false
     if FSM.DW_ANCHOR_LINE ~= -1 then
         local line_set = FSM.DW_CTRL_PENDING_SET[FSM.DW_ANCHOR_LINE]
-        if line_set and line_set[FSM.DW_ANCHOR_WORD] then starts_pink = true end
+        if line_set and line_set[FSM.DW_ANCHOR_WORD] then
+            starts_pink = true
+        end
     end
 
     if starts_pink then
@@ -2223,7 +2530,9 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
         return
     end
     -- Only trigger mouse buttons on release to avoid double-toggle
-    if was_mouse and tbl and tbl.event ~= "up" then return end
+    if was_mouse and tbl and tbl.event ~= "up" then
+        return
+    end
 
     local line, word
     -- Canonical context check
@@ -2234,7 +2543,9 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
     if p1_l then
         -- Toggle the entire yellow range into the pink set
         local subs = Tracks.pri.subs
-        if not subs then return end
+        if not subs then
+            return
+        end
 
         for i = p1_l, p2_l do
             local sub = subs[i]
@@ -2246,13 +2557,18 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
                 local tokens = get_sub_tokens(sub)
                 if tokens then
                     for _, t in ipairs(tokens) do
-                        if logical_cmp(t.logical_idx, s_w) then in_range = true end
+                        if logical_cmp(t.logical_idx, s_w) then
+                            in_range = true
+                        end
                         if in_range then
                             if not t.text:match("^%s*$") then
                                 ctrl_toggle_word(i, t.logical_idx, true)
                             end
                         end
-                        if logical_cmp(t.logical_idx, e_w) then in_range = false break end
+                        if logical_cmp(t.logical_idx, e_w) then
+                            in_range = false
+                            break
+                        end
                     end
                 end
             end
@@ -2270,7 +2586,9 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
             mp.remove_key_binding("dw-mouse-drag")
         end
         drum_osd:update()
-        if FSM.DRUM_WINDOW ~= "OFF" then dw_osd:update() end
+        if FSM.DRUM_WINDOW ~= "OFF" then
+            dw_osd:update()
+        end
     else
         -- Fallback to single word toggle (standard behavior)
         if was_mouse then
@@ -2288,9 +2606,10 @@ local function cmd_dw_toggle_pink(tbl, was_mouse)
     end
 end
 
-
 local function dw_handle_double_click_target(subs, line_idx, word_idx)
-    if not subs or #subs == 0 then return false end
+    if not subs or #subs == 0 then
+        return false
+    end
     local sub = subs[line_idx]
     if sub and sub.start_time then
         -- Intentional Focus Handover
@@ -2347,11 +2666,15 @@ end
 
 local function cmd_dw_double_click()
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local osd_x, osd_y = dw_get_mouse_osd()
     local line_idx, word_idx = kardenwort_hit_test_all(osd_x, osd_y)
-    if not line_idx then return end
+    if not line_idx then
+        return
+    end
 
     dw_handle_double_click_target(subs, line_idx, word_idx)
 end
@@ -2366,7 +2689,9 @@ local function tick_dw(time_pos, active_idx)
         return
     end
     local subs = Tracks.pri.subs
-    if #subs == 0 or not active_idx or active_idx == -1 then return end
+    if #subs == 0 or not active_idx or active_idx == -1 then
+        return
+    end
 
     -- In follow mode: viewport tracks playback; cursor only tracks if no range selection is active
     if FSM.DW_FOLLOW_PLAYER then
@@ -2410,8 +2735,14 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
 
     local ass_text = ""
     local font_size = is_drum
-        and (Options.drum_font_size > 0 and Options.drum_font_size or mp.get_property_number("sub-font-size", 44))
-        or (Options.srt_font_size > 0 and Options.srt_font_size or mp.get_property_number("sub-font-size", 44))
+            and (Options.drum_font_size > 0 and Options.drum_font_size or mp.get_property_number(
+                "sub-font-size",
+                44
+            ))
+        or (
+            Options.srt_font_size > 0 and Options.srt_font_size
+            or mp.get_property_number("sub-font-size", 44)
+        )
 
     local pri_pos = mp.get_property_number("sub-pos", 95)
     local sec_pos = mp.get_property_number("secondary-sub-pos", 10)
@@ -2419,7 +2750,8 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     local context_lines = is_drum and Options.drum_context_lines or 0
 
     if sec_pos > 50 then
-        local max_lines = Options.drum_active_size_mul + (2 * context_lines * Options.drum_context_size_mul)
+        local max_lines = Options.drum_active_size_mul
+            + (2 * context_lines * Options.drum_context_size_mul)
         local max_pixels = max_lines * font_size * Options.drum_line_height_mul
         -- Calculate safety position (2 blocks above primary + comfort gap)
         local min_safe_pos = pri_pos - (2 * (max_pixels / 1080) * 100) - Options.drum_track_gap
@@ -2433,7 +2765,13 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     -- Book Mode parity for DM mini (DRUM=ON, DW_WINDOW=OFF):
     -- keep follow enabled but page the viewport with dw_ensure_visible,
     -- matching the DW Book Mode behavior.
-    if is_drum and FSM.DW_FOLLOW_PLAYER and FSM.BOOK_MODE and not FSM.DW_SEEKING_MANUALLY and #Tracks.pri.subs > 0 then
+    if
+        is_drum
+        and FSM.DW_FOLLOW_PLAYER
+        and FSM.BOOK_MODE
+        and not FSM.DW_SEEKING_MANUALLY
+        and #Tracks.pri.subs > 0
+    then
         local pri_active_idx = get_center_index(Tracks.pri.subs, time_pos)
         if pri_active_idx and pri_active_idx ~= -1 then
             if FSM.DW_VIEW_CENTER == -1 then
@@ -2443,8 +2781,10 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
         end
     end
 
-    local pri_active_idx = (#Tracks.pri.subs > 0) and get_center_index(Tracks.pri.subs, time_pos) or -1
-    local sec_active_idx = (#Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos) or -1
+    local pri_active_idx = (#Tracks.pri.subs > 0) and get_center_index(Tracks.pri.subs, time_pos)
+        or -1
+    local sec_active_idx = (#Tracks.sec.subs > 0) and get_center_index(Tracks.sec.subs, time_pos)
+        or -1
 
     -- PAUSE GUARD: When the player is paused BY AUTOPAUSE, do NOT let the
     -- Sticky Sentinel advance to the next subtitle.  Freezing keeps the subtitle display
@@ -2468,15 +2808,29 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
     if FSM.DW_FOLLOW_PLAYER then
         pri_view_center = (is_drum and FSM.BOOK_MODE) and FSM.DW_VIEW_CENTER or pri_active_idx
     end
-    if pri_view_center == -1 then pri_view_center = pri_active_idx end
+    if pri_view_center == -1 then
+        pri_view_center = pri_active_idx
+    end
 
     -- Draw Primary FIRST, Secondary SECOND (so Secondary is on top in Z-order)
     if pri_use_osd and #Tracks.pri.subs > 0 then
         local active_idx = pri_active_idx
         local view_center = pri_view_center
 
-        local pri_plain = is_drum and (not Options.drum_pri_highlighting) or (not Options.srt_pri_highlighting)
-        ass_text = ass_text .. draw_drum(Tracks.pri.subs, view_center, active_idx, pri_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, pri_plain, true)
+        local pri_plain = is_drum and not Options.drum_pri_highlighting
+            or not Options.srt_pri_highlighting
+        ass_text = ass_text
+            .. draw_drum(
+                Tracks.pri.subs,
+                view_center,
+                active_idx,
+                pri_pos,
+                time_pos,
+                font_size,
+                FSM.DRUM_HIT_ZONES,
+                pri_plain,
+                true
+            )
     end
 
     if sec_use_osd and #Tracks.sec.subs > 0 then
@@ -2488,8 +2842,20 @@ local function tick_drum(time_pos, pri_use_osd, sec_use_osd)
             view_center = math.max(1, math.min(#Tracks.sec.subs, active_idx + offset))
         end
 
-        local sec_plain = is_drum and (not Options.drum_sec_highlighting) or (not Options.srt_sec_highlighting)
-        ass_text = ass_text .. draw_drum(Tracks.sec.subs, view_center, active_idx, sec_pos, time_pos, font_size, FSM.DRUM_HIT_ZONES, sec_plain, false)
+        local sec_plain = is_drum and not Options.drum_sec_highlighting
+            or not Options.srt_sec_highlighting
+        ass_text = ass_text
+            .. draw_drum(
+                Tracks.sec.subs,
+                view_center,
+                active_idx,
+                sec_pos,
+                time_pos,
+                font_size,
+                FSM.DRUM_HIT_ZONES,
+                sec_plain,
+                false
+            )
     end
 
     drum_osd.data = ass_text
@@ -2501,12 +2867,20 @@ end
 -- ===============================================================================
 
 local function tick_autopause(time_pos)
-    if FSM.AUTOPAUSE ~= "ON" or FSM.SPACEBAR ~= "IDLE" then return end
-    if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then return end
-    if FSM.MEDIA_STATE == "NO_SUBS" then return end
+    if FSM.AUTOPAUSE ~= "ON" or FSM.SPACEBAR ~= "IDLE" then
+        return
+    end
+    if FSM.SCHEDULED_REPLAY_START or FSM.LOOP_MODE == "ON" then
+        return
+    end
+    if FSM.MEDIA_STATE == "NO_SUBS" then
+        return
+    end
 
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     -- Hardened Autopause via Sticky Focus
     -- Use the Sentinel (ACTIVE_IDX) to determine exactly when the audible tail ends.
@@ -2515,14 +2889,18 @@ local function tick_autopause(time_pos)
         -- Fallback if sentinel is lost
         active_idx = get_center_index(subs, time_pos)
     end
-    if active_idx == -1 then return end
+    if active_idx == -1 then
+        return
+    end
 
     -- Skip autopause while transiting through the rewind zone after Shift+A/D.
     -- Uses <= so the exact boundary tick is still suppressed; the inhibit is cleared
     -- only after jerk-back has also been evaluated (see end of main tick function).
     -- [20260510193230] Special case: within-subtitle rewind should still allow autopause at end.
     local in_rewind_transit = FSM.TIMESEEK_INHIBIT_UNTIL and time_pos <= FSM.TIMESEEK_INHIBIT_UNTIL
-    local within_subtitle_rewind = in_rewind_transit and FSM.REWIND_START_IDX and active_idx == FSM.REWIND_START_IDX
+    local within_subtitle_rewind = in_rewind_transit
+        and FSM.REWIND_START_IDX
+        and active_idx == FSM.REWIND_START_IDX
 
     -- Suppress autopause only during cross-subtitle rewind transit
     if in_rewind_transit and FSM.REWIND_TRANSIT_CROSS_CARD and not within_subtitle_rewind then
@@ -2530,7 +2908,9 @@ local function tick_autopause(time_pos)
     end
 
     local _, sub_end = get_effective_boundaries(subs, subs[active_idx], active_idx)
-    if not sub_end then return end
+    if not sub_end then
+        return
+    end
 
     -- Check if we've reached the end of the padded window
     -- Use an inclusive check to ensure we don't skip the pause frame.
@@ -2540,7 +2920,11 @@ local function tick_autopause(time_pos)
     end
 
     if diff < -Options.autopause_overshoot then
-        if FSM._prev_time_pos and FSM._prev_time_pos < sub_end and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
+        if
+            FSM._prev_time_pos
+            and FSM._prev_time_pos < sub_end
+            and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
+        then
             -- Safety net: time_pos jumped past the autopause window in a single
             -- tick but the previous position was still before the boundary, so
             -- we just crossed it.  Allow autopause to fire instead of returning.
@@ -2552,36 +2936,49 @@ local function tick_autopause(time_pos)
     end
 
     -- Prevent re-triggering for the same subtitle segment
-    if FSM.last_paused_sub_end == sub_end then return end
+    if FSM.last_paused_sub_end == sub_end then
+        return
+    end
 
     -- Ensure we are actually on a subtitle (using internal state rather than transient mpv visibility)
     -- This fixes the "Stops stopping" bug when text clears before the audio tail finishes.
     local raw_text_primary = subs[active_idx].text or ""
-    local raw_text_secondary = (Tracks.sec.subs[active_idx] and Tracks.sec.subs[active_idx].text) or ""
+    local raw_text_secondary = (Tracks.sec.subs[active_idx] and Tracks.sec.subs[active_idx].text)
+        or ""
 
-    if raw_text_primary == "" and raw_text_secondary == "" then return end
+    if raw_text_primary == "" and raw_text_secondary == "" then
+        return
+    end
 
     -- Karaoke Mode: Don't pause if we are in the middle of a phrase with highlights
     if FSM.KARAOKE == "PHRASE" then
         local has_karaoke = string.find(raw_text_primary, Options.karaoke_token, 1, true)
-        if not has_karaoke then has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true) end
-        if has_karaoke then return end
+        if not has_karaoke then
+            has_karaoke = string.find(raw_text_secondary, Options.karaoke_token, 1, true)
+        end
+        if has_karaoke then
+            return
+        end
     end
 
     mp.set_property_bool("pause", true)
     FSM.last_paused_sub_end = sub_end
-
 end
 
 function protect_internal_replay_seek()
     FSM.IGNORE_NEXT_JUMP = true
     local replay_seconds = (Options.replay_ms or 0) / 1000
-    FSM.INTERNAL_REPLAY_UNTIL = mp.get_time() + math.max(1.0, replay_seconds + Options.nav_cooldown + 0.5)
+    FSM.INTERNAL_REPLAY_UNTIL = mp.get_time()
+        + math.max(1.0, replay_seconds + Options.nav_cooldown + 0.5)
 end
 
 local function tick_loop(time_pos)
-    if FSM.LOOP_MODE ~= "ON" then return end
-    if not FSM.LOOP_START or not FSM.LOOP_END then return end
+    if FSM.LOOP_MODE ~= "ON" then
+        return
+    end
+    if not FSM.LOOP_START or not FSM.LOOP_END then
+        return
+    end
 
     if time_pos >= FSM.LOOP_END - Options.pause_padding then
         if FSM.LOOP_ARMED then
@@ -2593,12 +2990,16 @@ local function tick_loop(time_pos)
                 local pri_subs = Tracks.pri.subs
                 if pri_subs and #pri_subs > 0 then
                     local idx = get_center_index(pri_subs, FSM.LOOP_START)
-                    if idx ~= -1 then FSM.ACTIVE_IDX = idx end
+                    if idx ~= -1 then
+                        FSM.ACTIVE_IDX = idx
+                    end
                 end
                 local sec_subs = Tracks.sec.subs
                 if sec_subs and #sec_subs > 0 then
                     local idx = get_center_index(sec_subs, FSM.LOOP_START)
-                    if idx ~= -1 then FSM.SEC_ACTIVE_IDX = idx end
+                    if idx ~= -1 then
+                        FSM.SEC_ACTIVE_IDX = idx
+                    end
                 end
                 mp.commandv("seek", FSM.LOOP_START, "absolute+exact")
             else
@@ -2619,7 +3020,9 @@ local function tick_loop(time_pos)
 end
 
 local function tick_scheduled_replay(time_pos)
-    if not FSM.SCHEDULED_REPLAY_START or not FSM.SCHEDULED_REPLAY_END then return false end
+    if not FSM.SCHEDULED_REPLAY_START or not FSM.SCHEDULED_REPLAY_END then
+        return false
+    end
 
     if time_pos >= FSM.SCHEDULED_REPLAY_END - Options.pause_padding then
         if FSM.REPLAY_REMAINING > 1 then
@@ -2629,12 +3032,16 @@ local function tick_scheduled_replay(time_pos)
             local pri_subs = Tracks.pri.subs
             if pri_subs and #pri_subs > 0 then
                 local idx = get_center_index(pri_subs, FSM.SCHEDULED_REPLAY_START)
-                if idx ~= -1 then FSM.ACTIVE_IDX = idx end
+                if idx ~= -1 then
+                    FSM.ACTIVE_IDX = idx
+                end
             end
             local sec_subs = Tracks.sec.subs
             if sec_subs and #sec_subs > 0 then
                 local idx = get_center_index(sec_subs, FSM.SCHEDULED_REPLAY_START)
-                if idx ~= -1 then FSM.SEC_ACTIVE_IDX = idx end
+                if idx ~= -1 then
+                    FSM.SEC_ACTIVE_IDX = idx
+                end
             end
             mp.commandv("seek", FSM.SCHEDULED_REPLAY_START, "absolute+exact")
             return true
@@ -2658,7 +3065,8 @@ end
 -- Toggle mouse/keyboard bindings based on active OSD mode
 update_interactive_bindings = function()
     local dw_on = (FSM.DRUM_WINDOW ~= "OFF")
-    local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0)) and Options.osd_interactivity
+    local osd_on = (FSM.DRUM == "ON" or (not Tracks.pri.is_ass and #Tracks.pri.subs > 0))
+        and Options.osd_interactivity
 
     local need_mouse = dw_on or osd_on
     local need_kb = dw_on or osd_on
@@ -2668,256 +3076,300 @@ end
 
 local function master_tick()
     local ok, err = xpcall(function()
-    local time_pos = mp.get_property_number("time-pos")
-    if not time_pos then return end
+        local time_pos = mp.get_property_number("time-pos")
+        if not time_pos then
+            return
+        end
 
-    -- Ghost Hold Recovery
-    -- If Space is 'HOLDING' due to a suspected ghost event at 's' press,
-    -- but no physical 'DOWN' event has refreshed it within 2 seconds, revert to IDLE.
-    if FSM.SPACEBAR == "HOLDING" and FSM.GHOST_HOLD_EXPIRY and mp.get_time() > FSM.GHOST_HOLD_EXPIRY then
-        FSM.SPACEBAR = "IDLE"
-        FSM.GHOST_HOLD_EXPIRY = nil
-        FSM.PHYSICAL_SPACE_HOLD = false
+        -- Ghost Hold Recovery
+        -- If Space is 'HOLDING' due to a suspected ghost event at 's' press,
+        -- but no physical 'DOWN' event has refreshed it within 2 seconds, revert to IDLE.
+        if
+            FSM.SPACEBAR == "HOLDING"
+            and FSM.GHOST_HOLD_EXPIRY
+            and mp.get_time() > FSM.GHOST_HOLD_EXPIRY
+        then
+            FSM.SPACEBAR = "IDLE"
+            FSM.GHOST_HOLD_EXPIRY = nil
+            FSM.PHYSICAL_SPACE_HOLD = false
+        end
 
-    end
-
-    -- Universal Manual Seek Detection
-    -- Detects any significant jump (native keys, script keys, or mouse)
-    -- Coarse Time-Pos Filter: Distinguishes real seeks from natural
-    -- time-pos jumps by checking wall-clock delta.  A real seek moves time-pos
-    -- much faster than wall-clock time advances.  With 15 fps black.mp4 the
-    -- >0.3 s threshold is rarely reached during normal playback (~67 ms ticks).
-    if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
-        local wall_delta = FSM.last_wall_time and (mp.get_time() - FSM.last_wall_time) or 0
-        local is_coarse_reporting = wall_delta > 0 and (math.abs(time_pos - FSM.last_time_pos) / wall_delta) < 2.0
-        local internal_replay_jump = FSM.INTERNAL_REPLAY_UNTIL and mp.get_time() < FSM.INTERNAL_REPLAY_UNTIL
-        local ignore_jump = FSM.IGNORE_NEXT_JUMP or (FSM.IGNORE_NEXT_JUMP_UNTIL and mp.get_time() < FSM.IGNORE_NEXT_JUMP_UNTIL)
-        if ignore_jump then
+        -- Universal Manual Seek Detection
+        -- Detects any significant jump (native keys, script keys, or mouse)
+        -- Coarse Time-Pos Filter: Distinguishes real seeks from natural
+        -- time-pos jumps by checking wall-clock delta.  A real seek moves time-pos
+        -- much faster than wall-clock time advances.  With 15 fps black.mp4 the
+        -- >0.3 s threshold is rarely reached during normal playback (~67 ms ticks).
+        if FSM.last_time_pos and math.abs(time_pos - FSM.last_time_pos) > 0.3 then
+            local wall_delta = FSM.last_wall_time and (mp.get_time() - FSM.last_wall_time) or 0
+            local is_coarse_reporting = wall_delta > 0
+                and (math.abs(time_pos - FSM.last_time_pos) / wall_delta) < 2.0
+            local internal_replay_jump = FSM.INTERNAL_REPLAY_UNTIL
+                and mp.get_time() < FSM.INTERNAL_REPLAY_UNTIL
+            local ignore_jump = FSM.IGNORE_NEXT_JUMP
+                or (FSM.IGNORE_NEXT_JUMP_UNTIL and mp.get_time() < FSM.IGNORE_NEXT_JUMP_UNTIL)
+            if ignore_jump then
+                FSM.IGNORE_NEXT_JUMP = false
+                FSM.IGNORE_NEXT_JUMP_UNTIL = nil
+            end
+            if not ignore_jump and not internal_replay_jump and not is_coarse_reporting then
+                -- Any manual navigation resets Autopause state so it fires again at the new location.
+                FSM.last_paused_sub_end = nil
+                FSM.SCHEDULED_REPLAY_START = nil
+                FSM.SCHEDULED_REPLAY_END = nil
+                -- TIMESEEK_INHIBIT_UNTIL is NOT cleared here — it is cleared only by
+                -- the explicit inhibit gate (time_pos > TIMESEEK_INHIBIT_UNTIL) below.
+                -- Clearing it in generic jump detection would allow autopause to fire at
+                -- intermediate sub boundaries during rewind transit (ZID 20260509233440).
+                FSM.MANUAL_NAV_TARGET_IDX = nil
+                FSM.SEC_MANUAL_NAV_TARGET_IDX = nil
+                FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
+                if FSM.LOOP_MODE == "ON" then
+                    -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
+                    local subs = Tracks.pri.subs
+                    if subs and #subs > 0 then
+                        local idx = get_center_index(subs, time_pos)
+                        if idx ~= -1 then
+                            FSM.LOOP_START = subs[idx].start_time
+                            FSM.LOOP_END = subs[idx].end_time
+                            FSM.LOOP_ARMED = true
+                            show_osd("Loop: Line " .. idx)
+                        end
+                    end
+                end
+            end
+        end
+        if FSM.IGNORE_NEXT_JUMP then
+            FSM.IGNORE_NEXT_JUMP_UNTIL = mp.get_time() + 0.5
             FSM.IGNORE_NEXT_JUMP = false
-            FSM.IGNORE_NEXT_JUMP_UNTIL = nil
         end
-        if not ignore_jump and not internal_replay_jump and not is_coarse_reporting then
-            -- Any manual navigation resets Autopause state so it fires again at the new location.
-            FSM.last_paused_sub_end = nil
-            FSM.SCHEDULED_REPLAY_START = nil
-            FSM.SCHEDULED_REPLAY_END = nil
-            -- TIMESEEK_INHIBIT_UNTIL is NOT cleared here — it is cleared only by
-            -- the explicit inhibit gate (time_pos > TIMESEEK_INHIBIT_UNTIL) below.
-            -- Clearing it in generic jump detection would allow autopause to fire at
-            -- intermediate sub boundaries during rewind transit (ZID 20260509233440).
-            FSM.MANUAL_NAV_TARGET_IDX = nil
-            FSM.SEC_MANUAL_NAV_TARGET_IDX = nil
-            FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
-            if FSM.LOOP_MODE == "ON" then
-                -- Persistent Loop (Autopause OFF only): Re-anchor loop to the new subtitle.
-                local subs = Tracks.pri.subs
-                if subs and #subs > 0 then
-                    local idx = get_center_index(subs, time_pos)
-                    if idx ~= -1 then
-                        FSM.LOOP_START = subs[idx].start_time
-                        FSM.LOOP_END = subs[idx].end_time
-                        FSM.LOOP_ARMED = true
-                        show_osd("Loop: Line " .. idx)
-                    end
-                end
-            end
-        end
-    end
-    if FSM.IGNORE_NEXT_JUMP then
-        FSM.IGNORE_NEXT_JUMP_UNTIL = mp.get_time() + 0.5
-        FSM.IGNORE_NEXT_JUMP = false
-    end
-    FSM._prev_time_pos = FSM.last_time_pos
-    FSM.last_time_pos = time_pos
-    FSM.last_wall_time = mp.get_time()
+        FSM._prev_time_pos = FSM.last_time_pos
+        FSM.last_time_pos = time_pos
+        FSM.last_wall_time = mp.get_time()
 
-    local did_scheduled_replay = tick_scheduled_replay(time_pos)
+        local did_scheduled_replay = tick_scheduled_replay(time_pos)
 
-    -- Execute Autopause and Loop
-    -- IMPORTANT: Loop Mode is only valid when Autopause is OFF.
-    if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" and not did_scheduled_replay then
-        tick_autopause(time_pos)
-    elseif FSM.AUTOPAUSE == "OFF" and FSM.LOOP_MODE == "ON" then
-        tick_loop(time_pos)
-    end
-
-    -- Sync active line for Drum/DW logic
-    local active_idx = -1
-    if #Tracks.pri.subs > 0 then
-        active_idx = get_center_index(Tracks.pri.subs, time_pos)
-
-        -- PAUSE GUARD: When paused BY AUTOPAUSE, freeze the sentinel so it
-        -- does not drift to the next subtitle due to time-pos jitter.
-        -- We detect an autopause-induced pause by checking that last_paused_sub_end
-        -- is set and time_pos is still near it.  With 15 fps black.mp4, tick deltas
-        -- are ~67 ms so the 0.3 s nav-delta guard is a defensive safety net.
-        local is_autopause_paused = mp.get_property_bool("pause", false)
-            and FSM.last_paused_sub_end
-            and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
-        if is_autopause_paused and FSM.ACTIVE_IDX ~= -1 and active_idx ~= FSM.ACTIVE_IDX then
-            local last_nav_delta = math.abs(time_pos - (FSM.last_time_pos or time_pos))
-            if last_nav_delta < 0.3 then
-                active_idx = FSM.ACTIVE_IDX
-            end
+        -- Execute Autopause and Loop
+        -- IMPORTANT: Loop Mode is only valid when Autopause is OFF.
+        if FSM.AUTOPAUSE == "ON" and FSM.SPACEBAR == "IDLE" and not did_scheduled_replay then
+            tick_autopause(time_pos)
+        elseif FSM.AUTOPAUSE == "OFF" and FSM.LOOP_MODE == "ON" then
+            tick_loop(time_pos)
         end
 
-        if active_idx ~= -1 then
-            -- Phrases Mode "Jerk Back" Logic
-            -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
-            -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
-            -- is expected: no jerking, no overlap-driven snaps.
-            local hold_elapsed = mp.get_time() - (FSM.space_down_time or 0)
-            local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
-                and FSM.IMMERSION_MODE == "PHRASE"
-                and FSM.PHYSICAL_SPACE_HOLD
-                and hold_elapsed > Options.space_tap_delay
+        -- Sync active line for Drum/DW logic
+        local active_idx = -1
+        if #Tracks.pri.subs > 0 then
+            active_idx = get_center_index(Tracks.pri.subs, time_pos)
 
-            if FSM.IMMERSION_MODE == "PHRASE" and not phrase_space_movie_override and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
-               and (not FSM.TIMESEEK_INHIBIT_UNTIL or not FSM.REWIND_TRANSIT_CROSS_CARD) then
-                if FSM.ACTIVE_IDX ~= -1 and active_idx > FSM.ACTIVE_IDX and active_idx <= FSM.ACTIVE_IDX + 5 then
-                    local s_next, _ = get_effective_boundaries(Tracks.pri.subs, Tracks.pri.subs[active_idx], active_idx)
-                    if s_next and (time_pos - s_next) > Options.nav_tolerance then
-                        mp.commandv("seek", s_next, "absolute+exact")
-                        FSM.IGNORE_NEXT_JUMP = true
-                        FSM.JUST_JERKED_TO = active_idx
-                    end
+            -- PAUSE GUARD: When paused BY AUTOPAUSE, freeze the sentinel so it
+            -- does not drift to the next subtitle due to time-pos jitter.
+            -- We detect an autopause-induced pause by checking that last_paused_sub_end
+            -- is set and time_pos is still near it.  With 15 fps black.mp4, tick deltas
+            -- are ~67 ms so the 0.3 s nav-delta guard is a defensive safety net.
+            local is_autopause_paused = mp.get_property_bool("pause", false)
+                and FSM.last_paused_sub_end
+                and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
+            if is_autopause_paused and FSM.ACTIVE_IDX ~= -1 and active_idx ~= FSM.ACTIVE_IDX then
+                local last_nav_delta = math.abs(time_pos - (FSM.last_time_pos or time_pos))
+                if last_nav_delta < 0.3 then
+                    active_idx = FSM.ACTIVE_IDX
                 end
             end
 
-            -- Clear rewind-transit inhibit AFTER jerk-back has been evaluated,
-            -- using strict > so both autopause and jerk-back are suppressed on the boundary tick.
-            -- [20260510193230] Also clear rewind start index when transit ends.
-            if FSM.TIMESEEK_INHIBIT_UNTIL and time_pos > FSM.TIMESEEK_INHIBIT_UNTIL then
-                FSM.TIMESEEK_INHIBIT_UNTIL = nil
-                FSM.REWIND_START_IDX = nil
-                FSM.REWIND_TRANSIT_CROSS_CARD = false
-            end
+            if active_idx ~= -1 then
+                -- Phrases Mode "Jerk Back" Logic
+                -- Only trigger for NATURAL transitions. Skip during manual seek cooldown and during
+                -- time-based rewind transit (TIMESEEK_INHIBIT_UNTIL), where MOVIE-like seamless flow
+                -- is expected: no jerking, no overlap-driven snaps.
+                local hold_elapsed = mp.get_time() - (FSM.space_down_time or 0)
+                local phrase_space_movie_override = FSM.AUTOPAUSE == "ON"
+                    and FSM.IMMERSION_MODE == "PHRASE"
+                    and FSM.PHYSICAL_SPACE_HOLD
+                    and hold_elapsed > Options.space_tap_delay
 
-            -- Clear jerk flag once we've moved past the previous sub's technical end
-            if FSM.JUST_JERKED_TO ~= -1 and FSM.JUST_JERKED_TO == active_idx then
-                local prev_idx = active_idx - 1
-                if prev_idx >= 1 and Tracks.pri.subs[prev_idx] then
-                    if time_pos > Tracks.pri.subs[prev_idx].end_time then
+                if
+                    FSM.IMMERSION_MODE == "PHRASE"
+                    and not phrase_space_movie_override
+                    and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN
+                    and (not FSM.TIMESEEK_INHIBIT_UNTIL or not FSM.REWIND_TRANSIT_CROSS_CARD)
+                then
+                    if
+                        FSM.ACTIVE_IDX ~= -1
+                        and active_idx > FSM.ACTIVE_IDX
+                        and active_idx <= FSM.ACTIVE_IDX + 5
+                    then
+                        local s_next, _ = get_effective_boundaries(
+                            Tracks.pri.subs,
+                            Tracks.pri.subs[active_idx],
+                            active_idx
+                        )
+                        if s_next and (time_pos - s_next) > Options.nav_tolerance then
+                            mp.commandv("seek", s_next, "absolute+exact")
+                            FSM.IGNORE_NEXT_JUMP = true
+                            FSM.JUST_JERKED_TO = active_idx
+                        end
+                    end
+                end
+
+                -- Clear rewind-transit inhibit AFTER jerk-back has been evaluated,
+                -- using strict > so both autopause and jerk-back are suppressed on the boundary tick.
+                -- [20260510193230] Also clear rewind start index when transit ends.
+                if FSM.TIMESEEK_INHIBIT_UNTIL and time_pos > FSM.TIMESEEK_INHIBIT_UNTIL then
+                    FSM.TIMESEEK_INHIBIT_UNTIL = nil
+                    FSM.REWIND_START_IDX = nil
+                    FSM.REWIND_TRANSIT_CROSS_CARD = false
+                end
+
+                -- Clear jerk flag once we've moved past the previous sub's technical end
+                if FSM.JUST_JERKED_TO ~= -1 and FSM.JUST_JERKED_TO == active_idx then
+                    local prev_idx = active_idx - 1
+                    if prev_idx >= 1 and Tracks.pri.subs[prev_idx] then
+                        if time_pos > Tracks.pri.subs[prev_idx].end_time then
+                            FSM.JUST_JERKED_TO = -1
+                        end
+                    else
                         FSM.JUST_JERKED_TO = -1
                     end
-                else
-                    FSM.JUST_JERKED_TO = -1
+                end
+
+                FSM.ACTIVE_IDX = active_idx
+                FSM.DW_ACTIVE_LINE = active_idx
+
+                -- Universal Cursor Synchronization
+                -- Ensures that the "copy focus" always tracks playback when in follow mode,
+                -- even if the Drum Window is closed (e.g., purely in Drum Mode on-screen).
+                -- [20260528132406] Viewport update and cursor sync are now independent:
+                -- cursor tracks on every tick in all modes (including Book Mode) when no selection.
+                if FSM.DW_FOLLOW_PLAYER then
+                    if not FSM.BOOK_MODE and FSM.DW_VIEW_CENTER ~= active_idx then
+                        FSM.DW_VIEW_CENTER = active_idx
+                    end
+                    if FSM.DW_ANCHOR_LINE == -1 and FSM.DW_CURSOR_WORD == -1 then
+                        FSM.DW_CURSOR_LINE = active_idx
+                        FSM.DW_CURSOR_X = nil
+                    end
+                end
+            end
+        end
+
+        -- [20260507154518] Maintain secondary Sticky Sentinel (mirrors primary ACTIVE_IDX pattern).
+        -- [20260509233440] Gate with MANUAL_NAV_COOLDOWN so that cmd_dw_seek_delta's explicit
+        -- SEC_ACTIVE_IDX assignment is not immediately overwritten by the natural sentinel scan.
+        -- During the cooldown window, the secondary sentinel preserves the seek target.
+        if #Tracks.sec.subs > 0 and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
+            local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
+
+            -- PAUSE GUARD: freeze secondary sentinel when paused by autopause.
+            local is_autopause_paused_sec = mp.get_property_bool("pause", false)
+                and FSM.last_paused_sub_end
+                and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
+            if
+                is_autopause_paused_sec
+                and FSM.SEC_ACTIVE_IDX ~= -1
+                and sec_idx ~= FSM.SEC_ACTIVE_IDX
+            then
+                local last_nav_delta = math.abs(time_pos - (FSM.last_time_pos or time_pos))
+                if last_nav_delta < 0.3 then
+                    sec_idx = FSM.SEC_ACTIVE_IDX
                 end
             end
 
-            FSM.ACTIVE_IDX = active_idx
-            FSM.DW_ACTIVE_LINE = active_idx
-
-            -- Universal Cursor Synchronization
-            -- Ensures that the "copy focus" always tracks playback when in follow mode,
-            -- even if the Drum Window is closed (e.g., purely in Drum Mode on-screen).
-            -- [20260528132406] Viewport update and cursor sync are now independent:
-            -- cursor tracks on every tick in all modes (including Book Mode) when no selection.
-            if FSM.DW_FOLLOW_PLAYER then
-                if not FSM.BOOK_MODE and FSM.DW_VIEW_CENTER ~= active_idx then
-                    FSM.DW_VIEW_CENTER = active_idx
-                end
-                if FSM.DW_ANCHOR_LINE == -1 and FSM.DW_CURSOR_WORD == -1 then
-                    FSM.DW_CURSOR_LINE = active_idx
-                    FSM.DW_CURSOR_X = nil
-                end
-            end
-        end
-    end
-
-    -- [20260507154518] Maintain secondary Sticky Sentinel (mirrors primary ACTIVE_IDX pattern).
-    -- [20260509233440] Gate with MANUAL_NAV_COOLDOWN so that cmd_dw_seek_delta's explicit
-    -- SEC_ACTIVE_IDX assignment is not immediately overwritten by the natural sentinel scan.
-    -- During the cooldown window, the secondary sentinel preserves the seek target.
-    if #Tracks.sec.subs > 0 and mp.get_time() > FSM.MANUAL_NAV_COOLDOWN then
-        local sec_idx = get_center_index(Tracks.sec.subs, time_pos)
-
-        -- PAUSE GUARD: freeze secondary sentinel when paused by autopause.
-        local is_autopause_paused_sec = mp.get_property_bool("pause", false)
-            and FSM.last_paused_sub_end
-            and math.abs(time_pos - FSM.last_paused_sub_end) < 0.5
-        if is_autopause_paused_sec and FSM.SEC_ACTIVE_IDX ~= -1 and sec_idx ~= FSM.SEC_ACTIVE_IDX then
-            local last_nav_delta = math.abs(time_pos - (FSM.last_time_pos or time_pos))
-            if last_nav_delta < 0.3 then
-                sec_idx = FSM.SEC_ACTIVE_IDX
+            if sec_idx ~= -1 then
+                FSM.SEC_ACTIVE_IDX = sec_idx
             end
         end
 
-        if sec_idx ~= -1 then
-            FSM.SEC_ACTIVE_IDX = sec_idx
-        end
-    end
+        -- Manage native subtitle suppression
+        -- We hide native subs if OSD rendering is active OR Drum Window is open.
+        local use_osd_for_srt = (
+            Options.srt_font_name ~= ""
+            or Options.srt_font_bold
+            or Options.srt_font_size > 0
+        )
+        local dw_active = (FSM.DRUM_WINDOW ~= "OFF")
 
-    -- Manage native subtitle suppression
-    -- We hide native subs if OSD rendering is active OR Drum Window is open.
-    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
-    local dw_active = (FSM.DRUM_WINDOW ~= "OFF")
+        -- Independent OSD render decisions:
+        -- 1. Always use OSD if Drum Mode is ON.
+        -- 2. Use OSD for SRT if custom fonts are configured.
+        -- 3. [20260501163905] Force OSD if a highlight (Yellow Pointer or Pink Set) exists on the active line.
+        -- 4. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
+        local has_ptr = (FSM.DW_CURSOR_WORD ~= -1 and active_idx == FSM.DW_CURSOR_LINE)
+        local has_pink = (next(FSM.DW_CTRL_PENDING_SET) ~= nil)
+        local pri_effective_vis = FSM.native_sub_vis and not FSM.SEC_ONLY_MODE
+        local sec_effective_vis = (FSM.native_sub_vis and FSM.native_sec_sub_vis)
+            or FSM.SEC_ONLY_MODE
+        local pri_use_osd = pri_effective_vis
+            and (
+                (FSM.DRUM == "ON")
+                or (not Tracks.pri.is_ass and (use_osd_for_srt or has_ptr or has_pink))
+            )
+        local sec_use_osd = sec_effective_vis
+            and (
+                (FSM.DRUM == "ON")
+                or (not Tracks.sec.is_ass and (use_osd_for_srt or has_ptr or has_pink))
+            )
 
-    -- Independent OSD render decisions:
-    -- 1. Always use OSD if Drum Mode is ON.
-    -- 2. Use OSD for SRT if custom fonts are configured.
-    -- 3. [20260501163905] Force OSD if a highlight (Yellow Pointer or Pink Set) exists on the active line.
-    -- 4. NEVER use OSD for ASS in Regular mode (to preserve styling/layout).
-    local has_ptr = (FSM.DW_CURSOR_WORD ~= -1 and active_idx == FSM.DW_CURSOR_LINE)
-    local has_pink = (next(FSM.DW_CTRL_PENDING_SET) ~= nil)
-    local pri_effective_vis = FSM.native_sub_vis and not FSM.SEC_ONLY_MODE
-    local sec_effective_vis = (FSM.native_sub_vis and FSM.native_sec_sub_vis) or FSM.SEC_ONLY_MODE
-    local pri_use_osd = pri_effective_vis and ((FSM.DRUM == "ON") or (not Tracks.pri.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
-    local sec_use_osd = sec_effective_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and (use_osd_for_srt or has_ptr or has_pink)))
+        if dw_active or pri_use_osd or sec_use_osd then
+            -- Suppression Logic
+            -- We hide native if DW is active OR if we are using OSD for that specific track.
+            local target_pri_vis = not dw_active and not pri_use_osd and pri_effective_vis
+            local target_sec_vis = not dw_active and not sec_use_osd and sec_effective_vis
 
-    if dw_active or pri_use_osd or sec_use_osd then
-        -- Suppression Logic
-        -- We hide native if DW is active OR if we are using OSD for that specific track.
-        local target_pri_vis = not dw_active and not pri_use_osd and pri_effective_vis
-        local target_sec_vis = not dw_active and not sec_use_osd and sec_effective_vis
+            if mp.get_property_bool("sub-visibility") ~= target_pri_vis then
+                mp.set_property_bool("sub-visibility", target_pri_vis)
+            end
+            if mp.get_property_bool("secondary-sub-visibility") ~= target_sec_vis then
+                mp.set_property_bool("secondary-sub-visibility", target_sec_vis)
+            end
 
-        if mp.get_property_bool("sub-visibility") ~= target_pri_vis then
-            mp.set_property_bool("sub-visibility", target_pri_vis)
-        end
-        if mp.get_property_bool("secondary-sub-visibility") ~= target_sec_vis then
-            mp.set_property_bool("secondary-sub-visibility", target_sec_vis)
-        end
-
-        -- Only render one-line Drum/SRT OSD if Drum Window is not active
-        if not dw_active and (pri_use_osd or sec_use_osd) then
-            tick_drum(time_pos, pri_use_osd, sec_use_osd)
+            -- Only render one-line Drum/SRT OSD if Drum Window is not active
+            if not dw_active and (pri_use_osd or sec_use_osd) then
+                tick_drum(time_pos, pri_use_osd, sec_use_osd)
+            else
+                if drum_osd.data ~= "" then
+                    drum_osd.data = ""
+                    drum_osd:update()
+                end
+            end
         else
+            -- Clear OSD if not rendering
             if drum_osd.data ~= "" then
                 drum_osd.data = ""
                 drum_osd:update()
             end
-        end
-    else
-        -- Clear OSD if not rendering
-        if drum_osd.data ~= "" then
-            drum_osd.data = ""
-            drum_osd:update()
-        end
-        -- Restore native if user wants subs and we aren't using OSD
-        if FSM.native_sub_vis then
-            if not mp.get_property_bool("sub-visibility") then
-                mp.set_property_bool("sub-visibility", true)
+            -- Restore native if user wants subs and we aren't using OSD
+            if FSM.native_sub_vis then
+                if not mp.get_property_bool("sub-visibility") then
+                    mp.set_property_bool("sub-visibility", true)
+                end
+                -- Only restore secondary if it should be on
+                if
+                    FSM.native_sec_sub_vis and not mp.get_property_bool("secondary-sub-visibility")
+                then
+                    mp.set_property_bool("secondary-sub-visibility", true)
+                elseif
+                    not FSM.native_sec_sub_vis and mp.get_property_bool("secondary-sub-visibility")
+                then
+                    mp.set_property_bool("secondary-sub-visibility", false)
+                end
+            else
+                if
+                    mp.get_property_bool("sub-visibility")
+                    or mp.get_property_bool("secondary-sub-visibility")
+                then
+                    mp.set_property_bool("sub-visibility", false)
+                    mp.set_property_bool("secondary-sub-visibility", false)
+                end
             end
-            -- Only restore secondary if it should be on
-            if FSM.native_sec_sub_vis and not mp.get_property_bool("secondary-sub-visibility") then
-                mp.set_property_bool("secondary-sub-visibility", true)
-            elseif not FSM.native_sec_sub_vis and mp.get_property_bool("secondary-sub-visibility") then
-                mp.set_property_bool("secondary-sub-visibility", false)
-            end
-        else
-            if mp.get_property_bool("sub-visibility") or mp.get_property_bool("secondary-sub-visibility") then
-                mp.set_property_bool("sub-visibility", false)
-                mp.set_property_bool("secondary-sub-visibility", false)
-            end
         end
-    end
 
-    -- Execute Drum Window
-    if FSM.DRUM_WINDOW == "DOCKED" then
-        tick_dw(time_pos, active_idx)
-    elseif Options.osd_interactivity then
-        dw_tooltip_mouse_update()
-    end
+        -- Execute Drum Window
+        if FSM.DRUM_WINDOW == "DOCKED" then
+            tick_dw(time_pos, active_idx)
+        elseif Options.osd_interactivity then
+            dw_tooltip_mouse_update()
+        end
     end, debug.traceback)
     if not ok then
         Diagnostic.error("master_tick crash: " .. tostring(err))
@@ -2966,7 +3418,9 @@ local function cmd_smart_space(table)
             FSM.SPACEBAR = "HOLDING"
             FSM.space_down_time = mp.get_time()
             FSM.initial_pause_state = mp.get_property_bool("pause", true)
-            if FSM.initial_pause_state then mp.set_property_bool("pause", false) end
+            if FSM.initial_pause_state then
+                mp.set_property_bool("pause", false)
+            end
         end
     elseif table.event == "up" then
         FSM.SPACEBAR = "IDLE"
@@ -2987,7 +3441,9 @@ local function cmd_toggle_anki_global()
     show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
     flush_rendering_caches()
     drum_osd:update()
-    if dw_osd then dw_osd:update() end
+    if dw_osd then
+        dw_osd:update()
+    end
 end
 
 local function cmd_toggle_drum()
@@ -3019,8 +3475,12 @@ local function cmd_toggle_drum()
         -- and would be overwritten by our own suppression logic.
 
         -- Boot subs for drum memory
-        if Tracks.pri.path then Tracks.pri.subs = load_sub(Tracks.pri.path, false) end
-        if Tracks.sec.path then Tracks.sec.subs = load_sub(Tracks.sec.path, false) end
+        if Tracks.pri.path then
+            Tracks.pri.subs = load_sub(Tracks.pri.path, false)
+        end
+        if Tracks.sec.path then
+            Tracks.sec.subs = load_sub(Tracks.sec.path, false)
+        end
 
         show_osd("Drum Mode: ON")
     else
@@ -3039,13 +3499,17 @@ end
 -- Drum Window scroll and subtitle layout helpers
 local function cmd_dw_scroll(dir)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
     -- Bootstrap: If the viewport hasn't been explicitly set yet,
     -- anchor it to the current active index before applying the scroll delta.
     if FSM.DW_VIEW_CENTER == -1 then
         local time_pos = mp.get_property_number("time-pos") or 0
         FSM.DW_VIEW_CENTER = get_center_index(subs, time_pos)
-        if FSM.DW_VIEW_CENTER == -1 then FSM.DW_VIEW_CENTER = 1 end
+        if FSM.DW_VIEW_CENTER == -1 then
+            FSM.DW_VIEW_CENTER = 1
+        end
     end
     FSM.DW_FOLLOW_PLAYER = false
     FSM.DW_VIEW_CENTER = math.max(1, math.min(#subs, FSM.DW_VIEW_CENTER + dir))
@@ -3069,16 +3533,18 @@ local function cmd_dw_wheel_scroll(dir)
     end
 end
 
-
-
 local function ensure_sub_layout(sub)
-    if not sub then return nil end
+    if not sub then
+        return nil
+    end
     if sub.layout_cache and sub.layout_cache.version == FSM.LAYOUT_VERSION then
         return sub.layout_cache.entry
     end
 
     local tokens = get_sub_tokens(sub) or {}
-    if #tokens == 0 then tokens = {{text=""}} end
+    if #tokens == 0 then
+        tokens = { { text = "" } }
+    end
     local font_size = Options.dw_font_size
     local font_name = Options.dw_font_name
     local max_w = 1860
@@ -3086,7 +3552,9 @@ local function ensure_sub_layout(sub)
 
     local logical_to_visual = {}
     for j, t in ipairs(tokens) do
-        if t.logical_idx then logical_to_visual[t.logical_idx] = j end
+        if t.logical_idx then
+            logical_to_visual[t.logical_idx] = j
+        end
     end
 
     local vlines = {}
@@ -3097,15 +3565,19 @@ local function ensure_sub_layout(sub)
         local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w or 0
         if cur_w + space + ww > max_w and #cur_indices > 0 then
             table.insert(vlines, cur_indices)
-            cur_indices = {j}
+            cur_indices = { j }
             cur_w = ww
         else
             table.insert(cur_indices, j)
             cur_w = cur_w + space + ww
         end
     end
-    if #cur_indices > 0 then table.insert(vlines, cur_indices) end
-    if #vlines == 0 then vlines = {{1}} end
+    if #cur_indices > 0 then
+        table.insert(vlines, cur_indices)
+    end
+    if #vlines == 0 then
+        vlines = { { 1 } }
+    end
 
     local entry_h = #vlines * dw_vline_height()
 
@@ -3116,8 +3588,8 @@ local function ensure_sub_layout(sub)
             vlines = vlines,
             logical_to_visual = logical_to_visual,
             words = tokens,
-            height = entry_h
-        }
+            height = entry_h,
+        },
     }
     return sub.layout_cache.entry
 end
@@ -3125,13 +3597,19 @@ end
 -- Word resolution helpers: visual line, closest word, center computation
 local function dw_get_word_visual_line(sub, logical_idx)
     local entry = ensure_sub_layout(sub)
-    if not entry then return 1, 1 end
+    if not entry then
+        return 1, 1
+    end
 
     local v_idx = entry.logical_to_visual[logical_idx]
-    if not v_idx then return 1, 1 end
+    if not v_idx then
+        return 1, 1
+    end
     for i, vl in ipairs(entry.vlines) do
         for _, idx in ipairs(vl) do
-            if idx == v_idx then return i, #entry.vlines end
+            if idx == v_idx then
+                return i, #entry.vlines
+            end
         end
     end
     return 1, 1
@@ -3141,13 +3619,17 @@ end
 -- Falls back to first word if nothing found.
 local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
     local entry = ensure_sub_layout(sub)
-    if not entry then return -1 end
+    if not entry then
+        return -1
+    end
 
     local words = entry.words or {}
     local vlines = entry.vlines
     local visual_to_logical = {}
     for j, t in ipairs(words or {}) do
-        if t.logical_idx then visual_to_logical[j] = t.logical_idx end
+        if t.logical_idx then
+            visual_to_logical[j] = t.logical_idx
+        end
     end
 
     local space_w = dw_get_str_width(" ")
@@ -3162,7 +3644,9 @@ local function dw_closest_word_at_x(sub, target_x, word_only, vl_filter)
             local vl_width = 0
             for k, wi in ipairs(vl_indices) do
                 vl_width = vl_width + dw_get_str_width(words[wi])
-                if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+                if k < #vl_indices and not Options.dw_original_spacing then
+                    vl_width = vl_width + space_w
+                end
             end
             local vl_left = 960 - vl_width / 2
             local pos = 0
@@ -3209,12 +3693,17 @@ local function dw_pick_middle_word_idx(sub)
 end
 
 local function get_first_valid_word_idx(sub)
-
-    if not sub then return -1 end
+    if not sub then
+        return -1
+    end
     local tokens = get_sub_tokens(sub)
-    if not tokens then return -1 end
+    if not tokens then
+        return -1
+    end
     for _, t in ipairs(tokens) do
-        if t.is_word then return t.logical_idx end
+        if t.is_word then
+            return t.logical_idx
+        end
     end
     return -1
 end
@@ -3223,22 +3712,32 @@ end
 -- Uses the same monospace/proportional width model as dw_hit_test.
 -- Returns nil if the word cannot be located.
 local function dw_compute_word_center_x(sub)
-    if not sub or FSM.DW_CURSOR_WORD == -1 then return nil end
+    if not sub or FSM.DW_CURSOR_WORD == -1 then
+        return nil
+    end
     local entry = ensure_sub_layout(sub)
-    if not entry then return nil end
+    if not entry then
+        return nil
+    end
 
     local v_idx = entry.logical_to_visual[FSM.DW_CURSOR_WORD]
-    if not v_idx then return nil end
+    if not v_idx then
+        return nil
+    end
 
     local vl_idx, _ = dw_get_word_visual_line(sub, FSM.DW_CURSOR_WORD)
     local vl_indices = entry.vlines[vl_idx]
-    if not vl_indices then return nil end
+    if not vl_indices then
+        return nil
+    end
 
     local space_w = dw_get_str_width(" ")
     local vl_width = 0
     for k, wi in ipairs(vl_indices) do
         vl_width = vl_width + dw_get_str_width(entry.words[wi])
-        if k < #vl_indices and not Options.dw_original_spacing then vl_width = vl_width + space_w end
+        if k < #vl_indices and not Options.dw_original_spacing then
+            vl_width = vl_width + space_w
+        end
     end
 
     local vl_left = 960 - vl_width / 2
@@ -3253,17 +3752,16 @@ local function dw_compute_word_center_x(sub)
     return nil
 end
 
-
-
-
-
 dw_ensure_visible = function(line_idx, paged)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local is_drum_mini = (FSM.DRUM == "ON" and FSM.DRUM_WINDOW == "OFF")
     local is_srt = (FSM.DRUM == "OFF" and FSM.DRUM_WINDOW == "OFF")
-    local win_lines = is_srt and 1 or (is_drum_mini and (Options.drum_context_lines * 2 + 1) or Options.dw_lines_visible)
+    local win_lines = is_srt and 1
+        or (is_drum_mini and (Options.drum_context_lines * 2 + 1) or Options.dw_lines_visible)
     win_lines = math.max(1, math.floor(win_lines or 1))
     local half_win = math.floor(win_lines / 2)
     local configured_scrolloff = is_drum_mini and Options.drum_scrolloff or Options.dw_scrolloff
@@ -3318,7 +3816,7 @@ local function dw_create_nav_event_snapshot(evt)
         time = time_pos or 0,
         paused = mp.get_property_bool("pause"),
         is_repeat = (type(evt) == "table" and evt.event == "repeat"),
-        event = evt
+        event = evt,
     }
 end
 
@@ -3350,7 +3848,10 @@ local function dw_resolve_nav_intent_context(subs, snapshot)
         -- Check 'best' boundaries
         if best ~= -1 then
             local s, e = get_effective_boundaries(subs, subs[best], best)
-            if snapshot.time >= (s - Options.nav_tolerance) and snapshot.time <= (e + Options.nav_tolerance) then
+            if
+                snapshot.time >= (s - Options.nav_tolerance)
+                and snapshot.time <= (e + Options.nav_tolerance)
+            then
                 ctx.active_line = best
             end
         end
@@ -3360,7 +3861,10 @@ local function dw_resolve_nav_intent_context(subs, snapshot)
         local next_idx = (best ~= -1) and (best + 1) or 1
         if next_idx <= #subs then
             local ns, ne = get_effective_boundaries(subs, subs[next_idx], next_idx)
-            if snapshot.time >= (ns - Options.nav_tolerance) and snapshot.time <= (ne + Options.nav_tolerance) then
+            if
+                snapshot.time >= (ns - Options.nav_tolerance)
+                and snapshot.time <= (ne + Options.nav_tolerance)
+            then
                 ctx.active_line = next_idx
             end
         end
@@ -3380,11 +3884,11 @@ local function dw_resolve_nav_intent_context(subs, snapshot)
     return ctx
 end
 
-
-
 local function cmd_dw_line_move(dir, shift, evt)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local snapshot = dw_create_nav_event_snapshot(evt)
     local ctx = dw_resolve_nav_intent_context(subs, snapshot)
@@ -3394,7 +3898,9 @@ local function cmd_dw_line_move(dir, shift, evt)
     -- Activation logic for NULL pointer
     if FSM.DW_CURSOR_WORD == -1 then
         -- Snap repeat during null activation to prevent immediate double-jump
-        if snapshot.is_repeat then return end
+        if snapshot.is_repeat then
+            return
+        end
 
         local line_idx = dw_resolve_null_activation_line(ctx, dir, subs)
 
@@ -3428,7 +3934,8 @@ local function cmd_dw_line_move(dir, shift, evt)
     if shift and FSM.DW_ANCHOR_LINE == -1 then
         FSM.DW_ANCHOR_LINE = FSM.DW_CURSOR_LINE
         local start_word = get_first_valid_word_idx(subs[FSM.DW_CURSOR_LINE])
-        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD or (start_word > 0 and start_word or 1)
+        FSM.DW_ANCHOR_WORD = (FSM.DW_CURSOR_WORD > 0) and FSM.DW_CURSOR_WORD
+            or (start_word > 0 and start_word or 1)
     end
 
     if not FSM.DW_CURSOR_X then
@@ -3469,7 +3976,9 @@ end
 
 local function cmd_dw_word_move(dir, shift, ctrl, evt)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local snapshot = dw_create_nav_event_snapshot(evt)
     local ctx = dw_resolve_nav_intent_context(subs, snapshot)
@@ -3478,7 +3987,9 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
 
     -- Activation logic for NULL pointer
     if FSM.DW_CURSOR_WORD == -1 then
-        if snapshot.is_repeat then return end
+        if snapshot.is_repeat then
+            return
+        end
 
         local line_idx = dw_resolve_null_activation_line(ctx, dir, subs)
 
@@ -3511,7 +4022,9 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
 
     local line_idx = FSM.DW_CURSOR_LINE
     local raw_sub = subs[line_idx]
-    if not raw_sub then return end
+    if not raw_sub then
+        return
+    end
 
     local tokens = get_sub_tokens(raw_sub, true) or {}
     local logical_tokens = {}
@@ -3582,7 +4095,8 @@ local function cmd_dw_word_move(dir, shift, ctrl, evt)
                 end
             end
             if #next_logical > 0 then
-                FSM.DW_CURSOR_WORD = (dir > 0) and next_logical[1].logical_idx or next_logical[#next_logical].logical_idx
+                FSM.DW_CURSOR_WORD = (dir > 0) and next_logical[1].logical_idx
+                    or next_logical[#next_logical].logical_idx
             else
                 FSM.DW_CURSOR_WORD = 1
             end
@@ -3601,15 +4115,21 @@ end
 -- Replay and seek commands
 local function cmd_replay_sub()
     local time_pos = mp.get_property_number("time-pos")
-    if not time_pos then return end
+    if not time_pos then
+        return
+    end
 
     local is_paused = mp.get_property_bool("pause")
 
     -- Sticky Hold Workaround for Hardware Ghosting
     -- If 's' is pressed, the keyboard matrix might send a fake 'Space UP' event just before 's' DOWN.
     -- If Space was held, or released within the last 300ms, we assume they are still intending to hold it.
-    local was_holding_space = (FSM.SPACEBAR == "HOLDING") or
-                              (FSM.SPACEBAR == "IDLE" and FSM.space_up_time and (mp.get_time() - FSM.space_up_time) < 0.3)
+    local was_holding_space = (FSM.SPACEBAR == "HOLDING")
+        or (
+            FSM.SPACEBAR == "IDLE"
+            and FSM.space_up_time
+            and (mp.get_time() - FSM.space_up_time) < 0.3
+        )
 
     if was_holding_space then
         FSM.SPACEBAR = "HOLDING" -- Force restore state
@@ -3618,7 +4138,7 @@ local function cmd_replay_sub()
 
     -- Fixed Window Replay (Subtitle Independent)
     -- As per user request: "get rid of the boundaries of subtitles altogether and leave only the range of the track"
-    local replay_start = math.max(0, time_pos - Options.replay_ms/1000)
+    local replay_start = math.max(0, time_pos - Options.replay_ms / 1000)
     local replay_end = time_pos
     local subs = Tracks.pri.subs
     local current_idx = -1
@@ -3627,9 +4147,15 @@ local function cmd_replay_sub()
         current_idx = get_center_index(subs, time_pos)
         replay_start_idx = get_center_index(subs, replay_start)
     end
-    local is_cross_card_replay = (current_idx ~= -1 and replay_start_idx ~= -1 and current_idx ~= replay_start_idx)
+    local is_cross_card_replay = (
+        current_idx ~= -1
+        and replay_start_idx ~= -1
+        and current_idx ~= replay_start_idx
+    )
     local sec_subs = Tracks.sec.subs
-    local sec_replay_start_idx = (sec_subs and #sec_subs > 0) and get_center_index(sec_subs, replay_start) or -1
+    local sec_replay_start_idx = (sec_subs and #sec_subs > 0)
+            and get_center_index(sec_subs, replay_start)
+        or -1
 
     if FSM.AUTOPAUSE == "OFF" then
         -- Autopause OFF: "Flashback" Replay (Finite Segment)
@@ -3650,17 +4176,20 @@ local function cmd_replay_sub()
         end
 
         mp.commandv("seek", replay_start, "absolute+exact")
-        if is_paused then mp.set_property_bool("pause", false) end
+        if is_paused then
+            mp.set_property_bool("pause", false)
+        end
         FSM.TIMESEEK_INHIBIT_UNTIL = nil
         FSM.REWIND_START_IDX = nil
         FSM.REWIND_TRANSIT_CROSS_CARD = false
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         local x_str = (Options.replay_count > 1) and (" x" .. Options.replay_count) or ""
         local template = Options.replay_msg_format
-        local msg = template:gsub("%%m", tostring(Options.replay_ms))
-                            :gsub("%%s", tostring(Options.replay_ms / 1000))
-                            :gsub("%%c", tostring(Options.replay_count))
-                            :gsub("%%x", x_str)
+        local msg = template
+            :gsub("%%m", tostring(Options.replay_ms))
+            :gsub("%%s", tostring(Options.replay_ms / 1000))
+            :gsub("%%c", tostring(Options.replay_count))
+            :gsub("%%x", x_str)
         show_osd(msg)
     else
         -- Autopause ON Mode: Immediate Replay (Fixed Segment)
@@ -3680,7 +4209,9 @@ local function cmd_replay_sub()
         end
 
         mp.commandv("seek", replay_start, "absolute+exact")
-        if is_paused then mp.set_property_bool("pause", false) end
+        if is_paused then
+            mp.set_property_bool("pause", false)
+        end
         if is_cross_card_replay then
             FSM.TIMESEEK_INHIBIT_UNTIL = time_pos
             FSM.REWIND_START_IDX = current_idx
@@ -3693,17 +4224,20 @@ local function cmd_replay_sub()
         FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown
         local x_str = (Options.replay_count > 1) and (" (x" .. Options.replay_count .. ")") or ""
         local template = Options.replay_on_msg_format
-        local msg = template:gsub("%%m", tostring(Options.replay_ms))
-                            :gsub("%%s", tostring(Options.replay_ms / 1000))
-                            :gsub("%%c", tostring(Options.replay_count))
-                            :gsub("%%x", x_str)
+        local msg = template
+            :gsub("%%m", tostring(Options.replay_ms))
+            :gsub("%%s", tostring(Options.replay_ms / 1000))
+            :gsub("%%c", tostring(Options.replay_count))
+            :gsub("%%x", x_str)
         show_osd(msg)
     end
 end
 
 local function cmd_dw_seek_selected()
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
     if FSM.DW_CURSOR_LINE > 0 and FSM.DW_CURSOR_LINE <= #subs then
         local sub = subs[FSM.DW_CURSOR_LINE]
         if sub and sub.start_time then
@@ -3740,10 +4274,14 @@ end
 
 local function cmd_dw_seek_delta(dir)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local time_pos = mp.get_property_number("time-pos")
-    if not time_pos then return end
+    if not time_pos then
+        return
+    end
 
     -- Intentional Focus Handover
     -- When manually seeking, we MUST ignore the padding boundaries of the current index
@@ -3755,7 +4293,9 @@ local function cmd_dw_seek_delta(dir)
     FSM.MANUAL_NAV_COOLDOWN = mp.get_time() + Options.nav_cooldown -- Settle period for smart logic
 
     local current_idx = get_center_index(subs, time_pos)
-    if current_idx == -1 and (not FSM.ACTIVE_IDX or FSM.ACTIVE_IDX == -1) then return end
+    if current_idx == -1 and (not FSM.ACTIVE_IDX or FSM.ACTIVE_IDX == -1) then
+        return
+    end
 
     local base_idx = current_idx
     if FSM.ACTIVE_IDX and FSM.ACTIVE_IDX ~= -1 and subs[FSM.ACTIVE_IDX] then
@@ -3764,7 +4304,6 @@ local function cmd_dw_seek_delta(dir)
     if FSM.DW_SEEKING_MANUALLY and FSM.DW_SEEK_TARGET ~= -1 then
         base_idx = FSM.DW_SEEK_TARGET
     end
-
 
     local target_idx = ((base_idx + dir - 1) % #subs) + 1
     local wrapped_msg = nil
@@ -3775,7 +4314,9 @@ local function cmd_dw_seek_delta(dir)
     end
 
     FSM.DW_SEEK_TARGET = target_idx
-    if wrapped_msg then show_osd(wrapped_msg) end
+    if wrapped_msg then
+        show_osd(wrapped_msg)
+    end
     local sub = subs[target_idx]
     if sub and sub.start_time then
         local s, _ = get_effective_boundaries(Tracks.pri.subs, sub, target_idx)
@@ -3821,9 +4362,11 @@ local function cmd_seek_time(dir)
     -- YouTube-style Accumulator logic:
     -- Accumulate ONLY if within the time window AND the direction matches.
     -- Otherwise, start a new session.
-    local same_dir = (dir > 0 and FSM.SEEK_ACCUMULATOR > 0) or (dir < 0 and FSM.SEEK_ACCUMULATOR < 0)
+    local same_dir = (dir > 0 and FSM.SEEK_ACCUMULATOR > 0)
+        or (dir < 0 and FSM.SEEK_ACCUMULATOR < 0)
     -- [20260510193230] Extended accumulator window for backward seeks to allow more clicks to accumulate.
-    local accumulator_window = (dir < 0) and (Options.seek_osd_duration * 2) or Options.seek_osd_duration
+    local accumulator_window = (dir < 0) and (Options.seek_osd_duration * 2)
+        or Options.seek_osd_duration
     local was_accumulating = (now < FSM.SEEK_LAST_TIME + accumulator_window and same_dir)
     if was_accumulating then
         FSM.SEEK_ACCUMULATOR = FSM.SEEK_ACCUMULATOR + delta
@@ -3844,7 +4387,7 @@ local function cmd_seek_time(dir)
     FSM.REPLAY_REMAINING = 0
     FSM.SCHEDULED_REPLAY_START = nil
     FSM.SCHEDULED_REPLAY_END = nil
-    FSM.last_paused_sub_end = nil  -- Allow autopause to re-arm at the correct boundary after rewind.
+    FSM.last_paused_sub_end = nil -- Allow autopause to re-arm at the correct boundary after rewind.
 
     -- Suppress autopause at subtitles encountered during backward rewind transit.
     -- Autopause is inhibited until playback naturally returns past the pre-seek position.
@@ -3855,8 +4398,13 @@ local function cmd_seek_time(dir)
     local current_idx = (subs and #subs > 0) and get_center_index(subs, current_pos) or -1
     local target_idx = (subs and #subs > 0) and get_center_index(subs, target_pos) or -1
     local sec_subs = Tracks.sec.subs
-    local sec_target_idx = (sec_subs and #sec_subs > 0) and get_center_index(sec_subs, target_pos) or -1
-    local is_cross_card_seek = (current_idx ~= -1 and target_idx ~= -1 and current_idx ~= target_idx)
+    local sec_target_idx = (sec_subs and #sec_subs > 0) and get_center_index(sec_subs, target_pos)
+        or -1
+    local is_cross_card_seek = (
+        current_idx ~= -1
+        and target_idx ~= -1
+        and current_idx ~= target_idx
+    )
 
     -- Forward seek clears transit inhibit immediately.
     if delta > 0 then
@@ -3866,9 +4414,13 @@ local function cmd_seek_time(dir)
     else
         -- Backward seek always contributes to sentinel (legacy contract + tests).
         -- Cross-card classification is tracked separately for suppression gating.
-        FSM.TIMESEEK_INHIBIT_UNTIL = math.max(FSM.TIMESEEK_INHIBIT_UNTIL or current_pos, current_pos)
-        FSM.REWIND_START_IDX = was_accumulating and (FSM.REWIND_START_IDX or current_idx) or current_idx
-        FSM.REWIND_TRANSIT_CROSS_CARD = (was_accumulating and (FSM.REWIND_TRANSIT_CROSS_CARD or is_cross_card_seek)) or is_cross_card_seek
+        FSM.TIMESEEK_INHIBIT_UNTIL =
+            math.max(FSM.TIMESEEK_INHIBIT_UNTIL or current_pos, current_pos)
+        FSM.REWIND_START_IDX = was_accumulating and (FSM.REWIND_START_IDX or current_idx)
+            or current_idx
+        FSM.REWIND_TRANSIT_CROSS_CARD = (
+            was_accumulating and (FSM.REWIND_TRANSIT_CROSS_CARD or is_cross_card_seek)
+        ) or is_cross_card_seek
     end
 
     -- Immediate anchor during Shift+A/D to minimize upper-track perceived lag
@@ -3890,26 +4442,34 @@ local function cmd_seek_time(dir)
     -- %P = accumulator prefix, %V = accumulator value
     local prefix = (delta > 0) and "+" or "-"
     local delta_val = math.abs(delta)
-    local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val)) or string.format("%.1f", delta_val)
+    local delta_str = (delta_val % 1 == 0) and tostring(math.floor(delta_val))
+        or string.format("%.1f", delta_val)
 
     local acc_prefix = (FSM.SEEK_ACCUMULATOR > 0) and "+" or "-"
     local acc_val = math.abs(FSM.SEEK_ACCUMULATOR)
-    if acc_val < 0.001 then acc_val = 0; acc_prefix = "" end
-    local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val)) or string.format("%.1f", acc_val)
+    if acc_val < 0.001 then
+        acc_val = 0
+        acc_prefix = ""
+    end
+    local acc_str = (acc_val % 1 == 0) and tostring(math.floor(acc_val))
+        or string.format("%.1f", acc_val)
 
     local template = (Options.seek_show_accumulator and FSM.SEEK_PRESS_COUNT >= 1)
-        and Options.seek_msg_cumulative_format
+            and Options.seek_msg_cumulative_format
         or Options.seek_msg_format
 
     -- On first press of an accumulator session, we might want to use the standard template
     -- but the user specified +2 -> +4 logic, so we use cumulative_format if accumulator is enabled.
     -- To allow "%p%v (%P%V)" style, we provide all variables to both.
-    local msg = template:gsub("%%p", prefix):gsub("%%v", delta_str):gsub("%%P", acc_prefix):gsub("%%V", acc_str)
+    local msg = template
+        :gsub("%%p", prefix)
+        :gsub("%%v", delta_str)
+        :gsub("%%P", acc_prefix)
+        :gsub("%%V", acc_str)
 
     local alignment = (delta > 0) and 6 or 4
     show_seek_osd(msg, alignment)
 end
-
 
 local function cmd_seek_with_repeat(dir, table)
     if not table or not table.event then
@@ -3927,7 +4487,9 @@ local function cmd_seek_with_repeat(dir, table)
         cmd_dw_seek_delta(dir)
 
         -- Setup repeat timer
-        if FSM.SEEK_REPEAT_TIMER then FSM.SEEK_REPEAT_TIMER:kill() end
+        if FSM.SEEK_REPEAT_TIMER then
+            FSM.SEEK_REPEAT_TIMER:kill()
+        end
         FSM.SEEK_REPEAT_TIMER = mp.add_timeout(Options.seek_hold_delay, function()
             FSM.SEEK_REPEAT_TIMER = mp.add_periodic_timer(1.0 / Options.seek_hold_rate, function()
                 cmd_dw_seek_delta(dir)
@@ -3958,19 +4520,84 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     -- 1. Definitive Keyboard Navigation Group
     local kb_keys = {
-        {key = "LEFT", name = "dw-word-left", fn = nav(function(t) cmd_dw_word_move(-1, false, false, t) end, "LEFT")},
-        {key = "RIGHT", name = "dw-word-right", fn = nav(function(t) cmd_dw_word_move(1, false, false, t) end, "RIGHT")},
-        {key = "UP", name = "dw-line-up", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "UP")},
-        {key = "DOWN", name = "dw-line-down", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "DOWN")},
-        {key = "WHEEL_UP", name = "dw-scroll-up", fn = function() cmd_dw_wheel_scroll(-1) end},
-        {key = "WHEEL_DOWN", name = "dw-scroll-down", fn = function() cmd_dw_wheel_scroll(1) end},
-        {key = Options.dw_key_pair_mod, name = "dw-pair-mod-track", fn = nav(function(t)
-            FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
-        end, Options.dw_key_pair_mod), complex = true},
-        {key = "ЛЕВЫЙ", name = "dw-word-left-ru", fn = nav(function(t) cmd_dw_word_move(-1, false, false, t) end, "ЛЕВЫЙ")},
-        {key = "ПРАВЫЙ", name = "dw-word-right-ru", fn = nav(function(t) cmd_dw_word_move(1, false, false, t) end, "ПРАВЫЙ")},
-        {key = "ВВЕРХ", name = "dw-line-up-ru", fn = nav(function(t) cmd_dw_line_move(-1, false, t) end, "ВВЕРХ")},
-        {key = "ВНИЗ", name = "dw-line-down-ru", fn = nav(function(t) cmd_dw_line_move(1, false, t) end, "ВНИЗ")},
+        {
+            key = "LEFT",
+            name = "dw-word-left",
+            fn = nav(function(t)
+                cmd_dw_word_move(-1, false, false, t)
+            end, "LEFT"),
+        },
+        {
+            key = "RIGHT",
+            name = "dw-word-right",
+            fn = nav(function(t)
+                cmd_dw_word_move(1, false, false, t)
+            end, "RIGHT"),
+        },
+        {
+            key = "UP",
+            name = "dw-line-up",
+            fn = nav(function(t)
+                cmd_dw_line_move(-1, false, t)
+            end, "UP"),
+        },
+        {
+            key = "DOWN",
+            name = "dw-line-down",
+            fn = nav(function(t)
+                cmd_dw_line_move(1, false, t)
+            end, "DOWN"),
+        },
+        {
+            key = "WHEEL_UP",
+            name = "dw-scroll-up",
+            fn = function()
+                cmd_dw_wheel_scroll(-1)
+            end,
+        },
+        {
+            key = "WHEEL_DOWN",
+            name = "dw-scroll-down",
+            fn = function()
+                cmd_dw_wheel_scroll(1)
+            end,
+        },
+        {
+            key = Options.dw_key_pair_mod,
+            name = "dw-pair-mod-track",
+            fn = nav(function(t)
+                FSM.DW_CTRL_HELD = (t.event == "down" or t.event == "repeat")
+            end, Options.dw_key_pair_mod),
+            complex = true,
+        },
+        {
+            key = "ЛЕВЫЙ",
+            name = "dw-word-left-ru",
+            fn = nav(function(t)
+                cmd_dw_word_move(-1, false, false, t)
+            end, "ЛЕВЫЙ"),
+        },
+        {
+            key = "ПРАВЫЙ",
+            name = "dw-word-right-ru",
+            fn = nav(function(t)
+                cmd_dw_word_move(1, false, false, t)
+            end, "ПРАВЫЙ"),
+        },
+        {
+            key = "ВВЕРХ",
+            name = "dw-line-up-ru",
+            fn = nav(function(t)
+                cmd_dw_line_move(-1, false, t)
+            end, "ВВЕРХ"),
+        },
+        {
+            key = "ВНИЗ",
+            name = "dw-line-down-ru",
+            fn = nav(function(t)
+                cmd_dw_line_move(1, false, t)
+            end, "ВНИЗ"),
+        },
     }
 
     for _, k in ipairs(kb_keys) do
@@ -3980,16 +4607,30 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     -- 2. Definitive Mouse Interaction Group
     local mouse_keys = {
-        {key = Options.dw_key_select_extend, name = "dw-mouse-select-shift", fn = cmd_dw_mouse_select_shift, complex = true},
-        {key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click},
+        {
+            key = Options.dw_key_select_extend,
+            name = "dw-mouse-select-shift",
+            fn = cmd_dw_mouse_select_shift,
+            complex = true,
+        },
+        { key = Options.dw_key_mouse_seek, name = "dw-mouse-dblclick", fn = cmd_dw_double_click },
     }
     for _, k in ipairs(mouse_keys) do
         k.is_mouse = true
         table.insert(keys, k)
     end
 
-    local function parse_and_collect(key_string, base_name, mouse_fn, key_fn, updates_selection, complex)
-        if not key_string or key_string == "" then return end
+    local function parse_and_collect(
+        key_string,
+        base_name,
+        mouse_fn,
+        key_fn,
+        updates_selection,
+        complex
+    )
+        if not key_string or key_string == "" then
+            return
+        end
         local i = 1
         local expanded_keys = expand_ru_keys(key_string, base_name)
         for _, key in ipairs(expanded_keys) do
@@ -4002,30 +4643,48 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                         -- Wrapping them again changes drag/follow semantics.
                         m_fn = mouse_fn
                     elseif mouse_fn then
-                        m_fn = make_mouse_handler(false,
-                            function(t) mouse_fn(t, true) end,
-                            function(t) mouse_fn(t, true) end,
-                            updates_selection
-                        )
+                        m_fn = make_mouse_handler(false, function(t)
+                            mouse_fn(t, true)
+                        end, function(t)
+                            mouse_fn(t, true)
+                        end, updates_selection)
                     elseif key_fn then
                         -- Fallback for mouse-bound actions that only define keyboard handlers.
                         -- Trigger on release to mimic click semantics and avoid nil callbacks.
                         m_fn = function(t)
-                            if t and t.event == "up" then key_fn(t, true) end
+                            if t and t.event == "up" then
+                                key_fn(t, true)
+                            end
                         end
                     end
 
                     if m_fn then
-                        table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = m_fn, complex = true, is_mouse = true })
+                        table.insert(
+                            keys,
+                            {
+                                key = key,
+                                name = base_name .. "-" .. i,
+                                fn = m_fn,
+                                complex = true,
+                                is_mouse = true,
+                            }
+                        )
                     end
                 else
-                    table.insert(keys, { key = key, name = base_name .. "-" .. i, fn = function(t)
-                        local k = (t and t.key) or ""
-                        if not (k == "Ctrl" or k == "Shift" or k == "Alt" or k == "Meta") then
-                            FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time() + (Options.dw_mouse_shield_ms / 1000)
-                        end
-                        key_fn(t, false)
-                    end, complex = complex or false, is_kb = true })
+                    table.insert(keys, {
+                        key = key,
+                        name = base_name .. "-" .. i,
+                        fn = function(t)
+                            local k = (t and t.key) or ""
+                            if not (k == "Ctrl" or k == "Shift" or k == "Alt" or k == "Meta") then
+                                FSM.DW_MOUSE_LOCK_UNTIL = mp.get_time()
+                                    + (Options.dw_mouse_shield_ms / 1000)
+                            end
+                            key_fn(t, false)
+                        end,
+                        complex = complex or false,
+                        is_kb = true,
+                    })
                 end
                 i = i + 1
             end
@@ -4042,42 +4701,219 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
     local dw_jump_words = Options.dw_jump_words
     local dw_jump_lines = Options.dw_jump_lines
     local binding_defs = {
-        {opt = "dw_key_add",                  name = "dw-add",                  mouse_fn = cmd_dw_export_anki,           key_fn = cmd_dw_add_smart,                                    updates_selection = true},
-        {opt = "dw_key_pair",                 name = "dw-pair",                 mouse_fn = cmd_dw_toggle_pink,           key_fn = cmd_dw_toggle_pink,                                  updates_selection = true},
-        {opt = "dw_key_select",               name = "dw-select",               mouse_fn = cmd_dw_mouse_select,          key_fn = function() end,                                      updates_selection = true},
-        {opt = "dw_key_tooltip_pin",          name = "dw-tooltip-pin",          mouse_fn = cmd_dw_tooltip_pin,           key_fn = cmd_dw_tooltip_pin},
-        {opt = "dw_key_tooltip_hover",        name = "dw-tooltip-hover",        mouse_fn = cmd_toggle_dw_tooltip_hover,  key_fn = cmd_toggle_dw_tooltip_hover},
-        {opt = "dw_key_tooltip_toggle",       name = "dw-tooltip-toggle",       mouse_fn = cmd_dw_tooltip_toggle,        key_fn = cmd_dw_tooltip_toggle},
-        {opt = "dw_key_seek_prev",            name = "dw-seek-prev",            key_fn = function(t) cmd_seek_with_repeat(-1, t) end,                                                  complex = true},
-        {opt = "dw_key_seek_next",            name = "dw-seek-next",            key_fn = function(t) cmd_seek_with_repeat(1, t) end,                                                   complex = true},
-        {opt = "dw_key_search",               name = "dw-search",               key_fn = function() cmd_toggle_search() end},
-        {opt = "dw_key_copy",                 name = "dw-copy",                 key_fn = function() cmd_dw_copy("none") end},
-        {opt = "key_copy_popup",              name = "dw-copy-popup",           key_fn = function() cmd_dw_copy("side") end},
-        {opt = "key_copy_main",               name = "dw-copy-main",            key_fn = function() cmd_dw_copy("main") end},
-        {opt = "dw_key_seek",                 name = "dw-seek",                 key_fn = function() cmd_dw_seek_selected() end},
-        {opt = "dw_key_esc",                  name = "dw-esc",                  key_fn = function() cmd_dw_esc() end},
-        {opt = "dw_key_jump_left",            name = "dw-jump-left",            key_fn = function() cmd_dw_word_move(-dw_jump_words, false) end},
-        {opt = "dw_key_jump_right",           name = "dw-jump-right",           key_fn = function() cmd_dw_word_move( dw_jump_words, false) end},
-        {opt = "dw_key_jump_select_left",     name = "dw-jump-select-left",     key_fn = function() cmd_dw_word_move(-dw_jump_words, true)  end},
-        {opt = "dw_key_jump_select_right",    name = "dw-jump-select-right",    key_fn = function() cmd_dw_word_move( dw_jump_words, true)  end},
-        {opt = "dw_key_scroll_up",            name = "dw-scroll-up-ctrl",       key_fn = function() cmd_dw_scroll(-1) end},
-        {opt = "dw_key_scroll_down",          name = "dw-scroll-down-ctrl",     key_fn = function() cmd_dw_scroll( 1) end},
-        {opt = "dw_key_jump_select_up",       name = "dw-jump-select-up",       key_fn = function() cmd_dw_line_move(-dw_jump_lines, true) end},
-        {opt = "dw_key_jump_select_down",     name = "dw-jump-select-down",     key_fn = function() cmd_dw_line_move( dw_jump_lines, true) end},
-        {opt = "dw_key_select_left",          name = "dw-select-left",          key_fn = function() cmd_dw_word_move(-1, true) end},
-        {opt = "dw_key_select_right",         name = "dw-select-right",         key_fn = function() cmd_dw_word_move( 1, true) end},
-        {opt = "dw_key_select_up",            name = "dw-select-up",            key_fn = function() cmd_dw_line_move(-1, true) end},
-        {opt = "dw_key_select_down",          name = "dw-select-down",          key_fn = function() cmd_dw_line_move( 1, true) end},
-        {opt = "dw_key_open_record",          name = "dw-open-record",          key_fn = cmd_open_record_file},
-        {opt = "dw_key_cycle_esc_mode",       name = "dw-cycle-esc-mode",       key_fn = cmd_cycle_dw_esc_mode},
-        {opt = "dw_key_cycle_copy_mode",      name = "dw-cycle-copy-mode",      key_fn = cmd_cycle_copy_mode},
-        {opt = "dw_key_toggle_copy_context",  name = "dw-toggle-copy-context",  key_fn = cmd_toggle_copy_ctx},
+        {
+            opt = "dw_key_add",
+            name = "dw-add",
+            mouse_fn = cmd_dw_export_anki,
+            key_fn = cmd_dw_add_smart,
+            updates_selection = true,
+        },
+        {
+            opt = "dw_key_pair",
+            name = "dw-pair",
+            mouse_fn = cmd_dw_toggle_pink,
+            key_fn = cmd_dw_toggle_pink,
+            updates_selection = true,
+        },
+        {
+            opt = "dw_key_select",
+            name = "dw-select",
+            mouse_fn = cmd_dw_mouse_select,
+            key_fn = function() end,
+            updates_selection = true,
+        },
+        {
+            opt = "dw_key_tooltip_pin",
+            name = "dw-tooltip-pin",
+            mouse_fn = cmd_dw_tooltip_pin,
+            key_fn = cmd_dw_tooltip_pin,
+        },
+        {
+            opt = "dw_key_tooltip_hover",
+            name = "dw-tooltip-hover",
+            mouse_fn = cmd_toggle_dw_tooltip_hover,
+            key_fn = cmd_toggle_dw_tooltip_hover,
+        },
+        {
+            opt = "dw_key_tooltip_toggle",
+            name = "dw-tooltip-toggle",
+            mouse_fn = cmd_dw_tooltip_toggle,
+            key_fn = cmd_dw_tooltip_toggle,
+        },
+        {
+            opt = "dw_key_seek_prev",
+            name = "dw-seek-prev",
+            key_fn = function(t)
+                cmd_seek_with_repeat(-1, t)
+            end,
+            complex = true,
+        },
+        {
+            opt = "dw_key_seek_next",
+            name = "dw-seek-next",
+            key_fn = function(t)
+                cmd_seek_with_repeat(1, t)
+            end,
+            complex = true,
+        },
+        {
+            opt = "dw_key_search",
+            name = "dw-search",
+            key_fn = function()
+                cmd_toggle_search()
+            end,
+        },
+        {
+            opt = "dw_key_copy",
+            name = "dw-copy",
+            key_fn = function()
+                cmd_dw_copy("none")
+            end,
+        },
+        {
+            opt = "key_copy_popup",
+            name = "dw-copy-popup",
+            key_fn = function()
+                cmd_dw_copy("side")
+            end,
+        },
+        {
+            opt = "key_copy_main",
+            name = "dw-copy-main",
+            key_fn = function()
+                cmd_dw_copy("main")
+            end,
+        },
+        {
+            opt = "dw_key_seek",
+            name = "dw-seek",
+            key_fn = function()
+                cmd_dw_seek_selected()
+            end,
+        },
+        {
+            opt = "dw_key_esc",
+            name = "dw-esc",
+            key_fn = function()
+                cmd_dw_esc()
+            end,
+        },
+        {
+            opt = "dw_key_jump_left",
+            name = "dw-jump-left",
+            key_fn = function()
+                cmd_dw_word_move(-dw_jump_words, false)
+            end,
+        },
+        {
+            opt = "dw_key_jump_right",
+            name = "dw-jump-right",
+            key_fn = function()
+                cmd_dw_word_move(dw_jump_words, false)
+            end,
+        },
+        {
+            opt = "dw_key_jump_select_left",
+            name = "dw-jump-select-left",
+            key_fn = function()
+                cmd_dw_word_move(-dw_jump_words, true)
+            end,
+        },
+        {
+            opt = "dw_key_jump_select_right",
+            name = "dw-jump-select-right",
+            key_fn = function()
+                cmd_dw_word_move(dw_jump_words, true)
+            end,
+        },
+        {
+            opt = "dw_key_scroll_up",
+            name = "dw-scroll-up-ctrl",
+            key_fn = function()
+                cmd_dw_scroll(-1)
+            end,
+        },
+        {
+            opt = "dw_key_scroll_down",
+            name = "dw-scroll-down-ctrl",
+            key_fn = function()
+                cmd_dw_scroll(1)
+            end,
+        },
+        {
+            opt = "dw_key_jump_select_up",
+            name = "dw-jump-select-up",
+            key_fn = function()
+                cmd_dw_line_move(-dw_jump_lines, true)
+            end,
+        },
+        {
+            opt = "dw_key_jump_select_down",
+            name = "dw-jump-select-down",
+            key_fn = function()
+                cmd_dw_line_move(dw_jump_lines, true)
+            end,
+        },
+        {
+            opt = "dw_key_select_left",
+            name = "dw-select-left",
+            key_fn = function()
+                cmd_dw_word_move(-1, true)
+            end,
+        },
+        {
+            opt = "dw_key_select_right",
+            name = "dw-select-right",
+            key_fn = function()
+                cmd_dw_word_move(1, true)
+            end,
+        },
+        {
+            opt = "dw_key_select_up",
+            name = "dw-select-up",
+            key_fn = function()
+                cmd_dw_line_move(-1, true)
+            end,
+        },
+        {
+            opt = "dw_key_select_down",
+            name = "dw-select-down",
+            key_fn = function()
+                cmd_dw_line_move(1, true)
+            end,
+        },
+        {
+            opt = "dw_key_open_record",
+            name = "dw-open-record",
+            key_fn = cmd_open_record_file,
+        },
+        {
+            opt = "dw_key_cycle_esc_mode",
+            name = "dw-cycle-esc-mode",
+            key_fn = cmd_cycle_dw_esc_mode,
+        },
+        {
+            opt = "dw_key_cycle_copy_mode",
+            name = "dw-cycle-copy-mode",
+            key_fn = cmd_cycle_copy_mode,
+        },
+        {
+            opt = "dw_key_toggle_copy_context",
+            name = "dw-toggle-copy-context",
+            key_fn = cmd_toggle_copy_ctx,
+        },
     }
 
     for _, d in ipairs(binding_defs) do
-        parse_and_collect(Options[d.opt], d.name, d.mouse_fn, d.key_fn, d.updates_selection, d.complex)
+        parse_and_collect(
+            Options[d.opt],
+            d.name,
+            d.mouse_fn,
+            d.key_fn,
+            d.updates_selection,
+            d.complex
+        )
     end
-
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
@@ -4088,18 +4924,29 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                 end
 
                 if k.complex then
-                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, {complex = true})
+                    mp.add_forced_key_binding(k.key, k.name, wrapped_fn, { complex = true })
                 else
                     local settings = nil
-                    if k.key:match("LEFT") or k.key:match("RIGHT") or k.key:match("UP") or k.key:match("DOWN")
-                       or k.key:match("ЛЕВЫЙ") or k.key:match("ПРАВЫЙ") or k.key:match("ВВЕРХ") or k.key:match("ВНИЗ")
-                       or k.key == "ENTER" or k.key == "KP_ENTER" then
+                    if
+                        k.key:match("LEFT")
+                        or k.key:match("RIGHT")
+                        or k.key:match("UP")
+                        or k.key:match("DOWN")
+                        or k.key:match("ЛЕВЫЙ")
+                        or k.key:match("ПРАВЫЙ")
+                        or k.key:match("ВВЕРХ")
+                        or k.key:match("ВНИЗ")
+                        or k.key == "ENTER"
+                        or k.key == "KP_ENTER"
+                    then
                         settings = "repeatable"
                     end
                     mp.add_forced_key_binding(k.key, k.name, wrapped_fn, settings)
                 end
             end
-        else mp.remove_key_binding(k.name) end
+        else
+            mp.remove_key_binding(k.name)
+        end
     end
 
     -- Cleanup Dragging & Window state
@@ -4131,37 +4978,54 @@ end
 -- CLIPBOARD, OSD OVERRIDES, AND MODE TOGGLES
 -- ===============================================================================
 
-
 local function set_clipboard(text, mode)
     if text and text ~= "" then
         mp.set_property("user-data/kardenwort/last_clipboard", text)
     end
     -- Native property is unreliable on some Windows MPV builds for system-wide sync.
     -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
-    local platform = package.config:sub(1,1)
+    local platform = package.config:sub(1, 1)
     if platform ~= "\\" then
-        local success = pcall(function() mp.set_property("clipboard", text) end)
-        if success then return end
+        local success = pcall(function()
+            mp.set_property("clipboard", text)
+        end)
+        if success then
+            return
+        end
     end
     if platform == "\\" then
         local safe_txt = text:gsub("'", "''")
-        local cmd = string.format("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt %d; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds %d } }", Options.win_clipboard_retries, safe_txt, Options.win_clipboard_retry_delay)
-        utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", cmd}, cancellable = false })
+        local cmd = string.format(
+            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt %d; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds %d } }",
+            Options.win_clipboard_retries,
+            safe_txt,
+            Options.win_clipboard_retry_delay
+        )
+        utils.subprocess({
+            args = { "powershell", "-NoProfile", "-Command", cmd },
+            cancellable = false,
+        })
     else
         local un = io.popen("uname -a")
         local uname_str = un and un:read("*a") or ""
-        if un then un:close() end
+        if un then
+            un:close()
+        end
         uname_str = uname_str:lower()
 
         local cmd = ""
         if uname_str:find("darwin") then
             cmd = "pbcopy"
-        elseif uname_str:find("android") or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux")) then
+        elseif
+            uname_str:find("android")
+            or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux"))
+        then
             cmd = "termux-clipboard-set"
         elseif os.getenv("WAYLAND_DISPLAY") then
             cmd = "wl-copy"
         else
-            cmd = "xclip -selection clipboard -i 2>/dev/null || xsel --clipboard --input 2>/dev/null"
+            cmd =
+                "xclip -selection clipboard -i 2>/dev/null || xsel --clipboard --input 2>/dev/null"
         end
 
         if cmd ~= "" then
@@ -4178,26 +5042,104 @@ local function set_clipboard(text, mode)
     -- Robust GoldenDict trigger (Improved layout/modifier stability)
     -- Professional Layout-Independent Trigger (VK-based)
     local user_hotkey = nil
-    if Options.gd_trigger_enabled == "yes" and platform == "\\" and (mode == "side" or mode == "main") then
+    if
+        Options.gd_trigger_enabled == "yes"
+        and platform == "\\"
+        and (mode == "side" or mode == "main")
+    then
         user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
-    elseif Options.tts_trigger_enabled == "yes" and platform == "\\" and mode and mode:match("^tts_[1-8]$") then
+    elseif
+        Options.tts_trigger_enabled == "yes"
+        and platform == "\\"
+        and mode
+        and mode:match("^tts_[1-8]$")
+    then
         user_hotkey = Options["tts_hotkey_" .. mode:match("([1-8])$")]
     end
     if user_hotkey and user_hotkey ~= "" then
         -- Expanded VK mapping for layout-independent triggers
         local vk_codes = {
-            ctrl = 0x11, alt = 0x12, shift = 0x10, win = 0x5B,
-            a = 0x41, b = 0x42, c = 0x43, d = 0x44, e = 0x45, f = 0x46, g = 0x47, h = 0x48, i = 0x49,
-            j = 0x4A, k = 0x4B, l = 0x4C, m = 0x4D, n = 0x4E, o = 0x4F, p = 0x50, q = 0x51, r = 0x52,
-            s = 0x53, t = 0x54, u = 0x55, v = 0x56, w = 0x57, x = 0x58, y = 0x59, z = 0x5A,
-            ["0"] = 0x30, ["1"] = 0x31, ["2"] = 0x32, ["3"] = 0x33, ["4"] = 0x34,
-            ["5"] = 0x35, ["6"] = 0x36, ["7"] = 0x37, ["8"] = 0x38, ["9"] = 0x39,
-            f1 = 0x70, f2 = 0x71, f3 = 0x72, f4 = 0x73, f5 = 0x74, f6 = 0x75,
-            f7 = 0x76, f8 = 0x77, f9 = 0x78, f10 = 0x79, f11 = 0x7A, f12 = 0x7B,
+            ctrl = 0x11,
+            alt = 0x12,
+            shift = 0x10,
+            win = 0x5B,
+            a = 0x41,
+            b = 0x42,
+            c = 0x43,
+            d = 0x44,
+            e = 0x45,
+            f = 0x46,
+            g = 0x47,
+            h = 0x48,
+            i = 0x49,
+            j = 0x4A,
+            k = 0x4B,
+            l = 0x4C,
+            m = 0x4D,
+            n = 0x4E,
+            o = 0x4F,
+            p = 0x50,
+            q = 0x51,
+            r = 0x52,
+            s = 0x53,
+            t = 0x54,
+            u = 0x55,
+            v = 0x56,
+            w = 0x57,
+            x = 0x58,
+            y = 0x59,
+            z = 0x5A,
+            ["0"] = 0x30,
+            ["1"] = 0x31,
+            ["2"] = 0x32,
+            ["3"] = 0x33,
+            ["4"] = 0x34,
+            ["5"] = 0x35,
+            ["6"] = 0x36,
+            ["7"] = 0x37,
+            ["8"] = 0x38,
+            ["9"] = 0x39,
+            f1 = 0x70,
+            f2 = 0x71,
+            f3 = 0x72,
+            f4 = 0x73,
+            f5 = 0x74,
+            f6 = 0x75,
+            f7 = 0x76,
+            f8 = 0x77,
+            f9 = 0x78,
+            f10 = 0x79,
+            f11 = 0x7A,
+            f12 = 0x7B,
             -- Cyrillic equivalents (ЙЦУКЕН)
-            ["й"] = 0x51, ["ц"] = 0x57, ["у"] = 0x45, ["к"] = 0x52, ["е"] = 0x54, ["н"] = 0x59, ["г"] = 0x55, ["ш"] = 0x49, ["щ"] = 0x4F, ["з"] = 0x50,
-            ["ф"] = 0x41, ["ы"] = 0x53, ["в"] = 0x44, ["а"] = 0x46, ["п"] = 0x47, ["р"] = 0x48, ["о"] = 0x4A, ["л"] = 0x4B, ["д"] = 0x4C,
-            ["я"] = 0x5A, ["ч"] = 0x58, ["с"] = 0x43, ["м"] = 0x56, ["и"] = 0x42, ["т"] = 0x4E, ["ь"] = 0x4D, ["б"] = 0xBC, ["ю"] = 0xBE
+            ["й"] = 0x51,
+            ["ц"] = 0x57,
+            ["у"] = 0x45,
+            ["к"] = 0x52,
+            ["е"] = 0x54,
+            ["н"] = 0x59,
+            ["г"] = 0x55,
+            ["ш"] = 0x49,
+            ["щ"] = 0x4F,
+            ["з"] = 0x50,
+            ["ф"] = 0x41,
+            ["ы"] = 0x53,
+            ["в"] = 0x44,
+            ["а"] = 0x46,
+            ["п"] = 0x47,
+            ["р"] = 0x48,
+            ["о"] = 0x4A,
+            ["л"] = 0x4B,
+            ["д"] = 0x4C,
+            ["я"] = 0x5A,
+            ["ч"] = 0x58,
+            ["с"] = 0x43,
+            ["м"] = 0x56,
+            ["и"] = 0x42,
+            ["т"] = 0x4E,
+            ["ь"] = 0x4D,
+            ["б"] = 0xBC,
+            ["ю"] = 0xBE,
         }
 
         local all_events = {}
@@ -4208,32 +5150,40 @@ local function set_clipboard(text, mode)
 
             -- Handle implicit shift from uppercase keys (e.g. "Ctrl+Alt+Q")
             local main_key = hotkey:match("[^+]+$")
-            local needs_shift = (main_key and #main_key == 1 and main_key:match("%u")) or primary:find("shift")
+            local needs_shift = (main_key and #main_key == 1 and main_key:match("%u"))
+                or primary:find("shift")
 
             for _, mod in ipairs(modifiers) do
                 if mod ~= "shift" and primary:find(mod) then
-                    table.insert(events, {vk_codes[mod], 0})
+                    table.insert(events, { vk_codes[mod], 0 })
                 end
             end
-            if needs_shift then table.insert(events, {vk_codes.shift, 0}) end
+            if needs_shift then
+                table.insert(events, { vk_codes.shift, 0 })
+            end
 
             -- Get the main key (the last part)
             local key = main_key:lower()
             if key and vk_codes[key] then
-                table.insert(events, {vk_codes[key], 0}) -- Down
-                table.insert(events, {vk_codes[key], 2}) -- Up
+                table.insert(events, { vk_codes[key], 0 }) -- Down
+                table.insert(events, { vk_codes[key], 2 }) -- Up
             end
 
             -- Release modifiers in reverse order
             for i = #events - 1, 1, -1 do
-                if events[i][2] == 0 then table.insert(events, {events[i][1], 2}) end
+                if events[i][2] == 0 then
+                    table.insert(events, { events[i][1], 2 })
+                end
             end
 
-            for _, ev in ipairs(events) do table.insert(all_events, ev) end
+            for _, ev in ipairs(events) do
+                table.insert(all_events, ev)
+            end
         end
 
-        if #all_events == 0 then return end
-
+        if #all_events == 0 then
+            return
+        end
 
         -- Configurable Trigger Lock (Prevent AHK Recursion)
         local now = mp.get_time()
@@ -4246,38 +5196,47 @@ local function set_clipboard(text, mode)
 
         -- Independent Mode Delays (Popup/Main)
         if Options.gd_trigger_method == "python" then
-            local delay = (mode == "main") and Options.python_trigger_delay_main or Options.python_trigger_delay_popup
-            local py_cmd = string.format("import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ", delay)
+            local delay = (mode == "main") and Options.python_trigger_delay_main
+                or Options.python_trigger_delay_popup
+            local py_cmd = string.format(
+                "import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ",
+                delay
+            )
             for _, ev in ipairs(all_events) do
                 py_cmd = py_cmd .. string.format("u.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
             end
             mp.command_native_async({
                 name = "subprocess",
-                args = {Options.python_path, "-c", py_cmd},
+                args = { Options.python_path, "-c", py_cmd },
                 playback_only = false,
-                capture_stdout = false, capture_stderr = false
+                capture_stdout = false,
+                capture_stderr = false,
             }, function() end)
         else
             -- Robust VK Injector via PowerShell Add-Type (Default)
             local type_name = "Win32K" .. os.time()
-            local signature = '[DllImport(\"user32.dll\")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
-            local script = string.format("$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;", signature, type_name)
+            local signature =
+                '[DllImport("user32.dll")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
+            local script = string.format(
+                "$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;",
+                signature,
+                type_name
+            )
 
             for _, ev in ipairs(all_events) do
                 script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
             end
 
-
             mp.command_native_async({
                 name = "subprocess",
-                args = {"powershell", "-NoProfile", "-Command", script},
+                args = { "powershell", "-NoProfile", "-Command", script },
                 playback_only = false,
-                capture_stdout = false, capture_stderr = false
+                capture_stdout = false,
+                capture_stderr = false,
             }, function() end)
         end
     end
 end
-
 
 render_search = function()
     if not FSM.SEARCH_MODE then
@@ -4294,7 +5253,9 @@ help_helpers.render_search = render_search
 
 -- UI border override and volume suspension helpers
 function apply_border_override_state()
-    local saved = FSM.saved_osd_border_style or mp.get_property("options/osd-border-style") or "background-box"
+    local saved = FSM.saved_osd_border_style
+        or mp.get_property("options/osd-border-style")
+        or "background-box"
     if FSM.volume_suspension_active or FSM.console_active then
         -- Temporarily restore native style
         if saved and saved ~= "" then
@@ -4330,21 +5291,29 @@ end
 function manage_ui_border_override(enable)
     if enable then
         FSM.ui_border_override_depth = (FSM.ui_border_override_depth or 0) + 1
-        if FSM.ui_border_override_depth > 1 then return end
+        if FSM.ui_border_override_depth > 1 then
+            return
+        end
         apply_border_override_state()
     else
         FSM.ui_border_override_depth = math.max(0, (FSM.ui_border_override_depth or 0) - 1)
-        if FSM.ui_border_override_depth > 0 then return end
+        if FSM.ui_border_override_depth > 0 then
+            return
+        end
         apply_border_override_state()
     end
 end
 
 local function trigger_volume_suspension()
-    if not FSM.saved_osd_border_style then return end
+    if not FSM.saved_osd_border_style then
+        return
+    end
     FSM.volume_suspension_active = true
     apply_border_override_state()
 
-    if FSM.volume_suspension_timer then FSM.volume_suspension_timer:kill() end
+    if FSM.volume_suspension_timer then
+        FSM.volume_suspension_timer:kill()
+    end
     FSM.volume_suspension_timer = mp.add_timeout(2.0, function()
         FSM.volume_suspension_active = false
         apply_border_override_state()
@@ -4362,119 +5331,124 @@ search_helpers.show_osd = show_osd
 
 -- Drum Window, Book Mode, and copy commands
 function cmd_toggle_drum_window()
-
     -- Snapshot FSM state before any mutation so we can roll back on error
     local prev_drum_window = FSM.DRUM_WINDOW
     local ok, err = xpcall(function()
-    if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Drum Window: No subtitles loaded")
-        return
-    end
-    -- Support both external (path-based) and internal (loaded into memory) tracks.
-    -- If no subs are in memory and no path exists, we truly can't open.
-    if not Tracks.pri.path and #Tracks.pri.subs == 0 then
-        show_osd("Drum Window: requires loaded subtitles")
-        return
-    end
+        if FSM.MEDIA_STATE == "NO_SUBS" then
+            show_osd("Drum Window: No subtitles loaded")
+            return
+        end
+        -- Support both external (path-based) and internal (loaded into memory) tracks.
+        -- If no subs are in memory and no path exists, we truly can't open.
+        if not Tracks.pri.path and #Tracks.pri.subs == 0 then
+            show_osd("Drum Window: requires loaded subtitles")
+            return
+        end
 
+        if FSM.DRUM_WINDOW == "OFF" then
+            -- Update state immediately for responsiveness
+            FSM.DRUM_WINDOW = "DOCKED"
+            flush_rendering_caches()
+            clear_tooltip_overlay("drum-window-open-transition")
+            manage_ui_border_override(true)
 
-    if FSM.DRUM_WINDOW == "OFF" then
+            -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
+            load_anki_tsv(true)
 
-        -- Update state immediately for responsiveness
-        FSM.DRUM_WINDOW = "DOCKED"
-        flush_rendering_caches()
-        clear_tooltip_overlay("drum-window-open-transition")
-        manage_ui_border_override(true)
+            -- Snapshot and hide all subtitle overlays to prevent overlap
+            FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
+            FSM.DW_SAVED_DRUM_STATE = FSM.DRUM
 
-        -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
-        load_anki_tsv(true)
+            -- Hide native subs (for compatibility and to ensure they are off)
+            mp.set_property_bool("sub-visibility", false)
+            mp.set_property_bool("secondary-sub-visibility", false)
 
-        -- Snapshot and hide all subtitle overlays to prevent overlap
-        FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
-        FSM.DW_SAVED_DRUM_STATE = FSM.DRUM
+            -- Always hide drum_osd, as it now renders both Drum and Regular SRT modes
+            drum_osd.data = ""
+            drum_osd:update()
 
-        -- Hide native subs (for compatibility and to ensure they are off)
-        mp.set_property_bool("sub-visibility", false)
-        mp.set_property_bool("secondary-sub-visibility", false)
+            local time_pos = mp.get_property_number("time-pos") or 0
+            local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+            if not active_idx or active_idx == -1 then
+                active_idx = 1
+            end
 
-        -- Always hide drum_osd, as it now renders both Drum and Regular SRT modes
-        drum_osd.data = ""
-        drum_osd:update()
+            local has_pointer = (FSM.DW_CURSOR_WORD and FSM.DW_CURSOR_WORD ~= -1)
+            local has_range = (
+                FSM.DW_ANCHOR_LINE
+                and FSM.DW_ANCHOR_LINE ~= -1
+                and FSM.DW_ANCHOR_WORD
+                and FSM.DW_ANCHOR_WORD ~= -1
+            )
+            local has_pending = (FSM.DW_CTRL_PENDING_LIST and #FSM.DW_CTRL_PENDING_LIST > 0)
 
-        local time_pos = mp.get_property_number("time-pos") or 0
-        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
-        if not active_idx or active_idx == -1 then active_idx = 1 end
-
-        local has_pointer = (FSM.DW_CURSOR_WORD and FSM.DW_CURSOR_WORD ~= -1)
-        local has_range = (FSM.DW_ANCHOR_LINE and FSM.DW_ANCHOR_LINE ~= -1 and FSM.DW_ANCHOR_WORD and FSM.DW_ANCHOR_WORD ~= -1)
-        local has_pending = (FSM.DW_CTRL_PENDING_LIST and #FSM.DW_CTRL_PENDING_LIST > 0)
-
-        if has_pointer or has_range or has_pending then
-            if FSM.DW_CURSOR_LINE == -1 then
+            if has_pointer or has_range or has_pending then
+                if FSM.DW_CURSOR_LINE == -1 then
+                    FSM.DW_CURSOR_LINE = active_idx
+                end
+            else
+                -- Opening without an explicit pointer/selection should anchor to playback,
+                -- not a stale historical cursor line.
                 FSM.DW_CURSOR_LINE = active_idx
+                FSM.DW_CURSOR_WORD = -1
+                FSM.DW_ANCHOR_LINE = -1
+                FSM.DW_ANCHOR_WORD = -1
+                FSM.DW_CURSOR_X = nil
+            end
+
+            -- Always sync view center to the resolved opening cursor line
+            FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1)
+                    and FSM.DW_CURSOR_LINE
+                or active_idx
+
+            FSM.DW_SEEKING_MANUALLY = false
+            FSM.DW_SEEK_TARGET = -1
+            FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
+            -- [20260501163905] DO NOT reset CURSOR_WORD/ANCHOR here to allow cross-mode synchronization
+            FSM.DW_FOLLOW_PLAYER = true
+
+            if not FSM.SEARCH_MODE then
+                update_interactive_bindings()
+            end
+
+            -- Explicitly trigger first render for instant appearance
+            if FSM.DRUM_WINDOW == "DOCKED" then
+                tick_dw(time_pos, active_idx)
+                show_osd("Drum Window: ON")
             end
         else
-            -- Opening without an explicit pointer/selection should anchor to playback,
-            -- not a stale historical cursor line.
-            FSM.DW_CURSOR_LINE = active_idx
+            -- Update state immediately
+            FSM.DRUM_WINDOW = "OFF"
+            FSM.DW_TOOLTIP_FORCE = false
+            flush_rendering_caches()
+            clear_tooltip_overlay("drum-window-close-transition")
+            manage_ui_border_override(false)
+
+            if not FSM.SEARCH_MODE then
+                update_interactive_bindings()
+            end
+            dw_osd.data = ""
+            dw_osd:update()
+
+            -- Force synchronization of all cursor and viewport states to the current playhead
+            local time_pos = mp.get_property_number("time-pos") or 0
+            local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+            if active_idx and active_idx ~= -1 then
+                FSM.DW_CURSOR_LINE = active_idx
+                FSM.DW_VIEW_CENTER = active_idx
+                FSM.ACTIVE_IDX = active_idx
+                FSM.DW_ACTIVE_LINE = active_idx
+            end
             FSM.DW_CURSOR_WORD = -1
             FSM.DW_ANCHOR_LINE = -1
             FSM.DW_ANCHOR_WORD = -1
             FSM.DW_CURSOR_X = nil
+            FSM.DW_FOLLOW_PLAYER = true
+
+            -- Restore subtitle visibility
+            FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
+            show_osd("Drum Window: OFF")
         end
-
-        -- Always sync view center to the resolved opening cursor line
-        FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx
-
-        FSM.DW_SEEKING_MANUALLY = false
-        FSM.DW_SEEK_TARGET = -1
-        FSM.DW_TOOLTIP_TARGET_MODE = "ACTIVE"
-        -- [20260501163905] DO NOT reset CURSOR_WORD/ANCHOR here to allow cross-mode synchronization
-        FSM.DW_FOLLOW_PLAYER = true
-
-        if not FSM.SEARCH_MODE then
-            update_interactive_bindings()
-        end
-
-        -- Explicitly trigger first render for instant appearance
-        if FSM.DRUM_WINDOW == "DOCKED" then
-            tick_dw(time_pos, active_idx)
-            show_osd("Drum Window: ON")
-        end
-    else
-
-        -- Update state immediately
-        FSM.DRUM_WINDOW = "OFF"
-        FSM.DW_TOOLTIP_FORCE = false
-        flush_rendering_caches()
-        clear_tooltip_overlay("drum-window-close-transition")
-        manage_ui_border_override(false)
-
-        if not FSM.SEARCH_MODE then
-            update_interactive_bindings()
-        end
-        dw_osd.data = ""
-        dw_osd:update()
-
-        -- Force synchronization of all cursor and viewport states to the current playhead
-        local time_pos = mp.get_property_number("time-pos") or 0
-        local active_idx = get_center_index(Tracks.pri.subs, time_pos)
-        if active_idx and active_idx ~= -1 then
-            FSM.DW_CURSOR_LINE = active_idx
-            FSM.DW_VIEW_CENTER = active_idx
-            FSM.ACTIVE_IDX = active_idx
-            FSM.DW_ACTIVE_LINE = active_idx
-        end
-        FSM.DW_CURSOR_WORD = -1
-        FSM.DW_ANCHOR_LINE = -1
-        FSM.DW_ANCHOR_WORD = -1
-        FSM.DW_CURSOR_X = nil
-        FSM.DW_FOLLOW_PLAYER = true
-
-        -- Restore subtitle visibility
-        FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
-        show_osd("Drum Window: OFF")
-    end
     end, debug.traceback)
     if not ok then
         -- Roll back FSM state to prevent phantom window open/close on next toggle
@@ -4482,7 +5456,6 @@ function cmd_toggle_drum_window()
         Diagnostic.error("Drum Window Toggle: " .. tostring(err))
         show_osd("kardenwort ERROR: " .. tostring(err):sub(1, 100))
     end
-
 end
 
 function toggle_book_mode()
@@ -4497,9 +5470,6 @@ function toggle_book_mode()
         show_osd("Book Mode: OFF")
     end
 end
-
-
-
 
 local function get_clipboard_text_smart(time_pos, line_idx)
     local al, aw = FSM.DW_ANCHOR_LINE, FSM.DW_ANCHOR_WORD
@@ -4530,7 +5500,9 @@ local function get_clipboard_text_smart(time_pos, line_idx)
             cl = FSM.DW_ACTIVE_LINE
         end
     end
-    if cl == -1 then return nil, false end
+    if cl == -1 then
+        return nil, false
+    end
 
     -- 1. Selection Priority (Pink Set > Yellow Range > Yellow Pointer)
     -- Explicit priority allows user to regulate behavior via Esc stages.
@@ -4539,19 +5511,22 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     if has_pink_set then
         return prepare_export_text({ type = "SET", members = FSM.DW_CTRL_PENDING_LIST }, {
             copy_mode = FSM.COPY_MODE,
-            filter_russian = Options.copy_filter_russian
-        }), false
+            filter_russian = Options.copy_filter_russian,
+        }),
+            false
     end
 
     -- Stage 2 & 3: Yellow Selection (Range or Point)
     if has_yellow_range or has_yellow_point then
-        local params = p1_l and { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
-                             or { type = "POINT", line = cl, word = cw }
+        local params = p1_l
+                and { type = "RANGE", p1_l = p1_l, p1_w = p1_w, p2_l = p2_l, p2_w = p2_w }
+            or { type = "POINT", line = cl, word = cw }
 
         return prepare_export_text(params, {
             copy_mode = FSM.COPY_MODE,
-            filter_russian = Options.copy_filter_russian
-        }), false
+            filter_russian = Options.copy_filter_russian,
+        }),
+            false
     end
 
     -- 2. Context Priority
@@ -4565,14 +5540,16 @@ local function get_clipboard_text_smart(time_pos, line_idx)
     -- 3. Standard Fallback
     return prepare_export_text({ type = "POINT", line = cl }, {
         copy_mode = FSM.COPY_MODE,
-        filter_russian = Options.copy_filter_russian
-    }), false
+        filter_russian = Options.copy_filter_russian,
+    }),
+        false
 end
-
 
 function cmd_dw_copy(mode)
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local final_text, is_context = get_clipboard_text_smart()
 
@@ -4594,9 +5571,15 @@ local function cmd_toggle_sub_vis()
         return
     end
     local function capture_sub_vis_combo()
-        if FSM.SEC_ONLY_MODE then return "top" end
-        if FSM.native_sub_vis and FSM.native_sec_sub_vis then return "both" end
-        if FSM.native_sub_vis and not FSM.native_sec_sub_vis then return "bottom" end
+        if FSM.SEC_ONLY_MODE then
+            return "top"
+        end
+        if FSM.native_sub_vis and FSM.native_sec_sub_vis then
+            return "both"
+        end
+        if FSM.native_sub_vis and not FSM.native_sec_sub_vis then
+            return "bottom"
+        end
         return "both"
     end
 
@@ -4659,7 +5642,9 @@ end
 
 local function ensure_secondary_track_selected()
     local current_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
-    if current_sid ~= 0 then return true end
+    if current_sid ~= 0 then
+        return true
+    end
 
     local tracks = mp.get_property_native("track-list") or {}
     local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
@@ -4722,7 +5707,9 @@ local function cmd_cycle_sec_pos()
         local has_available_secondary = has_available_secondary_track()
         show_osd("X")
         if not has_available_secondary then
-            Diagnostic.info("Secondary Sub Pos requested, but no secondary subtitle track is available")
+            Diagnostic.info(
+                "Secondary Sub Pos requested, but no secondary subtitle track is available"
+            )
         end
         return
     end
@@ -4731,7 +5718,8 @@ local function cmd_cycle_sec_pos()
         return
     end
     if FSM.DRUM == "ON" then
-        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom or Options.sec_pos_top
+        FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom
+            or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
         show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
     else
@@ -4771,9 +5759,7 @@ local function cmd_adjust_sec_sub_pos(delta)
     FSM.native_sec_sub_pos = new_pos
 end
 
-
 local function cmd_cycle_sec_sid()
-
     if FSM.DRUM_WINDOW ~= "OFF" then
         show_osd("X")
         return
@@ -4790,7 +5776,11 @@ local function cmd_cycle_sec_sid()
     end
     FSM.native_sec_sub_vis = true
     -- [20260509180045] Synchronous Suppression: Prevent flash of native subs before next tick.
-    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
+    local use_osd_for_srt = (
+        Options.srt_font_name ~= ""
+        or Options.srt_font_bold
+        or Options.srt_font_size > 0
+    )
     local sec_use_osd = (FSM.DRUM == "ON") or (not Tracks.sec.is_ass and use_osd_for_srt)
     if sec_use_osd then
         mp.set_property_bool("secondary-sub-visibility", false)
@@ -4805,7 +5795,7 @@ local function cmd_cycle_sec_sid()
     local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
 
     -- Filter for supported tracks (External files only)
-    local supported = {0} -- Always include OFF (0)
+    local supported = { 0 } -- Always include OFF (0)
     local internal_count = 0
     for _, t in ipairs(tracks) do
         if t.type == "sub" then
@@ -4824,7 +5814,9 @@ local function cmd_cycle_sec_sid()
 
     if #supported <= 1 then
         local msg = "Secondary Subtitles: None available"
-        if internal_count > 0 then msg = msg .. " [" .. internal_count .. " built-in unsupported]" end
+        if internal_count > 0 then
+            msg = msg .. " [" .. internal_count .. " built-in unsupported]"
+        end
         show_osd(msg)
         mp.set_property("secondary-sid", "no")
         return
@@ -4932,7 +5924,9 @@ local function cmd_cycle_sec_sid()
                 if lang_detected then
                     label = lang_detected
                 else
-                    local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown") and t.lang:upper() or nil
+                    local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown")
+                            and t.lang:upper()
+                        or nil
                     if lang_lbl then
                         label = lang_lbl
                     else
@@ -4958,7 +5952,6 @@ local function cmd_cycle_sec_sid()
     drum_osd:update()
 end
 
-
 function cmd_cycle_audio()
     ensure_companion_audio_tracks(mp.get_property("path"))
 
@@ -4966,10 +5959,12 @@ function cmd_cycle_audio()
     local current_aid = tonumber(mp.get_property("aid") or 0) or 0
     if current_aid == 0 then
         local aid_str = mp.get_property("aid")
-        if aid_str == "no" then current_aid = 0 end
+        if aid_str == "no" then
+            current_aid = 0
+        end
     end
 
-    local supported = {0}
+    local supported = { 0 }
     local supported_active = {}
     for _, t in ipairs(tracks) do
         if t.type == "audio" then
@@ -5045,7 +6040,9 @@ function cmd_cycle_audio()
     if next_aid ~= 0 then
         for _, t in ipairs(tracks) do
             if tonumber(t.id) == next_aid then
-                local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown") and t.lang:upper() or nil
+                local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown")
+                        and t.lang:upper()
+                    or nil
                 local title_lbl = (t.title and t.title ~= "") and t.title or nil
 
                 if lang_lbl and title_lbl and title_lbl:upper() == lang_lbl then
@@ -5087,12 +6084,14 @@ function cmd_cycle_audio()
     show_osd("Audio: " .. label)
 end
 
-
 local function cmd_toggle_osc()
     FSM.OSC_VIS = (FSM.OSC_VIS + 1) % 3
     local lbl, cmd = "AUTO", "auto"
-    if FSM.OSC_VIS == 1 then lbl, cmd = "ALWAYS", "always"
-    elseif FSM.OSC_VIS == 2 then lbl, cmd = "NEVER", "never" end
+    if FSM.OSC_VIS == 1 then
+        lbl, cmd = "ALWAYS", "always"
+    elseif FSM.OSC_VIS == 2 then
+        lbl, cmd = "NEVER", "never"
+    end
     mp.commandv("script-message", "osc-visibility", cmd, "no-osd")
     show_osd("OSC Visibility: " .. lbl)
 end
@@ -5104,7 +6103,9 @@ end
 -- Copy subtitle to clipboard (mode: none/side/main/tts_N)
 local function cmd_copy_sub(mode)
     local time_pos = mp.get_property_number("time-pos")
-    if not time_pos then return end
+    if not time_pos then
+        return
+    end
 
     local final_text, is_context = get_clipboard_text_smart(time_pos)
 
@@ -5115,10 +6116,13 @@ local function cmd_copy_sub(mode)
         if (now - (FSM.LAST_OSD_TIME or 0)) > Options.copy_osd_cooldown then
             local words, wcount = {}, 0
             for w in final_text:gmatch("%S+") do
-                if wcount < Options.copy_word_limit then table.insert(words, w) end
+                if wcount < Options.copy_word_limit then
+                    table.insert(words, w)
+                end
                 wcount = wcount + 1
             end
-            local osd_t = table.concat(words, " ") .. (wcount > Options.copy_word_limit and "..." or "")
+            local osd_t = table.concat(words, " ")
+                .. (wcount > Options.copy_word_limit and "..." or "")
             show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
             FSM.LAST_OSD_TIME = now
         end
@@ -5130,7 +6134,9 @@ end
 -- mpv property observers (sid/vid/secondary-sid/sub-visibility/track-list)
 mp.observe_property("sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
-    if not ok then Diagnostic.error("sid observer: " .. tostring(err)) end
+    if not ok then
+        Diagnostic.error("sid observer: " .. tostring(err))
+    end
 end)
 mp.observe_property("vid", "string", function(name, val)
     local ok, err = xpcall(function()
@@ -5151,15 +6157,24 @@ mp.observe_property("vid", "string", function(name, val)
             end
         end
     end, debug.traceback)
-    if not ok then Diagnostic.error("vid observer: " .. tostring(err)) end
+    if not ok then
+        Diagnostic.error("vid observer: " .. tostring(err))
+    end
 end)
 mp.observe_property("secondary-sid", "number", function(name, val)
     local ok, err = xpcall(update_media_state, debug.traceback)
-    if not ok then Diagnostic.error("sec-sid observer: " .. tostring(err)) end
+    if not ok then
+        Diagnostic.error("sec-sid observer: " .. tostring(err))
+    end
 
     -- [20260509180045] Immediate Suppression (Window 2): Enforce visibility state after track-list update.
-    local use_osd_for_srt = (Options.srt_font_name ~= "" or Options.srt_font_bold or Options.srt_font_size > 0)
-    local sec_use_osd = FSM.native_sec_sub_vis and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and use_osd_for_srt))
+    local use_osd_for_srt = (
+        Options.srt_font_name ~= ""
+        or Options.srt_font_bold
+        or Options.srt_font_size > 0
+    )
+    local sec_use_osd = FSM.native_sec_sub_vis
+        and ((FSM.DRUM == "ON") or (not Tracks.sec.is_ass and use_osd_for_srt))
     if sec_use_osd then
         mp.set_property_bool("secondary-sub-visibility", false)
     end
@@ -5167,17 +6182,23 @@ mp.observe_property("secondary-sid", "number", function(name, val)
 end)
 mp.observe_property("track-list", "native", function()
     local ok, err = xpcall(update_media_state, debug.traceback)
-    if not ok then Diagnostic.error("track-list observer: " .. tostring(err)) end
+    if not ok then
+        Diagnostic.error("track-list observer: " .. tostring(err))
+    end
     if Options.font_scaling_enabled then
         local ok2, err2 = xpcall(update_font_scale, debug.traceback)
-        if not ok2 then Diagnostic.error("font-scaling: " .. tostring(err2)) end
+        if not ok2 then
+            Diagnostic.error("font-scaling: " .. tostring(err2))
+        end
     end
 end)
 mp.observe_property("osd-dimensions", "native", function()
     dw_tooltip_osd:update()
     if Options.font_scaling_enabled then
         local ok, err = xpcall(update_font_scale, debug.traceback)
-        if not ok then Diagnostic.error("osd-dim observer: " .. tostring(err)) end
+        if not ok then
+            Diagnostic.error("osd-dim observer: " .. tostring(err))
+        end
     end
 end)
 
@@ -5194,14 +6215,18 @@ mp.observe_property("script-opts", "string", function()
     seek_osd.z = Options.seek_osd_layer
     flush_rendering_caches()
     drum_osd:update()
-    if dw_osd then dw_osd:update() end
+    if dw_osd then
+        dw_osd:update()
+    end
 end)
 
 mp.observe_property("osd-border-style", "string", function(name, val)
     FSM.osd_border_style = val
     flush_rendering_caches()
     drum_osd:update()
-    if dw_osd then dw_osd:update() end
+    if dw_osd then
+        dw_osd:update()
+    end
 end)
 
 mp.observe_property("volume", "number", trigger_volume_suspension)
@@ -5250,38 +6275,80 @@ validate_config()
 mp.add_key_binding(nil, "toggle-autopause", cmd_toggle_autopause)
 
 mp.add_key_binding(nil, "toggle-karaoke-mode", cmd_toggle_karaoke)
-mp.add_key_binding(nil, "smart-space", cmd_smart_space, {complex=true})
+mp.add_key_binding(nil, "smart-space", cmd_smart_space, { complex = true })
 mp.add_key_binding(nil, "toggle-drum-mode", cmd_toggle_drum)
 mp.add_key_binding(nil, "toggle-sub-visibility", cmd_toggle_sub_vis)
 mp.add_key_binding(nil, "toggle-secondary-only", cmd_toggle_secondary_only_mode)
 mp.add_key_binding(nil, "cycle-secondary-pos", cmd_cycle_sec_pos)
 mp.add_key_binding(nil, "cycle-sec-sid", cmd_cycle_sec_sid)
 mp.add_key_binding(nil, "toggle-osc-visibility", cmd_toggle_osc)
-mp.add_key_binding(nil, "copy-subtitle", function() cmd_copy_sub("none") end)
-mp.add_key_binding(nil, "copy-subtitle-popup", function() cmd_copy_sub("side") end)
-mp.add_key_binding(nil, "copy-subtitle-main", function() cmd_copy_sub("main") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-1", function() cmd_copy_sub("tts_1") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-2", function() cmd_copy_sub("tts_2") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-3", function() cmd_copy_sub("tts_3") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-4", function() cmd_copy_sub("tts_4") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-5", function() cmd_copy_sub("tts_5") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-6", function() cmd_copy_sub("tts_6") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-7", function() cmd_copy_sub("tts_7") end)
-mp.add_key_binding(nil, "copy-subtitle-tts-8", function() cmd_copy_sub("tts_8") end)
+mp.add_key_binding(nil, "copy-subtitle", function()
+    cmd_copy_sub("none")
+end)
+mp.add_key_binding(nil, "copy-subtitle-popup", function()
+    cmd_copy_sub("side")
+end)
+mp.add_key_binding(nil, "copy-subtitle-main", function()
+    cmd_copy_sub("main")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-1", function()
+    cmd_copy_sub("tts_1")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-2", function()
+    cmd_copy_sub("tts_2")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-3", function()
+    cmd_copy_sub("tts_3")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-4", function()
+    cmd_copy_sub("tts_4")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-5", function()
+    cmd_copy_sub("tts_5")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-6", function()
+    cmd_copy_sub("tts_6")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-7", function()
+    cmd_copy_sub("tts_7")
+end)
+mp.add_key_binding(nil, "copy-subtitle-tts-8", function()
+    cmd_copy_sub("tts_8")
+end)
 
 -- Global Ctrl+Alt+C binding for main GoldenDict window
 local function register_global_copy_keys()
     local bind = keybinding_utils.bind
-    bind(Options.key_copy_popup, "kardenwort-global-copy-side", function() cmd_copy_sub("side") end, {wrap=true})
-    bind(Options.key_copy_main, "kardenwort-global-copy-main", function() cmd_copy_sub("main") end, {wrap=true})
-    bind(Options.key_tts_1, "kardenwort-global-copy-tts-1", function() cmd_copy_sub("tts_1") end, {wrap=true})
-    bind(Options.key_tts_2, "kardenwort-global-copy-tts-2", function() cmd_copy_sub("tts_2") end, {wrap=true})
-    bind(Options.key_tts_3, "kardenwort-global-copy-tts-3", function() cmd_copy_sub("tts_3") end, {wrap=true})
-    bind(Options.key_tts_4, "kardenwort-global-copy-tts-4", function() cmd_copy_sub("tts_4") end, {wrap=true})
-    bind(Options.key_tts_5, "kardenwort-global-copy-tts-5", function() cmd_copy_sub("tts_5") end, {wrap=true})
-    bind(Options.key_tts_6, "kardenwort-global-copy-tts-6", function() cmd_copy_sub("tts_6") end, {wrap=true})
-    bind(Options.key_tts_7, "kardenwort-global-copy-tts-7", function() cmd_copy_sub("tts_7") end, {wrap=true})
-    bind(Options.key_tts_8, "kardenwort-global-copy-tts-8", function() cmd_copy_sub("tts_8") end, {wrap=true})
+    bind(Options.key_copy_popup, "kardenwort-global-copy-side", function()
+        cmd_copy_sub("side")
+    end, { wrap = true })
+    bind(Options.key_copy_main, "kardenwort-global-copy-main", function()
+        cmd_copy_sub("main")
+    end, { wrap = true })
+    bind(Options.key_tts_1, "kardenwort-global-copy-tts-1", function()
+        cmd_copy_sub("tts_1")
+    end, { wrap = true })
+    bind(Options.key_tts_2, "kardenwort-global-copy-tts-2", function()
+        cmd_copy_sub("tts_2")
+    end, { wrap = true })
+    bind(Options.key_tts_3, "kardenwort-global-copy-tts-3", function()
+        cmd_copy_sub("tts_3")
+    end, { wrap = true })
+    bind(Options.key_tts_4, "kardenwort-global-copy-tts-4", function()
+        cmd_copy_sub("tts_4")
+    end, { wrap = true })
+    bind(Options.key_tts_5, "kardenwort-global-copy-tts-5", function()
+        cmd_copy_sub("tts_5")
+    end, { wrap = true })
+    bind(Options.key_tts_6, "kardenwort-global-copy-tts-6", function()
+        cmd_copy_sub("tts_6")
+    end, { wrap = true })
+    bind(Options.key_tts_7, "kardenwort-global-copy-tts-7", function()
+        cmd_copy_sub("tts_7")
+    end, { wrap = true })
+    bind(Options.key_tts_8, "kardenwort-global-copy-tts-8", function()
+        cmd_copy_sub("tts_8")
+    end, { wrap = true })
 end
 register_global_copy_keys()
 mp.add_key_binding(nil, "cycle-copy-mode", cmd_cycle_copy_mode)
@@ -5290,11 +6357,19 @@ mp.add_key_binding(nil, "toggle-drum-window", cmd_toggle_drum_window)
 mp.add_key_binding(nil, "toggle-drum-search", cmd_toggle_search)
 mp.add_key_binding(nil, "toggle-book-mode", toggle_book_mode)
 mp.add_key_binding(nil, "replay-subtitle", cmd_replay_sub)
-mp.add_key_binding(nil, "seek_prev", function(t) cmd_seek_with_repeat(-1, t) end, {complex = true})
-mp.add_key_binding(nil, "seek_next", function(t) cmd_seek_with_repeat(1, t) end, {complex = true})
+mp.add_key_binding(nil, "seek_prev", function(t)
+    cmd_seek_with_repeat(-1, t)
+end, { complex = true })
+mp.add_key_binding(nil, "seek_next", function(t)
+    cmd_seek_with_repeat(1, t)
+end, { complex = true })
 
-mp.add_key_binding(nil, "seek_time_forward", function() cmd_seek_time(1) end, {repeatable = true})
-mp.add_key_binding(nil, "seek_time_backward", function() cmd_seek_time(-1) end, {repeatable = true})
+mp.add_key_binding(nil, "seek_time_forward", function()
+    cmd_seek_time(1)
+end, { repeatable = true })
+mp.add_key_binding(nil, "seek_time_backward", function()
+    cmd_seek_time(-1)
+end, { repeatable = true })
 mp.add_key_binding(nil, "toggle-anki-global", cmd_toggle_anki_global)
 mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 mp.add_key_binding(nil, "cycle-immersion-mode", cmd_cycle_immersion_mode)
@@ -5303,10 +6378,18 @@ mp.add_key_binding(nil, "cycle-audio", cmd_cycle_audio)
 
 local function register_global_position_keys()
     local bind = keybinding_utils.bind
-    bind(Options.key_sub_pos_up, "kardenwort-sub-pos-up", function() cmd_adjust_sub_pos(-1) end, {forced=true, wrap=true})
-    bind(Options.key_sub_pos_down, "kardenwort-sub-pos-down", function() cmd_adjust_sub_pos(1) end, {forced=true, wrap=true})
-    bind(Options.key_sec_sub_pos_up, "kardenwort-sec-sub-pos-up", function() cmd_adjust_sec_sub_pos(-1) end, {forced=true, wrap=true})
-    bind(Options.key_sec_sub_pos_down, "kardenwort-sec-sub-pos-down", function() cmd_adjust_sec_sub_pos(1) end, {forced=true, wrap=true})
+    bind(Options.key_sub_pos_up, "kardenwort-sub-pos-up", function()
+        cmd_adjust_sub_pos(-1)
+    end, { forced = true, wrap = true })
+    bind(Options.key_sub_pos_down, "kardenwort-sub-pos-down", function()
+        cmd_adjust_sub_pos(1)
+    end, { forced = true, wrap = true })
+    bind(Options.key_sec_sub_pos_up, "kardenwort-sec-sub-pos-up", function()
+        cmd_adjust_sec_sub_pos(-1)
+    end, { forced = true, wrap = true })
+    bind(Options.key_sec_sub_pos_down, "kardenwort-sec-sub-pos-down", function()
+        cmd_adjust_sec_sub_pos(1)
+    end, { forced = true, wrap = true })
 end
 register_global_position_keys()
 
@@ -5324,9 +6407,13 @@ if Options.anki_sync_period > 0 then
             find_source_url()
             load_anki_tsv(false, true)
             drum_osd:update()
-            if dw_osd then dw_osd:update() end
+            if dw_osd then
+                dw_osd:update()
+            end
         end, debug.traceback)
-        if not ok then Diagnostic.error("periodic sync: " .. tostring(err)) end
+        if not ok then
+            Diagnostic.error("periodic sync: " .. tostring(err))
+        end
     end)
 end
 Diagnostic.info("SCRIPT LOADED SUCCESSFULLY")
@@ -5346,7 +6433,6 @@ recover_native_osd_style()
 for k in string.gmatch(Options.key_cycle_immersion_mode, "%S+") do
     mp.add_forced_key_binding(k, "kardenwort-cycle-immersion-" .. k, cmd_cycle_immersion_mode)
 end
-
 
 -- ===============================================================================
 -- TEST INSTRUMENTATION (test_hooks.lua)

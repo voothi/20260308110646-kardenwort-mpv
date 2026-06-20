@@ -8,10 +8,10 @@
 -- Requires text_utils for pure text helpers (no circular dependency).
 -- ============================================================================
 
-local mp = require 'mp'
-local utils = require 'mp.utils'
-local text_utils = require 'text_utils'
-local subtitle_parser = require 'subtitle_parser'
+local mp = require("mp")
+local utils = require("mp.utils")
+local text_utils = require("text_utils")
+local subtitle_parser = require("subtitle_parser")
 
 local M = {}
 
@@ -30,7 +30,7 @@ function M.init(fsm, opts, tracks, diagnostic, helpers)
     _helpers = setmetatable(helpers or {}, {
         __index = function(t, k)
             error("FATAL: Missing injected helper function: " .. tostring(k), 2)
-        end
+        end,
     })
 end
 
@@ -55,10 +55,14 @@ local function get_copy_context_text(time_pos, line_idx)
     time_pos = time_pos or mp.get_property_number("time-pos") or 0
     local combined = {}
 
-    local function trim(s) return s:match("^%s*(.-)%s*$") or "" end
+    local function trim(s)
+        return s:match("^%s*(.-)%s*$") or ""
+    end
 
     local function is_target(s)
-        if not s then return false end
+        if not s then
+            return false
+        end
         local cyr = text_utils.has_cyrillic(s)
         if FSM.COPY_MODE == "A" then
             return not cyr
@@ -68,21 +72,35 @@ local function get_copy_context_text(time_pos, line_idx)
     end
 
     local function append(path, is_ass, explicit_idx, provided_subs)
-        if not path and not provided_subs then return end
+        if not path and not provided_subs then
+            return
+        end
         local subs = provided_subs
         if not subs then
-            if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.pri.subs
-            elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then subs = Tracks.sec.subs
-            else subs = subtitle_parser.load_sub(path, is_ass) end
+            if Tracks.pri.path == path and FSM.DRUM == "ON" and not is_ass then
+                subs = Tracks.pri.subs
+            elseif Tracks.sec.path == path and FSM.DRUM == "ON" and not is_ass then
+                subs = Tracks.sec.subs
+            else
+                subs = subtitle_parser.load_sub(path, is_ass)
+            end
         end
 
         if subs and #subs > 0 then
             local idx = explicit_idx or subtitle_parser.get_center_index(subs, time_pos)
             if idx ~= -1 then
                 if Options.copy_filter_russian and not is_target(trim(subs[idx].text)) then
-                    if idx > 1 and subs[idx-1].start_time == subs[idx].start_time and is_target(trim(subs[idx-1].text)) then
+                    if
+                        idx > 1
+                        and subs[idx - 1].start_time == subs[idx].start_time
+                        and is_target(trim(subs[idx - 1].text))
+                    then
                         idx = idx - 1
-                    elseif idx < #subs and subs[idx+1].start_time == subs[idx].start_time and is_target(trim(subs[idx+1].text)) then
+                    elseif
+                        idx < #subs
+                        and subs[idx + 1].start_time == subs[idx].start_time
+                        and is_target(trim(subs[idx + 1].text))
+                    then
                         idx = idx + 1
                     end
                 end
@@ -90,21 +108,31 @@ local function get_copy_context_text(time_pos, line_idx)
                 local pre, i = {}, idx - 1
                 while i >= 1 and #pre < Options.copy_context_lines do
                     local t = trim(subs[i].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(pre, 1, t) end
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then
+                        table.insert(pre, 1, t)
+                    end
                     i = i - 1
                 end
-                for _, ln in ipairs(pre) do table.insert(combined, ln) end
+                for _, ln in ipairs(pre) do
+                    table.insert(combined, ln)
+                end
 
                 local ctext = trim(subs[idx].text)
-                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then table.insert(combined, ctext) end
+                if ctext ~= "" and (not Options.copy_filter_russian or is_target(ctext)) then
+                    table.insert(combined, ctext)
+                end
 
                 local post, i2 = {}, idx + 1
                 while i2 <= #subs and #post < Options.copy_context_lines do
                     local t = trim(subs[i2].text)
-                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then table.insert(post, t) end
+                    if t ~= "" and (not Options.copy_filter_russian or is_target(t)) then
+                        table.insert(post, t)
+                    end
                     i2 = i2 + 1
                 end
-                for _, ln in ipairs(post) do table.insert(combined, ln) end
+                for _, ln in ipairs(post) do
+                    table.insert(combined, ln)
+                end
             end
         end
     end
@@ -122,23 +150,27 @@ end
 -- --- Anki mapping ----------------------------------------------------------
 
 local function load_anki_mapping_ini()
-    if ANKI_MAPPING_CACHE then return ANKI_MAPPING_CACHE end
+    if ANKI_MAPPING_CACHE then
+        return ANKI_MAPPING_CACHE
+    end
 
     local paths = {
         -- Preferred modern root location (kebab-case), then underscore variant.
         utils.join_path(mp.get_script_directory(), "../../anki-mapping.ini"),
         utils.join_path(mp.get_script_directory(), "../../anki_mapping.ini"),
         -- MPV-config-relative root fallback.
-        mp.command_native({"expand-path", "~~/anki-mapping.ini"}),
-        mp.command_native({"expand-path", "~~/anki_mapping.ini"}),
+        mp.command_native({ "expand-path", "~~/anki-mapping.ini" }),
+        mp.command_native({ "expand-path", "~~/anki_mapping.ini" }),
         -- Legacy script-opts fallback for backward compatibility.
-        mp.command_native({"expand-path", "~~/script-opts/anki-mapping.ini"}),
-        mp.command_native({"expand-path", "~~/script-opts/anki_mapping.ini"})
+        mp.command_native({ "expand-path", "~~/script-opts/anki-mapping.ini" }),
+        mp.command_native({ "expand-path", "~~/script-opts/anki_mapping.ini" }),
     }
     local f = nil
     for _, p in ipairs(paths) do
         f = io.open(p, "r")
-        if f then break end
+        if f then
+            break
+        end
     end
     local config = {
         fields = {},
@@ -148,7 +180,7 @@ local function load_anki_mapping_ini()
         ordered_word = {},
         ordered_sentence = {},
         tts = {},
-        settings = {}
+        settings = {},
     }
 
     if not f then
@@ -175,7 +207,9 @@ local function load_anki_mapping_ini()
                 if k and v then
                     k = k:match("^%s*(.-)%s*$")
                     v = v:match("^%s*(.-)%s*$")
-                    if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
+                    if v:match('^".*"$') or v:match("^'.*'$") then
+                        v = v:sub(2, -2)
+                    end
                     config.mapping_word[k] = v
                     table.insert(config.ordered_word, k)
                 end
@@ -184,7 +218,9 @@ local function load_anki_mapping_ini()
                 if k and v then
                     k = k:match("^%s*(.-)%s*$")
                     v = v:match("^%s*(.-)%s*$")
-                    if (v:match('^".*"$') or v:match("^'.*'$")) then v = v:sub(2, -2) end
+                    if v:match('^".*"$') or v:match("^'.*'$") then
+                        v = v:sub(2, -2)
+                    end
                     config.mapping_sentence[k] = v
                     table.insert(config.ordered_sentence, k)
                 end
@@ -193,7 +229,7 @@ local function load_anki_mapping_ini()
                 if k and v then
                     k = k:match("^%s*(.-)%s*$")
                     v = v:match("^%s*(.-)%s*$")
-                    if (v:match('^".*"$') or v:match("^'.*'$")) then
+                    if v:match('^".*"$') or v:match("^'.*'$") then
                         v = v:sub(2, -2)
                     end
                     config[section][k] = v
@@ -211,13 +247,14 @@ local function load_anki_mapping_ini()
     end
     f:close()
 
-
     ANKI_MAPPING_CACHE = config
     return config
 end
 
 local function extract_subtitle_metadata(path)
-    if not path or path == "" then return "", "" end
+    if not path or path == "" then
+        return "", ""
+    end
     local filename = path:match("([^/\\]+)$") or path
     local base = filename:gsub("%.[^.]+$", "")
     local lang_code = base:match("%.([a-zA-Z%-]+)$")
@@ -229,13 +266,20 @@ end
 
 local function find_source_url()
     local path = mp.get_property("path")
-    if not path or path == "" then return "" end
+    if not path or path == "" then
+        return ""
+    end
 
     -- Cache validation: if we have a file path, check if it changed
     if path == LAST_PATH_FOR_URL and SOURCE_URL_FILE_PATH then
         local info = utils.file_info(SOURCE_URL_FILE_PATH)
         if info then
-            if info.mtime == SOURCE_URL_FILE_MTIME and info.size == SOURCE_URL_FILE_SIZE and SOURCE_URL_CACHE and SOURCE_URL_CACHE ~= "" then
+            if
+                info.mtime == SOURCE_URL_FILE_MTIME
+                and info.size == SOURCE_URL_FILE_SIZE
+                and SOURCE_URL_CACHE
+                and SOURCE_URL_CACHE ~= ""
+            then
                 -- File unchanged and we have a valid URL cached, skip scan
                 return SOURCE_URL_CACHE
             end
@@ -258,13 +302,17 @@ local function find_source_url()
     SOURCE_URL_FILE_PATH = nil
 
     local dir, filename = utils.split_path(path)
-    if not dir or dir == "" then return "" end
+    if not dir or dir == "" then
+        return ""
+    end
 
     local base_name = filename:gsub("%.[^.]+$", "")
 
     local function parse_url_file(target_path)
         local f = io.open(target_path, "r")
-        if not f then return nil end
+        if not f then
+            return nil
+        end
         for line in f:lines() do
             local clean = line:gsub("^\xEF\xBB\xBF", ""):match("^%s*(.-)%s*$")
             local url = clean:match("^[Uu][Rr][Ll]%s*=%s*(https?://%S+)")
@@ -312,37 +360,69 @@ local function find_source_url()
 end
 
 local function escape_tsv(str)
-    if type(str) ~= "string" then return tostring(str or "") end
+    if type(str) ~= "string" then
+        return tostring(str or "")
+    end
     str = text_utils.normalize_inline_break_markers(str)
     return (str:gsub("\t", " "):gsub("\n", " "))
 end
 
-local function resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts, item_index)
-    if not field_name or field_name == "" then return "" end
+local function resolve_anki_field(
+    field_name,
+    term,
+    context,
+    time_pos,
+    deck_name,
+    pri_lang,
+    sec_lang,
+    mapping,
+    tts,
+    item_index
+)
+    if not field_name or field_name == "" then
+        return ""
+    end
 
     local source = mapping[field_name]
     if not source then
         source = tts[field_name]
-        if not source then return "" end
+        if not source then
+            return ""
+        end
     end
 
-    if source == "source_word" then return escape_tsv(term) end
-    if source == "source_sentence" then return escape_tsv(context) end
-    if source == "source_index" then return tostring(item_index or "") end
-    if source == "source_url" then return escape_tsv(find_source_url()) end
-    if source == "time" then return string.format("%.3f", time_pos) end
-    if source == "deck_name" then return escape_tsv(deck_name) end
-
+    if source == "source_word" then
+        return escape_tsv(term)
+    end
+    if source == "source_sentence" then
+        return escape_tsv(context)
+    end
+    if source == "source_index" then
+        return tostring(item_index or "")
+    end
+    if source == "source_url" then
+        return escape_tsv(find_source_url())
+    end
+    if source == "time" then
+        return string.format("%.3f", time_pos)
+    end
+    if source == "deck_name" then
+        return escape_tsv(deck_name)
+    end
 
     if source:match("^tts_source_") then
         local tts_lang = source:match("^tts_source_(.+)$")
-        if tts_lang and pri_lang and tts_lang:lower() == pri_lang:lower() then return "1" end
+        if tts_lang and pri_lang and tts_lang:lower() == pri_lang:lower() then
+            return "1"
+        end
         return ""
     end
     if source:match("^tts_dest_") then
         local tts_lang = source:match("^tts_dest_(.+)$")
         -- Destination flags check the secondary track's language
-        if tts_lang and sec_lang and tts_lang:lower() == sec_lang:lower() then return "1" end
+        if tts_lang and sec_lang and tts_lang:lower() == sec_lang:lower() then
+            return "1"
+        end
 
         -- Fallback: If no secondary language is detected, default to Russian ("ru")
         if (not sec_lang or sec_lang == "") and tts_lang == "ru" then
@@ -351,12 +431,16 @@ local function resolve_anki_field(field_name, term, context, time_pos, deck_name
         return ""
     end
 
-    if source == "1" then return "1" end
+    if source == "1" then
+        return "1"
+    end
     return escape_tsv(source)
 end
 
 local function clean_anki_term(term)
-    if not term or term == "" then return "" end
+    if not term or term == "" then
+        return ""
+    end
     term = term:gsub("{[^}]+}", "")
     term = term:match("^%s*(.-)%s*$")
     return term or ""
@@ -367,7 +451,9 @@ end
 local function prepare_export_text(params, options)
     options = options or {}
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return "" end
+    if not subs or #subs == 0 then
+        return ""
+    end
     local target_subs = subs
     if options.copy_mode == "B" then
         if Tracks.sec.subs and #Tracks.sec.subs > 0 then
@@ -391,15 +477,18 @@ local function prepare_export_text(params, options)
                 for _, t in ipairs(tokens) do
                     if t.logical_idx then
                         local in_range = true
-                        if i == p1_l and t.logical_idx < p1_w - L_EPSILON then in_range = false end
-                        if i == p2_l and t.logical_idx > p2_w + L_EPSILON then in_range = false end
+                        if i == p1_l and t.logical_idx < p1_w - L_EPSILON then
+                            in_range = false
+                        end
+                        if i == p2_l and t.logical_idx > p2_w + L_EPSILON then
+                            in_range = false
+                        end
 
                         if in_range then
                             table.insert(line_parts, t.text)
                         end
                     end
                 end
-
 
                 if #line_parts > 0 then
                     table.insert(parts, table.concat(line_parts, ""))
@@ -415,7 +504,6 @@ local function prepare_export_text(params, options)
                 local raw_text = text_utils.normalize_inline_break_markers(sub.text):gsub("\n", " ")
                 local tokens = text_utils.build_word_list_internal(raw_text, true)
                 local w_text = nil
-
 
                 for _, t in ipairs(tokens) do
                     if text_utils.logical_cmp(t.logical_idx, m.word) then
@@ -433,17 +521,31 @@ local function prepare_export_text(params, options)
                             has_gap = true
                         else
                             -- Consecutive lines: Check for intermediate words (Requirement 151 Adaptive Gap)
-                            local prev_sub_tokens = text_utils.get_sub_tokens(subs[last_m.line], true) or {}
-                            local next_sub_tokens = text_utils.get_sub_tokens(subs[m.line], true) or {}
+                            local prev_sub_tokens = text_utils.get_sub_tokens(
+                                subs[last_m.line],
+                                true
+                            ) or {}
+                            local next_sub_tokens = text_utils.get_sub_tokens(subs[m.line], true)
+                                or {}
                             for _, t in ipairs(prev_sub_tokens) do
-                                if t.logical_idx and t.logical_idx > last_m.word + L_EPSILON and t.is_word then
-                                    has_gap = true; break
+                                if
+                                    t.logical_idx
+                                    and t.logical_idx > last_m.word + L_EPSILON
+                                    and t.is_word
+                                then
+                                    has_gap = true
+                                    break
                                 end
                             end
                             if not has_gap then
                                 for _, t in ipairs(next_sub_tokens) do
-                                    if t.logical_idx and t.logical_idx < m.word - L_EPSILON and t.is_word then
-                                        has_gap = true; break
+                                    if
+                                        t.logical_idx
+                                        and t.logical_idx < m.word - L_EPSILON
+                                        and t.is_word
+                                    then
+                                        has_gap = true
+                                        break
                                     end
                                 end
                             end
@@ -454,9 +556,17 @@ local function prepare_export_text(params, options)
                         else
                             -- Requirement 86: Use verbatim tokens between adjacent members
                             if m.line == last_m.line then
-                                local last_line_tokens = text_utils.build_word_list_internal(text_utils.normalize_inline_break_markers(target_subs[last_m.line].text):gsub("\n", " "), true)
+                                local last_line_tokens = text_utils.build_word_list_internal(
+                                    text_utils
+                                        .normalize_inline_break_markers(target_subs[last_m.line].text)
+                                        :gsub("\n", " "),
+                                    true
+                                )
                                 for _, t in ipairs(last_line_tokens) do
-                                    if t.logical_idx > last_m.word + L_EPSILON and t.logical_idx < m.word - L_EPSILON then
+                                    if
+                                        t.logical_idx > last_m.word + L_EPSILON
+                                        and t.logical_idx < m.word - L_EPSILON
+                                    then
                                         table.insert(parts, t.text)
                                     end
                                 end
@@ -467,7 +577,6 @@ local function prepare_export_text(params, options)
                     end
                     table.insert(parts, w_text)
                     last_m = m
-
                 end
             end
         end
@@ -479,12 +588,12 @@ local function prepare_export_text(params, options)
                 local tokens = text_utils.build_word_list_internal(raw_text, true)
                 for _, t in ipairs(tokens) do
                     if text_utils.logical_cmp(t.logical_idx, params.word) then
-                        parts = {t.text}
+                        parts = { t.text }
                         break
                     end
                 end
             else
-                parts = {raw_text}
+                parts = { raw_text }
             end
         end
     end
@@ -498,7 +607,6 @@ local function prepare_export_text(params, options)
         final_text = final_text:gsub("{[^}]+}", ""):match("^%s*(.-)%s*$")
     end
 
-
     -- Post-processing for clipboard Russian filter if needed
     if options.filter_russian then
         local lines = {}
@@ -509,9 +617,13 @@ local function prepare_export_text(params, options)
             local valid = {}
             for _, ln in ipairs(lines) do
                 local cyr = text_utils.has_cyrillic(ln)
-                if (options.copy_mode == "A" and not cyr) or (options.copy_mode == "B" and cyr) then table.insert(valid, ln) end
+                if (options.copy_mode == "A" and not cyr) or (options.copy_mode == "B" and cyr) then
+                    table.insert(valid, ln)
+                end
             end
-            if #valid == 0 then table.insert(valid, (options.copy_mode == "A") and lines[1] or lines[#lines]) end
+            if #valid == 0 then
+                table.insert(valid, (options.copy_mode == "A") and lines[1] or lines[#lines])
+            end
             final_text = table.concat(valid, " ")
         end
     end
@@ -521,30 +633,46 @@ end
 
 -- --- SentenceSource context engine (extract_anki_context) ------------------
 
-local function extract_anki_context(full_line, selected_term, max_words_override, pivot_pos, coord_map)
-    if not full_line or full_line == "" then return "" end
-    if not selected_term or selected_term == "" then return full_line end
+local function extract_anki_context(
+    full_line,
+    selected_term,
+    max_words_override,
+    pivot_pos,
+    coord_map
+)
+    if not full_line or full_line == "" then
+        return ""
+    end
+    if not selected_term or selected_term == "" then
+        return full_line
+    end
 
     -- Helpers scoped here to avoid consuming module-level local slots (Lua 200-local limit).
     local function token_ending_at(s, i)
         local j = i
         while j >= 1 do
             local c = s:sub(j, j)
-            if c == " " or c == "\0" or c == "\t" or c == "\n" then break end
+            if c == " " or c == "\0" or c == "\t" or c == "\n" then
+                break
+            end
             j = j - 1
         end
         return s:sub(j + 1, i)
     end
     local function is_terminator_char(c)
         local t = Options.anki_sentence_terminators
-        if not t or t == "" then t = ".!?" end
+        if not t or t == "" then
+            t = ".!?"
+        end
         return t:find(c, 1, true) ~= nil
     end
     local function lookahead_after(s, pos)
         local j = pos + 1
         while j <= #s do
             local c = s:sub(j, j)
-            if c ~= " " and c ~= "\t" and c ~= "\0" and c ~= "\n" then return c end
+            if c ~= " " and c ~= "\t" and c ~= "\0" and c ~= "\n" then
+                return c
+            end
             j = j + 1
         end
         return ""
@@ -552,7 +680,9 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local function is_spaced_initialism_period_at(s, dot_pos)
         -- Detect abbreviations like "z. B." where the first period must not end a sentence.
         local prev = s:sub(dot_pos - 1, dot_pos - 1)
-        if not prev:match("^%a$") then return false end
+        if not prev:match("^%a$") then
+            return false
+        end
         local j = dot_pos + 1
         while j <= #s do
             local c = s:sub(j, j)
@@ -584,10 +714,19 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local best_dist = math.huge
     local search_from = 1
 
-    Diagnostic.debug(string.format("Search Pivot: %.1f | Term: '%s' | Text Len: %d", center, selected_term, #full_line))
+    Diagnostic.debug(
+        string.format(
+            "Search Pivot: %.1f | Term: '%s' | Text Len: %d",
+            center,
+            selected_term,
+            #full_line
+        )
+    )
     while true do
         local s, e = full_lower:find(term_lower, search_from, true)
-        if not s then break end
+        if not s then
+            break
+        end
         local dist = math.abs((s + e) / 2 - center)
         Diagnostic.debug(string.format("Candidate at %d-%d | Dist: %.1f", s, e, dist))
         if dist < best_dist then
@@ -596,7 +735,9 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         end
         search_from = math.max(search_from + 1, e + 1)
     end
-    if start_pos then Diagnostic.debug(string.format("Selected match at index %d", start_pos)) end
+    if start_pos then
+        Diagnostic.debug(string.format("Selected match at index %d", start_pos))
+    end
 
     -- Non-contiguous term fallback: the composed term can't be found verbatim
     -- (words were skipped between picks, or picks span sentence boundaries).
@@ -623,7 +764,9 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                     local s_from = 1
                     while true do
                         local ws, we = full_lower:find(word, s_from, true)
-                        if not ws then break end
+                        if not ws then
+                            break
+                        end
                         local dist = math.abs((ws + we) / 2 - center)
                         if dist < best_dist_word then
                             best_dist_word = dist
@@ -660,7 +803,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local sentence = full_line
     local sent_start = 1
     local sent_end = #full_line
-    local sentence_abs_start = 1   -- tracks where the cleaned sentence starts in full_line
+    local sentence_abs_start = 1 -- tracks where the cleaned sentence starts in full_line
     local has_real_boundary = false
 
     if start_pos then
@@ -679,7 +822,16 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                     -- For "." check whether the preceding token is an abbreviation. The
                     -- look-ahead character lets is_abbrev suppress the lowercase heuristic
                     -- when the period is clearly followed by a new sentence (uppercase).
-                    if c ~= "." or (not text_utils.is_abbrev(token_ending_at(full_line, i), lookahead_after(full_line, i)) and not is_spaced_initialism_period_at(full_line, i)) then
+                    if
+                        c ~= "."
+                        or (
+                            not text_utils.is_abbrev(
+                                token_ending_at(full_line, i),
+                                lookahead_after(full_line, i)
+                            )
+                            and not is_spaced_initialism_period_at(full_line, i)
+                        )
+                    then
                         b_term_pos = i
                         break
                     end
@@ -688,13 +840,21 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             i = i - 1
         end
         if b_term_pos then
-            sent_start = b_term_pos + 1   -- sentence begins right after the terminator
+            sent_start = b_term_pos + 1 -- sentence begins right after the terminator
             has_real_boundary = true
-            Diagnostic.debug(string.format("Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
-                full_line:sub(b_term_pos, b_term_pos), b_term_pos, sent_start))
+            Diagnostic.debug(
+                string.format(
+                    "Sent boundary (backward): terminator '%s' at %d, sent_start=%d",
+                    full_line:sub(b_term_pos, b_term_pos),
+                    b_term_pos,
+                    sent_start
+                )
+            )
         else
             sent_start = 1
-            Diagnostic.debug("Sent boundary (backward): no terminator found, fallback to block start")
+            Diagnostic.debug(
+                "Sent boundary (backward): no terminator found, fallback to block start"
+            )
         end
 
         -- === Forward scan: find nearest real sentence terminator after end_pos ===
@@ -705,7 +865,16 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             if is_terminator_char(c) then
                 local after = full_line:sub(k + 1, k + 1)
                 if after == "" or after == " " or after == "\t" or after == "\0" then
-                    if c ~= "." or (not text_utils.is_abbrev(token_ending_at(full_line, k), lookahead_after(full_line, k)) and not is_spaced_initialism_period_at(full_line, k)) then
+                    if
+                        c ~= "."
+                        or (
+                            not text_utils.is_abbrev(
+                                token_ending_at(full_line, k),
+                                lookahead_after(full_line, k)
+                            )
+                            and not is_spaced_initialism_period_at(full_line, k)
+                        )
+                    then
                         f_term_pos = k
                         break
                     end
@@ -714,10 +883,16 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             k = k + 1
         end
         if f_term_pos then
-            sent_end = f_term_pos   -- include the terminator character
+            sent_end = f_term_pos -- include the terminator character
             has_real_boundary = true
-            Diagnostic.debug(string.format("Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
-                full_line:sub(f_term_pos, f_term_pos), f_term_pos, sent_end))
+            Diagnostic.debug(
+                string.format(
+                    "Sent boundary (forward): terminator '%s' at %d, sent_end=%d",
+                    full_line:sub(f_term_pos, f_term_pos),
+                    f_term_pos,
+                    sent_end
+                )
+            )
         else
             sent_end = #full_line
             Diagnostic.debug("Sent boundary (forward): no terminator found, fallback to block end")
@@ -780,7 +955,7 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     local first_idx, last_idx = nil, nil
     if start_pos then
         local s_rel = start_pos - sentence_abs_start + 1
-        local e_rel = end_pos   - sentence_abs_start + 1
+        local e_rel = end_pos - sentence_abs_start + 1
         s_rel = math.max(1, s_rel)
         e_rel = math.max(s_rel, e_rel)
 
@@ -796,15 +971,11 @@ local function extract_anki_context(full_line, selected_term, max_words_override
                 curr_char = w_end + 1
             end
         end
-
-
     else
-
     end
     if first_idx then
         Diagnostic.trace(string.format("  - Span Detected: Word %d to %d", first_idx, last_idx))
     else
-
         return sentence
     end
 
@@ -816,7 +987,9 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             limit = words_needed
         end
     end
-    if #words <= limit then return sentence end
+    if #words <= limit then
+        return sentence
+    end
 
     -- If the selection span itself is wider than the limit, the user picked words far apart.
     if span >= limit then
@@ -827,16 +1000,28 @@ local function extract_anki_context(full_line, selected_term, max_words_override
             pad_right = math.max(pad_right, pad_after)
         end
         local crop_start = math.max(1, first_idx - pad_left)
-        local crop_end   = math.min(#words, last_idx + pad_right)
-        Diagnostic.trace(string.format("  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]", span, limit, crop_start, crop_end))
+        local crop_end = math.min(#words, last_idx + pad_right)
+        Diagnostic.trace(
+            string.format(
+                "  - Span (%d) >= limit (%d), cropping to span+pad [%d..%d]",
+                span,
+                limit,
+                crop_start,
+                crop_end
+            )
+        )
         local f_byte = (crop_start == 1) and 1 or nil
         local l_byte = (crop_end == #words) and #sentence or nil
         local curr = 1
         for i = 1, crop_end do
             local s, e = sentence:find(words[i], curr, true)
             if s then
-                if i == crop_start then f_byte = s end
-                if i == crop_end then l_byte = e end
+                if i == crop_start then
+                    f_byte = s
+                end
+                if i == crop_end then
+                    l_byte = e
+                end
                 curr = e + 1
             end
         end
@@ -861,7 +1046,9 @@ local function extract_anki_context(full_line, selected_term, max_words_override
         context_start = math.max(1, context_start - shift)
     end
 
-    Diagnostic.trace(string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx))
+    Diagnostic.trace(
+        string.format("  - Viewport: %d to %d (Center: %d)", context_start, context_end, center_idx)
+    )
 
     local f_byte = (context_start == 1) and 1 or nil
     local l_byte = (context_end == #words) and #sentence or nil
@@ -869,8 +1056,12 @@ local function extract_anki_context(full_line, selected_term, max_words_override
     for i = 1, context_end do
         local s, e = sentence:find(words[i], curr, true)
         if s then
-            if i == context_start then f_byte = s end
-            if i == context_end then l_byte = e end
+            if i == context_start then
+                f_byte = s
+            end
+            if i == context_end then
+                l_byte = e
+            end
             curr = e + 1
         end
     end
@@ -880,20 +1071,30 @@ end
 -- --- TSV path / I/O --------------------------------------------------------
 
 local function get_tsv_path()
-    if Options.anki_record_file and Options.anki_record_file ~= "" then return Options.anki_record_file end
+    if Options.anki_record_file and Options.anki_record_file ~= "" then
+        return Options.anki_record_file
+    end
     local path = mp.get_property("path")
-    if not path then return nil end
+    if not path then
+        return nil
+    end
     local base = path:match("(.+)%.[^%.]+$")
-    if not base then base = path end
+    if not base then
+        base = path
+    end
     return base .. ".tsv"
 end
 
 local function load_anki_tsv(force, quiet)
     local tsv_path = get_tsv_path()
-    if not tsv_path then return end
+    if not tsv_path then
+        return
+    end
 
     local info = utils.file_info(tsv_path)
-    local fingerprint_match = info and (info.mtime == FSM.ANKI_DB_MTIME) and (info.size == FSM.ANKI_DB_SIZE)
+    local fingerprint_match = info
+        and (info.mtime == FSM.ANKI_DB_MTIME)
+        and (info.size == FSM.ANKI_DB_SIZE)
 
     if FSM.ANKI_DB_PATH ~= tsv_path then
         FSM.ANKI_DB_PATH = tsv_path
@@ -917,15 +1118,26 @@ local function load_anki_tsv(force, quiet)
     local index_col = -1
     if #config.fields > 0 then
         for i, fld in ipairs(config.fields) do
-            local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
-            if src == "source_word" then table.insert(term_cols, i)
-            elseif src == "source_sentence" then table.insert(ctx_cols, i)
-            elseif src == "time" then time_col = i
-            elseif src == "source_index" then index_col = i end
+            local src = config.mapping[fld]
+                or config.mapping_word[fld]
+                or config.mapping_sentence[fld]
+            if src == "source_word" then
+                table.insert(term_cols, i)
+            elseif src == "source_sentence" then
+                table.insert(ctx_cols, i)
+            elseif src == "time" then
+                time_col = i
+            elseif src == "source_index" then
+                index_col = i
+            end
         end
     end
-    if #term_cols == 0 then table.insert(term_cols, 1) end
-    if #ctx_cols == 0 then table.insert(ctx_cols, 2) end
+    if #term_cols == 0 then
+        table.insert(term_cols, 1)
+    end
+    if #ctx_cols == 0 then
+        table.insert(ctx_cols, 2)
+    end
 
     local term_header_name = nil
     if config.fields and term_cols[1] and config.fields[term_cols[1]] then
@@ -953,13 +1165,20 @@ local function load_anki_tsv(force, quiet)
 
         local deck_col = -1
         for i, fld in ipairs(config.fields) do
-            local src = config.mapping[fld] or config.mapping_word[fld] or config.mapping_sentence[fld]
-            if src == "deck_name" then deck_col = i; break end
+            local src = config.mapping[fld]
+                or config.mapping_word[fld]
+                or config.mapping_sentence[fld]
+            if src == "deck_name" then
+                deck_col = i
+                break
+            end
         end
 
         local f = io.open(tsv_path, "w")
         if f then
-            if deck_col > 0 then f:write(string.format("#deck column:%d\n", deck_col)) end
+            if deck_col > 0 then
+                f:write(string.format("#deck column:%d\n", deck_col))
+            end
             f:write(header_line .. "\n")
             f:close()
             content = _helpers.safe_read_file(tsv_path)
@@ -972,7 +1191,6 @@ local function load_anki_tsv(force, quiet)
             return
         end
     end
-
 
     local new_highlights = {}
 
@@ -1020,8 +1238,12 @@ local function load_anki_tsv(force, quiet)
                     end
 
                     local idx_val = (index_col > 0) and fields[index_col] or nil
-                    if type(idx_val) == "string" then idx_val = idx_val:gsub("\r", "") end
-                    if idx_val == "" then idx_val = nil end
+                    if type(idx_val) == "string" then
+                        idx_val = idx_val:gsub("\r", "")
+                    end
+                    if idx_val == "" then
+                        idx_val = nil
+                    end
                     -- Try to convert to number only if it's a simple integer; otherwise keep as grounding string
                     if idx_val and idx_val:match("^%-?%d+$") then
                         idx_val = tonumber(idx_val)
@@ -1036,7 +1258,7 @@ local function load_anki_tsv(force, quiet)
                             tostring(c),
                             string.format("%.6f", tonumber(time_val) or 0),
                             tostring(idx_val or ""),
-                            tostring(row_id)
+                            tostring(row_id),
                         }, "|")
                         -- Pre-parse Advanced Pivot Grounding coordinates (Multi-Anchor support)
                         if idx_val then
@@ -1047,25 +1269,54 @@ local function load_anki_tsv(force, quiet)
                             local max_w = 0
 
                             for part in (tostring(idx_val) .. ","):gmatch("([^,]*),") do
-                                local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
+                                local l_off, p_idx, t_pos =
+                                    part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
                                 if l_off then
                                     local r_l = tonumber(l_off) or 0
                                     local r_w = tonumber(p_idx) or 0
-                                    table.insert(data.__pivots, {l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos)})
+                                    table.insert(
+                                        data.__pivots,
+                                        { l_off = r_l, p_idx = r_w, t_pos = tonumber(t_pos) }
+                                    )
 
-                                    if r_l < min_l then min_l = r_l; min_w = r_w
-                                    elseif r_l == min_l then if r_w < min_w then min_w = r_w end end
+                                    if r_l < min_l then
+                                        min_l = r_l
+                                        min_w = r_w
+                                    elseif r_l == min_l then
+                                        if r_w < min_w then
+                                            min_w = r_w
+                                        end
+                                    end
 
-                                    if r_l > max_l then max_l = r_l; max_w = r_w
-                                    elseif r_l == max_l then if r_w > max_w then max_w = r_w end end
+                                    if r_l > max_l then
+                                        max_l = r_l
+                                        max_w = r_w
+                                    elseif r_l == max_l then
+                                        if r_w > max_w then
+                                            max_w = r_w
+                                        end
+                                    end
                                 else
                                     local single = tonumber(part)
                                     if single then
-                                        table.insert(data.__pivots, {l_off = 0, p_idx = single, t_pos = 1})
-                                        if 0 < min_l then min_l = 0; min_w = single end
-                                        if 0 > max_l then max_l = 0; max_w = single end
-                                        if single < min_w and min_l == 0 then min_w = single end
-                                        if single > max_w and max_l == 0 then max_w = single end
+                                        table.insert(
+                                            data.__pivots,
+                                            { l_off = 0, p_idx = single, t_pos = 1 }
+                                        )
+                                        if 0 < min_l then
+                                            min_l = 0
+                                            min_w = single
+                                        end
+                                        if 0 > max_l then
+                                            max_l = 0
+                                            max_w = single
+                                        end
+                                        if single < min_w and min_l == 0 then
+                                            min_w = single
+                                        end
+                                        if single > max_w and max_l == 0 then
+                                            max_w = single
+                                        end
                                     end
                                 end
                             end
@@ -1089,26 +1340,39 @@ local function load_anki_tsv(force, quiet)
     for i, h in ipairs(new_highlights) do
         table.insert(sorted, { time = h.time, idx = i })
     end
-    table.sort(sorted, function(a, b) return a.time < b.time end)
+    table.sort(sorted, function(a, b)
+        return a.time < b.time
+    end)
     FSM.ANKI_HIGHLIGHTS_SORTED = sorted
 
     -- Flush stale __split_valid_indices caches: term set may have changed.
     if Tracks.pri.subs then
-        for _, sub in ipairs(Tracks.pri.subs) do sub.__split_valid_indices = nil end
+        for _, sub in ipairs(Tracks.pri.subs) do
+            sub.__split_valid_indices = nil
+        end
     end
     if Tracks.sec.subs then
-        for _, sub in ipairs(Tracks.sec.subs) do sub.__split_valid_indices = nil end
+        for _, sub in ipairs(Tracks.sec.subs) do
+            sub.__split_valid_indices = nil
+        end
     end
 
     FSM.ANKI_DB_MTIME = info and info.mtime or 0
     FSM.ANKI_DB_SIZE = info and info.size or 0
 
     _helpers.flush_rendering_caches()
-    local msg_text = string.format("TSV Loaded: %d highlights (mtime=%s, size=%s)", #new_highlights, tostring(FSM.ANKI_DB_MTIME), tostring(FSM.ANKI_DB_SIZE))
-    local dedupe_key = "tsv-load-" .. tostring(FSM.ANKI_DB_MTIME) .. "-" .. tostring(FSM.ANKI_DB_SIZE)
+    local msg_text = string.format(
+        "TSV Loaded: %d highlights (mtime=%s, size=%s)",
+        #new_highlights,
+        tostring(FSM.ANKI_DB_MTIME),
+        tostring(FSM.ANKI_DB_SIZE)
+    )
+    local dedupe_key = "tsv-load-"
+        .. tostring(FSM.ANKI_DB_MTIME)
+        .. "-"
+        .. tostring(FSM.ANKI_DB_SIZE)
 
     if quiet then
-
     else
         Diagnostic.info(msg_text, dedupe_key)
     end
@@ -1116,7 +1380,9 @@ end
 
 local function save_anki_tsv_row(term, context, time_pos, item_index)
     local tsv_path = get_tsv_path()
-    if not tsv_path then return end
+    if not tsv_path then
+        return
+    end
 
     local config = load_anki_mapping_ini()
     local settings = config.settings
@@ -1124,7 +1390,9 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     -- Calculate word count to determine profile
     local term_words = text_utils.build_word_list(term)
     local term_word_count = #term_words
-    local threshold = tonumber(settings.sentence_word_threshold) or Options.sentence_word_threshold or 3
+    local threshold = tonumber(settings.sentence_word_threshold)
+        or Options.sentence_word_threshold
+        or 3
 
     local is_sentence = (term_word_count >= threshold)
     local fields = config.fields
@@ -1133,12 +1401,16 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     if is_sentence then
         if next(config.mapping_sentence) then
             mapping = config.mapping_sentence
-            if #fields == 0 then fields = config.ordered_sentence end
+            if #fields == 0 then
+                fields = config.ordered_sentence
+            end
         end
     else
         if next(config.mapping_word) then
             mapping = config.mapping_word
-            if #fields == 0 then fields = config.ordered_word end
+            if #fields == 0 then
+                fields = config.ordered_word
+            end
         end
     end
 
@@ -1146,8 +1418,8 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
 
     if #fields == 0 then
         -- Fallback default behavior
-        fields = {"Term", "Context"}
-        mapping = {Term = "source_word", Context = "source_sentence"}
+        fields = { "Term", "Context" }
+        mapping = { Term = "source_word", Context = "source_sentence" }
     end
 
     local deck_name, pri_lang, sec_lang = "", "", ""
@@ -1168,12 +1440,16 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
     if f_check then
         exists = true
         local content = f_check:read(1)
-        if content then is_empty = false end
+        if content then
+            is_empty = false
+        end
         f_check:close()
     end
 
     local f = io.open(tsv_path, "a")
-    if not f then return end
+    if not f then
+        return
+    end
 
     if not exists or is_empty then
         local deck_col = -1
@@ -1200,7 +1476,21 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
         if field_name == "" then
             table.insert(row_data, "")
         else
-            table.insert(row_data, resolve_anki_field(field_name, term, context, time_pos, deck_name, pri_lang, sec_lang, mapping, tts, item_index))
+            table.insert(
+                row_data,
+                resolve_anki_field(
+                    field_name,
+                    term,
+                    context,
+                    time_pos,
+                    deck_name,
+                    pri_lang,
+                    sec_lang,
+                    mapping,
+                    tts,
+                    item_index
+                )
+            )
         end
     end
 
@@ -1214,7 +1504,7 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
         tostring(context),
         string.format("%.6f", tonumber(time_pos) or 0),
         tostring(item_index or ""),
-        tostring(next_row_id)
+        tostring(next_row_id),
     }, "|")
     table.insert(FSM.ANKI_HIGHLIGHTS, new_data)
     local new_h_idx = #FSM.ANKI_HIGHLIGHTS
@@ -1225,7 +1515,9 @@ local function save_anki_tsv_row(term, context, time_pos, item_index)
         local sorted = FSM.ANKI_HIGHLIGHTS_SORTED
         local ins_pos = #sorted + 1
         for j = #sorted, 1, -1 do
-            if sorted[j].time <= time_pos then break end
+            if sorted[j].time <= time_pos then
+                break
+            end
             ins_pos = j
         end
         table.insert(sorted, ins_pos, { time = time_pos, idx = new_h_idx })

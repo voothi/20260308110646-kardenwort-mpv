@@ -8,10 +8,10 @@
 -- manage_ui_border_override, trigger_volume_suspension.
 -- ============================================================================
 
-local mp = require 'mp'
-local utils = require 'mp.utils'
-local text_utils = require 'text_utils'
-local subtitle_parser = require 'subtitle_parser'
+local mp = require("mp")
+local utils = require("mp.utils")
+local text_utils = require("text_utils")
+local subtitle_parser = require("subtitle_parser")
 
 local M = {}
 
@@ -30,22 +30,32 @@ function M.init(fsm, opts, tracks, diagnostic, helpers)
     _helpers = setmetatable(helpers or {}, {
         __index = function(t, k)
             error("FATAL: Missing injected helper function: " .. tostring(k), 2)
-        end
+        end,
     })
 end
 
 -- Helpers read at call time (defined later in main.lua than init()).
 -- Referenced directly via _helpers table — no wrapper call frames needed.
 
-local function utf8_to_table(s) return text_utils.utf8_to_table(s) end
-local function normalize_inline_break_markers(s) return text_utils.normalize_inline_break_markers(s) end
-local function build_word_list_internal(...) return text_utils.build_word_list_internal(...) end
-local function calculate_ass_alpha(v) return text_utils.calculate_ass_alpha(v) end
+local function utf8_to_table(s)
+    return text_utils.utf8_to_table(s)
+end
+local function normalize_inline_break_markers(s)
+    return text_utils.normalize_inline_break_markers(s)
+end
+local function build_word_list_internal(...)
+    return text_utils.build_word_list_internal(...)
+end
+local function calculate_ass_alpha(v)
+    return text_utils.calculate_ass_alpha(v)
+end
 
 -- --- search-only scoring helpers (moved from main.lua) ---------------------
 
 local function find_fuzzy_indices(str_lower, query_lower)
-    if query_lower == "" then return {} end
+    if query_lower == "" then
+        return {}
+    end
     local str_t = utf8_to_table(str_lower)
     local query_t = utf8_to_table(query_lower)
 
@@ -65,19 +75,25 @@ local function find_fuzzy_indices(str_lower, query_lower)
 end
 
 local function calculate_match_score(str, query)
-    if query == "" then return 0 end
+    if query == "" then
+        return 0
+    end
     local str_lower = text_utils.utf8_to_lower(str)
     local query_lower = text_utils.utf8_to_lower(query)
 
     -- Exact match is highest priority
-    if str_lower == query_lower then return 2000 end
+    if str_lower == query_lower then
+        return 2000
+    end
 
     -- Tokenize query by spaces
     local tokens = {}
     for token in query_lower:gmatch("%S+") do
         table.insert(tokens, token)
     end
-    if #tokens == 0 then return 0 end
+    if #tokens == 0 then
+        return 0
+    end
 
     -- Check if ALL tokens are present as FUZZY SUBSEQUENCES in the string
     local matches = {}
@@ -99,10 +115,15 @@ local function calculate_match_score(str, query)
             local cur_byte = 1
             while cur_byte < start_pos do
                 local b = str_lower:byte(cur_byte)
-                if b < 128 then cur_byte = cur_byte + 1
-                elseif b < 224 then cur_byte = cur_byte + 2
-                elseif b < 240 then cur_byte = cur_byte + 3
-                else cur_byte = cur_byte + 4 end
+                if b < 128 then
+                    cur_byte = cur_byte + 1
+                elseif b < 224 then
+                    cur_byte = cur_byte + 2
+                elseif b < 240 then
+                    cur_byte = cur_byte + 3
+                else
+                    cur_byte = cur_byte + 4
+                end
                 char_start = char_start + 1
             end
 
@@ -111,7 +132,7 @@ local function calculate_match_score(str, query)
                 table.insert(indices, char_start + k)
             end
 
-            table.insert(matches, {indices = indices, literal = true, span = token_char_len})
+            table.insert(matches, { indices = indices, literal = true, span = token_char_len })
         else
             -- Fallback to fuzzy subsequence for this specific word/token
             local indices = find_fuzzy_indices(str_lower, token)
@@ -119,7 +140,7 @@ local function calculate_match_score(str, query)
                 return 0 -- Every keyword must match at least fuzzily
             end
             local span = indices[#indices] - indices[1] + 1
-            table.insert(matches, {indices = indices, literal = false, span = span})
+            table.insert(matches, { indices = indices, literal = false, span = span })
         end
     end
 
@@ -180,7 +201,9 @@ end
 
 local function get_word_boundary(q_table, pos, direction)
     -- direction: -1 (left), 1 (right)
-    if #q_table == 0 then return 0 end
+    if #q_table == 0 then
+        return 0
+    end
 
     local new_pos = pos
 
@@ -208,25 +231,41 @@ local function get_word_boundary(q_table, pos, direction)
 end
 
 local function get_clipboard()
-    local platform = package.config:sub(1,1)
+    local platform = package.config:sub(1, 1)
     if platform == "\\" then
-        local res = utils.subprocess({ args = {"powershell", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Clipboard -Raw"}, cancellable = false })
-        if res and res.status == 0 and res.stdout then return res.stdout end
+        local res = utils.subprocess({
+            args = {
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Clipboard -Raw",
+            },
+            cancellable = false,
+        })
+        if res and res.status == 0 and res.stdout then
+            return res.stdout
+        end
     else
         local un = io.popen("uname -a")
         local uname_str = un and un:read("*a") or ""
-        if un then un:close() end
+        if un then
+            un:close()
+        end
         uname_str = uname_str:lower()
 
         local cmd = ""
         if uname_str:find("darwin") then
             cmd = "pbpaste"
-        elseif uname_str:find("android") or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux")) then
+        elseif
+            uname_str:find("android")
+            or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux"))
+        then
             cmd = "termux-clipboard-get"
         elseif os.getenv("WAYLAND_DISPLAY") then
             cmd = "wl-paste"
         else
-            cmd = "xclip -selection clipboard -o 2>/dev/null || xsel --clipboard --output 2>/dev/null"
+            cmd =
+                "xclip -selection clipboard -o 2>/dev/null || xsel --clipboard --output 2>/dev/null"
         end
 
         if cmd ~= "" then
@@ -247,17 +286,23 @@ local function update_search_results()
     FSM.SEARCH_RESULTS = {}
     FSM.SEARCH_SEL_IDX = 1
 
-    if FSM.SEARCH_QUERY == "" then return end
+    if FSM.SEARCH_QUERY == "" then
+        return
+    end
 
     local subs = Tracks.pri.subs
-    if not subs or #subs == 0 then return end
+    if not subs or #subs == 0 then
+        return
+    end
 
     local query = FSM.SEARCH_QUERY
     local scored_results = {}
 
     local function normalize_hl(indices)
         local hl = {}
-        if type(indices) ~= "table" then return hl end
+        if type(indices) ~= "table" then
+            return hl
+        end
         for k, v in pairs(indices) do
             if type(k) == "number" and v == true then
                 hl[k] = true
@@ -265,7 +310,9 @@ local function update_search_results()
                 hl[v] = true
             elseif type(k) == "string" and v == true then
                 local nk = tonumber(k)
-                if nk then hl[nk] = true end
+                if nk then
+                    hl[nk] = true
+                end
             end
         end
         return hl
@@ -274,7 +321,7 @@ local function update_search_results()
     for i, sub in ipairs(subs) do
         local score, indices = calculate_match_score(sub.text, query)
         if score > 0 then
-            table.insert(scored_results, {idx = i, score = score, hl = normalize_hl(indices)})
+            table.insert(scored_results, { idx = i, score = score, hl = normalize_hl(indices) })
         end
     end
 
@@ -286,17 +333,23 @@ local function update_search_results()
     end)
 
     for _, item in ipairs(scored_results) do
-        table.insert(FSM.SEARCH_RESULTS, {idx = item.idx, text = subs[item.idx].text, hl = item.hl})
+        table.insert(
+            FSM.SEARCH_RESULTS,
+            { idx = item.idx, text = subs[item.idx].text, hl = item.hl }
+        )
     end
 end
 
 local function draw_search_ui()
-    if not FSM.SEARCH_MODE then return "" end
+    if not FSM.SEARCH_MODE then
+        return ""
+    end
 
     local padding_x = 20
     local padding_y = 10
     local font_size = Options.search_font_size or Options.dw_font_size
-    local font_name = Options.search_font_name ~= "" and Options.search_font_name or Options.dw_font_name
+    local font_name = Options.search_font_name ~= "" and Options.search_font_name
+        or Options.dw_font_name
     local line_height = font_size * (Options.search_line_height_mul or 1.2)
 
     local box_w = 1200
@@ -310,8 +363,11 @@ local function draw_search_ui()
     local shad = Options.search_shadow_offset or 0.0
 
     local opacity_hex = calculate_ass_alpha(Options.search_bg_opacity or "60")
-    local text_bgbox_neutral = (FSM.osd_border_style == "background-box" and not FSM.SEARCH_BORDER_OVERRIDE)
-        and "{\\3a&HFF&}{\\4a&HFF&}" or ""
+    local text_bgbox_neutral = (
+        FSM.osd_border_style == "background-box" and not FSM.SEARCH_BORDER_OVERRIDE
+    )
+            and "{\\3a&HFF&}{\\4a&HFF&}"
+        or ""
 
     local display_query = ""
     local q_table = utf8_to_table(FSM.SEARCH_QUERY)
@@ -328,7 +384,8 @@ local function draw_search_ui()
         for i = 1, #q_table do
             if i == s_start + 1 then
                 local q_b = Options.search_query_hit_bold and "{\\b1}" or ""
-                display_query = display_query .. string.format("%s{\\1c&H%s&}", q_b, Options.search_query_hit_color)
+                display_query = display_query
+                    .. string.format("%s{\\1c&H%s&}", q_b, Options.search_query_hit_color)
             end
 
             if i == cur + 1 and not has_sel then
@@ -351,20 +408,47 @@ local function draw_search_ui()
     local stripped_query = display_query:gsub("{[^}]+}", "")
     local query_char_tokens = {}
     for c in stripped_query:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        table.insert(query_char_tokens, {text = c})
+        table.insert(query_char_tokens, { text = c })
     end
 
-    local query_vlines = _helpers.wrap_tokens(query_char_tokens, box_w - padding_x * 2, font_size, font_name, true)
+    local query_vlines =
+        _helpers.wrap_tokens(query_char_tokens, box_w - padding_x * 2, font_size, font_name, true)
     local query_line_count = math.max(1, #query_vlines)
 
     local input_box_h = query_line_count * line_height + padding_y * 2
 
     local ass = ""
-    ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-        box_x, box_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, input_box_h, input_box_h)
+    ass = ass
+        .. string.format(
+            "{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+            box_x,
+            box_y,
+            bord,
+            border_color,
+            bg_color,
+            opacity_hex,
+            opacity_hex,
+            opacity_hex,
+            bg_color,
+            box_w,
+            box_w,
+            input_box_h,
+            input_box_h
+        )
 
-    ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s %s\n",
-        font_name, box_x + padding_x, box_y + padding_y, shad, opacity_hex, font_size, "FFFFFF", text_bgbox_neutral, display_query)
+    ass = ass
+        .. string.format(
+            "{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad%g}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s %s\n",
+            font_name,
+            box_x + padding_x,
+            box_y + padding_y,
+            shad,
+            opacity_hex,
+            font_size,
+            "FFFFFF",
+            text_bgbox_neutral,
+            display_query
+        )
 
     if #FSM.SEARCH_RESULTS > 0 then
         local max_results_display = 8
@@ -390,34 +474,63 @@ local function draw_search_ui()
 
         for k = 1, display_count do
             local result_idx = start_idx + k - 1
-            if result_idx > #FSM.SEARCH_RESULTS then break end
+            if result_idx > #FSM.SEARCH_RESULTS then
+                break
+            end
 
             local result_data = FSM.SEARCH_RESULTS[result_idx]
-            local sub_text = normalize_inline_break_markers(Tracks.pri.subs[result_data.idx].text):gsub("\n", " ")
+            local sub_text =
+                normalize_inline_break_markers(Tracks.pri.subs[result_data.idx].text):gsub(
+                    "\n",
+                    " "
+                )
             local raw_t_table = utf8_to_table(sub_text)
 
             if #raw_t_table > 120 then
                 local new_t = {}
-                for i = 1, 120 do table.insert(new_t, raw_t_table[i]) end
+                for i = 1, 120 do
+                    table.insert(new_t, raw_t_table[i])
+                end
                 sub_text = table.concat(new_t) .. "..."
             end
 
             local res_tokens = build_word_list_internal(sub_text, true)
-            local res_vlines = _helpers.wrap_tokens(res_tokens, box_w - padding_x * 2, r_font_size, font_name, true)
+            local res_vlines = _helpers.wrap_tokens(
+                res_tokens,
+                box_w - padding_x * 2,
+                r_font_size,
+                font_name,
+                true
+            )
 
             table.insert(results_layout, {
                 data = result_data,
                 vlines = res_vlines,
                 idx = result_idx,
-                tokens = res_tokens
+                tokens = res_tokens,
             })
             total_results_vlines = total_results_vlines + #res_vlines
         end
 
         local results_h = total_results_vlines * r_line_height + padding_y * 2
 
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass
+            .. string.format(
+                "{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+                box_x,
+                results_y,
+                bord,
+                border_color,
+                bg_color,
+                opacity_hex,
+                opacity_hex,
+                opacity_hex,
+                bg_color,
+                box_w,
+                box_w,
+                results_h,
+                results_h
+            )
 
         FSM.SEARCH_HIT_ZONES = {}
         local current_y = results_y + padding_y
@@ -432,7 +545,8 @@ local function draw_search_ui()
             local sel_bold = (is_selected and Options.search_sel_bold) and "{\\b1}" or ""
             local sel_bold_end = (is_selected and Options.search_sel_bold) and "{\\b0}" or ""
 
-            local hit_color = is_selected and (Options.search_query_hit_color or "FFFFFF") or Options.search_hit_color
+            local hit_color = is_selected and (Options.search_query_hit_color or "FFFFFF")
+                or Options.search_hit_color
             local hit_bold = Options.search_hit_bold and "{\\b1}" or ""
             local hit_bold_end = Options.search_hit_bold and "{\\b0}" or ""
 
@@ -446,7 +560,15 @@ local function draw_search_ui()
                         local global_ci = token_char_start + ci - 1
                         local is_hit = result_data.hl and result_data.hl[global_ci]
                         if is_hit then
-                            display_text = display_text .. string.format("%s{\\c&H%s&}%s%s{\\c&H%s&}", hit_bold, hit_color, t_table[ci], hit_bold_end, base_color)
+                            display_text = display_text
+                                .. string.format(
+                                    "%s{\\c&H%s&}%s%s{\\c&H%s&}",
+                                    hit_bold,
+                                    hit_color,
+                                    t_table[ci],
+                                    hit_bold_end,
+                                    base_color
+                                )
                         else
                             display_text = display_text .. t_table[ci]
                         end
@@ -457,11 +579,23 @@ local function draw_search_ui()
                 table.insert(FSM.SEARCH_HIT_ZONES, {
                     result_idx = result_idx,
                     y_top = current_y,
-                    y_bottom = current_y + r_line_height
+                    y_bottom = current_y + r_line_height,
                 })
 
-                ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s %s%s%s\n",
-                    font_name, box_x + padding_x, current_y, opacity_hex, r_font_size, base_color, text_bgbox_neutral, sel_bold, display_text, sel_bold_end)
+                ass = ass
+                    .. string.format(
+                        "{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s %s%s%s\n",
+                        font_name,
+                        box_x + padding_x,
+                        current_y,
+                        opacity_hex,
+                        r_font_size,
+                        base_color,
+                        text_bgbox_neutral,
+                        sel_bold,
+                        display_text,
+                        sel_bold_end
+                    )
 
                 current_y = current_y + r_line_height
             end
@@ -470,8 +604,23 @@ local function draw_search_ui()
         local results_h = line_height + padding_y * 2
         local results_y = box_y + input_box_h + 5
 
-        ass = ass .. string.format("{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
-            box_x, results_y, bord, border_color, bg_color, opacity_hex, opacity_hex, opacity_hex, bg_color, box_w, box_w, results_h, results_h)
+        ass = ass
+            .. string.format(
+                "{\\pos(%d,%d)}{\\an7}{\\bord%g}{\\3c&H%s&}{\\1c&H%s&}{\\1a&H%s&}{\\3a&H%s&}{\\4a&H%s&}{\\c&H%s&}{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}\n",
+                box_x,
+                results_y,
+                bord,
+                border_color,
+                bg_color,
+                opacity_hex,
+                opacity_hex,
+                opacity_hex,
+                bg_color,
+                box_w,
+                box_w,
+                results_h,
+                results_h
+            )
 
         local r_font_size = font_size
         if Options.search_results_font_size then
@@ -481,8 +630,17 @@ local function draw_search_ui()
                 r_font_size = font_size * 0.8
             end
         end
-        ass = ass .. string.format("{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s No results found.\n",
-            font_name, box_x + padding_x, results_y + padding_y, opacity_hex, r_font_size, "999999", text_bgbox_neutral)
+        ass = ass
+            .. string.format(
+                "{\\fn%s}{\\pos(%d,%d)}{\\an7}{\\bord0}{\\shad0}{\\4a&H%s&}{\\fs%d}{\\c&H%s&}%s No results found.\n",
+                font_name,
+                box_x + padding_x,
+                results_y + padding_y,
+                opacity_hex,
+                r_font_size,
+                "999999",
+                text_bgbox_neutral
+            )
     end
 
     return ass
@@ -490,8 +648,12 @@ end
 
 local function move_search_cursor(direction, ctrl, shift)
     local q_table = utf8_to_table(FSM.SEARCH_QUERY)
-    if not shift then FSM.SEARCH_ANCHOR = -1 end
-    if shift and FSM.SEARCH_ANCHOR == -1 then FSM.SEARCH_ANCHOR = FSM.SEARCH_CURSOR end
+    if not shift then
+        FSM.SEARCH_ANCHOR = -1
+    end
+    if shift and FSM.SEARCH_ANCHOR == -1 then
+        FSM.SEARCH_ANCHOR = FSM.SEARCH_CURSOR
+    end
 
     local new_pos = FSM.SEARCH_CURSOR
     if ctrl then
@@ -501,13 +663,16 @@ local function move_search_cursor(direction, ctrl, shift)
     end
 
     FSM.SEARCH_CURSOR = new_pos
-    if shift and FSM.SEARCH_ANCHOR == FSM.SEARCH_CURSOR then FSM.SEARCH_ANCHOR = -1 end
+    if shift and FSM.SEARCH_ANCHOR == FSM.SEARCH_CURSOR then
+        FSM.SEARCH_ANCHOR = -1
+    end
     _helpers.render_search()
 end
 
 -- --- search input bindings ----------------------------------------------
 
-local SEARCH_INPUT_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
+local SEARCH_INPUT_CHARS =
+    "abcdefghijklmnopqrstuvwxyz1234567890-=[]\\;',./ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"<>?абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯäöüßÄÖÜẞ "
 local SEARCH_GERMAN_CHARS = { "ä", "ö", "ü", "ß", "Ä", "Ö", "Ü", "ẞ" }
 
 local function utf8_iter_chars(str)
@@ -528,7 +693,9 @@ end
 
 local function manage_search_bindings(enable)
     local function bind(key_string, name, fn, settings)
-        if not key_string then return end
+        if not key_string then
+            return
+        end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
             mp.add_forced_key_binding(key, "search-" .. name .. "-" .. i, fn, settings)
@@ -537,7 +704,9 @@ local function manage_search_bindings(enable)
     end
 
     local function unbind(key_string, name)
-        if not key_string then return end
+        if not key_string then
+            return
+        end
         local i = 1
         for key in key_string:gmatch("[^%s,;]+") do
             mp.remove_key_binding("search-" .. name .. "-" .. i)
@@ -648,15 +817,36 @@ local function manage_search_bindings(enable)
             end
         end, "repeatable")
 
-        mp.add_forced_key_binding("LEFT", "search-left", function() move_search_cursor(-1, false, false) end, "repeatable")
-        mp.add_forced_key_binding("RIGHT", "search-right", function() move_search_cursor(1, false, false) end, "repeatable")
+        mp.add_forced_key_binding("LEFT", "search-left", function()
+            move_search_cursor(-1, false, false)
+        end, "repeatable")
+        mp.add_forced_key_binding("RIGHT", "search-right", function()
+            move_search_cursor(1, false, false)
+        end, "repeatable")
 
-        bind(Options.search_key_select_left, "left-shift", function() move_search_cursor(-1, false, true) end, "repeatable")
-        bind(Options.search_key_select_right, "right-shift", function() move_search_cursor(1, false, true) end, "repeatable")
-        bind(Options.search_key_jump_left, "left-ctrl", function() move_search_cursor(-1, true, false) end, "repeatable")
-        bind(Options.search_key_jump_right, "right-ctrl", function() move_search_cursor(1, true, false) end, "repeatable")
-        bind(Options.search_key_jump_select_left or "Ctrl+Shift+LEFT", "left-ctrl-shift", function() move_search_cursor(-1, true, true) end, "repeatable")
-        bind(Options.search_key_jump_select_right or "Ctrl+Shift+RIGHT", "right-ctrl-shift", function() move_search_cursor(1, true, true) end, "repeatable")
+        bind(Options.search_key_select_left, "left-shift", function()
+            move_search_cursor(-1, false, true)
+        end, "repeatable")
+        bind(Options.search_key_select_right, "right-shift", function()
+            move_search_cursor(1, false, true)
+        end, "repeatable")
+        bind(Options.search_key_jump_left, "left-ctrl", function()
+            move_search_cursor(-1, true, false)
+        end, "repeatable")
+        bind(Options.search_key_jump_right, "right-ctrl", function()
+            move_search_cursor(1, true, false)
+        end, "repeatable")
+        bind(Options.search_key_jump_select_left or "Ctrl+Shift+LEFT", "left-ctrl-shift", function()
+            move_search_cursor(-1, true, true)
+        end, "repeatable")
+        bind(
+            Options.search_key_jump_select_right or "Ctrl+Shift+RIGHT",
+            "right-ctrl-shift",
+            function()
+                move_search_cursor(1, true, true)
+            end,
+            "repeatable"
+        )
 
         bind(Options.search_key_home, "home", function()
             FSM.SEARCH_CURSOR = 0
@@ -762,7 +952,9 @@ local function manage_search_bindings(enable)
         bind(Options.search_key_select_all, "select-all", select_all)
 
         local function delete_word_before_cursor()
-            if FSM.SEARCH_QUERY == "" or FSM.SEARCH_CURSOR == 0 then return end
+            if FSM.SEARCH_QUERY == "" or FSM.SEARCH_CURSOR == 0 then
+                return
+            end
 
             local q_table = utf8_to_table(FSM.SEARCH_QUERY)
             local target_pos = get_word_boundary(q_table, FSM.SEARCH_CURSOR, -1)
@@ -790,16 +982,22 @@ local function manage_search_bindings(enable)
 
         local function search_mouse_click(tbl)
             if tbl.event == "down" then
-                if FSM.DW_MOUSE_LOCK_UNTIL and mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL then return end
+                if FSM.DW_MOUSE_LOCK_UNTIL and mp.get_time() < FSM.DW_MOUSE_LOCK_UNTIL then
+                    return
+                end
 
-                if #FSM.SEARCH_RESULTS == 0 or not FSM.SEARCH_HIT_ZONES then return end
+                if #FSM.SEARCH_RESULTS == 0 or not FSM.SEARCH_HIT_ZONES then
+                    return
+                end
 
                 local osd_x, osd_y = _helpers.dw_get_mouse_osd()
 
                 local box_w = 1200
                 local box_x = 960 - (box_w / 2)
 
-                if osd_x < box_x or osd_x > box_x + box_w then return end
+                if osd_x < box_x or osd_x > box_x + box_w then
+                    return
+                end
 
                 local found_idx = -1
                 for _, zone in ipairs(FSM.SEARCH_HIT_ZONES) do
@@ -831,7 +1029,7 @@ local function manage_search_bindings(enable)
                 end
             end
         end
-        bind(Options.search_key_click, "mouse-click", search_mouse_click, {complex = true})
+        bind(Options.search_key_click, "mouse-click", search_mouse_click, { complex = true })
 
         _helpers.render_search()
     else

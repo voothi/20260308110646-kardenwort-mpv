@@ -7,8 +7,8 @@
 -- toggle clears the search overlay).
 -- ============================================================================
 
-local mp = require 'mp'
-local keybinding_utils = require 'keybinding_utils'
+local mp = require("mp")
+local keybinding_utils = require("keybinding_utils")
 
 local M = {}
 
@@ -23,20 +23,26 @@ function M.init(fsm, opts, helpers)
     _helpers = setmetatable(helpers or {}, {
         __index = function(t, k)
             error("FATAL: Missing injected helper function: " .. tostring(k), 2)
-        end
+        end,
     })
 end
 
 -- Helpers read at call time (defined/assigned in main.lua).
 -- Referenced directly via _helpers table — no wrapper call frames needed.
-local function expand_ru_keys(raw, name) return keybinding_utils.expand_ru_keys(raw, name) end
+local function expand_ru_keys(raw, name)
+    return keybinding_utils.expand_ru_keys(raw, name)
+end
 
 -- --- key display normalization -------------------------------------------
 
 local function normalize_key_display(k)
-    if k == nil or k == "" then return k end
+    if k == nil or k == "" then
+        return k
+    end
     local parts = {}
-    for p in k:gmatch("[^+]+") do table.insert(parts, p) end
+    for p in k:gmatch("[^+]+") do
+        table.insert(parts, p)
+    end
 
     local last = parts[#parts]
     local lower = nil
@@ -60,8 +66,11 @@ local function normalize_key_display(k)
 
     if lower then
         local has_shift = false
-        for i=1, #parts-1 do
-            if parts[i]:lower() == "shift" then has_shift = true break end
+        for i = 1, #parts - 1 do
+            if parts[i]:lower() == "shift" then
+                has_shift = true
+                break
+            end
         end
         if not has_shift then
             table.insert(parts, #parts, "Shift")
@@ -97,7 +106,9 @@ local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
         if type(cmd_pattern) == "table" then
             for _, raw in ipairs(cmd_pattern) do
                 local p = prepare_pattern(raw)
-                if binding_cmd:find(p) then return true end
+                if binding_cmd:find(p) then
+                    return true
+                end
             end
             return false
         end
@@ -107,16 +118,27 @@ local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
 
     for _, b in ipairs(bindings) do
         local k = normalize_key_display(b.key)
-        if k == nil or k == "" then goto continue end
-
-        local is_mouse = k:find("MBTN") or k:find("WHEEL")
-        if is_mouse and (not whitelist or not whitelist[k]) then goto continue end
-
-        if whitelist then
-            if not whitelist[k] and not whitelist[k:upper()] then goto continue end
+        if k == nil or k == "" then
+            goto continue
         end
 
-        if type(cmd_pattern) == "string" and (cmd_pattern == "fullscreen" or cmd_pattern == "cycle fullscreen") and k == "ESC" and (not whitelist or not whitelist["ESC"]) then
+        local is_mouse = k:find("MBTN") or k:find("WHEEL")
+        if is_mouse and (not whitelist or not whitelist[k]) then
+            goto continue
+        end
+
+        if whitelist then
+            if not whitelist[k] and not whitelist[k:upper()] then
+                goto continue
+            end
+        end
+
+        if
+            type(cmd_pattern) == "string"
+            and (cmd_pattern == "fullscreen" or cmd_pattern == "cycle fullscreen")
+            and k == "ESC"
+            and (not whitelist or not whitelist["ESC"])
+        then
             goto continue
         end
 
@@ -131,7 +153,9 @@ local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
 
     if #keys == 0 and fallback_keys then
         local raw = fallback_keys
-        if type(raw) == "function" then raw = raw() end
+        if type(raw) == "function" then
+            raw = raw()
+        end
         if type(raw) == "string" and raw ~= "" then
             local expanded = expand_ru_keys(raw, "help-fallback")
             for _, k0 in ipairs(expanded) do
@@ -155,8 +179,12 @@ local function get_keys_for_action(cmd_pattern, whitelist, fallback_keys)
 end
 
 local function wrap_by_words(text, max_chars)
-    if not text or text == "" then return {"Unbound"} end
-    if max_chars == nil or max_chars < 8 then return {text} end
+    if not text or text == "" then
+        return { "Unbound" }
+    end
+    if max_chars == nil or max_chars < 8 then
+        return { text }
+    end
     local out, line = {}, ""
     for token in text:gmatch("%S+") do
         if line == "" then
@@ -168,113 +196,293 @@ local function wrap_by_words(text, max_chars)
             line = token
         end
     end
-    if line ~= "" then table.insert(out, line) end
-    if #out == 0 then out = {"Unbound"} end
+    if line ~= "" then
+        table.insert(out, line)
+    end
+    if #out == 0 then
+        out = { "Unbound" }
+    end
     return out
 end
 
 -- --- HELP schema ----------------------------------------------------------
 
 local HELP_SCHEMA = {
-    { category = "Interface Modes", actions = {
-        { desc = "Toggle Drum Window (W)", cmd = "kardenwort/toggle-drum-window" },
-        { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
-        { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
-        { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
-        { desc = "Cycle Secondary Subtitle Position", cmd = "kardenwort/cycle-secondary-pos" },
-        { desc = "Cycle Secondary Subtitle Track", cmd = "kardenwort/cycle-sec-sid" },
-        { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
-        { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
-    }},
-    { category = "Navigation", actions = {
-        { desc = "Previous Subtitle", cmd = "kardenwort/seek_prev" },
-        { desc = "Next Subtitle", cmd = "kardenwort/seek_next" },
-        { desc = "Seek Backward (2s)", cmd = "kardenwort/seek_time_backward" },
-        { desc = "Seek Forward (2s)", cmd = "kardenwort/seek_time_forward" },
-    }},
-    { category = "Immersion Features", actions = {
-        { desc = "Smart Space (Hold=Play)", cmd = "kardenwort/smart-space", whitelist = {["SPACE"]=true} },
-        { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
-        { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
-        { desc = "Cycle Immersion Mode", cmd = "kardenwort/cycle-immersion-mode" },
-        { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
-    }},
-    { category = "Mining & Tools", actions = {
-        { desc = "Copy Subtitle", cmd = "kardenwort/copy-subtitle" },
-        { desc = "Copy Subtitle (Popup)", cmd = "kardenwort%-global%-copy%-side" },
-        { desc = "Copy Subtitle (Main)", cmd = "kardenwort%-global%-copy%-main" },
-        { desc = "TTS EN (copy + trigger)", cmd = "kardenwort/copy-subtitle-tts-2", fallback_keys = function() return Options.key_tts_2 end },
-        { desc = "TTS DE (copy + trigger)", cmd = "kardenwort/copy-subtitle-tts-3", fallback_keys = function() return Options.key_tts_3 end },
-        { desc = "TTS RU (copy + trigger)", cmd = "kardenwort/copy-subtitle-tts-4", fallback_keys = function() return Options.key_tts_4 end },
-        { desc = "TTS UK (copy + trigger)", cmd = "kardenwort/copy-subtitle-tts-5", fallback_keys = function() return Options.key_tts_5 end },
-        { desc = "Cycle Copy Mode (A/B)", cmd = "kardenwort/cycle-copy-mode" },
-        { desc = "Toggle Context Copy", cmd = "kardenwort/toggle-copy-context" },
-        { desc = "Open Record (TSV) File", cmd = "kardenwort/toggle-record-file" },
-        { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
-    }},
-    { category = "Drum Window: Actions", actions = {
-        { desc = "DW Pair Toggle (Pink)", cmd = "dw%-pair" },
-        { desc = "DW Add (Yellow)", cmd = "dw%-add", whitelist = {["g"]=true, ["п"]=true, ["MBTN_MID"]=true, ["Ctrl+MBTN_MID"]=true} },
-        { desc = "DW Selection Click", cmd = "dw%-select%-%d+$", whitelist = {["MBTN_LEFT"]=true}, fallback_keys = function() return Options.dw_key_select end },
-        { desc = "DW Copy Selection", cmd = "dw%-copy" },
-        { desc = "DW Seek Selected", cmd = "dw%-seek%-%d+$", fallback_keys = function() return Options.dw_key_seek end },
-        { desc = "DW Esc / Reset", cmd = "dw%-esc%-%d+$", whitelist = {["ESC"]=true}, fallback_keys = function() return Options.dw_key_esc end },
-        { desc = "DW Tooltip Pin", cmd = "dw%-tooltip%-pin", whitelist = {["MBTN_RIGHT"]=true} },
-        { desc = "DW Tooltip Hover", cmd = "dw%-tooltip%-hover" },
-        { desc = "DW Tooltip Toggle", cmd = "dw%-tooltip%-toggle" },
-    }},
-    { category = "Drum Window: Navigation", actions = {
-        { desc = "DW Prev/Next Subtitle", cmd = {"dw%-seek%-prev", "dw%-seek%-next"} },
-        { desc = "DW Word Jump Left/Right", cmd = {"dw%-jump%-left", "dw%-jump%-right"} },
-        { desc = "DW Scroll Up/Down", cmd = "dw%-scroll%-" },
-        { desc = "DW Select Jump Up/Down", cmd = {"dw%-jump%-select%-up", "dw%-jump%-select%-down"} },
-        { desc = "DW Select Left/Right", cmd = {"dw%-select%-left", "dw%-select%-right"} },
-        { desc = "DW Select Up/Down", cmd = {"dw%-select%-up", "dw%-select%-down"} },
-        { desc = "DW Open Record", cmd = "dw%-open%-record" },
-        { desc = "DW Cycle Esc Mode", cmd = "dw%-cycle%-esc%-mode" },
-        { desc = "DW Cycle Copy Mode", cmd = "dw%-cycle%-copy%-mode" },
-        { desc = "DW Toggle Copy Context", cmd = "dw%-toggle%-copy%-context" },
-    }},
-    { category = "Search Window", actions = {
-        { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
-        { desc = "Move Result Up/Down", cmd = {"search%-up%-?", "search%-down%-?", "search%-wheel%-up%-?", "search%-wheel%-down%-?"}, fallback_keys = "UP DOWN WHEEL_UP WHEEL_DOWN", whitelist = {["UP"]=true, ["DOWN"]=true, ["WHEEL_UP"]=true, ["WHEEL_DOWN"]=true} },
-        { desc = "Cursor Left/Right", cmd = {"search%-left%-?", "search%-right%-?"}, fallback_keys = "LEFT RIGHT" },
-        { desc = "Select Left/Right", cmd = {"search%-left%-shift%-?", "search%-right%-shift%-?"}, fallback_keys = function() return (Options.search_key_select_left or "") .. " " .. (Options.search_key_select_right or "") end },
-        { desc = "Jump Word Left/Right", cmd = {"search%-left%-ctrl%-?", "search%-right%-ctrl%-?"}, fallback_keys = function() return (Options.search_key_jump_left or "") .. " " .. (Options.search_key_jump_right or "") end },
-        { desc = "Jump+Select Left/Right", cmd = {"search%-left%-ctrl%-shift%-?", "search%-right%-ctrl%-shift%-?"}, fallback_keys = function() return (Options.search_key_jump_select_left or "Ctrl+Shift+LEFT") .. " " .. (Options.search_key_jump_select_right or "Ctrl+Shift+RIGHT") end },
-        { desc = "Backspace / Delete", cmd = {"search%-bs%-?", "search%-del%-?"}, fallback_keys = function() return (Options.search_key_bs or "") .. " " .. (Options.search_key_del or "") end },
-        { desc = "Paste Clipboard", cmd = "search%-paste%-?", fallback_keys = function() return Options.search_key_paste end },
-        { desc = "Select All", cmd = "search%-select%-all%-?", fallback_keys = function() return Options.search_key_select_all end },
-        { desc = "Delete Prev Word", cmd = "search%-delete%-word%-?", fallback_keys = function() return Options.search_key_delete_word end },
-        { desc = "Seek To Selected", cmd = "search%-seek%-selected%-?", fallback_keys = function() return Options.search_key_enter end },
-        { desc = "Close Search", cmd = "search%-close%-?", fallback_keys = function() return Options.search_key_esc end },
-    }},
-    { category = "Subtitle Position & Delay", actions = {
-        { desc = "Primary Subtitle Up", cmd = "kardenwort%-sub%-pos%-up" },
-        { desc = "Primary Subtitle Down", cmd = "kardenwort%-sub%-pos%-down" },
-        { desc = "Secondary Subtitle Up", cmd = "kardenwort%-sec%-sub%-pos%-up" },
-        { desc = "Secondary Subtitle Down", cmd = "kardenwort%-sec%-sub%-pos%-down" },
-        { desc = "Subtitle Delay Decrease", cmd = "sub%-delay.-%-" },
-        { desc = "Subtitle Delay Increase", cmd = "sub%-delay.-%+" },
-    }},
-    { category = "Standard Controls", actions = {
-        { desc = "Toggle Help HUD", cmd = "kardenwort/toggle-help", whitelist = {["F1"]=true} },
-        { desc = "Cycle Audio Track", cmd = "kardenwort/cycle-audio" },
-        { desc = "Adjust Volume", cmd = "volume", whitelist = {["9"]=true, ["0"]=true} },
-        { desc = "Adjust Playback Speed", cmd = "speed" },
-        { desc = "Frame Step Fwd/Back", cmd = "frame.*step", whitelist = {["."]=true, [","]=true, ["ю"]=true, ["б"]=true} },
-        { desc = "Toggle Fullscreen", cmd = "cycle fullscreen", whitelist = {["v"]=true, ["м"]=true} },
-        { desc = "Debug Console", cmd = "console/enable", whitelist = {["`"]=true, ["ё"]=true} },
-        { desc = "Quit Player", cmd = "quit", whitelist = {["~"]=true, ["Ё"]=true} },
-    }}
+    {
+        category = "Interface Modes",
+        actions = {
+            { desc = "Toggle Drum Window (W)", cmd = "kardenwort/toggle-drum-window" },
+            { desc = "Toggle Drum Mode", cmd = "kardenwort/toggle-drum-mode" },
+            { desc = "Toggle Subtitle Visibility", cmd = "kardenwort/toggle-sub-visibility" },
+            { desc = "Toggle Book Mode", cmd = "kardenwort/toggle-book-mode" },
+            { desc = "Cycle Secondary Subtitle Position", cmd = "kardenwort/cycle-secondary-pos" },
+            { desc = "Cycle Secondary Subtitle Track", cmd = "kardenwort/cycle-sec-sid" },
+            { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
+            { desc = "Toggle OSC Visibility", cmd = "kardenwort/toggle-osc-visibility" },
+        },
+    },
+    {
+        category = "Navigation",
+        actions = {
+            { desc = "Previous Subtitle", cmd = "kardenwort/seek_prev" },
+            { desc = "Next Subtitle", cmd = "kardenwort/seek_next" },
+            { desc = "Seek Backward (2s)", cmd = "kardenwort/seek_time_backward" },
+            { desc = "Seek Forward (2s)", cmd = "kardenwort/seek_time_forward" },
+        },
+    },
+    {
+        category = "Immersion Features",
+        actions = {
+            {
+                desc = "Smart Space (Hold=Play)",
+                cmd = "kardenwort/smart-space",
+                whitelist = { ["SPACE"] = true },
+            },
+            { desc = "Subtitle Replay / Loop", cmd = "kardenwort/replay-subtitle" },
+            { desc = "Toggle Autopause", cmd = "kardenwort/toggle-autopause" },
+            { desc = "Cycle Immersion Mode", cmd = "kardenwort/cycle-immersion-mode" },
+            { desc = "Toggle Karaoke Mode", cmd = "kardenwort/toggle-karaoke-mode" },
+        },
+    },
+    {
+        category = "Mining & Tools",
+        actions = {
+            { desc = "Copy Subtitle", cmd = "kardenwort/copy-subtitle" },
+            { desc = "Copy Subtitle (Popup)", cmd = "kardenwort%-global%-copy%-side" },
+            { desc = "Copy Subtitle (Main)", cmd = "kardenwort%-global%-copy%-main" },
+            {
+                desc = "TTS EN (copy + trigger)",
+                cmd = "kardenwort/copy-subtitle-tts-2",
+                fallback_keys = function()
+                    return Options.key_tts_2
+                end,
+            },
+            {
+                desc = "TTS DE (copy + trigger)",
+                cmd = "kardenwort/copy-subtitle-tts-3",
+                fallback_keys = function()
+                    return Options.key_tts_3
+                end,
+            },
+            {
+                desc = "TTS RU (copy + trigger)",
+                cmd = "kardenwort/copy-subtitle-tts-4",
+                fallback_keys = function()
+                    return Options.key_tts_4
+                end,
+            },
+            {
+                desc = "TTS UK (copy + trigger)",
+                cmd = "kardenwort/copy-subtitle-tts-5",
+                fallback_keys = function()
+                    return Options.key_tts_5
+                end,
+            },
+            { desc = "Cycle Copy Mode (A/B)", cmd = "kardenwort/cycle-copy-mode" },
+            { desc = "Toggle Context Copy", cmd = "kardenwort/toggle-copy-context" },
+            { desc = "Open Record (TSV) File", cmd = "kardenwort/toggle-record-file" },
+            { desc = "Toggle Global Highlights", cmd = "kardenwort/toggle-anki-global" },
+        },
+    },
+    {
+        category = "Drum Window: Actions",
+        actions = {
+            { desc = "DW Pair Toggle (Pink)", cmd = "dw%-pair" },
+            {
+                desc = "DW Add (Yellow)",
+                cmd = "dw%-add",
+                whitelist = { ["g"] = true, ["п"] = true, ["MBTN_MID"] = true, ["Ctrl+MBTN_MID"] = true },
+            },
+            {
+                desc = "DW Selection Click",
+                cmd = "dw%-select%-%d+$",
+                whitelist = { ["MBTN_LEFT"] = true },
+                fallback_keys = function()
+                    return Options.dw_key_select
+                end,
+            },
+            { desc = "DW Copy Selection", cmd = "dw%-copy" },
+            {
+                desc = "DW Seek Selected",
+                cmd = "dw%-seek%-%d+$",
+                fallback_keys = function()
+                    return Options.dw_key_seek
+                end,
+            },
+            {
+                desc = "DW Esc / Reset",
+                cmd = "dw%-esc%-%d+$",
+                whitelist = { ["ESC"] = true },
+                fallback_keys = function()
+                    return Options.dw_key_esc
+                end,
+            },
+            {
+                desc = "DW Tooltip Pin",
+                cmd = "dw%-tooltip%-pin",
+                whitelist = { ["MBTN_RIGHT"] = true },
+            },
+            { desc = "DW Tooltip Hover", cmd = "dw%-tooltip%-hover" },
+            { desc = "DW Tooltip Toggle", cmd = "dw%-tooltip%-toggle" },
+        },
+    },
+    {
+        category = "Drum Window: Navigation",
+        actions = {
+            { desc = "DW Prev/Next Subtitle", cmd = { "dw%-seek%-prev", "dw%-seek%-next" } },
+            { desc = "DW Word Jump Left/Right", cmd = { "dw%-jump%-left", "dw%-jump%-right" } },
+            { desc = "DW Scroll Up/Down", cmd = "dw%-scroll%-" },
+            {
+                desc = "DW Select Jump Up/Down",
+                cmd = { "dw%-jump%-select%-up", "dw%-jump%-select%-down" },
+            },
+            { desc = "DW Select Left/Right", cmd = { "dw%-select%-left", "dw%-select%-right" } },
+            { desc = "DW Select Up/Down", cmd = { "dw%-select%-up", "dw%-select%-down" } },
+            { desc = "DW Open Record", cmd = "dw%-open%-record" },
+            { desc = "DW Cycle Esc Mode", cmd = "dw%-cycle%-esc%-mode" },
+            { desc = "DW Cycle Copy Mode", cmd = "dw%-cycle%-copy%-mode" },
+            { desc = "DW Toggle Copy Context", cmd = "dw%-toggle%-copy%-context" },
+        },
+    },
+    {
+        category = "Search Window",
+        actions = {
+            { desc = "Toggle Search HUD", cmd = "kardenwort/toggle-drum-search" },
+            {
+                desc = "Move Result Up/Down",
+                cmd = {
+                    "search%-up%-?",
+                    "search%-down%-?",
+                    "search%-wheel%-up%-?",
+                    "search%-wheel%-down%-?",
+                },
+                fallback_keys = "UP DOWN WHEEL_UP WHEEL_DOWN",
+                whitelist = { ["UP"] = true, ["DOWN"] = true, ["WHEEL_UP"] = true, ["WHEEL_DOWN"] = true },
+            },
+            {
+                desc = "Cursor Left/Right",
+                cmd = { "search%-left%-?", "search%-right%-?" },
+                fallback_keys = "LEFT RIGHT",
+            },
+            {
+                desc = "Select Left/Right",
+                cmd = { "search%-left%-shift%-?", "search%-right%-shift%-?" },
+                fallback_keys = function()
+                    return (Options.search_key_select_left or "")
+                        .. " "
+                        .. (Options.search_key_select_right or "")
+                end,
+            },
+            {
+                desc = "Jump Word Left/Right",
+                cmd = { "search%-left%-ctrl%-?", "search%-right%-ctrl%-?" },
+                fallback_keys = function()
+                    return (Options.search_key_jump_left or "")
+                        .. " "
+                        .. (Options.search_key_jump_right or "")
+                end,
+            },
+            {
+                desc = "Jump+Select Left/Right",
+                cmd = { "search%-left%-ctrl%-shift%-?", "search%-right%-ctrl%-shift%-?" },
+                fallback_keys = function()
+                    return (Options.search_key_jump_select_left or "Ctrl+Shift+LEFT")
+                        .. " "
+                        .. (Options.search_key_jump_select_right or "Ctrl+Shift+RIGHT")
+                end,
+            },
+            {
+                desc = "Backspace / Delete",
+                cmd = { "search%-bs%-?", "search%-del%-?" },
+                fallback_keys = function()
+                    return (Options.search_key_bs or "") .. " " .. (Options.search_key_del or "")
+                end,
+            },
+            {
+                desc = "Paste Clipboard",
+                cmd = "search%-paste%-?",
+                fallback_keys = function()
+                    return Options.search_key_paste
+                end,
+            },
+            {
+                desc = "Select All",
+                cmd = "search%-select%-all%-?",
+                fallback_keys = function()
+                    return Options.search_key_select_all
+                end,
+            },
+            {
+                desc = "Delete Prev Word",
+                cmd = "search%-delete%-word%-?",
+                fallback_keys = function()
+                    return Options.search_key_delete_word
+                end,
+            },
+            {
+                desc = "Seek To Selected",
+                cmd = "search%-seek%-selected%-?",
+                fallback_keys = function()
+                    return Options.search_key_enter
+                end,
+            },
+            {
+                desc = "Close Search",
+                cmd = "search%-close%-?",
+                fallback_keys = function()
+                    return Options.search_key_esc
+                end,
+            },
+        },
+    },
+    {
+        category = "Subtitle Position & Delay",
+        actions = {
+            { desc = "Primary Subtitle Up", cmd = "kardenwort%-sub%-pos%-up" },
+            { desc = "Primary Subtitle Down", cmd = "kardenwort%-sub%-pos%-down" },
+            { desc = "Secondary Subtitle Up", cmd = "kardenwort%-sec%-sub%-pos%-up" },
+            { desc = "Secondary Subtitle Down", cmd = "kardenwort%-sec%-sub%-pos%-down" },
+            { desc = "Subtitle Delay Decrease", cmd = "sub%-delay.-%-" },
+            { desc = "Subtitle Delay Increase", cmd = "sub%-delay.-%+" },
+        },
+    },
+    {
+        category = "Standard Controls",
+        actions = {
+            { desc = "Toggle Help HUD", cmd = "kardenwort/toggle-help", whitelist = { ["F1"] = true } },
+            { desc = "Cycle Audio Track", cmd = "kardenwort/cycle-audio" },
+            { desc = "Adjust Volume", cmd = "volume", whitelist = { ["9"] = true, ["0"] = true } },
+            { desc = "Adjust Playback Speed", cmd = "speed" },
+            {
+                desc = "Frame Step Fwd/Back",
+                cmd = "frame.*step",
+                whitelist = { ["."] = true, [","] = true, ["ю"] = true, ["б"] = true },
+            },
+            {
+                desc = "Toggle Fullscreen",
+                cmd = "cycle fullscreen",
+                whitelist = { ["v"] = true, ["м"] = true },
+            },
+            {
+                desc = "Debug Console",
+                cmd = "console/enable",
+                whitelist = { ["`"] = true, ["ё"] = true },
+            },
+            { desc = "Quit Player", cmd = "quit", whitelist = { ["~"] = true, ["Ё"] = true } },
+        },
+    },
 }
 
 local function load_help_overrides()
     local path = mp.get_property("input-conf-path")
-    if not path or path == "" then return end
+    if not path or path == "" then
+        return
+    end
 
     local f = io.open(path, "r")
-    if not f then return end
+    if not f then
+        return
+    end
 
     for line in f:lines() do
         local pattern, desc, wl_str = line:match("^#%s*@help:%s*([^|]+)%s*|%s*([^|]+)%s*|?%s*(.*)")
@@ -308,9 +516,12 @@ end
 local render_help
 
 local function help_scroll(direction)
-    if not FSM.HELP_MODE then return end
+    if not FSM.HELP_MODE then
+        return
+    end
     local step = math.max(20, Options.help_font_size * 1.25)
-    FSM.HELP_SCROLL_OFFSET = math.max(0, math.min(FSM.HELP_SCROLL_MAX or 0, FSM.HELP_SCROLL_OFFSET + (direction * step)))
+    FSM.HELP_SCROLL_OFFSET =
+        math.max(0, math.min(FSM.HELP_SCROLL_MAX or 0, FSM.HELP_SCROLL_OFFSET + (direction * step)))
     render_help()
 end
 
@@ -320,10 +531,22 @@ render_help = function()
         local title = _helpers.help_osd_title
         local o1 = _helpers.help_osd_1
         local o2 = _helpers.help_osd_2
-        if bg then bg.data = ""; bg:update() end
-        if title then title.data = ""; title:update() end
-        if o1 then o1.data = ""; o1:update() end
-        if o2 then o2.data = ""; o2:update() end
+        if bg then
+            bg.data = ""
+            bg:update()
+        end
+        if title then
+            title.data = ""
+            title:update()
+        end
+        if o1 then
+            o1.data = ""
+            o1:update()
+        end
+        if o2 then
+            o2.data = ""
+            o2:update()
+        end
         return
     end
 
@@ -335,27 +558,47 @@ render_help = function()
     local box_left = math.floor((rx - box_w) / 2)
     local box_top = math.floor((ry - box_h) / 2)
     ass_bg = ass_bg .. string.format("{\\an7}{\\pos(%d,%d)}", box_left, box_top)
-    ass_bg = ass_bg .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
-    ass_bg = ass_bg .. string.format("{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}", box_w, box_w, box_h, box_h)
+    ass_bg = ass_bg
+        .. string.format("{\\1c&H%s&\\1a&H%s&}", Options.help_bg_color, Options.help_bg_opacity)
+    ass_bg = ass_bg
+        .. string.format(
+            "{\\p1}m 0 0 l %d 0 l %d %d l 0 %d l 0 0 {\\p0}",
+            box_w,
+            box_w,
+            box_h,
+            box_h
+        )
     local bg = _helpers.help_osd_bg
     bg.data = ass_bg
     bg:update()
 
     local ass_title = ""
-    ass_title = ass_title .. string.format("{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\bord0}{\\shad0}{\\4a&HFF&}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}",
-        rx/2, ry/2 - box_h/2 + 40, Options.help_font_name, Options.help_font_size * 1.2, Options.help_title_color)
+    ass_title = ass_title
+        .. string.format(
+            "{\\an8}{\\pos(%d,%d)}{\\fn%s}{\\fs%d}{\\b1}{\\bord0}{\\shad0}{\\4a&HFF&}{\\1c&H%s&}KARDENWORT SHORTCUT REFERENCE{\\b0}",
+            rx / 2,
+            ry / 2 - box_h / 2 + 40,
+            Options.help_font_name,
+            Options.help_font_size * 1.2,
+            Options.help_title_color
+        )
     local title = _helpers.help_osd_title
     title.data = ass_title
     title:update()
 
-    local clip_y1 = ry/2 - box_h/2 + 110
-    local clip_y2 = ry/2 + box_h/2 - 40
+    local clip_y1 = ry / 2 - box_h / 2 + 110
+    local clip_y2 = ry / 2 + box_h / 2 - 40
     local clip_tag = string.format("{\\clip(0,%d,%d,%d)}", clip_y1, rx, clip_y2)
 
     local function format_category(cat)
         local line_count = 0
-        local res = string.format("{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N",
-            Options.help_title_color, Options.help_font_size * 0.9, cat.category:upper(), Options.help_font_size * 0.8)
+        local res = string.format(
+            "{\\b1}{\\1c&H%s&}{\\fs%d}%s{\\fs%d}{\\b0}\\N",
+            Options.help_title_color,
+            Options.help_font_size * 0.9,
+            cat.category:upper(),
+            Options.help_font_size * 0.8
+        )
         line_count = line_count + 1
         local row_chars = math.max(48, math.floor((box_w * 0.43) / (Options.help_font_size * 0.55)))
         local desc_chars = 28
@@ -369,14 +612,29 @@ render_help = function()
 
             local desc = act.desc
             local desc_pad = string.rep(" ", math.max(1, desc_chars - #desc))
-            res = res .. string.format("{\\1c&H%s&}%s%s {\\1c&H%s&}%s\\N", Options.help_text_color, desc, desc_pad, Options.help_key_color, key_lines[1] or "Unbound")
+            res = res
+                .. string.format(
+                    "{\\1c&H%s&}%s%s {\\1c&H%s&}%s\\N",
+                    Options.help_text_color,
+                    desc,
+                    desc_pad,
+                    Options.help_key_color,
+                    key_lines[1] or "Unbound"
+                )
             line_count = line_count + 1
             if #key_lines > 1 then
                 local cont_pad = string.rep(" ", desc_chars + 1)
-                for i=2, #key_lines do
+                for i = 2, #key_lines do
                     local cont_parts = wrap_by_words(key_lines[i], key_wrap_cont)
                     for _, part in ipairs(cont_parts) do
-                        res = res .. string.format("{\\1c&H%s&}%s{\\1c&H%s&}%s\\N", Options.help_text_color, cont_pad, Options.help_key_color, part)
+                        res = res
+                            .. string.format(
+                                "{\\1c&H%s&}%s{\\1c&H%s&}%s\\N",
+                                Options.help_text_color,
+                                cont_pad,
+                                Options.help_key_color,
+                                part
+                            )
                         line_count = line_count + 1
                     end
                 end
@@ -410,10 +668,15 @@ render_help = function()
         FSM.HELP_SCROLL_OFFSET = FSM.HELP_SCROLL_MAX
     end
 
-    local col1_x = rx/2 - box_w/2 + 80
-    local col2_x = rx/2 + 60
+    local col1_x = rx / 2 - box_w / 2 + 80
+    local col2_x = rx / 2 + 60
     local start_y = clip_y1 + 10 - FSM.HELP_SCROLL_OFFSET
-    local base_tags = string.format("{\\an7}{\\fn%s}{\\fs%d}{\\bord0}{\\shad0}{\\4a&HFF&}%s", Options.help_font_name, Options.help_font_size * 0.8, clip_tag)
+    local base_tags = string.format(
+        "{\\an7}{\\fn%s}{\\fs%d}{\\bord0}{\\shad0}{\\4a&HFF&}%s",
+        Options.help_font_name,
+        Options.help_font_size * 0.8,
+        clip_tag
+    )
     local col1_text = string.format("{\\pos(%d,%d)}%s%s", col1_x, start_y, base_tags, col1_block)
     local col2_text = string.format("{\\pos(%d,%d)}%s%s", col2_x, start_y, base_tags, col2_block)
 
@@ -426,12 +689,24 @@ render_help = function()
 end
 
 local function bind_help_keymap()
-    mp.add_forced_key_binding("UP", "help-scroll-up", function() help_scroll(-1) end, {repeatable = true})
-    mp.add_forced_key_binding("DOWN", "help-scroll-down", function() help_scroll(1) end, {repeatable = true})
-    mp.add_forced_key_binding("WHEEL_UP", "help-wheel-up", function() help_scroll(-1) end)
-    mp.add_forced_key_binding("WHEEL_DOWN", "help-wheel-down", function() help_scroll(1) end)
-    mp.add_forced_key_binding("ESC", "help-close-esc", function() M.cmd_toggle_help() end)
-    mp.add_forced_key_binding("F1", "help-close-f1", function() M.cmd_toggle_help() end)
+    mp.add_forced_key_binding("UP", "help-scroll-up", function()
+        help_scroll(-1)
+    end, { repeatable = true })
+    mp.add_forced_key_binding("DOWN", "help-scroll-down", function()
+        help_scroll(1)
+    end, { repeatable = true })
+    mp.add_forced_key_binding("WHEEL_UP", "help-wheel-up", function()
+        help_scroll(-1)
+    end)
+    mp.add_forced_key_binding("WHEEL_DOWN", "help-wheel-down", function()
+        help_scroll(1)
+    end)
+    mp.add_forced_key_binding("ESC", "help-close-esc", function()
+        M.cmd_toggle_help()
+    end)
+    mp.add_forced_key_binding("F1", "help-close-f1", function()
+        M.cmd_toggle_help()
+    end)
 end
 
 local function unbind_help_keymap()
@@ -457,7 +732,9 @@ function M.cmd_toggle_help()
 end
 
 -- Load input-conf @help overrides at module load time (only uses mp + HELP_SCHEMA).
-M.load_overrides = function() load_help_overrides() end
+M.load_overrides = function()
+    load_help_overrides()
+end
 
 M.normalize_key_display = normalize_key_display
 M.get_keys_for_action = get_keys_for_action

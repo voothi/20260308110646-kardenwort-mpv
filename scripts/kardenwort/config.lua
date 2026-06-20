@@ -362,35 +362,72 @@ M.Options = {
 }
 
 function M.validate_config(opts, diagnostic, is_valid_key_fn)
-    opts.anki_context_words_before = math.max(0, math.floor(tonumber(opts.anki_context_words_before) or 0))
-    opts.anki_context_words_after = math.max(0, math.floor(tonumber(opts.anki_context_words_after) or 0))
+    opts.anki_context_words_before =
+        math.max(0, math.floor(tonumber(opts.anki_context_words_before) or 0))
+    opts.anki_context_words_after =
+        math.max(0, math.floor(tonumber(opts.anki_context_words_after) or 0))
     local errors = {}
     local function check_keys(opt_val, opt_name)
-        if not opt_val or opt_val == "" then return end
+        if not opt_val or opt_val == "" then
+            return
+        end
         for key in opt_val:gmatch("[^%s,;]+") do
             if not is_valid_key_fn(key) then
-                table.insert(errors, string.format("Invalid key name in '%s': '%s' (multicharacter non-ASCII names are not supported).", opt_name, key))
+                table.insert(
+                    errors,
+                    string.format(
+                        "Invalid key name in '%s': '%s' (multicharacter non-ASCII names are not supported).",
+                        opt_name,
+                        key
+                    )
+                )
             end
         end
     end
 
     local key_opts = {
-        "dw_key_add", "dw_key_pair", "dw_key_select", "dw_key_seek_prev", "dw_key_seek_next",
-        "dw_key_search", "dw_key_copy", "dw_key_seek", "dw_key_esc", "dw_key_jump_left",
-        "dw_key_jump_right", "dw_key_jump_select_left", "dw_key_jump_select_right",
-        "dw_key_scroll_up", "dw_key_scroll_down", "dw_key_jump_select_up",
-        "dw_key_jump_select_down", "dw_key_select_left", "dw_key_select_right",
-        "dw_key_select_up", "dw_key_select_down", "dw_key_open_record",
-        "dw_key_cycle_copy_mode", "dw_key_toggle_copy_context", "dw_key_tooltip_pin",
-        "dw_key_tooltip_hover", "dw_key_tooltip_toggle", "key_sub_pos_up", "key_sub_pos_down",
-        "key_sec_sub_pos_up", "key_sec_sub_pos_down"
+        "dw_key_add",
+        "dw_key_pair",
+        "dw_key_select",
+        "dw_key_seek_prev",
+        "dw_key_seek_next",
+        "dw_key_search",
+        "dw_key_copy",
+        "dw_key_seek",
+        "dw_key_esc",
+        "dw_key_jump_left",
+        "dw_key_jump_right",
+        "dw_key_jump_select_left",
+        "dw_key_jump_select_right",
+        "dw_key_scroll_up",
+        "dw_key_scroll_down",
+        "dw_key_jump_select_up",
+        "dw_key_jump_select_down",
+        "dw_key_select_left",
+        "dw_key_select_right",
+        "dw_key_select_up",
+        "dw_key_select_down",
+        "dw_key_open_record",
+        "dw_key_cycle_copy_mode",
+        "dw_key_toggle_copy_context",
+        "dw_key_tooltip_pin",
+        "dw_key_tooltip_hover",
+        "dw_key_tooltip_toggle",
+        "key_sub_pos_up",
+        "key_sub_pos_down",
+        "key_sec_sub_pos_up",
+        "key_sec_sub_pos_down",
     }
 
-    for _, opt in ipairs(key_opts) do check_keys(opts[opt], "kardenwort-" .. opt) end
+    for _, opt in ipairs(key_opts) do
+        check_keys(opts[opt], "kardenwort-" .. opt)
+    end
 
     if #errors > 0 then
         local summary = "CONFIGURATION HEALTH CHECK FAILED:\n"
-        for _, err in ipairs(errors) do summary = summary .. "  - " .. err .. "\n" end
+        for _, err in ipairs(errors) do
+            summary = summary .. "  - " .. err .. "\n"
+        end
         summary = summary .. "Please correct these in your mpv.conf to avoid unexpected behavior."
         diagnostic.warn(summary, "startup-health-check")
     end
