@@ -47,6 +47,7 @@ M.FSM = {
     last_time_pos = nil,
     last_wall_time = nil,
     IGNORE_NEXT_JUMP = false,
+    IGNORE_NEXT_JUMP_UNTIL = nil,
     INTERNAL_REPLAY_UNTIL = 0,
     TIMESEEK_INHIBIT_UNTIL = nil,
     REWIND_START_IDX = nil,
@@ -71,6 +72,8 @@ M.FSM = {
 
     -- Drum Window State
     DRUM_WINDOW = "OFF",
+    DW_SAVED_SUB_VIS = nil,
+    DW_SAVED_DRUM_STATE = nil,
     DW_CURSOR_LINE = -1,
     DW_CURSOR_WORD = -1,
     DW_CURSOR_X = nil,
@@ -87,7 +90,10 @@ M.FSM = {
     DW_CTRL_HELD = false,
     DW_CTRL_PENDING_SET = {},
     DW_CTRL_PENDING_LIST = {},
+    DW_CTRL_PENDING_VERSION = 0,
     DW_MOUSE_SCROLL_TIMER = nil,
+    DW_NATIVE_WINDOW_DRAGGING = nil,
+    DW_PROTECTED_SELECTION = false,
 
     -- Performance Caches
     DW_LAYOUT_CACHE = nil,
@@ -101,11 +107,14 @@ M.FSM = {
     SEARCH_ANCHOR = -1,
     SEARCH_CHAR_BINDINGS = {},
     SEARCH_BORDER_OVERRIDE = false,
+    SEARCH_HIT_ZONES = nil,
 
     -- Transient UI State
     saved_osd_border_style = nil,
     ui_border_override_depth = 0,
     osd_border_style = nil,
+    LAST_OSD_TIME = 0,
+    LAST_TRIGGER_TIME = 0,
     DRUM_HIT_ZONES = nil,
     DW_HIT_ZONES = nil,
 

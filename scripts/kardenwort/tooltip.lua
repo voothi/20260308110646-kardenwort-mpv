@@ -189,7 +189,7 @@ local function get_tooltip_line_y(line_idx, fallback_y)
     if not line_idx or line_idx == -1 then
         return nil
     end
-    if FSM.DW_WINDOW ~= "OFF" then
+    if FSM.DRUM_WINDOW ~= "OFF" then
         return FSM.DW_LINE_Y_MAP[line_idx] or fallback_y
     end
     local fallback_zone_y = nil
