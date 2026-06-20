@@ -211,6 +211,7 @@ DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw
 local function alias(mod, names)
     local vals = {}
     for _, name in ipairs(names) do
+        assert(mod[name] ~= nil, "FATAL: function '" .. tostring(name) .. "' is missing from module!")
         vals[#vals + 1] = mod[name]
     end
     return table.unpack(vals)
