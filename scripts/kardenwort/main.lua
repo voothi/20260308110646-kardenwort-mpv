@@ -1628,7 +1628,8 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
         mouse_fn,
         key_fn,
         updates_selection,
-        complex
+        complex,
+        always_on
     )
         if not key_string or key_string == "" then
             return
@@ -1667,6 +1668,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                             fn = m_fn,
                             complex = true,
                             is_mouse = true,
+                            always_on = always_on,
                         })
                     end
                 else
@@ -1683,6 +1685,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                         end,
                         complex = complex or false,
                         is_kb = true,
+                        always_on = always_on,
                     })
                 end
                 i = i + 1
@@ -1726,18 +1729,21 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
             name = "dw-tooltip-pin",
             mouse_fn = cmd_dw_tooltip_pin,
             key_fn = cmd_dw_tooltip_pin,
+            always_on = true,
         },
         {
             opt = "dw_key_tooltip_hover",
             name = "dw-tooltip-hover",
             mouse_fn = cmd_toggle_dw_tooltip_hover,
             key_fn = cmd_toggle_dw_tooltip_hover,
+            always_on = true,
         },
         {
             opt = "dw_key_tooltip_toggle",
             name = "dw-tooltip-toggle",
             mouse_fn = cmd_dw_tooltip_toggle,
             key_fn = cmd_dw_tooltip_toggle,
+            always_on = true,
         },
         {
             opt = "dw_key_seek_prev",
@@ -1910,12 +1916,13 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
             d.mouse_fn,
             d.key_fn,
             d.updates_selection,
-            d.complex
+            d.complex,
+            d.always_on
         )
     end
 
     for _, k in ipairs(keys) do
-        local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb)
+        local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb) or k.always_on
         if active and k.key and is_valid_mpv_key(k.key) and type(k.fn) == "function" then
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
@@ -1980,9 +1987,7 @@ function update_interactive_bindings()
         and Options.osd_interactivity
 
     local need_mouse = dw_on or osd_on
-    -- The tooltip keys must remain active to allow toggling it dynamically,
-    -- even when Drum Mode is OFF and native ASS is playing.
-    local need_kb = true
+    local need_kb = dw_on or osd_on
 
     manage_dw_bindings(need_mouse, need_kb)
 end
