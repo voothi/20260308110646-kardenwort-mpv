@@ -228,6 +228,21 @@ local utf8_to_table, utf8_to_lower, utf8_truncate, is_word_char, is_abbrev,
         "is_word_token", "clean_text_srt", "normalize_inline_break_markers",
         "calculate_ass_alpha", "build_copy_preview", "has_cyrillic"
     })
+---@cast utf8_to_table fun(str: string): string[]
+---@cast utf8_to_lower fun(str: string): string
+---@cast utf8_truncate fun(str: string, max_chars: number): string
+---@cast is_word_char fun(c: string): boolean
+---@cast is_abbrev fun(w: string, lookahead: string|nil): boolean
+---@cast logical_cmp fun(a: number, b: number): boolean
+---@cast build_word_list_internal fun(text: string|nil, keep_spaces: boolean): table[]
+---@cast build_word_list fun(text: string|nil): string[]
+---@cast get_sub_tokens fun(s: table|nil, force_rich: boolean|nil): table[]|nil
+---@cast is_word_token fun(t: any): boolean
+---@cast clean_text_srt fun(line: string|nil): string
+---@cast normalize_inline_break_markers fun(text: string|nil): string
+---@cast calculate_ass_alpha fun(val: any): string
+---@cast build_copy_preview fun(label: string|nil, text: string|nil, max_chars: number|nil): string
+---@cast has_cyrillic fun(str: string|nil): boolean
 
 local L_EPSILON = text_utils.L_EPSILON
 
