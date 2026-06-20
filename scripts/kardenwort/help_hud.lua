@@ -291,7 +291,12 @@ local HELP_SCHEMA = {
             {
                 desc = "DW Add (Yellow)",
                 cmd = "dw%-add",
-                whitelist = { ["g"] = true, ["п"] = true, ["MBTN_MID"] = true, ["Ctrl+MBTN_MID"] = true },
+                whitelist = {
+                    ["g"] = true,
+                    ["п"] = true,
+                    ["MBTN_MID"] = true,
+                    ["Ctrl+MBTN_MID"] = true,
+                },
             },
             {
                 desc = "DW Selection Click",
@@ -357,7 +362,12 @@ local HELP_SCHEMA = {
                     "search%-wheel%-down%-?",
                 },
                 fallback_keys = "UP DOWN WHEEL_UP WHEEL_DOWN",
-                whitelist = { ["UP"] = true, ["DOWN"] = true, ["WHEEL_UP"] = true, ["WHEEL_DOWN"] = true },
+                whitelist = {
+                    ["UP"] = true,
+                    ["DOWN"] = true,
+                    ["WHEEL_UP"] = true,
+                    ["WHEEL_DOWN"] = true,
+                },
             },
             {
                 desc = "Cursor Left/Right",
@@ -449,7 +459,11 @@ local HELP_SCHEMA = {
     {
         category = "Standard Controls",
         actions = {
-            { desc = "Toggle Help HUD", cmd = "kardenwort/toggle-help", whitelist = { ["F1"] = true } },
+            {
+                desc = "Toggle Help HUD",
+                cmd = "kardenwort/toggle-help",
+                whitelist = { ["F1"] = true },
+            },
             { desc = "Cycle Audio Track", cmd = "kardenwort/cycle-audio" },
             { desc = "Adjust Volume", cmd = "volume", whitelist = { ["9"] = true, ["0"] = true } },
             { desc = "Adjust Playback Speed", cmd = "speed" },

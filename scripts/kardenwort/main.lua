@@ -4659,16 +4659,13 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
                     end
 
                     if m_fn then
-                        table.insert(
-                            keys,
-                            {
-                                key = key,
-                                name = base_name .. "-" .. i,
-                                fn = m_fn,
-                                complex = true,
-                                is_mouse = true,
-                            }
-                        )
+                        table.insert(keys, {
+                            key = key,
+                            name = base_name .. "-" .. i,
+                            fn = m_fn,
+                            complex = true,
+                            is_mouse = true,
+                        })
                     end
                 else
                     table.insert(keys, {

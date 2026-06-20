@@ -296,14 +296,11 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                     for part in (tostring(data.index) .. ","):gmatch("([^,]*),") do
                         local l_off, p_idx, t_pos = part:match("^([%-+]?%d+):(%d+%.?%d*):(%d+)$")
                         if l_off then
-                            table.insert(
-                                data.__pivots,
-                                {
-                                    l_off = tonumber(l_off),
-                                    p_idx = tonumber(p_idx),
-                                    t_pos = tonumber(t_pos),
-                                }
-                            )
+                            table.insert(data.__pivots, {
+                                l_off = tonumber(l_off),
+                                p_idx = tonumber(p_idx),
+                                t_pos = tonumber(t_pos),
+                            })
                         else
                             local single = tonumber(part)
                             if single then
@@ -515,16 +512,13 @@ local function calculate_highlight_stack(subs, sub_idx, token_idx, time_pos)
                                                     t.text:gsub("[%p%s]", "")
                                                 )
                                                 if cw ~= "" then
-                                                    table.insert(
-                                                        ctx_list,
-                                                        {
-                                                            cw = cw,
-                                                            s_i = scan_i,
-                                                            t_i = t_i,
-                                                            l_i = t.logical_idx,
-                                                            start = subs[scan_i].start_time,
-                                                        }
-                                                    )
+                                                    table.insert(ctx_list, {
+                                                        cw = cw,
+                                                        s_i = scan_i,
+                                                        t_i = t_i,
+                                                        l_i = t.logical_idx,
+                                                        start = subs[scan_i].start_time,
+                                                    })
                                                 end
                                             end
                                         end

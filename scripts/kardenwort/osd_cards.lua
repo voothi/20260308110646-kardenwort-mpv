@@ -125,7 +125,7 @@ local function show_seek_osd(msg, alignment)
     end
 
     local bg_rect = string.format(
-    "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
+        "{\\an7}{\\pos(%d,%d)}{\\bord0}{\\shad0}{\\3a&HFF&}{\\4a&HFF&}{\\1c&H%s&}{\\1a&H%s&}{\\p1}m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
         left_x,
         top_y,
         Options.seek_bg_color,
