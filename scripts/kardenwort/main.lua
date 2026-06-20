@@ -243,72 +243,12 @@ DW_TOOLTIP_DRAW_CACHE = { target_idx = -1, osd_y = -1, version = -1, cl = -1, cw
 local set_clipboard
 local dw_get_mouse_osd, kardenwort_hit_test_all, dw_sync_cursor_to_mouse
 
-local function alias(mod, names)
-    local vals = {}
-    for _, name in ipairs(names) do
-        assert(
-            mod[name] ~= nil,
-            "FATAL: function '" .. tostring(name) .. "' is missing from module!"
-        )
-        vals[#vals + 1] = mod[name]
-    end
-    return table.unpack(vals)
-end
 
--- text_utils aliases
-local utf8_to_table, utf8_to_lower, utf8_truncate, is_word_char, is_abbrev, logical_cmp, build_word_list_internal, build_word_list, get_sub_tokens, is_word_token, clean_text_srt, normalize_inline_break_markers, calculate_ass_alpha, build_copy_preview, has_cyrillic =
-    alias(text_utils, {
-        "utf8_to_table",
-        "utf8_to_lower",
-        "utf8_truncate",
-        "is_word_char",
-        "is_abbrev",
-        "logical_cmp",
-        "build_word_list_internal",
-        "build_word_list",
-        "get_sub_tokens",
-        "is_word_token",
-        "clean_text_srt",
-        "normalize_inline_break_markers",
-        "calculate_ass_alpha",
-        "build_copy_preview",
-        "has_cyrillic",
-    })
----@cast utf8_to_table fun(str: string): string[]
----@cast utf8_to_lower fun(str: string): string
----@cast utf8_truncate fun(str: string, max_chars: number): string
----@cast is_word_char fun(c: string): boolean
----@cast is_abbrev fun(w: string, lookahead: string|nil): boolean
----@cast logical_cmp fun(a: number, b: number): boolean
----@cast build_word_list_internal fun(text: string|nil, keep_spaces: boolean): table[]
----@cast build_word_list fun(text: string|nil): string[]
----@cast get_sub_tokens fun(s: table|nil, force_rich: boolean|nil): table[]|nil
----@cast is_word_token fun(t: any): boolean
----@cast clean_text_srt fun(line: string|nil): string
----@cast normalize_inline_break_markers fun(text: string|nil): string
----@cast calculate_ass_alpha fun(val: any): string
----@cast build_copy_preview fun(label: string|nil, text: string|nil, max_chars: number|nil): string
----@cast has_cyrillic fun(str: string|nil): boolean
 
-local L_EPSILON = text_utils.L_EPSILON
 
--- subtitle_parser aliases
-local parse_time, load_sub, find_sub_containing_start, get_center_index, get_center_index_static, get_effective_boundaries =
-    alias(subtitle_parser, {
-        "parse_time",
-        "load_sub",
-        "find_sub_containing_start",
-        "get_center_index",
-        "get_center_index_static",
-        "get_effective_boundaries",
-    })
 
--- keybinding_utils aliases
-local is_valid_mpv_key, expand_ru_keys =
-    alias(keybinding_utils, { "is_valid_mpv_key", "expand_ru_keys" })
 
--- osd_cards aliases
-local show_osd, show_seek_osd = alias(osd_cards, { "show_osd", "show_seek_osd" })
+
 local seek_osd -- forward-declared; assigned from osd_cards.seek_osd after setup()
 local tsv_helpers -- populated at tsv_export init; flush_rendering_caches added later
 local apply_tooltip_ass
@@ -316,56 +256,16 @@ local is_inside_dw_selection
 local ctrl_commit_set
 local dw_anki_export_selection
 
--- tsv_export aliases
-local get_copy_context_text, prepare_export_text, extract_anki_context, load_anki_tsv, save_anki_tsv_row, find_source_url, get_tsv_path =
-    alias(tsv_export, {
-        "get_copy_context_text",
-        "prepare_export_text",
-        "extract_anki_context",
-        "load_anki_tsv",
-        "save_anki_tsv_row",
-        "find_source_url",
-        "get_tsv_path",
-    })
 
--- companion aliases
-local split_base_and_language_postfix, extract_lang_from_title_or_path, ensure_companion_audio_tracks, ensure_companion_subtitle_tracks, ensure_companion_video_track =
-    alias(companion, {
-        "split_base_and_language_postfix",
-        "extract_lang_from_title_or_path",
-        "ensure_companion_audio_tracks",
-        "ensure_companion_subtitle_tracks",
-        "ensure_companion_video_track",
-    })
 
 -- search aliases (forward-declared)
 local search_helpers
 local cmd_toggle_search
 local update_search_results
 
--- help_hud aliases
-local normalize_key_display = help_hud.normalize_key_display
 local cmd_toggle_help -- forward-declared
 local help_helpers
 
--- render_utils aliases
-local compose_term_smart, calculate_highlight_stack, populate_token_meta, format_highlighted_word, dw_get_str_width_proportional, dw_get_str_width, calculate_sub_gap, wrap_tokens, calculate_osd_line_meta, dw_vline_height, dw_build_layout, dw_calculate_block_top, format_tooltip_card_event, format_tooltip_text_event =
-    alias(render_utils, {
-        "compose_term_smart",
-        "calculate_highlight_stack",
-        "populate_token_meta",
-        "format_highlighted_word",
-        "dw_get_str_width_proportional",
-        "dw_get_str_width",
-        "calculate_sub_gap",
-        "wrap_tokens",
-        "calculate_osd_line_meta",
-        "dw_vline_height",
-        "dw_build_layout",
-        "dw_calculate_block_top",
-        "format_tooltip_card_event",
-        "format_tooltip_text_event",
-    })
 local render_helpers
 
 -- subtitle_window aliases (forward-declared)
@@ -441,7 +341,7 @@ mp.set_property("user-data/kardenwort/state", "{}")
 mp.set_property("user-data/kardenwort/render", "")
 
 function validate_config()
-    config.validate_config(Options, Diagnostic, is_valid_mpv_key)
+    config.validate_config(Options, Diagnostic, keybinding_utils.is_valid_mpv_key)
 end
 
 options.read_options(Options, "kardenwort")
@@ -489,8 +389,8 @@ tsv_export.init(FSM, Options, Tracks, Diagnostic, tsv_helpers)
 companion.init(FSM, Options, Diagnostic)
 
 -- search — Universal Subtitle Search HUD.
--- Helpers (wrap_tokens, dw_get_mouse_osd, manage_ui_border_override,
--- manage_dw_bindings, update_interactive_bindings, render_search, show_osd)
+-- Helpers (render_utils.wrap_tokens, dw_get_mouse_osd, manage_ui_border_override,
+-- manage_dw_bindings, update_interactive_bindings, render_search, osd_cards.show_osd)
 -- are populated into search_helpers after their definitions in main.lua.
 search_helpers = {}
 search.init(FSM, Options, Tracks, Diagnostic, search_helpers)
@@ -512,7 +412,7 @@ render_utils.init(FSM, Options, Diagnostic, render_helpers)
 
 -- dw_esc — ESC policy, neutral cursor, and selection reset helpers.
 -- dw_osd/drum_osd are populated after overlay creation below.
-local dw_esc_helpers = { get_center_index = get_center_index }
+local dw_esc_helpers = { get_center_index = subtitle_parser.get_center_index }
 dw_esc.init(FSM, Options, Tracks, dw_esc_helpers)
 
 local function sync_ctrl_pending_list()
@@ -596,7 +496,7 @@ local mouse_input_helpers = {
         return dw_anki_export_selection()
     end,
     show_osd = function(msg, dur)
-        return show_osd(msg, dur)
+        return osd_cards.show_osd(msg, dur)
     end,
 }
 mouse_input.init(FSM, Options, Tracks, Diagnostic, mouse_input_helpers)
@@ -610,7 +510,7 @@ local dw_navigation_helpers = {
         return set_clipboard(text, mode)
     end,
     show_osd = function(msg, dur)
-        return show_osd(msg, dur)
+        return osd_cards.show_osd(msg, dur)
     end,
     dw_get_mouse_osd = function()
         return dw_get_mouse_osd()
@@ -634,7 +534,7 @@ local tick_loop_helpers = {
         return protect_internal_replay_seek()
     end,
     show_osd = function(msg, dur)
-        return show_osd(msg, dur)
+        return osd_cards.show_osd(msg, dur)
     end,
 }
 tick_loop_module.init(FSM, Options, Tracks, Diagnostic, tick_loop_helpers)
@@ -667,19 +567,19 @@ help_helpers.help_osd_2 = help_osd_2
 
 function cmd_cycle_copy_mode()
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Copy Mode: No subtitles loaded")
+        osd_cards.show_osd("Copy Mode: No subtitles loaded")
         return
     end
     local has_sec = (Tracks.sec.id ~= 0 and Tracks.sec.subs and #Tracks.sec.subs > 0)
         or (FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0)
     if not has_sec then
-        show_osd("Copy Mode: Fixed to Primary (Single Track)")
+        osd_cards.show_osd("Copy Mode: Fixed to Primary (Single Track)")
         return
     end
     FSM.COPY_MODE = (FSM.COPY_MODE == "A") and "B" or "A"
 
     local label = (FSM.COPY_MODE == "A") and "A (Primary/Target)" or "B (Secondary/Translation)"
-    show_osd("Copy Subtitle Mode: " .. label)
+    osd_cards.show_osd("Copy Subtitle Mode: " .. label)
 end
 
 function cmd_cycle_dw_esc_mode()
@@ -702,7 +602,7 @@ function cmd_cycle_dw_esc_mode()
         end
     end
     Options.dw_esc_mode = order[next_idx]
-    show_osd("DW Esc Mode: " .. (labels[Options.dw_esc_mode] or Options.dw_esc_mode))
+    osd_cards.show_osd("DW Esc Mode: " .. (labels[Options.dw_esc_mode] or Options.dw_esc_mode))
 end
 
 function cmd_cycle_immersion_mode()
@@ -714,30 +614,30 @@ function cmd_cycle_immersion_mode()
         local time_pos = mp.get_property_number("time-pos") or 0
         local subs = Tracks.pri.subs
         if subs and #subs > 0 then
-            FSM.ACTIVE_IDX = get_center_index(subs, time_pos)
+            FSM.ACTIVE_IDX = subtitle_parser.get_center_index(subs, time_pos)
         end
         if Tracks.sec.subs and #Tracks.sec.subs > 0 then
-            FSM.SEC_ACTIVE_IDX = get_center_index(Tracks.sec.subs, time_pos)
+            FSM.SEC_ACTIVE_IDX = subtitle_parser.get_center_index(Tracks.sec.subs, time_pos)
         end
     end
-    show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
+    osd_cards.show_osd("Immersion Mode: " .. FSM.IMMERSION_MODE)
 end
 
 function cmd_toggle_copy_ctx()
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Context Copy: No subtitles loaded")
+        osd_cards.show_osd("Context Copy: No subtitles loaded")
         return
     end
     if not Tracks.pri.path and not Tracks.sec.path then
-        show_osd("Context Copy: Requires external subtitle files")
+        osd_cards.show_osd("Context Copy: Requires external subtitle files")
         return
     end
     FSM.COPY_CONTEXT = (FSM.COPY_CONTEXT == "OFF") and "ON" or "OFF"
-    show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
+    osd_cards.show_osd("Context Copy: " .. FSM.COPY_CONTEXT)
 end
 
 local function cmd_open_record_file()
-    local path = get_tsv_path()
+    local path = tsv_export.get_tsv_path()
     if not path then
         mp.msg.info("OPEN-RECORD: no media loaded")
         return
@@ -746,7 +646,7 @@ local function cmd_open_record_file()
     local f = io.open(path, "r")
     if not f then
         mp.msg.info("OPEN-RECORD: file not found: " .. tostring(path))
-        show_osd("No record file found")
+        osd_cards.show_osd("No record file found")
         return
     end
     f:close()
@@ -754,7 +654,7 @@ local function cmd_open_record_file()
     local editor = Options.record_editor
     if not editor or editor == "" then
         mp.msg.info("OPEN-RECORD: record_editor not configured")
-        show_osd("Set kardenwort-record_editor in mpv.conf")
+        osd_cards.show_osd("Set kardenwort-record_editor in mpv.conf")
         return
     end
 
@@ -921,10 +821,10 @@ local function update_media_state()
 
     -- Load subtitles for logic memory if necessary (always eager to support global navigation)
     if Tracks.pri.path and #Tracks.pri.subs == 0 then
-        Tracks.pri.subs = load_sub(Tracks.pri.path, Tracks.pri.is_ass)
+        Tracks.pri.subs = subtitle_parser.load_sub(Tracks.pri.path, Tracks.pri.is_ass)
     end
     if Tracks.sec.path and #Tracks.sec.subs == 0 then
-        Tracks.sec.subs = load_sub(Tracks.sec.path, Tracks.sec.is_ass)
+        Tracks.sec.subs = subtitle_parser.load_sub(Tracks.sec.path, Tracks.sec.is_ass)
         if Tracks.sec.subs and #Tracks.sec.subs > 0 then
             FSM.DW_TOOLTIP_SEC_SUBS = Tracks.sec.subs
             FSM.DW_TOOLTIP_SEC_PATH = Tracks.sec.path
@@ -945,7 +845,7 @@ local function update_media_state()
                 local cis_ass = cpath:lower():match("%.ass$")
                     or cpath:lower():match("%.ssa$")
                     or (t.codec == "ass" or t.codec == "ssa")
-                local loaded = load_sub(cpath, cis_ass)
+                local loaded = subtitle_parser.load_sub(cpath, cis_ass)
                 if loaded and #loaded > 0 then
                     FSM.DW_TOOLTIP_SEC_SUBS = loaded
                     FSM.DW_TOOLTIP_SEC_PATH = cpath
@@ -976,7 +876,7 @@ local function update_media_state()
     -- Load TSV after MEDIA_STATE is resolved so the NO_SUBS guard works correctly.
     -- When no subtitles are found, auto-creation is skipped to avoid creating
     -- empty .tsv files next to media that has no associated subtitles.
-    load_anki_tsv()
+    tsv_export.load_anki_tsv()
     update_interactive_bindings()
 
     -- ASS gatekeeping: disable custom OSD modes in the same transition cycle.
@@ -1000,7 +900,7 @@ local function update_media_state()
         update_interactive_bindings()
 
         if had_drum or had_dw then
-            show_osd("Custom OSD: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
+            osd_cards.show_osd("Custom OSD: AUTO-DISABLED (ASS Track Loaded)", Options.osd_duration + 1.0)
         end
     end
 end
@@ -1200,23 +1100,23 @@ local function cmd_toggle_autopause()
         FSM.SCHEDULED_REPLAY_START = nil
         FSM.SCHEDULED_REPLAY_END = nil
     end
-    show_osd("Autopause: " .. FSM.AUTOPAUSE)
+    osd_cards.show_osd("Autopause: " .. FSM.AUTOPAUSE)
 end
 
 local function cmd_toggle_karaoke()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not FSM.MEDIA_STATE:match("ASS") then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     FSM.KARAOKE = (FSM.KARAOKE == "WORD") and "PHRASE" or "WORD"
     if FSM.KARAOKE == "WORD" then
-        show_osd("Pause Mode: EVERY WORD", Options.osd_duration + 0.5)
+        osd_cards.show_osd("Pause Mode: EVERY WORD", Options.osd_duration + 0.5)
     else
-        show_osd("Pause Mode: END OF PHRASE")
+        osd_cards.show_osd("Pause Mode: END OF PHRASE")
     end
 end
 
@@ -1244,11 +1144,11 @@ end
 
 local function cmd_toggle_anki_global()
     if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     Options.anki_global_highlight = not Options.anki_global_highlight
-    show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
+    osd_cards.show_osd("Anki Global Highlight: " .. (Options.anki_global_highlight and "ON" or "OFF"))
     flush_rendering_caches()
     drum_osd:update()
     if dw_osd then
@@ -1258,23 +1158,23 @@ end
 
 local function cmd_toggle_drum()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if FSM.MEDIA_STATE == "NO_SUBS" then
-        show_osd("Drum Mode: No subtitles loaded")
+        osd_cards.show_osd("Drum Mode: No subtitles loaded")
         return
     end
     if FSM.MEDIA_STATE:match("ASS") then
-        show_osd("Drum Mode: NOT SUPPORTED (ASS Track)", Options.osd_duration + 1.0)
+        osd_cards.show_osd("Drum Mode: NOT SUPPORTED (ASS Track)", Options.osd_duration + 1.0)
         return
     end
     if not Tracks.pri.path then
-        show_osd("Drum Mode: Requires external subtitle files (.srt)")
+        osd_cards.show_osd("Drum Mode: Requires external subtitle files (.srt)")
         return
     end
 
@@ -1286,18 +1186,18 @@ local function cmd_toggle_drum()
 
         -- Boot subs for drum memory
         if Tracks.pri.path then
-            Tracks.pri.subs = load_sub(Tracks.pri.path, false)
+            Tracks.pri.subs = subtitle_parser.load_sub(Tracks.pri.path, false)
         end
         if Tracks.sec.path then
-            Tracks.sec.subs = load_sub(Tracks.sec.path, false)
+            Tracks.sec.subs = subtitle_parser.load_sub(Tracks.sec.path, false)
         end
 
-        show_osd("Drum Mode: ON")
+        osd_cards.show_osd("Drum Mode: ON")
     else
         FSM.DRUM = "OFF"
         FSM.DW_TOOLTIP_FORCE = false
         clear_tooltip_overlay("drum-off-transition")
-        show_osd("Drum Mode: OFF")
+        osd_cards.show_osd("Drum Mode: OFF")
     end
     update_interactive_bindings()
     flush_rendering_caches()
@@ -1397,10 +1297,10 @@ local function cmd_seek_time(dir)
     local current_pos = mp.get_property_number("time-pos") or 0
     local target_pos = math.max(0, current_pos + delta)
     local subs = Tracks.pri.subs
-    local current_idx = (subs and #subs > 0) and get_center_index(subs, current_pos) or -1
-    local target_idx = (subs and #subs > 0) and get_center_index(subs, target_pos) or -1
+    local current_idx = (subs and #subs > 0) and subtitle_parser.get_center_index(subs, current_pos) or -1
+    local target_idx = (subs and #subs > 0) and subtitle_parser.get_center_index(subs, target_pos) or -1
     local sec_subs = Tracks.sec.subs
-    local sec_target_idx = (sec_subs and #sec_subs > 0) and get_center_index(sec_subs, target_pos)
+    local sec_target_idx = (sec_subs and #sec_subs > 0) and subtitle_parser.get_center_index(sec_subs, target_pos)
         or -1
     local is_cross_card_seek = (
         current_idx ~= -1
@@ -1470,7 +1370,7 @@ local function cmd_seek_time(dir)
         :gsub("%%V", acc_str)
 
     local alignment = (delta > 0) and 6 or 4
-    show_seek_osd(msg, alignment)
+    osd_cards.show_seek_osd(msg, alignment)
 end
 
 local function cmd_seek_with_repeat(dir, table)
@@ -1635,7 +1535,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
             return
         end
         local i = 1
-        local expanded_keys = expand_ru_keys(key_string, base_name)
+        local expanded_keys = keybinding_utils.expand_ru_keys(key_string, base_name)
         for _, key in ipairs(expanded_keys) do
             if key ~= "" then
                 local is_mouse = key:find("MBTN_") or key:find("WHEEL")
@@ -1923,7 +1823,7 @@ manage_dw_bindings = function(enable_mouse, enable_kb)
 
     for _, k in ipairs(keys) do
         local active = (k.is_mouse and enable_mouse) or (k.is_kb and enable_kb) or k.always_on
-        if active and k.key and is_valid_mpv_key(k.key) and type(k.fn) == "function" then
+        if active and k.key and keybinding_utils.is_valid_mpv_key(k.key) and type(k.fn) == "function" then
             if not (k.key == "Ctrl" or k.key == "Shift" or k.key == "Alt" or k.key == "Meta") then
                 local wrapped_fn = function(t)
                     return k.fn(t)
@@ -2340,13 +2240,13 @@ local function trigger_volume_suspension()
 end
 
 -- Populate search_helpers now that all injected functions are defined.
-search_helpers.wrap_tokens = wrap_tokens
+search_helpers.wrap_tokens = render_utils.wrap_tokens
 search_helpers.dw_get_mouse_osd = dw_get_mouse_osd
 search_helpers.manage_ui_border_override = manage_ui_border_override
 search_helpers.manage_dw_bindings = manage_dw_bindings
 search_helpers.update_interactive_bindings = update_interactive_bindings
 search_helpers.render_search = render_search
-search_helpers.show_osd = show_osd
+search_helpers.show_osd = osd_cards.show_osd
 
 -- Drum Window, Book Mode, and copy commands
 function cmd_toggle_drum_window()
@@ -2354,13 +2254,13 @@ function cmd_toggle_drum_window()
     local prev_drum_window = FSM.DRUM_WINDOW
     local ok, err = xpcall(function()
         if FSM.MEDIA_STATE == "NO_SUBS" then
-            show_osd("Drum Window: No subtitles loaded")
+            osd_cards.show_osd("Drum Window: No subtitles loaded")
             return
         end
         -- Support both external (path-based) and internal (loaded into memory) tracks.
         -- If no subs are in memory and no path exists, we truly can't open.
         if not Tracks.pri.path and #Tracks.pri.subs == 0 then
-            show_osd("Drum Window: requires loaded subtitles")
+            osd_cards.show_osd("Drum Window: requires loaded subtitles")
             return
         end
 
@@ -2372,7 +2272,7 @@ function cmd_toggle_drum_window()
             manage_ui_border_override(true)
 
             -- Refresh TSV before opening: catches any mid-session file deletion or clearing.
-            load_anki_tsv(true)
+            tsv_export.load_anki_tsv(true)
 
             -- Snapshot and hide all subtitle overlays to prevent overlap
             FSM.DW_SAVED_SUB_VIS = FSM.native_sub_vis
@@ -2387,7 +2287,7 @@ function cmd_toggle_drum_window()
             drum_osd:update()
 
             local time_pos = mp.get_property_number("time-pos") or 0
-            local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+            local active_idx = subtitle_parser.get_center_index(Tracks.pri.subs, time_pos)
             if not active_idx or active_idx == -1 then
                 active_idx = 1
             end
@@ -2433,7 +2333,7 @@ function cmd_toggle_drum_window()
             -- Explicitly trigger first render for instant appearance
             if FSM.DRUM_WINDOW == "DOCKED" then
                 tick_dw(time_pos, active_idx)
-                show_osd("Drum Window: ON")
+                osd_cards.show_osd("Drum Window: ON")
             end
         else
             -- Update state immediately
@@ -2451,7 +2351,7 @@ function cmd_toggle_drum_window()
 
             -- Force synchronization of all cursor and viewport states to the current playhead
             local time_pos = mp.get_property_number("time-pos") or 0
-            local active_idx = get_center_index(Tracks.pri.subs, time_pos)
+            local active_idx = subtitle_parser.get_center_index(Tracks.pri.subs, time_pos)
             if active_idx and active_idx ~= -1 then
                 FSM.DW_CURSOR_LINE = active_idx
                 FSM.DW_VIEW_CENTER = active_idx
@@ -2466,14 +2366,14 @@ function cmd_toggle_drum_window()
 
             -- Restore subtitle visibility
             FSM.native_sub_vis = FSM.DW_SAVED_SUB_VIS
-            show_osd("Drum Window: OFF")
+            osd_cards.show_osd("Drum Window: OFF")
         end
     end, debug.traceback)
     if not ok then
         -- Roll back FSM state to prevent phantom window open/close on next toggle
         FSM.DRUM_WINDOW = prev_drum_window
         Diagnostic.error("Drum Window Toggle: " .. tostring(err))
-        show_osd("kardenwort ERROR: " .. tostring(err):sub(1, 100))
+        osd_cards.show_osd("kardenwort ERROR: " .. tostring(err):sub(1, 100))
     end
 end
 
@@ -2484,9 +2384,9 @@ function toggle_book_mode()
         if FSM.DRUM_WINDOW == "OFF" and FSM.DRUM ~= "ON" then
             cmd_toggle_drum_window()
         end
-        show_osd("Book Mode: ON")
+        osd_cards.show_osd("Book Mode: ON")
     else
-        show_osd("Book Mode: OFF")
+        osd_cards.show_osd("Book Mode: OFF")
     end
 end
 
@@ -2501,7 +2401,7 @@ end
 -- Subtitle visibility, track cycling, and position adjustment
 local function cmd_toggle_sub_vis()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     local function capture_sub_vis_combo()
@@ -2556,7 +2456,7 @@ local function cmd_toggle_sub_vis()
         apply_sub_vis_combo(FSM.SUB_VIS_COMBO_BEFORE_OFF)
     end
 
-    show_osd("Subtitles: " .. (turning_off and "OFF" or "ON"))
+    osd_cards.show_osd("Subtitles: " .. (turning_off and "OFF" or "ON"))
     master_tick()
 end
 
@@ -2603,11 +2503,11 @@ end
 
 local function cmd_toggle_secondary_only_mode()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not has_available_secondary_track() then
-        show_osd("X")
+        osd_cards.show_osd("X")
         Diagnostic.info("Secondary Only requested, but no secondary subtitle track is available")
         return
     end
@@ -2618,28 +2518,28 @@ local function cmd_toggle_secondary_only_mode()
         -- Force master subtitles ON, but render only secondary via SEC_ONLY_MODE.
         FSM.native_sub_vis = true
         FSM.native_sec_sub_vis = true
-        show_osd("Secondary Sub Only: ON")
+        osd_cards.show_osd("Secondary Sub Only: ON")
     else
         -- Exit to normal master-on state.
         FSM.native_sub_vis = true
         FSM.native_sec_sub_vis = true
-        show_osd("Secondary Sub Only: OFF")
+        osd_cards.show_osd("Secondary Sub Only: OFF")
     end
     master_tick()
 end
 
 local function cmd_cycle_sec_pos()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not FSM.native_sub_vis then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if Tracks.sec.id == 0 then
         local has_available_secondary = has_available_secondary_track()
-        show_osd("X")
+        osd_cards.show_osd("X")
         if not has_available_secondary then
             Diagnostic.info(
                 "Secondary Sub Pos requested, but no secondary subtitle track is available"
@@ -2648,30 +2548,30 @@ local function cmd_cycle_sec_pos()
         return
     end
     if Tracks.sec.is_ass then
-        show_osd("Secondary Sub Pos: Not available (ASS controls positioning)")
+        osd_cards.show_osd("Secondary Sub Pos: Not available (ASS controls positioning)")
         return
     end
     if FSM.DRUM == "ON" then
         FSM.native_sec_sub_pos = (FSM.native_sec_sub_pos < 50) and Options.sec_pos_bottom
             or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", FSM.native_sec_sub_pos)
-        show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
+        osd_cards.show_osd("Secondary Sub Pos: " .. ((FSM.native_sec_sub_pos < 50) and "TOP" or "BOTTOM"))
     else
         local p = mp.get_property_number("secondary-sub-pos", Options.sec_pos_top)
         local n = (p < 50) and Options.sec_pos_bottom or Options.sec_pos_top
         mp.set_property_number("secondary-sub-pos", n)
         FSM.native_sec_sub_pos = n
-        show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
+        osd_cards.show_osd("Secondary Sub Pos: " .. ((n < 50) and "TOP" or "BOTTOM"))
     end
 end
 
 local function cmd_adjust_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not FSM.native_sub_vis then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     local p = mp.get_property_number("sub-pos", 95)
@@ -2680,11 +2580,11 @@ end
 
 local function cmd_adjust_sec_sub_pos(delta)
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not FSM.native_sub_vis then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     local p = mp.get_property_number("secondary-sub-pos", 10)
@@ -2695,17 +2595,17 @@ end
 
 local function cmd_cycle_sec_sid()
     if FSM.DRUM_WINDOW ~= "OFF" then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     if not FSM.native_sub_vis then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     -- Prevent contradictory state overlays: while Secondary Sub Only mode is active,
     -- blocking OFF/cycle on secondary sid keeps the mode deterministic.
     if FSM.SEC_ONLY_MODE then
-        show_osd("X")
+        osd_cards.show_osd("X")
         return
     end
     FSM.native_sec_sub_vis = true
@@ -2751,7 +2651,7 @@ local function cmd_cycle_sec_sid()
         if internal_count > 0 then
             msg = msg .. " [" .. internal_count .. " built-in unsupported]"
         end
-        show_osd(msg)
+        osd_cards.show_osd(msg)
         mp.set_property("secondary-sid", "no")
         return
     end
@@ -2849,10 +2749,10 @@ local function cmd_cycle_sec_sid()
                 local lang_detected = nil
 
                 if path ~= "" then
-                    lang_detected = extract_lang_from_title_or_path(t.title, path)
+                    lang_detected = companion.extract_lang_from_title_or_path(t.title, path)
                 end
                 if not lang_detected and t.title then
-                    lang_detected = extract_lang_from_title_or_path(t.title, nil)
+                    lang_detected = companion.extract_lang_from_title_or_path(t.title, nil)
                 end
 
                 if lang_detected then
@@ -2882,12 +2782,12 @@ local function cmd_cycle_sec_sid()
     if internal_count > 0 then
         final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
     end
-    show_osd(final_msg)
+    osd_cards.show_osd(final_msg)
     drum_osd:update()
 end
 
 function cmd_cycle_audio()
-    ensure_companion_audio_tracks(mp.get_property("path"))
+    companion.ensure_companion_audio_tracks(mp.get_property("path"))
 
     local tracks = mp.get_property_native("track-list") or {}
     local current_aid = tonumber(mp.get_property("aid") or 0) or 0
@@ -2913,7 +2813,7 @@ function cmd_cycle_audio()
     table.sort(supported_active)
 
     if #supported <= 1 then
-        show_osd("Audio: None available")
+        osd_cards.show_osd("Audio: None available")
         return
     end
 
@@ -2992,7 +2892,7 @@ function cmd_cycle_audio()
                         if #ext > 0 then
                             ext_stem = ext_file:sub(1, #ext_file - #ext - 1)
                         end
-                        local base_name, postfix = split_base_and_language_postfix(ext_stem)
+                        local base_name, postfix = companion.split_base_and_language_postfix(ext_stem)
                         if postfix and base_name and base_name ~= "" then
                             title_lbl = base_name
                         elseif ext_stem ~= "" then
@@ -3015,7 +2915,7 @@ function cmd_cycle_audio()
         end
     end
 
-    show_osd("Audio: " .. label)
+    osd_cards.show_osd("Audio: " .. label)
 end
 
 local function cmd_toggle_osc()
@@ -3027,7 +2927,7 @@ local function cmd_toggle_osc()
         lbl, cmd = "NEVER", "never"
     end
     mp.commandv("script-message", "osc-visibility", cmd, "no-osd")
-    show_osd("OSC Visibility: " .. lbl)
+    osd_cards.show_osd("OSC Visibility: " .. lbl)
 end
 
 -- ===============================================================================
@@ -3057,11 +2957,11 @@ local function cmd_copy_sub(mode)
             end
             local osd_t = table.concat(words, " ")
                 .. (wcount > Options.copy_word_limit and "..." or "")
-            show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
+            osd_cards.show_osd("Copied " .. FSM.COPY_MODE .. ": " .. osd_t)
             FSM.LAST_OSD_TIME = now
         end
     else
-        show_osd("No subtitle to copy")
+        osd_cards.show_osd("No subtitle to copy")
     end
 end
 
@@ -3189,13 +3089,13 @@ end)
 
 mp.register_event("file-loaded", function()
     if Options.companion_audio_attach_on_load ~= false then
-        ensure_companion_audio_tracks(mp.get_property("path"))
+        companion.ensure_companion_audio_tracks(mp.get_property("path"))
     end
     if Options.companion_subtitle_attach_on_load ~= false then
-        ensure_companion_subtitle_tracks(mp.get_property("path"))
+        companion.ensure_companion_subtitle_tracks(mp.get_property("path"))
     end
     if Options.companion_video_attach_on_load ~= false then
-        ensure_companion_video_track(mp.get_property("path"))
+        companion.ensure_companion_video_track(mp.get_property("path"))
     end
 end)
 
@@ -3338,8 +3238,8 @@ register_global_playback_keys()
 if Options.anki_sync_period > 0 then
     mp.add_periodic_timer(Options.anki_sync_period, function()
         local ok, err = xpcall(function()
-            find_source_url()
-            load_anki_tsv(false, true)
+            tsv_export.find_source_url()
+            tsv_export.load_anki_tsv(false, true)
             drum_osd:update()
             if dw_osd then
                 dw_osd:update()
@@ -3395,17 +3295,17 @@ test_hooks.init(FSM, Options, Tracks, Diagnostic, {
     cmd_cycle_sec_sid = cmd_cycle_sec_sid,
     ctrl_commit_set = ctrl_commit_set,
     dw_anki_export_selection = dw_anki_export_selection,
-    prepare_export_text = prepare_export_text,
+    prepare_export_text = tsv_export.prepare_export_text,
     cmd_dw_copy = cmd_dw_copy,
-    utf8_to_table = utf8_to_table,
+    utf8_to_table = text_utils.utf8_to_table,
     update_search_results = update_search_results,
     render_search = render_search,
-    build_word_list_internal = build_word_list_internal,
-    get_sub_tokens = get_sub_tokens,
-    logical_cmp = logical_cmp,
-    calculate_highlight_stack = calculate_highlight_stack,
+    build_word_list_internal = text_utils.build_word_list_internal,
+    get_sub_tokens = text_utils.get_sub_tokens,
+    logical_cmp = text_utils.logical_cmp,
+    calculate_highlight_stack = render_utils.calculate_highlight_stack,
     flush_rendering_caches = flush_rendering_caches,
-    load_anki_tsv = load_anki_tsv,
+    load_anki_tsv = tsv_export.load_anki_tsv,
     cmd_dw_tooltip_pin = cmd_dw_tooltip_pin,
     is_osd_tooltip_mode_eligible = is_osd_tooltip_mode_eligible,
     resolve_tooltip_target_line = resolve_tooltip_target_line,
@@ -3415,16 +3315,16 @@ test_hooks.init(FSM, Options, Tracks, Diagnostic, {
     cmd_dw_toggle_pink = cmd_dw_toggle_pink,
     cmd_open_record_file = cmd_open_record_file,
     dw_handle_double_click_target = dw_handle_double_click_target,
-    utf8_truncate = utf8_truncate,
-    build_copy_preview = build_copy_preview,
+    utf8_truncate = text_utils.utf8_truncate,
+    build_copy_preview = text_utils.build_copy_preview,
     drum_osd_hit_test = drum_osd_hit_test,
     build_tooltip_style_context = build_tooltip_style_context,
-    format_tooltip_card_event = format_tooltip_card_event,
-    format_tooltip_text_event = format_tooltip_text_event,
-    expand_ru_keys = expand_ru_keys,
-    load_sub = load_sub,
+    format_tooltip_card_event = render_utils.format_tooltip_card_event,
+    format_tooltip_text_event = render_utils.format_tooltip_text_event,
+    expand_ru_keys = keybinding_utils.expand_ru_keys,
+    load_sub = subtitle_parser.load_sub,
     sync_ctrl_pending_list = sync_ctrl_pending_list,
-    normalize_key_display = normalize_key_display,
+    normalize_key_display = help_hud.normalize_key_display,
     cmd_toggle_help = cmd_toggle_help,
 })
 test_hooks.register_all()
