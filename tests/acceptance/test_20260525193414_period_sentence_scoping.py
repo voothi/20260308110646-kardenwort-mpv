@@ -172,7 +172,7 @@ def test_is_abbrev_function_exists_and_uses_list():
     """
     content = _text_utils()
     assert_contains(content, "local function is_abbrev", (
-        "is_abbrev function not found in main.lua"
+        "is_abbrev function not found in text_utils.lua"
     ))
     assert_contains(content, "anki_abbrev_list", (
         "anki_abbrev_list option not referenced in is_abbrev"

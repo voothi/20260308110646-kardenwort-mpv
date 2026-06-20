@@ -520,10 +520,10 @@ class TestConfigurableAbbrevDetection:
         )
 
     def test_is_abbrev_function_in_lua(self):
-        """is_abbrev function must be defined in kardenwort.lua."""
-        with open("scripts/kardenwort/main.lua", encoding="utf-8") as f:
+        """is_abbrev function must be defined in text_utils.lua."""
+        with open("scripts/kardenwort/text_utils.lua", encoding="utf-8") as f:
             src = f.read()
-        assert "is_abbrev" in src, "is_abbrev function not found in kardenwort.lua"
+        assert "is_abbrev" in src, "is_abbrev function not found in text_utils.lua"
 
     def test_abbrev_list_default_is_string(self, mpv):
         """anki_abbrev_list default must be a non-nil string."""
