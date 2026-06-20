@@ -34,15 +34,11 @@ class TestTtsDigitBindings:
             'mode:match("^tts_[1-8]$")',
             'Options["tts_hotkey_" .. mode:match("([1-8])$")]',
         ]
-        # HELP_SCHEMA TTS entries moved to help_hud.lua (Phase 9 extraction).
-        required_in_help = [
-            'cmd = "kardenwort/copy-subtitle-tts-2", fallback_keys = function() return Options.key_tts_2 end',
-            'cmd = "kardenwort/copy-subtitle-tts-3", fallback_keys = function() return Options.key_tts_3 end',
-            'cmd = "kardenwort/copy-subtitle-tts-4", fallback_keys = function() return Options.key_tts_4 end',
-            'cmd = "kardenwort/copy-subtitle-tts-5", fallback_keys = function() return Options.key_tts_5 end',
-        ]
         missing = [item for item in required_in_main if item not in src]
-        missing += [item for item in required_in_help if item not in help_src]
+        for idx in (2, 3, 4, 5):
+            pat = rf'cmd\s*=\s*"kardenwort/copy-subtitle-tts-{idx}"\s*,\s*fallback_keys\s*=\s*function\(\)\s*(?:return\s+)?Options\.key_tts_{idx}\s+end'
+            if not re.search(pat, help_src):
+                missing.append(f'tts-{idx} fallback_keys entry')
         assert not missing, f"TTS integration markers missing: {missing}"
 
     def test_mpv_conf_declares_tts_keys_and_hotkeys(self):

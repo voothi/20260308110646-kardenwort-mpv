@@ -106,7 +106,7 @@ def test_search_results_keep_highlight_payload():
     """SEARCH_RESULTS entries must preserve hl so draw_search_ui can color all hits."""
     content = _search()
     assert re.search(
-        r"table\.insert\(FSM\.SEARCH_RESULTS,\s*\{idx\s*=\s*item\.idx,\s*text\s*=\s*subs\[item\.idx\]\.text,\s*hl\s*=\s*item\.hl\}\)",
+        r"table\.insert\(\s*FSM\.SEARCH_RESULTS\s*,\s*\{\s*idx\s*=\s*item\.idx\s*,\s*text\s*=\s*subs\s*\[\s*item\.idx\s*\]\s*\.text\s*,\s*hl\s*=\s*item\.hl\s*\}\s*\)",
         content
     ), (
         "update_search_results must keep idx/text/hl in SEARCH_RESULTS entries"

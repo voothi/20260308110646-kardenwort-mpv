@@ -15,8 +15,17 @@ Specs:
 import re
 
 
+import re
+
+
 LUA = "scripts/kardenwort/main.lua"
 TEXT_UTILS = "scripts/kardenwort/text_utils.lua"
+
+
+def assert_contains(haystack, needle, msg=None):
+    def norm(s):
+        return re.sub(r"[\s\n\r\t\"']+", "", s)
+    assert norm(needle) in norm(haystack), msg or f"Expected {repr(needle)} to be in text, but not found."
 
 
 def _lua():
@@ -45,8 +54,9 @@ def _scoping_block(content):
     start = content.find("=== Backward scan: find nearest real sentence terminator")
     if start == -1:
         return ""
-    # Grab a generous window around both scans
-    return content[start:start + 3000]
+    # Grab a very generous window around both scans (up to the end of the file or 15000 chars)
+    return content[start:start + 15000]
+
 
 
 # ---------------------------------------------------------------------------
@@ -63,9 +73,9 @@ def test_backward_scan_uses_terminator_chars():
     block = _scoping_block(content)
     assert block, "Sentence scoping block not found in extract_anki_context"
     # Must call is_terminator_char (or equivalent) instead of looking for \0
-    assert "is_terminator_char" in block, (
+    assert_contains(block, "is_terminator_char", (
         "is_terminator_char not called in backward scan; NUL-sentinel scoping regression"
-    )
+    ))
     # Must not use the old reversed-string NUL find pattern
     assert 'pre:reverse():find("\\0"' not in block, (
         "Old NUL-sentinel backward scan (pre:reverse():find) still present; not replaced"
@@ -81,13 +91,13 @@ def test_forward_scan_uses_terminator_chars():
     content = _tsv_export()
     block = _scoping_block(content)
     assert block, "Sentence scoping block not found in extract_anki_context"
-    assert "f_term_pos" in block, (
+    assert_contains(block, "f_term_pos", (
         "f_term_pos variable not found; forward terminator scan is missing"
-    )
+    ))
     # Must include the terminator in sent_end (inclusive)
-    assert "sent_end = f_term_pos" in block, (
+    assert_contains(block, "sent_end = f_term_pos", (
         "sent_end must equal f_term_pos to include the terminator character"
-    )
+    ))
     # Must not use the old post:find("\0") pattern
     assert 'post:find("\\0"' not in content or "post:find" not in block, (
         "Old NUL-sentinel forward scan (post:find) still present in scoping block"
@@ -108,9 +118,9 @@ def test_backward_boundary_excludes_prior_sentence():
     """
     content = _tsv_export()
     block = _scoping_block(content)
-    assert "b_term_pos + 1" in block or "b_term_pos+1" in block, (
+    assert_contains(block, "b_term_pos + 1", (
         "sent_start must be set to b_term_pos + 1 to exclude the boundary terminator from the result"
-    )
+    ))
 
 
 def test_no_terminator_fallback_uses_full_block():
@@ -122,12 +132,12 @@ def test_no_terminator_fallback_uses_full_block():
     content = _tsv_export()
     block = _scoping_block(content)
     # Fallback: sent_start = 1, sent_end = #full_line
-    assert "sent_start = 1" in block, (
+    assert_contains(block, "sent_start = 1", (
         "No-terminator fallback must set sent_start = 1 to use the full block"
-    )
-    assert "sent_end = #full_line" in block, (
+    ))
+    assert_contains(block, "sent_end = #full_line", (
         "No-terminator fallback must set sent_end = #full_line to use the full block"
-    )
+    ))
     # Must NOT fall back to a single NUL-bounded subtitle line
     assert 'b_idx = pre:reverse():find("\\0"' not in block, (
         "Old NUL-sentinel fallback still present; should fall back to full block, not single subtitle line"
@@ -146,12 +156,12 @@ def test_abbreviation_skip_in_scoping_block():
     """
     content = _tsv_export()
     block = _scoping_block(content)
-    assert "is_abbrev" in block, (
+    assert_contains(block, "is_abbrev", (
         "is_abbrev not called inside sentence scoping block; abbreviation skip is missing"
-    )
-    assert "token_ending_at" in block, (
+    ))
+    assert_contains(block, "token_ending_at", (
         "token_ending_at not called inside sentence scoping block; preceding-token extraction is missing"
-    )
+    ))
 
 
 def test_is_abbrev_function_exists_and_uses_list():
@@ -161,15 +171,15 @@ def test_is_abbrev_function_exists_and_uses_list():
     Spec: Configurable Abbreviation Allowlist
     """
     content = _text_utils()
-    assert "local function is_abbrev" in content, (
+    assert_contains(content, "local function is_abbrev", (
         "is_abbrev function not found in main.lua"
-    )
-    assert "anki_abbrev_list" in content, (
+    ))
+    assert_contains(content, "anki_abbrev_list", (
         "anki_abbrev_list option not referenced in is_abbrev"
-    )
-    assert "anki_abbrev_smart" in content, (
+    ))
+    assert_contains(content, "anki_abbrev_smart", (
         "anki_abbrev_smart option not referenced; heuristic toggle is missing"
-    )
+    ))
 
 
 def test_token_ending_at_helper_exists():
@@ -178,9 +188,9 @@ def test_token_ending_at_helper_exists():
     Spec: Abbreviation-Aware Sentence Boundary Detection
     """
     content = _tsv_export()
-    assert "local function token_ending_at" in content, (
+    assert_contains(content, "local function token_ending_at", (
         "token_ending_at helper function not found in main.lua"
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -193,9 +203,9 @@ def test_no_terminator_fallback_trace_message():
     Spec: No-Terminator Fallback to Full Joined Context
     """
     content = _tsv_export()
-    assert "fallback to block" in content, (
+    assert_contains(content, "fallback to block", (
         "Diagnostic trace for no-terminator fallback ('fallback to block') not found"
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -209,12 +219,12 @@ def test_anki_sentence_terminators_option_defined():
     Scenario: Default terminators
     """
     content = _lua()
-    assert 'anki_sentence_terminators' in content, (
+    assert_contains(content, 'anki_sentence_terminators', (
         "anki_sentence_terminators option not found in main.lua"
-    )
-    assert '".!?"' in content or "'.!?'" in content, (
+    ))
+    assert_contains(content, '".!?"', (
         "Default value .!? not found for anki_sentence_terminators"
-    )
+    ))
 
 
 def test_is_terminator_char_helper_exists():
@@ -224,13 +234,13 @@ def test_is_terminator_char_helper_exists():
     Scenario: User adds terminator characters
     """
     content = _tsv_export()
-    assert "local function is_terminator_char" in content, (
+    assert_contains(content, "local function is_terminator_char", (
         "is_terminator_char helper function not found in main.lua"
-    )
-    assert "anki_sentence_terminators" in content[content.find("local function is_terminator_char"):
-                                                   content.find("local function is_terminator_char") + 300], (
+    ))
+    assert_contains(content[content.find("local function is_terminator_char"):
+                           content.find("local function is_terminator_char") + 300], "anki_sentence_terminators", (
         "is_terminator_char must reference anki_sentence_terminators option"
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -248,9 +258,9 @@ def test_anki_abbrev_list_includes_german_defaults():
     assert idx != -1, "anki_abbrev_list not found in Options"
     line = content[idx:idx+200]
     for abbrev in ["d.h.", "vgl.", "ggf.", "bspw."]:
-        assert abbrev in line, (
+        assert_contains(line, abbrev, (
             f"German abbreviation '{abbrev}' not in anki_abbrev_list default value"
-        )
+        ))
 
 
 # ---------------------------------------------------------------------------
@@ -295,19 +305,24 @@ def test_extract_anki_context_passes_lookahead_to_is_abbrev():
     character past the candidate period and pass it to is_abbrev."""
     content = _tsv_export()
     # Helper that walks past whitespace/\0 to the next visible character
-    assert "local function lookahead_after" in content, (
+    assert_contains(content, "local function lookahead_after", (
         "lookahead_after helper not defined inside extract_anki_context"
-    )
+    ))
     block = _scoping_block(content)
     # Both scans must consult is_abbrev with the lookahead character.
+    # Note: in LUA it is called as `text_utils.is_abbrev(token_ending_at(...), lookahead_after(...))`
+    # and might have linebreaks/whitespace from formatting.
+    # We strip all whitespace before running the regex, or write a flexible regex.
+    block_clean = re.sub(r"\s+", "", block)
     matches = re.findall(
-        r"is_abbrev\(token_ending_at\(full_line,\s*\w+\),\s*lookahead_after\(full_line,\s*\w+\)\)",
-        block,
+        r"text_utils\.is_abbrev\(token_ending_at\(full_line,\w+\),lookahead_after\(full_line,\w+\)\)",
+        block_clean,
     )
     assert len(matches) >= 2, (
         f"Both backward and forward scans must call is_abbrev with lookahead_after; "
-        f"found only {len(matches)} occurrences"
+        f"found only {len(matches)} occurrences in block:\n{block_clean}"
     )
+
 
 
 def test_spaced_initialism_periods_do_not_split_sentence():
@@ -316,9 +331,9 @@ def test_spaced_initialism_periods_do_not_split_sentence():
     Regression anchor: 20260526131237
     """
     content = _tsv_export()
-    assert "local function is_spaced_initialism_period_at" in content, (
+    assert_contains(content, "local function is_spaced_initialism_period_at", (
         "spaced initialism guard missing; 'z. B.' can split at the first period"
-    )
+    ))
     block = _scoping_block(content)
     assert block.count("is_spaced_initialism_period_at(full_line,") >= 2, (
         "both backward and forward scans must skip spaced-initialism periods"

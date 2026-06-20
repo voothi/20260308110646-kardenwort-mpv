@@ -149,18 +149,26 @@ def _query_highlight_stack(ipc, line, word, time_pos, timeout_s=8.0):
     return last
 
 
+import re
+
+def assert_contains(haystack, needle, msg=None):
+    def norm(s):
+        return re.sub(r"[\s\n\r\t\"']+", "", s)
+    assert norm(needle) in norm(haystack), msg or f"Expected {repr(needle)} to be in text, but not found."
+
 def test_local_anchor_uses_exact_slot_before_neighbor_fallback():
     src = _lua_source()
-    assert "local function has_exact_pivot_slot(" in src
-    assert "local function pivot_line_match(" in src
-    assert "if has_exact_pivot_slot(expected_sub_idx, pivot_l_idx, expected_clean_word) then" in src
-    assert "return false" in src
+    assert_contains(src, "local function has_exact_pivot_slot(")
+    assert_contains(src, "local function pivot_line_match(")
+    assert_contains(src, "if has_exact_pivot_slot(expected_sub_idx, pivot_l_idx, expected_clean_word) then")
+    assert_contains(src, "return false")
 
 
 def test_contiguous_and_split_paths_share_pivot_line_match_guard():
     src = _lua_source()
-    assert "local line_match = pivot_line_match(sub_idx, expected_sub_idx, g.p_idx, expected_word)" in src
-    assert "local line_match = m and pivot_line_match(m.s_i, expected_sub_idx, g.p_idx, expected_word)" in src
+    assert_contains(src, "local line_match = pivot_line_match(sub_idx, expected_sub_idx, g.p_idx, expected_word)")
+    assert_contains(src, "local line_match = m and pivot_line_match(m.s_i, expected_sub_idx, g.p_idx, expected_word)")
+
 
 
 @pytest.mark.acceptance

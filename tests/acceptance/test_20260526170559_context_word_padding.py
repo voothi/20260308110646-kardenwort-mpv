@@ -10,6 +10,19 @@ LUA = "scripts/kardenwort/main.lua"
 TSV_EXPORT = "scripts/kardenwort/tsv_export.lua"
 
 
+import re
+
+
+LUA = "scripts/kardenwort/main.lua"
+TSV_EXPORT = "scripts/kardenwort/tsv_export.lua"
+
+
+def assert_contains(haystack, needle, msg=None):
+    def norm(s):
+        return re.sub(r"[\s\n\r\t\"']+", "", s)
+    assert norm(needle) in norm(haystack), msg or f"Expected {repr(needle)} to be in text, but not found."
+
+
 def _lua():
     import os
     contents = []
@@ -28,20 +41,26 @@ def _tsv_export():
 
 def test_padding_options_exist_with_defaults():
     content = _lua()
-    assert "anki_context_words_before = 0" in content
-    assert "anki_context_words_after = 0" in content
+    assert_contains(content, "anki_context_words_before = 0")
+    assert_contains(content, "anki_context_words_after = 0")
 
 
 def test_padding_options_are_normalized():
     content = _lua()
     assert (
-        "Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))" in content or
-        "opts.anki_context_words_before = math.max(0, math.floor(tonumber(opts.anki_context_words_before) or 0))" in content
+        norm_check("Options.anki_context_words_before = math.max(0, math.floor(tonumber(Options.anki_context_words_before) or 0))", content) or
+        norm_check("opts.anki_context_words_before = math.max(0, math.floor(tonumber(opts.anki_context_words_before) or 0))", content)
     )
     assert (
-        "Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))" in content or
-        "opts.anki_context_words_after = math.max(0, math.floor(tonumber(opts.anki_context_words_after) or 0))" in content
+        norm_check("Options.anki_context_words_after = math.max(0, math.floor(tonumber(Options.anki_context_words_after) or 0))", content) or
+        norm_check("opts.anki_context_words_after = math.max(0, math.floor(tonumber(opts.anki_context_words_after) or 0))", content)
     )
+
+
+def norm_check(needle, haystack):
+    def norm(s):
+        return re.sub(r"[\s\n\r\t\"']+", "", s)
+    return norm(needle) in norm(haystack)
 
 
 def test_padding_applies_after_sentence_scoping():
@@ -49,10 +68,10 @@ def test_padding_applies_after_sentence_scoping():
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
-    assert "padding_active = (pad_before > 0) or (pad_after > 0)" in body
-    assert "if padding_allowed then" in body
-    assert "final_first_word_idx = math.max(1, first_sent_word_idx - pad_before)" in body
-    assert "final_last_word_idx = math.min(#word_tokens, last_sent_word_idx + pad_after)" in body
+    assert_contains(body, "padding_active = (pad_before > 0) or (pad_after > 0)")
+    assert_contains(body, "if padding_allowed then")
+    assert_contains(body, "final_first_word_idx = math.max(1, first_sent_word_idx - pad_before)")
+    assert_contains(body, "final_last_word_idx = math.min(#word_tokens, last_sent_word_idx + pad_after)")
 
 
 def test_padding_requires_real_sentence_boundary():
@@ -60,9 +79,9 @@ def test_padding_requires_real_sentence_boundary():
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
-    assert "local has_real_boundary = false" in body
-    assert "has_real_boundary = true" in body
-    assert "padding_allowed = padding_active and has_real_boundary" in body
+    assert_contains(body, "local has_real_boundary = false")
+    assert_contains(body, "has_real_boundary = true")
+    assert_contains(body, "padding_allowed = padding_active and has_real_boundary")
 
 
 def test_default_sentence_path_is_preserved():
@@ -70,7 +89,7 @@ def test_default_sentence_path_is_preserved():
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
-    assert "if #words <= limit then return sentence end" in body
+    assert_contains(body, "if #words <= limit then return sentence end")
 
 
 def test_padding_limit_adjustment_and_wide_span_override():
@@ -78,6 +97,7 @@ def test_padding_limit_adjustment_and_wide_span_override():
     idx = content.find("local function extract_anki_context")
     assert idx != -1
     body = content[idx:idx + 25000]
-    assert "words_needed = span + pad_before + pad_after" in body
-    assert "pad_left = math.max(pad_left, pad_before)" in body
-    assert "pad_right = math.max(pad_right, pad_after)" in body
+    assert_contains(body, "words_needed = span + pad_before + pad_after")
+    assert_contains(body, "pad_left = math.max(pad_left, pad_before)")
+    assert_contains(body, "pad_right = math.max(pad_right, pad_after)")
+

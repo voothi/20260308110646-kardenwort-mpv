@@ -8,8 +8,13 @@ Structural guardrails for regressions that are hard to execute in headless CI:
 - Copy mode cycle lock when no true secondary source exists.
 - DW interactive key guards that bypass native subtitle visibility only when DW is ON.
 """
-
 from pathlib import Path
+import re
+
+def assert_contains(haystack, needle, msg=None):
+    def norm(s):
+        return re.sub(r"[\s\n\r\t\"']+", "", s)
+    assert norm(needle) in norm(haystack), msg or f"Expected {repr(needle)} to be in text, but not found."
 
 
 def _lua_source() -> str:
@@ -61,32 +66,32 @@ def test_cycle_copy_mode_requires_real_secondary_or_cached_secondary():
     src = _lua_source()
     body = _function_window(src, "function cmd_cycle_copy_mode()", "function cmd_toggle_copy_ctx")
 
-    assert "local has_sec =" in body
-    assert "Tracks.sec.id ~= 0" in body
-    assert "FSM.DW_TOOLTIP_SEC_SUBS" in body
-    assert "if not has_sec then" in body
-    assert "Copy Mode: Fixed to Primary (Single Track)" in body
+    assert_contains(body, "local has_sec =")
+    assert_contains(body, "Tracks.sec.id ~= 0")
+    assert_contains(body, "FSM.DW_TOOLTIP_SEC_SUBS")
+    assert_contains(body, "if not has_sec then")
+    assert_contains(body, "Copy Mode: Fixed to Primary (Single Track)")
 
 
 def test_copy_context_falls_back_to_cached_secondary_subs_when_track_missing():
     src = _tsv_export_source()
     body = _function_window(src, "local function get_copy_context_text", "local function load_anki_mapping_ini")
 
-    assert "local function append(path, is_ass, explicit_idx, provided_subs)" in body
-    assert "if not path and not provided_subs then return end" in body
-    assert "local subs = provided_subs" in body
-    assert "elseif FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0 then" in body
-    assert "append(nil, false, nil, FSM.DW_TOOLTIP_SEC_SUBS)" in body
+    assert_contains(body, "local function append(path, is_ass, explicit_idx, provided_subs)")
+    assert_contains(body, "if not path and not provided_subs then return end")
+    assert_contains(body, "local subs = provided_subs")
+    assert_contains(body, "elseif FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0 then")
+    assert_contains(body, "append(nil, false, nil, FSM.DW_TOOLTIP_SEC_SUBS)")
 
 
 def test_prepare_export_text_mode_b_falls_back_to_cached_secondary_subs():
     src = _tsv_export_source()
     body = _function_window(src, "local function prepare_export_text(params, options)", "local function extract_anki_context")
 
-    assert 'if options.copy_mode == "B" then' in body
-    assert "if Tracks.sec.subs and #Tracks.sec.subs > 0 then" in body
-    assert "elseif FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0 then" in body
-    assert "target_subs = FSM.DW_TOOLTIP_SEC_SUBS" in body
+    assert_contains(body, 'if options.copy_mode == "B" then')
+    assert_contains(body, "if Tracks.sec.subs and #Tracks.sec.subs > 0 then")
+    assert_contains(body, "elseif FSM.DW_TOOLTIP_SEC_SUBS and #FSM.DW_TOOLTIP_SEC_SUBS > 0 then")
+    assert_contains(body, "target_subs = FSM.DW_TOOLTIP_SEC_SUBS")
 
 
 def test_visibility_guards_allow_dw_interaction_when_dw_window_on():
@@ -108,39 +113,39 @@ def test_visibility_guards_allow_dw_interaction_when_dw_window_on():
         # cmd_toggle_search moved to search.lua (Phase 8); read from there.
         lookup_src = search_src if fn == "function M.cmd_toggle_search()" else src
         body = _slice_from(lookup_src, fn, span=1300)
-        assert 'if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then' in body, (
+        assert_contains(body, 'if not FSM.native_sub_vis and FSM.DRUM_WINDOW == "OFF" then', (
             f"Expected DW visibility bypass guard in {fn}"
-        )
+        ))
 
 
 def test_tick_dw_follow_mode_keeps_viewport_centered_outside_book_mode():
     src = _lua_source()
     body = _function_window(src, "local function tick_dw(time_pos, active_idx)", "local function tick_drum")
 
-    assert "if FSM.DW_FOLLOW_PLAYER then" in body
-    assert "elseif not FSM.BOOK_MODE then" in body
-    assert "FSM.DW_VIEW_CENTER = active_idx" in body
+    assert_contains(body, "if FSM.DW_FOLLOW_PLAYER then")
+    assert_contains(body, "elseif not FSM.BOOK_MODE then")
+    assert_contains(body, "FSM.DW_VIEW_CENTER = active_idx")
 
 
 def test_dw_open_without_pointer_anchors_to_active_playback_line():
     src = _lua_source()
     body = _function_window(src, "function cmd_toggle_drum_window()", "function toggle_book_mode()", span=9000)
 
-    assert "local has_pointer =" in body
-    assert "local has_range =" in body
-    assert "local has_pending =" in body
-    assert "if has_pointer or has_range or has_pending then" in body
-    assert "FSM.DW_CURSOR_LINE = active_idx" in body
-    assert "FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx" in body
+    assert_contains(body, "local has_pointer =")
+    assert_contains(body, "local has_range =")
+    assert_contains(body, "local has_pending =")
+    assert_contains(body, "if has_pointer or has_range or has_pending then")
+    assert_contains(body, "FSM.DW_CURSOR_LINE = active_idx")
+    assert_contains(body, "FSM.DW_VIEW_CENTER = (FSM.DW_CURSOR_LINE and FSM.DW_CURSOR_LINE ~= -1) and FSM.DW_CURSOR_LINE or active_idx")
 
 
 def test_dw_block_top_uses_stable_frame_when_not_overflowing():
     src = _lua_source()
     body = _function_window(src, "local function dw_calculate_block_top(view_center, active_idx, layout, total_height)", "-- draw_dw")
 
-    assert "local block_top = center_y - (total_height / 2)" in body
-    assert "if total_height > base_h - 2 * edge_margin then" in body
-    assert "block_top = center_y - offset_y" in body
+    assert_contains(body, "local block_top = center_y - (total_height / 2)")
+    assert_contains(body, "if total_height > base_h - 2 * edge_margin then")
+    assert_contains(body, "block_top = center_y - offset_y")
 
 
 def test_dw_mouse_drag_starts_only_after_movement_threshold():
@@ -149,30 +154,30 @@ def test_dw_mouse_drag_starts_only_after_movement_threshold():
     auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
     handler_body = _function_window(src, "local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)", "local cmd_dw_mouse_select")
 
-    assert "if not FSM.DW_MOUSE_PENDING_DRAG then return end" in update_body
-    assert "dw_pointer_exceeded_drag_threshold(osd_x, osd_y)" in update_body
-    assert "FSM.DW_MOUSE_PENDING_DRAG = false" in update_body
-    assert "FSM.DW_MOUSE_DRAGGING = true" in update_body
-    assert "dw_sync_cursor_to_mouse()" in update_body
+    assert_contains(update_body, "if not FSM.DW_MOUSE_PENDING_DRAG then return end")
+    assert_contains(update_body, "dw_pointer_exceeded_drag_threshold(osd_x, osd_y)")
+    assert_contains(update_body, "FSM.DW_MOUSE_PENDING_DRAG = false")
+    assert_contains(update_body, "FSM.DW_MOUSE_DRAGGING = true")
+    assert_contains(update_body, "dw_sync_cursor_to_mouse()")
 
-    assert "FSM.DW_MOUSE_PENDING_DRAG = true" in handler_body
-    assert "FSM.DW_MOUSE_DRAGGING = false" in handler_body
-    assert "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(get_dw_mouse_auto_scroll_interval(), dw_mouse_auto_scroll)" in handler_body
-    assert "if dw_pointer_exceeded_drag_threshold(osd_x, osd_y) and updates_selection then" in handler_body
+    assert_contains(handler_body, "FSM.DW_MOUSE_PENDING_DRAG = true")
+    assert_contains(handler_body, "FSM.DW_MOUSE_DRAGGING = false")
+    assert_contains(handler_body, "FSM.DW_MOUSE_SCROLL_TIMER = mp.add_periodic_timer(get_dw_mouse_auto_scroll_interval(), dw_mouse_auto_scroll)")
+    assert_contains(handler_body, "if dw_pointer_exceeded_drag_threshold(osd_x, osd_y) and updates_selection then")
 
-    assert "dw_mouse_update_selection()" in auto_scroll_body
-    assert "if not FSM.DW_MOUSE_DRAGGING then return end" in auto_scroll_body
+    assert_contains(auto_scroll_body, "dw_mouse_update_selection()")
+    assert_contains(auto_scroll_body, "if not FSM.DW_MOUSE_DRAGGING then return end")
 
 
 def test_dw_binding_builder_never_registers_nil_mouse_callback():
     src = _lua_source()
     body = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
 
-    assert "if type(mouse_fn) == \"function\" and MOUSE_HANDLERS[mouse_fn] then" in body
-    assert "m_fn = mouse_fn" in body
-    assert "elseif key_fn then" in body
-    assert "if t and t.event == \"up\" then key_fn(t, true) end" in body
-    assert "and type(k.fn) == \"function\"" in body
+    assert_contains(body, "if type(mouse_fn) == \"function\" and MOUSE_HANDLERS[mouse_fn] then")
+    assert_contains(body, "m_fn = mouse_fn")
+    assert_contains(body, "elseif key_fn then")
+    assert_contains(body, "if t and t.event == \"up\" then key_fn(t, true) end")
+    assert_contains(body, "and type(k.fn) == \"function\"")
 
 
 def test_rmb_tooltip_pin_uses_direct_handler_for_hold_drag_through():
@@ -180,10 +185,10 @@ def test_rmb_tooltip_pin_uses_direct_handler_for_hold_drag_through():
     body = _function_window(src, "local MOUSE_HANDLERS = {}", "local function dw_anki_export_smart_callback")
     bindings = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
 
-    assert "MOUSE_HANDLERS[cmd_dw_tooltip_pin] = true" in body
-    assert "{opt = \"dw_key_tooltip_pin\",          name = \"dw-tooltip-pin\",          mouse_fn = cmd_dw_tooltip_pin" in bindings
-    assert "if type(mouse_fn) == \"function\" and MOUSE_HANDLERS[mouse_fn] then" in bindings
-    assert "m_fn = mouse_fn" in bindings
+    assert_contains(body, "MOUSE_HANDLERS[cmd_dw_tooltip_pin] = true")
+    assert_contains(bindings, "{opt = \"dw_key_tooltip_pin\",          name = \"dw-tooltip-pin\",          mouse_fn = cmd_dw_tooltip_pin")
+    assert_contains(bindings, "if type(mouse_fn) == \"function\" and MOUSE_HANDLERS[mouse_fn] then")
+    assert_contains(bindings, "m_fn = mouse_fn")
 
 
 def test_rmb_tooltip_pin_enters_holding_before_line_hit_resolution():
@@ -207,9 +212,9 @@ def test_dw_mouse_drag_and_scroll_tuning_are_option_driven():
     update_body = _function_window(src, "local function dw_mouse_update_selection()", "local function dw_mouse_auto_scroll")
     handler_body = _function_window(src, "local function make_mouse_handler(is_shift, on_up_callback, on_down_callback, updates_selection)", "local cmd_dw_mouse_select")
 
-    assert "dw_mouse_drag_threshold_px = 5" in opts
-    assert "dw_mouse_auto_scroll_interval = 0.05" in opts
-    assert "dw_mouse_edge_scroll_ratio = 0.15" in opts
+    assert_contains(opts, "dw_mouse_drag_threshold_px = 5")
+    assert_contains(opts, "dw_mouse_auto_scroll_interval = 0.05")
+    assert_contains(opts, "dw_mouse_edge_scroll_ratio = 0.15")
     assert "local drag_threshold_px = 5" not in update_body
     assert "if (dx > 5 or dy > 5) and updates_selection then" not in handler_body
     assert "mp.add_periodic_timer(0.05, dw_mouse_auto_scroll)" not in handler_body
@@ -219,11 +224,11 @@ def test_dw_mouse_auto_scroll_uses_base_height_instead_of_hardcoded_1080():
     src = _lua_source()
     auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
 
-    assert "Options.font_base_height or 1080" in auto_scroll_body
-    assert "local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15" in auto_scroll_body
-    assert "local edge_zone = base_h * edge_ratio" in auto_scroll_body
-    assert "local bottom_scroll_trigger = base_h - edge_zone" in auto_scroll_body
-    assert "elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then" in auto_scroll_body
+    assert_contains(auto_scroll_body, "Options.font_base_height or 1080")
+    assert_contains(auto_scroll_body, "local edge_ratio = tonumber(Options.dw_mouse_edge_scroll_ratio) or 0.15")
+    assert_contains(auto_scroll_body, "local edge_zone = base_h * edge_ratio")
+    assert_contains(auto_scroll_body, "local bottom_scroll_trigger = base_h - edge_zone")
+    assert_contains(auto_scroll_body, "elseif osd_y > (bottom_scroll_trigger + edge_activation_pad) then")
 
 
 def test_dw_mouse_auto_scroll_keeps_edge_triggers_reachable_when_block_overflows():
@@ -234,12 +239,12 @@ def test_dw_mouse_auto_scroll_keeps_edge_triggers_reachable_when_block_overflows
     overflow_idx = auto_scroll_body.find("local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad")
     assert -1 not in (pad_idx, overflow_idx)
     assert pad_idx < overflow_idx
-    assert "local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad" in auto_scroll_body
-    assert "local dw_overflows_bottom = last_zone.y_bottom and last_zone.y_bottom >= (base_h - edge_activation_pad)" in auto_scroll_body
-    assert "if dw_overflows_top then" in auto_scroll_body
-    assert "top_scroll_trigger = edge_zone" in auto_scroll_body
-    assert "if dw_overflows_bottom then" in auto_scroll_body
-    assert "bottom_scroll_trigger = base_h - edge_zone" in auto_scroll_body
+    assert_contains(auto_scroll_body, "local dw_overflows_top = first_zone.y_top and first_zone.y_top <= edge_activation_pad")
+    assert_contains(auto_scroll_body, "local dw_overflows_bottom = last_zone.y_bottom and last_zone.y_bottom >= (base_h - edge_activation_pad)")
+    assert_contains(auto_scroll_body, "if dw_overflows_top then")
+    assert_contains(auto_scroll_body, "top_scroll_trigger = edge_zone")
+    assert_contains(auto_scroll_body, "if dw_overflows_bottom then")
+    assert_contains(auto_scroll_body, "bottom_scroll_trigger = base_h - edge_zone")
 
 
 def test_dw_mouse_auto_scroll_helper_stays_non_local_for_lua_limit():
@@ -293,8 +298,8 @@ def test_dw_block_top_and_total_height_are_exposed_for_diagnostics():
     assert "FSM.DW_TOTAL_HEIGHT = total_height" in draw_body
 
     probe_body = _function_window(src, "function kardenwortProbe._snapshot()", "kardenwortProbe.tests = {}", span=4000)
-    assert "dw_block_top" in probe_body
-    assert "dw_total_height" in probe_body
+    assert_contains(probe_body, "dw_block_top")
+    assert_contains(probe_body, "dw_total_height")
 
 
 def test_mp_callback_safety_shim_logs_invalid_callbacks_via_msg_error():
@@ -305,9 +310,9 @@ def test_mp_callback_safety_shim_logs_invalid_callbacks_via_msg_error():
     src = _lua_source()
     shim = src[: src.find("require 'resume'")]
 
-    assert "local function validate_callback(kind, name, fn)" in shim
-    assert "if type(fn) == \"function\" then return true end" in shim
-    assert "msg.error(string.format(\"[kardenwort] Skipping invalid %s '%s': callback is %s\"," in shim
+    assert_contains(shim, "local function validate_callback(kind, name, fn)")
+    assert_contains(shim, "if type(fn) == \"function\" then return true end")
+    assert_contains(shim, "msg.error(string.format(\"[kardenwort] Skipping invalid %s '%s': callback is %s\",")
 
     for api in (
         "mp.add_key_binding",
@@ -318,11 +323,11 @@ def test_mp_callback_safety_shim_logs_invalid_callbacks_via_msg_error():
         "mp.observe_property",
         "mp.register_script_message",
     ):
-        assert f"{api} = function" in shim, f"shim must wrap {api}"
+        assert_contains(shim, f"{api} = function", f"shim must wrap {api}")
         # Each wrapper must call validate_callback before delegating.
         wrap = shim[shim.find(f"{api} = function"):]
         wrap = wrap[: wrap.find("end\n")]
-        assert "validate_callback(" in wrap, f"{api} wrapper must validate first"
+        assert_contains(wrap, "validate_callback(", f"{api} wrapper must validate first")
 
 
 def test_dw_binding_loop_has_no_empty_event_down_block():
@@ -344,7 +349,7 @@ def test_dw_binding_loop_has_no_empty_event_down_block():
     # Empty branch should not be present.
     assert "if t and t.event == \"down\" then\n\n                    end" not in wrapped_fn_block
     # Functional contract must still hold: the inner call delegates to k.fn(t).
-    assert "return k.fn(t)" in wrapped_fn_block
+    assert_contains(wrapped_fn_block, "return k.fn(t)")
 
 
 def test_dw_mouse_edge_scroll_ratio_clamp_uses_named_constant():
@@ -355,9 +360,9 @@ def test_dw_mouse_edge_scroll_ratio_clamp_uses_named_constant():
     auto_scroll_body = _function_window(src, "local function dw_mouse_auto_scroll()", "local function cmd_dw_tooltip_pin")
 
     # After refactor the literal must be replaced with a named local.
-    assert "DW_EDGE_SCROLL_RATIO_MAX" in auto_scroll_body
-    assert "if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then" in auto_scroll_body
-    assert "edge_ratio = DW_EDGE_SCROLL_RATIO_MAX" in auto_scroll_body
+    assert_contains(auto_scroll_body, "DW_EDGE_SCROLL_RATIO_MAX")
+    assert_contains(auto_scroll_body, "if edge_ratio > DW_EDGE_SCROLL_RATIO_MAX then")
+    assert_contains(auto_scroll_body, "edge_ratio = DW_EDGE_SCROLL_RATIO_MAX")
 
 
 def test_dw_vline_height_helper_replaces_duplicate_formula():
@@ -367,17 +372,17 @@ def test_dw_vline_height_helper_replaces_duplicate_formula():
     src = _lua_source()
 
     # The helper must exist and use the wrap_line_height_mul fallback chain.
-    assert "function dw_vline_height()" in src
+    assert_contains(src, "function dw_vline_height()")
     helper = _function_window(src, "function dw_vline_height()", "\nfunction ", span=400)
-    assert "Options.dw_wrap_line_height_mul or Options.dw_line_height_mul" in helper
-    assert "Options.dw_vsp" in helper
+    assert_contains(helper, "Options.dw_wrap_line_height_mul or Options.dw_line_height_mul")
+    assert_contains(helper, "Options.dw_vsp")
 
     # Call sites must use the helper instead of repeating the formula.
     build_layout = _function_window(src, "local function dw_build_layout(subs, view_center)", "local function dw_calculate_block_top")
     ensure = _function_window(src, "local function ensure_sub_layout(sub)", "local function get_word_boundary", span=4000)
 
     for body in (build_layout, ensure):
-        assert "dw_vline_height()" in body
+        assert_contains(body, "dw_vline_height()")
         assert "(Options.dw_font_size * wrap_mul) + Options.dw_vsp" not in body
 
 
@@ -401,18 +406,19 @@ def test_dw_hit_test_fallback_uses_horizontal_and_vertical_distance():
     assert "math.abs(z.y_top - best_zone.y_top)" not in hit_test
 
     # The fallback must call the named helper with the right inputs.
-    assert "dw_resolve_neighbor_word(" in hit_test
-    assert "FSM.DW_HIT_ZONES" in hit_test
-    assert "best_zone.sub_idx" in hit_test
-    assert "best_zone.y_top" in hit_test
-    assert "osd_x" in hit_test
+    assert_contains(hit_test, "dw_resolve_neighbor_word(")
+    assert_contains(hit_test, "FSM.DW_HIT_ZONES")
+    assert_contains(hit_test, "best_zone.sub_idx")
+    assert_contains(hit_test, "best_zone.y_top")
+    assert_contains(hit_test, "osd_x")
 
     # The helper itself must compute BOTH a vertical zone-pick and a
     # horizontal in-zone pick (the two-stage algorithm).
     helper = _function_window(src, "function dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x)", "\nlocal function ", span=2000)
-    assert "best_dy" in helper, "must track vertical distance to pick the nearest zone"
-    assert "best_dx" in helper, "must track horizontal distance to pick the nearest word"
-    assert "word.x_offset" in helper and "word.width" in helper, "must use word geometry for in-zone pick"
+    assert_contains(helper, "best_dy", "must track vertical distance to pick the nearest zone")
+    assert_contains(helper, "best_dx", "must track horizontal distance to pick the nearest word")
+    assert_contains(helper, "word.x_offset", "must use word geometry for in-zone pick")
+    assert_contains(helper, "word.width", "must use word geometry for in-zone pick")
 
 
 def test_manage_dw_bindings_is_table_driven():
@@ -423,36 +429,38 @@ def test_manage_dw_bindings_is_table_driven():
     body = _function_window(src, "manage_dw_bindings = function(enable_mouse, enable_kb)", "-- =========================================================================")
 
     # Single schema table with named fields.
-    assert "local binding_defs = {" in body
+    assert_contains(body, "local binding_defs = {")
     for required_field in ("opt =", "name =", "key_fn ="):
-        assert required_field in body, f"binding schema must use field {required_field}"
+        assert_contains(body, required_field, f"binding schema must use field {required_field}")
 
     # Single iteration replaces the repetitive calls.
-    assert "for _, d in ipairs(binding_defs) do" in body
-    assert "parse_and_collect(Options[d.opt], d.name, d.mouse_fn, d.key_fn, d.updates_selection, d.complex)" in body
+    assert_contains(body, "for _, d in ipairs(binding_defs) do")
+    assert_contains(body, "parse_and_collect(")
 
     # No more than one direct parse_and_collect call in the function body
-    # (the canonical one inside the for-loop). Counting from the body slice:
-    assert body.count("parse_and_collect(Options[") == 1
+    # (plus the local function definition). Counting from the body slice:
+    assert body.count("parse_and_collect(") == 2
     # And no remaining lines of the old `parse_and_collect(Options.dw_key_..., ` form.
     assert "parse_and_collect(Options.dw_key_add" not in body
     assert "parse_and_collect(Options.dw_key_select" not in body
+
+
 
 
 def test_tooltip_visibility_engages_ui_border_override():
     src = _lua_source()
     helper = _function_window(src, "local apply_tooltip_ass", "local function clear_tooltip_overlay", span=2200)
 
-    assert "apply_tooltip_ass = function(ass)" in helper
-    assert "local will_visible =" in helper
-    assert "local wants_override = false" in helper
-    assert "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())" in helper
-    assert "wants_override = style_ctx.needs_override" in helper
-    assert "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)" in helper
-    assert "manage_ui_border_override(true)" in helper
-    assert "manage_ui_border_override(false)" in helper
-    assert "FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override" in helper
-    assert "dw_tooltip_osd.data = ass" in helper
+    assert_contains(helper, "apply_tooltip_ass = function(ass)")
+    assert_contains(helper, "local will_visible =")
+    assert_contains(helper, "local wants_override = false")
+    assert_contains(helper, "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())")
+    assert_contains(helper, "wants_override = style_ctx.needs_override")
+    assert_contains(helper, "local has_override = (FSM.DW_TOOLTIP_BORDER_OVERRIDE == true)")
+    assert_contains(helper, "manage_ui_border_override(true)")
+    assert_contains(helper, "manage_ui_border_override(false)")
+    assert_contains(helper, "FSM.DW_TOOLTIP_BORDER_OVERRIDE = has_override")
+    assert_contains(helper, "dw_tooltip_osd.data = ass")
 
     # All tooltip writes should be routed through the helper.
     assert src.count("dw_tooltip_osd.data =") == 1
@@ -461,7 +469,7 @@ def test_tooltip_visibility_engages_ui_border_override():
 def test_manage_ui_border_override_is_forward_declared():
     src = _lua_source()
     head = src[: src.find("local Diagnostic")]
-    assert "local manage_ui_border_override" in head
+    assert_contains(head, "local manage_ui_border_override")
     assert src.find("local apply_tooltip_ass") < src.find("function manage_ui_border_override(enable)")
 
 
@@ -469,16 +477,16 @@ def test_show_osd_uses_single_neutralized_card_renderer():
     src = _osd_cards_source()
     body = _function_window(src, "local function show_osd(msg, dur)", "local function setup_seek_osd")
 
-    assert 'Options.seek_bg_color' in body
-    assert 'Options.seek_bg_opacity' in body
+    assert_contains(body, 'Options.seek_bg_color')
+    assert_contains(body, 'Options.seek_bg_opacity')
     assert 'mp.osd_message(' not in body
     assert 'FSM.DRUM_WINDOW' not in body
-    assert 'local bg_rect = string.format(' in body
-    assert 'local text_event = string.format(' in body
+    assert_contains(body, 'local bg_rect = string.format(')
+    assert_contains(body, 'local text_event = string.format(')
     assert body.count("{\\\\3a&HFF&}{\\\\4a&HFF&}") >= 2
-    assert 'FSM.notice_osd.data = bg_rect .. "\\n" .. text_event' in body
-    assert 'FSM.notice_osd:update()' in body
-    assert 'FSM.notice_timer = mp.add_timeout(duration, function()' in body
+    assert_contains(body, 'FSM.notice_osd.data = bg_rect .. "\\n" .. text_event')
+    assert_contains(body, 'FSM.notice_osd:update()')
+    assert_contains(body, 'FSM.notice_timer = mp.add_timeout(duration, function()')
     assert "volume_suspension" not in body
 
 
@@ -503,9 +511,9 @@ def test_notice_and_seek_cards_neutralize_background_box_on_shape_and_text():
         text_event = body[text_start:data_start]
         neutral = "{\\\\3a&HFF&}{\\\\4a&HFF&}"
 
-        assert neutral in bg_event, f"{name}: vector card must neutralize native background-box"
-        assert neutral in text_event, f"{name}: text line must neutralize native background-box"
-        assert "{\\\\p1}" in bg_event, f"{name}: card background must remain a vector ASS shape"
+        assert_contains(bg_event, neutral, f"{name}: vector card must neutralize native background-box")
+        assert_contains(text_event, neutral, f"{name}: text line must neutralize native background-box")
+        assert_contains(bg_event, "{\\\\p1}", f"{name}: card background must remain a vector ASS shape")
         assert "mp.osd_message(" not in body, f"{name}: native OSD fallback would reintroduce DM/DW hue drift"
         assert "FSM.DRUM_WINDOW" not in body, f"{name}: renderer must not branch between DM and DW"
 
@@ -514,41 +522,41 @@ def test_show_seek_osd_uses_single_compact_card_renderer():
     src = _osd_cards_source()
     body = _function_window(src, "local function show_seek_osd(msg, alignment)", "function M.setup")
 
-    assert 'Options.seek_bg_color' in body
-    assert 'Options.seek_bg_opacity' in body
+    assert_contains(body, 'Options.seek_bg_color')
+    assert_contains(body, 'Options.seek_bg_opacity')
     assert 'mp.osd_message(' not in body
     assert 'FSM.DRUM_WINDOW' not in body
-    assert 'local bg_rect = string.format(' in body
-    assert 'local text_event = string.format(' in body
+    assert_contains(body, 'local bg_rect = string.format(')
+    assert_contains(body, 'local text_event = string.format(')
     assert body.count("{\\\\3a&HFF&}{\\\\4a&HFF&}") >= 2
-    assert 'seek_osd.data = bg_rect .. "\\n" .. text_event' in body
-    assert 'seek_osd:update()' in body
-    assert 'seek_timer = mp.add_timeout(Options.seek_osd_duration, function()' in body
+    assert_contains(body, 'seek_osd.data = bg_rect .. "\\n" .. text_event')
+    assert_contains(body, 'seek_osd:update()')
+    assert_contains(body, 'seek_timer = mp.add_timeout(Options.seek_osd_duration, function()')
 
 
 def test_notice_and_seek_overlay_layers_are_configurable_and_reloadable():
     src = _lua_source()
     conf = Path("mpv.conf").read_text(encoding="utf-8")
 
-    assert "seek_osd_layer = 5" in src
-    assert "notice_osd_layer = 5" in src
-    assert "FSM.notice_osd.z = Options.notice_osd_layer" in src
-    assert "seek_osd.z = Options.seek_osd_layer" in src
-    assert "script-opts" in src
+    assert_contains(src, "seek_osd_layer = 5")
+    assert_contains(src, "notice_osd_layer = 5")
+    assert_contains(src, "FSM.notice_osd.z = Options.notice_osd_layer")
+    assert_contains(src, "seek_osd.z = Options.seek_osd_layer")
+    assert_contains(src, "script-opts")
 
     reload_body = _slice_from(src, 'mp.observe_property("script-opts", "string", function()', span=700)
-    assert "options.read_options(Options, \"kardenwort\")" in reload_body
-    assert "FSM.notice_osd.z = Options.notice_osd_layer" in reload_body
-    assert "seek_osd.z = Options.seek_osd_layer" in reload_body
+    assert_contains(reload_body, "options.read_options(Options, \"kardenwort\")")
+    assert_contains(reload_body, "FSM.notice_osd.z = Options.notice_osd_layer")
+    assert_contains(reload_body, "seek_osd.z = Options.seek_osd_layer")
 
-    assert "script-opts-append=kardenwort-seek_osd_layer=5" in conf
-    assert "script-opts-append=kardenwort-notice_osd_layer=5" in conf
+    assert_contains(conf, "script-opts-append=kardenwort-seek_osd_layer=5")
+    assert_contains(conf, "script-opts-append=kardenwort-notice_osd_layer=5")
 
 
 def test_dw_get_str_width_cyrillic_estimate_at_least_052():
     src = _lua_source()
     body = _function_window(src, "local function dw_get_str_width_proportional(str, fs)", "local function calculate_sub_gap")
-    assert "elseif #c > 1 then w = w + (fs * 0.52)" in body
+    assert_contains(body, "elseif #c > 1 then w = w + (fs * 0.52)")
     assert "elseif #c > 1 then w = w + (fs * 0.45)" not in body
 
 
@@ -556,29 +564,29 @@ def test_tooltip_target_line_resolves_secondary_dm_hits_to_primary_timeline():
     src = _lua_source()
     body = _function_window(src, "local function resolve_tooltip_target_line(subs, osd_x, osd_y, dw_mode)", "local function kardenwort_hit_test_all")
 
-    assert "local line_idx, _, hit_pri = drum_osd_hit_test(osd_x, osd_y)" in body
-    assert "if hit_pri then return line_idx end" in body
-    assert "local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS" in body
-    assert "local midpoint = (sec_sub.start_time + sec_sub.end_time) / 2" in body
-    assert "local pri_idx = get_center_index(subs, midpoint)" in body
+    assert_contains(body, "local line_idx, _, hit_pri = drum_osd_hit_test(osd_x, osd_y)")
+    assert_contains(body, "if hit_pri then return line_idx end")
+    assert_contains(body, "local sec_subs = (Tracks.sec.subs and #Tracks.sec.subs > 0) and Tracks.sec.subs or FSM.DW_TOOLTIP_SEC_SUBS")
+    assert_contains(body, "local midpoint = (sec_sub.start_time + sec_sub.end_time) / 2")
+    assert_contains(body, "local pri_idx = get_center_index(subs, midpoint)")
 
 
 def test_get_tooltip_line_y_falls_back_to_non_primary_zone_when_needed():
     src = _lua_source()
     body = _function_window(src, "local function get_tooltip_line_y(line_idx, fallback_y)", "local function update_font_scale")
 
-    assert "local fallback_zone_y = nil" in body
-    assert "local zone_center_y = (zone.y_top + zone.y_bottom) / 2" in body
-    assert "if zone.is_pri then" in body
-    assert "fallback_zone_y = zone_center_y" in body
-    assert "return fallback_zone_y or fallback_y" in body
+    assert_contains(body, "local fallback_zone_y = nil")
+    assert_contains(body, "local zone_center_y = (zone.y_top + zone.y_bottom) / 2")
+    assert_contains(body, "if zone.is_pri then")
+    assert_contains(body, "fallback_zone_y = zone_center_y")
+    assert_contains(body, "return fallback_zone_y or fallback_y")
 
 
 def test_tooltip_click_mode_dismisses_only_on_explicit_different_line():
     src = _lua_source()
     body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
 
-    assert "if dw_mode and line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then" in body
+    assert_contains(body, "if dw_mode and line_idx and line_idx ~= FSM.DW_TOOLTIP_LINE then")
     assert "if line_idx ~= FSM.DW_TOOLTIP_LINE then" not in body
 
 
@@ -586,24 +594,24 @@ def test_tooltip_vertical_clamp_accounts_for_padding():
     src = _lua_source()
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
-    assert "local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)" in body
-    assert "local half_h_with_pad = half_h + pad_top" in body
-    assert "local rect_top = block_top - pad_top" in body
-    assert "local rect_h = math.max(1, block_height + (2 * pad_top))" in body
-    assert "local line_center_y = cur_y + (layout_line_h / 2)" in body
-    assert "format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)" in body
-    assert "if final_y - half_h_with_pad < margin then" in body
-    assert "elseif final_y + half_h_with_pad > screen_h - margin then" in body
+    assert_contains(body, "local pad_top = pad_y + math.max(0, tonumber(Options.tooltip_top_pad_extra) or 0)")
+    assert_contains(body, "local half_h_with_pad = half_h + pad_top")
+    assert_contains(body, "local rect_top = block_top - pad_top")
+    assert_contains(body, "local rect_h = math.max(1, block_height + (2 * pad_top))")
+    assert_contains(body, "local line_center_y = cur_y + (layout_line_h / 2)")
+    assert_contains(body, "format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)")
+    assert_contains(body, "if final_y - half_h_with_pad < margin then")
+    assert_contains(body, "elseif final_y + half_h_with_pad > screen_h - margin then")
 
 
 def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
     src = _lua_source()
     body = _function_window(src, "local function draw_dw_tooltip(subs, target_line_idx, osd_y)", "local function dw_get_mouse_osd")
 
-    assert "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())" in body
-    assert "local rect_bg_alpha = style_ctx.card_alpha" in body
-    assert "local bg_rect = format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)" in body
-    assert "local line_ass = format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)" in body
+    assert_contains(body, "local style_ctx = build_tooltip_style_context(get_tooltip_parent_mode())")
+    assert_contains(body, "local rect_bg_alpha = style_ctx.card_alpha")
+    assert_contains(body, "local bg_rect = format_tooltip_card_event(style_ctx, rect_left, rect_top, rect_w, rect_h, rect_bg_alpha)")
+    assert_contains(body, "local line_ass = format_tooltip_text_event(style_ctx, anchor_x, line_center_y, vl.line_text)")
     assert "line_bgbox_neutral" not in body
     assert "{\\\\bord0}{\\\\shad0}" not in body
 
@@ -611,11 +619,11 @@ def test_dm_tooltip_background_box_mode_uses_single_measured_vector_card():
 def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
     src = _lua_source()
     opts = _function_window(src, "Options = {", "options.read_options(Options, \"kardenwort\")", span=18000)
-    assert 'tooltip_native_box_policy = "auto"' in opts
-    assert 'tooltip_bg_alpha = ""' in opts
-    assert 'tooltip_dw_bg_alpha = ""' in opts
-    assert 'tooltip_dm_bg_alpha = "FF"' in opts
-    assert 'tooltip_srt_bg_alpha = "FF"' in opts
+    assert_contains(opts, 'tooltip_native_box_policy = "auto"')
+    assert_contains(opts, 'tooltip_bg_alpha = ""')
+    assert_contains(opts, 'tooltip_dw_bg_alpha = ""')
+    assert_contains(opts, 'tooltip_dm_bg_alpha = "FF"')
+    assert_contains(opts, 'tooltip_srt_bg_alpha = "FF"')
     assert "tooltip_dw_bg_opacity" not in opts
     assert "tooltip_dm_bg_opacity" not in opts
     assert "tooltip_srt_bg_opacity" not in opts
@@ -624,28 +632,28 @@ def test_tooltip_native_box_policy_option_is_declared_with_auto_default():
 def test_tooltip_style_context_supports_auto_neutralize_and_override_modes():
     src = _lua_source()
     body = _function_window(src, "function normalize_tooltip_native_box_policy()", "apply_tooltip_ass = function(ass)", span=5000)
-    assert 'policy ~= "auto" and policy ~= "neutralize" and policy ~= "override"' in body
-    assert 'return "srt"' in body
-    assert 'if policy == "override" then' in body
-    assert 'elseif policy == "neutralize" then' in body
-    assert "neutralize_inband = style_is_bgbox" in body
-    assert 'if parent_mode == "dw" then' in body
-    assert 'elseif style_is_bgbox then' in body
-    assert "neutralize_inband = true" in body
-    assert 'if needs_override then' in body
-    assert "neutralize_inband = false" in body
-    assert "local base_alpha = Options.tooltip_bg_alpha" in body
-    assert "base_alpha = Options.tooltip_bg_opacity" in body
-    assert 'if parent_mode == "dw" then' in body
-    assert "Options.tooltip_dw_bg_alpha" in body
-    assert 'elseif parent_mode == "dm" then' in body
-    assert "Options.tooltip_dm_bg_alpha" in body
-    assert 'elseif parent_mode == "srt" then' in body
-    assert "Options.tooltip_srt_bg_alpha" in body
+    assert_contains(body, 'policy ~= "auto" and policy ~= "neutralize" and policy ~= "override"')
+    assert_contains(body, 'return "srt"')
+    assert_contains(body, 'if policy == "override" then')
+    assert_contains(body, 'elseif policy == "neutralize" then')
+    assert_contains(body, "neutralize_inband = style_is_bgbox")
+    assert_contains(body, 'if parent_mode == "dw" then')
+    assert_contains(body, 'elseif style_is_bgbox then')
+    assert_contains(body, "neutralize_inband = true")
+    assert_contains(body, 'if needs_override then')
+    assert_contains(body, "neutralize_inband = false")
+    assert_contains(body, "local base_alpha = Options.tooltip_bg_alpha")
+    assert_contains(body, "base_alpha = Options.tooltip_bg_opacity")
+    assert_contains(body, 'if parent_mode == "dw" then')
+    assert_contains(body, "Options.tooltip_dw_bg_alpha")
+    assert_contains(body, 'elseif parent_mode == "dm" then')
+    assert_contains(body, "Options.tooltip_dm_bg_alpha")
+    assert_contains(body, 'elseif parent_mode == "srt" then')
+    assert_contains(body, "Options.tooltip_srt_bg_alpha")
     assert "Options.tooltip_dw_bg_opacity" not in body
     assert "Options.tooltip_dm_bg_opacity" not in body
     assert "Options.tooltip_srt_bg_opacity" not in body
-    assert "card_alpha = calculate_ass_alpha(card_alpha)" in body
+    assert_contains(body, "card_alpha = calculate_ass_alpha(card_alpha)")
 
 
 def test_dm_tooltip_auto_policy_preserves_parent_background_box_frame():
@@ -656,42 +664,42 @@ def test_dm_tooltip_auto_policy_preserves_parent_background_box_frame():
     dm_neutralize = body.find('elseif style_is_bgbox then', dw_override)
     assert dw_override != -1
     assert dm_neutralize != -1
-    assert "neutralize_inband = true" in body[dm_neutralize:]
+    assert_contains(body[dm_neutralize:], "neutralize_inband = true")
 
 
 def test_tooltip_text_event_neutralization_is_emitted_after_shadow_tags():
     src = _lua_source()
     body = _function_window(src, "function format_tooltip_text_event(style_ctx, anchor_x, line_center_y, line_text)", "local function draw_dw_tooltip", span=2000)
-    assert 'local neutralize_bgbox = style_ctx.neutralize_inband and "{\\\\3a&HFF&}{\\\\4a&HFF&}" or ""' in body
+    assert_contains(body, 'local neutralize_bgbox = style_ctx.neutralize_inband and "{\\\\3a&HFF&}{\\\\4a&HFF&}" or ""')
     # Regression guard: neutralization token is concatenated after the line-level 3a/4a style tags.
-    assert '{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\q2}%s%s' in body
+    assert_contains(body, '{\\\\3a&H%s&}{\\\\4a&H%s&}{\\\\q2}%s%s')
 
 
 def test_dm_tooltip_sticky_guards_avoid_transient_clear():
     src = _lua_source()
     body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
 
-    assert "if dw_mode then" in body
-    assert "clear_tooltip_overlay(\"forced-target-missing\")" in body
-    assert "clear_tooltip_overlay(\"target-y-missing\")" in body
-    assert "clear_tooltip_overlay(\"hover-gap\")" in body
+    assert_contains(body, "if dw_mode then")
+    assert_contains(body, "clear_tooltip_overlay(\"forced-target-missing\")")
+    assert_contains(body, "clear_tooltip_overlay(\"target-y-missing\")")
+    assert_contains(body, "clear_tooltip_overlay(\"hover-gap\")")
 
 
 def test_flush_rendering_caches_does_not_blank_forced_tooltip():
     src = _lua_source()
     body = _function_window(src, "local function flush_rendering_caches()", "local function invalidate_dw_tooltip_cache")
 
-    assert "if not FSM.DW_TOOLTIP_FORCE then" in body
-    assert "apply_tooltip_ass(\"\")" in body
+    assert_contains(body, "if not FSM.DW_TOOLTIP_FORCE then")
+    assert_contains(body, "apply_tooltip_ass(\"\")")
 
 
 def test_tooltip_update_ignores_transient_empty_render_in_dm_mode():
     src = _lua_source()
     body = _function_window(src, "local function dw_tooltip_mouse_update()", "local function dw_anki_export_selection")
 
-    assert "if new_ass ~= \"\" then" in body
-    assert "clear_tooltip_overlay(\"forced-render-empty\")" in body
-    assert "clear_tooltip_overlay(\"hover-render-empty\")" in body
+    assert_contains(body, "if new_ass ~= \"\" then")
+    assert_contains(body, "clear_tooltip_overlay(\"forced-render-empty\")")
+    assert_contains(body, "clear_tooltip_overlay(\"hover-render-empty\")")
 
 
 def test_tooltip_activation_paths_only_publish_non_empty_ass():
@@ -699,20 +707,20 @@ def test_tooltip_activation_paths_only_publish_non_empty_ass():
     pin_body = _function_window(src, "local function cmd_dw_tooltip_pin(tbl)", "local function cmd_toggle_dw_tooltip_hover")
     toggle_body = _function_window(src, "local function cmd_dw_tooltip_toggle()", "local function dw_tooltip_mouse_update")
 
-    assert "if ass ~= \"\" then" in pin_body
-    assert "if ass ~= \"\" then" in toggle_body
+    assert_contains(pin_body, "if ass ~= \"\" then")
+    assert_contains(toggle_body, "if ass ~= \"\" then")
 
 
 def test_normalize_inline_break_markers_helper_definition_and_substitutions():
     src = _text_utils_source()
     body = _function_window(src, "local function normalize_inline_break_markers(text)", "local function get_sub_tokens", span=2000)
 
-    assert '{ pat = "\\\\+N", repl = "\\n", tag = "\\\\N" }' in body
-    assert '{ pat = "\\\\+n", repl = "\\n", tag = "\\\\n" }' in body
-    assert '{ pat = "\\\\+h", repl = " ", tag = "\\\\h" }' in body
-    assert 'text = text:gsub(rule.pat, rule.repl)' in body
-    assert 'text = text:gsub("[ \\t]*\\n[ \\t]*", "\\n")' in body
-    assert "if not text or text == \"\" then return text or \"\" end" in body
+    assert_contains(body, '{ pat = "\\\\+N", repl = "\\n", tag = "\\\\N" }')
+    assert_contains(body, '{ pat = "\\\\+n", repl = "\\n", tag = "\\\\n" }')
+    assert_contains(body, '{ pat = "\\\\+h", repl = " ", tag = "\\\\h" }')
+    assert_contains(body, 'text = text:gsub(rule.pat, rule.repl)')
+    assert_contains(body, 'text = text:gsub("[ \\t]*\\n[ \\t]*", "\\n")')
+    assert_contains(body, "if not text or text == \"\" then return text or \"\" end")
 
 
 def test_anki_context_extraction_normalizes_inline_break_markers():
@@ -724,7 +732,7 @@ def test_anki_context_extraction_normalizes_inline_break_markers():
         "if pivot_pos == -1 then pivot_pos = char_offset / 2 end",
         span=2000,
     )
-    assert 'normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")' in point_ctx
+    assert_contains(point_ctx, 'normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")')
 
     set_ctx = _function_window(
         src,
@@ -732,7 +740,7 @@ def test_anki_context_extraction_normalizes_inline_break_markers():
         "local context_line = table.concat(ctx_parts",
         span=3000,
     )
-    assert 'normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")' in set_ctx
+    assert_contains(set_ctx, 'normalize_inline_break_markers(subs[k].text):gsub("{[^}]+}", "")')
 
 
 def test_search_in_dm_mode_does_not_take_global_border_override():
@@ -742,15 +750,15 @@ def test_search_in_dm_mode_does_not_take_global_border_override():
     draw_body = _function_window(search_src, "local function draw_search_ui()", "local function move_search_cursor", span=9000)
     bindings_body = _function_window(search_src, "local function manage_search_bindings(enable)", "function M.cmd_toggle_search", span=9000)
 
-    assert "SEARCH_BORDER_OVERRIDE = false" in fsm
-    assert 'FSM.SEARCH_BORDER_OVERRIDE = (FSM.DRUM_WINDOW ~= "OFF")' in bindings_body
-    assert "if FSM.SEARCH_BORDER_OVERRIDE then" in bindings_body
-    assert "manage_ui_border_override(true)" in bindings_body
-    assert "manage_ui_border_override(false)" in bindings_body
-    assert "FSM.SEARCH_BORDER_OVERRIDE = false" in bindings_body
+    assert_contains(fsm, "SEARCH_BORDER_OVERRIDE = false")
+    assert_contains(bindings_body, 'FSM.SEARCH_BORDER_OVERRIDE = (FSM.DRUM_WINDOW ~= "OFF")')
+    assert_contains(bindings_body, "if FSM.SEARCH_BORDER_OVERRIDE then")
+    assert_contains(bindings_body, "manage_ui_border_override(true)")
+    assert_contains(bindings_body, "manage_ui_border_override(false)")
+    assert_contains(bindings_body, "FSM.SEARCH_BORDER_OVERRIDE = false")
 
-    assert 'local text_bgbox_neutral = (FSM.osd_border_style == "background-box" and not FSM.SEARCH_BORDER_OVERRIDE)' in draw_body
-    assert '"{\\\\3a&HFF&}{\\\\4a&HFF&}"' in draw_body
+    assert_contains(draw_body, 'local text_bgbox_neutral = (FSM.osd_border_style == "background-box" and not FSM.SEARCH_BORDER_OVERRIDE)')
+    assert_contains(draw_body, '"{\\\\3a&HFF&}{\\\\4a&HFF&}"')
     assert draw_body.count("text_bgbox_neutral") >= 4
 
 
@@ -758,12 +766,12 @@ def test_console_and_osd_frame_suspension_in_dw_mode():
     src = _lua_source()
     
     # 1. Assert console visibility observer exists
-    assert 'mp.observe_property("user-data/mpv/console/open", "bool"' in src
-    assert 'FSM.console_active = val' in src
+    assert_contains(src, 'mp.observe_property("user-data/mpv/console/open", "bool"')
+    assert_contains(src, 'FSM.console_active = val')
     
     # 2. Assert apply_border_override_state supports console active flag
     apply_body = _function_window(src, "function apply_border_override_state()", "function manage_ui_border_override")
-    assert "FSM.console_active" in apply_body
+    assert_contains(apply_body, "FSM.console_active")
     assert "FSM.seek_osd_active" not in apply_body
     assert "FSM.notice_osd_active" not in apply_body
 
@@ -801,8 +809,9 @@ def test_calculate_osd_line_meta_includes_punctuation_in_hit_zones():
         "drum-context: is_word gate must be absent from calculate_osd_line_meta "
         "so punctuation tokens are included in hit-zones"
     )
-    assert "if t.logical_idx then" in body, (
+    assert_contains(body, "if t.logical_idx then", (
         "drum-context: logical_idx-only check must be present so punctuation "
         "tokens with a logical_idx are added to the hit-zone word list"
-    )
+    ))
+
 

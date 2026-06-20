@@ -31,7 +31,7 @@ def test_anki_context_verbatim():
         "extract_anki_context function not found in kardenwort.lua"
     )
     assert re.search(
-        r"function\s+extract_anki_context\s*\(full_line,\s*selected_term,\s*max_words_override",
+        r"function\s+extract_anki_context\s*\(\s*full_line\s*,\s*selected_term\s*,\s*max_words_override",
         content,
     ), (
         "extract_anki_context signature must accept (full_line, selected_term, max_words_override, …)"

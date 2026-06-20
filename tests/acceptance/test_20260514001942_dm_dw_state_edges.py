@@ -157,12 +157,13 @@ def test_null_pointer_first_activation_ignores_repeat_structural():
     """
     First activation from null pointer must suppress repeat events to avoid double-jump.
     """
+    import re
     line_body = _fn_body(_src(), "cmd_dw_line_move")
     word_body = _fn_body(_src(), "cmd_dw_word_move")
     assert "if FSM.DW_CURSOR_WORD == -1 then" in line_body
-    assert "if snapshot.is_repeat then return end" in line_body
+    assert re.search(r"if\s+snapshot\.is_repeat\s+then\s+return\s+end", line_body)
     assert "if FSM.DW_CURSOR_WORD == -1 then" in word_body
-    assert "if snapshot.is_repeat then return end" in word_body
+    assert re.search(r"if\s+snapshot\.is_repeat\s+then\s+return\s+end", word_body)
 
 
 def test_null_activation_prefers_stable_active_line_over_lookahead_context_structural():
