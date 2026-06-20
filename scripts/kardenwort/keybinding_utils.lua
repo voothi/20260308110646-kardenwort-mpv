@@ -10,6 +10,7 @@ local M = {}
 local Options
 
 function M.init(opts)
+    assert(opts, "FATAL: opts dependency missing")
     Options = opts
 end
 

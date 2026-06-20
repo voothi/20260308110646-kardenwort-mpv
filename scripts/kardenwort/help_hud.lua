@@ -16,9 +16,15 @@ local FSM, Options
 local _helpers
 
 function M.init(fsm, opts, helpers)
+    assert(fsm, "FATAL: fsm dependency missing")
+    assert(opts, "FATAL: opts dependency missing")
     FSM = fsm
     Options = opts
-    _helpers = helpers or {}
+    _helpers = setmetatable(helpers or {}, {
+        __index = function(t, k)
+            error("FATAL: Missing injected helper function: " .. tostring(k), 2)
+        end
+    })
 end
 
 -- Helpers read at call time (defined/assigned in main.lua).

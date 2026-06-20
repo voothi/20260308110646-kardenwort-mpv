@@ -17,11 +17,19 @@ local refs
 local kardenwortProbe = {}
 
 function M.init(fsm, opts, tracks, diagnostic, r)
+    assert(fsm, "FATAL: fsm dependency missing")
+    assert(opts, "FATAL: opts dependency missing")
+    assert(tracks, "FATAL: tracks dependency missing")
+    assert(diagnostic, "FATAL: diagnostic dependency missing")
     FSM = fsm
     Options = opts
     Tracks = tracks
     Diagnostic = diagnostic
-    refs = r or {}
+    refs = setmetatable(r or {}, {
+        __index = function(t, k)
+            error("FATAL: Missing injected helper function: " .. tostring(k), 2)
+        end
+    })
 end
 
 function kardenwortProbe._snapshot()

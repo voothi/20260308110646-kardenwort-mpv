@@ -19,11 +19,19 @@ local FSM, Options, Tracks, Diagnostic
 local _helpers
 
 function M.init(fsm, opts, tracks, diagnostic, helpers)
+    assert(fsm, "FATAL: fsm dependency missing")
+    assert(opts, "FATAL: opts dependency missing")
+    assert(tracks, "FATAL: tracks dependency missing")
+    assert(diagnostic, "FATAL: diagnostic dependency missing")
     FSM = fsm
     Options = opts
     Tracks = tracks
     Diagnostic = diagnostic
-    _helpers = helpers or {}
+    _helpers = setmetatable(helpers or {}, {
+        __index = function(t, k)
+            error("FATAL: Missing injected helper function: " .. tostring(k), 2)
+        end
+    })
 end
 
 -- safe_read_file and flush_rendering_caches are read at call time from the

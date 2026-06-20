@@ -12,6 +12,11 @@ local FSM, Options, Tracks, Diagnostic
 local safe_read_file
 
 function M.init(fsm, opts, tracks, diagnostic, safe_read_file_fn)
+    assert(fsm, "FATAL: fsm dependency missing")
+    assert(opts, "FATAL: opts dependency missing")
+    assert(tracks, "FATAL: tracks dependency missing")
+    assert(diagnostic, "FATAL: diagnostic dependency missing")
+    assert(safe_read_file_fn, "FATAL: safe_read_file_fn dependency missing")
     FSM = fsm
     Options = opts
     Tracks = tracks

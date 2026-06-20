@@ -7,6 +7,7 @@ local mp = require 'mp'
 local M = {}
 
 function M.init(opts)
+    assert(opts, "FATAL: opts dependency missing")
     M.FSM.AUTOPAUSE = opts.autopause_default and "ON" or "OFF"
     M.FSM.KARAOKE = opts.karaoke_every_word and "WORD" or "PHRASE"
     M.FSM.BOOK_MODE = opts.book_mode or false

@@ -10,6 +10,7 @@ local M = {}
 local _opts
 
 function M.init(fsm, opts)
+    assert(opts, "FATAL: opts dependency missing")
     _opts = opts
 end
 

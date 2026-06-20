@@ -15,6 +15,9 @@ local M = {}
 local FSM, Options, Diagnostic
 
 function M.init(fsm, opts, diagnostic)
+    assert(fsm, "FATAL: fsm dependency missing")
+    assert(opts, "FATAL: opts dependency missing")
+    assert(diagnostic, "FATAL: diagnostic dependency missing")
     FSM = fsm
     Options = opts
     Diagnostic = diagnostic

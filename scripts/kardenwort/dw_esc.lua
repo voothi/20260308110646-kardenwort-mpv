@@ -13,10 +13,17 @@ local FSM, Options, Tracks
 local _helpers
 
 function M.init(fsm, opts, tracks, helpers)
+    assert(fsm, "FATAL: fsm dependency missing")
+    assert(opts, "FATAL: opts dependency missing")
+    assert(tracks, "FATAL: tracks dependency missing")
     FSM = fsm
     Options = opts
     Tracks = tracks
-    _helpers = helpers or {}
+    _helpers = setmetatable(helpers or {}, {
+        __index = function(t, k)
+            error("FATAL: Missing injected helper function: " .. tostring(k), 2)
+        end
+    })
 end
 
 function M.sync_ctrl_pending_list()
