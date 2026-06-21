@@ -387,7 +387,7 @@ def wrap_tokens_py(tokens, max_w, keep_spaces=True):
         space = space_w if (len(cur_indices) > 0 and not keep_spaces) else 0
         
         has_newline = "\n" in t["text"]
-        is_punc = (t["text"] == "." or t["text"] == ",")
+        is_punc = t["text"] in (".", ",", "!", "?", ":", ";", ")", "]", "}")
         
         if ((cur_w + space + ww > max_w and len(cur_indices) > 0) or has_newline) and not (is_punc and not has_newline):
             if len(cur_indices) > 0:
@@ -438,4 +438,16 @@ def test_wrap_tokens_prevents_period_wrapping():
     ]
     res = wrap_tokens_py(tokens, max_w=45, keep_spaces=True)
     assert res == [[0, 1]]
+
+
+def test_wrap_tokens_prevents_exclamation_question_bracket_wrapping():
+    # Exclamation: width 10, Question: width 10, Bracket: width 10.
+    # Word 1: width 40. Limit: 45.
+    for char in ("!", "?", ":", ";", ")", "]", "}"):
+        tokens = [
+            {"text": "word"},
+            {"text": char}
+        ]
+        res = wrap_tokens_py(tokens, max_w=45, keep_spaces=True)
+        assert res == [[0, 1]], f"Failed for {char}"
 

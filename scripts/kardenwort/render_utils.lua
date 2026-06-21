@@ -979,7 +979,7 @@ local function wrap_tokens(tokens, max_w, font_size, font_name, keep_spaces)
         local space = (#cur_indices > 0 and not keep_spaces) and space_w or 0
 
         local has_newline = t.text:find("\n") ~= nil
-        local is_punc = (t.text == "." or t.text == ",")
+        local is_punc = (t.text == "." or t.text == "," or t.text == "!" or t.text == "?" or t.text == ":" or t.text == ";" or t.text == ")" or t.text == "]" or t.text == "}")
 
         if
             ((cur_w + space + ww > max_w and #cur_indices > 0) or has_newline)
@@ -1148,26 +1148,13 @@ local function dw_build_layout(subs, view_center)
                 end
             end
 
-            local vlines = {}
-            local cur_indices = {}
-            local cur_w = 0
-
-            for j, w in ipairs(tokens) do
-                local ww = dw_get_str_width(w)
-                local space = (#cur_indices > 0 and not Options.dw_original_spacing) and space_w
-                    or 0
-                if cur_w + space + ww > max_text_w and #cur_indices > 0 then
-                    table.insert(vlines, cur_indices)
-                    cur_indices = { j }
-                    cur_w = ww
-                else
-                    table.insert(cur_indices, j)
-                    cur_w = cur_w + space + ww
-                end
-            end
-            if #cur_indices > 0 then
-                table.insert(vlines, cur_indices)
-            end
+            local vlines = wrap_tokens(
+                tokens,
+                max_text_w,
+                Options.dw_font_size,
+                Options.dw_font_name,
+                Options.dw_original_spacing
+            )
             if #vlines == 0 then
                 vlines = { { 1 } }
             end
