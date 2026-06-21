@@ -21,6 +21,16 @@ def _double_click_line(ipc, line):
     ipc.command(["script-message-to", "kardenwort", "test-dw-double-click", str(line)])
 
 
+def wait_for_state(ipc, key, value, timeout=2.0):
+    start = time.time()
+    while time.time() - start < timeout:
+        state = query_kardenwort_state(ipc)
+        if state.get(key) == value:
+            return True
+        time.sleep(0.1)
+    return False
+
+
 def test_20260518225213_enter_clears_selection_and_restores_follow_in_auto_mode(mpv):
     ipc = mpv.ipc
     ipc.command(["script-message-to", "kardenwort", "drum-window-toggle"])
@@ -133,10 +143,9 @@ def test_20260518225213_double_click_clears_selection_and_restores_follow_in_aut
     time.sleep(0.2)
 
     _double_click_line(ipc, 2)
-    time.sleep(0.3)
+    assert wait_for_state(ipc, "active_sub_index", 2, timeout=2.0)
 
     after = query_kardenwort_state(ipc)
-    assert after["active_sub_index"] == 2
     assert after["dw_cursor"]["word"] == -1
     assert after["dw_selection_count"] == 0
     assert after["dw_follow_player"] is True
@@ -181,10 +190,9 @@ def test_20260518225213_double_click_clear_yes_restores_follow_in_book_mode_auto
     time.sleep(0.2)
 
     _double_click_line(ipc, 2)
-    time.sleep(0.3)
+    assert wait_for_state(ipc, "active_sub_index", 2, timeout=2.0)
 
     after = query_kardenwort_state(ipc)
-    assert after["active_sub_index"] == 2
     assert after["dw_cursor"]["word"] == -1
     assert after["dw_selection_count"] == 0
     assert after["dw_follow_player"] is True
@@ -203,9 +211,8 @@ def test_20260518225213_double_click_preserves_pointer_keeps_manual_until_esc(mp
     time.sleep(0.2)
 
     _double_click_line(ipc, 2)
-    time.sleep(0.3)
+    assert wait_for_state(ipc, "active_sub_index", 2, timeout=2.0)
     after = query_kardenwort_state(ipc)
-    assert after["active_sub_index"] == 2
     assert after["dw_cursor"]["word"] == 1
     assert after["dw_follow_player"] is False
 
