@@ -113,7 +113,7 @@ local vk_codes = {
     ["ю"] = 0xBE,
 }
 
-function M.set_clipboard(text, mode)
+local function set_clipboard(text, mode)
     if text and text ~= "" then
         mp.set_property("user-data/kardenwort/last_clipboard", text)
     end
@@ -287,5 +287,7 @@ function M.set_clipboard(text, mode)
         end
     end
 end
+
+M.set_clipboard = set_clipboard
 
 return M

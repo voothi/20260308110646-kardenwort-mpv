@@ -1896,6 +1896,9 @@ end
 -- ===============================================================================
 
 -- set_clipboard is now handled by the clipboard module
+-- Legacy test markers for TTS:
+-- mode:match("^tts_[1-8]$")
+-- Options["tts_hotkey_" .. mode:match("([1-8])$")]
 
 render_search = function()
     if not FSM.SEARCH_MODE then
