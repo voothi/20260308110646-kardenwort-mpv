@@ -214,29 +214,31 @@ class MpvIpc:
 
 
 def query_kardenwort_state(ipc, timeout=5.0):
-    # Observe property if not already observed
-    if 'user-data/kardenwort/state' not in ipc._prop_events:
-        ipc.observe_property(99, 'user-data/kardenwort/state')
-        # Wait a bit for the initial value event to pass
-        time.sleep(0.1)
-    
-    # Clear the event before sending the query
-    ipc._prop_events['user-data/kardenwort/state'].clear()
-    
+    prev_seq = -1
+    try:
+        raw = ipc.get_property('user-data/kardenwort/state')
+        if raw:
+            if '|' in raw:
+                raw = raw.split('|', 1)[1]
+            prev_seq = json.loads(raw).get('_seq', -1)
+    except Exception:
+        pass
+
     ipc.command(['script-message-to', 'kardenwort', 'state-query'])
-    
-    # Wait for the change
+
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            ipc.wait_property_change('user-data/kardenwort/state', timeout=1.0)
             raw = ipc.get_property('user-data/kardenwort/state')
-            if raw and '|' in raw:
-                raw = raw.split('|', 1)[1]
-            if raw and raw != "{}":
-                return json.loads(raw)
-        except TimeoutError:
-            continue
+            if raw:
+                if '|' in raw:
+                    raw = raw.split('|', 1)[1]
+                data = json.loads(raw)
+                if data.get('_seq', -1) > prev_seq:
+                    return data
+        except Exception:
+            pass
+        time.sleep(0.01)
     return {}
 
 
