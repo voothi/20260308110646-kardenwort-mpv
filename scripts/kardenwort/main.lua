@@ -50,6 +50,8 @@ local dw_navigation = require("dw_navigation")
 local tick_loop_module = require("tick_loop")
 local config = require("config")
 local state = require("state")
+local clipboard_module = require("clipboard")
+local track_cycling_module = require("track_cycling")
 local utils = require("mp.utils")
 local options = require("mp.options")
 local msg = require("mp.msg")
@@ -519,6 +521,19 @@ local dw_navigation_helpers = {
 }
 dw_navigation.init(FSM, Options, Tracks, Diagnostic, dw_navigation_helpers)
 
+-- Initialize clipboard and track cycling modules
+clipboard_module.init(FSM, Options, Tracks, Diagnostic, {})
+set_clipboard = clipboard_module.set_clipboard
+
+track_cycling_module.init(FSM, Options, Tracks, Diagnostic, {
+    show_osd = function(msg, dur)
+        return osd_cards.show_osd(msg, dur)
+    end,
+    drum_osd = drum_osd,
+})
+local cmd_cycle_sec_sid = track_cycling_module.cmd_cycle_sec_sid
+cmd_cycle_audio = track_cycling_module.cmd_cycle_audio
+
 local tick_loop_helpers = {
     dw_osd = dw_osd,
     drum_osd = drum_osd,
@@ -983,15 +998,12 @@ draw_dw_tooltip = subtitle_window.draw_dw_tooltip
 -- DRUM WINDOW: HIT-TESTING, MOUSE, TOOLTIP, SELECTION, AND RENDER TICK
 -- ===============================================================================
 -- Hit-testing: OSD coordinate to subtitle line/word resolution
--- local function dw_get_mouse_osd
 dw_get_mouse_osd = mouse_input.dw_get_mouse_osd
 local dw_hit_test = mouse_input.dw_hit_test
 local dw_tooltip_hit_test = mouse_input.dw_tooltip_hit_test
 local drum_osd_hit_test = mouse_input.drum_osd_hit_test
 local resolve_tooltip_target_line = mouse_input.resolve_tooltip_target_line
--- local function kardenwort_hit_test_all
 kardenwort_hit_test_all = mouse_input.kardenwort_hit_test_all
--- local function dw_sync_cursor_to_mouse
 dw_sync_cursor_to_mouse = mouse_input.dw_sync_cursor_to_mouse
 local dw_mouse_update_selection = mouse_input.dw_mouse_update_selection
 local dw_mouse_auto_scroll = mouse_input.dw_mouse_auto_scroll
@@ -1007,13 +1019,10 @@ get_dw_mouse_auto_scroll_interval = mouse_input.get_dw_mouse_auto_scroll_interva
 dw_pointer_exceeded_drag_threshold = mouse_input.dw_pointer_exceeded_drag_threshold
 
 -- Anki export, selection bounds, and Esc staged reset
--- local function dw_anki_export_selection
 dw_anki_export_selection = dw_navigation.dw_anki_export_selection
 
--- local function ctrl_discard_set
 local ctrl_discard_set = dw_navigation.ctrl_discard_set
 
--- local function get_dw_selection_bounds
 local get_dw_selection_bounds = dw_navigation.get_dw_selection_bounds
 
 -- Context-Aware Escape: Deterministic staged selection peel-back.
@@ -1022,13 +1031,10 @@ local get_dw_selection_bounds = dw_navigation.get_dw_selection_bounds
 -- Stage 3: Clear Yellow Pointer (hides the highlight) and syncs cursor to active line
 -- No implicit window close occurs in cmd_dw_esc itself.
 
--- local function cmd_dw_esc
 local cmd_dw_esc = dw_navigation.cmd_dw_esc
 
--- local function ctrl_toggle_word
 local ctrl_toggle_word = dw_navigation.ctrl_toggle_word
 
--- local function ctrl_commit_set
 ctrl_commit_set = dw_navigation.ctrl_commit_set
 
 local make_mouse_handler = mouse_input.make_mouse_handler
@@ -1037,30 +1043,23 @@ local cmd_dw_mouse_select = mouse_input.cmd_dw_mouse_select
 local cmd_dw_mouse_select_shift = mouse_input.cmd_dw_mouse_select_shift
 local cmd_dw_export_anki = mouse_input.cmd_dw_export_anki
 
--- local function cmd_dw_add_smart
 local cmd_dw_add_smart = dw_navigation.cmd_dw_add_smart
 
--- local function cmd_dw_toggle_pink
 local cmd_dw_toggle_pink = dw_navigation.cmd_dw_toggle_pink
 
--- local function dw_handle_double_click_target
 local dw_handle_double_click_target = dw_navigation.dw_handle_double_click_target
 
--- local function cmd_dw_double_click
 local cmd_dw_double_click = dw_navigation.cmd_dw_double_click
 
 -- Tick renderers: Drum Window and Drum Mode per-frame rendering
--- local function tick_dw
 local tick_dw = tick_loop_module.tick_dw
 
--- local function tick_drum
 local tick_drum = tick_loop_module.tick_drum
 
 -- ===============================================================================
 -- AUTOPAUSE, LOOP, AND REPLAY TICK CONTROLLERS
 -- ===============================================================================
 
--- local function tick_autopause
 local tick_autopause = tick_loop_module.tick_autopause
 
 function protect_internal_replay_seek()
@@ -1070,13 +1069,10 @@ function protect_internal_replay_seek()
         + math.max(1.0, replay_seconds + Options.nav_cooldown + 0.5)
 end
 
--- local function tick_loop
 local tick_loop = tick_loop_module.tick_loop
 
--- local function tick_scheduled_replay
 local tick_scheduled_replay = tick_loop_module.tick_scheduled_replay
 
--- local function master_tick
 local master_tick = tick_loop_module.master_tick
 mp.add_periodic_timer(Options.tick_rate, master_tick)
 
@@ -1899,266 +1895,7 @@ end
 -- CLIPBOARD, OSD OVERRIDES, AND MODE TOGGLES
 -- ===============================================================================
 
--- local function set_clipboard
-set_clipboard = function(text, mode)
-    if text and text ~= "" then
-        mp.set_property("user-data/kardenwort/last_clipboard", text)
-    end
-    -- Native property is unreliable on some Windows MPV builds for system-wide sync.
-    -- We skip it on Windows to ensure PowerShell (which handles retries/encoding) is used.
-    local platform = package.config:sub(1, 1)
-    if platform ~= "\\" then
-        local success = pcall(function()
-            mp.set_property("clipboard", text)
-        end)
-        if success then
-            return
-        end
-    end
-    if platform == "\\" then
-        local safe_txt = text:gsub("'", "''")
-        local cmd = string.format(
-            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; for ($i=0; $i -lt %d; $i++) { try { Set-Clipboard -Value '%s' -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds %d } }",
-            Options.win_clipboard_retries,
-            safe_txt,
-            Options.win_clipboard_retry_delay
-        )
-        utils.subprocess({
-            args = { "powershell", "-NoProfile", "-Command", cmd },
-            cancellable = false,
-        })
-    else
-        local un = io.popen("uname -a")
-        local uname_str = un and un:read("*a") or ""
-        if un then
-            un:close()
-        end
-        uname_str = uname_str:lower()
-
-        local cmd = ""
-        if uname_str:find("darwin") then
-            cmd = "pbcopy"
-        elseif
-            uname_str:find("android")
-            or (os.getenv("PREFIX") and os.getenv("PREFIX"):find("com.termux"))
-        then
-            cmd = "termux-clipboard-set"
-        elseif os.getenv("WAYLAND_DISPLAY") then
-            cmd = "wl-copy"
-        else
-            cmd =
-                "xclip -selection clipboard -i 2>/dev/null || xsel --clipboard --input 2>/dev/null"
-        end
-
-        if cmd ~= "" then
-            local f = io.popen(cmd, "w")
-            if f then
-                f:write(text)
-                f:close()
-            end
-        end
-    end
-
-    -- Optional explicit trigger for GoldenDict scan popup.
-    -- This bypasses AHK polling latency by directly notifying the dictionary tool.
-    -- Robust GoldenDict trigger (Improved layout/modifier stability)
-    -- Professional Layout-Independent Trigger (VK-based)
-    local user_hotkey = nil
-    if
-        Options.gd_trigger_enabled == "yes"
-        and platform == "\\"
-        and (mode == "side" or mode == "main")
-    then
-        user_hotkey = (mode == "main") and Options.gd_hotkey_main or Options.gd_hotkey_popup
-    elseif
-        Options.tts_trigger_enabled == "yes"
-        and platform == "\\"
-        and mode
-        and mode:match("^tts_[1-8]$")
-    then
-        user_hotkey = Options["tts_hotkey_" .. mode:match("([1-8])$")]
-    end
-    if user_hotkey and user_hotkey ~= "" then
-        -- Expanded VK mapping for layout-independent triggers
-        local vk_codes = {
-            ctrl = 0x11,
-            alt = 0x12,
-            shift = 0x10,
-            win = 0x5B,
-            a = 0x41,
-            b = 0x42,
-            c = 0x43,
-            d = 0x44,
-            e = 0x45,
-            f = 0x46,
-            g = 0x47,
-            h = 0x48,
-            i = 0x49,
-            j = 0x4A,
-            k = 0x4B,
-            l = 0x4C,
-            m = 0x4D,
-            n = 0x4E,
-            o = 0x4F,
-            p = 0x50,
-            q = 0x51,
-            r = 0x52,
-            s = 0x53,
-            t = 0x54,
-            u = 0x55,
-            v = 0x56,
-            w = 0x57,
-            x = 0x58,
-            y = 0x59,
-            z = 0x5A,
-            ["0"] = 0x30,
-            ["1"] = 0x31,
-            ["2"] = 0x32,
-            ["3"] = 0x33,
-            ["4"] = 0x34,
-            ["5"] = 0x35,
-            ["6"] = 0x36,
-            ["7"] = 0x37,
-            ["8"] = 0x38,
-            ["9"] = 0x39,
-            f1 = 0x70,
-            f2 = 0x71,
-            f3 = 0x72,
-            f4 = 0x73,
-            f5 = 0x74,
-            f6 = 0x75,
-            f7 = 0x76,
-            f8 = 0x77,
-            f9 = 0x78,
-            f10 = 0x79,
-            f11 = 0x7A,
-            f12 = 0x7B,
-            -- Cyrillic equivalents (ЙЦУКЕН)
-            ["й"] = 0x51,
-            ["ц"] = 0x57,
-            ["у"] = 0x45,
-            ["к"] = 0x52,
-            ["е"] = 0x54,
-            ["н"] = 0x59,
-            ["г"] = 0x55,
-            ["ш"] = 0x49,
-            ["щ"] = 0x4F,
-            ["з"] = 0x50,
-            ["ф"] = 0x41,
-            ["ы"] = 0x53,
-            ["в"] = 0x44,
-            ["а"] = 0x46,
-            ["п"] = 0x47,
-            ["р"] = 0x48,
-            ["о"] = 0x4A,
-            ["л"] = 0x4B,
-            ["д"] = 0x4C,
-            ["я"] = 0x5A,
-            ["ч"] = 0x58,
-            ["с"] = 0x43,
-            ["м"] = 0x56,
-            ["и"] = 0x42,
-            ["т"] = 0x4E,
-            ["ь"] = 0x4D,
-            ["б"] = 0xBC,
-            ["ю"] = 0xBE,
-        }
-
-        local all_events = {}
-        for hotkey in user_hotkey:gmatch("[^%s,;]+") do
-            local primary = hotkey:lower()
-            local events = {}
-            local modifiers = { "ctrl", "alt", "shift", "win" }
-
-            -- Handle implicit shift from uppercase keys (e.g. "Ctrl+Alt+Q")
-            local main_key = hotkey:match("[^+]+$")
-            local needs_shift = (main_key and #main_key == 1 and main_key:match("%u"))
-                or primary:find("shift")
-
-            for _, mod in ipairs(modifiers) do
-                if mod ~= "shift" and primary:find(mod) then
-                    table.insert(events, { vk_codes[mod], 0 })
-                end
-            end
-            if needs_shift then
-                table.insert(events, { vk_codes.shift, 0 })
-            end
-
-            -- Get the main key (the last part)
-            local key = main_key:lower()
-            if key and vk_codes[key] then
-                table.insert(events, { vk_codes[key], 0 }) -- Down
-                table.insert(events, { vk_codes[key], 2 }) -- Up
-            end
-
-            -- Release modifiers in reverse order
-            for i = #events - 1, 1, -1 do
-                if events[i][2] == 0 then
-                    table.insert(events, { events[i][1], 2 })
-                end
-            end
-
-            for _, ev in ipairs(events) do
-                table.insert(all_events, ev)
-            end
-        end
-
-        if #all_events == 0 then
-            return
-        end
-
-        -- Configurable Trigger Lock (Prevent AHK Recursion)
-        local now = mp.get_time()
-        if (now - (FSM.LAST_TRIGGER_TIME or 0)) < Options.gd_trigger_lock_duration then
-            -- A trigger was recently fired, likely by the user.
-            -- Any subsequent ^c from AHK should just update the clipboard without re-triggering.
-            return
-        end
-        FSM.LAST_TRIGGER_TIME = now
-
-        -- Independent Mode Delays (Popup/Main)
-        if Options.gd_trigger_method == "python" then
-            local delay = (mode == "main") and Options.python_trigger_delay_main
-                or Options.python_trigger_delay_popup
-            local py_cmd = string.format(
-                "import ctypes, time; time.sleep(%f); u=ctypes.windll.user32; ",
-                delay
-            )
-            for _, ev in ipairs(all_events) do
-                py_cmd = py_cmd .. string.format("u.keybd_event(0x%X,0,%d,0); ", ev[1], ev[2])
-            end
-            mp.command_native_async({
-                name = "subprocess",
-                args = { Options.python_path, "-c", py_cmd },
-                playback_only = false,
-                capture_stdout = false,
-                capture_stderr = false,
-            }, function() end)
-        else
-            -- Robust VK Injector via PowerShell Add-Type (Default)
-            local type_name = "Win32K" .. os.time()
-            local signature =
-                '[DllImport("user32.dll")] public static extern void keybd_event(byte b, byte s, uint f, uint e);'
-            local script = string.format(
-                "$t = Add-Type -MemberDefinition '%s' -Name '%s' -Namespace 'Win32' -PassThru;",
-                signature,
-                type_name
-            )
-
-            for _, ev in ipairs(all_events) do
-                script = script .. string.format("$t::keybd_event(0x%X,0,%d,0);", ev[1], ev[2])
-            end
-
-            mp.command_native_async({
-                name = "subprocess",
-                args = { "powershell", "-NoProfile", "-Command", script },
-                playback_only = false,
-                capture_stdout = false,
-                capture_stderr = false,
-            }, function() end)
-        end
-    end
-end
+-- set_clipboard is now handled by the clipboard module
 
 render_search = function()
     if not FSM.SEARCH_MODE then
@@ -2598,331 +2335,7 @@ local function cmd_adjust_sec_sub_pos(delta)
     FSM.native_sec_sub_pos = new_pos
 end
 
-local function cmd_cycle_sec_sid()
-    if FSM.DRUM_WINDOW ~= "OFF" then
-        osd_cards.show_osd("X")
-        return
-    end
-    if not FSM.native_sub_vis then
-        osd_cards.show_osd("X")
-        return
-    end
-    -- Prevent contradictory state overlays: while Secondary Sub Only mode is active,
-    -- blocking OFF/cycle on secondary sid keeps the mode deterministic.
-    if FSM.SEC_ONLY_MODE then
-        osd_cards.show_osd("X")
-        return
-    end
-    FSM.native_sec_sub_vis = true
-    -- [20260509180045] Synchronous Suppression: Prevent flash of native subs before next tick.
-    local use_osd_for_srt = (
-        Options.srt_font_name ~= ""
-        or Options.srt_font_bold
-        or Options.srt_font_size > 0
-    )
-    local sec_use_osd = (FSM.DRUM == "ON") or (not Tracks.sec.is_ass and use_osd_for_srt)
-    if sec_use_osd then
-        mp.set_property_bool("secondary-sub-visibility", false)
-    else
-        mp.set_property_bool("secondary-sub-visibility", true)
-    end
-
-    FSM.__auto_track_selected_sec = true
-
-    local tracks = mp.get_property_native("track-list") or {}
-    local current_sid = tonumber(mp.get_property("secondary-sid") or 0) or 0
-    local primary_sid = tonumber(mp.get_property("sid") or 0) or 0
-
-    -- Filter for supported tracks (External files only)
-    local supported = { 0 } -- Always include OFF (0)
-    local internal_count = 0
-    for _, t in ipairs(tracks) do
-        if t.type == "sub" then
-            if t.external then
-                local tid = tonumber(t.id)
-                -- Skip the track that is already selected as primary to avoid conflicts
-                if tid and tid ~= primary_sid then
-                    table.insert(supported, tid)
-                end
-            else
-                internal_count = internal_count + 1
-            end
-        end
-    end
-    table.sort(supported)
-
-    if #supported <= 1 then
-        local msg = "Secondary Subtitles: None available"
-        if internal_count > 0 then
-            msg = msg .. " [" .. internal_count .. " built-in unsupported]"
-        end
-        osd_cards.show_osd(msg)
-        mp.set_property("secondary-sid", "no")
-        return
-    end
-
-    -- Dynamically initialize last_sec_sid and prev_sec_sid history if not set
-    if not FSM.last_sec_sid then
-        local supported_active = {}
-        for _, t in ipairs(tracks) do
-            if t.type == "sub" and t.external then
-                local tid = tonumber(t.id)
-                if tid and tid ~= primary_sid then
-                    table.insert(supported_active, tid)
-                end
-            end
-        end
-        table.sort(supported_active)
-        FSM.last_sec_sid = supported_active[1] or 0
-        FSM.prev_sec_sid = supported_active[2] or supported_active[1] or 0
-    end
-
-    -- Update history if current active track shifted outside of our script actions
-    if current_sid ~= 0 and current_sid ~= FSM.last_sec_sid then
-        FSM.prev_sec_sid = FSM.last_sec_sid
-        FSM.last_sec_sid = current_sid
-    end
-
-    local now = mp.get_time()
-    local elapsed = now - (FSM.last_sec_sub_cycle_time or 0)
-    local threshold = tonumber(Options.sub_switch_threshold) or 1.0
-
-    local next_sid = 0
-    if elapsed > threshold then
-        -- Slow tap: toggle behavior
-        if FSM.prev_sec_sid == 0 or FSM.prev_sec_sid == FSM.last_sec_sid then
-            -- Toggle between active and OFF
-            if current_sid == 0 then
-                next_sid = FSM.last_sec_sid
-            else
-                next_sid = 0
-            end
-        else
-            -- Toggle between the last two active tracks
-            if current_sid == FSM.last_sec_sid then
-                next_sid = FSM.prev_sec_sid
-            else
-                next_sid = FSM.last_sec_sid
-            end
-        end
-    else
-        -- Rapid tap: cycle through all tracks sequentially
-        local found = false
-        for i = 1, #supported do
-            if supported[i] == current_sid then
-                next_sid = supported[i % #supported + 1]
-                found = true
-                break
-            end
-        end
-        if not found then
-            next_sid = supported[2] or 0
-        end
-    end
-
-    FSM.last_sec_sub_cycle_time = now
-
-    -- Validate that chosen next_sid exists in supported list, fallback to supported[2] if not
-    local next_sid_valid = false
-    for _, sid in ipairs(supported) do
-        if sid == next_sid then
-            next_sid_valid = true
-            break
-        end
-    end
-    if not next_sid_valid then
-        next_sid = supported[2] or 0
-    end
-
-    if next_sid == 0 then
-        mp.set_property("secondary-sid", "no")
-    else
-        mp.set_property_number("secondary-sid", next_sid)
-
-        -- Update the last active tracks history
-        if next_sid ~= FSM.last_sec_sid then
-            FSM.prev_sec_sid = FSM.last_sec_sid
-            FSM.last_sec_sid = next_sid
-        end
-    end
-
-    local label = "OFF"
-    if next_sid ~= 0 then
-        for _, t in ipairs(tracks) do
-            if t.type == "sub" and tonumber(t.id) == next_sid then
-                local path = t["external-filename"] or t["external_filename"] or ""
-                local lang_detected = nil
-
-                if path ~= "" then
-                    lang_detected = companion.extract_lang_from_title_or_path(t.title, path)
-                end
-                if not lang_detected and t.title then
-                    lang_detected = companion.extract_lang_from_title_or_path(t.title, nil)
-                end
-
-                if lang_detected then
-                    label = lang_detected
-                else
-                    local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown")
-                            and t.lang:upper()
-                        or nil
-                    if lang_lbl then
-                        label = lang_lbl
-                    else
-                        label = t.title or "ON"
-                        if label:find("%.") then
-                            local base_label = label:match("([^%.]+)%.")
-                            if base_label then
-                                label = base_label
-                            end
-                        end
-                    end
-                end
-                break
-            end
-        end
-    end
-
-    local final_msg = "Secondary Sub: " .. label
-    if internal_count > 0 then
-        final_msg = final_msg .. " [" .. internal_count .. " built-in hidden]"
-    end
-    osd_cards.show_osd(final_msg)
-    drum_osd:update()
-end
-
-function cmd_cycle_audio()
-    companion.ensure_companion_audio_tracks(mp.get_property("path"))
-
-    local tracks = mp.get_property_native("track-list") or {}
-    local current_aid = tonumber(mp.get_property("aid") or 0) or 0
-    if current_aid == 0 then
-        local aid_str = mp.get_property("aid")
-        if aid_str == "no" then
-            current_aid = 0
-        end
-    end
-
-    local supported = { 0 }
-    local supported_active = {}
-    for _, t in ipairs(tracks) do
-        if t.type == "audio" then
-            local tid = tonumber(t.id)
-            if tid then
-                table.insert(supported, tid)
-                table.insert(supported_active, tid)
-            end
-        end
-    end
-    table.sort(supported)
-    table.sort(supported_active)
-
-    if #supported <= 1 then
-        osd_cards.show_osd("Audio: None available")
-        return
-    end
-
-    -- Dynamically initialize last_aid and prev_aid history if not set
-    if not FSM.last_aid then
-        FSM.last_aid = supported_active[1] or 0
-        FSM.prev_aid = supported_active[2] or supported_active[1] or 0
-    end
-
-    -- Update history if current active track shifted outside of our script actions
-    if current_aid ~= 0 and current_aid ~= FSM.last_aid then
-        FSM.prev_aid = FSM.last_aid
-        FSM.last_aid = current_aid
-    end
-
-    local now = mp.get_time()
-    local elapsed = now - (FSM.last_audio_cycle_time or 0)
-    local threshold = tonumber(Options.audio_switch_threshold) or 1.0
-
-    local next_aid = 0
-    if elapsed > threshold then
-        -- Slow tap: toggle between last two active tracks
-        if current_aid == FSM.last_aid then
-            next_aid = FSM.prev_aid
-        else
-            next_aid = FSM.last_aid
-        end
-    else
-        -- Rapid tap: cycle through all tracks sequentially
-        local found = false
-        for i = 1, #supported do
-            if supported[i] == current_aid then
-                next_aid = supported[i % #supported + 1]
-                found = true
-                break
-            end
-        end
-        if not found then
-            next_aid = supported[2] or 0
-        end
-    end
-
-    if next_aid == 0 then
-        mp.set_property("aid", "no")
-    else
-        mp.set_property_number("aid", next_aid)
-
-        -- Update the last active tracks history
-        if next_aid ~= FSM.last_aid then
-            FSM.prev_aid = FSM.last_aid
-            FSM.last_aid = next_aid
-        end
-    end
-
-    FSM.last_audio_cycle_time = now
-
-    local label = "OFF"
-    if next_aid ~= 0 then
-        for _, t in ipairs(tracks) do
-            if tonumber(t.id) == next_aid then
-                local lang_lbl = (t.lang and t.lang ~= "und" and t.lang ~= "unknown")
-                        and t.lang:upper()
-                    or nil
-                local title_lbl = (t.title and t.title ~= "") and t.title or nil
-
-                if lang_lbl and title_lbl and title_lbl:upper() == lang_lbl then
-                    title_lbl = nil
-                end
-
-                if (not title_lbl) and t.external then
-                    local ext_path = t["external-filename"] or t["external_filename"] or ""
-                    if ext_path ~= "" then
-                        local ext_file = ext_path:gsub("\\", "/"):match("([^/]+)$") or ""
-                        local ext = ext_file:match("%.([^%.]+)$") or ""
-                        local ext_stem = ext_file
-                        if #ext > 0 then
-                            ext_stem = ext_file:sub(1, #ext_file - #ext - 1)
-                        end
-                        local base_name, postfix =
-                            companion.split_base_and_language_postfix(ext_stem)
-                        if postfix and base_name and base_name ~= "" then
-                            title_lbl = base_name
-                        elseif ext_stem ~= "" then
-                            title_lbl = ext_stem
-                        end
-                    end
-                end
-
-                if lang_lbl and title_lbl then
-                    label = lang_lbl .. " - " .. title_lbl
-                elseif lang_lbl then
-                    label = lang_lbl
-                elseif title_lbl then
-                    label = title_lbl
-                else
-                    label = "TRACK " .. next_aid
-                end
-                break
-            end
-        end
-    end
-
-    osd_cards.show_osd("Audio: " .. label)
-end
+-- cmd_cycle_sec_sid and cmd_cycle_audio are now handled by track_cycling module
 
 local function cmd_toggle_osc()
     FSM.OSC_VIS = (FSM.OSC_VIS + 1) % 3
@@ -3233,12 +2646,7 @@ local function register_global_position_keys()
 end
 register_global_position_keys()
 
-local function register_global_playback_keys()
-    local bind = keybinding_utils.bind
-    -- Note: replay-subtitle is handled globally via the named binding in input.conf.
-    -- No direct key binding needed here to avoid double-fire collision.
-end
-register_global_playback_keys()
+
 
 -- Periodic TSV sync and OSD refresh
 if Options.anki_sync_period > 0 then

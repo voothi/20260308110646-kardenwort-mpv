@@ -37,7 +37,7 @@ local apply_tooltip_ass
 
 local calculate_ass_alpha = text_utils.calculate_ass_alpha
 
-function normalize_tooltip_native_box_policy()
+local function normalize_tooltip_native_box_policy()
     local policy = tostring(Options.tooltip_native_box_policy or "auto"):lower()
     if policy ~= "auto" and policy ~= "neutralize" and policy ~= "override" then
         return "auto"
@@ -45,7 +45,7 @@ function normalize_tooltip_native_box_policy()
     return policy
 end
 
-function get_tooltip_parent_mode()
+local function get_tooltip_parent_mode()
     if FSM.DRUM_WINDOW ~= "OFF" then
         return "dw"
     end
@@ -55,7 +55,7 @@ function get_tooltip_parent_mode()
     return "srt"
 end
 
-function build_tooltip_style_context(parent_mode)
+local function build_tooltip_style_context(parent_mode)
     parent_mode = parent_mode or get_tooltip_parent_mode()
     local policy = normalize_tooltip_native_box_policy()
     local style_is_bgbox = (FSM.osd_border_style == "background-box")

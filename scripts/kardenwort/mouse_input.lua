@@ -41,7 +41,7 @@ end
 
 -- --- Functions below match exact signatures expected by structural tests ---
 
-function dw_get_mouse_osd()
+local function dw_get_mouse_osd()
     local mouse = mp.get_property_native("mouse-pos")
     if not mouse then
         return 960, 540
@@ -361,7 +361,7 @@ local function dw_sync_cursor_to_mouse()
     end
 end
 
-function get_dw_drag_threshold_px()
+local function get_dw_drag_threshold_px()
     local threshold = tonumber(Options.dw_mouse_drag_threshold_px) or 5
     if threshold < 0 then
         return 0
@@ -369,7 +369,7 @@ function get_dw_drag_threshold_px()
     return threshold
 end
 
-function get_dw_mouse_auto_scroll_interval()
+local function get_dw_mouse_auto_scroll_interval()
     local interval = tonumber(Options.dw_mouse_auto_scroll_interval) or 0.05
     if interval <= 0 then
         return 0.05
@@ -377,7 +377,7 @@ function get_dw_mouse_auto_scroll_interval()
     return interval
 end
 
-function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
+local function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
     local down_x = FSM.DW_MOUSE_DOWN_X or osd_x
     local down_y = FSM.DW_MOUSE_DOWN_Y or osd_y
     local dx = math.abs(osd_x - down_x)
@@ -386,7 +386,7 @@ function dw_pointer_exceeded_drag_threshold(osd_x, osd_y)
     return (dx > threshold or dy > threshold)
 end
 
-function dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x)
+local function dw_resolve_neighbor_word(zones, target_sub_idx, ref_y_top, osd_x)
     local best_zone = nil
     local best_dy = math.huge
     for _, z in ipairs(zones) do

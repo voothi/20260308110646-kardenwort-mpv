@@ -6,18 +6,6 @@ local mp = require("mp")
 
 local M = {}
 
-function M.init(opts)
-    assert(opts, "FATAL: opts dependency missing")
-    M.FSM.AUTOPAUSE = opts.autopause_default and "ON" or "OFF"
-    M.FSM.KARAOKE = opts.karaoke_every_word and "WORD" or "PHRASE"
-    M.FSM.BOOK_MODE = opts.book_mode or false
-    M.FSM.IMMERSION_MODE = (opts.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE"
-    M.FSM.native_sub_vis = mp.get_property_bool("sub-visibility", true)
-    M.FSM.native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true)
-    M.FSM.native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10)
-    M.FSM.osd_border_style = mp.get_property("osd-border-style")
-end
-
 M.FSM = {
     -- Media Context
     MEDIA_STATE = "NO_SUBS",
@@ -166,5 +154,17 @@ M.Tracks = {
     pri = { id = 0, is_ass = false, path = nil, subs = {} },
     sec = { id = 0, is_ass = false, path = nil, subs = {} },
 }
+
+function M.init(opts)
+    assert(opts, "FATAL: opts dependency missing")
+    M.FSM.AUTOPAUSE = opts.autopause_default and "ON" or "OFF"
+    M.FSM.KARAOKE = opts.karaoke_every_word and "WORD" or "PHRASE"
+    M.FSM.BOOK_MODE = opts.book_mode or false
+    M.FSM.IMMERSION_MODE = (opts.immersion_mode_default == "MOVIE") and "MOVIE" or "PHRASE"
+    M.FSM.native_sub_vis = mp.get_property_bool("sub-visibility", true)
+    M.FSM.native_sec_sub_vis = mp.get_property_bool("secondary-sub-visibility", true)
+    M.FSM.native_sec_sub_pos = mp.get_property_number("secondary-sub-pos", 10)
+    M.FSM.osd_border_style = mp.get_property("osd-border-style")
+end
 
 return M
