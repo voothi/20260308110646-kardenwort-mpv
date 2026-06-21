@@ -37,6 +37,16 @@ def robust_query_state(ipc, retries=5):
         time.sleep(0.5)
     return query_kardenwort_state(ipc)
 
+
+def wait_for_state(ipc, key, value, timeout=2.0):
+    start = time.time()
+    while time.time() - start < timeout:
+        state = query_kardenwort_state(ipc)
+        if state.get(key) == value:
+            return True
+        time.sleep(0.1)
+    return False
+
 class TestHistoricalRegressions:
 
     def test_configurable_scaling_strength(self, mpv):
@@ -63,15 +73,11 @@ class TestHistoricalRegressions:
         
         # Seek prev -> should wrap to last
         ipc.command(['script-message-to', 'kardenwort', 'seek_prev'])
-        time.sleep(0.5)
-        state = robust_query_state(ipc)
-        assert state['active_sub_index'] == state['pri_sub_count']
+        assert wait_for_state(ipc, 'active_sub_index', state['pri_sub_count'], timeout=2.0)
         
         # Seek next -> should wrap back to 1
         ipc.command(['script-message-to', 'kardenwort', 'seek_next'])
-        time.sleep(0.5)
-        state = robust_query_state(ipc)
-        assert state['active_sub_index'] == 1
+        assert wait_for_state(ipc, 'active_sub_index', 1, timeout=2.0)
 
     def test_deactivated_pointer_logic(self, mpv):
         """Verify cursor is -1 on Drum Window open (deactivated-pointer-logic)."""
