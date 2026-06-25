@@ -52,6 +52,7 @@ local config = require("config")
 local state = require("state")
 local clipboard_module = require("clipboard")
 local track_cycling_module = require("track_cycling")
+local quiz_sync = require("quiz_sync")
 local utils = require("mp.utils")
 local options = require("mp.options")
 local msg = require("mp.msg")
@@ -381,6 +382,10 @@ tsv_export.init(FSM, Options, Tracks, Diagnostic, tsv_helpers)
 
 -- companion — companion track discovery.
 companion.init(FSM, Options, Diagnostic)
+
+-- quiz_sync — sync to external quiz application.
+quiz_sync.init(FSM, Options, Diagnostic)
+cmd_sync_to_quiz = quiz_sync.cmd_sync_to_quiz
 
 -- search — Universal Subtitle Search HUD.
 -- Helpers (render_utils.wrap_tokens, dw_get_mouse_osd, manage_ui_border_override,
@@ -2632,6 +2637,9 @@ mp.add_key_binding(nil, "toggle-record-file", cmd_open_record_file)
 mp.add_key_binding(nil, "cycle-immersion-mode", cmd_cycle_immersion_mode)
 mp.add_key_binding(nil, "toggle-help", cmd_toggle_help)
 mp.add_key_binding(nil, "cycle-audio", cmd_cycle_audio)
+mp.add_key_binding(nil, "sync-to-quiz", function()
+    cmd_sync_to_quiz()
+end)
 
 local function register_global_position_keys()
     local bind = keybinding_utils.bind
@@ -2744,5 +2752,6 @@ test_hooks.init(FSM, Options, Tracks, Diagnostic, {
     sync_ctrl_pending_list = sync_ctrl_pending_list,
     normalize_key_display = help_hud.normalize_key_display,
     cmd_toggle_help = cmd_toggle_help,
+    cmd_sync_to_quiz = cmd_sync_to_quiz,
 })
 test_hooks.register_all()
