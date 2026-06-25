@@ -175,7 +175,14 @@ def test_identical_adjacent_highlights_integration(mpv):
             time.sleep(0.2)
 
         assert state2.get("anki_db_size", 0) == expected_size_2, "FSM must reload two-row TSV size"
-        render_two = query_kardenwort_render(ipc, "dw")
+        # Poll until the render is updated with the depth-2 highlight color to avoid race conditions.
+        deadline3 = time.time() + 4.0
+        render_two = ""
+        while time.time() < deadline3:
+            render_two = query_kardenwort_render(ipc, "dw")
+            if "005DAE" in render_two:
+                break
+            time.sleep(0.1)
         assert "005DAE" in render_two, (
             "Expected depth-2 orange highlight color after adding second identical row"
         )
