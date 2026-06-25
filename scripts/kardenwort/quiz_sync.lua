@@ -20,6 +20,22 @@ function M.init(fsm, opts, diagnostic)
     Diagnostic = diagnostic
 end
 
+local function discover_quiz_script_path()
+    local script_dir = mp.get_script_directory()
+    if not script_dir then return nil end
+    local parent_dir = utils.join_path(script_dir, "../../..")
+    local dirs = utils.readdir(parent_dir, "dirs") or {}
+    for _, d in ipairs(dirs) do
+        if d:find("kardenwort-quiz", 1, true) then
+            local candidate_path = utils.join_path(utils.join_path(parent_dir, d), "tsv_quiz.lua")
+            if utils.file_info(candidate_path) then
+                return candidate_path
+            end
+        end
+    end
+    return nil
+end
+
 function M.cmd_sync_to_quiz()
     local osd_cards = require("osd_cards")
 
@@ -105,9 +121,47 @@ function M.cmd_sync_to_quiz()
         capture_stderr = false,
     }, function(success, result, error)
         if not success or (result and result.status ~= 0) then
-            local err_msg = error or (result and result.stderr) or "unknown error"
-            Diagnostic.error("Failed to send sync command to quiz broker: " .. tostring(err_msg))
-            osd_cards.show_osd("Quiz Sync: Failed (is the quiz running?)")
+            local script_path = Options.quiz_script_path
+            if not script_path or script_path == "" then
+                script_path = discover_quiz_script_path()
+            end
+            if script_path and script_path ~= "" then
+                local tsv_export = require("tsv_export")
+                local tsv_path = tsv_export.get_tsv_path()
+                if tsv_path and tsv_path ~= "" then
+                    local lua_path = Options.lua_path or "lua"
+                    local clean_tsv_path = tsv_path:gsub('"', '')
+                    local clean_script_path = script_path:gsub('"', '')
+                    Diagnostic.info("Quiz is not running. Launching quiz for: " .. clean_tsv_path)
+                    osd_cards.show_osd("Launching Quiz...")
+                    
+                    if is_windows then
+                        local cmd_string = string.format('start "" "%s" "%s" "%s" --sync %s %f', lua_path, clean_script_path, clean_tsv_path, zid, time_pos)
+                        mp.command_native_async({
+                            name = "subprocess",
+                            args = { "cmd.exe", "/c", cmd_string },
+                            playback_only = false,
+                            capture_stdout = false,
+                            capture_stderr = false,
+                        }, function(launch_success, launch_result, launch_error)
+                            if not launch_success or (launch_result and launch_result.status ~= 0) then
+                                Diagnostic.error("Failed to launch quiz utility: " .. tostring(launch_error or (launch_result and launch_result.stderr)))
+                                osd_cards.show_osd("Quiz Sync: Launch Failed")
+                            end
+                        end)
+                    else
+                        Diagnostic.warn("Auto-launch not implemented for non-Windows platforms")
+                        osd_cards.show_osd("Quiz Sync: Auto-launch only on Windows")
+                    end
+                else
+                    Diagnostic.warn("Could not determine TSV path, cannot launch quiz")
+                    osd_cards.show_osd("Quiz Sync: No TSV file found")
+                end
+            else
+                local err_msg = error or (result and result.stderr) or "unknown error"
+                Diagnostic.error("Failed to send sync command to quiz broker: " .. tostring(err_msg))
+                osd_cards.show_osd("Quiz Sync: Failed (is the quiz running?)")
+            end
         else
             Diagnostic.info("Successfully sent sync command to quiz broker")
             osd_cards.show_osd("Quiz Sync: OK")

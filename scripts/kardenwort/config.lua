@@ -361,6 +361,8 @@ M.Options = {
     companion_subtitle_attach_on_load = true,
     quiz_integration = false,
     quiz_pipe_path = [[\\.\pipe\kardenwort-quiz]],
+    quiz_script_path = "",
+    lua_path = "lua",
 }
 
 function M.validate_config(opts, diagnostic, is_valid_key_fn)
