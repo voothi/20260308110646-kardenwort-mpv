@@ -91,14 +91,33 @@ function M.cmd_sync_to_quiz()
     -- Format: {'zid': '<zid>', 'time': <time>, 'postfix': '<postfix>'}
     local py_code
     if is_windows then
-        py_code = string.format(
-            "from multiprocessing.connection import Client; c=Client(r'%s', family='%s'); c.send({'zid': '%s', 'time': %f, 'postfix': '%s'}); c.close()",
-            pipe_path,
-            family,
-            zid,
-            time_pos,
-            current_postfix or ""
-        )
+        py_code = [[
+import subprocess, sys
+try:
+    from multiprocessing.connection import Client
+    c = Client(r']] .. pipe_path .. [[', family=']] .. family .. [[')
+    c.send({'zid': ']] .. zid .. [[', 'time': ]] .. time_pos .. [[, 'postfix': ']] .. (current_postfix or "") .. [['})
+    c.close()
+    sys.exit(0)
+except Exception:
+    pass
+
+try:
+    cmd = 'wmic process where "name=\'lua.exe\' or name=\'wlua.exe\'" get commandline'
+    out = subprocess.check_output(cmd, shell=True, startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=0)).decode('utf-8', errors='ignore')
+    if any('tsv_quiz.lua' in line for line in out.splitlines()):
+        sys.exit(2)
+except Exception:
+    try:
+        cmd = ["powershell", "-NoProfile", "-Command", "Get-CimInstance Win32_Process -Filter \"Name='lua.exe' or Name='wlua.exe'\" | Select-Object -ExpandProperty CommandLine"]
+        out = subprocess.check_output(cmd, startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=0)).decode('utf-8', errors='ignore')
+        if any('tsv_quiz.lua' in line for line in out.splitlines()):
+            sys.exit(2)
+    except Exception:
+        pass
+
+sys.exit(1)
+]]
     else
         py_code = string.format(
             "from multiprocessing.connection import Client; c=Client('%s', family='%s'); c.send({'zid': '%s', 'time': %f, 'postfix': '%s'}); c.close()",
@@ -121,6 +140,11 @@ function M.cmd_sync_to_quiz()
         capture_stderr = false,
     }, function(success, result, error)
         if not success or (result and result.status ~= 0) then
+            if result and result.status == 2 then
+                Diagnostic.info("Quiz is already running but busy/not at prompt.")
+                osd_cards.show_osd("Quiz Sync: Quiz is busy")
+                return
+            end
             local script_path = Options.quiz_script_path
             if not script_path or script_path == "" then
                 script_path = discover_quiz_script_path()
