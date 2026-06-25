@@ -136,10 +136,9 @@ function M.cmd_sync_to_quiz()
                     osd_cards.show_osd("Launching Quiz...")
                     
                     if is_windows then
-                        local cmd_string = string.format('start "" "%s" "%s" "%s" --sync %s %f', lua_path, clean_script_path, clean_tsv_path, zid, time_pos)
                         mp.command_native_async({
                             name = "subprocess",
-                            args = { "cmd.exe", "/c", cmd_string },
+                            args = { "cmd.exe", "/c", "start", "", lua_path, clean_script_path, clean_tsv_path, "--sync", zid, string.format("%f", time_pos) },
                             playback_only = false,
                             capture_stdout = false,
                             capture_stderr = false,
