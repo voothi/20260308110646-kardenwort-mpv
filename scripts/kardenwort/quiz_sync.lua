@@ -21,20 +21,25 @@ function M.init(fsm, opts, diagnostic)
 end
 
 function M.cmd_sync_to_quiz()
+    local osd_cards = require("osd_cards")
+
     if Options.quiz_integration == false then
         Diagnostic.info("Quiz integration is disabled (quiz_integration = false)")
+        osd_cards.show_osd("Quiz Sync: Disabled (enable in mpv.conf)")
         return
     end
 
     local path = mp.get_property("path")
     if not path or path == "" then
         Diagnostic.warn("No file loaded, cannot sync to quiz")
+        osd_cards.show_osd("Quiz Sync: No file loaded")
         return
     end
 
     local time_pos = mp.get_property_number("time-pos")
     if not time_pos then
         Diagnostic.warn("No playback time available, cannot sync to quiz")
+        osd_cards.show_osd("Quiz Sync: Playback time unavailable")
         return
     end
 
@@ -56,6 +61,7 @@ function M.cmd_sync_to_quiz()
     local zid = base_prefix:match("(%d%d%d%d%d%d%d%d%d%d%d%d%d%d)")
     if not zid then
         Diagnostic.warn("Could not extract a 14-digit ZID from media filename: " .. filename)
+        osd_cards.show_osd("Quiz Sync: No ZID in filename")
         return
     end
 
@@ -89,6 +95,7 @@ function M.cmd_sync_to_quiz()
     end
 
     Diagnostic.info(string.format("Syncing to quiz: ZID %s, time %.2f, postfix %s", zid, time_pos, current_postfix or "nil"))
+    osd_cards.show_osd("Syncing to quiz...")
 
     mp.command_native_async({
         name = "subprocess",
@@ -100,8 +107,10 @@ function M.cmd_sync_to_quiz()
         if not success or (result and result.status ~= 0) then
             local err_msg = error or (result and result.stderr) or "unknown error"
             Diagnostic.error("Failed to send sync command to quiz broker: " .. tostring(err_msg))
+            osd_cards.show_osd("Quiz Sync: Failed (is the quiz running?)")
         else
             Diagnostic.info("Successfully sent sync command to quiz broker")
+            osd_cards.show_osd("Quiz Sync: OK")
         end
     end)
 end
