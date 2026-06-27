@@ -88,7 +88,7 @@ function M.cmd_sync_to_quiz()
     local family = is_windows and "AF_PIPE" or "AF_UNIX"
 
     -- Send the message to the quiz IPC socket in a background Python subprocess
-    -- Format: {'zid': '<zid>', 'time': <time>, 'postfix': '<postfix>'}
+    -- Format: {'zid': '<zid>', 'timestamp': <timestamp>, 'postfix': '<postfix>'}
     local py_code
     if is_windows then
         py_code = [[
@@ -96,7 +96,7 @@ import subprocess, sys
 try:
     from multiprocessing.connection import Client
     c = Client(r']] .. pipe_path .. [[', family=']] .. family .. [[')
-    c.send({'zid': ']] .. zid .. [[', 'time': ]] .. time_pos .. [[, 'postfix': ']] .. (current_postfix or "") .. [['})
+    c.send({'zid': ']] .. zid .. [[', 'timestamp': ]] .. time_pos .. [[, 'postfix': ']] .. (current_postfix or "") .. [['})
     c.close()
     sys.exit(0)
 except Exception:
@@ -120,7 +120,7 @@ sys.exit(1)
 ]]
     else
         py_code = string.format(
-            "from multiprocessing.connection import Client; c=Client('%s', family='%s'); c.send({'zid': '%s', 'time': %f, 'postfix': '%s'}); c.close()",
+            "from multiprocessing.connection import Client; c=Client('%s', family='%s'); c.send({'zid': '%s', 'timestamp': %f, 'postfix': '%s'}); c.close()",
             pipe_path,
             family,
             zid,

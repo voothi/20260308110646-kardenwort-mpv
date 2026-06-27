@@ -403,7 +403,7 @@ local function resolve_anki_field(
     if source == "source_url" then
         return escape_tsv(find_source_url())
     end
-    if source == "time" then
+    if source == "timestamp" then
         return string.format("%.3f", time_pos)
     end
     if source == "deck_name" then
@@ -1125,7 +1125,7 @@ local function load_anki_tsv(force, quiet)
                 table.insert(term_cols, i)
             elseif src == "source_sentence" then
                 table.insert(ctx_cols, i)
-            elseif src == "time" then
+            elseif src == "timestamp" then
                 time_col = i
             elseif src == "source_index" then
                 index_col = i
@@ -1160,7 +1160,7 @@ local function load_anki_tsv(force, quiet)
         if #config.fields > 0 then
             header_line = table.concat(config.fields, "\t")
         else
-            header_line = "Term\tSentence\tTime"
+            header_line = "Term\tSentence\tTimestamp"
         end
 
         local deck_col = -1
