@@ -8,11 +8,12 @@ import shutil
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
 # ==============================================================================
 # The display name of the Windows context menu shortcut (excluding .lnk extension)
-SHORTCUT_DISPLAY_NAME = "Kardenwort Sub Viewer"
+SHORTCUT_DISPLAY_NAME = "Kardenwort View Subs"
 
 # Legacy shortcut names to search for and automatically clean up during install
 LEGACY_SHORTCUT_NAMES = (
     "Kardenwort Subtitle Only",
+    "Kardenwort Sub Viewer",
 )
 
 # Standard SendTo location (Windows %APPDATA% mapping)

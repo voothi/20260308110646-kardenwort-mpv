@@ -19,8 +19,8 @@ import sys
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-SHORTCUT_DISPLAY_NAME = "Kardenwort Sub TTS"
-LEGACY_SHORTCUT_NAMES = ()   # Add old names here if a rename ever happens
+SHORTCUT_DISPLAY_NAME = "Kardenwort Generate TTS"
+LEGACY_SHORTCUT_NAMES = ("Kardenwort Sub TTS",)   # Add old names here if a rename ever happens
 SENDTO_DIRECTORY = r"%APPDATA%\Microsoft\Windows\SendTo"
 # ==============================================================================
 

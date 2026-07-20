@@ -20,10 +20,10 @@ import subprocess
 # GLOBAL CONFIGURATION PARAMETERS (Feel free to customize)
 # ==============================================================================
 # The display name of the Windows context menu shortcut (excluding .lnk extension)
-SHORTCUT_DISPLAY_NAME = "Kardenwort YouTube Downloader"
+SHORTCUT_DISPLAY_NAME = "Kardenwort Download YouTube"
 
 # Legacy shortcut names to search for and automatically clean up during install
-LEGACY_SHORTCUT_NAMES = ("Download YouTube Video",)
+LEGACY_SHORTCUT_NAMES = ("Kardenwort YouTube Downloader", "Download YouTube Video")
 
 # Standard SendTo location (Windows %APPDATA% mapping)
 SENDTO_DIRECTORY = r'%APPDATA%\Microsoft\Windows\SendTo'

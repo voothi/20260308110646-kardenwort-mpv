@@ -16,8 +16,8 @@ import sys
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-SHORTCUT_DISPLAY_NAME = "Kardenwort Sub Translator"
-LEGACY_SHORTCUT_NAMES = ()
+SHORTCUT_DISPLAY_NAME = "Kardenwort Translate Subs"
+LEGACY_SHORTCUT_NAMES = ("Kardenwort Sub Translator",)
 SENDTO_DIRECTORY = r"%APPDATA%\Microsoft\Windows\SendTo"
 # ==============================================================================
 
