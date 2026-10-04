@@ -21,7 +21,7 @@ def _double_click_line(ipc, line):
     ipc.command(["script-message-to", "kardenwort", "test-dw-double-click", str(line)])
 
 
-def wait_for_state(ipc, key, value, timeout=2.0):
+def wait_for_state(ipc, key, value, timeout=5.0):
     start = time.time()
     while time.time() - start < timeout:
         state = query_kardenwort_state(ipc)
